@@ -101,12 +101,18 @@ jobs:
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
           exit ${PIPESTATUS[0]}
 
+      - name: Prepare PR number for comment workflow
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        run: |
+          mkdir -p ${{ runner.temp }}/profile-check-results
+          echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
+
       - name: Prepare comment artifact
         if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
-          mkdir -p ${{ runner.temp }}/profile-check-results
-
           {
+            # Marker matched by check_profiles_comment.yml to delete prior comments.
+            echo "<!-- profile-validation-comment -->"
             echo "## :x: Profile Validation Errors"
             echo ""
 
@@ -150,10 +156,8 @@ jobs:
             echo "*Please fix the above errors and push a new commit.*"
           } > ${{ runner.temp }}/profile-check-results/pr_comment.md
 
-          echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
-
       - name: Upload comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v7
         with:
           name: profile-check-results
