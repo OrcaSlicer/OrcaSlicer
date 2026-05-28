@@ -2871,6 +2871,14 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
 
     if (use_default_nozzle_volume_type) {
         project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+    } else {
+        // Orca: make sure `nozzle_volume_type` not shorter than `default_nozzle_volume_type`, otherwise we got array out of bound access
+        // later in `Tab::switch_excluder`
+        auto& opt = project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+        const auto& opt_default = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+        while (opt.size() < opt_default.size()) {
+            opt.emplace_back(opt_default[opt.size()]);
+        }
     }
 
     // Parse the initial physical printer name.
