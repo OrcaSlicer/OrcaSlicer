@@ -31,5 +31,7 @@
 	"initial_layer_line_width": "0.9",
 	"support_line_width": "0.9",
 	"skeleton_infill_line_width": "0.9",
-	"skin_infill_line_width": "0.9"
+	"skin_infill_line_width": "0.9",
+	"outer_wall_acceleration": "500",
+	"inner_wall_acceleration": "500"
 }
