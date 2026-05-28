@@ -1270,29 +1270,6 @@ int CLI::run(int argc, char **argv)
 #endif // _WIN32*/
 
     bool translate_old = false, regenerate_thumbnails = false, keep_old_params = false, remove_wrapping_detect = false, filament_color_changed = false, downward_check = false;
-    auto migrate_legacy_feature_filament_defaults = [](auto &cfg) {
-        static const char *feature_filament_keys[] = {
-            "wall_filament",
-            "sparse_infill_filament",
-            "solid_infill_filament",
-            "support_filament",
-            "support_interface_filament"
-        };
-
-        int converted_count = 0;
-        for (const char *key : feature_filament_keys) {
-            if (!cfg.has(key))
-                continue;
-
-            const ConfigOption *opt = cfg.option(key);
-            if (opt != nullptr && opt->getInt() == 1) {
-                cfg.set_key_value(key, new ConfigOptionInt(0));
-                ++converted_count;
-            }
-        }
-
-        return converted_count;
-    };
     int current_printable_width, current_printable_depth, current_printable_height, shrink_to_new_bed = 0;
     int old_printable_height = 0, old_printable_width = 0, old_printable_depth = 0;
     Pointfs old_printable_area, old_exclude_area;
@@ -1630,6 +1607,30 @@ int CLI::run(int argc, char **argv)
                     }
 
                     if ((file_version < old_version5) && !config.empty()) {
+                        auto migrate_legacy_feature_filament_defaults = [](auto &cfg) {
+                            static const char *feature_filament_keys[] = {
+                                "wall_filament",
+                                "sparse_infill_filament",
+                                "solid_infill_filament",
+                                "support_filament",
+                                "support_interface_filament"
+                            };
+
+                            int converted_count = 0;
+                            for (const char *key : feature_filament_keys) {
+                                if (!cfg.has(key))
+                                    continue;
+
+                                const ConfigOption *opt = cfg.option(key);
+                                if (opt != nullptr && opt->getInt() == 1) {
+                                    cfg.set_key_value(key, new ConfigOptionInt(0));
+                                    ++converted_count;
+                                }
+                            }
+
+                            return converted_count;
+                        };
+
                         int converted_count = migrate_legacy_feature_filament_defaults(config);
                         for (ModelObject *model_object : model.objects) {
                             converted_count += migrate_legacy_feature_filament_defaults(model_object->config);
