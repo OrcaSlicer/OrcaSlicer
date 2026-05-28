@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "fdm_filament_pa",
+	"inherits": "fdm_filament_common",
+	"from": "system",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"1"
@@ -76,7 +78,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"100"
-	],
-	"inherits": "fdm_filament_common",
-	"from": "system"
+	]
 }
