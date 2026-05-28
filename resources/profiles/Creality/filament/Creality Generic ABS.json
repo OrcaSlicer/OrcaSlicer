@@ -1,10 +1,6 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ABS",
-	"inherits": "fdm_filament_abs",
-	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.926"
@@ -66,5 +62,9 @@
 		"Creality CR-10 SE 0.6 nozzle",
 		"Creality CR-10 SE 0.8 nozzle",
 		"Creality CR-M4 0.4 nozzle"
-	]
+	],
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99"
 }

@@ -1,25 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PETG",
-	"inherits": "fdm_filament_pet",
-	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFG99",
 	"instantiation": "true",
-	"reduce_fan_stop_start_freq": [
-		"1"
-	],
-	"slow_down_for_layer_cooling": [
-		"1"
-	],
 	"fan_cooling_layer_time": [
 		"30"
-	],
-	"overhang_fan_speed": [
-		"90"
-	],
-	"overhang_fan_threshold": [
-		"25%"
 	],
 	"fan_max_speed": [
 		"90"
@@ -27,20 +11,29 @@
 	"fan_min_speed": [
 		"40"
 	],
-	"slow_down_min_speed": [
-		"10"
-	],
-	"slow_down_layer_time": [
-		"8"
-	],
 	"filament_flow_ratio": [
 		"0.95"
 	],
 	"filament_max_volumetric_speed": [
 		"10"
 	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
+	"overhang_fan_speed": [
+		"90"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"10"
 	],
 	"compatible_printers": [
 		"Creality CR-10 V2 0.4 nozzle",
@@ -96,5 +89,12 @@
 		"Creality CR-10 SE 0.6 nozzle",
 		"Creality CR-10 SE 0.8 nozzle",
 		"Creality CR-M4 0.4 nozzle"
-	]
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFG99"
 }

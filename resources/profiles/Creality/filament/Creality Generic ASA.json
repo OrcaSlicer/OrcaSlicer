@@ -1,10 +1,6 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ASA",
-	"inherits": "fdm_filament_asa",
-	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB98",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.926"
@@ -56,5 +52,9 @@
 		"Creality K1 Max (0.4 nozzle)",
 		"Creality K1 Max (0.6 nozzle)",
 		"Creality K1 Max (0.8 nozzle)"
-	]
+	],
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB98"
 }

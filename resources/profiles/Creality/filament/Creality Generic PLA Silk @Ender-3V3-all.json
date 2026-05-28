@@ -1,9 +1,6 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA Silk @Ender-3V3-all",
-	"inherits": "Creality Generic PLA @Ender-3V3-all",
-	"from": "system",
-	"setting_id": "GFSL96_00",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"7.5"
@@ -18,5 +15,8 @@
 		"Creality Ender-3 V3 0.6 nozzle",
 		"Creality Ender-3 V3 Plus 0.4 nozzle",
 		"Creality Ender-3 V3 Plus 0.6 nozzle"
-	]
+	],
+	"inherits": "Creality Generic PLA @Ender-3V3-all",
+	"from": "system",
+	"setting_id": "GFSL96_00"
 }

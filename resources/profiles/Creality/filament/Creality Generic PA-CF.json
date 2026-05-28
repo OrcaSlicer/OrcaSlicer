@@ -1,22 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PA-CF",
-	"inherits": "fdm_filament_pa",
-	"from": "system",
-	"setting_id": "GFSN99",
-	"filament_id": "GFN98",
 	"instantiation": "true",
-	"filament_type": [
-		"PA-CF"
-	],
-	"nozzle_temperature_initial_layer": [
-		"290"
-	],
-	"nozzle_temperature": [
-		"290"
-	],
-	"filament_max_volumetric_speed": [
-		"8"
+	"fan_cooling_layer_time": [
+		"5"
 	],
 	"fan_max_speed": [
 		"30"
@@ -24,23 +11,26 @@
 	"fan_min_speed": [
 		"10"
 	],
-	"overhang_fan_threshold": [
-		"0%"
+	"filament_max_volumetric_speed": [
+		"8"
 	],
-	"overhang_fan_speed": [
-		"40"
-	],
-	"fan_cooling_layer_time": [
-		"5"
+	"filament_type": [
+		"PA-CF"
 	],
 	"full_fan_speed_layer": [
 		"2"
 	],
-	"enable_pressure_advance": [
-		"1"
+	"nozzle_temperature": [
+		"290"
 	],
-	"pressure_advance": [
-		"0.01"
+	"nozzle_temperature_initial_layer": [
+		"290"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"overhang_fan_threshold": [
+		"0%"
 	],
 	"compatible_printers": [
 		"Creality CR-10 V2 0.4 nozzle",
@@ -80,5 +70,15 @@
 		"Creality Ender-5S 0.4 nozzle",
 		"Creality Ender-5 S1 0.4 nozzle",
 		"Creality Ender-6 0.4 nozzle"
+	],
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98",
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.01"
 	]
 }

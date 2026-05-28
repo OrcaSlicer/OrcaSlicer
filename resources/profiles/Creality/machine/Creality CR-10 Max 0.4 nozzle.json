@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality CR-10 Max 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -24,10 +23,9 @@
 	"printable_height": "470",
 	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",
+	"support_multi_bed_types": "1",
 	"machine_max_junction_deviation": [
 		"0.013",
 		"0"
-	],
-	"bed_model": "creality_cr10max_buildplate_model.stl",
-	"bed_texture": "creality_cr10max_buildplate_texture.svg"
+	]
 }

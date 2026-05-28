@@ -1,9 +1,6 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA-CF @K1-all",
-	"inherits": "Creality Generic PLA-CF",
-	"from": "system",
-	"setting_id": "GFSL96_00",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"
@@ -19,5 +16,8 @@
 		"Creality K1 Max (0.4 nozzle)",
 		"Creality K1 Max (0.6 nozzle)",
 		"Creality K1 Max (0.8 nozzle)"
-	]
+	],
+	"inherits": "Creality Generic PLA-CF",
+	"from": "system",
+	"setting_id": "GFSL96_00"
 }
