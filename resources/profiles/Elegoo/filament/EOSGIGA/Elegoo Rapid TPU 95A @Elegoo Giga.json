@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid TPU 95A @Elegoo Giga",
+	"renamed_from": "Elegoo RAPID TPU 95A @Elegoo Giga;Elegoo Rapid TPU 95A @EOS Giga",
+	"inherits": "Elegoo TPU @base",
+	"from": "system",
+	"setting_id": "ERTPU95AEOSG00",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.024"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"compatible_printers": [
+		"Elegoo OrangeStorm Giga 0.4 nozzle",
+		"Elegoo OrangeStorm Giga 0.6 nozzle",
+		"Elegoo OrangeStorm Giga 0.8 nozzle",
+		"Elegoo OrangeStorm Giga 1.0 nozzle"
+	]
+}

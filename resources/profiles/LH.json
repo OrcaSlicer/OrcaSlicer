@@ -1,7 +1,7 @@
 {
 	"name": "LH",
 	"url": "https://github.com/lhndo/LH-Stinger",
-	"version": "01.00.00.00",
+	"version": "02.04.00.00",
 	"force_update": "0",
 	"description": "LH 3D Printer Configuration",
 	"machine_model_list": [

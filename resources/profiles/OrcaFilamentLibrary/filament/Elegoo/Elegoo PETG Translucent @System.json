@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG Translucent @System",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "OEPETGTRANSS00",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.052"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"fan_max_speed": [
+		"35"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"compatible_printers": []
+}

@@ -1,0 +1,16 @@
+{
+	"type": "process",
+	"name": "0.40mm Standard @Elegoo N4Max 0.8 nozzle",
+	"inherits": "fdm_process_elegoo_08040",
+	"from": "system",
+	"setting_id": "PEN4Max08040",
+	"instantiation": "true",
+	"filename_format": "EN4Max_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+	"compatible_printers": [
+		"Elegoo Neptune 4 Max 0.8 nozzle"
+	],
+	"default_acceleration": "3000",
+	"min_width_top_surface": "50%",
+	"outer_wall_acceleration": "1500",
+	"renamed_from": "0.20mm Standard @Elegoo Neptune4Max (0.8 nozzle)"
+}

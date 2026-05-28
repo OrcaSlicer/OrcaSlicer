@@ -1,0 +1,10 @@
+{
+	"setting_id": "PEN204020S",
+	"from": "system",
+	"inherits": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
+	"name": "0.20mm Strength @Elegoo Neptune 0.4 nozzle",
+	"wall_sequence": "inner-outer-inner wall",
+	"reduce_crossing_wall": "1",
+	"wall_loops": "6",
+	"instantiation": "true"
+}

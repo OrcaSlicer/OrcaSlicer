@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -115,8 +115,8 @@ msgstr "Uitvoeren"
 msgid "On highlighted overhangs only"
 msgstr "Alleen op gemarkeerde overhangen"
 
-msgid "Erase all painting"
-msgstr "Alle getekende delen wissen"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Overhangende gebieden markeren"
@@ -184,6 +184,9 @@ msgstr "Gebieden markeren op basis van overhangende hoek."
 
 msgid "No auto support"
 msgstr "Geen automatische ondersteuning"
+
+msgid "Done"
+msgstr "Klaar"
 
 msgid "Support Generated"
 msgstr "Ondersteuning gegenereerd"
@@ -338,6 +341,12 @@ msgstr "Part selection"
 msgid "Fixed step drag"
 msgstr "Fixed step drag"
 
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
+
 msgid "Single sided scaling"
 msgstr "Single sided scaling"
 
@@ -486,6 +495,18 @@ msgstr "Cut position"
 msgid "Build Volume"
 msgstr "Build Volume"
 
+msgid "Multiple"
+msgstr "Meerdere"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Uitlijning"
+
 msgid "Part"
 msgstr "Onderdeel"
 
@@ -593,12 +614,6 @@ msgstr "Verbindingen bewerken"
 msgid "Add connectors"
 msgstr "Verbindingen toevoegen"
 
-msgid "Reset cut"
-msgstr "Reset cut"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Reset cutting plane and remove connectors"
-
 msgid "Upper part"
 msgstr "Bovenste deel"
 
@@ -616,6 +631,9 @@ msgstr "Na knippen"
 
 msgid "Cut to parts"
 msgstr "In delen knippen"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Reset cutting plane and remove connectors"
 
 msgid "Perform cut"
 msgstr "Knippen uitvoeren"
@@ -849,6 +867,9 @@ msgstr "Standaard lettertype"
 
 msgid "Advanced"
 msgstr "Geavanceerd"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1500,15 +1521,6 @@ msgstr ""
 "Feature 1 has been reset, \n"
 "feature 2 has been feature 1"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Warning: please select Plane's feature."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Warning: please select Point's or Circle's feature."
-
-msgid "Warning: please select two different meshes."
-msgstr "Warning: please select two different meshes."
-
 msgid "Copy to clipboard"
 msgstr "Kopieer naar klembord"
 
@@ -1559,6 +1571,15 @@ msgstr "(Moving)"
 
 msgid "Point and point assembly"
 msgstr "Point and point assembly"
+
+msgid "Warning: please select two different meshes."
+msgstr "Warning: please select two different meshes."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Warning: please select Plane's feature."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Warning: please select Point's or Circle's feature."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
@@ -1754,6 +1775,18 @@ msgstr "Dit is de nieuwste versie."
 msgid "Info"
 msgstr "Informatie"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1817,6 +1850,23 @@ msgid ""
 msgstr ""
 "De versie van Orca Slicer is te oud en dient te worden bijgewerkt naar de "
 "nieuwste versie voordat deze normaal kan worden gebruikt"
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Retrieving printer information, please try again later."
@@ -2378,11 +2428,11 @@ msgstr ""
 msgid "Edit"
 msgstr "Bewerken"
 
-msgid "Delete this filament"
-msgstr "Delete this filament"
-
 msgid "Merge with"
 msgstr "Merge with"
+
+msgid "Delete this filament"
+msgstr "Delete this filament"
 
 msgid "Select All"
 msgstr "Alles selecteren"
@@ -4736,9 +4786,6 @@ msgstr "Stop Drying"
 msgid "Proceed"
 msgstr "Doorgaan"
 
-msgid "Done"
-msgstr "Klaar"
-
 msgid "Retry"
 msgstr "Opnieuw proberen"
 
@@ -5000,33 +5047,6 @@ msgstr "Onderteuning (support) overgang"
 msgid "Mixed"
 msgstr "Gemengd"
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "mm/s²"
-msgstr "mm/s²"
-
-msgid "Flow rate"
-msgstr "Flowrate"
-
-msgid "mm³/s"
-msgstr "mm³/s"
-
-msgid "Fan speed"
-msgstr "Ventilator snelheid"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Tijd"
-
-msgid "Actual speed profile"
-msgstr "Actual speed profile"
-
-msgid "Speed: "
-msgstr "Snelheid: "
-
 msgid "Height: "
 msgstr "Hoogte: "
 
@@ -5059,6 +5079,33 @@ msgstr ""
 
 msgid "PA: "
 msgstr "PA: "
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr "mm³/s"
+
+msgid "Flow rate"
+msgstr "Flowrate"
+
+msgid "Fan speed"
+msgstr "Ventilator snelheid"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Tijd"
+
+msgid "Speed: "
+msgstr "Snelheid: "
+
+msgid "Actual speed profile"
+msgstr "Actual speed profile"
 
 msgid "Statistics of All Plates"
 msgstr "Statistics of All Plates"
@@ -5393,9 +5440,6 @@ msgstr "Oriënteren"
 msgid "Arrange options"
 msgstr "Rangschik opties"
 
-msgid "Spacing"
-msgstr "Uitlijning"
-
 msgid "0 means auto spacing."
 msgstr "0 means auto spacing."
 
@@ -5530,7 +5574,7 @@ msgstr "Volume:"
 msgid "Size:"
 msgstr "Maat:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5929,6 +5973,15 @@ msgstr "Huidige configuratie exporteren naar bestanden"
 msgid "Export"
 msgstr "Exporteren"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Stop"
 
@@ -6054,6 +6107,9 @@ msgid "View"
 msgstr "Weergave"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -8690,15 +8746,6 @@ msgstr ""
 "Als dit is ingeschakeld wordt de vrij beweegbare camera gebruikt, anders een "
 "vaste camera."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Wissel de pan- en rotatiemuisknoppen om"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Als deze optie is ingeschakeld, worden de pan- en rotatiefuncties van de "
-"linker- en rechtermuisknop omgedraaid."
-
 msgid "Reverse mouse zoom"
 msgstr "Omgekeerde muiszoom"
 
@@ -8706,6 +8753,27 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr ""
 "Als deze optie is ingeschakeld, wordt de zoomrichting met het muiswiel "
 "omgedraaid."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Clear my choice on..."
@@ -8729,6 +8797,59 @@ msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
 msgstr ""
 "Clear my choice for synchronizing printer preset after loading the file."
+
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Uit"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
 
 msgid "Login region"
 msgstr "Inlogregio"
@@ -8891,6 +9012,15 @@ msgstr "Ontwikkelmodus"
 
 msgid "Skip AMS blacklist check"
 msgstr "AMS-zwartelijstcontrole overslaan"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr "Allow Abnormal Storage"
@@ -10008,8 +10138,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Bij het opnemen van timelapse zonder toolhead is het aan te raden om een "
 "„Timelapse Wipe Tower” toe te voegen \n"
@@ -10644,6 +10774,32 @@ msgstr "Niet opslaan"
 msgid "Discard"
 msgstr "Verwerpen"
 
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
+
 msgid "Click the right mouse button to display the full text."
 msgstr "Klik op de rechtermuisknop om de volledige tekst weer te geven."
 
@@ -11229,6 +11385,9 @@ msgstr "Klik hier om het te downloaden."
 msgid "Login"
 msgstr "Inloggen"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Action Required] "
 
@@ -11266,6 +11425,18 @@ msgstr "Toon lijst met sneltoetsen"
 
 msgid "Global shortcuts"
 msgstr "Globale snelkoppelingen"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11758,9 +11929,6 @@ msgstr " can not be placed in the "
 
 msgid "Internal Bridge"
 msgstr "Internal Bridge"
-
-msgid "Multiple"
-msgstr "Meerdere"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -13601,9 +13769,6 @@ msgstr ""
 "4. Apply to all - generates second bridge layers for both internal and "
 "external-facing bridges\n"
 
-msgid "Disabled"
-msgstr "Uit"
-
 msgid "External bridge only"
 msgstr "External bridge only"
 
@@ -14290,6 +14455,18 @@ msgstr "Auto For Flush"
 msgid "Auto For Match"
 msgstr "Auto For Match"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Flush temperature"
 
@@ -14796,6 +14973,17 @@ msgid ""
 msgstr ""
 "Using multiple lines for the infill pattern, if supported by infill pattern."
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Vulpatroon"
 
@@ -14976,8 +15164,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² of %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Versnelling van de schaarse invulling. Als de waarde wordt uitgedrukt als "
 "een percentage (bijvoorbeeld 100%), wordt deze berekend op basis van de "
@@ -15117,16 +15305,16 @@ msgstr "Volledige snelheid op laag"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 
 msgid "layer"
 msgstr "laag"
@@ -15631,6 +15819,30 @@ msgstr ""
 "This is useful for fans where a low PWM/power may be insufficient to get the "
 "fan started spinning from a stop, or to get the fan up to speed faster.\n"
 "Set to 0 to deactivate."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr "%"
 
 msgid "Time cost"
 msgstr "Time cost"
@@ -17240,13 +17452,13 @@ msgid "Role base wipe speed"
 msgstr "Role base wipe speed"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 
@@ -17637,6 +17849,19 @@ msgstr "Purge remaining filament into prime tower."
 msgid "Enable filament ramming"
 msgstr "Enable filament ramming"
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "No sparse layers (beta)"
 
@@ -17993,15 +18218,18 @@ msgid "Threshold angle"
 msgstr "Drempel hoek"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
-"Er zal ondersteuning support gegenereerd worden voor overhangende hoeken waarvan de hellingshoek lager is dan deze drempel."
-"Hoe kleiner deze waarde is, hoe steiler de overhang die zonder ondersteuning kan worden geprint.\n"
-"Opmerking: Indien ingesteld op 0, gebruiken normale ondersteuningen in plaats daarvan de drempelwaarde voor overlap,"
-"terwijl boomstructuurondersteuningen terugvallen op een standaardwaarde van 30."
+"Er zal ondersteuning support gegenereerd worden voor overhangende hoeken "
+"waarvan de hellingshoek lager is dan deze drempel.Hoe kleiner deze waarde "
+"is, hoe steiler de overhang die zonder ondersteuning kan worden geprint.\n"
+"Opmerking: Indien ingesteld op 0, gebruiken normale ondersteuningen in "
+"plaats daarvan de drempelwaarde voor overlap,terwijl "
+"boomstructuurondersteuningen terugvallen op een standaardwaarde van 30."
 
 msgid "Threshold overlap"
 msgstr "Threshold overlap"
@@ -18011,9 +18239,10 @@ msgid ""
 "overlap is below the threshold. The smaller this value is, the steeper the "
 "overhang that can be printed without support."
 msgstr ""
-"Als de drempelhoek nul is, wordt er ondersteuning gegenereerd voor overhangen waarvan de overlap "
-"onder de drempelwaarde ligt. Hoe kleiner deze waarde is, hoe steiler de overhang die zonder "
-"ondersteuning kan worden geprint."
+"Als de drempelhoek nul is, wordt er ondersteuning gegenereerd voor "
+"overhangen waarvan de overlap onder de drempelwaarde ligt. Hoe kleiner deze "
+"waarde is, hoe steiler de overhang die zonder ondersteuning kan worden "
+"geprint."
 
 msgid "Tree support branch angle"
 msgstr "Tree support vertakkingshoek"
@@ -18168,8 +18397,8 @@ msgstr "Temperatuurregeling activeren"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18179,8 +18408,8 @@ msgid ""
 "heater is installed."
 msgstr ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18743,10 +18972,11 @@ msgid ""
 "Wipe tower is only compatible with relative mode. It is recommended on most "
 "printers. Default is checked."
 msgstr ""
-"Relatieve extrusie wordt aanbevolen bij gebruik van de optie \"label_objects"
-"\". Sommige extruders werken beter als deze optie niet is aangevinkt "
-"(absolute extrusiemodus). Wipe tower is alleen compatibel met relatieve "
-"modus. Het wordt aanbevolen op de meeste printers. Standaard is aangevinkt"
+"Relatieve extrusie wordt aanbevolen bij gebruik van de optie "
+"\"label_objects\". Sommige extruders werken beter als deze optie niet is "
+"aangevinkt (absolute extrusiemodus). Wipe tower is alleen compatibel met "
+"relatieve modus. Het wordt aanbevolen op de meeste printers. Standaard is "
+"aangevinkt"
 
 msgid ""
 "Classic wall generator produces walls with constant extrusion width and for "
@@ -19171,11 +19401,11 @@ msgid "Debug level"
 msgstr "Debuggen level"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr "Enable timelapse for print"
@@ -20951,12 +21181,12 @@ msgstr ""
 "Wil je het herschrijven?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 
 msgid "Create Printer/Nozzle"
@@ -21131,6 +21361,18 @@ msgid ""
 msgstr ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
+msgstr ""
 
 msgid "Printer Created Successfully"
 msgstr "Printer succesvol gemaakt"
@@ -21383,36 +21625,6 @@ msgid ""
 msgstr ""
 "The nozzle type does not match the actual printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr "nozzle size in preset: %d"
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr "nozzle size memorized: %d"
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr "nozzle[%d] in preset: %.1f"
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr "nozzle[%d] memorized: %.1f"
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
@@ -22331,26 +22543,17 @@ msgstr "Max angle"
 msgid "Detection radius"
 msgstr "Detection radius"
 
-msgid "Remove selected points"
-msgstr "Verwijder geselecteerde punten"
+msgid "Selected"
+msgstr ""
 
-msgid "Remove all"
-msgstr "Remove all"
+msgid "Auto-generate"
+msgstr ""
 
-msgid "Auto-generate points"
-msgstr "Genereer automatisch punten"
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
 
-msgid "Add a brim ear"
-msgstr "Add a brim ear"
-
-msgid "Delete a brim ear"
-msgstr "Delete a brim ear"
-
-msgid "Adjust head diameter"
-msgstr "Adjust head diameter"
-
-msgid "Adjust section view"
-msgstr "Adjust section view"
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -22362,8 +22565,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Set the brim type of this object to \"painted\""
 
-msgid " invalid brim ears"
-msgstr " ongeldige rand oren"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Rand Oren"
@@ -22641,15 +22844,13 @@ msgstr ""
 "Wist u dat Orca Slicer een breed scala aan sneltoetsen en 3D-"
 "scènebewerkingen biedt?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Achteruit op oneven\n"
-"Wist u dat de functie <b>Achteruit op oneven</b> de oppervlaktekwaliteit van "
-"uw overhangen aanzienlijk kan verbeteren?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22942,6 +23143,85 @@ msgstr ""
 "Wist je dat bij het printen van materialen die gevoelig zijn voor "
 "kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het "
 "warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Alle getekende delen wissen"
+
+#~ msgid "Reset cut"
+#~ msgstr "Reset cut"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Wissel de pan- en rotatiemuisknoppen om"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Als deze optie is ingeschakeld, worden de pan- en rotatiefuncties van de "
+#~ "linker- en rechtermuisknop omgedraaid."
+
+#, c-format, boost-format
+#~ msgid "nozzle size in preset: %d"
+#~ msgstr "nozzle size in preset: %d"
+
+#, c-format, boost-format
+#~ msgid "nozzle size memorized: %d"
+#~ msgstr "nozzle size memorized: %d"
+
+#~ msgid ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+#~ msgstr ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] in preset: %.1f"
+#~ msgstr "nozzle[%d] in preset: %.1f"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] memorized: %.1f"
+#~ msgstr "nozzle[%d] memorized: %.1f"
+
+#~ msgid ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+#~ msgstr ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Verwijder geselecteerde punten"
+
+#~ msgid "Remove all"
+#~ msgstr "Remove all"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Genereer automatisch punten"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Add a brim ear"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Delete a brim ear"
+
+#~ msgid "Adjust head diameter"
+#~ msgstr "Adjust head diameter"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Adjust section view"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " ongeldige rand oren"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Achteruit op oneven\n"
+#~ "Wist u dat de functie <b>Achteruit op oneven</b> de oppervlaktekwaliteit "
+#~ "van uw overhangen aanzienlijk kan verbeteren?"
 
 #~ msgid "Pen size"
 #~ msgstr "Pengrootte"
@@ -23778,9 +24058,6 @@ msgstr ""
 
 #~ msgid "Set Position"
 #~ msgstr "Positie instellen"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #, boost-format
 #~ msgid "%1%"

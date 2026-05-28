@@ -828,6 +828,13 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("flashforge_serial_number", coString);
+    def->label = L("Serial Number");
+    def->tooltip = L("Flashforge local API requires the printer serial number.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionString());
+
     def = this->add("printhost_port", coString);
     def->label = L("Printer");
     def->tooltip = L("Name of the printer.");
@@ -4272,7 +4279,7 @@ void PrintConfigDef::init_fff_params()
     def->min      = 0;
     def->max      = 90;
     def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(35));
 
     def = this->add("zaa_dont_alternate_fill_direction", coBool);
     def->label    = L("Don't alternate fill direction");
@@ -6770,7 +6777,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back(L("Cone"));
     def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
+    def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRib));
 
     def           = this->add("wipe_tower_extra_rib_length", coFloat);
     def->label    = L("Extra rib length");

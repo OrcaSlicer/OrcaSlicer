@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Elegoo ABS @System",
+	"inherits": "Elegoo ABS @base",
+	"from": "system",
+	"setting_id": "OEABSS00",
+	"instantiation": "true",
+	"fan_max_speed": [
+		"40"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"compatible_printers": []
+}

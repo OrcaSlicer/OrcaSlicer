@@ -4374,12 +4374,12 @@ void GUI_App::get_login_info(const std::string& provider/* = ORCA_CLOUD_PROVIDER
     if (m_agent) {
         if (m_agent->is_user_login(provider)) {
             std::string login_cmd = m_agent->build_login_cmd(provider);
-            wxString strJS = wxString::Format("window.postMessage(%s)", login_cmd);
+            wxString strJS = wxString::Format("window.postMessage(%s)", from_u8(login_cmd));
             GUI::wxGetApp().run_script(strJS);
         } else {
             m_agent->user_logout(false, provider);
             std::string logout_cmd = m_agent->build_logout_cmd(provider);
-            wxString    strJS      = wxString::Format("window.postMessage(%s)", logout_cmd);
+            wxString    strJS      = wxString::Format("window.postMessage(%s)", from_u8(logout_cmd));
             GUI::wxGetApp().run_script(strJS);
         }
         mainframe->m_webview->SetLoginPanelVisibility(true);
@@ -4803,7 +4803,7 @@ void GUI_App::handle_http_error(unsigned int status, std::string body, const std
 void GUI_App::on_http_error(wxCommandEvent &evt)
 {
     int status = evt.GetInt();
-    std::string provider = ORCA_CLOUD_PROVIDER;
+    std::string provider = "";
     std::string body_str;
 
     // Extract provider and body from event data
@@ -4845,18 +4845,24 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     // request login
     if (status == 401) {
         if (m_agent) {
-            if (m_agent->is_user_login(provider)) {
-                BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
-                this->request_user_logout(provider);
+            if (!provider.empty() && m_agent->is_user_login(provider)) {
+                if (std::chrono::steady_clock::now() - m_last_401_error_time > 30s) {
+                    BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
+                    this->request_user_logout(provider);
 
-                if (!m_show_http_error_msgdlg) {
-                    MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
-                    m_show_http_error_msgdlg = true;
-                    auto modal_result = msg_dlg.ShowModal();
-                    if (modal_result == wxOK || modal_result == wxCLOSE) {
-                        m_show_http_error_msgdlg = false;
-                        return;
+                    if (!m_show_http_error_msgdlg) {
+                        MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
+                        m_show_http_error_msgdlg = true;
+                        auto modal_result        = msg_dlg.ShowModal();
+                        if (modal_result == wxOK || modal_result == wxCLOSE) {
+                            m_show_http_error_msgdlg = false;
+                            return;
+                        }
                     }
+
+                    m_last_401_error_time = std::chrono::steady_clock::now();
+                } else {
+                    BOOST_LOG_TRIVIAL(warning) << "401 encountered within grace period, suppressing logout";
                 }
             }
         }
@@ -4874,11 +4880,11 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     if (provider == ORCA_CLOUD_PROVIDER && status >= 400 && code != HttpErrorVersionLimited) {
         wxString msg;
         if (!error.empty()) {
-            msg = wxString::Format(_L("API error (HTTP %u): %s"), status, wxString::FromUTF8(error));
+            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u): %s"), status, wxString::FromUTF8(error));
         } else {
-            msg = wxString::Format(_L("API error (HTTP %u)"), status);
+            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u)"), status);
         }
-
+        
         if (app_config->get_bool("developer_mode")) {
             // Use notification manager if ImGui is ready; fall back to wxMessageBox on Linux
             // where ImGui may not be initialized until the user switches to the Prepare tab.
@@ -4893,7 +4899,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
 
         if (!m_is_error_shown) {
             m_is_error_shown = true;
-            wxMessageBox(msg, _L("Orca Cloud API Error"), wxOK | wxICON_ERROR, wxGetApp().mainframe);
+            wxMessageBox(msg, _L("Cloud Error"), wxOK | wxICON_ERROR, wxGetApp().mainframe);
         }
     }
 }
@@ -4930,6 +4936,10 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
     int online_login = evt.GetInt();
     std::string provider = evt.GetString().ToStdString();
     if (provider.empty()) provider = ORCA_CLOUD_PROVIDER;
+
+    // Reset 401 grace period so transient token-propagation 401s
+    // during login warmup don't trigger immediate logout.
+    m_last_401_error_time = std::chrono::steady_clock::now();
 
     m_agent->connect_server();
     // get machine list
@@ -5841,25 +5851,76 @@ void GUI_App::reload_settings()
             return;
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " cloud user preset number is: " << user_presets.size();
-        // Check the user presets for any system vendors that need to be installed
-        for (auto data : user_presets) {
-            if (!check_preset_parent_available(data))
-                add_pending_vendor_preset(data);
-        }
-        load_pending_vendors();
-        preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
-        preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        if (is_main_thread_active()) {
+        auto refresh_synced_ui = [this, user_presets = std::move(user_presets)]() mutable {
+            if (is_closing() || !preset_bundle || !app_config || !mainframe)
+                return;
+
+            // Snapshot each collection's edited config BEFORE any mutation.
+            // load_pending_vendors() via apply_vendor_config() can call select_preset(0)
+            // resetting all selections to defaults and overwriting m_edited_preset.
+            // The cloud load_user_presets() can also trigger select_preset() via
+            // remove_users_preset() and overwrite m_edited_preset.config via load_user_preset().
+            struct PresetSnapshot { std::string name; DynamicPrintConfig config; bool dirty; };
+            auto snapshot_collection = [](const PresetCollection& col) -> PresetSnapshot {
+                auto& sel = col.get_selected_preset();
+                auto& ed  = col.get_edited_preset();
+                return {sel.name, ed.config, sel.is_dirty};
+            };
+            PresetSnapshot print_snap    = snapshot_collection(preset_bundle->prints);
+            PresetSnapshot filament_snap = snapshot_collection(preset_bundle->filaments);
+            PresetSnapshot printer_snap  = snapshot_collection(preset_bundle->printers);
+
+            // Check the user presets for any system vendors that need to be installed
+            for (auto data : user_presets) {
+                if (!check_preset_parent_available(data))
+                    add_pending_vendor_preset(data);
+            }
+            load_pending_vendors();
+
+            preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
+            preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
+
+            // Re-apply any edited config that was wiped during vendor loading or sync.
+            auto restore_snapshot = [](PresetCollection& col, const PresetSnapshot& snap, const char* label) {
+                auto& ed = col.get_edited_preset();
+                bool changed = !ed.config.equals(snap.config);
+                BOOST_LOG_TRIVIAL(info) << "reload_settings restore " << label
+                    << ": snap_name=" << snap.name << " snap_dirty=" << snap.dirty
+                    << " current_name=" << ed.name << " changed=" << changed;
+                if (!snap.dirty) return; // nothing to protect, let cloud updates stand
+                Preset* p = col.find_preset(snap.name, false, true);
+                if (p && p->name == snap.name) {
+                    BOOST_LOG_TRIVIAL(info) << "reload_settings RESTORING " << label
+                        << ": name=" << snap.name;
+                    // If the snapshot preset is not currently selected, re-select it first.
+                    if (col.get_selected_preset().name != snap.name)
+                        col.select_preset_by_name(snap.name, true);
+                    ed = col.get_edited_preset();
+                    ed.config = snap.config;
+                    col.get_selected_preset().is_dirty = snap.dirty;
+                    ed.is_dirty = snap.dirty;
+                } else {
+                    BOOST_LOG_TRIVIAL(info) << "reload_settings restore " << label
+                        << ": preset not found name=" << snap.name;
+                }
+            };
+            restore_snapshot(preset_bundle->prints, print_snap, "print");
+            restore_snapshot(preset_bundle->filaments, filament_snap, "filament");
+            restore_snapshot(preset_bundle->printers, printer_snap, "printer");
+
+            // Orca: settings changed, refresh ui to reflect the new preset values
             mainframe->update_side_preset_ui();
+            for (auto tab : tabs_list) {
+                tab->reload_config();
+                tab->update_changed_ui();
+            }
             if (plater_)
                 plater_->sidebar().update_all_preset_comboboxes();
-        } else {
-            CallAfter([this] {
-                mainframe->update_side_preset_ui();
-                if (plater_)
-                    plater_->sidebar().update_all_preset_comboboxes();
-            });
-        }
+        };
+        if (is_main_thread_active())
+            refresh_synced_ui();
+        else
+            CallAfter(refresh_synced_ui);
     }
 }
 

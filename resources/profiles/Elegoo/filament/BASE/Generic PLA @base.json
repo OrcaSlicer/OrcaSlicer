@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "GPLAB00",
+	"instantiation": "false",
+	"filament_density": [
+		"1.25"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	]
+}

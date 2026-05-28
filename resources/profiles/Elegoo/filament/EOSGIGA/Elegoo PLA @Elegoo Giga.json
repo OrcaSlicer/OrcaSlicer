@@ -1,10 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA @Elegoo Giga",
-	"inherits": "Generic PLA @Elegoo",
+	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "GFSL99",
-	"filament_id": "GFL99",
+	"setting_id": "EPLAEOSG00",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"30"
@@ -14,5 +13,6 @@
 		"Elegoo OrangeStorm Giga 0.6 nozzle",
 		"Elegoo OrangeStorm Giga 0.8 nozzle",
 		"Elegoo OrangeStorm Giga 1.0 nozzle"
-	]
+	],
+	"renamed_from": "Elegoo PLA @EOS Giga"
 }

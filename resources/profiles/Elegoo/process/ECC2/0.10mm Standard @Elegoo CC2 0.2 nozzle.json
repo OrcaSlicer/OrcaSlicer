@@ -5,12 +5,15 @@
 	"from": "system",
 	"setting_id": "PECC202010",
 	"instantiation": "true",
-	"sparse_infill_pattern": "zig-zag",
 	"filename_format": "ECC2_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"min_width_top_surface": "50%",
 	"elefant_foot_compensation": "0.15",
 	"enable_prime_tower": "1",
 	"reduce_infill_retraction": "0",
+	"initial_layer_acceleration": "500",
+	"outer_wall_speed": "160",
+	"sparse_infill_pattern": "rectilinear",
+	"top_surface_acceleration": "2000",
 	"compatible_printers": [
 		"Elegoo Centauri Carbon 2 0.2 nozzle"
 	]

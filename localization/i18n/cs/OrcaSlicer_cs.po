@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -119,8 +119,8 @@ msgstr "Provést"
 msgid "On highlighted overhangs only"
 msgstr "Pouze na zvýrazněné převisy"
 
-msgid "Erase all painting"
-msgstr "Smazat celé malování"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Zvýraznit oblasti s převisem"
@@ -188,6 +188,9 @@ msgstr "Zvýraznit plochy podle úhlu převisu."
 
 msgid "No auto support"
 msgstr "Žádné automatické podpory"
+
+msgid "Done"
+msgstr "Hotovo"
 
 msgid "Support Generated"
 msgstr "Vygenerovaná podpora"
@@ -341,6 +344,12 @@ msgstr "Výběr části"
 msgid "Fixed step drag"
 msgstr "Posouvání o pevný krok"
 
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
+
 msgid "Single sided scaling"
 msgstr "Jednostranné měřítko"
 
@@ -489,6 +498,18 @@ msgstr "Pozice řezu"
 msgid "Build Volume"
 msgstr "Stavební objem"
 
+msgid "Multiple"
+msgstr "Více"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Rozestup"
+
 msgid "Part"
 msgstr "Díl"
 
@@ -596,12 +617,6 @@ msgstr "Upravit konektory"
 msgid "Add connectors"
 msgstr "Přidat konektory"
 
-msgid "Reset cut"
-msgstr "Obnovit řez"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Resetovat řezací rovinu a odstranit konektory"
-
 msgid "Upper part"
 msgstr "Horní část"
 
@@ -619,6 +634,9 @@ msgstr "Po ořezu"
 
 msgid "Cut to parts"
 msgstr "Rozdělit na části"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Resetovat řezací rovinu a odstranit konektory"
 
 msgid "Perform cut"
 msgstr "Provést řez"
@@ -852,6 +870,9 @@ msgstr "Výchozí písmo"
 
 msgid "Advanced"
 msgstr "Pokročilé"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1492,15 +1513,6 @@ msgstr ""
 "Funkce 1 byla resetována,\n"
 "funkce 2 byla funkce 1"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Varování: Vyberte prosím vlastnost roviny."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Varování: Vyberte prosím vlastnost bodu nebo kruhu."
-
-msgid "Warning: please select two different meshes."
-msgstr "Varování: Vyberte prosím dvě různé sítě."
-
 msgid "Copy to clipboard"
 msgstr "Kopírovat do schránky"
 
@@ -1551,6 +1563,15 @@ msgstr "(Pohyblivé)"
 
 msgid "Point and point assembly"
 msgstr "Sestavení bod–bod"
+
+msgid "Warning: please select two different meshes."
+msgstr "Varování: Vyberte prosím dvě různé sítě."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Varování: Vyberte prosím vlastnost roviny."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Varování: Vyberte prosím vlastnost bodu nebo kruhu."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
@@ -1743,6 +1764,18 @@ msgstr "Toto je nejnovější verze."
 msgid "Info"
 msgstr "Info"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1809,6 +1842,23 @@ msgid ""
 msgstr ""
 "Verze Orca Slicer je příliš stará a je nutné ji aktualizovat na nejnovější "
 "verzi, aby ji bylo možné používat."
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Načítání informací o tiskárně, zkuste to prosím později."
@@ -2367,11 +2417,11 @@ msgstr "Automaticky natočit objekt pro zlepšení kvality tisku"
 msgid "Edit"
 msgstr "Upravit"
 
-msgid "Delete this filament"
-msgstr "Smazat tento filament"
-
 msgid "Merge with"
 msgstr "Sloučit s"
+
+msgid "Delete this filament"
+msgstr "Smazat tento filament"
 
 msgid "Select All"
 msgstr "Vybrat vše"
@@ -4694,9 +4744,6 @@ msgstr "Stop Drying"
 msgid "Proceed"
 msgstr "Proceed"
 
-msgid "Done"
-msgstr "Hotovo"
-
 msgid "Retry"
 msgstr "Zkusit znovu"
 
@@ -4959,33 +5006,6 @@ msgstr "Přechod podpory"
 msgid "Mixed"
 msgstr "Mixed"
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "mm/s²"
-msgstr "mm/s²"
-
-msgid "Flow rate"
-msgstr "Průtok"
-
-msgid "mm³/s"
-msgstr "mm³/s"
-
-msgid "Fan speed"
-msgstr "Rychlost ventilátoru"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Čas"
-
-msgid "Actual speed profile"
-msgstr "Actual speed profile"
-
-msgid "Speed: "
-msgstr "Rychlost: "
-
 msgid "Height: "
 msgstr "Výška: "
 
@@ -5018,6 +5038,33 @@ msgstr ""
 
 msgid "PA: "
 msgstr "PA: "
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr "mm³/s"
+
+msgid "Flow rate"
+msgstr "Průtok"
+
+msgid "Fan speed"
+msgstr "Rychlost ventilátoru"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Čas"
+
+msgid "Speed: "
+msgstr "Rychlost: "
+
+msgid "Actual speed profile"
+msgstr "Actual speed profile"
 
 msgid "Statistics of All Plates"
 msgstr "Statistiky všech desek"
@@ -5352,9 +5399,6 @@ msgstr "Orient"
 msgid "Arrange options"
 msgstr "Možnosti rozložení"
 
-msgid "Spacing"
-msgstr "Rozestup"
-
 msgid "0 means auto spacing."
 msgstr "0 znamená automatické rozestupy."
 
@@ -5489,7 +5533,7 @@ msgstr "Objem:"
 msgid "Size:"
 msgstr "Velikost:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5888,6 +5932,15 @@ msgstr "Exportovat aktuální konfiguraci do souborů"
 msgid "Export"
 msgstr "Export"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Ukončit"
 
@@ -6013,6 +6066,9 @@ msgid "View"
 msgstr "Zobrazit"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -8608,20 +8664,32 @@ msgstr ""
 "Pokud je povoleno, použít volnou kameru. Pokud není povoleno, použít "
 "omezenou kameru."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Prohodit tlačítka myši pro posun a otáčení"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Je-li povoleno, zamění se funkce posunu a rotace mezi levým a pravým "
-"tlačítkem myši."
-
 msgid "Reverse mouse zoom"
 msgstr "Změnit směr přibližování myší"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Je-li povoleno, obrátí se směr přiblížení kolečkem myši."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Clear my choice on..."
@@ -8645,6 +8713,59 @@ msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
 msgstr ""
 "Clear my choice for synchronizing printer preset after loading the file."
+
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Zakázáno"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
 
 msgid "Login region"
 msgstr "Login region"
@@ -8795,6 +8916,15 @@ msgstr "Vývojářský režim"
 
 msgid "Skip AMS blacklist check"
 msgstr "Přeskočit kontrolu blacklistu AMS"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr "Allow Abnormal Storage"
@@ -9887,8 +10017,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Při záznamu časosběru bez tiskové hlavy je doporučeno přidat „Časosběr věž "
 "na očištění trysky“.\n"
@@ -10517,6 +10647,32 @@ msgstr "Neukládat"
 msgid "Discard"
 msgstr "Zahodit"
 
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
+
 msgid "Click the right mouse button to display the full text."
 msgstr "Kliknutím pravým tlačítkem myši zobrazíte celý text."
 
@@ -11092,6 +11248,9 @@ msgstr "Klikněte zde pro stažení."
 msgid "Login"
 msgstr "Přihlášení"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Action Required] "
 
@@ -11127,6 +11286,18 @@ msgstr "Zobrazit seznam klávesových zkratek"
 
 msgid "Global shortcuts"
 msgstr "Globální klávesové zkratky"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11613,9 +11784,6 @@ msgstr " can not be placed in the "
 
 msgid "Internal Bridge"
 msgstr "Vnitřní most"
-
-msgid "Multiple"
-msgstr "Více"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -13415,9 +13583,6 @@ msgstr ""
 "tohoto ostrova\n"
 "4. Použít na vše – generuje druhé mostové vrstvy pro vnitřní i vnější mosty\n"
 
-msgid "Disabled"
-msgstr "Zakázáno"
-
 msgid "External bridge only"
 msgstr "Pouze externí most"
 
@@ -14096,6 +14261,18 @@ msgstr "Auto For Flush"
 msgid "Auto For Match"
 msgstr "Auto For Match"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Flush temperature"
 
@@ -14592,6 +14769,17 @@ msgid ""
 "Using multiple lines for the infill pattern, if supported by infill pattern."
 msgstr "Použití více řádků pro vzor výplně, pokud to daný vzor podporuje."
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Vzor řídké výplně"
 
@@ -14764,8 +14952,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² nebo %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Akcelerace řídké výplně. Pokud je hodnota vyjádřena v procentech (např. 100 "
 "%), bude vypočtena na základě výchozí akcelerace."
@@ -14898,10 +15086,10 @@ msgstr "Plná rychlost ventilátoru na vrstvě"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Rychlost ventilátoru bude lineárně zvyšována od nuly na vrstvě \"zavřít "
 "ventilátor na prvních x vrstvách\" až po maximum na vrstvě "
@@ -15406,6 +15594,30 @@ msgstr ""
 "Toto je užitečné u ventilátorů, kde nízké PWM/výkon nemusí stačit ke "
 "spuštění z klidu, nebo pro rychlejší rozběh ventilátoru.\n"
 "Nastavte na 0 pro deaktivaci."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Časová náročnost"
@@ -16984,8 +17196,8 @@ msgid "Role base wipe speed"
 msgstr "Rychlost vytírání podle role"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17372,6 +17584,19 @@ msgstr "Zbývající filament bude vyčištěn do základní věže."
 msgid "Enable filament ramming"
 msgstr "Povolit protlačování filamentu"
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "Žádné řídké vrstvy (beta)"
 
@@ -17415,8 +17640,8 @@ msgid ""
 "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to "
 "close all holes in the model."
 msgstr ""
-"Použijte \"Sudý-lichý\" pro modely letadel 3DLabPrint. Použijte \"Zavřít díry"
-"\" pro uzavření všech otvorů v modelu."
+"Použijte \"Sudý-lichý\" pro modely letadel 3DLabPrint. Použijte \"Zavřít "
+"díry\" pro uzavření všech otvorů v modelu."
 
 msgid "Regular"
 msgstr "Obvyklý"
@@ -17715,15 +17940,16 @@ msgid "Threshold angle"
 msgstr "Prahový úhel"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
 "Podpěry budou generovány pro převisy s úhlem sklonu pod nastaveným prahem. "
 "Čím menší je tato hodnota, tím strmější převis lze tisknout bez podpěr.\n"
-"Poznámka: Pokud je nastavena na 0, běžné podpěry místo toho použijí Hraniční překrytí, "
-"zatímco stromové podpěry se vrátí na výchozí hodnotu 30."
+"Poznámka: Pokud je nastavena na 0, běžné podpěry místo toho použijí Hraniční "
+"překrytí, zatímco stromové podpěry se vrátí na výchozí hodnotu 30."
 
 msgid "Threshold overlap"
 msgstr "Prahové překrytí"
@@ -17887,8 +18113,8 @@ msgstr "Aktivovat kontrolu teploty"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18873,11 +19099,11 @@ msgid "Debug level"
 msgstr "Úroveň ladění"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"Nastaví úroveň logování pro ladění. 0:fatal, 1:error, 2:warning, 3:info, 4:"
-"debug, 5:trace\n"
+"Nastaví úroveň logování pro ladění. 0:fatal, 1:error, 2:warning, 3:info, "
+"4:debug, 5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr "Povolit časosběr pro tisk"
@@ -19415,8 +19641,8 @@ msgstr "Zadaný soubor nelze načíst, protože je prázdný."
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Neznámý formát souboru. Vstupní soubor musí mít příponu .stl, .obj nebo ."
-"amf(.xml)."
+"Neznámý formát souboru. Vstupní soubor musí mít příponu .stl, .obj "
+"nebo .amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
@@ -20639,8 +20865,8 @@ msgstr ""
 "Chcete to přepsat?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Předvolby přejmenujeme na „Výrobce Typ Sériové číslo @tiskárna, kterou jste "
@@ -20814,6 +21040,18 @@ msgid ""
 msgstr ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
+msgstr ""
 
 msgid "Printer Created Successfully"
 msgstr "Tiskárna byla úspěšně vytvořena"
@@ -21065,36 +21303,6 @@ msgid ""
 msgstr ""
 "The nozzle type does not match the actual printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr "nozzle size in preset: %d"
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr "nozzle size memorized: %d"
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr "nozzle[%d] in preset: %.1f"
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr "nozzle[%d] memorized: %.1f"
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
@@ -22011,26 +22219,17 @@ msgstr "Maximální úhel"
 msgid "Detection radius"
 msgstr "Detekční poloměr"
 
-msgid "Remove selected points"
-msgstr "Odstranit vybrané body"
+msgid "Selected"
+msgstr ""
 
-msgid "Remove all"
-msgstr "Odstranit vše"
+msgid "Auto-generate"
+msgstr ""
 
-msgid "Auto-generate points"
-msgstr "Automaticky generovat body"
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
 
-msgid "Add a brim ear"
-msgstr "Přidat okraj (brim)"
-
-msgid "Delete a brim ear"
-msgstr "Smazat okrajové ucho"
-
-msgid "Adjust head diameter"
-msgstr "Upravit průměr hlavy"
-
-msgid "Adjust section view"
-msgstr "Upravit pohled na řez"
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -22041,8 +22240,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Nastavit typ lemu tohoto objektu na „malovaný“"
 
-msgid " invalid brim ears"
-msgstr " neplatné okraje podložky (brim)"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Ouška límce"
@@ -22319,15 +22518,13 @@ msgstr ""
 "Věděli jste, že Orca Slicer nabízí širokou škálu klávesových zkratek a "
 "operací ve 3D scéně?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Obrátit na lichých\n"
-"Víte, že funkce <b>Obrátit na lichých</b> může výrazně zlepšit kvalitu "
-"povrchu vašich převisů?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22616,6 +22813,85 @@ msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může "
 "vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Smazat celé malování"
+
+#~ msgid "Reset cut"
+#~ msgstr "Obnovit řez"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Prohodit tlačítka myši pro posun a otáčení"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Je-li povoleno, zamění se funkce posunu a rotace mezi levým a pravým "
+#~ "tlačítkem myši."
+
+#, c-format, boost-format
+#~ msgid "nozzle size in preset: %d"
+#~ msgstr "nozzle size in preset: %d"
+
+#, c-format, boost-format
+#~ msgid "nozzle size memorized: %d"
+#~ msgstr "nozzle size memorized: %d"
+
+#~ msgid ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+#~ msgstr ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] in preset: %.1f"
+#~ msgstr "nozzle[%d] in preset: %.1f"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] memorized: %.1f"
+#~ msgstr "nozzle[%d] memorized: %.1f"
+
+#~ msgid ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+#~ msgstr ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Odstranit vybrané body"
+
+#~ msgid "Remove all"
+#~ msgstr "Odstranit vše"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Automaticky generovat body"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Přidat okraj (brim)"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Smazat okrajové ucho"
+
+#~ msgid "Adjust head diameter"
+#~ msgstr "Upravit průměr hlavy"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Upravit pohled na řez"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " neplatné okraje podložky (brim)"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Obrátit na lichých\n"
+#~ "Víte, že funkce <b>Obrátit na lichých</b> může výrazně zlepšit kvalitu "
+#~ "povrchu vašich převisů?"
 
 #~ msgid "Pen size"
 #~ msgstr "Velikost pera"

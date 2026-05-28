@@ -1,10 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Matte @Elegoo Giga",
-	"inherits": "Generic PLA Matte @Elegoo",
+	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "GFSL99",
-	"filament_id": "GFL99",
+	"setting_id": "EPLAMEOSG00",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"
@@ -38,5 +37,6 @@
 		"Elegoo OrangeStorm Giga 0.6 nozzle",
 		"Elegoo OrangeStorm Giga 0.8 nozzle",
 		"Elegoo OrangeStorm Giga 1.0 nozzle"
-	]
+	],
+	"renamed_from": "Elegoo PLA Matte @EOS Giga"
 }

@@ -1703,30 +1703,46 @@ void PrintObject::detect_surfaces_type()
         // Only iterate to the second-to-last layer, since we look at layer i+1.
         if( (this->config().enable_extra_bridge_layer.value == eblApplyToAll) || (this->config().enable_extra_bridge_layer.value == eblExternalBridgeOnly)){
             const size_t last = (m_layers.empty() ? 0 : m_layers.size() - 1);
-            tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, region_id](const tbb::blocked_range<size_t> &range) {
+
+            // ORCA: Two-phase split (collect-then-apply) to eliminate a data race in the
+            // original single-phase parallel_for, where iteration `i` rewrote
+            // m_layers[i+1]->slices.surfaces via std::move while iteration `i+1` (running
+            // on an adjacent TBB block on another worker thread) was iterating that same
+            // Surfaces vector as its bot_surfs. Splitting into a read-only collect pass
+            // followed by a write-only apply pass removes the cross-iteration aliasing.
+            //
+            // Phase 1: read-only pass — collect each layer's stBottomBridge polygons into a
+            // per-layer cache. No surfaces are mutated, so concurrent reads are safe.
+            std::vector<Polygons> bridge_polys_per_layer(last);
+            tbb::parallel_for(tbb::blocked_range<size_t>(0, last), [this, region_id, &bridge_polys_per_layer](const tbb::blocked_range<size_t> &range) {
                 for (size_t i = range.begin(); i < range.end(); ++i) {
                     m_print->throw_if_canceled();
-                    
-                    // Step 1: Find bridge polygons
-                    // Current layer (i): Search for stBottomBridge polygons.
                     const Surfaces &bot_surfs = m_layers[i]->m_regions[region_id]->slices.surfaces;
-                    // Next layer (i+1): The layer where stInternal polygons may be re-classified.
-                    Surfaces &top_surfs = m_layers[i + 1]->m_regions[region_id]->slices.surfaces;
-                    
-                    // Step 2: Collect the bridge polygons in the current layer region
-                    Polygons polygons_bridge;
                     for (const Surface &sbot : bot_surfs) {
                         if (sbot.surface_type == stBottomBridge) {
-                            polygons_append(polygons_bridge, to_polygons(sbot));
+                            polygons_append(bridge_polys_per_layer[i], to_polygons(sbot));
                         }
                     }
-                    
+                }
+            });
+
+            // Phase 2: write pass — each iteration mutates only m_layers[i+1]->slices.surfaces
+            // and reads its bridge polygons from the precomputed cache. Different iterations
+            // never share a write target, so there is no aliasing between worker threads.
+            tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, region_id, &bridge_polys_per_layer](const tbb::blocked_range<size_t> &range) {
+                for (size_t i = range.begin(); i < range.end(); ++i) {
+                    m_print->throw_if_canceled();
+
+                    // Step 1 + 2: pull the precomputed bridge polygons for the current source layer.
+                    const Polygons &polygons_bridge = bridge_polys_per_layer[i];
+
                     // Step 3: Early termination of loop if no meaningfull bridge found
                     // No bridge polygons found, continue to the next layer
                     if (polygons_bridge.empty())
                         continue;
                     
                     // Step 4: Bottom bridge polygons found - scan and create layer+1 bridge polygon
+                    Surfaces &top_surfs = m_layers[i + 1]->m_regions[region_id]->slices.surfaces;
                     Surfaces new_surfaces;
                     new_surfaces.reserve(top_surfs.size());
                     
@@ -1740,7 +1756,50 @@ void PrintObject::detect_surfaces_type()
                     // This would also skip generation of very short dual bridge layers (that are shorter than N perimeters), but these are unecessary as the bridge distance is
                     // We could reduce this slightly to account for innacurcies in the clipping operation.
                     // TODO: Monitor GitHub issues to check whether second bridge layers are ommited where they should be generated. If yes, reduce the filtering distance
-                    
+
+                    // ORCA: Same-layer-top guard.
+                    //
+                    // Collect every stTop polygon present at layer i+1 (this region) and
+                    // expand it by the same `offset_distance` used by the bridge filter
+                    // above. Note that `offset_distance` here is the full wall-band
+                    // distance for the region (external wall width + all configured
+                    // internal wall widths, i.e. external + (wall_loops - 1) × internal),
+                    // not a single perimeter width. Any candidate second-bridge area that
+                    // falls under this expanded mask will be subtracted out below.
+                    //
+                    // Why this exists: detect_surfaces_type() classifies a layer's "top"
+                    // surfaces as the geometry that is not covered by the layer above. Those
+                    // stTop regions often have small stInternal islands embedded in them.
+                    // The pre-existing wall-band filter (shrink_ex/offset_ex by
+                    // offset_distance) is supposed to throw those tiny islands away, but
+                    // its result is sensitive to Clipper's floating-point order of
+                    // operations: on macOS ARM the filter eats them, on Windows/Intel it
+                    // doesn't. Visible bridges then show up scattered across the printed
+                    // top surface.
+                    //
+                    // Expanding stTop by offset_distance and subtracting it from the
+                    // overlap makes the decision platform-independent: an island fully
+                    // surrounded by stTop disappears regardless of which Clipper happens
+                    // to be doing the math, while large stInternal regions away from the
+                    // top survive intact (the expansion only nibbles the wall-band depth
+                    // inward).
+                    //
+                    // Keep ExPolygons throughout so that any holes inside an stTop surface
+                    // are offset with the correct sign (positive offset shrinks holes /
+                    // grows the solid region). Using Polygons + expand() would treat the
+                    // contour and each hole as independent polygons and could distort the
+                    // mask.
+                    ExPolygons same_layer_top_expanded;
+                    {
+                        ExPolygons same_layer_top;
+                        for (const Surface &s : top_surfs) {
+                            if (s.surface_type == stTop)
+                                same_layer_top.push_back(s.expolygon);
+                        }
+                        if (! same_layer_top.empty())
+                            same_layer_top_expanded = offset_ex(same_layer_top, offset_distance);
+                    }
+
                     // For each surface in the layer above
                     for (Surface &s_up : top_surfs) {
                         // Only reclassify stInternal polygons (i.e. what will become later solid and sparse infill)
@@ -1755,7 +1814,13 @@ void PrintObject::detect_surfaces_type()
                         // Filter out the resulting candidate bridges based on size. First perform a shrink operation...
                         // ...followed by an expand operation to bring them back to the original size (positive offset)
                         overlap = offset_ex(shrink_ex(overlap, offset_distance), offset_distance);
-                        
+
+                        // ORCA: subtract the expanded same-layer stTop mask (see comment above
+                        // the mask construction). Drops stInternal islands fully surrounded by
+                        // stTop at i+1 without affecting bridges that lie away from the top.
+                        if (! same_layer_top_expanded.empty() && ! overlap.empty())
+                            overlap = diff_ex(overlap, same_layer_top_expanded, ApplySafetyOffset::Yes);
+
                         // Now subtract the filtered new bridge layer from the remaining internal surfaces to create the new internal surface
                         ExPolygons remainder = diff_ex(p_up, overlap, ApplySafetyOffset::Yes);
                         
@@ -2500,28 +2565,75 @@ void PrintObject::bridge_over_infill()
             backup_surfaces[lidx] = {};
         }
 
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = this, &backup_surfaces,
-                                                                                 &surfaces_by_layer](tbb::blocked_range<size_t> r) {
+        // ORCA: Two-phase split (collect-then-apply) to eliminate a data race in
+        // the original single-phase parallel_for, where iteration `lidx` read
+        // m_layers[lidx-1]->regions()->fill_surfaces (its lower_layer) to compute
+        // `lightning_fill`, while iteration `lidx-1`, on an adjacent TBB block,
+        // was concurrently std::move-ing / emplace_back-ing into that same
+        // SurfaceCollection.
+        //
+        // Semantic choice — read ORIGINAL surfaces in Phase 1:
+        // The lower_layer that iteration `lidx` looks at is the *current* layer
+        // for iteration `lidx-1`, which Phase 2 will modify. We therefore have to
+        // pick whether Phase 1 sees that layer's pre-modification or
+        // post-modification state. We deliberately use the original (pre-modification)
+        // state, for two reasons:
+        //   1. The gate is asking "does the layer below use lightning sparse
+        //      infill?" — that's a property of the layer's configuration plus its
+        //      original sparse-infill classification. Phase 2's edits only carve
+        //      a small overhang-aligned slice of sparse into solid; they do not
+        //      change whether the layer is using lightning. The realistic gate
+        //      answer is the same either way.
+        //   2. Each layer's solid expansion is meant to give its OWN lower_layer
+        //      something to anchor lightning lines onto. Cascading the gate
+        //      across layers ("skip mine because the layer below already did
+        //      some") would invert that intent and force a serial Phase 2.
+        // The original racy code didn't actually implement either choice
+        // consistently — it returned whichever bytes happened to be in the
+        // vector when the thread arrived. This split makes the behaviour
+        // defined, deterministic across runs and platforms, and equivalent to
+        // a clean sequential implementation that gathered all gates first and
+        // then applied modifications.
+        //
+        // Phase 1: read-only — for each layer, determine whether its lower_layer
+        // has any stInternal area inside a lightning-infill region. That's the
+        // sole purpose of `lightning_fill` in the original code: a gate. Capture
+        // it once into a per-layer bool, derived from the original (unmodified)
+        // surfaces, so the gate is platform-independent and order-independent.
+        std::vector<char> needs_lightning_expansion(this->layers().size(), 0);
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = this, &surfaces_by_layer,
+                                                                                 &needs_lightning_expansion](tbb::blocked_range<size_t> r) {
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
             for (size_t lidx = r.begin(); lidx < r.end(); lidx++) {
                 if (surfaces_by_layer.find(lidx) == surfaces_by_layer.end())
                     continue;
-
-                Layer       *layer       = po->get_layer(lidx);
+                const Layer *layer = po->get_layer(lidx);
                 const Layer *lower_layer = layer->lower_layer;
                 if (lower_layer == nullptr)
                     continue;
-
-                Polygons lightning_fill;
                 for (const LayerRegion *region : lower_layer->regions()) {
-                    if (region->region().config().sparse_infill_pattern == ipLightning) {
-                        Polygons lf = to_polygons(region->fill_surfaces.filter_by_type(stInternal));
-                        lightning_fill.insert(lightning_fill.end(), lf.begin(), lf.end());
+                    if (region->region().config().sparse_infill_pattern == ipLightning
+                        && ! region->fill_surfaces.filter_by_type(stInternal).empty()) {
+                        needs_lightning_expansion[lidx] = 1;
+                        break;
                     }
                 }
+            }
+        });
 
-                if (lightning_fill.empty())
+        // Phase 2: write-only — each iteration mutates only m_layers[lidx]'s
+        // fill_surfaces and never reads any other layer's surfaces. Different
+        // iterations write to disjoint LayerRegion::fill_surfaces vectors, so
+        // there is no aliasing between worker threads.
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = this, &backup_surfaces,
+                                                                                 &surfaces_by_layer,
+                                                                                 &needs_lightning_expansion](tbb::blocked_range<size_t> r) {
+            PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
+            for (size_t lidx = r.begin(); lidx < r.end(); lidx++) {
+                if (! needs_lightning_expansion[lidx])
                     continue;
+
+                Layer *layer = po->get_layer(lidx);
 
                 for (LayerRegion *region : layer->regions()) {
                     backup_surfaces[lidx][region] = std::move(
@@ -3232,53 +3344,75 @@ void PrintObject::bridge_over_infill()
     // === ORCA: Create a second internal bridge layer above the first bridge layer. ========================================================
     // ======================================================================================================================================
     if ( this->m_config.enable_extra_bridge_layer == eblApplyToAll || this->m_config.enable_extra_bridge_layer == eblInternalBridgeOnly) {
-        // Process layers in parallel up to second-to-last
-        tbb::parallel_for( tbb::blocked_range<size_t>(0, this->layers().size() - 1), [this](const tbb::blocked_range<size_t>& r) {
-            for (size_t lidx = r.begin(); lidx < r.end(); ++lidx)
-            {
+        // ORCA: Two-phase to eliminate the same data race as the external-bridge
+        // pass in detect_surfaces_type().
+        //
+        // Phase 1: read-only — for each layer, collect its stInternalBridge polygons and
+        // the matching bridge angle into a per-layer cache.
+        struct LayerBridgeCache {
+            ExPolygons polys;
+            double     angle = 0.0;
+            float      offset_distance = 0.0f;
+            bool       has_bridge = false;
+        };
+        // Guard against size_t underflow when the object has 0 or 1 layers — there is
+        // no "layer above" to receive an extra bridge, so the whole pass is a no-op.
+        const size_t last = (this->layers().size() < 2) ? 0 : this->layers().size() - 1;
+        std::vector<LayerBridgeCache> caches(this->layers().size());
+
+        tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, &caches](const tbb::blocked_range<size_t>& r) {
+            for (size_t lidx = r.begin(); lidx < r.end(); ++lidx) {
                 Layer* layer = this->get_layer(lidx);
-                
-                // (A) Gather internal bridging surfaces in the current layer
-                ExPolygons bridging_current_layer;
-                double bridging_angle_current = 0.0;
-                
-                bool found_any_bridge = false;
-                float offset_distance = 0.0f;
-                
-                // Pick a region from which to retrieve the flow width
+                LayerBridgeCache &cache = caches[lidx];
+
                 if (!layer->regions().empty())
-                    offset_distance = layer->regions().front()->flow(frSolidInfill).scaled_width();
                 
+                    cache.offset_distance = layer->regions().front()->flow(frSolidInfill).scaled_width();
                 for (LayerRegion *region : layer->regions()) {
                     for (const Surface &surf : region->fill_surfaces.surfaces) {
                         if (surf.surface_type == stInternalBridge) {
-                            bridging_current_layer.push_back(surf.expolygon);
-                            bridging_angle_current = surf.bridge_angle; // Store the last bridging angle of the current print object
-                            found_any_bridge = true;
+                            cache.polys.push_back(surf.expolygon);
+                            cache.angle = surf.bridge_angle; // last bridge angle on this layer wins, matching prior behaviour
+                            cache.has_bridge = true;
                         }
                     }
                 }
-                
-                // If no bridging in this layer, continue with the next
-                if (!found_any_bridge || bridging_current_layer.empty())
+
+                if (!cache.has_bridge || cache.polys.empty()) {
+                    cache.has_bridge = false;
                     continue;
-                
-                // (B) Shrink-expand to remove trivial bridging areas
-                bridging_current_layer = offset_ex( shrink_ex(bridging_current_layer, offset_distance), offset_distance );
-                
-                if (bridging_current_layer.empty())
-                    continue;  // all bridging was trivial, continue with the next layer
-                
+                }
+
+                // Shrink-expand to remove trivial bridging areas
+                cache.polys = offset_ex(shrink_ex(cache.polys, cache.offset_distance), cache.offset_distance);
+                if (cache.polys.empty())
+                    cache.has_bridge = false;
+            }
+        });
+
+        // Phase 2: write — each iteration mutates only m_layers[lidx+1]->fill_surfaces and
+        // pulls its bridge polygons from the precomputed cache. Different iterations never
+        // touch the same fill_surfaces vector, so there is no aliasing between workers.
+        tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, &caches](const tbb::blocked_range<size_t>& r) {
+            for (size_t lidx = r.begin(); lidx < r.end(); ++lidx)
+            {
+                const LayerBridgeCache &cache = caches[lidx];
+
+                // If no bridging in this layer, continue with the next
+                if (!cache.has_bridge || cache.polys.empty())
+                    continue;
+
                 // (C) If there is a next layer, identify overlapping stInternal & stInternalSolid areas and convert the overlap to stSecondInternalBridge
                 if (lidx + 1 < this->layers().size()) {
                     Layer* next_layer = this->get_layer(lidx + 1);
                     
                     // second bridging angle is 90 degrees offset
-                    double bridging_angle_second = bridging_angle_current + M_PI / 2.0;
                     
+                    double bridging_angle_second = cache.angle + M_PI / 2.0;
                     // Union the bridging polygons
-                    ExPolygons bridging_union = union_safety_offset_ex(bridging_current_layer);
-                    
+                    ExPolygons bridging_union = union_safety_offset_ex(cache.polys);
+                    const float offset_distance = cache.offset_distance;
+
                     for (LayerRegion *next_region : next_layer->regions()) {
                         Surfaces next_new_surfaces;
                         Surfaces keep_surfaces;

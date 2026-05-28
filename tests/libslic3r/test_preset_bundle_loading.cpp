@@ -100,3 +100,33 @@ TEST_CASE("Legacy bundle import without bundle metadata stays in the user preset
     CHECK(fs::equivalent(fs::path(imported->file).parent_path().parent_path(), user_root / PRESET_PRINT_NAME));
 }
 
+TEST_CASE("Current vendor type tolerates missing printer model", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+
+    VendorProfile orca_vendor("ORCA");
+    VendorProfile::PrinterModel model;
+    model.name = "Orca Test";
+    orca_vendor.models.emplace_back(model);
+    bundle.vendors.emplace("ORCA", std::move(orca_vendor));
+
+    bundle.printers.get_edited_preset().config.erase("printer_model");
+
+    CHECK(bundle.get_current_vendor_type() == VendorType::Unknown);
+}
+
+TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    DynamicPrintConfig& config = bundle.printers.get_edited_preset().config;
+
+    config.erase("nozzle_diameter");
+    CHECK(bundle.get_printer_extruder_count() == 1);
+
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats());
+    CHECK(bundle.get_printer_extruder_count() == 1);
+
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({ 0.4, 0.6 }));
+    CHECK(bundle.get_printer_extruder_count() == 2);
+}
+

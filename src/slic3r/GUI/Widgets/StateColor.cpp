@@ -42,7 +42,8 @@ static std::map<wxColour, wxColour> gDarkColors{
     {"#D7E8DE", "#1F2B27"}, // rgb(215, 232, 222)  Not Used anymore // Leftover from BBS
     {"#2B3436", "#808080"}, // rgb(43, 52, 54)     Not Used anymore // Leftover from BBS. Was used as main fill color of icons
     {"#ABABAB", "#ABABAB"},
-    {"#D9D9D9", "#2D2D32"}, // rgb(217, 217, 217)  Sidebar > Toggle button track color
+    {"#D9D9D9", "#27272A"}, // rgb(217, 217, 217)  Sidebar > Toggle button track color
+    {"#FFFEFE", "#D9D9D9"}, // rgb(255, 254, 254)  Sidebar > Toggle button thumb color
     {"#EBF9F0", "#293F34"},
     //{"#F0F0F0", "#4C4C54"},
     // ORCA

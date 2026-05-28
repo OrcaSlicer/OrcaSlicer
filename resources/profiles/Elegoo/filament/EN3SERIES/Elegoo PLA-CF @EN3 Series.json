@@ -1,0 +1,70 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA-CF @EN3 Series",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"setting_id": "EPLACFEN3",
+	"instantiation": "true",
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"fan_min_speed": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"overhang_fan_threshold": [
+		"75%"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"filament_density": [
+		"1.21"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 3 Pro 0.4 nozzle",
+		"Elegoo Neptune 3 Pro 0.6 nozzle",
+		"Elegoo Neptune 3 Pro 0.8 nozzle",
+		"Elegoo Neptune 3 Pro 1.0 nozzle",
+		"Elegoo Neptune 3 Plus 0.4 nozzle",
+		"Elegoo Neptune 3 Plus 0.6 nozzle",
+		"Elegoo Neptune 3 Plus 0.8 nozzle",
+		"Elegoo Neptune 3 Plus 1.0 nozzle",
+		"Elegoo Neptune 3 Max 0.4 nozzle",
+		"Elegoo Neptune 3 Max 0.6 nozzle",
+		"Elegoo Neptune 3 Max 0.8 nozzle",
+		"Elegoo Neptune 3 Max 1.0 nozzle"
+	]
+}
