@@ -3349,6 +3349,8 @@ bool GUI_App::on_init_network(bool try_backup)
         std::string country_code = app_config->get_country_code();
         m_agent->set_country_code(country_code);
         m_agent->start();
+        // Orca: disable Bambu telemetry up-front (before any login) so it never starts.
+        check_track_enable();
     }
 
     // When using Orca cloud alongside the BBL network plugin, the BBL DLL agent still
@@ -3365,6 +3367,12 @@ bool GUI_App::on_init_network(bool try_backup)
             bbl.init_log();
             bbl.set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
             bbl.set_country_code(app_config->get_country_code());
+            // Orca: disable Bambu telemetry before start() so the DLL never spins up tracking
+            // workers. This covers the case where the BBL plugin is loaded for LAN discovery
+            // but the user has not registered BBL_CLOUD_PROVIDER (so m_agent->track_enable
+            // would not reach this DLL instance).
+            bbl.track_enable(false);
+            bbl.track_remove_files();
             bbl.start();
         }
     }
@@ -4970,7 +4978,7 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 
 void GUI_App::check_track_enable()
 {
-    // Orca: alaways disable track event
+    // Orca: telemetry only exists on the BBL cloud agent; always disable it.
     if (m_agent) {
         m_agent->track_enable(false);
         m_agent->track_remove_files();
