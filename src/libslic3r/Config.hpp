@@ -2968,6 +2968,10 @@ private:
 
 std::ostream& operator<<(std::ostream& os, const DynamicConfig::DynamicConfigDifference& diff);
 
+namespace ConfigMigrations {
+int migrate_legacy_feature_filament_defaults(DynamicConfig &cfg);
+}
+
 // Configuration store with a static definition of configuration values.
 // In Slic3r, the static configuration stores are during the slicing / g-code generation for efficiency reasons,
 // because the configuration values could be accessed directly.

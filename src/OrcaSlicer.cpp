@@ -1607,35 +1607,11 @@ int CLI::run(int argc, char **argv)
                     }
 
                     if ((file_version < old_version5) && !config.empty()) {
-                        auto migrate_legacy_feature_filament_defaults = [](auto &cfg) {
-                            static const char *feature_filament_keys[] = {
-                                "wall_filament",
-                                "sparse_infill_filament",
-                                "solid_infill_filament",
-                                "support_filament",
-                                "support_interface_filament"
-                            };
-
-                            int converted_count = 0;
-                            for (const char *key : feature_filament_keys) {
-                                if (!cfg.has(key))
-                                    continue;
-
-                                const ConfigOption *opt = cfg.option(key);
-                                if (opt != nullptr && opt->getInt() == 1) {
-                                    cfg.set_key_value(key, new ConfigOptionInt(0));
-                                    ++converted_count;
-                                }
-                            }
-
-                            return converted_count;
-                        };
-
-                        int converted_count = migrate_legacy_feature_filament_defaults(config);
+                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config);
                         for (ModelObject *model_object : model.objects) {
-                            converted_count += migrate_legacy_feature_filament_defaults(model_object->config);
+                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
                             for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += migrate_legacy_feature_filament_defaults(model_volume->config);
+                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
                         }
 
                         if (converted_count > 0) {

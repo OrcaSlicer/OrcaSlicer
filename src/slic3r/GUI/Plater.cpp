@@ -5980,29 +5980,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 En3mfType          en_3mf_file_type = En3mfType::From_BBS;
                 {
                     DynamicPrintConfig config_loaded;
-                    auto migrate_legacy_feature_filament_defaults = [](auto &cfg) {
-                        static const char *feature_filament_keys[] = {
-                            "wall_filament",
-                            "sparse_infill_filament",
-                            "solid_infill_filament",
-                            "support_filament",
-                            "support_interface_filament"
-                        };
-
-                        int converted_count = 0;
-                        for (const char *key : feature_filament_keys) {
-                            if (!cfg.has(key))
-                                continue;
-
-                            const ConfigOption *opt = cfg.option(key);
-                            if (opt != nullptr && opt->getInt() == 1) {
-                                cfg.set_key_value(key, new ConfigOptionInt(0));
-                                ++converted_count;
-                            }
-                        }
-
-                        return converted_count;
-                    };
 
                     // BBS: add part plate related logic
                     PlateDataPtrs             plate_data;
@@ -6239,11 +6216,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     if (load_config && !config_loaded.empty() &&
                         (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) &&
                         file_version < Semver("2.4.0-dev")) {
-                        int converted_count = migrate_legacy_feature_filament_defaults(config_loaded);
+                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config_loaded);
                         for (ModelObject *model_object : model.objects) {
-                            converted_count += migrate_legacy_feature_filament_defaults(model_object->config);
+                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
                             for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += migrate_legacy_feature_filament_defaults(model_volume->config);
+                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
                         }
 
                         if (converted_count > 0) {
