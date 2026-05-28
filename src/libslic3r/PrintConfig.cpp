@@ -693,6 +693,14 @@ void PrintConfigDef::init_common_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPointsGroups{});
 
+    def           = this->add("number_of_giga_printheads", coInt);
+    def->label    = L("Number of Giga printheads");
+    def->tooltip  = L("Setting the number of printheads on the OrangeStorm Giga printer quickly configures all related settings.");
+    def->mode     = comAdvanced;
+    def->min      = 1;
+    def->max      = 4;
+    def->set_default_value(new ConfigOptionInt{1});
+
     //BBS: add "bed_exclude_area"
     def = this->add("bed_exclude_area", coPoints);
     def->label = L("Bed exclude area");
