@@ -19,7 +19,7 @@
 	"cooling_tube_retraction": "0",
 	"creality_flush_time": "0",
 	"default_flush_multiplier": "0.8",
-	"default_print_profile": "0.10mm Standard @Creality SPARKX i7 0.2 nozzle",
+	"default_print_profile": "0.10mm HighDetail @Creality SPARKX i7 0.2 nozzle",
 	"disable_m73": "0",
 	"emit_machine_limits_to_gcode": "1",
 	"enable_filament_ramming": "0",
