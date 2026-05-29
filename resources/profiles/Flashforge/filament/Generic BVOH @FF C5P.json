@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Generic BVOH @FF C5P",
+	"inherits": "Generic BVOH @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -43,17 +48,12 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"60"
 	],
 	"hot_plate_temp_initial_layer": [
 		"60"
 	],
-	"inherits": "Generic BVOH @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Generic BVOH @FF C5P",
 	"pressure_advance": [
 		"0.0225"
 	],
@@ -68,6 +68,5 @@
 	],
 	"textured_plate_temp": [
 		"60"
-	],
-	"version": "2.3.0.3"
+	]
 }

@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Generic PLA @FF C5",
+	"inherits": "Generic PLA @System",
+	"from": "system",
+	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"
 	],
@@ -79,17 +84,12 @@
 	"filament_unloading_speed_start": [
 		"30"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"65"
 	],
 	"hot_plate_temp_initial_layer": [
 		"65"
 	],
-	"inherits": "Generic PLA @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Generic PLA @FF C5",
 	"nozzle_temperature": [
 		"210"
 	],
@@ -113,6 +113,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
-	],
-	"version": "2.3.0.3"
+	]
 }

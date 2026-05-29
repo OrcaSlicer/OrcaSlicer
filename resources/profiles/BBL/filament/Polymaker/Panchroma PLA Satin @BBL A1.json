@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"name": "Panchroma PLA Satin @BBL A1",
-	"renamed_from": "Panchroma PLA Stain @BBL A1",
 	"inherits": "Panchroma PLA Satin @base",
 	"from": "system",
 	"setting_id": "GFSPM005_00",
@@ -11,22 +10,40 @@
 		"Bambu Lab A1 0.6 nozzle",
 		"Bambu Lab A1 0.8 nozzle"
 	],
-	"fan_cooling_layer_time": [
-		"100"
+	"cool_plate_temp": [
+		"60"
 	],
-	"fan_max_speed": [
-		"100"
+	"eng_plate_temp": [
+		"60"
 	],
-	"fan_min_speed": [
-		"100"
+	"hot_plate_temp": [
+		"60"
 	],
-	"filament_flow_ratio": [
-		"0.95"
+	"textured_plate_temp": [
+		"60"
 	],
-	"filament_max_volumetric_speed": [
-		"16"
+	"cool_plate_temp_initial_layer": [
+		"60"
 	],
-	"slow_down_layer_time": [
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"overhang_fan_speed": [
+		"75"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"slow_down_min_speed": [
 		"5"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
 	]
 }

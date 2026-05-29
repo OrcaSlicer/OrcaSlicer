@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge PETG Transparent @FF C5P",
+	"inherits": "Generic PETG @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -46,17 +51,12 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"85"
 	],
 	"hot_plate_temp_initial_layer": [
 		"85"
 	],
-	"inherits": "Generic PETG @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PETG Transparent @FF C5P",
 	"overhang_fan_speed": [
 		"90"
 	],
@@ -86,6 +86,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"85"
-	],
-	"version": "2.3.0.3"
+	]
 }
