@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge HS PETG @FF C5P",
+	"inherits": "Generic PETG HF @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -52,17 +57,12 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"85"
 	],
 	"hot_plate_temp_initial_layer": [
 		"85"
 	],
-	"inherits": "Generic PETG HF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge HS PETG @FF C5P",
 	"nozzle_temperature": [
 		"235"
 	],
@@ -92,6 +92,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"85"
-	],
-	"version": "2.3.0.3"
+	]
 }
