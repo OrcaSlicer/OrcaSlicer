@@ -1519,14 +1519,20 @@ void PrintConfigDef::init_fff_params()
                      "For example, additional slowdown will be applied when printing overhangs on sharp corners like the "
                      "front of the Benchy hull, reducing curling which compounds over multiple layers.\n\n"
                      "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the "
-                     "print speed slow enough that perimeter curling does not happen. If printing with a high external perimeter speed, "
-                     "this parameter may introduce slight artifacts when slowing down due to the large variance in print speeds. "
-                     "If you notice artifacts, ensure your pressure advance is tuned correctly.\n\n"
+                     "print speed is slow enough that perimeter curling does not happen. \n"
+                     "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, "
+                     "due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
+                     "Root cause of these artefacts is most likely PA tuning being slightly off, especially when combined "
+                     "with a high PA smooth time.\n\n"
+                     "Recommendations when enabling this option:\n"
+                     "1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder reacts quickly to the speed changes.\n"
+                     "2. Increase the minimum print speeds to limit the magnitude of the slowdown and reduce the variance between fast and slow segments.\n"
+                     "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n\n"
                      "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is "
                      "applied even if the overhanging perimeter is part of a bridge. For example, when the perimeters are 100% overhanging"
                      ", with no wall supporting them from underneath, the 100% overhang speed will be applied.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool{ true });
+    def->set_default_value(new ConfigOptionBool{ false });
 
     def = this->add("overhang_1_4_speed", coFloatOrPercent);
     def->label = "10%";
