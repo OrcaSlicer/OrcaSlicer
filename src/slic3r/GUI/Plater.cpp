@@ -6153,23 +6153,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
                     }
 
-                    if (load_config && !config_loaded.empty() &&
-                        (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) &&
-                        file_version < Semver("2.4.0-dev")) {
-                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config_loaded);
-                        for (ModelObject *model_object : model.objects) {
-                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
-                            for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
-                        }
-
-                        if (converted_count > 0) {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " "
-                                                    << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)")
-                                                           % file_version.to_string() % converted_count;
-                        }
-                    }
-
                     // plate data
                     if (plate_data.size() > 0) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", import 3mf UPDATE_GCODE_RESULT \n");
