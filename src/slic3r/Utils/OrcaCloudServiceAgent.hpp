@@ -176,7 +176,7 @@ public:
     // ========================================================================
     int get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets) override;
     std::string request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
-    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
+    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) override;
     SyncPushResult sync_push(const std::string& profile_id,
                              const std::string& name,
                              const nlohmann::json& content,

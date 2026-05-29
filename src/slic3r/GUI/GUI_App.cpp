@@ -12,6 +12,7 @@
 #include <boost/chrono/duration.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
+#include <mutex>
 #include <wx/event.h>
 
 // Localization headers: include libslic3r version first so everything in this file
@@ -4812,6 +4813,8 @@ void GUI_App::handle_http_error(unsigned int status, std::string body, const std
     wxQueueEvent(this, evt);
 }
 
+static std::mutex conflict_ids_mutex;
+
 void GUI_App::on_http_error(wxCommandEvent &evt)
 {
     int status = evt.GetInt();
@@ -4891,26 +4894,27 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         BOOST_LOG_TRIVIAL(info) << "Http error 409.";
         // Parse the conflict body to extract the error code and server profile id
         int conflict_code = 0;
+        json conflict_body;
         try {
-            json conflict_body = json::parse(body_str);
+            conflict_body = json::parse(body_str);
             if (conflict_body.contains("code"))
                 conflict_code = conflict_body["code"].get<int>();
-            if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")) {
-                m_pending_conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
-            }
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
         }
+        std::string conflict_setting_id;
+        if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id"))
+            conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
         auto* plater = wxGetApp().plater();
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
             if (conflict_code == -1) {
                 text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-        } else {
+            } else {
                 text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-        }
+            }
             plater->get_notification_manager()->push_orca_sync_conflict_notification(
                 text,
                 [this](wxEvtHandler*) {
@@ -4923,7 +4927,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
 
                     return true;
                 },
-                [this](wxEvtHandler*) {
+                [this, conflict_setting_id](wxEvtHandler*) {
                     MessageDialog
                         dlg(mainframe,
                             _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
@@ -4931,16 +4935,14 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
-                    std::thread([this]() {
-                        if (is_closing() || !m_agent || !preset_bundle)
-                            return;
-                        BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
-                        restart_sync_user_preset(true);
-                    }).detach();
+                    if (!conflict_setting_id.empty()) {
+                        std::unique_lock lock(conflict_ids_mutex);
+                        m_pending_conflict_setting_ids.push_back(conflict_setting_id);
+                    }
 
                     return true;
                 });
-            }
+        }
         return;
     }
 
@@ -6215,7 +6217,7 @@ void GUI_App::load_pending_vendors()
     need_add_filaments.clear();
 }
 
-void GUI_App::sync_preset(Preset* preset)
+void GUI_App::sync_preset(Preset* preset, bool force)
 {
     int result = -1;
     unsigned int http_code = 200;
@@ -6294,7 +6296,7 @@ void GUI_App::sync_preset(Preset* preset)
                     result = 0;
                 }
                 else {
-                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
+                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code, ORCA_CLOUD_PROVIDER, force);
                     if (http_code >= 400) {
                         result       = 0;
                         updated_info = "hold";
@@ -6664,7 +6666,7 @@ bool GUI_App::unsubscribe_bundle(const std::string& id)
     return orca_agent->unsubscribe_bundle(id);
 }
 
-void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
+void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 {
     if (app_config->get_stealth_mode())
         return;
@@ -6709,115 +6711,47 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
     Bind(EVT_UPDATE_PRESET_BUNDLE,&GUI_App::update_single_bundle,this);
 
     m_sync_update_thread = Slic3r::create_thread(
-        [this, progressFn, cancelFn, finishFn, &force_push, t = std::weak_ptr<int>(m_user_sync_token)] {
+        [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
             if (!m_agent) return;
 
-            if (!force_push) {
-                // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
-                scan_orphaned_info_files();
-                process_delete_presets();
-    
-                // get setting list, update setting list
-                std::string version = preset_bundle->get_vendor_profile_version(PresetBundle::ORCA_DEFAULT_BUNDLE).to_string();
-    
-                // run check_and_fix_user_presets_syncinfo once before syncing to make sure all presets have correct sync_info
-                // So that we can sync presets that are migrated from old version or users manually put preset files in preset folder
-                preset_bundle->check_and_fix_user_presets_syncinfo(m_agent->get_user_id());
-    
-                int ret = m_agent->get_setting_list2(version, [this](auto info) {
-                    auto type = info[BBL_JSON_KEY_TYPE];
-                    auto name = info[BBL_JSON_KEY_NAME];
-                    auto setting_id = info[BBL_JSON_KEY_SETTING_ID];
-                    auto update_time_str = info[ORCA_JSON_KEY_UPDATE_TIME];
-                    long long update_time = 0;
-                    if (!update_time_str.empty())
-                        update_time = std::atoll(update_time_str.c_str());
-                    if (type == "filament") {
-                        return preset_bundle->filaments.need_sync(name, setting_id, update_time);
-                    } else if (type == "print") {
-                        return preset_bundle->prints.need_sync(name, setting_id, update_time);
-                    } else if (type == "printer") {
-                        return preset_bundle->printers.need_sync(name, setting_id, update_time);
-                    } else {
-                        return true;
-                    }
-                }, progressFn, cancelFn);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " get_setting_list2 ret = " << ret << " m_is_closing = " << m_is_closing;
-    
-                finishFn(ret == 0);
-    
-                if (ret == 0 && m_agent && !t.expired())
-                    reload_settings();
-            }
+            // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
+            scan_orphaned_info_files();
+            process_delete_presets();
+
+            // get setting list, update setting list
+            std::string version = preset_bundle->get_vendor_profile_version(PresetBundle::ORCA_DEFAULT_BUNDLE).to_string();
+
+            // run check_and_fix_user_presets_syncinfo once before syncing to make sure all presets have correct sync_info
+            // So that we can sync presets that are migrated from old version or users manually put preset files in preset folder
+            preset_bundle->check_and_fix_user_presets_syncinfo(m_agent->get_user_id());
+
+            int ret = m_agent->get_setting_list2(version, [this](auto info) {
+                auto type = info[BBL_JSON_KEY_TYPE];
+                auto name = info[BBL_JSON_KEY_NAME];
+                auto setting_id = info[BBL_JSON_KEY_SETTING_ID];
+                auto update_time_str = info[ORCA_JSON_KEY_UPDATE_TIME];
+                long long update_time = 0;
+                if (!update_time_str.empty())
+                    update_time = std::atoll(update_time_str.c_str());
+                if (type == "filament") {
+                    return preset_bundle->filaments.need_sync(name, setting_id, update_time);
+                } else if (type == "print") {
+                    return preset_bundle->prints.need_sync(name, setting_id, update_time);
+                } else if (type == "printer") {
+                    return preset_bundle->printers.need_sync(name, setting_id, update_time);
+                } else {
+                    return true;
+                }
+            }, progressFn, cancelFn);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " get_setting_list2 ret = " << ret << " m_is_closing = " << m_is_closing;
+
+            finishFn(ret == 0);
+
+            if (ret == 0 && m_agent && !t.expired())
+                reload_settings();
 
             // For orca specific syncing
             auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
-
-            // One-shot force push for 409 conflict resolution, before normal sync loop
-            if (force_push && orca_agent && !m_pending_conflict_setting_id.empty()) {
-                std::string conflict_id = m_pending_conflict_setting_id;
-                m_pending_conflict_setting_id.clear();
-
-                bool force_push_success = false;
-
-                Preset* found_preset = nullptr;
-                for (PresetCollection* col :
-                    {static_cast<PresetCollection*>(&preset_bundle->prints), static_cast<PresetCollection*>(&preset_bundle->filaments),
-                    static_cast<PresetCollection*>(&preset_bundle->printers)}) {
-                    for (size_t i = 0; i < col->size(); ++i) {
-                        Preset& preset = col->preset(i, true);
-                        if (preset.setting_id == conflict_id) {
-                            found_preset = &preset;
-                            break;
-                        }
-                    }
-                    if (found_preset)
-                        break;
-                }
-
-                if (found_preset) {
-                    std::map<std::string, std::string> values_map;
-                    if (preset_bundle->get_differed_values_to_update(*found_preset, values_map) == 0) {
-                        std::string original_updated_time;
-                        auto it = values_map.find(IOT_JSON_KEY_UPDATED_TIME);
-                        if (it != values_map.end())
-                            original_updated_time = it->second;
-
-                        nlohmann::json content;
-                        content["name"] = found_preset->name;
-                        for (const auto& pair : values_map) {
-                            if (pair.first == IOT_JSON_KEY_UPDATED_TIME)
-                                continue;
-                            content[pair.first] = pair.second;
-                        }
-
-                        auto result = orca_agent->sync_push(conflict_id, found_preset->name, content, original_updated_time, true);
-                        if (result.success) {
-                            BOOST_LOG_TRIVIAL(info) << "Force push succeeded for preset " << found_preset->name;
-                            CallAfter([this, name = found_preset->name, type = found_preset->type, setting_id = conflict_id,
-                                    new_time = result.new_updated_time] {
-                                if (!is_closing() && preset_bundle) {
-                                    if (type == Preset::Type::TYPE_FILAMENT)
-                                        preset_bundle->filaments.set_sync_info_and_save(name, setting_id, "", new_time);
-                                    else if (type == Preset::Type::TYPE_PRINT)
-                                        preset_bundle->prints.set_sync_info_and_save(name, setting_id, "", new_time);
-                                    else if (type == Preset::Type::TYPE_PRINTER)
-                                        preset_bundle->printers.set_sync_info_and_save(name, setting_id, "", new_time);
-                                }
-                            });
-                            force_push_success = true;
-                        } else {
-                            BOOST_LOG_TRIVIAL(error) << "Force push failed for preset " << found_preset->name << ": " << result.error_message;
-                        }
-                    }
-                } else {
-                    BOOST_LOG_TRIVIAL(warning) << "Force push: could not find local preset with setting_id=" << conflict_id;
-                }
-
-                finishFn(force_push_success);
-                force_push = false;
-            }
-
             int tick_tock = -1, sync_count = 0; // tick_tock = -1 to immediately run sync the frist time this thread runs
             std::vector<Preset> presets_to_sync;
             std::vector<std::pair<std::string, std::string>> bundles_to_sync;
@@ -6836,9 +6770,24 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
 
                         int total_count = 0;
                         sync_count = preset_bundle->prints.get_user_presets(preset_bundle, presets_to_sync);
+
+                        auto sync_with_lock = [this](Preset& preset) {
+                            bool force = false;
+                            {
+                                std::scoped_lock lock(conflict_ids_mutex);
+                                auto it = std::find_if(m_pending_conflict_setting_ids.begin(), m_pending_conflict_setting_ids.end(),
+                                                [&preset](const std::string& id) { return id == preset.setting_id; });
+                                if (it != m_pending_conflict_setting_ids.end()) {
+                                    force = true;
+                                    m_pending_conflict_setting_ids.erase(it);
+                                }
+                            }
+                            sync_preset(&preset, force);
+                        };
+
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6847,7 +6796,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
                         sync_count = preset_bundle->filaments.get_user_presets(preset_bundle, presets_to_sync);
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6856,7 +6805,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
                         sync_count = preset_bundle->printers.get_user_presets(preset_bundle, presets_to_sync);
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -7002,7 +6951,7 @@ void GUI_App::stop_sync_user_preset()
     }
 }
 
-void GUI_App::restart_sync_user_preset(bool force_push)
+void GUI_App::restart_sync_user_preset()
 {
     if (!m_user_sync_token) {
         // No sync running. If a restart helper is already in flight it will
