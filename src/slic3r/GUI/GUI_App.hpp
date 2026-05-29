@@ -321,10 +321,12 @@ private:
 
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
+    std::atomic<bool>    m_restart_sync_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
-    bool             m_show_http_errpr_msgdlg{false};
+    bool             m_show_http_error_msgdlg{false};
+    std::chrono::steady_clock::time_point m_last_401_error_time;
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     HttpServer       m_http_server;
@@ -492,7 +494,7 @@ public:
     void            request_open_project(std::string project_id);
     void            request_remove_project(std::string project_id);
 
-    void            handle_http_error(unsigned int status, std::string body, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            handle_http_error(unsigned int status, std::string body, const std::string& provider = "");
     void            on_http_error(wxCommandEvent &evt);
     void            on_update_machine_list(wxCommandEvent& evt);
     void            on_user_login(wxCommandEvent &evt);
@@ -530,6 +532,7 @@ public:
     void            sync_preset(Preset* preset);
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
+    void            restart_sync_user_preset();
     void            on_stealth_mode_enter();
 
     // Bundle subscription sync
