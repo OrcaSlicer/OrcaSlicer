@@ -2981,7 +2981,11 @@ bool GUI_App::on_init_inner()
     }
 #endif
 
-    if (scrn) { scrn->SetText(_L("Creating main window") + dots); wxYield(); }
+    if (scrn) {
+        const auto scrn_txt = _L("Creating main window") + dots;
+        scrn->SetText(scrn_txt);
+        wxYield();
+    }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
     // hide settings tabs after first Layout
