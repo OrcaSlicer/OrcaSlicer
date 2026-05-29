@@ -9,7 +9,13 @@ param(
         "OrcaSlicer.dll"
     ),
 
-    [string]$SignToolPath
+    [string]$SignToolPath,
+
+    # Accept signatures whose certificate chain terminates in an untrusted root.
+    # Required for the SignPath test certificate (self-signed). Do NOT pass this
+    # once a production CA-issued certificate is in use, so release builds enforce
+    # a fully trusted chain.
+    [switch]$AllowUntrustedRoot
 )
 
 $ErrorActionPreference = "Stop"
@@ -64,10 +70,35 @@ foreach ($relativePath in $Files) {
     }
 
     Write-Host "Verifying $relativePath"
-    & $signtool verify /pa /all /tw /v $filePath
-    if ($LASTEXITCODE -ne 0) {
-        throw "SignTool verification failed for '$relativePath' with exit code $LASTEXITCODE."
+
+    # Capture signtool output without letting native stderr (redirected via 2>&1)
+    # raise a terminating NativeCommandError under $ErrorActionPreference = 'Stop'.
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = & $signtool verify /pa /all /tw /v $filePath 2>&1
+        $exitCode = $LASTEXITCODE
     }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $output | ForEach-Object { Write-Host $_ }
+
+    if ($exitCode -eq 0) {
+        continue
+    }
+
+    # signtool wraps the message across lines, so normalize whitespace before matching.
+    $normalizedOutput = (($output | Out-String) -replace "\s+", " ")
+    $isUntrustedRoot = $normalizedOutput -match "terminated in a root certificate which is not trusted by the trust provider"
+
+    if ($AllowUntrustedRoot -and $isUntrustedRoot) {
+        Write-Host "  Accepted: '$relativePath' is signed but its certificate chains to an untrusted root (expected for the SignPath test certificate)."
+        continue
+    }
+
+    throw "SignTool verification failed for '$relativePath' with exit code $exitCode."
 }
 
 Write-Host "Authenticode verification passed."

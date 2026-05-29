@@ -529,7 +529,10 @@ jobs:
       - name: Verify SignPath Windows portable signatures
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
         shell: pwsh
-        run: ./scripts/verify-authenticode.ps1 -ArtifactDirectory '${{ github.workspace }}/${{ env.BUILD_DIR }}/signpath/windows-portable'
+        # -AllowUntrustedRoot is required while signing with the SignPath test
+        # certificate (self-signed). Remove it once signing-policy-slug switches
+        # to release-signing with a production CA-issued certificate.
+        run: ./scripts/verify-authenticode.ps1 -ArtifactDirectory '${{ github.workspace }}/${{ env.BUILD_DIR }}/signpath/windows-portable' -AllowUntrustedRoot
 
       - name: Replace Windows portable bundle with signed output
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
