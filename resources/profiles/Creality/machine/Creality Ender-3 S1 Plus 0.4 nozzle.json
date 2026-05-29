@@ -3,7 +3,7 @@
 	"name": "Creality Ender-3 S1 Plus 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "25423",
+	"setting_id": "GM001",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-3 S1 Plus",
 	"printer_variant": "0.4",
@@ -12,37 +12,100 @@
 	"nozzle_diameter": [
 		"0.4"
 	],
-	"printable_area": "0x0,300x0,300x300,0x300",
+	"printable_area": [
+		"0x0",
+		"300x0",
+		"300x300",
+		"0x300"
+	],
 	"printable_height": "300",
 	"nozzle_type": "brass",
 	"auxiliary_fan": "0",
-	"machine_max_acceleration_extruding": "5000",
-	"machine_max_acceleration_retracting": "1000",
-	"machine_max_acceleration_travel": "5000",
-	"machine_max_acceleration_x": "5000",
-	"machine_max_acceleration_y": "5000",
-	"machine_max_acceleration_z": "1000",
-	"machine_max_speed_e": "50",
-	"machine_max_speed_x": "500",
-	"machine_max_speed_y": "500",
-	"machine_max_speed_z": "10",
-	"machine_max_jerk_e": "5",
-	"machine_max_jerk_x": "12",
-	"machine_max_jerk_y": "12",
-	"machine_max_jerk_z": "0.4",
+	"machine_max_acceleration_extruding": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_retracting": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_y": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_z": [
+		"1000",
+		"1000"
+	],
+	"machine_max_speed_e": [
+		"50",
+		"50"
+	],
+	"machine_max_speed_x": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_z": [
+		"10",
+		"10"
+	],
+	"machine_max_jerk_e": [
+		"5",
+		"5"
+	],
+	"machine_max_jerk_x": [
+		"12",
+		"12"
+	],
+	"machine_max_jerk_y": [
+		"12",
+		"12"
+	],
+	"machine_max_jerk_z": [
+		"0.4",
+		"0.4"
+	],
 	"machine_max_junction_deviation": [
 		"0.013",
 		"0"
 	],
-	"max_layer_height": "0.36",
-	"min_layer_height": "0.08",
+	"max_layer_height": [
+		"0.36"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
 	"printer_settings_id": "Creality",
-	"retraction_minimum_travel": "2",
-	"retract_before_wipe": "70",
-	"retraction_length": "1",
-	"retract_length_toolchange": "0",
-	"retraction_speed": "40",
-	"deretraction_speed": "40",
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"retract_before_wipe": [
+		"70"
+	],
+	"retraction_length": [
+		"1"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
+	"retraction_speed": [
+		"40"
+	],
+	"deretraction_speed": [
+		"40"
+	],
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "M25",
@@ -77,7 +140,10 @@
 	"host_type": "octoprint",
 	"machine_LED_light_exist": "0",
 	"machine_load_filament_time": "0",
-	"machine_max_acceleration_e": "5000",
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
 	"machine_min_extruding_rate": "0,0",
 	"machine_min_travel_rate": "0,0",
 	"machine_platform_motion_enable": "0",
@@ -96,7 +162,9 @@
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",
 	"support_multi_bed_types": "1",
-	"thumbnails": "300x300",
+	"thumbnails": [
+		"300x300"
+	],
 	"thumbnails_format": "PNG",
 	"time_cost": "0",
 	"use_firmware_retraction": "0",

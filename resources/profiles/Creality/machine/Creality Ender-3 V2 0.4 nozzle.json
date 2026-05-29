@@ -3,7 +3,7 @@
 	"name": "Creality Ender-3 V2 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "60817",
+	"setting_id": "GM001",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-3 V2",
 	"default_filament_profile": [
@@ -13,7 +13,12 @@
 	"nozzle_diameter": [
 		"0.4"
 	],
-	"printable_area": "0x0,220x0,220x220,0x220",
+	"printable_area": [
+		"0x0",
+		"220x0",
+		"220x220",
+		"0x220"
+	],
 	"printable_height": "250",
 	"nozzle_type": "brass",
 	"auxiliary_fan": "0",
@@ -49,21 +54,66 @@
 	"machine_LED_light_exist": "0",
 	"machine_end_gcode": "G91 ;Relative positionning\nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z1 F2400 ;Retract and raise Z \nG1 X5 Y5 F3000 ;Wipe out \nG1 Z10 ;Raise Z more \nG90 ;Absolute positionning  \nG1 X0 Y0 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed  \nM84 X Y E ;Disable all steppers but Z ",
 	"machine_load_filament_time": "0",
-	"machine_max_acceleration_e": "5000,5000",
-	"machine_max_acceleration_extruding": "500,500",
-	"machine_max_acceleration_retracting": "500,1000",
-	"machine_max_acceleration_travel": "500,500",
-	"machine_max_acceleration_x": "500,500",
-	"machine_max_acceleration_y": "500,500",
-	"machine_max_acceleration_z": "500,500",
-	"machine_max_jerk_e": "5,5",
-	"machine_max_jerk_x": "10,8",
-	"machine_max_jerk_y": "10,8",
-	"machine_max_jerk_z": "0.4,0.4",
-	"machine_max_speed_e": "50,60",
-	"machine_max_speed_x": "500,500",
-	"machine_max_speed_y": "500,500",
-	"machine_max_speed_z": "10,10",
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_retracting": [
+		"500",
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_x": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_y": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_z": [
+		"500",
+		"500"
+	],
+	"machine_max_jerk_e": [
+		"5",
+		"5"
+	],
+	"machine_max_jerk_x": [
+		"10",
+		"8"
+	],
+	"machine_max_jerk_y": [
+		"10",
+		"8"
+	],
+	"machine_max_jerk_z": [
+		"0.4",
+		"0.4"
+	],
+	"machine_max_speed_e": [
+		"50",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_z": [
+		"10",
+		"10"
+	],
 	"machine_min_extruding_rate": "0,0",
 	"machine_min_travel_rate": "0,0",
 	"machine_pause_gcode": "M25 ;pause print",
@@ -90,20 +140,33 @@
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",
 	"support_multi_bed_types": "1",
-	"thumbnails": "48x48/PNG, 300x300/PNG",
+	"thumbnails": [
+		"48x48/PNG",
+		"300x300/PNG"
+	],
 	"thumbnails_format": "PNG",
 	"time_cost": "0",
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
-	"deretraction_speed": "40",
+	"deretraction_speed": [
+		"40"
+	],
 	"extruder_colour": "#FCE94F",
 	"extruder_offset": "0x0",
 	"long_retractions_when_cut": "0",
-	"max_layer_height": "0.2",
-	"min_layer_height": "0.08",
-	"retract_before_wipe": "90%",
-	"retract_length_toolchange": "0",
+	"max_layer_height": [
+		"0.2"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"retract_before_wipe": [
+		"90%"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
 	"retract_lift_above": "0",
 	"retract_lift_below": "0",
 	"retract_lift_enforce": "All Surfaces",
@@ -111,9 +174,15 @@
 	"retract_restart_extra_toolchange": "0",
 	"retract_when_changing_layer": "1",
 	"retraction_distances_when_cut": "18",
-	"retraction_length": "5",
-	"retraction_minimum_travel": "2",
-	"retraction_speed": "50",
+	"retraction_length": [
+		"5"
+	],
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"retraction_speed": [
+		"50"
+	],
 	"travel_slope": "3",
 	"wipe": "1",
 	"wipe_distance": "2",

@@ -1,7 +1,7 @@
 {
 	"type": "machine",
 	"from": "system",
-	"setting_id": "48858",
+	"setting_id": "GM001",
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality K2",
@@ -25,21 +25,66 @@
 	"high_current_on_filament_swap": "0",
 	"machine_end_gcode": "{if print_sequence == \"by object\"}\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{max_layer_z+2} F600\n{endif}\nEND_PRINT",
 	"machine_load_filament_time": "86",
-	"machine_max_acceleration_e": "5000",
-	"machine_max_acceleration_extruding": "20000",
-	"machine_max_acceleration_retracting": "5000",
-	"machine_max_acceleration_travel": "20000",
-	"machine_max_acceleration_x": "20000",
-	"machine_max_acceleration_y": "20000",
-	"machine_max_acceleration_z": "100",
-	"machine_max_jerk_e": "10",
-	"machine_max_jerk_x": "100",
-	"machine_max_jerk_y": "100",
-	"machine_max_jerk_z": "5",
-	"machine_max_speed_e": "50",
-	"machine_max_speed_x": "800",
-	"machine_max_speed_y": "800",
-	"machine_max_speed_z": "5",
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_retracting": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_x": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_y": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_z": [
+		"100",
+		"100"
+	],
+	"machine_max_jerk_e": [
+		"10",
+		"10"
+	],
+	"machine_max_jerk_x": [
+		"100",
+		"100"
+	],
+	"machine_max_jerk_y": [
+		"100",
+		"100"
+	],
+	"machine_max_jerk_z": [
+		"5",
+		"5"
+	],
+	"machine_max_speed_e": [
+		"50",
+		"50"
+	],
+	"machine_max_speed_x": [
+		"800",
+		"800"
+	],
+	"machine_max_speed_y": [
+		"800",
+		"800"
+	],
+	"machine_max_speed_z": [
+		"5",
+		"5"
+	],
 	"machine_pause_gcode": "PAUSE",
 	"machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM104 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 E0.8 F300\nG1 X0 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG1 X150 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG92 E0\nG1 Z1 F600",
 	"machine_unload_filament_time": "0",
@@ -48,7 +93,12 @@
 	"nozzle_volume": "183",
 	"parking_pos_retraction": "0",
 	"preferred_orientation": "0",
-	"printable_area": "0x0,260x0,260x260,0x260",
+	"printable_area": [
+		"0x0",
+		"260x0",
+		"260x260",
+		"0x260"
+	],
 	"printable_height": "260",
 	"printer_technology": "FFF",
 	"printer_variant": "0.6",
@@ -60,7 +110,10 @@
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "0",
 	"support_multi_bed_types": "1",
-	"thumbnails": "96x96/PNG, 300x300/PNG",
+	"thumbnails": [
+		"96x96/PNG",
+		"300x300/PNG"
+	],
 	"thumbnails_format": "PNG",
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
@@ -68,27 +121,63 @@
 	"default_filament_profile": [
 		"Hyper PLA @Creality K2 0.6 nozzle"
 	],
-	"deretraction_speed": "30",
-	"extruder_colour": "#FCE94F",
-	"extruder_offset": "0x0",
-	"max_layer_height": "0.42",
-	"min_layer_height": "0.12",
+	"deretraction_speed": [
+		"30"
+	],
+	"extruder_colour": [
+		"#FCE94F"
+	],
+	"extruder_offset": [
+		"0x0"
+	],
+	"max_layer_height": [
+		"0.42"
+	],
+	"min_layer_height": [
+		"0.12"
+	],
 	"nozzle_diameter": [
 		"0.6"
 	],
-	"retract_before_wipe": "90%",
-	"retract_length_toolchange": "0",
-	"retract_lift_above": "0",
-	"retract_lift_below": "259",
-	"retract_restart_extra": "0",
-	"retract_restart_extra_toolchange": "0",
-	"retract_when_changing_layer": "1",
-	"retraction_length": "1.5",
-	"retraction_minimum_travel": "2",
-	"retraction_speed": "30",
-	"wipe": "1",
-	"wipe_distance": "2",
-	"z_hop": "0.4",
+	"retract_before_wipe": [
+		"90%"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
+	"retract_lift_above": [
+		"0"
+	],
+	"retract_lift_below": [
+		"259"
+	],
+	"retract_restart_extra": [
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"retraction_length": [
+		"1.5"
+	],
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"retraction_speed": [
+		"30"
+	],
+	"wipe": [
+		"1"
+	],
+	"wipe_distance": [
+		"2"
+	],
+	"z_hop": [
+		"0.4"
+	],
 	"name": "Creality K2 0.6 nozzle",
 	"printer_structure": "undefine",
 	"adaptive_bed_mesh_margin": "0",
