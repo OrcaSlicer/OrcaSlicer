@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA Wood @Hi-all",
+	"inherits": "Creality Generic PLA @Hi-all",
+	"from": "system",
+	"setting_id": "GFSL96_00",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.88"
@@ -11,8 +14,5 @@
 	"compatible_printers": [
 		"Creality Hi 0.4 nozzle",
 		"Creality Hi 0.6 nozzle"
-	],
-	"inherits": "Creality Generic PLA @Hi-all",
-	"from": "system",
-	"setting_id": "GFSL96_00"
+	]
 }

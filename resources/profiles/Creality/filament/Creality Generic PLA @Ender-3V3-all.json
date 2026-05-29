@@ -1,32 +1,35 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA @Ender-3V3-all",
+	"inherits": "Creality Generic PLA",
+	"from": "system",
+	"setting_id": "GFSL99_00",
 	"instantiation": "true",
-	"cool_plate_temp": [
-		"55"
+	"filament_max_volumetric_speed": [
+		"18"
 	],
-	"cool_plate_temp_initial_layer": [
+	"slow_down_min_speed": [
+		"20"
+	],
+	"cool_plate_temp": [
 		"55"
 	],
 	"eng_plate_temp": [
 		"55"
 	],
-	"eng_plate_temp_initial_layer": [
-		"55"
-	],
-	"filament_max_volumetric_speed": [
-		"18"
-	],
 	"hot_plate_temp": [
 		"55"
 	],
-	"hot_plate_temp_initial_layer": [
+	"textured_plate_temp": [
 		"55"
 	],
-	"slow_down_min_speed": [
-		"20"
+	"cool_plate_temp_initial_layer": [
+		"55"
 	],
-	"textured_plate_temp": [
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
 		"55"
 	],
 	"textured_plate_temp_initial_layer": [
@@ -42,8 +45,5 @@
 		"Creality Ender-3 V3 0.6 nozzle",
 		"Creality Ender-3 V3 Plus 0.4 nozzle",
 		"Creality Ender-3 V3 Plus 0.6 nozzle"
-	],
-	"inherits": "Creality Generic PLA",
-	"from": "system",
-	"setting_id": "GFSL99_00"
+	]
 }

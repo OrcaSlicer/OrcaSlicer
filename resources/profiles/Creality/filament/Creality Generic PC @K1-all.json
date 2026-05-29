@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PC @K1-all",
+	"inherits": "Creality Generic PC",
+	"from": "system",
+	"setting_id": "GFSC99_06",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"60"
@@ -16,8 +19,5 @@
 		"Creality K1 Max (0.4 nozzle)",
 		"Creality K1 Max (0.6 nozzle)",
 		"Creality K1 Max (0.8 nozzle)"
-	],
-	"inherits": "Creality Generic PC",
-	"from": "system",
-	"setting_id": "GFSC99_06"
+	]
 }

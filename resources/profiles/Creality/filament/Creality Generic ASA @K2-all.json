@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ASA @K2-all",
+	"inherits": "Creality Generic ASA",
+	"from": "system",
+	"setting_id": "GFSA04_00",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"
@@ -13,6 +16,9 @@
 	],
 	"slow_down_min_speed": [
 		"20"
+	],
+	"filament_start_gcode": [
+		";filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}"
 	],
 	"compatible_printers": [
 		"Creality K2 0.2 nozzle",
@@ -27,11 +33,5 @@
 		"Creality K2 Pro 0.4 nozzle",
 		"Creality K2 Pro 0.6 nozzle",
 		"Creality K2 Pro 0.8 nozzle"
-	],
-	"filament_start_gcode": [
-		";filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}"
-	],
-	"inherits": "Creality Generic ASA",
-	"from": "system",
-	"setting_id": "GFSA04_00"
+	]
 }

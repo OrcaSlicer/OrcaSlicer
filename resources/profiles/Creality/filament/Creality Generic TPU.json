@@ -1,6 +1,10 @@
 {
 	"type": "filament",
 	"name": "Creality Generic TPU",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"
@@ -21,9 +25,5 @@
 		"Creality CR-10 SE 0.8 nozzle",
 		"Creality Ender-3 S1 Pro 0.4 nozzle",
 		"Creality Ender-3 S1 0.4 nozzle"
-	],
-	"inherits": "fdm_filament_tpu",
-	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFU99"
+	]
 }
