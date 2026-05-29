@@ -13,7 +13,6 @@
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
 #include <wx/event.h>
-#include <wx/toplevel.h>
 
 // Localization headers: include libslic3r version first so everything in this file
 // uses the slic3r/GUI version (the macros will take precedence over the functions).
@@ -4904,10 +4903,10 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
             if (conflict_code == -1) {
                 text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            } else {
+        } else {
                 text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            }
+        }
             plater->get_notification_manager()->push_orca_sync_conflict_notification(
                 text,
                 [this](wxEvtHandler*) {
@@ -4937,7 +4936,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
 
                     return true;
                 });
-        }
+            }
         return;
     }
 
@@ -6297,9 +6296,9 @@ void GUI_App::sync_preset(Preset* preset)
                         updated_info = "hold";
                         BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
                     } else {
-                        auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
-                        if (!update_time_str.empty())
-                            update_time = std::atoll(update_time_str.c_str());
+                            auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
+                            if (!update_time_str.empty())
+                                update_time = std::atoll(update_time_str.c_str());
                     }
                 }
 
@@ -6705,30 +6704,27 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
 
     Bind(EVT_UPDATE_PRESET_BUNDLE,&GUI_App::update_single_bundle,this);
 
-    m_sync_update_thread = Slic3r::create_thread([this, progressFn, cancelFn, finishFn, force_push,
-                                                  t = std::weak_ptr<int>(m_user_sync_token)] {
-        if (!m_agent)
-            return;
+    m_sync_update_thread = Slic3r::create_thread(
+        [this, progressFn, cancelFn, finishFn, &force_push, t = std::weak_ptr<int>(m_user_sync_token)] {
+            if (!m_agent) return;
 
-        if (!force_push) {
-            // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
-            scan_orphaned_info_files();
-            process_delete_presets();
-
-            // get setting list, update setting list
-            std::string version = preset_bundle->get_vendor_profile_version(PresetBundle::ORCA_DEFAULT_BUNDLE).to_string();
-
-            // run check_and_fix_user_presets_syncinfo once before syncing to make sure all presets have correct sync_info
-            // So that we can sync presets that are migrated from old version or users manually put preset files in preset folder
-            preset_bundle->check_and_fix_user_presets_syncinfo(m_agent->get_user_id());
-
-            int ret = m_agent->get_setting_list2(
-                version,
-                [this](auto info) {
-                    auto type             = info[BBL_JSON_KEY_TYPE];
-                    auto name             = info[BBL_JSON_KEY_NAME];
-                    auto setting_id       = info[BBL_JSON_KEY_SETTING_ID];
-                    auto update_time_str  = info[ORCA_JSON_KEY_UPDATE_TIME];
+            if (!force_push) {
+                // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
+                scan_orphaned_info_files();
+                process_delete_presets();
+    
+                // get setting list, update setting list
+                std::string version = preset_bundle->get_vendor_profile_version(PresetBundle::ORCA_DEFAULT_BUNDLE).to_string();
+    
+                // run check_and_fix_user_presets_syncinfo once before syncing to make sure all presets have correct sync_info
+                // So that we can sync presets that are migrated from old version or users manually put preset files in preset folder
+                preset_bundle->check_and_fix_user_presets_syncinfo(m_agent->get_user_id());
+    
+                int ret = m_agent->get_setting_list2(version, [this](auto info) {
+                    auto type = info[BBL_JSON_KEY_TYPE];
+                    auto name = info[BBL_JSON_KEY_NAME];
+                    auto setting_id = info[BBL_JSON_KEY_SETTING_ID];
+                    auto update_time_str = info[ORCA_JSON_KEY_UPDATE_TIME];
                     long long update_time = 0;
                     if (!update_time_str.empty())
                         update_time = std::atoll(update_time_str.c_str());
@@ -6741,255 +6737,251 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg, bool force_push)
                     } else {
                         return true;
                     }
-                },
-                progressFn, cancelFn);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " get_setting_list2 ret = " << ret << " m_is_closing = " << m_is_closing;
+                }, progressFn, cancelFn);
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " get_setting_list2 ret = " << ret << " m_is_closing = " << m_is_closing;
+    
+                finishFn(ret == 0);
+    
+                if (ret == 0 && m_agent && !t.expired())
+                    reload_settings();
+            }
 
-            finishFn(ret == 0);
+            // For orca specific syncing
+            auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
 
-            if (ret == 0 && m_agent && !t.expired())
-                reload_settings();
-        } // !force_push
+            // One-shot force push for 409 conflict resolution, before normal sync loop
+            if (force_push && orca_agent && !m_pending_conflict_setting_id.empty()) {
+                std::string conflict_id = m_pending_conflict_setting_id;
+                m_pending_conflict_setting_id.clear();
 
-        // For orca specific syncing
-        auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
+                bool force_push_success = false;
 
-        // One-shot force push for 409 conflict resolution, before normal sync loop
-        if (force_push && orca_agent && !m_pending_conflict_setting_id.empty()) {
-            std::string conflict_id = m_pending_conflict_setting_id;
-            m_pending_conflict_setting_id.clear();
-
-            bool force_push_success = false;
-
-            Preset* found_preset = nullptr;
-            for (PresetCollection* col :
-                 {static_cast<PresetCollection*>(&preset_bundle->prints), static_cast<PresetCollection*>(&preset_bundle->filaments),
-                  static_cast<PresetCollection*>(&preset_bundle->printers)}) {
-                for (size_t i = 0; i < col->size(); ++i) {
-                    Preset& preset = col->preset(i, true);
-                    if (preset.setting_id == conflict_id) {
-                        found_preset = &preset;
+                Preset* found_preset = nullptr;
+                for (PresetCollection* col :
+                    {static_cast<PresetCollection*>(&preset_bundle->prints), static_cast<PresetCollection*>(&preset_bundle->filaments),
+                    static_cast<PresetCollection*>(&preset_bundle->printers)}) {
+                    for (size_t i = 0; i < col->size(); ++i) {
+                        Preset& preset = col->preset(i, true);
+                        if (preset.setting_id == conflict_id) {
+                            found_preset = &preset;
+                            break;
+                        }
+                    }
+                    if (found_preset)
                         break;
-                    }
                 }
-                if (found_preset)
-                    break;
+
+                if (found_preset) {
+                    std::map<std::string, std::string> values_map;
+                    if (preset_bundle->get_differed_values_to_update(*found_preset, values_map) == 0) {
+                        std::string original_updated_time;
+                        auto it = values_map.find(IOT_JSON_KEY_UPDATED_TIME);
+                        if (it != values_map.end())
+                            original_updated_time = it->second;
+
+                        nlohmann::json content;
+                        content["name"] = found_preset->name;
+                        for (const auto& pair : values_map) {
+                            if (pair.first == IOT_JSON_KEY_UPDATED_TIME)
+                                continue;
+                            content[pair.first] = pair.second;
+                        }
+
+                        auto result = orca_agent->sync_push(conflict_id, found_preset->name, content, original_updated_time, true);
+                        if (result.success) {
+                            BOOST_LOG_TRIVIAL(info) << "Force push succeeded for preset " << found_preset->name;
+                            CallAfter([this, name = found_preset->name, type = found_preset->type, setting_id = conflict_id,
+                                    new_time = result.new_updated_time] {
+                                if (!is_closing() && preset_bundle) {
+                                    if (type == Preset::Type::TYPE_FILAMENT)
+                                        preset_bundle->filaments.set_sync_info_and_save(name, setting_id, "", new_time);
+                                    else if (type == Preset::Type::TYPE_PRINT)
+                                        preset_bundle->prints.set_sync_info_and_save(name, setting_id, "", new_time);
+                                    else if (type == Preset::Type::TYPE_PRINTER)
+                                        preset_bundle->printers.set_sync_info_and_save(name, setting_id, "", new_time);
+                                }
+                            });
+                            force_push_success = true;
+                        } else {
+                            BOOST_LOG_TRIVIAL(error) << "Force push failed for preset " << found_preset->name << ": " << result.error_message;
+                        }
+                    }
+                } else {
+                    BOOST_LOG_TRIVIAL(warning) << "Force push: could not find local preset with setting_id=" << conflict_id;
+                }
+
+                finishFn(force_push_success);
+                force_push = false;
             }
 
-            if (found_preset) {
-                std::map<std::string, std::string> values_map;
-                if (preset_bundle->get_differed_values_to_update(*found_preset, values_map) == 0) {
-                    std::string original_updated_time;
-                    auto it = values_map.find(IOT_JSON_KEY_UPDATED_TIME);
-                    if (it != values_map.end())
-                        original_updated_time = it->second;
-
-                    nlohmann::json content;
-                    content["name"] = found_preset->name;
-                    for (const auto& pair : values_map) {
-                        if (pair.first == IOT_JSON_KEY_UPDATED_TIME)
+            int tick_tock = -1, sync_count = 0; // tick_tock = -1 to immediately run sync the frist time this thread runs
+            std::vector<Preset> presets_to_sync;
+            std::vector<std::pair<std::string, std::string>> bundles_to_sync;
+            std::unordered_set<std::string> bundles_synced;
+            // Sync once immediately, then every 60 seconds.
+            while (!t.expired()) {
+                ++tick_tock;
+                if (tick_tock % 120 == 0) {
+                    tick_tock = 0;
+                    if (m_agent) {
+                        if (!m_agent->is_user_login()) {
                             continue;
-                        content[pair.first] = pair.second;
+                        }
+                        //sync preset
+                        if (!preset_bundle) continue;
+
+                        int total_count = 0;
+                        sync_count = preset_bundle->prints.get_user_presets(preset_bundle, presets_to_sync);
+                        if (sync_count > 0) {
+                            for (Preset& preset : presets_to_sync) {
+                                sync_preset(&preset);
+                                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+                            }
+                        }
+                        total_count += sync_count;
+
+                        sync_count = preset_bundle->filaments.get_user_presets(preset_bundle, presets_to_sync);
+                        if (sync_count > 0) {
+                            for (Preset& preset : presets_to_sync) {
+                                sync_preset(&preset);
+                                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+                            }
+                        }
+                        total_count += sync_count;
+
+                        sync_count = preset_bundle->printers.get_user_presets(preset_bundle, presets_to_sync);
+                        if (sync_count > 0) {
+                            for (Preset& preset : presets_to_sync) {
+                                sync_preset(&preset);
+                                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+                            }
+                        }
+                        total_count += sync_count;
+
+                        if (total_count == 0) {
+                            CallAfter([this] {
+                                if (!is_closing())
+                                    plater()->get_notification_manager()->close_notification_of_type(NotificationType::BBLUserPresetExceedLimit);
+                            });
+                        }
+
+                        process_delete_presets();
                     }
 
-                    auto result = orca_agent->sync_push(conflict_id, found_preset->name, content, original_updated_time, true);
-                    if (result.success) {
-                        BOOST_LOG_TRIVIAL(info) << "Force push succeeded for preset " << found_preset->name;
-                        CallAfter([this, name = found_preset->name, type = found_preset->type, setting_id = conflict_id,
-                                   new_time = result.new_updated_time] {
-                            if (!is_closing() && preset_bundle) {
-                                if (type == Preset::Type::TYPE_FILAMENT)
-                                    preset_bundle->filaments.set_sync_info_and_save(name, setting_id, "", new_time);
-                                else if (type == Preset::Type::TYPE_PRINT)
-                                    preset_bundle->prints.set_sync_info_and_save(name, setting_id, "", new_time);
-                                else if (type == Preset::Type::TYPE_PRINTER)
-                                    preset_bundle->printers.set_sync_info_and_save(name, setting_id, "", new_time);
+                    // sync subscribed bundles, if orca
+                    if (orca_agent)
+                    {
+                        bundles_to_sync.clear();
+                        bundles_synced.clear();
+                        std::vector<std::string> not_found;
+                        std::vector<std::string> unauthorized;
+                        
+                        int result = orca_agent->get_subscribed_bundles(&bundles_to_sync, not_found, unauthorized);
+                        if (result != 0) {
+                            BOOST_LOG_TRIVIAL(warning) << "start_sync_user_preset: failed to fetch subscribed bundles, result=" << result;
+                            continue;
+                        }
+
+                        if(!not_found.empty())
+                        {
+                            for(auto& n : not_found)
+                            {
+                                std::string text = format(_L("Bundle %s is no longer available."), n);
+                                wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);
                             }
+                        }
+                        if(!unauthorized.empty())
+                        {
+                            for(auto& i : unauthorized)
+                            {
+                                std::string text = format(_L("Bundle %s access is unauthorized."), i);
+                                wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);
+                                preset_bundle->bundles.ReadLock();
+                                if(preset_bundle->bundles.m_bundles.find(i) != preset_bundle->bundles.m_bundles.end())
+                                {
+                                    preset_bundle->bundles.m_bundles[i].unauthorized = true;
+                                }
+                                preset_bundle->bundles.ReadUnlock();
+                            }
+                        }
+                        
+                            // Iterate over the bundles, and update/create
+                        for (const auto& bundle_entry : bundles_to_sync) {
+
+                            bundles_synced.insert(bundle_entry.first);
+                                // Sync each bundle individually
+                                // if(!preset_bundle->bundles.pauseReads.load()) // if pause is true we will skip updating this frame altogether
+                                // {   
+                                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : Update thread syncing bundles";
+                                    sync_bundle(bundle_entry.first, bundle_entry.second);
+                                // }
+                                // Small delay between bundle syncs to avoid overwhelming the server
+                                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+                            
+                        }
+                        
+                        std::vector<BundleMetadata> to_delete;
+                        preset_bundle->bundles.ReadLock();
+                        for (const auto& [id, bundle] : preset_bundle->bundles.m_bundles) {                                                                                                                                                    
+                            if (bundle.bundle_type != BundleType::Subscribed)                                                                                                                                                                                         
+                                continue;                                                                                                                                                                                                      
+                            if (bundles_synced.find(id) != bundles_synced.end())                                                                                                                                                               
+                                continue;
+                            if(bundle.unauthorized && bundle.is_subscribed)
+                                continue;
+                            
+                            to_delete.push_back(bundle);
+                        }
+                        preset_bundle->bundles.ReadUnlock();  
+
+                        bool has_deletion = false;
+                        for (const auto& bundle : to_delete) {
+
+                            // Delete the presets first (force=true: bundle presets have is_from_bundle=true)
+                            for (auto printer : bundle.printer_presets)
+                                preset_bundle->printers.delete_preset(printer, true);
+                            for (auto filament : bundle.filament_presets)
+                                preset_bundle->filaments.delete_preset(filament, true);
+                            for (auto print : bundle.print_presets)
+                                preset_bundle->prints.delete_preset(print, true);
+
+                            // Delete the bundle folder and bundle
+                            fs::path bundle_folder = fs::path(bundle.path.c_str()).parent_path();
+                            boost::system::error_code ec;
+                            boost::filesystem::remove_all(bundle_folder, ec);
+
+                            preset_bundle->bundles.WriteLock();
+                            preset_bundle->bundles.m_bundles.erase(bundle.id);
+                            preset_bundle->bundles.WriteUnlock();
+
+                            std::string text = format(_L("%s has been removed."), bundle.name);
+                            wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);
+                            has_deletion = true;
+                        }
+
+                        // Update UI on main thread after deletion
+                        if (has_deletion)
+                            CallAfter([this]() {
+                                if (!is_closing() && preset_bundle && mainframe) {
+                                    // update_compatible() ensures proper selection state after deletion
+                                    preset_bundle->update_compatible(PresetSelectCompatibleType::Never);
+                                    preset_bundle->update_multi_material_filament_presets();
+                                    mainframe->update_side_preset_ui();
+
+                                    auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);                                                                                                                                                       
+                                    // evt->SetString(wxString::FromUTF8(bundle_id));               
+                                    if (m_preset_bundle_dlg)                                                                                                                                                                                                                                                          
+                                        wxQueueEvent(m_preset_bundle_dlg, evt);                                                                                                                                                                                                                                       
+                                    else                                                                                                                                                                                                                                                                                 
+                                        delete evt;
+                                }
                         });
-                        force_push_success = true;
-                    } else {
-                        BOOST_LOG_TRIVIAL(error) << "Force push failed for preset " << found_preset->name << ": " << result.error_message;
                     }
+                } else {
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                 }
-            } else {
-                BOOST_LOG_TRIVIAL(warning) << "Force push: could not find local preset with setting_id=" << conflict_id;
             }
-
-            finishFn(force_push_success);
-        }
-
-        int tick_tock = -1, sync_count = 0; // tick_tock = -1 to immediately run sync the frist time this thread runs
-        std::vector<Preset> presets_to_sync;
-        std::vector<std::pair<std::string, std::string>> bundles_to_sync;
-        std::unordered_set<std::string> bundles_synced;
-        // Sync once immediately, then every 60 seconds.
-        while (!t.expired()) {
-            ++tick_tock;
-            if (tick_tock % 120 == 0) {
-                tick_tock = 0;
-                if (m_agent) {
-                    if (!m_agent->is_user_login()) {
-                        continue;
-                    }
-                    // sync preset
-                    if (!preset_bundle)
-                        continue;
-
-                    int total_count = 0;
-                    sync_count      = preset_bundle->prints.get_user_presets(preset_bundle, presets_to_sync);
-                    if (sync_count > 0) {
-                        for (Preset& preset : presets_to_sync) {
-                            sync_preset(&preset);
-                            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-                        }
-                    }
-                    total_count += sync_count;
-
-                    sync_count = preset_bundle->filaments.get_user_presets(preset_bundle, presets_to_sync);
-                    if (sync_count > 0) {
-                        for (Preset& preset : presets_to_sync) {
-                            sync_preset(&preset);
-                            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-                        }
-                    }
-                    total_count += sync_count;
-
-                    sync_count = preset_bundle->printers.get_user_presets(preset_bundle, presets_to_sync);
-                    if (sync_count > 0) {
-                        for (Preset& preset : presets_to_sync) {
-                            sync_preset(&preset);
-                            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-                        }
-                    }
-                    total_count += sync_count;
-
-                    if (total_count == 0) {
-                        CallAfter([this] {
-                            if (!is_closing())
-                                plater()->get_notification_manager()->close_notification_of_type(NotificationType::BBLUserPresetExceedLimit);
-                        });
-                    }
-
-                    process_delete_presets();
-                }
-
-                // sync subscribed bundles, if orca
-                if (orca_agent) {
-                    bundles_to_sync.clear();
-                    bundles_synced.clear();
-                    std::vector<std::string> not_found;
-                    std::vector<std::string> unauthorized;
-
-                    int result = orca_agent->get_subscribed_bundles(&bundles_to_sync, not_found, unauthorized);
-                    if (result != 0) {
-                        BOOST_LOG_TRIVIAL(warning) << "start_sync_user_preset: failed to fetch subscribed bundles, result=" << result;
-                        continue;
-                    }
-
-                    if (!not_found.empty()) {
-                        for (auto& n : not_found) {
-                            std::string text = format(_L("Bundle %s is no longer available."), n);
-                            wxGetApp()
-                                .plater()
-                                ->get_notification_manager()
-                                ->push_notification(NotificationType::CustomNotification,
-                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, text);
-                        }
-                    }
-                    if (!unauthorized.empty()) {
-                        for (auto& i : unauthorized) {
-                            std::string text = format(_L("Bundle %s access is unauthorized."), i);
-                            wxGetApp()
-                                .plater()
-                                ->get_notification_manager()
-                                ->push_notification(NotificationType::CustomNotification,
-                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, text);
-                            preset_bundle->bundles.ReadLock();
-                            if (preset_bundle->bundles.m_bundles.find(i) != preset_bundle->bundles.m_bundles.end()) {
-                                preset_bundle->bundles.m_bundles[i].unauthorized = true;
-                            }
-                            preset_bundle->bundles.ReadUnlock();
-                        }
-                    }
-
-                    // Iterate over the bundles, and update/create
-                    for (const auto& bundle_entry : bundles_to_sync) {
-                        bundles_synced.insert(bundle_entry.first);
-                        // Sync each bundle individually
-                        // if(!preset_bundle->bundles.pauseReads.load()) // if pause is true we will skip updating this frame altogether
-                        // {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : Update thread syncing bundles";
-                        sync_bundle(bundle_entry.first, bundle_entry.second);
-                        // }
-                        // Small delay between bundle syncs to avoid overwhelming the server
-                        boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-                    }
-
-                    std::vector<BundleMetadata> to_delete;
-                    preset_bundle->bundles.ReadLock();
-                    for (const auto& [id, bundle] : preset_bundle->bundles.m_bundles) {
-                        if (bundle.bundle_type != BundleType::Subscribed)
-                            continue;
-                        if (bundles_synced.find(id) != bundles_synced.end())
-                            continue;
-                        if (bundle.unauthorized && bundle.is_subscribed)
-                            continue;
-
-                        to_delete.push_back(bundle);
-                    }
-                    preset_bundle->bundles.ReadUnlock();
-
-                    bool has_deletion = false;
-                    for (const auto& bundle : to_delete) {
-                        // Delete the presets first (force=true: bundle presets have is_from_bundle=true)
-                        for (auto printer : bundle.printer_presets)
-                            preset_bundle->printers.delete_preset(printer, true);
-                        for (auto filament : bundle.filament_presets)
-                            preset_bundle->filaments.delete_preset(filament, true);
-                        for (auto print : bundle.print_presets)
-                            preset_bundle->prints.delete_preset(print, true);
-
-                        // Delete the bundle folder and bundle
-                        fs::path bundle_folder = fs::path(bundle.path.c_str()).parent_path();
-                        boost::system::error_code ec;
-                        boost::filesystem::remove_all(bundle_folder, ec);
-
-                        preset_bundle->bundles.WriteLock();
-                        preset_bundle->bundles.m_bundles.erase(bundle.id);
-                        preset_bundle->bundles.WriteUnlock();
-
-                        std::string text = format(_L("%s has been removed."), bundle.name);
-                        wxGetApp()
-                            .plater()
-                            ->get_notification_manager()
-                            ->push_notification(NotificationType::CustomNotification,
-                                                NotificationManager::NotificationLevel::RegularNotificationLevel, text);
-                        has_deletion = true;
-                    }
-
-                    // Update UI on main thread after deletion
-                    if (has_deletion)
-                        CallAfter([this]() {
-                            if (!is_closing() && preset_bundle && mainframe) {
-                                // update_compatible() ensures proper selection state after deletion
-                                preset_bundle->update_compatible(PresetSelectCompatibleType::Never);
-                                preset_bundle->update_multi_material_filament_presets();
-                                mainframe->update_side_preset_ui();
-
-                                auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);
-                                // evt->SetString(wxString::FromUTF8(bundle_id));
-                                if (m_preset_bundle_dlg)
-                                    wxQueueEvent(m_preset_bundle_dlg, evt);
-                                else
-                                    delete evt;
-                            }
-                        });
-                }
-            } else {
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
-            }
-        }
-    });
+        });
 }
 
 void GUI_App::stop_sync_user_preset()
@@ -7012,7 +7004,7 @@ void GUI_App::restart_sync_user_preset(bool force_push)
         // No sync running. If a restart helper is already in flight it will
         // start the new sync once the old thread is joined — don't race it.
         if (!m_restart_sync_pending)
-            start_sync_user_preset(true, force_push);
+            start_sync_user_preset(true);
         return;
     }
 
@@ -7025,14 +7017,14 @@ void GUI_App::restart_sync_user_preset(bool force_push)
 
     auto old_thread = std::move(m_sync_update_thread);
 
-    std::thread([this, old_thread = std::move(old_thread), force_push]() mutable {
+    std::thread([this, old_thread = std::move(old_thread)]() mutable {
         if (old_thread.joinable())
             old_thread.join();
         m_restart_sync_pending = false;
         if (!is_closing())
-            CallAfter([this, force_push]() {
+            CallAfter([this]() {
                 if (!is_closing())
-                    start_sync_user_preset(true, force_push);
+                    start_sync_user_preset(true);
             });
     }).detach();
 }
