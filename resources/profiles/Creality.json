@@ -1651,32 +1651,32 @@
 			"sub_path": "process/0.08mm HueForge @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
-			"name": "0.08mm Standard @Creality SPARKX i7 0.4 nozzle",
-			"sub_path": "process/0.08mm Standard @Creality SPARKX i7 0.4 nozzle.json"
+			"name": "0.08mm SuperDetail @Creality SPARKX i7 0.4 nozzle",
+			"sub_path": "process/0.08mm SuperDetail @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
-			"name": "0.12mm Standard @Creality SPARKX i7 0.4 nozzle",
-			"sub_path": "process/0.12mm Standard @Creality SPARKX i7 0.4 nozzle.json"
+			"name": "0.12mm Fine @Creality SPARKX i7 0.4 nozzle",
+			"sub_path": "process/0.12mm Fine @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
-			"name": "0.16mm Standard @Creality SPARKX i7 0.4 nozzle",
-			"sub_path": "process/0.16mm Standard @Creality SPARKX i7 0.4 nozzle.json"
+			"name": "0.16mm Optimal @Creality SPARKX i7 0.4 nozzle",
+			"sub_path": "process/0.16mm Optimal @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
 			"name": "0.20mm Standard @Creality SPARKX i7 0.4 nozzle",
 			"sub_path": "process/0.20mm Standard @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
-			"name": "0.24mm Standard @Creality SPARKX i7 0.4 nozzle",
-			"sub_path": "process/0.24mm Standard @Creality SPARKX i7 0.4 nozzle.json"
+			"name": "0.24mm Draft @Creality SPARKX i7 0.4 nozzle",
+			"sub_path": "process/0.24mm Draft @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
-			"name": "0.28mm Standard @Creality SPARKX i7 0.4 nozzle",
-			"sub_path": "process/0.28mm Standard @Creality SPARKX i7 0.4 nozzle.json"
+			"name": "0.28mm SuperDraft @Creality SPARKX i7 0.4 nozzle",
+			"sub_path": "process/0.28mm SuperDraft @Creality SPARKX i7 0.4 nozzle.json"
 		},
 		{
-			"name": "0.10mm Standard @Creality SPARKX i7 0.2 nozzle",
-			"sub_path": "process/0.10mm Standard @Creality SPARKX i7 0.2 nozzle.json"
+			"name": "0.10mm HighDetail @Creality SPARKX i7 0.2 nozzle",
+			"sub_path": "process/0.10mm HighDetail @Creality SPARKX i7 0.2 nozzle.json"
 		},
 		{
 			"name": "0.08mm HueForge @Creality K2 0.4 nozzle",
