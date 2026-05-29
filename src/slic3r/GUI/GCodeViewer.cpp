@@ -1661,20 +1661,32 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                     int pri_tool = -1;
                     std::vector<int> sec_tool_ids;
                     std::map<int,int> sec_tool_states; // tool_id -> 2=Copy, 3=Mirror
+                    std::set<int>     sec_aggregated;  // representatives standing in for a whole gantry
                     if (mode_names_opt && active_tools_opt) {
                         for (size_t i = 0; i < mode_names_opt->values.size(); ++i) {
                             if (i < active_tools_opt->values.size() && mode_names_opt->values[i] == mode) {
                                 const std::string& entry = active_tools_opt->values[i];
                                 pri_tool = imex_primary_tool_for_mode(entry);
-                                for (const auto& [phys_idx, role] : parse_imex_active_tools(entry)) {
-                                    if (phys_idx < 0 || phys_idx == pri_tool) continue;
-                                    if (role == ImexRole::Mirror) {
-                                        sec_tool_ids.push_back(phys_idx);
-                                        sec_tool_states[phys_idx] = 3;
-                                    } else if (role == ImexRole::Copy) {
-                                        sec_tool_ids.push_back(phys_idx);
-                                        sec_tool_states[phys_idx] = 2;
-                                    }
+                                // Aggregate per gantry via the same source of truth as PartPlate's
+                                // zone/ghost aggregation: in Span modes only one tool prints per
+                                // zone at a time, so a non-primary gantry collapses to one
+                                // representative marker. Non-Span gantries keep per-tool markers.
+                                const ImexGantryGrouping grouping =
+                                    group_imex_active_tools_by_gantry(entry, tools_per_gantry);
+                                auto add_tool = [&](int phys_idx, ImexRole role, bool aggregated) {
+                                    if (phys_idx < 0 || phys_idx == pri_tool) return;
+                                    if      (role == ImexRole::Mirror) sec_tool_states[phys_idx] = 3;
+                                    else if (role == ImexRole::Copy)   sec_tool_states[phys_idx] = 2;
+                                    else return; // Primary / Span carry no secondary marker
+                                    sec_tool_ids.push_back(phys_idx);
+                                    if (aggregated) sec_aggregated.insert(phys_idx);
+                                };
+                                for (const auto& grp : grouping.groups) {
+                                    if (grp.aggregate && grp.gantry_index != grouping.primary_gantry)
+                                        add_tool(grp.representative_phys, grp.representative_role, true);
+                                    else
+                                        for (const auto& [phys_idx, role] : grp.tools)
+                                            add_tool(phys_idx, role, false);
                                 }
                                 break;
                             }
@@ -1726,8 +1738,11 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                         int gantry_count = gc_opt ? std::max(1, gc_opt->value) : 1;
 
                         // Apply the same flip logic as PartPlate::calc_imex_zones() so physical
-                        // grid positions match the bed zone visualization.
-                        auto* layout_opt = printer_cfg.opt<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
+                        // grid positions match the bed zone visualization. Use option<>() not
+                        // opt<>(): enum options load from presets as ConfigOptionEnumGeneric, so
+                        // opt<>()'s dynamic_cast to ConfigOptionEnum<ImexToolLayout> returns null
+                        // and silently falls back to the FrontLeft default (flip_y wrong).
+                        auto* layout_opt = printer_cfg.option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
                         const ImexToolLayout layout = layout_opt ? layout_opt->value : ImexToolLayout::FrontLeft;
                         const bool flip_x = (layout == ImexToolLayout::FrontRight || layout == ImexToolLayout::RearRight);
                         const bool flip_y = (layout == ImexToolLayout::RearLeft   || layout == ImexToolLayout::RearRight);
@@ -1812,9 +1827,16 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                             // X: Copy → same zone-relative position.
                             // Mirror → reflect copy reference across the boundary it shares with
                             // this mirror zone (left or right edge of copy zone depending on side).
+                            const bool is_aggregated = sec_aggregated.count(sec_tool_ids[i]) > 0;
                             float sec_x;
                             if (sec_state == 2) {
                                 sec_x = bed_x_min + (float)sec_zc * strip_width + rel_x;
+                            } else if (is_aggregated) {
+                                // Aggregated Span gantry: the secondary strip spans full-X, so the
+                                // mirror axis is the bed centerline (no adjacent copy column to
+                                // reflect across). Reflecting across a zone edge here would push
+                                // the marker off the bed.
+                                sec_x = (bed_x_min + bed_x_max) - prim_pos.x();
                             } else {
                                 auto ref_it = row_copy_col.find(sec_phys_row);
                                 int ref_phys_col = (ref_it != row_copy_col.end()) ? ref_it->second : pri_phys_col;
