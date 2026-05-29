@@ -531,11 +531,9 @@ public:
     void            load_pending_vendors();
 
     void            sync_preset(Preset* preset);
-    bool            resolve_orca_sync_conflict(bool force_push);
-    void            force_push_orca_sync_conflict();
-    void            start_sync_user_preset(bool with_progress_dlg = false);
+    void            start_sync_user_preset(bool with_progress_dlg = false, bool force_push = false);
     void            stop_sync_user_preset();
-    void            restart_sync_user_preset();
+    void            restart_sync_user_preset(bool force_push = false);
     void            on_stealth_mode_enter();
 
     // Bundle subscription sync
