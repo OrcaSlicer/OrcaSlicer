@@ -1812,7 +1812,38 @@ bool Sidebar::priv::switch_diameter_to(const wxString &diameter)
             return true;
         }
     }
-    
+
+    // ORCA #12105: For a USER printer, switch among the user's own nozzle variants and never
+    // fall through to a system preset (which would discard the user's customizations). A user
+    // printer is identified by a distinct user-defined printer_model shared across its variants.
+    if (printer_preset.is_user()) {
+        auto& printers = wxGetApp().preset_bundle->printers;
+        const std::string user_model = printer_preset.config.opt_string("printer_model");
+        auto* tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+        const Preset* user_variant = printers.find_custom_preset_by_model_and_variant(user_model, diameter.ToStdString());
+        if (user_variant != nullptr) {
+            const_cast<Preset*>(user_variant)->is_visible = true; // force visible
+            return tab->select_preset(user_variant->name);
+        }
+        // ORCA #12105 (Phase 3): no user variant for this nozzle size yet — fork the matching SYSTEM
+        // preset for this size into a new user variant of `user_model` (same as how the user's first
+        // variant was created): select the system preset for this size, then re-save it under the user
+        // model. Tab::save_preset stamps printer_model/printer_variant and derives the
+        // "<model> X.X nozzle" name, so the user stays on their own printer rather than the system one.
+        const Preset* base = printers.get_preset_base(printers.get_selected_preset());
+        const std::string sys_model = (base != nullptr && base->is_system) ? base->config.opt_string("printer_model") : std::string();
+        const Preset* sys_preset = sys_model.empty() ? nullptr
+            : printers.find_system_preset_by_model_and_variant(sys_model, diameter.ToStdString());
+        if (sys_preset != nullptr) {
+            const_cast<Preset*>(sys_preset)->is_visible = true;
+            tab->select_preset(sys_preset->name);
+            tab->save_preset(user_model); // derives "<user_model> <diameter> nozzle", stamps model + variant
+            return true;
+        }
+        // No matching system preset for this size — keep the current user preset (never jump to system).
+        return false;
+    }
+
     auto preset          = wxGetApp().preset_bundle->get_similar_printer_preset({}, diameter.ToStdString());
     if (preset == nullptr) {
         // ORCA add a text. this appears when user tries to change nozzle value but config doesnt have a inherited or compatible preset

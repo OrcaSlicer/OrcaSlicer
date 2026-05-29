@@ -3579,6 +3579,20 @@ std::vector<std::string> PresetCollection::diameters_of_selected_printer()
         if (preset.config.opt_string("printer_model") == printer_model)
             diameters.insert(preset.config.opt_string("printer_variant"));
     }
+    // ORCA #12105 (Phase 3): for a USER printer, also offer the originating SYSTEM model's nozzle
+    // sizes so sizes the user hasn't saved a variant for are still selectable. Picking one then
+    // forks the matching system preset into a new user variant (see Sidebar::priv::switch_diameter).
+    const Preset &sel = get_selected_preset();
+    if (sel.is_user()) {
+        const Preset *base = get_preset_base(sel);
+        if (base != nullptr && base->is_system) {
+            const std::string sys_model = base->config.opt_string("printer_model");
+            if (!sys_model.empty() && sys_model != printer_model)
+                for (auto &preset : m_presets)
+                    if (preset.is_system && preset.config.opt_string("printer_model") == sys_model)
+                        diameters.insert(preset.config.opt_string("printer_variant"));
+        }
+    }
     return std::vector<std::string>{diameters.begin(), diameters.end()};
 }
 

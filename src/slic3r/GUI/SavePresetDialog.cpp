@@ -36,7 +36,17 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
+    std::string   preset_name;
+    if (m_type == Preset::TYPE_PRINTER) {
+        // ORCA #12105: for printers the field holds the user MODEL name; the per-nozzle variant name
+        // ("<model> X.X nozzle") is derived on save. Prefill with the model (+ "Copy" off a system
+        // preset; reuse the existing user model name as-is when re-saving a user printer).
+        std::string model = sel_preset.config.opt_string("printer_model");
+        if (model.empty()) model = sel_preset.name;
+        preset_name = sel_preset.is_system ? (boost::format(("%1% - %2%")) % model % suffix).str() : model;
+    } else {
+        preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
+    }
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {

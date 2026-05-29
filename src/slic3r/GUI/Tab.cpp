@@ -7446,6 +7446,18 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 // Wizard calls save_preset with a name "My Settings", otherwise no name is provided and this method
 // opens a Slic3r::GUI::SavePresetDialog dialog.
 //BBS: add project embedded preset relate logic
+// ORCA #12105: format a nozzle diameter as a printer_variant string ("0.4", "0.25", "1.0"),
+// matching get_diameter_string() in Plater.cpp so user variants line up with the nozzle dropdown.
+static std::string nozzle_diameter_to_variant(double diameter)
+{
+    std::string s = (boost::format("%.2f") % diameter).str();
+    if (s.find('.') != std::string::npos) {
+        s.erase(s.find_last_not_of('0') + 1);
+        if (!s.empty() && s.back() == '.') s += '0';
+    }
+    return s;
+}
+
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
     // ORCA: Validate before opening any save-name UI for filament presets.
@@ -7482,6 +7494,23 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     //BBS record current preset name
     Preset& edited_preset = m_presets->get_edited_preset();
     std::string curr_preset_name = edited_preset.name;
+
+    // ORCA #12105: For printer presets, the dialog field holds the user MODEL name. Derive the
+    // per-nozzle VARIANT preset name "<model> X.X nozzle" and stamp printer_model / printer_variant,
+    // so a user's printer behaves like a system one: grouped per-model in the dropdown, with nozzle
+    // changes staying within the user's own variants. The variant keeps inheriting the source system
+    // nozzle preset (handled by save_current_preset), mirroring the system file layout.
+    if (m_type == Preset::TYPE_PRINTER && !from_input && !name.empty()) {
+        const std::string model_name = name;
+        std::string nozzle_str;
+        if (auto* nd = dynamic_cast<const ConfigOptionFloats*>(edited_preset.config.option("nozzle_diameter")))
+            if (!nd->values.empty())
+                nozzle_str = nozzle_diameter_to_variant(nd->values.front());
+        edited_preset.config.option<ConfigOptionString>("printer_model", true)->value   = model_name;
+        edited_preset.config.option<ConfigOptionString>("printer_variant", true)->value = nozzle_str;
+        if (!nozzle_str.empty())
+            name = model_name + " " + nozzle_str + " nozzle";
+    }
 
     bool exist_preset = false;
     Preset* new_preset = m_presets->find_preset(name, false);

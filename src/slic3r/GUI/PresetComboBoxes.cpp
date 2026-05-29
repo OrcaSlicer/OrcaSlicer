@@ -1185,6 +1185,7 @@ void PlaterPresetComboBox::update()
     std::map<wxString, wxBitmap *> system_presets;
     std::map<wxString, wxBitmap *>  uncompatible_presets;
     std::unordered_set<std::string> system_printer_models;
+    std::unordered_set<std::string> user_printer_models; // ORCA #12105: collapse user printers per model
     std::map<wxString, wxString>   preset_descriptions;
     std::map<wxString, std::string> preset_filament_vendors;
     std::map<wxString, std::string> preset_filament_types;
@@ -1326,7 +1327,27 @@ void PlaterPresetComboBox::update()
         }
         else
         {
-            nonsys_presets.emplace(name, bmp);
+            // ORCA #12105: collapse USER printer presets to one entry per printer_model, mirroring
+            // the system-preset branch above, so a user's nozzle variants group under their own model
+            // instead of listing one entry per model+nozzle.
+            if (m_type == Preset::TYPE_PRINTER) {
+                auto printer_model = preset.config.opt_string("printer_model");
+                name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + printer_model : printer_model);
+                if (user_printer_models.count(printer_model) == 0) {
+                    preset_aliases[name] = name.utf8_string();
+                    nonsys_presets.emplace(name, bmp);
+                    user_printer_models.insert(printer_model);
+                }
+                else if (is_selected) {
+                    const wxString alternate_name = from_u8(preset.is_dirty ? printer_model : Preset::suffix_modified() + printer_model);
+                    if (nonsys_presets.erase(alternate_name))
+                        nonsys_presets.emplace(name, bmp);
+                    preset_aliases.erase(alternate_name);
+                    preset_aliases[name] = name.utf8_string();
+                }
+            } else {
+                nonsys_presets.emplace(name, bmp);
+            }
             if (is_selected) {
                 selected_user_preset = name;
                 //BBS set tooltip
@@ -1428,7 +1449,7 @@ void PlaterPresetComboBox::update()
                     SetItemAlias(index, it->first);
                     if (unsupported)
                         set_label_marker(index, LABEL_ITEM_DISABLED);
-                    else if (m_type == Preset::TYPE_PRINTER && group == "System presets" )
+                    else if (m_type == Preset::TYPE_PRINTER && (group == "System presets" || group == "User presets")) // ORCA #12105: user models behave like system models
                         set_label_marker(index, LABEL_ITEM_PRINTER_MODELS);
                     SetItemTooltip(index, preset_descriptions[it->first]);
                     bool is_selected = it->first == selected;

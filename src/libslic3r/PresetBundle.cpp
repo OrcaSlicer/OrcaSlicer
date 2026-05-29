@@ -4535,9 +4535,20 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
     if (printer_model.empty()) // ORCA ensure a compatible model exist. fixes switches to blank preset if preset has no inherited value
         return nullptr;
     auto printer_variant_old = printers.get_selected_preset().config.opt_string("printer_variant");
+    // ORCA #12105: A user-defined printer model has no system preset carrying its printer_model.
+    // For the variant-empty (model-select) path we normally restrict to system presets, but for a
+    // user model we must consider USER presets so the model resolves to one of the user's variants.
+    bool model_has_system = false;
+    if (printer_variant.empty()) {
+        for (auto &preset : printers.m_presets)
+            if (preset.is_system && preset.config.opt_string("printer_model") == printer_model) {
+                model_has_system = true;
+                break;
+            }
+    }
     std::map<std::string, Preset*> printer_presets;
     for (auto &preset : printers.m_presets) {
-        if (printer_variant.empty() && !preset.is_system)
+        if (printer_variant.empty() && model_has_system && !preset.is_system)
             continue;
         if (preset.config.opt_string("printer_model") == printer_model)
             printer_presets.insert({preset.name, &preset});
