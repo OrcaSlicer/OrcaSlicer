@@ -1515,22 +1515,22 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Slow down for curled perimeters");
     def->category = L("Speed");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("Enable this option to slow down printing in areas where perimeters may have curled upwards. "
+    def->tooltip = L("Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
                      "For example, additional slowdown will be applied when printing overhangs on sharp corners like the "
                      "front of the Benchy hull, reducing curling which compounds over multiple layers.\n\n"
                      "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the "
                      "print speed is slow enough that perimeter curling does not happen. \n"
                      "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, "
                      "due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
-                     "Root cause of these artefacts is most likely PA tuning being slightly off, especially when combined "
+                     "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined "
                      "with a high PA smooth time.\n\n"
                      "Recommendations when enabling this option:\n"
                      "1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder reacts quickly to the speed changes.\n"
                      "2. Increase the minimum print speeds to limit the magnitude of the slowdown and reduce the variance between fast and slow segments.\n"
                      "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n\n"
                      "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is "
-                     "applied even if the overhanging perimeter is part of a bridge. For example, when the perimeters are 100% overhanging"
-                     ", with no wall supporting them from underneath, the 100% overhang speed will be applied.");
+                     "applied even if the overhanging perimeter is part of a bridge.\n"
+                     "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 100% overhang speed will be applied.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool{ false });
 
@@ -4021,10 +4021,10 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Infill");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print internal sparse infill.");
-    def->min = 1;
+    def->tooltip = L("Filament to print internal sparse infill.\n\"Default\" uses the active object/part filament.");
+    def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionInt(1));
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("sparse_infill_line_width", coFloatOrPercent);
     def->label = L("Sparse infill");
@@ -4901,10 +4901,10 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print walls.");
-    def->min = 1;
+    def->tooltip = L("Filament to print walls.\n\"Default\" uses the active object/part filament.");
+    def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionInt(1));
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("inner_wall_line_width", coFloatOrPercent);
     def->label = L("Inner wall");
@@ -5662,10 +5662,10 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Solid infill");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print solid infill.");
-    def->min = 1;
+    def->tooltip = L("Filament to print solid infill.\n\"Default\" uses the active object/part filament.");
+    def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionInt(1));
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("internal_solid_infill_line_width", coFloatOrPercent);
     def->label = L("Internal solid infill");
@@ -6041,7 +6041,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft base");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used.");
+    def->tooltip = L("Filament to print support base and raft.\n\"Default\" means no specific filament for support and current filament is used.");
     def->min = 0;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
@@ -6076,7 +6076,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft interface");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used.");
+    def->tooltip = L("Filament to print support interface.\n\"Default\" means no specific filament for support interface and current filament is used.");
     def->min = 0;
     // BBS
     def->mode = comSimple;
@@ -8348,9 +8348,9 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");
         if (extruder != 0) {
-            if (!this->has("sparse_infill_filament"))
+            if (!this->has("sparse_infill_filament") || this->option("sparse_infill_filament")->getInt() == 0)
                 this->option("sparse_infill_filament", true)->setInt(extruder);
-            if (!this->has("wall_filament"))
+            if (!this->has("wall_filament") || this->option("wall_filament")->getInt() == 0)
                 this->option("wall_filament", true)->setInt(extruder);
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
@@ -8362,8 +8362,11 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
     }
 
-    if (!this->has("solid_infill_filament") && this->has("sparse_infill_filament"))
-        this->option("solid_infill_filament", true)->setInt(this->option("sparse_infill_filament")->getInt());
+    if (this->has("sparse_infill_filament")) {
+        int sparse_infill_filament = this->option("sparse_infill_filament")->getInt();
+        if (sparse_infill_filament > 0 && (!this->has("solid_infill_filament") || this->option("solid_infill_filament")->getInt() == 0))
+            this->option("solid_infill_filament", true)->setInt(sparse_infill_filament);
+    }
 
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
@@ -8421,9 +8424,9 @@ void DynamicPrintConfig::normalize_fdm_1()
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");
         if (extruder != 0) {
-            if (!this->has("sparse_infill_filament"))
+            if (!this->has("sparse_infill_filament") || this->option("sparse_infill_filament")->getInt() == 0)
                 this->option("sparse_infill_filament", true)->setInt(extruder);
-            if (!this->has("wall_filament"))
+            if (!this->has("wall_filament") || this->option("wall_filament")->getInt() == 0)
                 this->option("wall_filament", true)->setInt(extruder);
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
@@ -8435,8 +8438,11 @@ void DynamicPrintConfig::normalize_fdm_1()
         }
     }
 
-    if (!this->has("solid_infill_filament") && this->has("sparse_infill_filament"))
-        this->option("solid_infill_filament", true)->setInt(this->option("sparse_infill_filament")->getInt());
+    if (this->has("sparse_infill_filament")) {
+        int sparse_infill_filament = this->option("sparse_infill_filament")->getInt();
+        if (sparse_infill_filament > 0 && (!this->has("solid_infill_filament") || this->option("solid_infill_filament")->getInt() == 0))
+            this->option("solid_infill_filament", true)->setInt(sparse_infill_filament);
+    }
 
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
