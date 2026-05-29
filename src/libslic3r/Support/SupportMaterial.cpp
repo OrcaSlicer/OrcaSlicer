@@ -3179,7 +3179,28 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                         break;
 
                     bool is_overlap = is_layers_overlap(support_layer, object_layer);
-                    for (const ExPolygon& expoly : object_layer.lslices) {
+
+                    // ORCA: When a top-contact support is trimmed by an object layer that lies
+                    // entirely above it, only the part of that cross-section that continues down
+                    // as a real wall (i.e. is present in the object layer immediately below) can
+                    // physically collide with the support. The freshly-emerging part is the
+                    // overhang this contact is meant to support, so trimming the contact by it
+                    // would erase the dense interface directly beneath the overhang. Restrict the
+                    // trim source to the vertically-continuous region in that case.
+                    // With uniform layers the supported overhang sits more than gap_support_object
+                    // above the contact and never enters the [print_z, print_z + gap_extra_above]
+                    // window, so this is a no-op for vertical walls; variable layer height combined
+                    // with multi-material painting can subdivide the object thinner than
+                    // gap_support_object and pull the supported bridge/overhang into the window,
+                    // which previously wiped the interface (e.g. a flat bridge over a recess losing
+                    // its interface on the recessed areas).
+                    const ExPolygons *trim_source = &object_layer.lslices;
+                    ExPolygons trim_continuous;
+                    if (!is_bottom_contact && i > 0 && object_layer.bottom_z() >= support_layer.print_z - EPSILON) {
+                        trim_continuous = intersection_ex(object_layer.lslices, object.layers()[i - 1]->lslices);
+                        trim_source = &trim_continuous;
+                    }
+                    for (const ExPolygon& expoly : *trim_source) {
                         // BBS
                         bool is_sharptail = !intersection_ex({ expoly }, object_layer.sharp_tails).empty();
                         coordf_t trimming_offset = is_sharptail ? scale_(sharp_tail_xy_gap) :
