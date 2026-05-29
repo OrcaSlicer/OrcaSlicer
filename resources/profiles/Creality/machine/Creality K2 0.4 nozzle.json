@@ -112,7 +112,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Auto Lift",
 	"name": "Creality K2 0.4 nozzle",
-	"setting_id": "91520",
-	"bed_model": "creality_k2_buildplate_model.stl",
-	"bed_texture": "creality_k2_buildplate_texture.svg"
+	"setting_id": "91520"
 }

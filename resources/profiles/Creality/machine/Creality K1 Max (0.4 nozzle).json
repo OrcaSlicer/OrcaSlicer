@@ -111,7 +111,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Auto Lift",
 	"name": "Creality K1 Max (0.4 nozzle)",
-	"setting_id": "14060",
-	"bed_model": "creality_k1max_buildplate_model.stl",
-	"bed_texture": "creality_k1max_buildplate_texture.svg"
+	"setting_id": "14060"
 }

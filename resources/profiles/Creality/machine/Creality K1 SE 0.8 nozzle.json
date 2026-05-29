@@ -110,7 +110,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Slope Lift",
 	"name": "Creality K1 SE 0.8 nozzle",
-	"setting_id": "56461",
-	"bed_model": "creality_k1se_buildplate_model.stl",
-	"bed_texture": "creality_k1se_buildplate_texture.svg"
+	"setting_id": "56461"
 }

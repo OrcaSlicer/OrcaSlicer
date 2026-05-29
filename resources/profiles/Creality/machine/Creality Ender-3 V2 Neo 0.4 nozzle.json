@@ -89,7 +89,5 @@
 	"thumbnails_format": "JPG",
 	"thumbnails": [
 		"200x200"
-	],
-	"bed_model": "creality_ender3v2neo_buildplate_model.stl",
-	"bed_texture": "creality_ender3v2neo_buildplate_texture.svg"
+	]
 }

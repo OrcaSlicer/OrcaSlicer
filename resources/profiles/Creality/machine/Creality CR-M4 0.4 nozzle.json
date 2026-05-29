@@ -115,7 +115,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Normal Lift",
 	"name": "Creality CR-M4 0.4 nozzle",
-	"setting_id": "69470",
-	"bed_model": "creality_crm4_buildplate_model.stl",
-	"bed_texture": "creality_crm4_buildplate_texture.svg"
+	"setting_id": "69470"
 }

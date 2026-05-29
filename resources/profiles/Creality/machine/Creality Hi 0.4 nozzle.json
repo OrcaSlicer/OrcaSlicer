@@ -112,7 +112,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Auto Lift",
 	"name": "Creality Hi 0.4 nozzle",
-	"setting_id": "50072",
-	"bed_model": "creality_hi_buildplate_model.stl",
-	"bed_texture": "creality_hi_buildplate_texture.svg"
+	"setting_id": "50072"
 }

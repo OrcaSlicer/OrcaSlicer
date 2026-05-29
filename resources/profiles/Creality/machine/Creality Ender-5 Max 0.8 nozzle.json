@@ -116,7 +116,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Slope Lift",
 	"name": "Creality Ender-5 Max 0.8 nozzle",
-	"setting_id": "99719",
-	"bed_model": "creality_ender5max_buildplate_model.stl",
-	"bed_texture": "creality_ender5max_buildplate_texture.svg"
+	"setting_id": "99719"
 }

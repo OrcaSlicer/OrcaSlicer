@@ -107,7 +107,5 @@
 	"z_hop": "0.2",
 	"z_hop_types": "Normal Lift",
 	"name": "Creality Ender-3 S1 Pro 0.4 nozzle",
-	"setting_id": "76588",
-	"bed_model": "creality_ender3s1pro_buildplate_model.stl",
-	"bed_texture": "creality_ender3s1pro_buildplate_texture.svg"
+	"setting_id": "76588"
 }

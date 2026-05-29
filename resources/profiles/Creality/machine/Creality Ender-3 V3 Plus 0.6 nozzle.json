@@ -105,7 +105,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Auto Lift",
 	"name": "Creality Ender-3 V3 Plus 0.6 nozzle",
-	"setting_id": "51582",
-	"bed_model": "creality_ender3v3plus_buildplate_model.stl",
-	"bed_texture": "creality_ender3v3plus_buildplate_texture.svg"
+	"setting_id": "51582"
 }

@@ -126,7 +126,5 @@
 	"thumbnails": [
 		"96x96",
 		"300x300"
-	],
-	"bed_model": "creality_ender3v3ke_buildplate_model.stl",
-	"bed_texture": "creality_ender3v3ke_buildplate_texture.svg"
+	]
 }

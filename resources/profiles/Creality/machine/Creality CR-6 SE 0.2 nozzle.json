@@ -28,7 +28,5 @@
 	"machine_max_junction_deviation": [
 		"0.05",
 		"0"
-	],
-	"bed_model": "creality_cr6se_buildplate_model.stl",
-	"bed_texture": "creality_cr6se_buildplate_texture.svg"
+	]
 }

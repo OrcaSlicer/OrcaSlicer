@@ -125,7 +125,5 @@
 	"thumbnails": [
 		"96x96",
 		"300x300"
-	],
-	"bed_model": "creality_cr10se_buildplate_model.stl",
-	"bed_texture": "creality_cr10se_buildplate_texture.svg"
+	]
 }

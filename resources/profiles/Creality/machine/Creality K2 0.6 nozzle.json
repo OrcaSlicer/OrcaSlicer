@@ -117,7 +117,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Slope Lift",
 	"name": "Creality K2 0.6 nozzle",
-	"setting_id": "48858",
-	"bed_model": "creality_k2_buildplate_model.stl",
-	"bed_texture": "creality_k2_buildplate_texture.svg"
+	"setting_id": "48858"
 }

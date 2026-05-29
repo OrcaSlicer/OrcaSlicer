@@ -119,7 +119,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Slope Lift",
 	"name": "Creality K1 Max (0.8 nozzle)",
-	"setting_id": "22464",
-	"bed_model": "creality_k1max_buildplate_model.stl",
-	"bed_texture": "creality_k1max_buildplate_texture.svg"
+	"setting_id": "22464"
 }

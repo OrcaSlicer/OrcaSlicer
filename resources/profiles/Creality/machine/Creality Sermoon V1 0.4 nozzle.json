@@ -70,7 +70,5 @@
 	"printable_height": "165",
 	"change_filament_gcode": "; S1 Pause For Filament change\nM125",
 	"nozzle_type": "brass",
-	"auxiliary_fan": "1",
-	"bed_model": "creality_sermoonv1_buildplate_model.stl",
-	"bed_texture": "creality_sermoonv1_buildplate_texture.svg"
+	"auxiliary_fan": "1"
 }

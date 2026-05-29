@@ -146,7 +146,5 @@
 	"thumbnails": [
 		"300x300",
 		"96x96"
-	],
-	"bed_model": "creality_k2pro_buildplate_model.stl",
-	"bed_texture": "creality_k2pro_buildplate_texture.svg"
+	]
 }

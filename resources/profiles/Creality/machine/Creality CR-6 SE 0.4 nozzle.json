@@ -114,7 +114,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Normal Lift",
 	"name": "Creality CR-6 SE 0.4 nozzle",
-	"setting_id": "27244",
-	"bed_model": "creality_cr6se_buildplate_model.stl",
-	"bed_texture": "creality_cr6se_buildplate_texture.svg"
+	"setting_id": "27244"
 }

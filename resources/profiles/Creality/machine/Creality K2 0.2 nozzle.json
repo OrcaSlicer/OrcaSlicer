@@ -179,7 +179,5 @@
 		"0.4"
 	],
 	"name": "Creality K2 0.2 nozzle",
-	"nozzle_height": "4",
-	"bed_model": "creality_k2_buildplate_model.stl",
-	"bed_texture": "creality_k2_buildplate_texture.svg"
+	"nozzle_height": "4"
 }

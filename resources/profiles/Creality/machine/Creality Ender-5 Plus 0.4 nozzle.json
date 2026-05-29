@@ -114,7 +114,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Normal Lift",
 	"name": "Creality Ender-5 Plus 0.4 nozzle",
-	"setting_id": "06936",
-	"bed_model": "creality_ender5plus_buildplate_model.stl",
-	"bed_texture": "creality_ender5plus_buildplate_texture.svg"
+	"setting_id": "06936"
 }

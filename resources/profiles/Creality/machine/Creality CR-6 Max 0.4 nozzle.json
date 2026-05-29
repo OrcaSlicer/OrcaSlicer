@@ -23,7 +23,5 @@
 	],
 	"printable_height": "400",
 	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"bed_model": "creality_cr6max_buildplate_model.stl",
-	"bed_texture": "creality_cr6max_buildplate_texture.svg"
+	"auxiliary_fan": "0"
 }

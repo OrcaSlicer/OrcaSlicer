@@ -108,7 +108,5 @@
 	"z_hop": "0.1",
 	"z_hop_types": "Normal Lift",
 	"name": "Creality CR-10 SE 0.4 nozzle",
-	"setting_id": "GM001",
-	"bed_model": "creality_cr10se_buildplate_model.stl",
-	"bed_texture": "creality_cr10se_buildplate_texture.svg"
+	"setting_id": "GM001"
 }

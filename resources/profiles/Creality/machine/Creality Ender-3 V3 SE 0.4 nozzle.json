@@ -106,7 +106,5 @@
 	"z_hop": "0.4",
 	"z_hop_types": "Slope Lift",
 	"name": "Creality Ender-3 V3 SE 0.4 nozzle",
-	"setting_id": "14520",
-	"bed_model": "creality_ender3v3se_buildplate_model.stl",
-	"bed_texture": "creality_ender3v3se_buildplate_texture.svg"
+	"setting_id": "14520"
 }
