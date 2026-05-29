@@ -1172,7 +1172,6 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetToolTip(tooltip);
     checkbox->SetValue(reg_to_current_instance); // If registered to the current instance, checkbox should be checked
-    checkbox->Enable(!reg_to_current_instance); // Since unregistering isn't supported, checkbox is disabled when checked
 
     // build text next to checkbox
     auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE);
@@ -1223,8 +1222,10 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     v_sizer->Add(registered_instance_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(DESIGN_LEFT_MARGIN));
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [=](wxCommandEvent& e) {
-        wxGetApp().associate_url(url_prefix.ToStdWstring());
-        checkbox->Disable();
+        if (checkbox->GetValue())
+            wxGetApp().associate_url(url_prefix.ToStdWstring());
+        else
+            wxGetApp().disassociate_url(url_prefix.ToStdWstring());
         update_current_association_str();
         e.Skip();
     });

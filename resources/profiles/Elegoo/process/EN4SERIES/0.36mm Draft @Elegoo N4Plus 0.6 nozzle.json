@@ -1,0 +1,9 @@
+{
+	"type": "process",
+	"name": "0.36mm Draft @Elegoo N4Plus 0.6 nozzle",
+	"inherits": "0.30mm Standard @Elegoo N4Plus 0.6 nozzle",
+	"instantiation": "true",
+	"layer_height": "0.36",
+	"settings_id": "PEN4Plus06036",
+	"renamed_from": "0.24mm Draft @Elegoo Neptune4 Plus (0.6 nozzle)"
+}

@@ -18,6 +18,6 @@
 	"skirt_distance": "2",
 	"skirt_loops": "0",
 	"spiral_mode": "0",
-	"sparse_infill_acceleration": "2000",
-	"internal_solid_infill_acceleration": "2000"
+	"outer_wall_acceleration": "1000",
+	"inner_wall_acceleration": "1000"
 }

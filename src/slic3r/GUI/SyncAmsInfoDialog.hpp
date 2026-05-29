@@ -203,7 +203,6 @@ public:
     void     update_timelapse_enable_status();
     bool     is_same_printer_model();
     bool     is_blocking_printing(MachineObject *obj_);
-    bool     is_same_nozzle_diameters(NozzleType &tag_nozzle_type, float &nozzle_diameter);
     bool     is_same_nozzle_type(std::string &filament_type, NozzleType &tag_nozzle_type);
     bool     is_timeout();
     int  update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);

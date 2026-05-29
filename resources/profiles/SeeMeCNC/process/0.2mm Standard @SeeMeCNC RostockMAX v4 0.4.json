@@ -17,5 +17,7 @@
 	"precise_z_height": "0",
 	"skirt_distance": "2",
 	"skirt_loops": "0",
-	"spiral_mode": "0"
+	"spiral_mode": "0",
+	"outer_wall_acceleration": "1000",
+	"inner_wall_acceleration": "1000"
 }
