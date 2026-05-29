@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality Ender-3 V2 Neo 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -89,5 +88,6 @@
 	"thumbnails_format": "JPG",
 	"thumbnails": [
 		"200x200"
-	]
+	],
+	"support_multi_bed_types": "1"
 }

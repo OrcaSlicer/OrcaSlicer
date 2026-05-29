@@ -1,13 +1,13 @@
 {
 	"type": "machine_model",
 	"name": "Creality CR-M4",
+	"model_id": "Creality-CR-M4",
 	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Creality",
 	"bed_model": "creality_crm4_buildplate_model.stl",
 	"bed_texture": "creality_crm4_buildplate_texture.svg",
-	"default_bed_type": "Cool Plate",
-	"family": "Creality",
 	"hotend_model": "",
-	"machine_tech": "FFF",
-	"model_id": "Creality_CR_M4",
-	"default_materials": "Generic PLA;Generic PETG;Generic ABS"
+	"default_materials": "Generic PLA;Generic PETG;Generic ABS",
+	"default_bed_type": "Cool Plate"
 }

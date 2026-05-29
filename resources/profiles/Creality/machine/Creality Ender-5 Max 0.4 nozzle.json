@@ -1,9 +1,12 @@
 {
 	"type": "machine",
-	"from": "system",
-	"instantiation": "true",
+	"name": "Creality Ender-5 Max 0.4 nozzle",
 	"inherits": "fdm_creality_common",
+	"from": "system",
+	"setting_id": "83861",
+	"instantiation": "true",
 	"printer_model": "Creality Ender-5 Max",
+	"gcode_flavor": "klipper",
 	"printer_structure": "i3",
 	"auxiliary_fan": "0",
 	"bbl_use_printhost": "0",
@@ -28,7 +31,6 @@
 	"fan_kickstart": "0",
 	"fan_speedup_overhangs": "1",
 	"fan_speedup_time": "0",
-	"gcode_flavor": "klipper",
 	"high_current_on_filament_swap": "0",
 	"host_type": "octoprint",
 	"machine_LED_light_exist": "1",
@@ -106,7 +108,5 @@
 	"wipe": "1",
 	"wipe_distance": "1",
 	"z_hop": "0.4",
-	"z_hop_types": "Slope Lift",
-	"name": "Creality Ender-5 Max 0.4 nozzle",
-	"setting_id": "83861"
+	"z_hop_types": "Slope Lift"
 }

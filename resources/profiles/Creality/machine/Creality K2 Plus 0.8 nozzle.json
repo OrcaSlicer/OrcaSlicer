@@ -138,13 +138,13 @@
 	"machine_end_gcode": "END_PRINT",
 	"machine_pause_gcode": "PAUSE",
 	"change_filament_gcode": "G2 Z{z_after_toolchange + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X0 Y245 F30000\nG1 Z{z_after_toolchange} F600",
-	"machine_unload_filament_time": "28",
-	"machine_load_filament_time": "26",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
 	"scan_first_layer": "0",
 	"thumbnails_format": "PNG",
 	"thumbnails": [
 		"300x300",
 		"96x96"
-	]
+	],
+	"machine_unload_filament_time": "28",
+	"machine_load_filament_time": "26"
 }

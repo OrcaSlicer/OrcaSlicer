@@ -1,12 +1,28 @@
 {
 	"type": "machine",
-	"from": "system",
-	"instantiation": "true",
+	"name": "Creality Ender-3 V2 0.4 nozzle",
 	"inherits": "fdm_creality_common",
+	"from": "system",
+	"setting_id": "60817",
+	"instantiation": "true",
 	"printer_model": "Creality Ender-3 V2",
+	"default_filament_profile": [
+		"CR-PLA @Creality Ender-3 V2 0.4 nozzle"
+	],
+	"default_print_profile": "0.20mm Standard @Creality Ender-3 V2 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": "0x0,220x0,220x220,0x220",
+	"printable_height": "250",
+	"nozzle_type": "brass",
+	"auxiliary_fan": "0",
+	"machine_max_junction_deviation": [
+		"0.013",
+		"0"
+	],
 	"printer_structure": "i3",
 	"adaptive_bed_mesh_margin": "0",
-	"auxiliary_fan": "0",
 	"bbl_use_printhost": "0",
 	"bed_exclude_area": "0x0",
 	"bed_mesh_max": "99999,99999",
@@ -16,7 +32,6 @@
 	"best_object_pos": "0.5,0.5",
 	"cooling_tube_length": "5",
 	"cooling_tube_retraction": "91.5",
-	"default_print_profile": "0.20mm Standard @Creality Ender-3 V2 0.4 nozzle",
 	"disable_m73": "0",
 	"emit_machine_limits_to_gcode": "1",
 	"enable_filament_ramming": "0",
@@ -59,14 +74,11 @@
 	"manual_filament_change": "0",
 	"nozzle_height": "2.5",
 	"nozzle_hrc": "0",
-	"nozzle_type": "brass",
 	"nozzle_volume": "0",
 	"parking_pos_retraction": "92",
 	"pellet_modded_printer": "0",
 	"preferred_orientation": "0",
 	"prime_tower_position_type": "Middle Upper",
-	"printable_area": "0x0,220x0,220x220,0x220",
-	"printable_height": "250",
 	"printer_technology": "FFF",
 	"printer_variant": "0.4",
 	"printhost_authorization_type": "key",
@@ -84,18 +96,12 @@
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
-	"default_filament_profile": [
-		"CR-PLA @Creality Ender-3 V2 0.4 nozzle"
-	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#FCE94F",
 	"extruder_offset": "0x0",
 	"long_retractions_when_cut": "0",
 	"max_layer_height": "0.2",
 	"min_layer_height": "0.08",
-	"nozzle_diameter": [
-		"0.4"
-	],
 	"retract_before_wipe": "90%",
 	"retract_length_toolchange": "0",
 	"retract_lift_above": "0",
@@ -112,7 +118,5 @@
 	"wipe": "1",
 	"wipe_distance": "2",
 	"z_hop": "0.4",
-	"z_hop_types": "Auto Lift",
-	"name": "Creality Ender-3 V2 0.4 nozzle",
-	"setting_id": "60817"
+	"z_hop_types": "Auto Lift"
 }

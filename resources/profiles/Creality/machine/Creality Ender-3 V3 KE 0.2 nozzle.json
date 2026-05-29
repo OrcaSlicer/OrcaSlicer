@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality Ender-3 V3 KE 0.2 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -126,5 +125,6 @@
 	"thumbnails": [
 		"96x96",
 		"300x300"
-	]
+	],
+	"support_multi_bed_types": "1"
 }

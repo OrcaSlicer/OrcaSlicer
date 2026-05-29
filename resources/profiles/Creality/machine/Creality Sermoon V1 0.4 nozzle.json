@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality Sermoon V1 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -70,5 +69,6 @@
 	"printable_height": "165",
 	"change_filament_gcode": "; S1 Pause For Filament change\nM125",
 	"nozzle_type": "brass",
-	"auxiliary_fan": "1"
+	"auxiliary_fan": "1",
+	"support_multi_bed_types": "1"
 }

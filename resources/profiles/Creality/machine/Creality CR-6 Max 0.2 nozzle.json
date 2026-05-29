@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality CR-6 Max 0.2 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -24,5 +23,6 @@
 	],
 	"printable_height": "400",
 	"nozzle_type": "undefine",
-	"auxiliary_fan": "0"
+	"auxiliary_fan": "0",
+	"support_multi_bed_types": "1"
 }

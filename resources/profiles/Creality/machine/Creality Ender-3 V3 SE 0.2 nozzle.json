@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality Ender-3 V3 SE 0.2 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -126,5 +125,6 @@
 	"machine_end_gcode": "G91 ;Relative positionning \nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z0.2 F2400 ;Retract and raise Z \nG1 X5 Y5 F3000 ;Wipe out \nG1 Z10 ;Raise Z more \nG90 ;Absolute positionning \n \nG1 X0 Y220 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed \n \nM84 X Y E ;Disable all steppers but Z",
 	"scan_first_layer": "0",
 	"disable_m73": "1",
-	"thumbnails": []
+	"thumbnails": [],
+	"support_multi_bed_types": "1"
 }

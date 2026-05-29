@@ -1,6 +1,5 @@
 {
 	"type": "machine",
-	"support_multi_bed_types": "1",
 	"name": "Creality Ender-5 Pro (2019) 0.25 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
@@ -33,5 +32,6 @@
 	"machine_max_junction_deviation": [
 		"0.08",
 		"0"
-	]
+	],
+	"support_multi_bed_types": "1"
 }
