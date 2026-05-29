@@ -118,8 +118,9 @@ public:
     int get_model_mall_detail_url(std::string* url, std::string id, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body, const std::string& provider = ORCA_CLOUD_PROVIDER);
-    int track_enable(bool enable, const std::string& provider = ORCA_CLOUD_PROVIDER);
-    int track_remove_files(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    // Orca: telemetry only exists on the BBL cloud agent (Orca cloud has no track events).
+    int track_enable(bool enable);
+    int track_remove_files();
     int track_event(std::string evt_key, std::string content, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int track_header(std::string header, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int track_update_property(std::string name, std::string value, std::string type = "string", const std::string& provider = ORCA_CLOUD_PROVIDER);
