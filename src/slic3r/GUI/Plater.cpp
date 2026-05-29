@@ -879,54 +879,6 @@ struct DynamicFilamentList : DynamicList
     }
 };
 
-struct DynamicFilamentList1Based : DynamicFilamentList
-{
-    void apply_on(Choice *c) override
-    {
-        if (items.empty())
-            update(true);
-        auto cb = dynamic_cast<ComboBox *>(c->window);
-        auto n  = cb->GetSelection();
-        cb->Clear();
-        for (auto i : items) {
-            cb->Append(i.first, *i.second);
-        }
-        if (n < cb->GetCount())
-            cb->SetSelection(n);
-    }
-    wxString get_value(int index) override
-    {
-        wxString str;
-        str << index+1;
-        return str;
-    }
-    int index_of(wxString value) override
-    {
-        long n = 0;
-        if(!value.ToLong(&n))
-            return -1;
-        --n;
-        return (n >= 0 && n <= items.size()) ? int(n) : -1;
-    }
-    void update(bool force = false)
-    {
-        items.clear();
-        if (!force && m_choices.empty())
-            return;
-        auto icons = get_extruder_color_icons(true);
-        auto presets = wxGetApp().preset_bundle->filament_presets;
-        for (int i = 0; i < presets.size(); ++i) {
-            wxString str;
-            std::string type;
-            wxGetApp().preset_bundle->filaments.find_preset(presets[i])->get_filament_type(type);
-            str << type;
-            items.push_back({str, i < icons.size() ? icons[i] : nullptr});
-        }
-        DynamicList::update();
-    }
-
-};
-
 // Check if the machine supports Junction Deviation (Marlin firmware with machine_max_junction_deviation > 0)
 static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 {
@@ -943,7 +895,6 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;
-static DynamicFilamentList1Based dynamic_filament_list_1_based;
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -1650,9 +1601,9 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("wall_filament", &dynamic_filament_list_1_based);
-    Choice::register_dynamic_list("sparse_infill_filament", &dynamic_filament_list_1_based);
-    Choice::register_dynamic_list("solid_infill_filament", &dynamic_filament_list_1_based);
+    Choice::register_dynamic_list("wall_filament", &dynamic_filament_list);
+    Choice::register_dynamic_list("sparse_infill_filament", &dynamic_filament_list);
+    Choice::register_dynamic_list("solid_infill_filament", &dynamic_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -1856,6 +1807,14 @@ Sidebar::Sidebar(Plater *parent)
                 e.Skip();
             });
             w->Bind(wxEVT_LEAVE_WINDOW, [this, panel_color](wxMouseEvent &e) {
+                // Orca: if the edit button is already hidden the handler has no
+                // state to change, so skip the expensive wxFindWindowAtPoint tree
+                // walk. Without this guard, when the parent window is on an
+                // inactive Hyprland/Wayland workspace, GTK keeps delivering
+                // synthetic leave events and the Hide()+Layout() below re-enters
+                // the same handler in a feedback loop that pegs a CPU core.
+                // (IsShownOnScreen() can't be used here — see Plater.cpp:9304.)
+                if (!p->btn_edit_printer->IsShown()) { e.Skip(); return; }
                 // Use event-relative coords instead of wxGetMousePosition() which
                 // returns (0,0) on Wayland for global screen coordinates.
                 wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
@@ -3762,7 +3721,6 @@ void Sidebar::show_SEMM_buttons()
 void Sidebar::update_dynamic_filament_list()
 {
     dynamic_filament_list.update();
-    dynamic_filament_list_1_based.update();
 }
 
 PlaterPresetComboBox* Sidebar::printer_combox()
@@ -6196,6 +6154,23 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                                 if (has_extruder) { model_volume->config.set("extruder", extruder_id); }
                             }
+                        }
+                    }
+
+                    if (load_config && !config_loaded.empty() &&
+                        (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) &&
+                        file_version < Semver("2.4.0-dev")) {
+                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config_loaded);
+                        for (ModelObject *model_object : model.objects) {
+                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
+                            for (ModelVolume *model_volume : model_object->volumes)
+                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
+                        }
+
+                        if (converted_count > 0) {
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " "
+                                                    << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)")
+                                                           % file_version.to_string() % converted_count;
                         }
                     }
 
@@ -16297,6 +16272,18 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
     if (upload_job.empty())
         return;
 
+    const auto  host_type_opt = physical_printer_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
+    const auto  host_type     = host_type_opt != nullptr ? host_type_opt->value : htElegooLink;
+    const auto* ff_serial_opt = physical_printer_config->option<ConfigOptionString>("flashforge_serial_number");
+    const auto* ff_code_opt   = physical_printer_config->option<ConfigOptionString>("printhost_apikey");
+    const bool  flashforge_local_api =
+        host_type == htFlashforge &&
+        ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
+        ff_code_opt != nullptr && !ff_code_opt->value.empty();
+
+    if (flashforge_local_api)
+        use_3mf = true;
+
     upload_job.upload_data.use_3mf = use_3mf;
 
     // Obtain default output path
@@ -16344,8 +16331,6 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
 
     {
         auto        preset_bundle = wxGetApp().preset_bundle;
-        const auto  opt           = physical_printer_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
-        const auto  host_type     = opt != nullptr ? opt->value : htElegooLink;
         auto        config        = get_app_config();
 
         std::unique_ptr<PrintHostSendDialog> pDlg;
@@ -16353,6 +16338,77 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
             pDlg = std::make_unique<ElegooPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                                storage_paths, storage_names,
                                                                config->get_bool("open_device_tab_post_upload"));
+        } else if (flashforge_local_api) {
+            auto* flashforge_host = dynamic_cast<Flashforge*>(upload_job.printhost.get());
+            if (flashforge_host == nullptr) {
+                show_error(this, _L("Flashforge host is not available."), false);
+                return;
+            }
+
+            std::vector<FlashforgeMaterialSlot> slots;
+            bool                                supports_material_station = false;
+            {
+                wxBusyCursor wait;
+                wxString     msg;
+                if (!flashforge_host->fetch_material_slots(slots, &supports_material_station, msg)) {
+                    show_error(this, msg.empty() ? _L("Unable to log in to the Flashforge printer.") : msg, false);
+                    return;
+                }
+            }
+
+            std::vector<FilamentInfo> project_filaments;
+            PlateDataPtrs               plate_data_list;
+            DynamicPrintConfig          cfg                 = wxGetApp().preset_bundle->full_config();
+            const auto*                 filament_color      = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_colour"));
+            const auto*                 filament_id_opt     = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_ids"));
+            const int                   resolved_plate_idx  = plate_idx == PLATE_CURRENT_IDX ? get_partplate_list().get_curr_plate_index() : plate_idx;
+            auto enrich_project_filaments = [&](std::vector<FilamentInfo>& filaments) {
+                for (auto& filament : filaments) {
+                    if (filament.id < 0)
+                        continue;
+
+                    std::string display_filament_type;
+                    try {
+                        filament.type = cfg.get_filament_type(display_filament_type, filament.id);
+                    } catch (...) {
+                    }
+
+                    if (filament.type.empty())
+                        filament.type = display_filament_type;
+                    if (filament.type.empty())
+                        filament.type = "Unknown";
+
+                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(filament.id)) : "";
+                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(filament.id)) : "#FFFFFF";
+                    if (filament.color.empty())
+                        filament.color = "#FFFFFF";
+                }
+            };
+
+            p->partplate_list.store_to_3mf_structure(plate_data_list, true, plate_idx);
+            PlateData* selected_plate_data = (resolved_plate_idx >= 0 && resolved_plate_idx < static_cast<int>(plate_data_list.size())) ? plate_data_list[resolved_plate_idx] : nullptr;
+            if (selected_plate_data == nullptr && !plate_data_list.empty())
+                selected_plate_data = plate_data_list.front();
+
+            if (selected_plate_data != nullptr)
+                project_filaments = selected_plate_data->slice_filaments_info;
+
+            if (project_filaments.empty()) {
+                if (PartPlate* plate = get_partplate_list().get_plate(resolved_plate_idx); plate != nullptr)
+                    project_filaments = plate->get_slice_filaments_info();
+            }
+
+            if (!project_filaments.empty())
+                enrich_project_filaments(project_filaments);
+            release_PlateData_list(plate_data_list);
+
+            pDlg = std::make_unique<FlashforgePrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+                                                                   storage_paths, storage_names,
+                                                                   config->get_bool("open_device_tab_post_upload"),
+                                                                   flashforge_host,
+                                                                   supports_material_station,
+                                                                   std::move(slots),
+                                                                   project_filaments);
         } else {
             pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
@@ -16382,7 +16438,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
 
     if (use_3mf) {
         // Process gcode
-        const int result = send_gcode(plate_idx, nullptr);
+        const int export_plate_idx = plate_idx == PLATE_CURRENT_IDX ? get_partplate_list().get_curr_plate_index() : plate_idx;
+        const int result = send_gcode(export_plate_idx, nullptr);
 
         if (result < 0) {
             wxString msg = _L("Abnormal print file data. Please slice again");

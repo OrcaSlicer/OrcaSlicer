@@ -7,7 +7,10 @@
 	"setting_id": "ERTPU95AECC2",
 	"instantiation": "true",
 	"pressure_advance": [
-		"0.024"
+		"0.1"
+	],
+	"enable_pressure_advance": [
+		"1"
 	],
 	"nozzle_temperature": [
 		"230"
@@ -22,6 +25,7 @@
 		"12"
 	],
 	"compatible_printers": [
+		"Elegoo Centauri Carbon 2 0.2 nozzle",
 		"Elegoo Centauri Carbon 2 0.4 nozzle",
 		"Elegoo Centauri Carbon 2 0.6 nozzle",
 		"Elegoo Centauri Carbon 2 0.8 nozzle"
