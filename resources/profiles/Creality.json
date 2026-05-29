@@ -5179,6 +5179,214 @@
 		{
 			"name": "eSUN PLA-Silk @K2 Plus-all",
 			"sub_path": "filament/eSUN PLA-Silk @K2 Plus-all.json"
+		},
+		{
+			"name": "Creality Generic ABS @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic ABS @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic ABS @Ender-5Max-all",
+			"sub_path": "filament/Creality Generic ABS @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Generic ABS @Hi-all",
+			"sub_path": "filament/Creality Generic ABS @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic ABS @K1-all",
+			"sub_path": "filament/Creality Generic ABS @K1-all.json"
+		},
+		{
+			"name": "Creality Generic ABS @K2-all",
+			"sub_path": "filament/Creality Generic ABS @K2-all.json"
+		},
+		{
+			"name": "Creality Generic ASA @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic ASA @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic ASA @Ender-5Max-all",
+			"sub_path": "filament/Creality Generic ASA @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Generic ASA @Hi-all",
+			"sub_path": "filament/Creality Generic ASA @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic ASA @K1-all",
+			"sub_path": "filament/Creality Generic ASA @K1-all.json"
+		},
+		{
+			"name": "Creality Generic ASA @K2-all",
+			"sub_path": "filament/Creality Generic ASA @K2-all.json"
+		},
+		{
+			"name": "Creality Generic ASA-CF @Hi-all",
+			"sub_path": "filament/Creality Generic ASA-CF @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PA @Ender-5Max-all",
+			"sub_path": "filament/Creality Generic PA @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Generic PA-CF @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic PA-CF @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic PA-CF @K1-all",
+			"sub_path": "filament/Creality Generic PA-CF @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PA-CF @K2-all",
+			"sub_path": "filament/Creality Generic PA-CF @K2-all.json"
+		},
+		{
+			"name": "Creality Generic PC @K1-all",
+			"sub_path": "filament/Creality Generic PC @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PETG @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic PETG @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic PETG @Ender-5Max-all",
+			"sub_path": "filament/Creality Generic PETG @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Generic PETG @Hi-all",
+			"sub_path": "filament/Creality Generic PETG @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PETG @K1-all",
+			"sub_path": "filament/Creality Generic PETG @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PETG @K2-all",
+			"sub_path": "filament/Creality Generic PETG @K2-all.json"
+		},
+		{
+			"name": "Creality Generic PETG-CF @Hi-all",
+			"sub_path": "filament/Creality Generic PETG-CF @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic PLA @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic PLA @Ender-5Max-all",
+			"sub_path": "filament/Creality Generic PLA @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Generic PLA @Hi-all",
+			"sub_path": "filament/Creality Generic PLA @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA @K1-all",
+			"sub_path": "filament/Creality Generic PLA @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PLA @K2-all",
+			"sub_path": "filament/Creality Generic PLA @K2-all.json"
+		},
+		{
+			"name": "Creality Generic PLA High Speed @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic PLA High Speed @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic PLA High Speed @Hi-all",
+			"sub_path": "filament/Creality Generic PLA High Speed @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA High Speed @K1-all",
+			"sub_path": "filament/Creality Generic PLA High Speed @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PLA High Speed @K2-all",
+			"sub_path": "filament/Creality Generic PLA High Speed @K2-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Matte @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic PLA Matte @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Matte @Hi-all",
+			"sub_path": "filament/Creality Generic PLA Matte @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Matte @K1-all",
+			"sub_path": "filament/Creality Generic PLA Matte @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Matte @K2-all",
+			"sub_path": "filament/Creality Generic PLA Matte @K2-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Silk @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic PLA Silk @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Silk @Hi-all",
+			"sub_path": "filament/Creality Generic PLA Silk @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Silk @K1-all",
+			"sub_path": "filament/Creality Generic PLA Silk @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Silk @K2-all",
+			"sub_path": "filament/Creality Generic PLA Silk @K2-all.json"
+		},
+		{
+			"name": "Creality Generic PLA Wood @Hi-all",
+			"sub_path": "filament/Creality Generic PLA Wood @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA-CF @Hi-all",
+			"sub_path": "filament/Creality Generic PLA-CF @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic PLA-CF @K1-all",
+			"sub_path": "filament/Creality Generic PLA-CF @K1-all.json"
+		},
+		{
+			"name": "Creality Generic PLA-CF @K2-all",
+			"sub_path": "filament/Creality Generic PLA-CF @K2-all.json"
+		},
+		{
+			"name": "Creality Generic TPU @Ender-3V3-all",
+			"sub_path": "filament/Creality Generic TPU @Ender-3V3-all.json"
+		},
+		{
+			"name": "Creality Generic TPU @Ender-5Max-all",
+			"sub_path": "filament/Creality Generic TPU @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Generic TPU @Hi-all",
+			"sub_path": "filament/Creality Generic TPU @Hi-all.json"
+		},
+		{
+			"name": "Creality Generic TPU @K1-all",
+			"sub_path": "filament/Creality Generic TPU @K1-all.json"
+		},
+		{
+			"name": "Creality Generic TPU @K2-all",
+			"sub_path": "filament/Creality Generic TPU @K2-all.json"
+		},
+		{
+			"name": "Creality Hyper ABS @Ender-5Max-all",
+			"sub_path": "filament/Creality Hyper ABS @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Hyper PLA @Ender-5Max-all",
+			"sub_path": "filament/Creality Hyper PLA @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Hyper PLA-CF @Ender-5Max-all",
+			"sub_path": "filament/Creality Hyper PLA-CF @Ender-5Max-all.json"
+		},
+		{
+			"name": "Creality Silk PLA @Ender-5Max-all",
+			"sub_path": "filament/Creality Silk PLA @Ender-5Max-all.json"
 		}
 	],
 	"machine_list": [
