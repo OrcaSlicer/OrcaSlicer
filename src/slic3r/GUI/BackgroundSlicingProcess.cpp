@@ -696,7 +696,7 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const Dyn
 	Print::ApplyStatus invalidated = m_print->apply(model, new_config);
 
 	// Orca: prevent resetting under gcode viewer mode
-    if (invalidated != PrintBase::APPLY_STATUS_UNCHANGED) {
+    if ((invalidated != PrintBase::APPLY_STATUS_UNCHANGED) && GUI::wxGetApp().mainframe) {
         const auto plater = GUI::wxGetApp().mainframe->m_plater;
         if (plater && plater->only_gcode_mode()) {
             invalidated = PrintBase::APPLY_STATUS_UNCHANGED;
