@@ -82,5 +82,6 @@
     "default_filament_colour": "\"\"",
     "compatible_printers": [
         "Creality K2 Plus 0.4 nozzle"
-    ]
+    ],
+    "filament_id": "E2001"
 }

@@ -139,5 +139,6 @@
     "filament_adhesiveness_category": "797",
     "compatible_printers": [
         "Creality K2 Plus 0.4 nozzle"
-    ]
+    ],
+    "filament_id": "00010"
 }

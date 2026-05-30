@@ -154,5 +154,6 @@
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality K1 Max_CFS-C 0.4 nozzle"
-    ]
+    ],
+    "filament_id": "17001"
 }

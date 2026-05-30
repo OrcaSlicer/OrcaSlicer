@@ -126,5 +126,6 @@
     "filament_adhesiveness_category": "797",
     "compatible_printers": [
         "Creality Hi 0.4 nozzle"
-    ]
+    ],
+    "filament_id": "00010"
 }

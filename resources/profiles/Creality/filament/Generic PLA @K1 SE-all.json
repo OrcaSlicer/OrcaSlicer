@@ -136,5 +136,6 @@
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality K1 SE 0.4 nozzle"
-    ]
+    ],
+    "filament_id": "00001"
 }

@@ -169,5 +169,6 @@
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality SPARKX i7 0.4 nozzle"
-    ]
+    ],
+    "filament_id": "01601"
 }
