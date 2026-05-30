@@ -135,11 +135,10 @@ float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
     return clamp(1.0 - ao_strength * 0.90, 0.25, 1.0);
 }
 
-float soft_box(vec2 p, vec2 center, vec2 half_size, float blur)
+float soft_circle(vec2 p, vec2 center, float radius, float blur)
 {
-    vec2 d = abs(p - center) - half_size;
-    float dist = max(d.x, d.y);
-    return 1.0 - smoothstep(0.0, blur, dist);
+    float dist = distance(p, center);
+    return 1.0 - smoothstep(radius - blur, radius, dist);
 }
 
 vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
@@ -149,27 +148,23 @@ vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
     vec3 light_dir = normalize(LIGHT_TOP_DIR);
     vec3 reflect_light = normalize(reflect(-light_dir, normal));
     
+    // UV coordinates for the reflection
     vec2 uv = (reflect_light.xy / (1.0 + max(reflect_light.z, 0.3))) * 2.2;
     
     vec2 grad = fwidth(uv) * 0.8;
     float blur = 0.12 + grad.x * 1.5;
-    float edge_feather = 0.10 + grad.y * 1.2;
     
-    float pane1 = soft_box(uv, vec2(-0.42, -0.25), vec2(0.30, 0.26), blur);
-    float pane2 = soft_box(uv, vec2(0.42, -0.25), vec2(0.30, 0.26), blur);
-    float pane3 = soft_box(uv, vec2(-0.42, 0.30), vec2(0.30, 0.26), blur);
-    float pane4 = soft_box(uv, vec2(0.42, 0.30), vec2(0.30, 0.26), blur);
+    // === CIRCULAR WINDOW (porthole style) ===
+    // Single round window, no bars
+    vec2 window_center = vec2(0.0, 0.0);
+    float window_radius = 0.5;  // Radius of the circular window
     
-    float window_light = pane1 + pane2 + pane3 + pane4;
+    float window_light = soft_circle(uv, window_center, window_radius, blur);
     
-    float bar_h1 = 1.0 - soft_box(uv, vec2(0.0, 0.02), vec2(1.2, 0.045), edge_feather);
-    float bar_h2 = 1.0 - soft_box(uv, vec2(0.0, -0.52), vec2(1.2, 0.045), edge_feather);
-    float bar_v1 = 1.0 - soft_box(uv, vec2(-0.80, 0.02), vec2(0.045, 1.1), edge_feather);
-    float bar_v2 = 1.0 - soft_box(uv, vec2(0.80, 0.02), vec2(0.045, 1.1), edge_feather);
+    // No bars - just pure circular glass
+    float bars = 1.0;
     
-    float bars = clamp(bar_h1 * bar_h2 * bar_v1 * bar_v2, 0.0, 1.0);
-    bars = smoothstep(0.0, 0.92, bars);
-    
+    // Fresnel effect for edge glow
     float fresnel = pow(1.0 - max(dot(normal, view_dir), 0.0), 1.0);
     float facing = smoothstep(-0.4, 0.6, reflect_light.z);
     
