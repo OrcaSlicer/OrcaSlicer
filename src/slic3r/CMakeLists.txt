@@ -626,6 +626,14 @@ set(SLIC3R_GUI_SOURCES
     Utils/SnapmakerPrinterAgent.hpp
     Utils/MoonrakerPrinterAgent.cpp
     Utils/MoonrakerPrinterAgent.hpp
+    Utils/OpenBambuPrinterAgent.cpp
+    Utils/OpenBambuPrinterAgent.hpp
+    Utils/OpenBambuMqtt.cpp
+    Utils/OpenBambuMqtt.hpp
+    Utils/OpenBambuSsdp.cpp
+    Utils/OpenBambuSsdp.hpp
+    Utils/OpenBambuFtps.cpp
+    Utils/OpenBambuFtps.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp
