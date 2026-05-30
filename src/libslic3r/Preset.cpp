@@ -4240,6 +4240,56 @@ const Preset *PrinterPresetCollection::find_custom_preset_by_model_and_variant(c
     return it != cend() ? &*it : nullptr;
 }
 
+int PrinterPresetCollection::migrate_user_models_for_variants(const std::string &copy_suffix)
+{
+    // Collect the set of system printer_model names. A user preset whose printer_model equals one of
+    // these is a legacy "flat" preset (its model was inherited from the system preset) and needs a
+    // distinct user model so it groups separately and nozzle switching stays on the user's printer.
+    std::set<std::string> system_models;
+    for (const Preset &p : *this)
+        if (p.is_system) {
+            const std::string m = p.config.opt_string("printer_model");
+            if (!m.empty()) system_models.insert(m);
+        }
+
+    auto key = [](const std::string &m, const std::string &v) { return m + "\x1F" + v; };
+
+    // Seed taken (model, variant) pairs with already-distinct user presets to avoid collisions.
+    std::set<std::string> taken;
+    for (const Preset &p : *this)
+        if (p.is_user() && system_models.count(p.config.opt_string("printer_model")) == 0)
+            taken.insert(key(p.config.opt_string("printer_model"), p.config.opt_string("printer_variant")));
+
+    int migrated = 0;
+    for (Preset &preset : *this) {
+        if (!preset.is_user()) continue;
+        const std::string model = preset.config.opt_string("printer_model");
+        if (model.empty() || system_models.count(model) == 0)
+            continue; // already distinct (new-style) or has no model — skip
+        const std::string variant = preset.config.opt_string("printer_variant");
+        std::string new_model = model + " - " + copy_suffix;
+        if (taken.count(key(new_model, variant))) { // disambiguate same-model+same-nozzle collisions
+            int n = 2;
+            while (taken.count(key(model + " - " + copy_suffix + " " + std::to_string(n), variant))) ++n;
+            new_model = model + " - " + copy_suffix + " " + std::to_string(n);
+        }
+        taken.insert(key(new_model, variant));
+
+        preset.config.option<ConfigOptionString>("printer_model", true)->value = new_model;
+
+        // Persist (write only the diff vs the inherited parent), keeping the preset's name unchanged.
+        const std::string inherits = Preset::inherits(preset.config);
+        Preset *parent = inherits.empty() ? nullptr : this->find_preset(inherits, false, true);
+        preset.file = this->path_for_preset(preset);
+        if (parent) preset.save(&parent->config);
+        else        preset.save(nullptr);
+        ++migrated;
+    }
+    if (migrated > 0)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": migrated " << migrated << " user printer preset(s) to a distinct printer_model.";
+    return migrated;
+}
+
 bool  PrinterPresetCollection::only_default_printers() const
 {
     for (const auto& printer : get_presets()) {

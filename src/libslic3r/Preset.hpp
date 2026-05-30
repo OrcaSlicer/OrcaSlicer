@@ -1059,6 +1059,12 @@ public:
     const Preset*   find_system_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const;
     const Preset*   find_custom_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const;
 
+    // ORCA #12105 (Phase 4): give legacy flat user printer presets (whose printer_model still equals a
+    // system model) a distinct user printer_model "<model> - <copy_suffix>", so they group as their own
+    // model and nozzle switching stays on the user's printer. Field-only, non-destructive (no rename).
+    // Idempotent: presets already carrying a distinct model are skipped. Returns count migrated.
+    int             migrate_user_models_for_variants(const std::string &copy_suffix);
+
     bool            only_default_printers() const;
 private:
     PrinterPresetCollection() = default;
