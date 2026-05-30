@@ -7,8 +7,8 @@
 	"instantiation": "true",
 	"printer_model": "Creality Hi",
 	"gcode_flavor": "klipper",
-	"printer_structure": "undefine",
-	"default_print_profile": "0.20mm Standard @Creality Hi 0.4 nozzle",
+	"printer_structure": "i3",
+	"default_print_profile": "0.20mm Standard @Creality Hi",
 	"nozzle_diameter": [
 		"0.4"
 	],
