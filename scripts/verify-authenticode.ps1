@@ -102,3 +102,8 @@ foreach ($relativePath in $Files) {
 }
 
 Write-Host "Authenticode verification passed."
+
+# signtool exits non-zero for the untrusted test-cert root even when we accept
+# it above, leaving $LASTEXITCODE = 1. The GitHub Actions pwsh wrapper exits
+# with that lingering code, so reset it to report success explicitly.
+exit 0
