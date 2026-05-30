@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "SeeMeCNC ABS",
+	"inherits": "SeeMeCNC filament base",
 	"from": "System",
+	"filament_id": "SMCFB001",
 	"instantiation": "true",
-	"version": "2.3.2.60",
 	"filament_settings_id": [
 		"SeeMeCNC ABS"
 	],
-	"filament_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",
@@ -154,7 +154,6 @@
 		"0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0"
 	],
 	"compatible_prints_condition": "",
-	"inherits": "SeeMeCNC filament base",
 	"close_fan_the_first_x_layers": [
 		"3"
 	],

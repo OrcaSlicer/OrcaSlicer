@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "SeeMeCNC PETG-CF",
+	"inherits": "SeeMeCNC filament base",
 	"from": "System",
+	"filament_id": "SMCFG002",
 	"instantiation": "true",
-	"version": "2.3.2.60",
 	"filament_settings_id": [
 		"SeeMeCNC PETG-CF"
 	],
-	"filament_id": "13dbcfdd-d3e6-5468-897e-1bab77e07258",
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",
@@ -154,7 +154,6 @@
 		"0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0"
 	],
 	"compatible_prints_condition": "",
-	"inherits": "SeeMeCNC filament base",
 	"close_fan_the_first_x_layers": [
 		"3"
 	],

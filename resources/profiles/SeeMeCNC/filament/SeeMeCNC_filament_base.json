@@ -3,7 +3,6 @@
 	"name": "SeeMeCNC filament base",
 	"from": "system",
 	"instantiation": "false",
-	"version": "2.3.2.60",
 	"activate_air_filtration": [
 		"0"
 	],

@@ -2,12 +2,11 @@
 	"type": "filament",
 	"name": "SeeMeCNC PLA",
 	"from": "System",
+	"filament_id": "SMCFL001",
 	"instantiation": "true",
-	"version": "2.3.2.60",
 	"filament_settings_id": [
 		"SeeMeCNC PLA"
 	],
-	"filament_id": "3c2693e2-ed7f-53ce-9883-611028772c75",
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",

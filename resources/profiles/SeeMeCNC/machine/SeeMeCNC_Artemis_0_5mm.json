@@ -1,4 +1,8 @@
 {
+	"type": "machine",
+	"name": "SeeMeCNC Artemis 0.5 nozzle",
+	"from": "System",
+	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
 	"bed_custom_model": "SeeMeCNC_Buildplate_Model.STL",
@@ -55,7 +59,6 @@
 	"fan_speedup_overhangs": "1",
 	"fan_speedup_time": "0",
 	"file_start_gcode": "",
-	"from": "System",
 	"gcode_flavor": "reprapfirmware",
 	"grab_length": [
 		"0"
@@ -158,7 +161,6 @@
 		"0.10"
 	],
 	"min_resonance_avoidance_speed": "50",
-	"name": "SeeMeCNC Artemis 0.5 nozzle",
 	"nozzle_diameter": [
 		"0.5"
 	],
@@ -326,7 +328,6 @@
 	"upward_compatible_machine": [],
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
-	"version": "2.3.2.60",
 	"wipe": [
 		"1"
 	],
@@ -344,8 +345,6 @@
 		"Auto Lift"
 	],
 	"z_offset": "0",
-	"type": "machine",
-	"instantiation": "true",
 	"model": "SeeMeCNC Artemis 300",
 	"thumbnail": "SeeMeCNC Artemis 300_cover.png",
 	"description": "SeeMeCNC configurations"
