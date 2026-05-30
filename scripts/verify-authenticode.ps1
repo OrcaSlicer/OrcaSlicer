@@ -89,13 +89,19 @@ foreach ($relativePath in $Files) {
         continue
     }
 
-    # signtool wraps the message across lines, so normalize whitespace before matching.
-    $normalizedOutput = (($output | Out-String) -replace "\s+", " ")
-    $isUntrustedRoot = $normalizedOutput -match "terminated in a root certificate which is not trusted by the trust provider"
-
-    if ($AllowUntrustedRoot -and $isUntrustedRoot) {
-        Write-Host "  Accepted: '$relativePath' is signed but its certificate chains to an untrusted root (expected for the SignPath test certificate)."
-        continue
+    if ($AllowUntrustedRoot) {
+        # signtool interleaves its stdout (chain details) and stderr (the error)
+        # unpredictably, so the error text cannot be matched reliably. Use the
+        # structured Get-AuthenticodeSignature result instead: accept only when the
+        # file is genuinely signed and the sole problem is that the chain terminates
+        # in an untrusted root (i.e. the self-signed SignPath test certificate).
+        $signature = Get-AuthenticodeSignature -LiteralPath $filePath
+        $isSigned = ($signature.SignatureType -eq "Authenticode") -and ($null -ne $signature.SignerCertificate)
+        $untrustedRootOnly = $signature.StatusMessage -match "terminated in a root certificate which is not trusted"
+        if ($isSigned -and $untrustedRootOnly) {
+            Write-Host "  Accepted: '$relativePath' is signed but its certificate chains to an untrusted root (expected for the SignPath test certificate)."
+            continue
+        }
     }
 
     throw "SignTool verification failed for '$relativePath' with exit code $exitCode."
