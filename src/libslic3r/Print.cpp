@@ -1254,10 +1254,6 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
     return ret;
 }
 
-// Orca: this g92e0 regex is used copied from PrusaSlicer
-// Matches "G92 E0" with various forms of writing the zero and with an optional comment.
-boost::regex regex_g92e0 { "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$" };
-
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic.....FIXME:StringObjectException *warning can only contain one warning, but there might be many warnings, need a vector<StringObjectException>
 StringObjectException Print::validate(StringObjectException *warning, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
@@ -1676,17 +1672,23 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
     // Orca: G92 E0 is not supported when using absolute extruder addressing
     // This check is modified from PrusaSlicer, the original author is Vojtech Bubnik
-	// Orca: case‑sensitive match for exactly "G92 E0" (uppercase G and E only) 
-	// because gcode is case sensitive and G92 e0 satisfies the regex but causes a slicing error
-	// https://github.com/OrcaSlicer/OrcaSlicer/issues/13927
-	
-    if(!is_BBL_printer()) {
-		static const boost::regex regex_g92e0_correct { 
-    		"^[ \\t]*G92[ \\t]*E(0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
-    	};
+    // Orca: case‑sensitive match for exactly "G92 E0" (uppercase G and E only) 
+    // because gcode is case sensitive and G92 e0 satisfies the regex but causes a slicing error
+    // https://github.com/OrcaSlicer/OrcaSlicer/issues/13927
+
+    if (!is_BBL_printer()) {
+        // Matches any case of "G92 E0" (original pattern)
+        static const boost::regex regex_g92e0 {
+            "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+        };
+        // Matches only the exact uppercase "G92 E0"
+        static const boost::regex regex_g92e0_correct {
+            "^[ \\t]*G92[ \\t]*E(0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+        };
+
         bool before_layer_gcode_resets_extruder = boost::regex_search(m_config.before_layer_change_gcode.value, regex_g92e0);
-        bool layer_gcode_resets_extruder = boost::regex_search(m_config.layer_change_gcode.value, regex_g92e0);
-		
+		bool layer_gcode_resets_extruder	= boost::regex_search(m_config.layer_change_gcode.value, regex_g92e0);
+
         // Detect presence with wrong case and show a dedicated error
         if (before_layer_gcode_resets_extruder && !boost::regex_search(m_config.before_layer_change_gcode.value, regex_g92e0_correct))
             return {L("\"G92 E0\" was found in before_layer_gcode, but the G or E are not uppercase. "
@@ -1696,7 +1698,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             return {L("\"G92 E0\" was found in layer_gcode, but the G or E are not uppercase. "
                       "Please change them to the exact uppercase \"G92 E0\"."),
                     nullptr, "layer_change_gcode"};
-		
+
         if (m_config.use_relative_e_distances) {
             // See GH issues https://github.com/prusa3d/PrusaSlicer/issues/6336 https://github.com/prusa3d/PrusaSlicer/issues/5073
             if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
