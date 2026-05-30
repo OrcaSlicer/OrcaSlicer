@@ -1,8 +1,8 @@
 #version 140
 
 /**
- * SSAO Shader - GLSL 140 version with highlight protection
- * Preserves brightness on upward-facing surfaces for better visual quality
+ * SSAO Shader - GLSL 140 version with sharp depth threshold
+ * Only darkens valleys/concave areas, ignores smooth variations
  */
 
 uniform sampler2D color_texture;
@@ -29,12 +29,9 @@ void main()
     vec3 normal_center = texelFetch(normal_texture, pixel, 0).rgb * 2.0 - 1.0;
     normal_center = normalize(normal_center);
     
-    // Calculate upward-facing factor
-    // Assumes Z-up coordinate system (typical for 3D printing)
-    float up_factor = clamp(normal_center.z * 1.5, 0.0, 1.0);  // Boosted for better response
+    // Calculate upward-facing factor (Z-up coordinate system)
+    float up_factor = clamp(normal_center.z * 1.5, 0.0, 1.0);
     
-    // Alternative if using Y-up: float up_factor = clamp(normal_center.y * 1.5, 0.0, 1.0);
-
     // Adaptive radius in pixel space
     int radius = int(mix(2.0, 4.0, center_depth / z_far));
 
@@ -59,36 +56,44 @@ void main()
         // Sample normal at neighbor
         vec3 normal_sample = texelFetch(normal_texture, sample_pixel, 0).rgb * 2.0 - 1.0;
         
-        // Direction from center to sample in screen space
-        vec2 dir_2d = normalize(vec2(sample_pixel - pixel));
+        // Depth difference (positive if neighbor is closer to camera)
+        float depth_diff = center_depth - sample_depth;
         
-        // Reduce occlusion when normals are similar (planar surfaces)
+        // Sharp depth threshold ===
+        // Minimum depth difference to consider occlusion (ignores small variations)
+        float threshold_min = 0.008;  // Higher = only deep valleys get darkened
+        float threshold_max = 0.04;   // Transition range for full occlusion
+        
+        float contribution = 0.0;
+        if (depth_diff > threshold_min) {
+            // Abrupt mapping with power curve
+            contribution = (depth_diff - threshold_min) / (threshold_max - threshold_min);
+            contribution = clamp(contribution, 0.0, 1.0);
+            contribution = pow(contribution, 2.0);  // Steeper curve for sharper transition
+        }
+        
+        // Reduce occlusion on planar surfaces (similar normals)
         float normal_similarity = dot(normal_center, normal_sample);
-        float planar_factor = smoothstep(0.7, 0.95, normal_similarity);
-
-        float depth_diff = max(0.0, center_depth - sample_depth);
-        float threshold = 0.02 * (0.5 + center_depth / z_far);
-        float contribution = smoothstep(0.001, threshold, depth_diff);
-
-        // Reduce contribution on planar surfaces 
-        contribution *= (1.0 - planar_factor * 0.5);
-
+        float planar_factor = smoothstep(0.75, 0.95, normal_similarity);
+        contribution *= (1.0 - planar_factor * 0.6);
+        
         occlusion += contribution;
         valid_samples++;
     }
 
     if (valid_samples > 0) {
-        float ao_factor = 1.0 - (occlusion / float(valid_samples)) * 0.45;
-
-        // Brighter minimum for top surfaces
-        float ao_min = mix(0.50, 0.75, up_factor);
+        // Calculate ambient occlusion factor with higher base intensity
+        float ao_factor = 1.0 - (occlusion / float(valid_samples)) * 0.6;
+        
+        // Keep bright areas clean (higher minimum for upward-facing surfaces)
+        float ao_min = mix(0.55, 0.85, up_factor);
         ao_factor = clamp(ao_factor, ao_min, 1.0);
-
-        // Additional brightness boost for upward-facing surfaces
-        float brightness_boost = 1.0 + up_factor * 0.2;
-        ao_factor = pow(ao_factor, 2.2) * brightness_boost;
-
-        occlusion = clamp(ao_factor, 0.45, 1.05);
+        
+        // Slight brightness boost for upward-facing surfaces
+        float brightness_boost = 1.0 + up_factor * 0.15;
+        ao_factor = ao_factor * brightness_boost;
+        
+        occlusion = ao_factor;
     } else {
         occlusion = 1.0;
     }
