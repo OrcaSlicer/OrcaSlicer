@@ -25,6 +25,5 @@
 	"machine_max_junction_deviation": [
 		"0.08",
 		"0"
-	],
-	"support_multi_bed_types": "1"
+	]
 }

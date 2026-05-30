@@ -8,6 +8,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_CR_6_SE",
-	"default_materials": "Generic PLA;Generic PETG;Generic ABS",
-	"default_bed_type": "Cool Plate"
+	"default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
 }

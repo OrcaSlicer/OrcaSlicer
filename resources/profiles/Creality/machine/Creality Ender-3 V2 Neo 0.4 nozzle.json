@@ -88,6 +88,5 @@
 	"thumbnails_format": "JPG",
 	"thumbnails": [
 		"200x200"
-	],
-	"support_multi_bed_types": "1"
+	]
 }

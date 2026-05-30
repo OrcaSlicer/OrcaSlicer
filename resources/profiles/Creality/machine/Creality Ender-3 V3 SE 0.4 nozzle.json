@@ -10,7 +10,7 @@
 	"printer_variant": "0.4",
 	"gcode_flavor": "marlin2",
 	"printer_structure": "i3",
-	"default_print_profile": "0.20mm Standard @Creality Ender-3 V3 SE 0.4 nozzle",
+	"default_print_profile": "0.20mm Standard @Creality Ender3V3SE 0.4",
 	"extruder_clearance_height_to_rod": "47",
 	"extruder_clearance_radius": "90",
 	"machine_load_filament_time": "11",
@@ -27,44 +27,44 @@
 	"nozzle_type": "brass",
 	"auxiliary_fan": "0",
 	"machine_max_acceleration_extruding": [
-		"5000",
-		"5000"
-	],
-	"machine_max_acceleration_retracting": [
 		"2500",
 		"2500"
 	],
+	"machine_max_acceleration_retracting": [
+		"500",
+		"500"
+	],
 	"machine_max_acceleration_travel": [
-		"5000",
-		"5000"
+		"2500",
+		"2500"
 	],
 	"machine_max_acceleration_x": [
-		"5000",
-		"5000"
+		"2500",
+		"2500"
 	],
 	"machine_max_acceleration_y": [
-		"5000",
-		"5000"
+		"2500",
+		"2500"
 	],
 	"machine_max_acceleration_z": [
 		"500",
 		"500"
 	],
 	"machine_max_speed_e": [
-		"100",
-		"100"
+		"40",
+		"40"
 	],
 	"machine_max_speed_x": [
-		"500",
-		"500"
+		"250",
+		"250"
 	],
 	"machine_max_speed_y": [
-		"500",
-		"500"
+		"250",
+		"250"
 	],
 	"machine_max_speed_z": [
-		"30",
-		"30"
+		"5",
+		"5"
 	],
 	"machine_max_jerk_e": [
 		"5",
@@ -87,102 +87,43 @@
 		"0"
 	],
 	"max_layer_height": [
-		"0.36"
+		"0.32"
 	],
 	"min_layer_height": [
 		"0.08"
 	],
 	"retraction_minimum_travel": [
-		"1"
+		"2"
 	],
 	"retract_before_wipe": [
-		"100"
+		"70%"
 	],
 	"retraction_length": [
-		"0.8"
+		"1.2"
 	],
 	"retract_length_toolchange": [
 		"1"
 	],
 	"retraction_speed": [
-		"30"
+		"40"
 	],
 	"deretraction_speed": [
 		"30"
 	],
 	"z_hop_types": [
-		"Slope Lift"
+		"Spiral Lift"
 	],
 	"single_extruder_multi_material": "1",
 	"manual_filament_change": "1",
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "M25",
 	"default_filament_profile": [
-		"Hyper PLA @Creality Ender-3 V3 SE 0.4 nozzle"
+		"Creality Generic PLA @Ender-3V3-all"
 	],
 	"file_start_gcode": ";FLAVOR:Marlin\\n;TIME:{print_time_sec}\\n;Filament used:{used_filament_length}m\\n;Layer height:{layer_height}",
-	"machine_start_gcode": "M220 S100 ;Reset Feedrate \nM221 S100 ;Reset Flowrate \n \nM140 S[bed_temperature_initial_layer_single] ;Set final bed temp \nG28 ;Home \n \nG92 E0 ;Reset Extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nM104 S[nozzle_temperature_initial_layer] ;Set final nozzle temp \nG1 X-2.1 Y20 Z0.28 F5000.0 ;Move to start position \nM190 S[bed_temperature_initial_layer_single] ;Wait for bed temp to stabilize \nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize \nG1 X-2.1 Y145.0 Z0.28 F1500.0 E15 ;Draw the first line \nG1 X-2.4 Y145.0 Z0.28 F5000.0 ;Move to side a little \nG1 X-2.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line \nG92 E0  ;Reset Extruder \nG1 E-1.0000 F1800 ;Retract a bit \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 E0.0000 F1800",
+	"machine_start_gcode": "M220 S100 ;Reset Feedrate \nM221 S100 ;Reset Flowrate \n \nM104 S[nozzle_temperature_initial_layer] ;Set final nozzle temp \nM190 S[bed_temperature_initial_layer_single] ;Set and wait for bed temp to stabilize \nG28 ;Home \nG92 E0 ;Reset Extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 X-2.1 Y20 Z0.28 F5000.0 ;Move to start position \nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize \nG1 X-2.1 Y145.0 Z0.28 F1500.0 E15 ;Draw the first line \nG1 X-2.4 Y145.0 Z0.28 F5000.0 ;Move to side a little \nG1 X-2.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line \nG92 E0  ;Reset Extruder \nG1 E-1.0000 F1800 ;Retract a bit \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 E0.0000 F1800",
 	"machine_end_gcode": "G91 ;Relative positionning \nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z0.2 F2400 ;Retract and raise Z \nG1 X5 Y5 F3000 ;Wipe out \nG1 Z10 ;Raise Z more \nG90 ;Absolute positionning \n \nG1 X0 Y220 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed \n \nM84 X Y E ;Disable all steppers but Z",
 	"scan_first_layer": "0",
-	"disable_m73": "0",
-	"thumbnails": [
-		"96x96",
-		"300x300"
-	],
-	"bbl_use_printhost": "0",
-	"bed_exclude_area": "0x0",
-	"bed_mesh_max": "99999,99999",
-	"bed_mesh_min": "-99999,-99999",
-	"bed_mesh_probe_distance": "50,50",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-	"best_object_pos": "0.5,0.5",
-	"cooling_tube_length": "5",
-	"cooling_tube_retraction": "91.5",
-	"creality_flush_time": "86.0",
-	"emit_machine_limits_to_gcode": "1",
-	"enable_filament_ramming": "1",
-	"extra_loading_move": "-2",
-	"extruder_clearance_height_to_lid": "34",
-	"fan_kickstart": "0",
-	"fan_speedup_overhangs": "1",
-	"fan_speedup_time": "0",
-	"high_current_on_filament_swap": "0",
-	"host_type": "octoprint",
-	"machine_LED_light_exist": "0",
-	"machine_max_acceleration_e": [
-		"5000",
-		"5000"
-	],
-	"machine_min_extruding_rate": "0,0",
-	"machine_min_travel_rate": "0,0",
-	"machine_platform_motion_enable": "0",
-	"machine_unload_filament_time": "0",
-	"nozzle_hrc": "0",
-	"nozzle_volume": "0",
-	"parking_pos_retraction": "92",
-	"preferred_orientation": "0",
-	"printer_technology": "FFF",
-	"printhost_authorization_type": "key",
-	"printhost_ssl_ignore_revoke": "0",
-	"purge_in_prime_tower": "1",
-	"silent_mode": "0",
-	"support_air_filtration": "0",
-	"support_chamber_temp_control": "0",
-	"support_multi_bed_types": "1",
-	"thumbnails_format": "PNG",
-	"time_cost": "0",
-	"use_firmware_retraction": "0",
-	"use_relative_e_distances": "1",
-	"z_offset": "0",
-	"extruder_colour": "#FCE94F",
-	"extruder_offset": "0x0",
-	"retract_lift_above": "0",
-	"retract_lift_below": "0",
-	"retract_lift_enforce": "All Surfaces",
-	"retract_restart_extra": "0",
-	"retract_restart_extra_toolchange": "0",
-	"retract_when_changing_layer": "1",
-	"wipe": "1",
-	"wipe_distance": "2",
-	"z_hop": "0.4"
+	"disable_m73": "1",
+	"thumbnails": []
 }
