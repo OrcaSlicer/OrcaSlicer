@@ -1065,6 +1065,12 @@ public:
     // Idempotent: presets already carrying a distinct model are skipped. Returns count migrated.
     int             migrate_user_models_for_variants(const std::string &copy_suffix);
 
+    // ORCA #12105 (Phase 5): distinct user-defined printer_model names across user presets, sorted.
+    std::vector<std::string> user_printer_models() const;
+    // ORCA #12105 (Phase 5): rename a user printer_model across all matching user presets (field-only,
+    // re-saved as diff vs parent). Used by the "Manage printer models" dialog. Returns count changed.
+    int             rename_user_printer_model(const std::string &old_model, const std::string &new_model);
+
     bool            only_default_printers() const;
 private:
     PrinterPresetCollection() = default;

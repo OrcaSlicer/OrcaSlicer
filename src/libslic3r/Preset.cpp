@@ -4290,6 +4290,41 @@ int PrinterPresetCollection::migrate_user_models_for_variants(const std::string 
     return migrated;
 }
 
+std::vector<std::string> PrinterPresetCollection::user_printer_models() const
+{
+    std::set<std::string> models;
+    for (const Preset &p : *this)
+        if (p.is_user()) {
+            const std::string m = p.config.opt_string("printer_model");
+            if (!m.empty()) models.insert(m);
+        }
+    return std::vector<std::string>{models.begin(), models.end()};
+}
+
+int PrinterPresetCollection::rename_user_printer_model(const std::string &old_model, const std::string &new_model)
+{
+    if (old_model.empty() || new_model.empty() || old_model == new_model)
+        return 0;
+    int renamed = 0;
+    for (Preset &preset : *this) {
+        if (!preset.is_user())
+            continue;
+        if (preset.config.opt_string("printer_model") != old_model)
+            continue;
+        preset.config.option<ConfigOptionString>("printer_model", true)->value = new_model;
+        // Persist (write only the diff vs the inherited parent), keeping the preset's name unchanged.
+        const std::string inherits = Preset::inherits(preset.config);
+        Preset *parent = inherits.empty() ? nullptr : this->find_preset(inherits, false, true);
+        preset.file = this->path_for_preset(preset);
+        if (parent) preset.save(&parent->config);
+        else        preset.save(nullptr);
+        ++renamed;
+    }
+    if (renamed > 0)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": renamed printer_model '" << old_model << "' -> '" << new_model << "' on " << renamed << " preset(s).";
+    return renamed;
+}
+
 bool  PrinterPresetCollection::only_default_printers() const
 {
     for (const auto& printer : get_presets()) {

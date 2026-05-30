@@ -60,6 +60,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
+#include "RenamePrinterModelDialog.hpp"
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
 #include "GUI_ObjectList.hpp"
@@ -2973,6 +2974,36 @@ void MainFrame::init_menubar_as_editor()
             []() { return true; }, this);
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
+
+        fileMenu->AppendSeparator();
+        // ORCA #12105 (Phase 5): bulk-rename a user printer model across its nozzle variants
+        // (also the way to tidy auto-generated "<model> - Copy" names from preset migration).
+        append_menu_item(fileMenu, wxID_ANY, _L("Rename Printer Model") + dots,
+            _L("Rename a custom printer model across all of its nozzle variants"),
+            [this](wxCommandEvent&) {
+                auto& printers = wxGetApp().preset_bundle->printers;
+                std::vector<std::string> models = printers.user_printer_models();
+                if (models.empty()) {
+                    MessageDialog dlg(this, _L("There are no custom printer models to rename."),
+                        _L("Rename Printer Model"), wxOK | wxICON_INFORMATION);
+                    dlg.ShowModal();
+                    return;
+                }
+                RenamePrinterModelDialog dlg(this, models);
+                if (dlg.ShowModal() != wxID_OK)
+                    return;
+                const std::string old_model = dlg.get_selected_model();
+                const std::string new_model = dlg.get_new_name();
+                int n = printers.rename_user_printer_model(old_model, new_model);
+                // Resync the edited preset (names are unchanged) and rebuild the preset UI.
+                const std::string cur = printers.get_selected_preset().name;
+                printers.select_preset_by_name(cur, true);
+                update_side_preset_ui();
+                MessageDialog done(this,
+                    wxString::Format(_L("Renamed %d preset(s) to \"%s\"."), n, from_u8(new_model)),
+                    _L("Rename Printer Model"), wxOK | wxICON_INFORMATION);
+                done.ShowModal();
+            }, "", nullptr, [this]() { return true; }, this);
 
         fileMenu->AppendSeparator();
 
