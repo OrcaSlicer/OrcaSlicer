@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality K2 Plus",
+	"model_id": "Creality-K2-Plus",
+	"nozzle_diameter": "0.2;0.4;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "Creality",
+	"bed_model": "creality_k2plus_buildplate_model.stl",
+	"bed_texture": "creality_k2plus_buildplate_texture.svg",
+	"hotend_model": "",
+	"default_materials": "Hyper PLA-CF;Hyper PLA;Hyper PETG;Hyper ABS;Generic TPU;Generic PLA-Silk;Generic PLA-CF;Generic PLA;Generic PETG;Generic PC;Generic ASA;Generic ABS;CR-Silk;CR-PLA;CR-PETG;CR-ABS;ENDER FAST PLA",
+	"default_bed_type": "Textured PEI Plate"
+}
