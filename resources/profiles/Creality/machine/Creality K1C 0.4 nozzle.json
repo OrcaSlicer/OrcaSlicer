@@ -1,6 +1,6 @@
 {
 	"type": "machine",
-	"name": "Creality K1C (0.4 nozzle)",
+	"name": "Creality K1C 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
 	"setting_id": "GM001",
