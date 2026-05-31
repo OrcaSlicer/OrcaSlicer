@@ -1042,6 +1042,9 @@ public:
     */
     std::vector<std::set<int>> get_physical_unprintable_filaments(const std::vector<unsigned int>& used_filaments) const;
 
+    // H2C port: BBL ref: BambuStudio/src/libslic3r/Print.hpp:950
+    bool is_dynamic_group_reorder() const;
+
     std::vector<double> get_extruder_printable_height() const;
     std::vector<Polygons> get_extruder_printable_polygons() const;
     std::vector<Polygons> get_extruder_unprintable_polygons() const;

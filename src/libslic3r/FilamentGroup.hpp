@@ -77,6 +77,9 @@ namespace Slic3r
             std::vector<FilamentGroupUtils::FilamentInfo> filament_info;
             std::vector<std::string> filament_ids;
             std::vector<std::set<int>> unprintable_filaments;
+            // H2C port: volume-type constraints per filament (e.g. O1D high-flow vs standard).
+            // BBL ref: BambuStudio/src/libslic3r/FilamentGroup.hpp:80
+            std::map<int, std::set<NozzleVolumeType>> unprintable_volumes;
         } model_info;
 
         struct GroupInfo {
@@ -85,6 +88,9 @@ namespace Slic3r
             FGMode mode;
             FGStrategy strategy;
             bool ignore_ext_filament;
+            // H2C port: whether the machine has a filament switcher (AMS Lite vs full AMS).
+            // BBL ref: BambuStudio/src/libslic3r/FilamentGroup.hpp:89
+            bool has_filament_switcher = false;
             std::vector<int> filament_volume_map;
         } group_info;
 
@@ -105,6 +111,9 @@ namespace Slic3r
         struct NozzleInfo {
             std::map<int, std::vector<int>> extruder_nozzle_list;
             std::vector<MultiNozzleUtils::NozzleInfo> nozzle_list;
+            // H2C port: current filament loaded in each nozzle slot (nozzle_id -> filament_id).
+            // BBL ref: BambuStudio/src/libslic3r/FilamentGroup.hpp:110
+            std::unordered_map<int, int> nozzle_status;
         } nozzle_info;
     };
 
@@ -187,6 +196,16 @@ namespace Slic3r
     std::vector<int> calc_filament_group_for_manual_multi_nozzle(const std::vector<int>& filament_map_manual,const FilamentGroupContext& ctx);
 
     std::vector<int> calc_filament_group_for_match_multi_nozzle(const FilamentGroupContext& ctx);
+
+    // H2C port: Per-layer result from plan_filament_mapping_and_order_by_combo_ranges.
+    // BBL ref: BambuStudio/src/libslic3r/FilamentGroup.hpp:197-201
+    struct FilamentPlanRes
+    {
+        std::vector<int> fil_order;         // ordered filament IDs for this layer
+        std::vector<int> fil_nozzle_match;  // filament_id -> nozzle_id mapping
+    };
+
+    std::vector<FilamentPlanRes> plan_filament_nozzle_mapping_and_order(const FilamentGroupContext& ctx);
 
     class KMediods2
     {

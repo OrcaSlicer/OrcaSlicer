@@ -1060,6 +1060,17 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     return {};
 }
 
+// H2C port: Check if dynamic group reorder (per-combo-range optimization) should be used.
+// Enabled for multi-nozzle printers in AutoForFlush mode.
+// BBL ref: BambuStudio/src/libslic3r/Print.cpp:1100-1111
+bool Print::is_dynamic_group_reorder() const
+{
+    if (config().filament_map_mode != FilamentMapMode::fmmAutoForFlush ||
+        config().nozzle_diameter.size() <= 1)
+        return false;
+    return true;
+}
+
 FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     const std::vector<std::string>& filament_types,
     const std::vector<int>& nozzle_temperatures,

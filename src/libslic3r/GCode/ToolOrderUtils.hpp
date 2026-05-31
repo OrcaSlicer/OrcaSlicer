@@ -121,12 +121,15 @@ std::vector<unsigned int> get_extruders_order(const std::vector<std::vector<floa
 #endif
 
 
+// H2C port: Added initial_status param for GroupReorder nozzle state tracking.
+// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrderUtils.hpp:216-222
 int reorder_filaments_for_multi_nozzle_extruder(const std::vector<unsigned int>& filament_lists,
                                                 const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result,
                                                 const std::vector<std::vector<unsigned int>>& layer_filaments,
                                                 const std::vector<FlushMatrix>& flush_matrix,
                                                 const std::function<bool(int,std::vector<int>&)> get_custom_seq,
-                                                std::vector<std::vector<unsigned int>> * filament_sequences);
+                                                std::vector<std::vector<unsigned int>> * filament_sequences,
+                                                const MultiNozzleUtils::NozzleStatusRecorder& initial_status = {});
 
 
 std::vector<unsigned int> get_extruders_order(const std::vector<std::vector<float>> &wipe_volumes,

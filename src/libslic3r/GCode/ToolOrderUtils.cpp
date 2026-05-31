@@ -1157,7 +1157,8 @@ namespace Slic3r
         const std::vector<std::vector<unsigned int>>& layer_filaments,
         const std::vector<FlushMatrix>& flush_matrix,
         const std::function<bool(int, std::vector<int>&)> get_custom_seq,
-        std::vector<std::vector<unsigned int>>* filament_sequences)
+        std::vector<std::vector<unsigned int>>* filament_sequences,
+        const MultiNozzleUtils::NozzleStatusRecorder& initial_status)
     {
         std::map<int,std::set<unsigned int>> nozzle_filament_groups;
         std::map<int,std::set<int>> extruder_to_nozzle;
