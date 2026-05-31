@@ -5526,7 +5526,7 @@ void TabPrinter::toggle_options()
         // some options only apply when not using firmware retraction
         vec.resize(0);
         vec = {"retraction_speed", "deretraction_speed",    "retract_before_wipe",
-               "retract_length",   "retract_restart_extra", "wipe",
+               "retract_length",   "retract_restart_extra",
                "wipe_distance"};
         for (auto el : vec)
             //BBS
@@ -5534,20 +5534,25 @@ void TabPrinter::toggle_options()
 
         bool wipe = retraction && m_config->opt_bool("wipe", variant_index);
         toggle_option("retract_before_wipe", wipe, i);
+        float retract_before_wipe = static_cast<ConfigOptionPercents*>(m_config->option("retract_before_wipe"))->values[variant_index];
 
-        if (use_firmware_retraction && wipe) {
+        if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {
             //wxMessageDialog dialog(parent(),
             MessageDialog dialog(parent(),
-                _(L("The Wipe option is not available when using the Firmware Retraction mode.\n"
-                    "\nShall I disable it in order to enable Firmware Retraction?")),
+                _(L("The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
+                    "\nShall I set it to 100% in order to enable Firmware Retraction?")),
                 _(L("Firmware Retraction")), wxICON_WARNING | wxYES | wxNO);
 
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_YES) {
                 auto wipe = static_cast<ConfigOptionBools*>(m_config->option("wipe")->clone());
-                for (size_t w = 0; w < wipe->values.size(); w++)
+                auto retract_before_wipe = static_cast<ConfigOptionPercents*>(m_config->option("retract_before_wipe")->clone());
+                for (size_t w = 0; w < wipe->values.size(); w++) {
                     wipe->values[w] = false;
+                    retract_before_wipe->values[w] = 100.0;
+                }
                 new_conf.set_key_value("wipe", wipe);
+                new_conf.set_key_value("retract_before_wipe", retract_before_wipe);
             }
             else {
                 new_conf.set_key_value("use_firmware_retraction", new ConfigOptionBool(false));
