@@ -4,7 +4,6 @@
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality Ender-5 Max",
-	"printer_structure": "i3",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
 	"bbl_use_printhost": "0",
@@ -87,7 +86,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA @Creality Ender-5 Max 0.8 nozzle"
+		"Creality Hyper PLA @Ender-5Max-all"
 	],
 	"deretraction_speed": "30",
 	"extruder_colour": "#FCE94F",

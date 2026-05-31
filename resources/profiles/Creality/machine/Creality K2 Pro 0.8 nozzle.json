@@ -134,7 +134,7 @@
 	"single_extruder_multi_material": "1",
 	"manual_filament_change": "0",
 	"default_filament_profile": [
-		"Hyper PLA"
+		"Creality Generic PLA @K2-all"
 	],
 	"machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM104 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 E0.8 F300\nG1 X0 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG1 X150 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG92 E0\nG1 Z1 F600",
 	"machine_end_gcode": "{if print_sequence == \"by object\"}\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{max_layer_z+2} F600\n{endif}\nEND_PRINT",

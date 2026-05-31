@@ -36,66 +36,21 @@
 	"machine_LED_light_exist": "1",
 	"machine_end_gcode": "G91 ;Relative positionning \nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z0.2 F2400 ;Retract and raise Z \n \nG1 Z5 ;Raise Z more \nG90 ;Absolute positionning \n \nG1 X395 Y395 F6000 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed \n \nM84 X Y E ;Disable all steppers but Z",
 	"machine_load_filament_time": "11",
-	"machine_max_acceleration_e": [
-		"30000",
-		"30000"
-	],
-	"machine_max_acceleration_extruding": [
-		"50000",
-		"50000"
-	],
-	"machine_max_acceleration_retracting": [
-		"50000",
-		"50000"
-	],
-	"machine_max_acceleration_travel": [
-		"50000",
-		"50000"
-	],
-	"machine_max_acceleration_x": [
-		"50000",
-		"50000"
-	],
-	"machine_max_acceleration_y": [
-		"50000",
-		"50000"
-	],
-	"machine_max_acceleration_z": [
-		"1000",
-		"1000"
-	],
-	"machine_max_jerk_e": [
-		"100",
-		"100"
-	],
-	"machine_max_jerk_x": [
-		"100",
-		"100"
-	],
-	"machine_max_jerk_y": [
-		"100",
-		"100"
-	],
-	"machine_max_jerk_z": [
-		"0.4",
-		"0.4"
-	],
-	"machine_max_speed_e": [
-		"1000",
-		"1000"
-	],
-	"machine_max_speed_x": [
-		"1000",
-		"1000"
-	],
-	"machine_max_speed_y": [
-		"1000",
-		"1000"
-	],
-	"machine_max_speed_z": [
-		"30",
-		"30"
-	],
+	"machine_max_acceleration_e": "30000",
+	"machine_max_acceleration_extruding": "50000",
+	"machine_max_acceleration_retracting": "50000",
+	"machine_max_acceleration_travel": "50000",
+	"machine_max_acceleration_x": "50000",
+	"machine_max_acceleration_y": "50000",
+	"machine_max_acceleration_z": "1000",
+	"machine_max_jerk_e": "100",
+	"machine_max_jerk_x": "100",
+	"machine_max_jerk_y": "100",
+	"machine_max_jerk_z": "0.4",
+	"machine_max_speed_e": "1000",
+	"machine_max_speed_x": "1000",
+	"machine_max_speed_y": "1000",
+	"machine_max_speed_z": "30",
 	"machine_min_extruding_rate": "0,0",
 	"machine_min_travel_rate": "0,0",
 	"machine_pause_gcode": "PAUSE",
@@ -109,12 +64,7 @@
 	"parking_pos_retraction": "0",
 	"preferred_orientation": "0",
 	"prime_tower_position_type": "Middle Upper",
-	"printable_area": [
-		"0x0",
-		"400x0",
-		"400x400",
-		"0x400"
-	],
+	"printable_area": "0x0,400x0,400x400,0x400",
 	"printable_height": "400",
 	"printer_technology": "FFF",
 	"printer_variant": "0.4",
@@ -127,53 +77,34 @@
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",
 	"support_multi_bed_types": "1",
-	"thumbnails": [
-		"96x96",
-		"300x300"
-	],
+	"thumbnails": "96x96,300x300",
 	"thumbnails_format": "PNG",
 	"time_cost": "0",
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA @Creality Ender-5 Max 0.4 nozzle"
+		"Creality Hyper PLA @Ender-5Max-all"
 	],
-	"deretraction_speed": [
-		"50"
-	],
+	"deretraction_speed": "50",
 	"extruder_colour": "#FCE94F",
 	"extruder_offset": "0x0",
-	"max_layer_height": [
-		"0.36"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
+	"max_layer_height": "0.36",
+	"min_layer_height": "0.08",
 	"nozzle_diameter": [
 		"0.4"
 	],
-	"retract_before_wipe": [
-		"100"
-	],
-	"retract_length_toolchange": [
-		"0"
-	],
+	"retract_before_wipe": "100",
+	"retract_length_toolchange": "0",
 	"retract_lift_above": "0",
 	"retract_lift_below": "399",
 	"retract_lift_enforce": "All Surfaces",
 	"retract_restart_extra": "0",
 	"retract_restart_extra_toolchange": "0",
 	"retract_when_changing_layer": "1",
-	"retraction_length": [
-		"0.8"
-	],
-	"retraction_minimum_travel": [
-		"0.5"
-	],
-	"retraction_speed": [
-		"50"
-	],
+	"retraction_length": "0.8",
+	"retraction_minimum_travel": "0.5",
+	"retraction_speed": "50",
 	"wipe": "1",
 	"wipe_distance": "1",
 	"z_hop": "0.4",
