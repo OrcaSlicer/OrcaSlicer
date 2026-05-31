@@ -405,9 +405,15 @@ public:
     ToolChangeResult   finish_block_solid(const WipeTowerBlock &block, int filament_id, bool extrude_fill = true ,bool interface_solid =false);
     void toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinates &cleaning_box, float wipe_length,bool solid_toolchange=false);
     Vec2f              get_rib_offset() const { return m_rib_offset; }
-    bool               is_need_ramming(int filament_id_1, int filament_id_2);
-    bool               is_same_extruder(int filament_id_1, int filament_id_2);
-    bool               is_same_nozzle(int filament_id_1, int filament_id_2);
+    bool               is_need_ramming(int filament_id_1, int filament_id_2, int layer_id = -1);
+    bool               is_same_extruder(int filament_id_1, int filament_id_2, int layer_id = -1);
+    bool               is_same_nozzle(int filament_id_1, int filament_id_2, int layer_id = -1);
+
+    // BBL parity: per-layer nozzle/extruder ID lookup via LayeredNozzleGroupResult.
+    // Ref: BambuStudio WipeTower.hpp:409-410, WipeTower.cpp:5252-5256 (commit 3f2570c)
+    //   Used by format_line_M632 (H-parameter) and format_nozzle_change_line (ON/NN tags).
+    int                get_nozzle_id(int filament_id, int layer_id) const;
+    int                get_extruder_id(int filament_id, int layer_id) const;
 
 private:
 	enum wipe_shape // A fill-in direction

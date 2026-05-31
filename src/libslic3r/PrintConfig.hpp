@@ -1491,7 +1491,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_cooling_moves))
     ((ConfigOptionFloats,              filament_cooling_initial_speed))
     ((ConfigOptionFloats,              filament_minimal_purge_on_wipe_tower))
-    ((ConfigOptionFloatsNullable,      filament_cooling_before_tower))
     ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_dist))
     ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_length))
     ((ConfigOptionFloats,              filament_tower_ironing_area))
@@ -1695,9 +1694,6 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoint,               bed_mesh_max))
     ((ConfigOptionPoint,               bed_mesh_probe_distance))
     ((ConfigOptionFloat,               adaptive_bed_mesh_margin))
-
-    // BBS: H2C filament cooling before tower
-    ((ConfigOptionFloatsNullable,      filament_cooling_before_tower))
 )
 
 // This object is mapped to Perl as Slic3r::Config::Full.

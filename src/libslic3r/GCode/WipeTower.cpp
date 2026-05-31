@@ -1891,20 +1891,19 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
         .set_initial_tool(m_current_tool)
         .set_extrusion_flow(m_extrusion_flow)
         .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        // H2C FIX: Emit structured NozzleChangeStart tag for GCodeProcessor.
+        // H2C FIX: Emit structured NozzleChangeStart tag with ON/NN nozzle IDs.
         // This is the LEGACY code path (nozzle_change(), called from tool_change()).
-        // The ACTIVE path for H2C is ramming() called from tool_change_new() — see below.
-        //
-        // Was: .append("; Nozzle change start\n")  — plain text, invisible to GCodeProcessor
-        // Now: .append("; NOZZLE_CHANGE_START OF0 NF1\n") — structured, parseable tag
-        //
-        // BBL's nozzle_change() uses format_nozzle_change_line() with ON/NN nozzle IDs:
-        //   Ref: BambuStudio WipeTower.cpp:2210-2213, 2228 (commit 3f2570c)
-        //     snprintf(buff, ";%s OF%d NF%d ON%d NN%d\n", tag, old_f, new_f, old_noz, new_noz)
-        //
-        // TODO: Add ON{old_nozzle_id} NN{new_nozzle_id} once get_nozzle_id() is ported.
-        .append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart)
-            + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
+        // The ACTIVE path for H2C is ramming() called from tool_change_new().
+        // Ref: BambuStudio WipeTower.cpp:2210-2213, 2228 (commit 3f2570c)
+        .append([&]() {
+            char buff[64];
+            int old_noz = get_nozzle_id(old_filament_id, m_cur_layer_id);
+            int new_noz = get_nozzle_id(new_filament_id, m_cur_layer_id);
+            snprintf(buff, sizeof(buff), ";%s OF%d NF%d ON%d NN%d\n",
+                     GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart).c_str(),
+                     old_filament_id, new_filament_id, old_noz, new_noz);
+            return std::string(buff);
+        }());
 
     box_coordinates cleaning_box(Vec2f(m_perimeter_width, m_perimeter_width), m_wipe_tower_width - 2 * m_perimeter_width,
                                  (new_filament_id != (unsigned int) (-1) ? wipe_depth + m_depth_traversed - m_perimeter_width : m_wipe_tower_depth - m_perimeter_width));
@@ -1980,10 +1979,17 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
         }
     }
 
-    // H2C FIX: Matching NozzleChangeEnd tag for nozzle_change() legacy path.
+    // H2C FIX: Matching NozzleChangeEnd tag with ON/NN nozzle IDs.
     // Ref: BambuStudio WipeTower.cpp:2306 (commit 3f2570c)
-    writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd)
-        + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
+    {
+        char buff[64];
+        int old_noz = get_nozzle_id(old_filament_id, m_cur_layer_id);
+        int new_noz = get_nozzle_id(new_filament_id, m_cur_layer_id);
+        snprintf(buff, sizeof(buff), ";%s OF%d NF%d ON%d NN%d\n",
+                 GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd).c_str(),
+                 old_filament_id, new_filament_id, old_noz, new_noz);
+        writer.append(std::string(buff));
+    }
 
     result.start_pos = writer.start_pos_rotated();
     result.end_pos   = writer.pos();
@@ -2511,23 +2517,23 @@ WipeTower::ToolChangeResult WipeTower::finish_layer(bool extrude_perimeter, bool
 // Multi-nozzle printers (H2C dual extruder) get the result wired in
 // Print::_make_wipe_tower; the null branch is purely defensive there.
 
-bool WipeTower::is_need_ramming(int filament_id_1, int filament_id_2)
+bool WipeTower::is_need_ramming(int filament_id_1, int filament_id_2, int layer_id)
 {
     if (!m_multi_nozzle_group_result) return false;
-    return !m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2);
+    return !m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
     //return !is_in_same_extruder(filament_id_1, filament_id_2);
 }
 
-bool WipeTower::is_same_extruder(int filament_id_1, int filament_id_2)
+bool WipeTower::is_same_extruder(int filament_id_1, int filament_id_2, int layer_id)
 {
     if (!m_multi_nozzle_group_result) return true;
-    return m_multi_nozzle_group_result->are_filaments_same_extruder(filament_id_1, filament_id_2);
+    return m_multi_nozzle_group_result->are_filaments_same_extruder(filament_id_1, filament_id_2, layer_id);
 }
 
-bool WipeTower::is_same_nozzle(int filament_id_1, int filament_id_2)
+bool WipeTower::is_same_nozzle(int filament_id_1, int filament_id_2, int layer_id)
 {
     if (!m_multi_nozzle_group_result) return true;
-    return m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2);
+    return m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
 }
 
 // Appends a toolchange into m_plan and calculates neccessary depth of the corresponding box
@@ -2537,7 +2543,7 @@ void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned in
 {
 	assert(m_plan.empty() || m_plan.back().z <= z_par + WT_EPSILON);	// refuses to add a layer below the last one
     // H2C TODO
-    float wipe_volume = is_same_extruder(old_tool,new_tool)&&!is_same_nozzle(old_tool, new_tool) ? wipe_volume_nc : wipe_volume_ec;
+    float wipe_volume = is_same_extruder(old_tool,new_tool,m_cur_layer_id)&&!is_same_nozzle(old_tool, new_tool,m_cur_layer_id) ? wipe_volume_nc : wipe_volume_ec;
 	if (m_plan.empty() || m_plan.back().z + WT_EPSILON < z_par) // if we moved to a new layer, we'll add it to m_plan first
 		m_plan.push_back(WipeTowerInfo(z_par, layer_height_par));
 
@@ -2818,7 +2824,7 @@ void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
         if (!cur_block_depth.count(m_filpar[new_filament].category))
             cur_block_depth[m_filpar[new_filament].category] = block->start_depth;
         process_depth = cur_block_depth[m_filpar[new_filament].category];
-        if (is_need_ramming(new_filament,old_filament)) {
+        if (is_need_ramming(new_filament,old_filament,m_cur_layer_id)) {
             if (m_filament_categories[new_filament] == m_filament_categories[old_filament])
                 process_depth += nozzle_change_depth;
             else {
@@ -2870,7 +2876,8 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
         // dual-nozzle "different nozzle, same extruder" edge case if the gate is
         // ever loosened to match BBL's is_need_ramming.
         const bool hotend_change = is_same_extruder(static_cast<int>(m_current_tool),
-                                                    static_cast<int>(new_tool));
+                                                    static_cast<int>(new_tool),
+                                                    static_cast<int>(m_cur_layer_id));
         m_nozzle_change_result = ramming(static_cast<int>(m_current_tool),
                                          static_cast<int>(new_tool),
                                          solid_nozzlechange,
@@ -3040,25 +3047,33 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
     auto format_line_M106 = []() { return std::string{"M106 S255\n"};};
     auto format_line_M633 = []() { return std::string{"M633\n"};};
 
-    // M632 = firmware "prepare nozzle switch" command.
+    // Fix 4: M632 with H-parameter — tells firmware WHICH physical nozzle to activate.
+    // Ref: BambuStudio WipeTower.cpp:3357-3363 (commit 3f2570c)
     //   S<filament_id>  — destination filament slot
+    //   H<nozzle_id>    — target nozzle (only when dynamic nozzle map is active)
     //   M N             — flags (Material, Nozzle) for firmware routing
-    //
-    // TODO (Fix 4): Port nozzle_id H-parameter from BBL.
-    //   BBL format (BambuStudio WipeTower.cpp:3357-3363, commit 3f2570c):
-    //     auto format_line_M632 = [](int filament_id, int nozzle_id) {
-    //         std::string buffer = "M632 S" + std::to_string(filament_id);
-    //         if (nozzle_id >= 0)  buffer += " H" + std::to_string(nozzle_id);
-    //         buffer += " M N\n";
-    //         return buffer;
-    //     };
-    //
-    //   The H-parameter tells firmware WHICH physical nozzle to activate.
-    //   Without it, firmware falls back to its own nozzle routing table.
-    //   Requires: get_nozzle_id(filament_id, layer_id) + dynamic nozzle map.
-    auto format_line_M632 = [](int filament_id) {
-        std::string buffer = "M632 S" + std::to_string(filament_id) + " M N" + "\n";
+    auto format_line_M632 = [](int filament_id, int nozzle_id) {
+        std::string buffer = "M632 S" + std::to_string(filament_id);
+        if (nozzle_id >= 0)
+            buffer += " H" + std::to_string(nozzle_id);
+        buffer += " M N\n";
         return buffer;
+    };
+
+    // Fix 5: Structured NozzleChange tags with ON/NN nozzle IDs.
+    // Ref: BambuStudio WipeTower.cpp:3377-3383 (commit 3f2570c)
+    //   Format: "; NOZZLE_CHANGE_START OF<old_f> NF<new_f> ON<old_noz> NN<new_noz>"
+    //   ON/NN are used by GCodeProcessor for ExtruderUsageBlocks and by
+    //   PreCoolingInjector for temperature pre-scheduling.
+    auto format_nozzle_change_line = [this](bool start, int old_filament_id, int new_filament_id) -> std::string {
+        char        buff[64];
+        std::string tag = start ? GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart)
+                                : GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd);
+        int         old_nozzle_id = get_nozzle_id(old_filament_id, m_cur_layer_id);
+        int         new_nozzle_id = get_nozzle_id(new_filament_id, m_cur_layer_id);
+        snprintf(buff, sizeof(buff), ";%s OF%d NF%d ON%d NN%d\n",
+                 tag.c_str(), old_filament_id, new_filament_id, old_nozzle_id, new_nozzle_id);
+        return std::string(buff);
     };
 
     int   nozzle_change_line_count = 0;
@@ -3087,54 +3102,29 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         .set_z(m_z_pos)
         .set_initial_tool(m_current_tool)
         .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        // H2C FIX (CRITICAL): Emit NozzleChangeStart tag in ramming().
-        // THIS IS THE ACTIVE CODE PATH for H2C multi-nozzle printers:
-        //   generate_wipe_tower_layers() → tool_change_new() → ramming() → HERE
-        //
-        // Was: .append("; Nozzle change start\n")  — plain text comment, invisible to GCodeProcessor
-        //   GCodeProcessor could NOT parse this → firmware saw regular tool change → full flush
-        //
-        // Now: .append("; NOZZLE_CHANGE_START OF0 NF1\n")  — structured GCodeProcessor tag
-        //   GCodeProcessor parses OF/NF → builds ExtruderUsageBlock → firmware does nozzle switch
-        //
-        // BBL uses format_nozzle_change_line() lambda with additional ON/NN nozzle IDs:
-        //   Ref: BambuStudio WipeTower.cpp:3377-3383 (commit 3f2570c):
-        //     auto format_nozzle_change_line = [this](bool start, int old_f, int new_f) {
-        //         int old_noz = get_nozzle_id(old_f, m_cur_layer_id);
-        //         int new_noz = get_nozzle_id(new_f, m_cur_layer_id);
-        //         snprintf(buff, ";%s OF%d NF%d ON%d NN%d\n", tag, old_f, new_f, old_noz, new_noz);
-        //     };
-        //   Ref: BambuStudio WipeTower.cpp:3409 — emitted at nozzle change preamble
-        //
-        // TODO (Fix 5): Port ON/NN nozzle IDs:
-        //   Requires get_nozzle_id(filament_id, layer_id) which depends on
-        //   m_multi_nozzle_group_result->is_support_dynamic_nozzle_map() (Fix 8).
-        //   Without ON/NN, PreCoolingInjector (Fix 6) cannot pre-schedule temperatures.
-        //   Firmware still works — it uses OF/NF for the nozzle switch decision.
-        .append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart)
-            + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
+        // H2C FIX: Emit structured NozzleChangeStart tag with OF/NF/ON/NN.
+        // Ref: BambuStudio WipeTower.cpp:3409 (commit 3f2570c)
+        //   THIS IS THE ACTIVE CODE PATH for H2C multi-nozzle printers.
+        //   GCodeProcessor parses OF/NF/ON/NN → builds ExtruderUsageBlocks.
+        .append(format_nozzle_change_line(true, old_filament_id, new_filament_id));
 
     // Nozzle-change firmware sequence (only when switching nozzle, NOT extruder):
-    //   M632 S<filament> [H<nozzle>] M N  — prepare nozzle switch
+    //   M632 S<filament> H<nozzle> M N  — prepare nozzle switch
     //   M104 S<precool_temp> T<extruder>  — pre-cool current hotend (if configured)
     //   M106 S255                         — fan 100% to assist cooling
     //   M633                              — commit nozzle switch to firmware
-    //
-    // BBL sequence (BambuStudio WipeTower.cpp:3411-3421, commit 3f2570c):
-    //   writer.append(format_line_M632(new_filament_id, new_nozzle_id));  ← with H-param
-    //   if (m_filpar[tool].precool_target_temp.second != 0) {
-    //       writer.format_line_M104(..., get_extruder_id(tool, m_cur_layer_id))
-    //             .append(format_line_M106());
-    //   }
-    //   writer.append(format_line_M633());
-    //
-    // Our version: M632 without H-param (see TODO Fix 4 above).
-    // precool_target_temp.second = nozzle-change pre-cool temperature (vs .first = extruder-change).
+    // Ref: BambuStudio WipeTower.cpp:3411-3421 (commit 3f2570c)
     if (!extruder_change)
     {
-        writer.append(format_line_M632(new_filament_id));
+        // Fix 4: resolve nozzle_id for H-parameter via dynamic nozzle map.
+        // When dynamic mapping is active, firmware uses H to select the physical nozzle.
+        // When static, pass -1 → M632 omits H, firmware uses its own routing table.
+        int new_nozzle_id = m_multi_nozzle_group_result->is_support_dynamic_nozzle_map()
+                                ? get_nozzle_id(new_filament_id, m_cur_layer_id) : -1;
+        writer.append(format_line_M632(new_filament_id, new_nozzle_id));
         if (m_filpar[m_current_tool].precool_target_temp.second != 0) {
-            writer.append(format_line_M104(m_filpar[m_current_tool].precool_target_temp.second, m_filament_map[m_current_tool] - 1))
+            writer.append(format_line_M104(m_filpar[m_current_tool].precool_target_temp.second,
+                                           get_extruder_id(m_current_tool, m_cur_layer_id)))
                 .append(format_line_M106());
         }
         writer.append(format_line_M633());
@@ -3221,19 +3211,9 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         }
     }
 
-    // H2C FIX (CRITICAL): Matching NozzleChangeEnd tag — active code path.
-    // Start/End pair delimits the nozzle-change block in the gcode stream for:
-    //   1. GCodeProcessor builds ExtruderUsageBlocks (per-extruder gcode ranges)
-    //   2. Statistics: total_nozzle_changes vs total_filament_changes
-    //   3. BBL's PreCoolingInjector uses End markers as injection points (Fix 6, not ported)
-    //
-    // BBL (BambuStudio WipeTower.cpp:3527, commit 3f2570c):
-    //   writer.append(format_nozzle_change_line(false, old_filament_id, new_filament_id));
-    //   → emits "; NOZZLE_CHANGE_END OF0 NF1 ON0 NN1\n"
-    //
-    // Ours: same but without ON/NN (see TODO Fix 5 at NozzleChangeStart).
-    writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd)
-        + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
+    // H2C FIX: Matching NozzleChangeEnd tag with ON/NN nozzle IDs.
+    // Ref: BambuStudio WipeTower.cpp:3527 (commit 3f2570c)
+    writer.append(format_nozzle_change_line(false, old_filament_id, new_filament_id));
 
     result.start_pos = writer.start_pos_rotated();
     result.origin_start_pos = initial_position;
@@ -3868,7 +3848,7 @@ void WipeTower::generate_wipe_tower_blocks()
     m_cur_layer_id = 0;
     for (auto& info : m_plan) {
         for (const WipeTowerInfo::ToolChange &tool_change : info.tool_changes) {
-            if (is_need_ramming(tool_change.old_tool, tool_change.new_tool)) {
+            if (is_need_ramming(tool_change.old_tool, tool_change.new_tool, static_cast<int>(m_cur_layer_id))) {
                 int filament_adhesiveness_category = get_filament_category(tool_change.new_tool);
                 add_depth_to_block(tool_change.new_tool, filament_adhesiveness_category, tool_change.required_depth);
             }
@@ -4718,5 +4698,14 @@ bool WipeTower::need_thick_bridge_flow(float pos_y) const {
 }
 
 
+// BBL parity: per-layer nozzle/extruder ID lookup via LayeredNozzleGroupResult.
+// Ref: BambuStudio WipeTower.cpp:5252-5256 (commit 3f2570c)
+int WipeTower::get_nozzle_id(int filament_id, int layer_id) const {
+    return m_multi_nozzle_group_result->get_nozzle_id(filament_id, layer_id);
+}
+
+int WipeTower::get_extruder_id(int filament_id, int layer_id) const {
+    return m_multi_nozzle_group_result->get_extruder_id(filament_id, layer_id);
+}
 
 } // namespace Slic3r

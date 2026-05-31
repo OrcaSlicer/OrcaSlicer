@@ -1,6 +1,3 @@
-// H2C TODO
-//const std::vector<int>& extruder_max_nozzle_count;
-            // const std::vector<double>& filament_cooling_before_tower;
 #ifndef slic3r_GCodeProcessor_hpp_
 #define slic3r_GCodeProcessor_hpp_
 
@@ -9,6 +6,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Extruder.hpp"
 
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include <cstdint>
@@ -328,6 +326,56 @@ class Print;
         void  unlock() const { result_mutex.unlock(); }
     };
 
+    // BBL parity: ExtruderPreHeating data structures for PreCoolingInjector.
+    // Ref: BambuStudio GCodeProcessor.hpp:359-421 (commit 3f2570c)
+    namespace ExtruderPreHeating
+    {
+        struct FilamentUsageBlock
+        {
+            int filament_id;
+            int extruder_id;
+            int nozzle_id;
+            unsigned int lower_gcode_id;
+            unsigned int upper_gcode_id;  // [lower_gcode_id, upper_gcode_id) uses current filament
+            FilamentUsageBlock(int filament_id_, int extruder_id_, int nozzle_id_, unsigned int lower_gcode_id_, unsigned int upper_gcode_id_)
+                : filament_id(filament_id_), extruder_id(extruder_id_), nozzle_id(nozzle_id_), lower_gcode_id(lower_gcode_id_), upper_gcode_id(upper_gcode_id_) {}
+        };
+
+        struct ExtruderUsageBlcok
+        {
+            int extruder_id = -1;
+            unsigned int start_id = -1;
+            unsigned int end_id = -1;
+            int start_filament = -1;
+            int end_filament = -1;
+            int start_nozzle_id = -1;
+            int end_nozzle_id = -1;
+            unsigned int post_extrusion_start_id = -1;
+            unsigned int post_extrusion_end_id = -1;
+            bool         ignore_cooling_before_tower = false;
+
+            void initialize_step_1(int extruder_id_, int start_id_, int start_filament_, int start_nozzle_id_) {
+                extruder_id = extruder_id_;
+                start_id = start_id_;
+                start_filament = start_filament_;
+                start_nozzle_id = start_nozzle_id_;
+            };
+            void initialize_step_2(int post_extrusion_start_id_) {
+                post_extrusion_start_id = post_extrusion_start_id_;
+            }
+            void initialize_step_3(int end_id_, int end_filament_, int post_extrusion_end_id_, int end_nozzle_id_) {
+                end_id = end_id_;
+                end_filament = end_filament_;
+                post_extrusion_end_id = post_extrusion_end_id_;
+                end_nozzle_id = end_nozzle_id_;
+            }
+            void reset() {
+                *this = ExtruderUsageBlcok();
+            }
+            ExtruderUsageBlcok() = default;
+        };
+    }
+
 
     class CommandProcessor {
     public:
@@ -632,6 +680,21 @@ class Print;
 
         struct TimeProcessor
         {
+            // BBL parity: types of lines that can be injected into the gcode during post-processing.
+            // Ref: BambuStudio GCodeProcessor.hpp:815-826 (commit 3f2570c)
+            enum InsertLineType
+            {
+                PlaceholderReplace,
+                TimePredict,
+                FilamentChangePredict,
+                ExtruderChangePredict,
+                PreCooling,
+                PreHeating,
+            };
+
+            // Map from gcode line id → list of (content, type) pairs to inject at that line.
+            using InsertedLinesMap = std::map<unsigned int, std::vector<std::pair<std::string, InsertLineType>>>;
+
             struct Planner
             {
                 // Size of the firmware planner queue. The old 8-bit Marlins usually just managed 16 trapezoidal blocks.
@@ -660,6 +723,140 @@ class Print;
 
             void reset();
         };
+
+        // BBL parity: PreCoolingInjector — pre-schedules M104 cooling/heating commands
+        // during post-processing to minimize wait time at nozzle/extruder switches.
+        // Ref: BambuStudio GCodeProcessor.hpp:876-976 (commit 3f2570c)
+        class PreCoolingInjector {
+        public:
+            struct ExtruderFreeBlock {
+                unsigned int free_lower_gcode_id;
+                unsigned int free_upper_gcode_id;
+                unsigned int partial_free_lower_id; // stores the range of extrusion in wipe tower
+                unsigned int partial_free_upper_id;
+                int last_filament_id;
+                int next_filament_id;
+                int last_nozzle_id;
+                int next_nozzle_id;
+                int extruder_id;
+                bool ignore_cooling_before_tower = false;
+            };
+
+            void process_pre_cooling_and_heating(TimeProcessor::InsertedLinesMap& inserted_operation_lines);
+            void build_extruder_free_blocks(const std::vector<ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks,
+                                            const std::vector<ExtruderPreHeating::ExtruderUsageBlcok>& extruder_usage_blocks);
+
+            PreCoolingInjector(
+                const std::vector<GCodeProcessorResult::MoveVertex>& moves_,
+                const std::vector<std::string>& filament_types_,
+                const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result_,
+                const std::vector<int>& filament_nozzle_temps_,
+                const std::vector<int>& filament_nozzle_temps_initial_layer_,
+                const std::vector<int>& physical_extruder_map_,
+                int valid_machine_id_,
+                float inject_time_threshold_,
+                bool handle_hotend_as_extruder_,
+                bool has_filament_switcher_,
+                const std::vector<int>& pre_cooling_temp_,
+                const std::vector<double>& cooling_rate_,
+                const std::vector<double>& heating_rate_,
+                const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks_,
+                const std::vector<int>& extruder_max_nozzle_count_,
+                const std::vector<double>& filament_preheat_temperature_delta_,
+                const std::vector<double>& filament_max_temperature_drop_when_ec_,
+                unsigned int machine_start_gcode_end_id_,
+                unsigned int machine_end_gcode_start_id_,
+                const std::vector<ExtruderType>& extruder_types_,
+                const std::vector<double>& nozzle_diameter_
+            ) :
+                moves(moves_),
+                filament_types(filament_types_),
+                nozzle_group_result(nozzle_group_result_),
+                filament_nozzle_temps(filament_nozzle_temps_),
+                filament_nozzle_temps_initial_layer(filament_nozzle_temps_initial_layer_),
+                physical_extruder_map(physical_extruder_map_),
+                valid_machine_id(valid_machine_id_),
+                inject_time_threshold(inject_time_threshold_),
+                handle_hotend_as_extruder(handle_hotend_as_extruder_),
+                has_filament_switcher(has_filament_switcher_),
+                filament_pre_cooling_temps(pre_cooling_temp_),
+                cooling_rate(cooling_rate_),
+                heating_rate(heating_rate_),
+                skippable_blocks(skippable_blocks_),
+                extruder_max_nozzle_count(extruder_max_nozzle_count_),
+                filament_preheat_temperature_delta(filament_preheat_temperature_delta_),
+                filament_max_temperature_drop_when_ec(filament_max_temperature_drop_when_ec_),
+                machine_start_gcode_end_id(machine_start_gcode_end_id_),
+                machine_end_gcode_start_id(machine_end_gcode_start_id_),
+                extruder_types(extruder_types_),
+                nozzle_diameter(nozzle_diameter_)
+            {
+            }
+
+        private:
+            std::vector<ExtruderFreeBlock> m_extruder_free_blocks;
+            const std::vector<GCodeProcessorResult::MoveVertex>& moves;
+            const std::vector<std::string>& filament_types;
+            const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result;
+            const std::vector<int>& filament_nozzle_temps;
+            const std::vector<int>& filament_nozzle_temps_initial_layer;
+            const std::vector<int>& physical_extruder_map;
+            const int valid_machine_id;
+            const float inject_time_threshold;
+            const bool handle_hotend_as_extruder;
+            const bool has_filament_switcher;
+            const std::vector<double>& cooling_rate;
+            const std::vector<double>& heating_rate;
+            const std::vector<int>& filament_pre_cooling_temps;
+            const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks;
+            const std::vector<int>& extruder_max_nozzle_count;
+            const std::vector<double>& filament_preheat_temperature_delta;
+            const std::vector<double>& filament_max_temperature_drop_when_ec;
+            const unsigned int machine_start_gcode_end_id;
+            const unsigned int machine_end_gcode_start_id;
+            const std::vector<ExtruderType>& extruder_types;
+            const std::vector<double>& nozzle_diameter;
+
+            void inject_cooling_heating_command(
+                TimeProcessor::InsertedLinesMap& inserted_operation_lines,
+                const ExtruderFreeBlock& free_block,
+                float curr_temp,
+                float target_temp,
+                bool pre_cooling,
+                bool pre_heating
+            );
+
+            void build_by_filament_blocks(const std::vector<ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks);
+            void build_by_extruder_blocks(const std::vector<ExtruderPreHeating::ExtruderUsageBlcok>& extruder_usage_blocks);
+        };
+
+        // BBL parity: Context for post-processing with temperature pre-scheduling.
+        // Ref: BambuStudio GCodeProcessor.hpp:746-810 (commit 3f2570c)
+        struct TimeProcessContext
+        {
+            UsedFilaments used_filaments;
+            std::vector<Extruder> filament_lists;
+            std::vector<std::string> filament_types;
+            std::vector<int> filament_nozzle_temp;
+            std::vector<int> physical_extruder_map;
+
+            MultiNozzleUtils::LayeredNozzleGroupResult nozzle_group_result;
+
+            size_t total_layer_num;
+            std::vector<double> cooling_rate{ 2.f };
+            std::vector<double> heating_rate{ 2.f };
+            std::vector<double> filament_preheat_temperature_delta{0.f};
+            std::vector<double> filament_max_temperature_drop_when_ec{0.f};
+            std::vector<int> pre_cooling_temp{ 0 };
+            float inject_time_threshold{ 30.f };
+            bool enable_pre_heating{ false };
+            bool handle_hotend_as_extruder{ false };
+            bool has_filament_switcher{ false };
+            std::vector<int> extruder_max_nozzle_count{ 1 };
+            std::vector<ExtruderType> extruder_types;
+            std::vector<double> nozzle_diameter;
+        };
+
     public:
         class SeamsDetector
         {
@@ -962,13 +1159,24 @@ class Print;
         bool process_kissslicer_tags(const std::string_view comment);
 
         bool detect_producer(const std::string_view comment);
-        // H2C TODO (6 lines)
-        // const std::vector<int>& filament_nozzle_temps_initial_layer;
 
         std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> m_nozzle_group_result;
         MultiNozzleUtils::NozzleStatusRecorder m_nozzle_status_recorder;
         std::vector<int> m_extruder_max_nozzle_count;
         std::vector<double> m_filament_cooling_before_tower;
+
+        // H2C PreCooling config members — read from PrintConfig in apply_config()
+        bool m_enable_pre_heating{ false };
+        std::vector<double> m_cooling_rate;
+        std::vector<double> m_heating_rate;
+        std::vector<int> m_pre_cooling_temp;
+        std::vector<double> m_filament_preheat_temperature_delta;
+        std::vector<double> m_filament_max_temperature_drop_when_ec;
+        std::vector<std::string> m_filament_types;
+        std::vector<ExtruderType> m_extruder_types;
+        std::vector<double> m_nozzle_diameter;
+        bool m_has_filament_switcher{ false };
+        float m_inject_time_threshold{ 30.f };
         
         float get_hotend_change_time();
 

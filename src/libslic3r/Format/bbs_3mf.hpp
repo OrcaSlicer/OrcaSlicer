@@ -66,7 +66,7 @@ struct PlateData
         objects_and_instances.clear();
     }
 
-    void parse_filament_info(GCodeProcessorResult *result);
+    void parse_filament_info(GCodeProcessorResult *result, const DynamicPrintConfig *config = nullptr);
 
     int plate_index;
     std::vector<std::pair<int, int>> objects_and_instances;

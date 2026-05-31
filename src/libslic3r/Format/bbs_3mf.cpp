@@ -676,7 +676,7 @@ bool bbs_is_valid_object_type(const std::string& type)
 
 namespace Slic3r {
 
-void PlateData::parse_filament_info(GCodeProcessorResult *result)
+void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicPrintConfig *config)
 {
     if (!result) return;
 

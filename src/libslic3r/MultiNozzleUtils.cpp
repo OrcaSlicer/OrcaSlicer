@@ -78,7 +78,7 @@ std::optional<MultiNozzleGroupResult> MultiNozzleGroupResult::init_from_slice_fi
 
     // used filaments
     for (size_t idx = 0; idx < filament_info.size(); ++idx) {
-        int         nozzle_idx   = filament_info[idx].group_id;
+        int         nozzle_idx   = filament_info[idx].group_id.empty() ? -1 : filament_info[idx].group_id.front();
         int         filament_idx = filament_info[idx].id;
         int         extruder_idx = filament_map[filament_idx] - 1; // 0 based idx
         double      diameter     = filament_info[idx].nozzle_diameter;
@@ -508,10 +508,9 @@ std::vector<NozzleInfo> load_nozzle_infos_with_compatibility(
 )
 {
     bool has_nozzle_info = !nozzle_infos.empty();
-    // Orca's FilamentInfo::group_id is a single int (BBL uses vector<int>). Treat any non-negative
-    // value as a valid single-nozzle assignment.
+    // FilamentInfo::group_id is std::vector<int> — treat as valid if non-empty and first element >= 0.
     bool has_valid_filament_info = !filament_infos.empty() && std::all_of(filament_infos.begin(), filament_infos.end(), [](const FilamentInfo& info){
-        return info.group_id >= 0;
+        return !info.group_id.empty() && info.group_id.front() >= 0;
     });
 
     if (!has_nozzle_info && !has_valid_filament_info) {
@@ -539,7 +538,7 @@ std::vector<NozzleInfo> load_nozzle_infos_with_compatibility(
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": building nozzle list from filament info";
         std::map<int, NozzleInfo> nozzle_map;
         for (auto& filament : filament_infos) {
-            int group_id = filament.group_id;
+            int group_id = filament.group_id.empty() ? -1 : filament.group_id.front();
             if (group_id < 0 || nozzle_map.find(group_id) != nozzle_map.end()) {
                 continue;
             }
@@ -971,11 +970,12 @@ std::optional<StaticNozzleGroupResult> StaticNozzleGroupResult::create(
 
     for (auto filament_info : filaments_info) {
         auto fil_id = filament_info.id;
-        // Orca's FilamentInfo::group_id is a single int (BBL uses vector<int>). Wrap as a
-        // single-element set when valid.
+        // FilamentInfo::group_id is std::vector<int> — insert all valid (>= 0) nozzle ids.
         std::set<int> nozzles_set;
-        if (filament_info.group_id >= 0)
-            nozzles_set.insert(filament_info.group_id);
+        for (int gid : filament_info.group_id) {
+            if (gid >= 0)
+                nozzles_set.insert(gid);
+        }
         filament_to_nozzles[fil_id] = nozzles_set;
     }
 

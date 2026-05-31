@@ -553,7 +553,6 @@ struct ExtruderGroup : StaticGroup
     int      GetIndex() const { return m_index; }
 
     void update_ams();
-    void SetTitle(const wxString& title);
 
     void sync_ams(MachineObject const *obj, std::vector<DevAms *> const &ams4, std::vector<DevAms *> const &ams1);
 
@@ -1362,15 +1361,6 @@ void ExtruderGroup::sync_ams(MachineObject const *obj, std::vector<DevAms *> con
         update_ams();
 }
 
-void ExtruderGroup::SetTitle(const wxString& title)
-{
-    m_label = title;
-    int tW, tH, descent, externalLeading;
-    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &tW, &tH, &descent, &externalLeading, &m_font);
-    m_label_height = tH - externalLeading;
-    m_label_width  = tW;
-    Refresh();
-}
 
 bool Sidebar::priv::switch_diameter(bool single)
 {

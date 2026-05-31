@@ -3717,9 +3717,10 @@ std::vector<unsigned int> PrintObject::object_extruders() const
     return extruders;
 }
 
-bool PrintObject::update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile)
+bool PrintObject::update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile, bool &out_nozzle_range_reset)
 {
     bool updated = false;
+    out_nozzle_range_reset = false;
 
     if (layer_height_profile.empty()) {
         // use the constructor because the assignement is crashing on ASAN OsX

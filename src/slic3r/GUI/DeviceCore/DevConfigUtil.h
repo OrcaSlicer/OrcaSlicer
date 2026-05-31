@@ -46,18 +46,6 @@ public:
     ~dePrinterConfigFactory() = default;
 };
 
-enum class ToolHeadComponent {
-    Extruder,
-    Nozzle,
-    Hotend
-};
-
-enum class ToolHeadNameCase {
-    TitleCase = 0,
-    SentenceCase = 1,
-    LowerCase = 2
-};
-
 class DevPrinterConfigUtil
 {
 public:
@@ -101,14 +89,6 @@ public:
 
     /*extruder*/
     static bool get_printer_can_set_nozzle(std::string type_str) { return get_value_from_config<bool>(type_str, "enable_set_nozzle_info"); }// can set nozzle from studio
-    static std::string get_toolhead_display_name(
-        const std::string& type_str,
-        int ext_id,
-        ToolHeadComponent component,
-        ToolHeadNameCase name_case = ToolHeadNameCase::TitleCase,
-        bool short_name = false);
-
-    /*toolhead display names (extruder / nozzle / hotend)*/
     static std::string get_toolhead_display_name(
         const std::string& type_str,
         int ext_id,
