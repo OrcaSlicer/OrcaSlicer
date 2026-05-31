@@ -12,6 +12,7 @@
 #include <boost/chrono/duration.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
+#include <mutex>
 #include <wx/event.h>
 
 // Localization headers: include libslic3r version first so everything in this file
@@ -4812,6 +4813,8 @@ void GUI_App::handle_http_error(unsigned int status, std::string body, const std
     wxQueueEvent(this, evt);
 }
 
+static std::mutex conflict_ids_mutex;
+
 void GUI_App::on_http_error(wxCommandEvent &evt)
 {
     int status = evt.GetInt();
@@ -4887,32 +4890,62 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         return;
     }
 
-    static bool m_is_error_shown = false;
+    if (status == 409 && provider == ORCA_CLOUD_PROVIDER) {
+        BOOST_LOG_TRIVIAL(info) << "Http error 409.";
+        // Parse the conflict body to extract the error code and server profile id
+        int conflict_code = 0;
+        std::string conflict_setting_id;
+        try {
+            json conflict_body = json::parse(body_str);
+            if (conflict_body.contains("code"))
+                conflict_code = conflict_body["code"].get<int>();
+            if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")
+                && conflict_body["server_profile"]["id"].is_string())
+                conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
+        }
+        auto* plater = wxGetApp().plater();
+        if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
+            std::string text;
+            if (conflict_code == -1) {
+                text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+            } else {
+                text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+            }
+            plater->get_notification_manager()->push_orca_sync_conflict_notification(
+                text,
+                [this](wxEvtHandler*) {
+                    // Runs on the GUI thread (on_http_error is a queued wx event); restart_sync_user_preset()
+                    // already joins the old sync thread off the UI thread, so no extra thread is needed here.
+                    if (is_closing() || !m_agent || !preset_bundle)
+                        return false;
+                    BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
+                    restart_sync_user_preset();
+                    return true;
+                },
+                [this, conflict_setting_id](wxEvtHandler*) {
+                    if (mainframe == nullptr)
+                        return false;
+                    MessageDialog
+                        dlg(mainframe,
+                            _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
+                            _L("Resolve cloud sync conflict"), wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                    if (dlg.ShowModal() != wxID_YES)
+                        return false;
+
+                    force_push_conflicting_preset(conflict_setting_id);
+                    return true;
+                });
+        }
+        return;
+    }
+
     // Show general error notification for Orca Cloud API failures (not Bambu)
     if (provider == ORCA_CLOUD_PROVIDER && status >= 400 && code != HttpErrorVersionLimited) {
-        wxString msg;
-        if (!error.empty()) {
-            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u): %s"), status, wxString::FromUTF8(error));
-        } else {
-            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u)"), status);
-        }
-        
-        if (app_config->get_bool("developer_mode")) {
-            // Use notification manager if ImGui is ready; fall back to wxMessageBox on Linux
-            // where ImGui may not be initialized until the user switches to the Prepare tab.
-            if (wxGetApp().plater() != nullptr && wxGetApp().imgui()->display_initialized()) {
-                wxGetApp()
-                    .plater()
-                    ->get_notification_manager()
-                    ->push_notification(NotificationType::PlaterError, NotificationManager::NotificationLevel::WarningNotificationLevel,
-                                        msg.ToUTF8().data());
-            }
-        }
-
-        if (!m_is_error_shown) {
-            m_is_error_shown = true;
-            wxMessageBox(msg, _L("Cloud Error"), wxOK | wxICON_ERROR, wxGetApp().mainframe);
-        }
+        BOOST_LOG_TRIVIAL(warning) << "API call to OrcaCloud failed with status=" << status;
     }
 }
 
@@ -6181,13 +6214,14 @@ void GUI_App::load_pending_vendors()
     need_add_filaments.clear();
 }
 
-void GUI_App::sync_preset(Preset* preset)
+void GUI_App::sync_preset(Preset* preset, bool force)
 {
     int result = -1;
     unsigned int http_code = 200;
     std::string updated_info;
     long long update_time = 0;
     // only sync user's preset
+    if (!m_agent) return;
     if (!preset->is_user()) return;
 
     auto setting_id = preset->setting_id;
@@ -6259,9 +6293,9 @@ void GUI_App::sync_preset(Preset* preset)
                     result = 0;
                 }
                 else {
-                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
+                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code, ORCA_CLOUD_PROVIDER, force);
                     if (http_code >= 400) {
-                        result = 0;
+                        result       = 0;
                         updated_info = "hold";
                         BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
                     } else {
@@ -6722,7 +6756,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             // Sync once immediately, then every 60 seconds.
             while (!t.expired()) {
                 ++tick_tock;
-                if (tick_tock % 120 == 0) {
+                // Sync once immediately, then every 60s, or right away when a force-push asked for it.
+                if (tick_tock % 120 == 0 || m_sync_user_presets_now.exchange(false, std::memory_order_acq_rel)) {
                     tick_tock = 0;
                     if (m_agent) {
                         if (!m_agent->is_user_login()) {
@@ -6733,9 +6768,24 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 
                         int total_count = 0;
                         sync_count = preset_bundle->prints.get_user_presets(preset_bundle, presets_to_sync);
+
+                        auto sync_with_lock = [this](Preset& preset) {
+                            bool force = false;
+                            {
+                                std::scoped_lock lock(conflict_ids_mutex);
+                                auto it = std::find_if(m_pending_conflict_setting_ids.begin(), m_pending_conflict_setting_ids.end(),
+                                                [&preset](const std::string& id) { return id == preset.setting_id; });
+                                if (it != m_pending_conflict_setting_ids.end()) {
+                                    force = true;
+                                    m_pending_conflict_setting_ids.erase(it);
+                                }
+                            }
+                            sync_preset(&preset, force);
+                        };
+
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6744,7 +6794,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         sync_count = preset_bundle->filaments.get_user_presets(preset_bundle, presets_to_sync);
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6753,7 +6803,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         sync_count = preset_bundle->printers.get_user_presets(preset_bundle, presets_to_sync);
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6928,6 +6978,35 @@ void GUI_App::restart_sync_user_preset()
                     start_sync_user_preset(true);
             });
     }).detach();
+}
+
+void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
+{
+    if (setting_id.empty() || !preset_bundle)
+        return;
+
+    // Queue the id so the next push-sync re-uploads this preset with force=true.
+    {
+        std::scoped_lock lock(conflict_ids_mutex);
+        m_pending_conflict_setting_ids.push_back(setting_id);
+    }
+
+    // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
+    // "update" so the next push-sync re-includes it and consumes the queued force flag.
+    // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
+    // the local changes the user is trying to force-push.)
+    PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
+    for (PresetCollection* coll : collections) {
+        for (const Preset& preset : coll->get_presets()) {
+            if (preset.setting_id == setting_id && preset.sync_info == "hold") {
+                coll->set_sync_info_and_save(preset.name, preset.setting_id, "update", 0);
+                break;
+            }
+        }
+    }
+
+    // Nudge the sync loop to push on its next tick instead of waiting for the 60s cadence.
+    m_sync_user_presets_now.store(true, std::memory_order_release);
 }
 
 void GUI_App::on_stealth_mode_enter()
