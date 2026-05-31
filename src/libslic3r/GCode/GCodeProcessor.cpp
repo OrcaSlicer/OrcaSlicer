@@ -87,7 +87,15 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    // H2C FIX: Tag strings for NozzleChangeStart/End. These MUST match the ETags enum
+    // order exactly (index 20, 21). WipeTower emits them as:
+    //   "; NOZZLE_CHANGE_START OF{old_filament} NF{new_filament}\n"
+    //   "; NOZZLE_CHANGE_END   OF{old_filament} NF{new_filament}\n"
+    // BBL's ramming() also adds ON{old_nozzle} NN{new_nozzle} (not yet ported).
+    // Ref: BambuStudio GCodeProcessor.cpp:70-71 (commit 3f2570c)
+    " NOZZLE_CHANGE_START",
+    " NOZZLE_CHANGE_END"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -110,7 +118,11 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    // H2C FIX: Same tags for non-BBL (compatible) printers.
+    // Ref: BambuStudio GCodeProcessor.cpp:93-94 (commit 3f2570c)
+    " NOZZLE_CHANGE_START",
+    " NOZZLE_CHANGE_END"
 };
 
 

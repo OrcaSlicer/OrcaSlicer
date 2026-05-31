@@ -360,6 +360,20 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            // H2C FIX: NozzleChangeStart / NozzleChangeEnd tags — required for dual-nozzle
+            // (Vortek / H2C) printers. Without these tags the GCodeProcessor cannot distinguish
+            // a nozzle switch from a regular filament change, causing the firmware to perform
+            // a full flush instead of a quick nozzle swap.
+            //
+            // These tags are emitted by WipeTower::ramming() (the active code path called from
+            // tool_change_new()) and by WipeTower::nozzle_change() (legacy path from tool_change()).
+            // The GCodeProcessor's post_process() parses them to build ExtruderUsageBlocks for
+            // the PreCoolingInjector and to count nozzle vs. extruder vs. filament changes.
+            //
+            // Ref: BambuStudio GCodeProcessor.hpp:469-470 (commit 3f2570c)
+            //   https://github.com/bambulab/BambuStudio/blob/master/src/libslic3r/GCode/GCodeProcessor.hpp
+            NozzleChangeStart,
+            NozzleChangeEnd,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }

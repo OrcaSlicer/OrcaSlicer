@@ -6,6 +6,7 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include <map>
 
 #include "GCodeProcessor.hpp"
 #include "BoundingBox.hpp"
@@ -1539,8 +1540,16 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_bed_bottom_left = m_bed_shape == RectangularBed
                   ? Vec2f(bed_points.front().x(), bed_points.front().y())
                   : Vec2f::Zero();
-    // H2C TODO
-    // m_is_multiple_nozzle = std::any_of(config.extruder_max_nozzle_count.values.begin(), config.extruder_max_nozzle_count.values.end(), [](auto &elem) { return elem > 1; });
+    // H2C FIX: Detect whether this printer has multi-nozzle extruders (e.g. H2C = 2 nozzles
+    // per extruder). This flag gates several downstream decisions:
+    //   - plan_toolchange() uses it to distinguish nozzle-change vs. extruder-change flush volumes
+    //   - tool_change() uses it for TPU pre-extrusion travel paths
+    //   - finish_layer_new() uses it for gap-wall calculations
+    // Was commented out as "H2C TODO" in the original PR #13409, breaking all multi-nozzle logic.
+    //
+    // Ref: BambuStudio WipeTower.cpp:1834 (commit 3f2570c)
+    //   m_is_multiple_nozzle = std::any_of(config.extruder_max_nozzle_count.values.begin(), ...)
+    m_is_multiple_nozzle = std::any_of(config.extruder_max_nozzle_count.values.begin(), config.extruder_max_nozzle_count.values.end(), [](auto &elem) { return elem > 1; });
 }
 
 
@@ -1593,7 +1602,32 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
         m_filpar[idx].max_e_speed = (max_vol_speed / filament_area());
 
     m_perimeter_width = nozzle_diameter * Width_To_Nozzle_Ratio; // all extruders are now assumed to have the same diameter
-    m_nozzle_change_perimeter_width = 2*m_perimeter_width;
+    {
+        // H2C FIX: Nozzle-change perimeter width — the line width used when extruding the
+        // ramming / nozzle-change block inside the wipe tower. BBL uses a tuned lookup table
+        // keyed by physical nozzle diameter, NOT a simple 2× multiplier, because the optimal
+        // line width for purging depends on the orifice geometry.
+        //
+        // The old code was: m_nozzle_change_perimeter_width = 2 * m_perimeter_width;
+        // which was too wide for 0.2mm nozzles (gave 0.48mm) and too narrow for 0.8mm (gave 1.52mm),
+        // resulting in under-purge or over-purge of the nozzle during H2C switching.
+        //
+        // BBL defines this as a file-scope static const map:
+        //   Ref: BambuStudio WipeTower.cpp:25 (commit 3f2570c)
+        //     static const std::map<float, float> nozzle_diameter_to_nozzle_change_width{
+        //         {0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}
+        //     };
+        //   Usage: WipeTower.cpp:1933
+        //     m_nozzle_change_perimeter_width = nozzle_diameter_to_nozzle_change_width.at(nozzle_diameter);
+        //
+        // We use .find() + fallback instead of .at() to avoid exceptions on unsupported diameters.
+        static const std::map<float, float> nozzle_diameter_to_nozzle_change_width{
+            {0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}
+        };
+        auto it = nozzle_diameter_to_nozzle_change_width.find(nozzle_diameter);
+        m_nozzle_change_perimeter_width = (it != nozzle_diameter_to_nozzle_change_width.end())
+            ? it->second : 2 * m_perimeter_width;
+    }
     // BBS: remove useless config
 #if 0
     if (m_semm) {
@@ -1857,7 +1891,20 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
         .set_initial_tool(m_current_tool)
         .set_extrusion_flow(m_extrusion_flow)
         .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        .append("; Nozzle change start\n");
+        // H2C FIX: Emit structured NozzleChangeStart tag for GCodeProcessor.
+        // This is the LEGACY code path (nozzle_change(), called from tool_change()).
+        // The ACTIVE path for H2C is ramming() called from tool_change_new() — see below.
+        //
+        // Was: .append("; Nozzle change start\n")  — plain text, invisible to GCodeProcessor
+        // Now: .append("; NOZZLE_CHANGE_START OF0 NF1\n") — structured, parseable tag
+        //
+        // BBL's nozzle_change() uses format_nozzle_change_line() with ON/NN nozzle IDs:
+        //   Ref: BambuStudio WipeTower.cpp:2210-2213, 2228 (commit 3f2570c)
+        //     snprintf(buff, ";%s OF%d NF%d ON%d NN%d\n", tag, old_f, new_f, old_noz, new_noz)
+        //
+        // TODO: Add ON{old_nozzle_id} NN{new_nozzle_id} once get_nozzle_id() is ported.
+        .append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart)
+            + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
 
     box_coordinates cleaning_box(Vec2f(m_perimeter_width, m_perimeter_width), m_wipe_tower_width - 2 * m_perimeter_width,
                                  (new_filament_id != (unsigned int) (-1) ? wipe_depth + m_depth_traversed - m_perimeter_width : m_wipe_tower_depth - m_perimeter_width));
@@ -1933,7 +1980,10 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
         }
     }
 
-    writer.append("; Nozzle change end\n");
+    // H2C FIX: Matching NozzleChangeEnd tag for nozzle_change() legacy path.
+    // Ref: BambuStudio WipeTower.cpp:2306 (commit 3f2570c)
+    writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd)
+        + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
 
     result.start_pos = writer.start_pos_rotated();
     result.end_pos   = writer.pos();
@@ -3020,7 +3070,25 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         .set_z(m_z_pos)
         .set_initial_tool(m_current_tool)
         .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        .append("; Nozzle change start\n");
+        // H2C FIX (CRITICAL): Emit NozzleChangeStart tag in ramming().
+        // THIS IS THE ACTIVE CODE PATH for H2C multi-nozzle printers:
+        //   generate_wipe_tower_layers() → tool_change_new() → ramming() → HERE
+        //
+        // Was: .append("; Nozzle change start\n")  — plain text comment
+        //   GCodeProcessor could NOT parse this → firmware saw regular tool change → full flush
+        //
+        // Now: .append("; NOZZLE_CHANGE_START OF0 NF1\n")  — structured GCodeProcessor tag
+        //   GCodeProcessor parses OF/NF → builds ExtruderUsageBlock → firmware does nozzle switch
+        //
+        // BBL uses format_nozzle_change_line() lambda with nozzle IDs:
+        //   Ref: BambuStudio WipeTower.cpp:3377-3383, 3409 (commit 3f2570c)
+        //     snprintf(buff, ";%s OF%d NF%d ON%d NN%d\n", tag, old_f, new_f, old_noz, new_noz)
+        //
+        // Our format omits ON/NN because get_nozzle_id(filament, layer_id) is not yet ported.
+        // The firmware primarily uses OF/NF for the nozzle switch decision; ON/NN are used by
+        // the BBL PreCoolingInjector for temperature pre-scheduling.
+        .append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart)
+            + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
 
     //only for nozzle change
     if (!extruder_change)
@@ -3114,7 +3182,16 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         }
     }
 
-    writer.append("; Nozzle change end\n");
+    // H2C FIX (CRITICAL): Matching NozzleChangeEnd tag in ramming() — active code path.
+    // The post-processor uses the Start/End pair to delimit the nozzle-change block for:
+    //   1. Building ExtruderUsageBlocks (tracking per-extruder gcode ranges)
+    //   2. Counting total_nozzle_changes vs total_filament_changes in statistics
+    //   3. Pre-cooling injection points (BBL's PreCoolingInjector, not yet ported)
+    //
+    // Ref: BambuStudio WipeTower.cpp:3527 (commit 3f2570c)
+    //   writer.append(format_nozzle_change_line(false, old_filament_id, new_filament_id));
+    writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd)
+        + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
 
     result.start_pos = writer.start_pos_rotated();
     result.origin_start_pos = initial_position;
