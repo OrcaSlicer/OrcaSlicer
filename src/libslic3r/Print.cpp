@@ -133,6 +133,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "fan_cooling_layer_time",
         "full_fan_speed_layer",
         "fan_kickstart",
+        "part_cooling_fan_min_pwm",
         "fan_speedup_overhangs",
         "fan_speedup_time",
         "filament_colour",
@@ -359,6 +360,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_filament"
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"
+            || opt_key == "tool_change_on_wipe_tower"
             || opt_key == "purge_in_prime_tower"
             || opt_key == "z_offset"
             || opt_key == "support_multi_bed_types"
@@ -1044,29 +1046,61 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     return {};
 }
 
-FilamentCompatibilityType Print::check_multi_filaments_compatibility(const std::vector<std::string>& filament_types)
+FilamentCompatibilityType Print::check_multi_filaments_compatibility(
+    const std::vector<std::string>& filament_types,
+    const std::vector<int>& nozzle_temperatures,
+    const std::vector<int>& nozzle_temperature_range_lows,
+    const std::vector<int>& nozzle_temperature_range_highs)
 {
-    bool has_high_temperature_filament = false;
-    bool has_low_temperature_filament = false;
-    bool has_mid_temperature_filament = false;
+    const size_t filament_count = filament_types.size();
+    if (filament_count < 2)
+        return FilamentCompatibilityType::Compatible;
 
-    for (const auto& type : filament_types) {
-        if (get_filament_temp_type(type) ==FilamentTempType::HighTemp)
-            has_high_temperature_filament = true;
-        else if (get_filament_temp_type(type) == FilamentTempType::LowTemp)
-            has_low_temperature_filament = true;
-        else if (get_filament_temp_type(type) == FilamentTempType::HighLowCompatible)
-            has_mid_temperature_filament = true;
+    std::vector<int> resolved_temperatures(filament_count, 0);
+    std::vector<int> resolved_range_lows(filament_count, 0);
+    std::vector<int> resolved_range_highs(filament_count, 0);
+    for (size_t i = 0; i < filament_count; ++i) {
+        int range_low = (i < nozzle_temperature_range_lows.size()) ? nozzle_temperature_range_lows[i] : 0;
+        int range_high = (i < nozzle_temperature_range_highs.size()) ? nozzle_temperature_range_highs[i] : 0;
+
+        if (range_low == 0 || range_high == 0) {
+            int default_low = range_low;
+            int default_high = range_high;
+            MaterialType::get_temperature_range(filament_types[i], default_low, default_high);
+            if (range_low == 0)
+                range_low = default_low;
+            if (range_high == 0)
+                range_high = default_high;
+        }
+
+        if (range_low >= range_high)
+            return FilamentCompatibilityType::InvalidTemperatureRange;
+
+        int print_temperature = (i < nozzle_temperatures.size()) ? nozzle_temperatures[i] : 0;
+
+        resolved_temperatures[i] = print_temperature;
+        resolved_range_lows[i] = range_low;
+        resolved_range_highs[i] = range_high;
     }
 
-    if (has_high_temperature_filament && has_low_temperature_filament)
-        return FilamentCompatibilityType::HighLowMixed;
-    else if (has_high_temperature_filament && has_mid_temperature_filament)
-        return FilamentCompatibilityType::HighMidMixed;
-    else if (has_low_temperature_filament && has_mid_temperature_filament)
-        return FilamentCompatibilityType::LowMidMixed;
-    else
-        return FilamentCompatibilityType::Compatible;
+    for (size_t i = 0; i < filament_count; ++i) {
+        for (size_t j = i + 1; j < filament_count; ++j) {
+            const bool i_temp_is_compatible_with_j =
+                resolved_temperatures[i] >= resolved_range_lows[j] &&
+                resolved_temperatures[i] <= resolved_range_highs[j];
+            const bool j_temp_is_compatible_with_i =
+                resolved_temperatures[j] >= resolved_range_lows[i] &&
+                resolved_temperatures[j] <= resolved_range_highs[i];
+
+            if (i_temp_is_compatible_with_j && j_temp_is_compatible_with_i)
+                continue;
+
+            // Range-only rule: any pair outside mutual recommended ranges is incompatible.
+            return FilamentCompatibilityType::HighLowMixed;
+        }
+    }
+
+    return FilamentCompatibilityType::Compatible;
 }
 
 bool Print::is_filaments_compatible(const std::vector<int>& filament_types)
@@ -1111,18 +1145,21 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
+    const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
+    const std::string invalid_temp_range_msg = L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
     if(print_config.print_sequence == PrintSequence::ByObject) {// use ByObject valid under ByObject print sequence
-        std::set<FilamentCompatibilityType> Compatibility_each_obj;
+        bool has_incompatible_object = false;
         bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
+        StringObjectException ret;
 
         for (const auto &objectID_t : print.print_object_ids()) {
             std::set<int> obj_used_extruder_ids;
             auto                     print_object = print.get_object(objectID_t);// current object
             if (print_object){
                 auto object_extruders_t = print_object->object_extruders(); // object used extruder
-                for (int extruder : object_extruders_t) {
-                    assert(extruder > 0);
-                    obj_used_extruder_ids.insert(extruder);
+                for (unsigned int extruder : object_extruders_t) {
+                    obj_used_extruder_ids.insert(static_cast<int>(extruder));
                 }
             }
 
@@ -1136,64 +1173,86 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
             }
             std::vector<std::string> filament_types;
+            std::vector<int> nozzle_temperatures;
+            std::vector<int> nozzle_temperature_range_lows;
+            std::vector<int> nozzle_temperature_range_highs;
             filament_types.reserve(obj_used_extruder_ids.size());
-            for (const auto &extruder_idx : obj_used_extruder_ids) filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
+            nozzle_temperatures.reserve(obj_used_extruder_ids.size());
+            nozzle_temperature_range_lows.reserve(obj_used_extruder_ids.size());
+            nozzle_temperature_range_highs.reserve(obj_used_extruder_ids.size());
 
-            auto                  compatibility       = check_multi_filaments_compatibility(filament_types);// check for each object
-            Compatibility_each_obj.insert(compatibility);
+            for (const auto &extruder_idx : obj_used_extruder_ids) {
+                filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
+                nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
+                nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
+                nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
+            }
+
+            auto compatibility = check_multi_filaments_compatibility(
+                filament_types,
+                nozzle_temperatures,
+                nozzle_temperature_range_lows,
+                nozzle_temperature_range_highs); // check for each object
+            if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+                ret.string = invalid_temp_range_msg;
+                return ret;
+            }
+            if (compatibility != FilamentCompatibilityType::Compatible) {
+                has_incompatible_object = true;
+                break;
+            }
         }
-        StringObjectException ret;
-        std::string           hypertext = "filament_mix_print";
-        if (Compatibility_each_obj.count(FilamentCompatibilityType::HighLowMixed)){// at least one object has HighLowMixed
+        if (has_incompatible_object){
             if (enable_mix_printing) {
-                ret.string     = L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
+                ret.string     = incompatible_temp_msg;
                 ret.is_warning = true;
-                // ret.hypetext   = hypertext;
             } else
-                ret.string = L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage. If you still want to print, you can enable the option in Preferences.");
-        }else if (Compatibility_each_obj.count(FilamentCompatibilityType::LowMidMixed) || Compatibility_each_obj.count(FilamentCompatibilityType::HighMidMixed)){// at least one object has other Mixed
-            ret.is_warning = true;
-            // ret.hypetext   = hypertext;
-            ret.string     = L("Printing different-temp filaments together may cause nozzle clogging or printer damage.");
+                ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
         }
         return ret;
     }
     std::vector<unsigned int> extruders = print.extruders();
     std::vector<std::string> filament_types;
+    std::vector<int> nozzle_temperatures;
+    std::vector<int> nozzle_temperature_range_lows;
+    std::vector<int> nozzle_temperature_range_highs;
     filament_types.reserve(extruders.size());
-    for (const auto& extruder_idx : extruders)
+    nozzle_temperatures.reserve(extruders.size());
+    nozzle_temperature_range_lows.reserve(extruders.size());
+    nozzle_temperature_range_highs.reserve(extruders.size());
+    for (const auto& extruder_idx : extruders) {
         filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
+        nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
+        nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
+        nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
+    }
 
-    auto compatibility = check_multi_filaments_compatibility(filament_types);
+    auto compatibility = check_multi_filaments_compatibility(
+        filament_types,
+        nozzle_temperatures,
+        nozzle_temperature_range_lows,
+        nozzle_temperature_range_highs);
     bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
 
     StringObjectException ret;
 
-    if(compatibility == FilamentCompatibilityType::HighLowMixed){
+    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+        ret.string = invalid_temp_range_msg;
+        return ret;
+    }
+
+    if(compatibility != FilamentCompatibilityType::Compatible){
         if(enable_mix_printing){
-            ret.string =L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
+            ret.string = incompatible_temp_msg;
             ret.is_warning = true;
         }
         else{
-            ret.string =L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage. If you still want to print, you can enable the option in Preferences.");
+            ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
         }
-    }
-    else if (compatibility == FilamentCompatibilityType::HighMidMixed) {
-        ret.is_warning = true;
-        ret.string =L("Printing high-temp and mid-temp filaments together may cause nozzle clogging or printer damage.");
-
-    }
-    else if (compatibility == FilamentCompatibilityType::LowMidMixed) {
-        ret.is_warning = true;
-        ret.string = L("Printing mid-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
     }
 
     return ret;
 }
-
-// Orca: this g92e0 regex is used copied from PrusaSlicer
-// Matches "G92 E0" with various forms of writing the zero and with an optional comment.
-boost::regex regex_g92e0 { "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$" };
 
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic.....FIXME:StringObjectException *warning can only contain one warning, but there might be many warnings, need a vector<StringObjectException>
@@ -1612,26 +1671,60 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     // Orca: G92 E0 is not supported when using absolute extruder addressing
-    // This check is copied from PrusaSlicer, the original author is Vojtech Bubnik
-    if(!is_BBL_printer()) {
-        bool before_layer_gcode_resets_extruder =
-            boost::regex_search(m_config.before_layer_change_gcode.value, regex_g92e0);
-        bool layer_gcode_resets_extruder = boost::regex_search(m_config.layer_change_gcode.value, regex_g92e0);
-        if (m_config.use_relative_e_distances) {
-            // See GH issues #6336 #5073
-            if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
-                !before_layer_gcode_resets_extruder && !layer_gcode_resets_extruder)
-                return {L("Relative extruder addressing requires resetting the extruder position at each layer to "
-                          "prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."),
-                        nullptr, "before_layer_change_gcode"};
-        } else if (before_layer_gcode_resets_extruder)
-            return {L("\"G92 E0\" was found in before_layer_gcode, which is incompatible with absolute extruder "
+    // This check is modified from PrusaSlicer, the original author is Vojtech Bubnik
+    // Orca: case‑sensitive match for exactly "G92 E0" (uppercase G and E only) 
+    // because gcode is case sensitive and G92 e0 satisfies the regex but causes a slicing error
+    // https://github.com/OrcaSlicer/OrcaSlicer/issues/13927
+
+	    // Matches any case of "G92 E0" (original pattern)
+    static const boost::regex regex_g92e0 {
+        "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+    };
+    // Matches only the exact uppercase "G92 E0"
+    static const boost::regex regex_g92e0_correct {
+        "^[ \\t]*G92[ \\t]*E(0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+    };
+
+    const bool before_has_g92_any = boost::regex_search(
+        m_config.before_layer_change_gcode.value, regex_g92e0);
+    const bool layer_has_g92_any  = boost::regex_search(
+        m_config.layer_change_gcode.value, regex_g92e0);
+
+    if (m_config.use_relative_e_distances) {
+        // Relative mode: "G92 E0" is required to reset extruder position.
+        const bool before_has_g92_exact = boost::regex_search(
+            m_config.before_layer_change_gcode.value, regex_g92e0_correct);
+        const bool layer_has_g92_exact  = boost::regex_search(
+            m_config.layer_change_gcode.value, regex_g92e0_correct);
+
+        // Wrong case found?
+        if (before_has_g92_any && !before_has_g92_exact)
+            return {L("\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not uppercase. "
+                      "Please change them to the exact uppercase \"G92 E0\"."),
+                    nullptr, "before_layer_change_gcode"};
+        if (layer_has_g92_any && !layer_has_g92_exact)
+            return {L("\"G92 E0\" was found in layer_change_gcode, but the G or E are not uppercase. "
+                      "Please change them to the exact uppercase \"G92 E0\"."),
+                    nullptr, "layer_change_gcode"};
+
+        // Only Marlin flavours need the reset; BBL printers do not.
+        if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
+            !is_BBL_printer() &&
+            !before_has_g92_exact && !layer_has_g92_exact)
+            return {L("Relative extruder addressing requires resetting the extruder position at each layer to "
+                      "prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."),
+                    nullptr, "before_layer_change_gcode"};
+    } else {
+        // Absolute mode: any occurrence of "G92 E0" is incompatible.
+        if (before_has_g92_any)
+            return {L("\"G92 E0\" was found in before_layer_change_gcode, which is incompatible with absolute extruder "
                       "addressing."),
                     nullptr, "before_layer_change_gcode"};
-        else if (layer_gcode_resets_extruder)
-            return {L("\"G92 E0\" was found in layer_gcode, which is incompatible with absolute extruder addressing."),
+        if (layer_has_g92_any)
+            return {L("\"G92 E0\" was found in layer_change_gcode, which is incompatible with absolute extruder "
+                      "addressing."),
                     nullptr, "layer_change_gcode"};
-    }
+	}
 
     const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
     assert(bed_type_def != nullptr);
@@ -1691,46 +1784,47 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             };
             std::string warning_key;
 
+            const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
+            const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
+
             // check jerk
-            if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
-                m_default_object_config.inner_wall_jerk == 1) {
-               warning->string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
-               if (m_default_object_config.outer_wall_jerk == 1)
-                    warning_key = "outer_wall_jerk";
-               else if (m_default_object_config.inner_wall_jerk == 1)
-                    warning_key = "inner_wall_jerk";
-               else
-                    warning_key = "default_jerk";
+            if (!ignore_jerk_validation) {
+                if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
+                    m_default_object_config.inner_wall_jerk == 1) {
+                   warning->string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
+                   if (m_default_object_config.outer_wall_jerk == 1)
+                        warning_key = "outer_wall_jerk";
+                   else if (m_default_object_config.inner_wall_jerk == 1)
+                        warning_key = "inner_wall_jerk";
+                   else
+                        warning_key = "default_jerk";
 
-               warning->opt_key = warning_key;
-            }
+                   warning->opt_key = warning_key;
+                }
 
-            if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
-               std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
-                                                         "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
-               const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
-               warning_key.clear();
-               if (m_default_object_config.default_jerk > 0)
-                    warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
-               if (!warning_key.empty()) {
-                    warning->string = L(
-                        "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\nOrca will "
-                        "automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\nYou can adjust the "
-                        "maximum jerk setting in your printer's configuration to get higher speeds.");
-                    warning->opt_key = warning_key;
-               }
+                if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
+                   std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
+                                                             "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
+                   const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
+                   warning_key.clear();
+                   warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
+                   if (!warning_key.empty()) {
+                        warning->string = L(
+                            "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
+                            "Orca will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
+                            "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
+                        warning->opt_key = warning_key;
+                   }
+                }
             }
 
             // Check junction deviation
-            const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
             // Orca: Only marlin FW supports max junction deviation. Dont display warning if firmware is not supporting it.
             const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
             if (warning_key.empty() && m_default_object_config.default_junction_deviation.value > max_junction_deviation && support_max_junction_deviation) {
-                warning->string  = L( "Junction deviation setting exceeds the printer's maximum value "
-                                      "(machine_max_junction_deviation).\nOrca will "
-                                      "automatically cap the junction deviation to ensure it doesn't surpass the printer's "
-                                      "capabilities.\nYou can adjust the "
-                                      "machine_max_junction_deviation value in your printer's configuration to get higher limits.");
+                warning->string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
+                                      "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
+                                      "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
                 warning->opt_key = warning_key;
             }
             
@@ -2798,43 +2892,7 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
-    const static std::string HighTempFilamentStr = "high_temp_filament";
-    const static std::string LowTempFilamentStr = "low_temp_filament";
-    const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";
-    static std::unordered_map<std::string, std::unordered_set<std::string>>filament_temp_type_map;
-
-    if (filament_temp_type_map.empty()) {
-        fs::path file_path = fs::path(resources_dir()) / "info" / "filament_info.json";
-        std::ifstream in(file_path.string());
-        json j;
-        try{
-            j = json::parse(in);
-            in.close();
-            auto&&high_temp_filament_arr =j[HighTempFilamentStr].get < std::vector<std::string>>();
-            filament_temp_type_map[HighTempFilamentStr] = std::unordered_set<std::string>(high_temp_filament_arr.begin(), high_temp_filament_arr.end());
-            auto&& low_temp_filament_arr = j[LowTempFilamentStr].get < std::vector<std::string>>();
-            filament_temp_type_map[LowTempFilamentStr] = std::unordered_set<std::string>(low_temp_filament_arr.begin(), low_temp_filament_arr.end());
-            auto&& high_low_compatible_filament_arr = j[HighLowCompatibleFilamentStr].get < std::vector<std::string>>();
-            filament_temp_type_map[HighLowCompatibleFilamentStr] = std::unordered_set<std::string>(high_low_compatible_filament_arr.begin(), high_low_compatible_filament_arr.end());
-        }
-        catch (const json::parse_error& err){
-            in.close();
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file_path.string() << " got a nlohmann::detail::parse_error, reason = " << err.what();
-            filament_temp_type_map[HighTempFilamentStr] = {"ABS","ASA","PC","PA","PA-CF","PA-GF","PA6-CF","PET-CF", "PETG-GF","PPS","PPS-CF","PPA-GF","PPA-CF","ABS-Aero","ABS-GF"};
-            filament_temp_type_map[LowTempFilamentStr] = {"PLA","TPU","PLA-CF","PLA-AERO","PVA","BVOH","SBS"};
-            filament_temp_type_map[HighLowCompatibleFilamentStr] = { "HIPS","PETG","PCTG","PE","PP","EVA","PE-CF","PP-CF","PP-GF","PHA"};
-        }
-    }
-
-    if (filament_temp_type_map[HighLowCompatibleFilamentStr].find(filament_type) != filament_temp_type_map[HighLowCompatibleFilamentStr].end())
-        return HighLowCompatible;
-    if (filament_temp_type_map[HighTempFilamentStr].find(filament_type) != filament_temp_type_map[HighTempFilamentStr].end())
-        return HighTemp;
-    if (filament_temp_type_map[LowTempFilamentStr].find(filament_type) != filament_temp_type_map[LowTempFilamentStr].end())
-        return LowTemp;
-
-    // Orca: prefer explicit definition from JSON, if the filament type is not defined in json, fallback to temperature-based logic to determine the filament temp type.
-    // FilamentTempType Temperature-based logic
+    // Range-based classification only: do not use filament_info.json.
     int min_temp, max_temp;
     if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
         if (max_temp <= 250)
@@ -3471,6 +3529,24 @@ std::string Print::output_filename(const std::string &filename_base) const
     config.set_key_value("plate_number", new ConfigOptionString(get_plate_number_formatted()));
     config.set_key_value("model_name", new ConfigOptionString(get_model_name()));
 
+    // the same type of filament contains multiple names, support exporting according to the filament name
+    auto full_print_config = this->full_print_config();
+    const ConfigOptionStrings* filament_settings_id = full_print_config.option<ConfigOptionStrings>("filament_settings_id");
+    std::string filament_name = "";
+    auto extruders = this->extruders(true);
+    if(!extruders.empty()) {
+        // first extruder is the default extruder
+        int extruder_id = extruders.front();
+        if(filament_settings_id->values.size() > extruder_id) {
+            filament_name = filament_settings_id->values[extruder_id];
+        }
+    }
+    size_t end_pos = filament_name.find_first_of("@");
+    if (end_pos != std::string::npos) {
+        filament_name = filament_name.substr(0, end_pos);
+    }
+    config.set_key_value("filament_name", new ConfigOptionString(filament_name));
+
     return this->PrintBase::output_filename(m_config.filename_format.value, ".gcode", filename_base, &config);
 }
 
@@ -3563,9 +3639,12 @@ DynamicConfig PrintStatistics::config() const
     config.set_key_value("total_cost",                new ConfigOptionFloat(this->total_cost));
     config.set_key_value("total_toolchanges",         new ConfigOptionInt(this->total_toolchanges));
     config.set_key_value("total_weight",              new ConfigOptionFloat(this->total_weight));
+    config.set_key_value("extruded_weight_total",     new ConfigOptionFloat(this->total_weight));
+    config.set_key_value("extruded_volume_total",     new ConfigOptionFloat(this->total_extruded_volume));
     config.set_key_value("total_wipe_tower_cost",     new ConfigOptionFloat(this->total_wipe_tower_cost));
     config.set_key_value("total_wipe_tower_filament", new ConfigOptionFloat(this->total_wipe_tower_filament));
     config.set_key_value("initial_tool",              new ConfigOptionInt(static_cast<int>(this->initial_tool)));
+    config.set_key_value("initial_extruder",          new ConfigOptionInt(static_cast<int>(this->initial_tool)));
     return config;
 }
 
@@ -3574,8 +3653,8 @@ DynamicConfig PrintStatistics::placeholders()
     DynamicConfig config;
     for (const std::string key : {
         "print_time", "normal_print_time", "silent_print_time",
-        "used_filament", "extruded_volume", "total_cost", "total_weight",
-        "initial_tool", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
+        "used_filament", "extruded_volume", "extruded_volume_total", "total_cost", "total_weight", "extruded_weight_total",
+        "initial_tool", "initial_extruder", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
         config.set_key_value(key, new ConfigOptionString(std::string("{") + key + "}"));
     return config;
 }

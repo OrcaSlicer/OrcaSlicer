@@ -47,9 +47,7 @@ IGL_INLINE bool igl::copyleft::tetgen::mesh_with_skeleton(
   //   * has consistent orientation
   //   * has no self-intersections
   //   * has no 0-volume pieces
-  cerr<<"tetgen begin()"<<endl;
   int status = tetrahedralize( VS,F,eff_tetgen_flags,VV,TT,FF);
-  cerr<<"tetgen end()"<<endl;
   if(FF.rows() != F.rows())
   {
     // Issue a warning if the surface has changed

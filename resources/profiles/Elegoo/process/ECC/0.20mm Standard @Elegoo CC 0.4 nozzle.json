@@ -1,14 +1,16 @@
 {
 	"type": "process",
 	"name": "0.20mm Standard @Elegoo CC 0.4 nozzle",
-	"inherits": "fdm_process_ecc_04020",
+	"inherits": "fdm_process_elegoo_04020",
 	"from": "system",
 	"setting_id": "PECC04020",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"bottom_shell_thickness": "0.6",
 	"sparse_infill_pattern": "zig-zag",
-	"filename_format": "ECC_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+	"filename_format": "ECC_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+	"min_width_top_surface": "50%",
+	"enable_prime_tower": "1",
 	"compatible_printers": [
 		"Elegoo Centauri Carbon 0.4 nozzle"
 	]

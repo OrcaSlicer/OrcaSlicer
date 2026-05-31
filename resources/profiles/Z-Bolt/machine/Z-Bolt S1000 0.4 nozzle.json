@@ -22,7 +22,7 @@
 		"0x1000"
 	],
 	"default_filament_profile": [
-		"Generic PLA @Z-Bolt"
+		"Generic PLA @Z-Bolt 0.4 nozzle"
 	],
 	"default_print_profile": "0.20mm Standard @Z-Bolt S1000",
 	"extruder_colour": [

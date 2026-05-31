@@ -20,7 +20,7 @@ public:
     int                                extruder_id = 0;
     int                                ams_id = 0;
     int                                slot_id = 0;
-    float                              nozzle_diameter;
+    float                              nozzle_diameter = 0.0f;
     ExtruderType                       extruder_type{ExtruderType::etDirectDrive};
     NozzleVolumeType                   nozzle_volume_type;
     Calib_Params                       params;

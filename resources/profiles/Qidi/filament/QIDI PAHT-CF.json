@@ -81,5 +81,35 @@
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"
+	],
+	"cool_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"supertack_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_cool_plate_temp": [
+		"80"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"80"
 	]
 }

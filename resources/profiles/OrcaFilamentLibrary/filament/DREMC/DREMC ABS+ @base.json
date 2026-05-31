@@ -1,0 +1,26 @@
+{
+	"type": "filament",
+	"name": "DREMC ABS+ @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "DREMC004",
+	"instantiation": "false",
+	"filament_cost": [
+		"24"
+	],
+	"filament_density": [
+		"1.06"
+	],
+	"filament_flow_ratio": [
+		"0.93"
+	],
+	"filament_shrink": [
+		"99.7"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"filament_vendor": [
+		"DREMC"
+	]
+}

@@ -88,8 +88,8 @@ public:
         std::string access_token;
         std::string refresh_token;
         std::string user_id;
-        // Orca auth semantics: user_name is unique orca cloud username(orca_xxxxx), user_nickname is
-        // the display name shown in the UI when available.
+        // Orca auth semantics: user_name is the unique Orca Cloud username (orca_xxxxx),
+        // user_nickname is the display name shown in the UI when available.
         std::string user_name;
         std::string user_nickname;
         std::string user_avatar;
@@ -176,7 +176,12 @@ public:
     // ========================================================================
     int get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets) override;
     std::string request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
-    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
+    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) override;
+    SyncPushResult sync_push(const std::string& profile_id,
+                             const std::string& name,
+                             const nlohmann::json& content,
+                             const std::string& original_updated_time = "",
+                             bool force                               = false);
     int get_setting_list(std::string bundle_version, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int get_setting_list2(std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int delete_setting(std::string setting_id) override;
@@ -276,13 +281,14 @@ public:
     bool refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
     bool refresh_session_with_token(const std::string& refresh_token);
 
-    // Session state helpers
+    // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
     bool set_user_session(const std::string& token,
                           const std::string& user_id,
                           const std::string& username,
                           const std::string& nickname,
                           const std::string& avatar,
                           const std::string& refresh_token = "");
+    // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
 
@@ -291,13 +297,6 @@ private:
     int sync_pull(
         std::function<void(const SyncPullResponse&)> on_success,
         std::function<void(int http_code, const std::string& error)> on_error
-    );
-
-    SyncPushResult sync_push(
-        const std::string& profile_id,
-        const std::string& name,
-        const nlohmann::json& content,
-        const std::string& original_updated_time = ""
     );
 
     // HTTP request helpers

@@ -21,12 +21,6 @@
 	"filament_settings_id": [
 		"QIDI ABS-GF25 @Qidi X-Plus 4 0.4 nozzle"
 	],
-	"hot_plate_temp": [
-		"100"
-	],
-	"hot_plate_temp_initial_layer": [
-		"100"
-	],
 	"nozzle_temperature": [
 		"260"
 	],

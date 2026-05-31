@@ -114,7 +114,6 @@ protected:
     bool                              m_detect_geometry_edge = true;
     
     // Filament remap feature
-    bool                              m_show_remap_panel = false;
     std::vector<size_t>               m_extruder_remap;      // index → target extruder index
     // ORCA: Cache used filaments to filter UI
     std::set<size_t>                  m_used_filaments;      // Set of used filament indices (cached)
@@ -136,13 +135,16 @@ private:
 
     void init_model_triangle_selectors();
 
+    // ORCA
+    bool draw_color_button(int idx, std::string id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale);
+
     // BBS
     void update_triangle_selectors_colors();
     void init_extruders_data();
     
     // Filament remapping methods
     void remap_filament_assignments();
-    void render_filament_remap_ui(float window_width, float max_tooltip_width);
+    void render_filament_remap_ui(float window_width, float max_tooltip_width, float scale);
     // ORCA: Helper to update the cache of used filaments
     void update_used_filaments();
 
