@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "FusRock S-Multi @FF C5P",
+	"inherits": "Generic PETG-CF @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -58,11 +63,6 @@
 	"filament_type": [
 		"S-Multi"
 	],
-	"from": "system",
-	"inherits": "Generic PETG-CF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "FusRock S-Multi @FF C5P",
 	"nozzle_temperature": [
 		"280"
 	],
@@ -98,6 +98,5 @@
 	],
 	"textured_cool_plate_temp_initial_layer": [
 		"0"
-	],
-	"version": "2.3.0.3"
+	]
 }

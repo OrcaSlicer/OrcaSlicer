@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge PVA @FF C5",
+	"inherits": "Generic PVA @System",
+	"from": "system",
+	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"
 	],
@@ -46,17 +51,12 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"60"
 	],
 	"hot_plate_temp_initial_layer": [
 		"60"
 	],
-	"inherits": "Generic PVA @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PVA @FF C5",
 	"nozzle_temperature": [
 		"240"
 	],
@@ -83,6 +83,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
-	],
-	"version": "2.3.0.3"
+	]
 }

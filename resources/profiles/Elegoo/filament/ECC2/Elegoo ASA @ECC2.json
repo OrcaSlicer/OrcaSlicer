@@ -6,7 +6,10 @@
 	"setting_id": "EASAECC2",
 	"instantiation": "true",
 	"pressure_advance": [
-		"0.024"
+		"0.04"
+	],
+	"enable_pressure_advance": [
+		"1"
 	],
 	"nozzle_temperature": [
 		"270"
@@ -15,6 +18,7 @@
 		"270"
 	],
 	"compatible_printers": [
+		"Elegoo Centauri Carbon 2 0.2 nozzle",
 		"Elegoo Centauri Carbon 2 0.4 nozzle",
 		"Elegoo Centauri Carbon 2 0.6 nozzle",
 		"Elegoo Centauri Carbon 2 0.8 nozzle"

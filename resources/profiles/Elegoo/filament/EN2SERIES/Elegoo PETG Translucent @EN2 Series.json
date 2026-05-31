@@ -1,0 +1,43 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG Translucent @EN2 Series",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "EPETGTRANSEN2",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.024"
+	],
+	"fan_max_speed": [
+		"35"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 0.4 nozzle",
+		"Elegoo Neptune 0.6 nozzle",
+		"Elegoo Neptune 0.8 nozzle",
+		"Elegoo Neptune 2 0.4 nozzle",
+		"Elegoo Neptune 2 0.6 nozzle",
+		"Elegoo Neptune 2 0.8 nozzle",
+		"Elegoo Neptune 2S 0.4 nozzle",
+		"Elegoo Neptune 2S 0.6 nozzle",
+		"Elegoo Neptune 2S 0.8 nozzle",
+		"Elegoo Neptune 2D 0.4 nozzle",
+		"Elegoo Neptune 2D 0.6 nozzle",
+		"Elegoo Neptune 2D 0.8 nozzle",
+		"Elegoo Neptune X 0.4 nozzle",
+		"Elegoo Neptune X 0.6 nozzle",
+		"Elegoo Neptune X 0.8 nozzle",
+		"Elegoo Neptune 3 0.4 nozzle",
+		"Elegoo Neptune 3 0.6 nozzle",
+		"Elegoo Neptune 3 0.8 nozzle"
+	]
+}

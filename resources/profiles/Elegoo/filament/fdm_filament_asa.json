@@ -5,7 +5,7 @@
 	"from": "system",
 	"instantiation": "false",
 	"activate_air_filtration": [
-		"1"
+		"0"
 	],
 	"cool_plate_temp": [
 		"0"
@@ -29,7 +29,7 @@
 		"10"
 	],
 	"filament_cost": [
-		"0"
+		"20"
 	],
 	"filament_density": [
 		"1.04"
@@ -78,5 +78,8 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"90"
+	],
+	"filament_vendor": [
+		"Generic"
 	]
 }

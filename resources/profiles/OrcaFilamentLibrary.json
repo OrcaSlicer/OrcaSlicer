@@ -117,6 +117,18 @@
 			"sub_path": "filament/COEX/COEX ABS PRIME @base.json"
 		},
 		{
+			"name": "DREMC ABS @base",
+			"sub_path": "filament/DREMC/DREMC ABS @base.json"
+		},
+		{
+			"name": "DREMC ABS+ @base",
+			"sub_path": "filament/DREMC/DREMC ABS+ @base.json"
+		},
+		{
+			"name": "DREMC ABS-GF @base",
+			"sub_path": "filament/DREMC/DREMC ABS-GF @base.json"
+		},
+		{
 			"name": "Elegoo ABS @base",
 			"sub_path": "filament/Elegoo/Elegoo ABS @base.json"
 		},
@@ -159,6 +171,18 @@
 		{
 			"name": "COEX ASA PRIME @base",
 			"sub_path": "filament/COEX/COEX ASA PRIME @base.json"
+		},
+		{
+			"name": "DREMC ASA @base",
+			"sub_path": "filament/DREMC/DREMC ASA @base.json"
+		},
+		{
+			"name": "DREMC ASA CF @base",
+			"sub_path": "filament/DREMC/DREMC ASA CF @base.json"
+		},
+		{
+			"name": "DREMC ASA GF @base",
+			"sub_path": "filament/DREMC/DREMC ASA GF @base.json"
 		},
 		{
 			"name": "Elas ASA @base",
@@ -241,6 +265,22 @@
 			"sub_path": "filament/COEX/COEX NYLEX UNFILLED @base.json"
 		},
 		{
+			"name": "DREMC PA12-CF @base",
+			"sub_path": "filament/DREMC/DREMC PA12-CF @base.json"
+		},
+		{
+			"name": "DREMC PA6-CF @base",
+			"sub_path": "filament/DREMC/DREMC PA6-CF @base.json"
+		},
+		{
+			"name": "Elegoo PAHT @base",
+			"sub_path": "filament/Elegoo/Elegoo PAHT @base.json"
+		},
+		{
+			"name": "FILL3D PA @base",
+			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @base.json"
 		},
@@ -263,10 +303,6 @@
 		{
 			"name": "Generic PA-CF @System",
 			"sub_path": "filament/Generic PA-CF @System.json"
-		},
-		{
-			"name": "Elegoo PAHT @base",
-			"sub_path": "filament/Elegoo/Elegoo PAHT @base.json"
 		},
 		{
 			"name": "Bambu PC @base",
@@ -329,24 +365,20 @@
 			"sub_path": "filament/COEX/COEX PETG @base.json"
 		},
 		{
+			"name": "DREMC PET-CF @base",
+			"sub_path": "filament/DREMC/DREMC PET-CF @base.json"
+		},
+		{
+			"name": "DREMC PETG @base",
+			"sub_path": "filament/DREMC/DREMC PETG @base.json"
+		},
+		{
 			"name": "Elas PETG Basic @base",
 			"sub_path": "filament/Elas/Elas PETG Basic @base.json"
 		},
 		{
 			"name": "Elegoo PETG @base",
 			"sub_path": "filament/Elegoo/Elegoo PETG @base.json"
-		},
-		{
-			"name": "Elegoo PETG PRO @base",
-			"sub_path": "filament/Elegoo/Elegoo PETG PRO @base.json"
-		},
-		{
-			"name": "Elegoo PETG-CF @base",
-			"sub_path": "filament/Elegoo/Elegoo PETG-CF @base.json"
-		},
-		{
-			"name": "Elegoo Rapid PETG @base",
-			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @base.json"
 		},
 		{
 			"name": "Eolas Prints PETG @System",
@@ -363,6 +395,14 @@
 		{
 			"name": "FDplast PETG @base",
 			"sub_path": "filament/FDplast/FDplast PETG @base.json"
+		},
+		{
+			"name": "FILL3D PETG @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
+		},
+		{
+			"name": "FILL3D PETG CF @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
 		},
 		{
 			"name": "Fiberon PET-CF @base",
@@ -387,6 +427,10 @@
 		{
 			"name": "Generic PETG-CF @System",
 			"sub_path": "filament/Generic PETG-CF @System.json"
+		},
+		{
+			"name": "GreenGate3D PETG @base",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
 		},
 		{
 			"name": "NIT PETG @base",
@@ -493,6 +537,14 @@
 			"sub_path": "filament/COEX/COEX PLA PRIME @base.json"
 		},
 		{
+			"name": "DREMC PLA+ @base",
+			"sub_path": "filament/DREMC/DREMC PLA+ @base.json"
+		},
+		{
+			"name": "DREMC PLA+ HS @base",
+			"sub_path": "filament/DREMC/DREMC PLA HS @base.json"
+		},
+		{
 			"name": "Elas PLA Basic @base",
 			"sub_path": "filament/Elas/Elas PLA Basic @base.json"
 		},
@@ -503,22 +555,6 @@
 		{
 			"name": "Elegoo PLA @base",
 			"sub_path": "filament/Elegoo/Elegoo PLA @base.json"
-		},
-		{
-			"name": "Elegoo PLA Matte @base",
-			"sub_path": "filament/Elegoo/Elegoo PLA Matte @base.json"
-		},
-		{
-			"name": "Elegoo PLA Silk @base",
-			"sub_path": "filament/Elegoo/Elegoo PLA Silk @base.json"
-		},
-		{
-			"name": "Elegoo PLA-CF @base",
-			"sub_path": "filament/Elegoo/Elegoo PLA-CF @base.json"
-		},
-		{
-			"name": "Elegoo Rapid PLA+ @base",
-			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @base.json"
 		},
 		{
 			"name": "Eolas Prints PLA Antibacterial @System",
@@ -559,6 +595,10 @@
 		{
 			"name": "FDplast PLA @base",
 			"sub_path": "filament/FDplast/FDplast PLA @base.json"
+		},
+		{
+			"name": "FILL3D PLA Basic @base",
+			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
 		},
 		{
 			"name": "FILL3D PLA Turbo @base",
@@ -769,6 +809,14 @@
 			"sub_path": "filament/base/fdm_filament_pla_silk.json"
 		},
 		{
+			"name": "FILL3D PP @base",
+			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
+		},
+		{
+			"name": "FILL3D PPCF @base",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
+		},
+		{
 			"name": "Generic PP @System",
 			"sub_path": "filament/Generic PP @System.json"
 		},
@@ -783,6 +831,10 @@
 		{
 			"name": "Bambu PPA-CF @base",
 			"sub_path": "filament/Bambu/Bambu PPA-CF @base.json"
+		},
+		{
+			"name": "DREMC PPA-CF @base",
+			"sub_path": "filament/DREMC/DREMC PPA-CF @base.json"
 		},
 		{
 			"name": "Generic PPA-CF @System",
@@ -837,8 +889,8 @@
 			"sub_path": "filament/COEX/COEX TPU 60A @base.json"
 		},
 		{
-			"name": "Elegoo TPU 95A @base",
-			"sub_path": "filament/Elegoo/Elegoo TPU 95A @base.json"
+			"name": "DREMC TPU 95A @base",
+			"sub_path": "filament/DREMC/DREMC TPU 95A @base.json"
 		},
 		{
 			"name": "Elegoo TPU @base",
@@ -893,6 +945,22 @@
 			"sub_path": "filament/COEX/COEX ABS PRIME @System.json"
 		},
 		{
+			"name": "DREMC ABS @System",
+			"sub_path": "filament/DREMC/DREMC ABS @System.json"
+		},
+		{
+			"name": "DREMC ABS+ @System",
+			"sub_path": "filament/DREMC/DREMC ABS+ @System.json"
+		},
+		{
+			"name": "DREMC ABS-GF @System",
+			"sub_path": "filament/DREMC/DREMC ABS-GF @System.json"
+		},
+		{
+			"name": "Elegoo ABS @System",
+			"sub_path": "filament/Elegoo/Elegoo ABS @System.json"
+		},
+		{
 			"name": "FDplast ABS @System",
 			"sub_path": "filament/FDplast/FDplast ABS @System.json"
 		},
@@ -925,12 +993,28 @@
 			"sub_path": "filament/COEX/COEX ASA PRIME @System.json"
 		},
 		{
+			"name": "DREMC ASA @System",
+			"sub_path": "filament/DREMC/DREMC ASA @System.json"
+		},
+		{
+			"name": "DREMC ASA CF @System",
+			"sub_path": "filament/DREMC/DREMC ASA CF @System.json"
+		},
+		{
+			"name": "DREMC ASA GF @System",
+			"sub_path": "filament/DREMC/DREMC ASA GF @System.json"
+		},
+		{
 			"name": "Elas ASA @System",
 			"sub_path": "filament/Elas/Elas ASA @System.json"
 		},
 		{
 			"name": "Elegoo ASA @System",
 			"sub_path": "filament/Elegoo/Elegoo ASA @System.json"
+		},
+		{
+			"name": "Elegoo ASA-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo ASA-CF @System.json"
 		},
 		{
 			"name": "Overture ASA @System",
@@ -977,6 +1061,22 @@
 			"sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
 		},
 		{
+			"name": "DREMC PA12-CF @System",
+			"sub_path": "filament/DREMC/DREMC PA12-CF @System.json"
+		},
+		{
+			"name": "DREMC PA6-CF @System",
+			"sub_path": "filament/DREMC/DREMC PA6-CF @System.json"
+		},
+		{
+			"name": "Elegoo PAHT-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo PAHT-CF @System.json"
+		},
+		{
+			"name": "FILL3D PA @System",
+			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @System.json"
 		},
@@ -999,6 +1099,14 @@
 		{
 			"name": "Bambu PC FR @System",
 			"sub_path": "filament/Bambu/Bambu PC FR @System.json"
+		},
+		{
+			"name": "Elegoo PC @System",
+			"sub_path": "filament/Elegoo/Elegoo PC @System.json"
+		},
+		{
+			"name": "Elegoo PC-FR @System",
+			"sub_path": "filament/Elegoo/Elegoo PC-FR @System.json"
 		},
 		{
 			"name": "COEX PCTG PRIME @System",
@@ -1041,16 +1149,44 @@
 			"sub_path": "filament/COEX/COEX PETG @System.json"
 		},
 		{
+			"name": "DREMC PET-CF @System",
+			"sub_path": "filament/DREMC/DREMC PET-CF @System.json"
+		},
+		{
+			"name": "DREMC PETG @System",
+			"sub_path": "filament/DREMC/DREMC PETG @System.json"
+		},
+		{
 			"name": "Elas PETG Basic @System",
 			"sub_path": "filament/Elas/Elas PETG Basic @System.json"
+		},
+		{
+			"name": "Elegoo PET-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo PET-CF @System.json"
+		},
+		{
+			"name": "Elegoo PETG @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG @System.json"
+		},
+		{
+			"name": "Elegoo PETG HF @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG HF @System.json"
 		},
 		{
 			"name": "Elegoo PETG PRO @System",
 			"sub_path": "filament/Elegoo/Elegoo PETG PRO @System.json"
 		},
 		{
+			"name": "Elegoo PETG Translucent @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG Translucent @System.json"
+		},
+		{
 			"name": "Elegoo PETG-CF @System",
 			"sub_path": "filament/Elegoo/Elegoo PETG-CF @System.json"
+		},
+		{
+			"name": "Elegoo PETG-GF @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG-GF @System.json"
 		},
 		{
 			"name": "Elegoo Rapid PETG @System",
@@ -1059,6 +1195,14 @@
 		{
 			"name": "FDplast PETG @System",
 			"sub_path": "filament/FDplast/FDplast PETG @System.json"
+		},
+		{
+			"name": "FILL3D PETG @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
+		},
+		{
+			"name": "FILL3D PETG CF @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
 		},
 		{
 			"name": "Fiberon PET-CF @System",
@@ -1071,6 +1215,10 @@
 		{
 			"name": "Fiberon PETG-rCF @System",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
+		},
+		{
+			"name": "GreenGate3D PETG @System",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		},
 		{
 			"name": "NIT PETG @System",
@@ -1173,6 +1321,14 @@
 			"sub_path": "filament/COEX/COEX PLA PRIME @System.json"
 		},
 		{
+			"name": "DREMC PLA+ @System",
+			"sub_path": "filament/DREMC/DREMC PLA+ @System.json"
+		},
+		{
+			"name": "DREMC PLA+ HS @System",
+			"sub_path": "filament/DREMC/DREMC PLA HS @System.json"
+		},
+		{
 			"name": "Elas PLA Basic @System",
 			"sub_path": "filament/Elas/Elas PLA Basic @System.json"
 		},
@@ -1185,6 +1341,54 @@
 			"sub_path": "filament/Elegoo/Elegoo PLA @System.json"
 		},
 		{
+			"name": "Elegoo PLA Basic @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Basic @System.json"
+		},
+		{
+			"name": "Elegoo PLA Galaxy @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Galaxy @System.json"
+		},
+		{
+			"name": "Elegoo PLA Glow @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Glow @System.json"
+		},
+		{
+			"name": "Elegoo PLA Marble @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Marble @System.json"
+		},
+		{
+			"name": "Elegoo PLA Matte @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Matte @System.json"
+		},
+		{
+			"name": "Elegoo PLA PRO @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA PRO @System.json"
+		},
+		{
+			"name": "Elegoo PLA Silk @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Silk @System.json"
+		},
+		{
+			"name": "Elegoo PLA Sparkle @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Sparkle @System.json"
+		},
+		{
+			"name": "Elegoo PLA Translucent2 @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Translucent2 @System.json"
+		},
+		{
+			"name": "Elegoo PLA Wood @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Wood @System.json"
+		},
+		{
+			"name": "Elegoo PLA+ @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA+ @System.json"
+		},
+		{
+			"name": "Elegoo PLA-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA-CF @System.json"
+		},
+		{
 			"name": "Elegoo Rapid PLA+ @System",
 			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @System.json"
 		},
@@ -1193,56 +1397,12 @@
 			"sub_path": "filament/FDplast/FDplast PLA @System.json"
 		},
 		{
-			"name": "FILL3D PLA Turbo @System",
-			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
-		},
-		{
-			"name": "FILL3D PLA Basic @base",
-			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
-		},
-		{
 			"name": "FILL3D PLA Basic @System",
 			"sub_path": "filament/FILL3D/FILL3D PLA Basic @System.json"
 		},
 		{
-			"name": "FILL3D PETG @base",
-			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
-		},
-		{
-			"name": "FILL3D PETG @System",
-			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
-		},
-		{
-			"name": "FILL3D PETG CF @base",
-			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
-		},
-		{
-			"name": "FILL3D PETG CF @System",
-			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
-		},
-		{
-			"name": "FILL3D PP @base",
-			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
-		},
-		{
-			"name": "FILL3D PP @System",
-			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
-		},
-		{
-			"name": "FILL3D PPCF @base",
-			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
-		},
-		{
-			"name": "FILL3D PPCF @System",
-			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
-		},
-		{
-			"name": "FILL3D PA @base",
-			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
-		},
-		{
-			"name": "FILL3D PA @System",
-			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+			"name": "FILL3D PLA Turbo @System",
+			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
 		},
 		{
 			"name": "NIT PLA @System",
@@ -1441,8 +1601,20 @@
 			"sub_path": "filament/Generic PLA Silk @System.json"
 		},
 		{
+			"name": "FILL3D PP @System",
+			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
+		},
+		{
+			"name": "FILL3D PPCF @System",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
+		},
+		{
 			"name": "Bambu PPA-CF @System",
 			"sub_path": "filament/Bambu/Bambu PPA-CF @System.json"
+		},
+		{
+			"name": "DREMC PPA-CF @System",
+			"sub_path": "filament/DREMC/DREMC PPA-CF @System.json"
 		},
 		{
 			"name": "Bambu PVA @System",
@@ -1477,6 +1649,14 @@
 			"sub_path": "filament/COEX/COEX TPU 60A @System.json"
 		},
 		{
+			"name": "DREMC TPU 95A @System",
+			"sub_path": "filament/DREMC/DREMC TPU 95A @System.json"
+		},
+		{
+			"name": "Elegoo Rapid TPU 95A @System",
+			"sub_path": "filament/Elegoo/Elegoo Rapid TPU 95A @System.json"
+		},
+		{
 			"name": "Elegoo TPU 95A @System",
 			"sub_path": "filament/Elegoo/Elegoo TPU 95A @System.json"
 		},
@@ -1499,14 +1679,6 @@
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
-		},
-		{
-			"name": "GreenGate3D PETG @base",
-			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
-		},
-		{
-			"name": "GreenGate3D PETG @System",
-			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		}
 	],
 	"process_list": [],

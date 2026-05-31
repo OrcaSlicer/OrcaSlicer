@@ -85,6 +85,7 @@ public:
 	std::string get_language_code();
 	std::string get_hms_host();
 	bool get_stealth_mode();
+	bool get_hide_login_side_panel();
 
 	// Clear and reset to defaults.
 	void 			   	reset();

@@ -1,0 +1,32 @@
+{
+	"type": "machine",
+	"name": "Elegoo Neptune 3 Max 0.2 nozzle",
+	"inherits": "Elegoo Neptune 3 Max 0.4 nozzle",
+	"from": "system",
+	"setting_id": "EN3Max02",
+	"instantiation": "true",
+	"nozzle_diameter": [
+		"0.2"
+	],
+	"printer_model": "Elegoo Neptune 3 Max",
+	"printer_variant": "0.2",
+	"default_filament_profile": [
+		"Elegoo PLA @0.2 nozzle"
+	],
+	"default_print_profile": "0.10mm Standard @Elegoo N3Max 0.2 nozzle",
+	"retraction_minimum_travel": [
+		"0.4"
+	],
+	"wipe_distance": [
+		"0.8"
+	],
+	"retraction_length": [
+		"0.8"
+	],
+	"max_layer_height": [
+		"0.14"
+	],
+	"min_layer_height": [
+		"0.06"
+	]
+}

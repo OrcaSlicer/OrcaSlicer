@@ -644,7 +644,14 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
     std::set<std::string> filament_id_set;
     std::set<std::string> printer_names;
     std::ostringstream    stream;
-    stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(0);
+    // If the machine didn't report a nozzle diameter (0.0 = unknown), fall back to the currently
+    // selected printer preset so the filament list isn't empty.
+    float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
+    if (machine_diameter == 0.0f && preset_bundle) {
+        const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
+        if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+    }
+    stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
 
     for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {

@@ -1,0 +1,8 @@
+{
+	"setting_id": "PEN208024",
+	"from": "system",
+	"name": "0.24mm Fine @Elegoo Neptune 0.8 nozzle",
+	"inherits": "0.40mm Standard @Elegoo Neptune 0.8 nozzle",
+	"layer_height": "0.24",
+	"instantiation": "true"
+}

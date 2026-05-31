@@ -1,0 +1,113 @@
+{
+	"type": "filament",
+	"filament_id": "GFG01",
+	"setting_id": "GFSG01",
+	"name": "re3D Greengate rPETG @0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"nozzle_temperature_initial_layer": [
+		"0"
+	],
+	"nozzle_temperature": [
+		"0"
+	],
+	"nozzle_temperature_range_low": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"filament_flow_ratio": [
+		"1.0"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"20"
+	],
+	"slow_down_min_speed": [
+		"25"
+	],
+	"filament_start_gcode": [
+		"M190 S75\nM104 S220 T0\nM104 S210 T1\nM104 S200 T2\nM109 S220 T0\nM109 S210 T1\nM109 S200 T2"
+	],
+	"filament_density": [
+		"1.27"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"60"
+	],
+	"cool_plate_temp": [
+		"70"
+	],
+	"cool_plate_temp_initial_layer": [
+		"70"
+	],
+	"eng_plate_temp": [
+		"70"
+	],
+	"eng_plate_temp_initial_layer": [
+		"70"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"fan_cooling_layer_time": [
+		"20"
+	],
+	"full_fan_speed_layer": [
+		"2"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"overhang_fan_speed": [
+		"80"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.205"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"temperature_vitrification": [
+		"70"
+	],
+	"support_material_interface_fan_speed": [
+		"100"
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"compatible_printers": [
+		"re3D GigabotX 2 0.8 nozzle",
+		"re3D GigabotX 2 XLT 0.8 nozzle",
+		"re3D TerabotX 2 0.8 nozzle"
+	]
+}

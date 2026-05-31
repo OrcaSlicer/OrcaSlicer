@@ -1,0 +1,83 @@
+{
+	"type": "filament",
+	"name": "Polymaker PETG Galaxy @Snapmaker U1 base",
+	"inherits": "fdm_filament_petg",
+	"from": "system",
+	"filament_id": "GFL77",
+	"instantiation": "false",
+	"bed_type": [
+		"Cool Plate"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_max_speed": [
+		"10"
+	],
+	"fan_min_speed": [
+		"50"
+	],
+	"filament_cost": [
+		"0"
+	],
+	"filament_density": [
+		"1.3"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	],
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"hot_plate_temp": [
+		"80"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"nozzle_temperature_range_low": [
+		"240"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"temperature_vitrification": [
+		"71.24"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"filament_type": [
+		"PETG"
+	]
+}

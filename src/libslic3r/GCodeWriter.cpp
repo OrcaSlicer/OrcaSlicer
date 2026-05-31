@@ -1154,13 +1154,19 @@ std::string GCodeWriter::set_additional_fan(unsigned int speed)
     return gcode.str();
 }
 
-std::string GCodeWriter::set_exhaust_fan( int speed,bool add_eol)
+std::string GCodeWriter::set_exhaust_fan(int speed)
 {
     std::ostringstream gcode;
     gcode << "M106" << " P3" << " S" << (int)(speed / 100.0 * 255);
 
-    if(add_eol)
-        gcode << "\n";
+    if (GCodeWriter::full_gcode_comment) {
+        if (speed == 0)
+            gcode << " ; disable exhaust fan ";
+        else
+            gcode << " ; enable exhaust fan ";
+    }
+
+    gcode << "\n";
     return gcode.str();
 }
 

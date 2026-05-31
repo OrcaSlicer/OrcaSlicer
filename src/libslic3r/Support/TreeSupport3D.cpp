@@ -124,6 +124,9 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
 {
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
+    // Orca: Recompute static mesh-group state for this support generation pass.
+    TreeSupportSettings::zero_top_z_gap = false;
+
     //FIXME this is ugly, it does not belong here.
     for (size_t object_id : print_object_ids) {
         const PrintObject       &print_object  = *print.get_object(object_id);
@@ -1604,9 +1607,14 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
     if (settings.move) {
         increased = relevant_offset;
         if (overspeed > 0) {
-            const coord_t safe_movement_distance =
+            coord_t safe_movement_distance =
                 (current_elem.use_min_xy_dist ? config.xy_min_distance : config.xy_distance) +
                 (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
+            // Orca:
+            // safe_movement_distance is used as the safe_offset_inc() step, so keep it non-zero
+            // to preserve branch movement with zero-clearance support settings.
+            if (safe_movement_distance == 0)
+                safe_movement_distance = scaled<coord_t>(0.1);
             // The difference to ensure that the result not only conforms to wall_restriction, but collision/avoidance is done later.
             // The higher last_safe_step_movement_distance comes exactly from the fact that the collision will be subtracted later.
             increased = safe_offset_inc(increased, overspeed, volumes.getWallRestriction(support_element_collision_radius(config, parent.state), layer_idx, parent.state.use_min_xy_dist),
@@ -1817,9 +1825,15 @@ static void increase_areas_one_layer(
              *  layer z-1:dddddxxxxxxxxxx
              *  For more detailed visualisation see calculateWallRestrictions
              */
-            const coord_t safe_movement_distance =
+            coord_t safe_movement_distance =
                 (elem.use_min_xy_dist ? config.xy_min_distance : config.xy_distance) +
                 (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
+
+            // safe_movement_distance is used as a divisor and as the safe_offset_inc() step,
+            // so keep it non-zero to avoid division by zero and preserve branch movement.
+            if (safe_movement_distance == 0)
+                safe_movement_distance = scaled<coord_t>(0.1);
+
             if (ceiled_parent_radius == volumes.ceilRadius(projected_radius_increased, parent.state.use_min_xy_dist) ||
                 projected_radius_increased < config.increase_radius_until_radius)
                 // If it is guaranteed possible to increase the radius, the maximum movement speed can be increased, as it is assumed that the maximum movement speed is the one of the slower moving wall

@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PC @base",
+	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"filament_id": "GPCB00",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_type": [
+		"PC"
+	]
+}
