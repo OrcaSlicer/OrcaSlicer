@@ -4,6 +4,7 @@
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
+#include "libslic3r/AppConfig.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -16,7 +17,7 @@ static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
 // HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()
 {
-    AppConfig* config = wxGetApp().app_config;
+    Slic3r::AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
     if (!config) return true;
     return config->get_stealth_mode() || !config->get_bool("installed_networking");
 }
