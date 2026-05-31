@@ -82,7 +82,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA @Creality K2 SE 0.4 nozzle"
+		"Creality Generic PLA @K2-all"
 	],
 	"deretraction_speed": "30",
 	"extruder_colour": "#FCE94F",

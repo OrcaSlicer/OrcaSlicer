@@ -1447,16 +1447,16 @@
 			"sub_path": "process/0.24mm Standard @Creality K1C_CFS-C 0.4 nozzle.json"
 		},
 		{
-			"name": "0.08mm Standard @Creality K1C (0.4 nozzle)",
-			"sub_path": "process/0.08mm Standard @Creality K1C (0.4 nozzle).json"
+			"name": "0.08mm Standard @Creality K1C",
+			"sub_path": "process/0.08mm Standard @Creality K1C 0.4 nozzle.json"
 		},
 		{
-			"name": "0.16mm Standard @Creality K1C (0.4 nozzle)",
+			"name": "0.16mm Standard @Creality K1C",
 			"sub_path": "process/0.16mm Standard @Creality K1C 0.4 nozzle.json"
 		},
 		{
-			"name": "0.24mm Standard @Creality K1C (0.4 nozzle)",
-			"sub_path": "process/0.24mm Standard @Creality K1C (0.4 nozzle).json"
+			"name": "0.24mm Standard @Creality K1C 0.4 nozzle",
+			"sub_path": "process/0.24mm Standard @Creality K1C 0.4 nozzle.json"
 		},
 		{
 			"name": "0.16mm Standard @Creality K1 SE_CFS-C 0.4 nozzle",

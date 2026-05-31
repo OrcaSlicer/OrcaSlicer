@@ -92,7 +92,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA Creality SPARKX i7 0.6 nozzle"
+		"Generic PLA @SPARKX i7-all"
 	],
 	"deretraction_speed": "30",
 	"extruder_colour": "#FCE94F",

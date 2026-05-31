@@ -83,7 +83,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA @Creality K1C_CFS-C 0.4 nozzle"
+		"Creality Generic PLA @K1-all"
 	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#FCE94F",
