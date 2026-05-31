@@ -5489,44 +5489,73 @@ void GCodeProcessor::process_M702(const GCodeReader::GCodeLine& line)
 void GCodeProcessor::process_SYNC(const GCodeReader::GCodeLine& line)
 {
     float time = 0;
-    if (line.has_value('T', time) ) {
-        simulate_st_synchronize(time/* H2C TODO ,erFlush*/);
+    float time_role = 0;
+    int   time_role_int = 0;
+    if (line.has_value('R', time_role)) {
+        time_role_int = static_cast<int>(std::round(time_role));
+    } else {
+        time_role_int = 1; // Compatible with older G-code: no 'R' → flush
+    }
+    if (line.has_value('T', time)) {
+        // BBL parity: role 1 = flush time, role 0 = prepare time (none)
+        // TODO: pass erFlush/erNone to simulate_st_synchronize once
+        // our TimeMachine supports ExtrusionRole categorization.
+        simulate_st_synchronize(time);
     }
 }
 
 
 void GCodeProcessor::process_T(const GCodeReader::GCodeLine& line)
 {
-    process_T(line.cmd());
+    // BBL parity: extract nozzle_id from H parameter (e.g. "T0 H1")
+    int nozzle_id = -1;
+    float val = 0.f;
+    if (line.has_value('H', val)) {
+        nozzle_id = static_cast<int>(val);
+    }
+    process_T(line.cmd(), nozzle_id);
 }
 
 void GCodeProcessor::process_M1020(const GCodeReader::GCodeLine &line)
 {
     int curr_filament_id = get_filament_id(false);
     int curr_extruder_id = get_extruder_id(false);
-    if (line.raw().length() > 5) {
-        std::string filament_id_str = line.raw().substr(7);
-        if (filament_id_str.empty())
-            return;
 
-        int eid = 0;
-        eid = std::stoi(filament_id_str);
-        if (eid < 0 || eid > 254) {
-            // M1020-1 is a valid gcode line for RepRap Firmwares (used to deselects all tools)
-            if ((m_flavor != gcfRepRapFirmware && m_flavor != gcfRepRapSprinter) || eid != -1)
-                BOOST_LOG_TRIVIAL(error) << "Invalid M1020 command (" << line.raw() << ").";
+    int eid = -1;
+    float val = 0.f;
+    // BBL parity: parse S parameter first (preferred), fallback to raw string
+    if (line.has_value('S', val)) {
+        eid = static_cast<int>(val);
+    } else if (line.raw().length() > 5) {
+        std::string filament_id_str = line.raw().substr(7);
+        if (!filament_id_str.empty()) {
+             try {
+                eid = std::stoi(filament_id_str);
+             } catch(...) {}
         }
-        else {
-            if (eid >= m_result.filaments_count) {
-                BOOST_LOG_TRIVIAL(error) << "Invalid M1020 command (" << line.raw() << ").";
-                return;
-            }
-            process_filament_change(eid);
+    }
+
+    if (eid == -1) return;
+
+    if (eid < 0 || eid > 254) {
+        // M1020-1 is a valid gcode line for RepRap Firmwares (used to deselects all tools)
+        if ((m_flavor != gcfRepRapFirmware && m_flavor != gcfRepRapSprinter) || eid != -1)
+            BOOST_LOG_TRIVIAL(error) << "Invalid M1020 command (" << line.raw() << ").";
+    }
+    else {
+        if (eid >= m_result.filaments_count)
+            BOOST_LOG_TRIVIAL(error) << "Invalid M1020 command (" << line.raw() << ").";
+
+        // BBL parity: extract nozzle_id from H parameter
+        int nozzle_id = -1;
+        if (line.has_value('H', val)) {
+            nozzle_id = static_cast<int>(val);
         }
+        process_filament_change(eid, nozzle_id);
     }
 }
 
-void GCodeProcessor::process_T(const std::string_view command)
+void GCodeProcessor::process_T(const std::string_view command, int nozzle_id)
 {
     int eid = 0;
     auto         ret          = std::from_chars(command.data() + 1, command.data()+command.size(), eid);
@@ -5556,7 +5585,7 @@ void GCodeProcessor::process_T(const std::string_view command)
                 BOOST_LOG_TRIVIAL(error) << "Invalid T command (" << command << ").";
                 return;
             }
-            process_filament_change(eid);
+            process_filament_change(eid, nozzle_id);
         }
     }
 }
@@ -5572,27 +5601,28 @@ void GCodeProcessor::init_filament_maps_and_nozzle_type_when_import_only_gcode()
     }
 }
 
-void GCodeProcessor::process_filament_change(int id)
+void GCodeProcessor::process_filament_change(int id, int nozzle_id)
 {
     assert(id < m_result.filaments_count);
     int prev_extruder_id = get_extruder_id(false);
     int prev_filament_id = get_filament_id(false);
-    int next_extruder_id = m_filament_maps[id];
-    int next_filament_id = id;
     float extra_time = 0;
-    unsigned int filament_changes_delta = 0;
-    unsigned int extruder_changes_delta = 0;
-    float filament_load_time_delta = 0.0f;
-    float filament_unload_time_delta = 0.0f;
-    float tool_change_time_delta = 0.0f;
 
-    if (prev_filament_id == next_filament_id)
+    if (prev_filament_id == id && nozzle_id == -1)
         return;
 
     if (prev_extruder_id != -1)
         m_last_filament_id[prev_extruder_id] = prev_filament_id;
 
     if(!m_nozzle_group_result){
+    int next_extruder_id = m_filament_maps[id];
+    int next_filament_id = id;
+    unsigned int filament_changes_delta = 0;
+    unsigned int extruder_changes_delta = 0;
+    float filament_load_time_delta = 0.0f;
+    float filament_unload_time_delta = 0.0f;
+    float tool_change_time_delta = 0.0f;
+
     if (prev_extruder_id == next_extruder_id) {
         // don't need extruder change
         assert(prev_extruder_id != -1);
@@ -5648,67 +5678,82 @@ void GCodeProcessor::process_filament_change(int id)
             tool_change_time_delta += tool_change_time;
         }
     }
-    }
-    else {
-        auto old_extruder_opt = m_nozzle_group_result->get_nozzle_for_filament(prev_filament_id);
-        auto new_extruder_opt = m_nozzle_group_result->get_nozzle_for_filament(next_filament_id);
-
-        int old_extruder_id = old_extruder_opt ? old_extruder_opt->extruder_id : -1;
-        int new_extruder_id = new_extruder_opt ? new_extruder_opt->extruder_id : -1;
-
-        int old_filament_in_extruder = m_last_filament_id[next_extruder_id];
-        auto old_nozzle_in_extruder_opt = m_nozzle_group_result->get_nozzle_for_filament(old_filament_in_extruder);
-        auto new_nozzle_in_extruder_opt = m_nozzle_group_result->get_nozzle_for_filament(next_filament_id);
-
-        int old_nozzle_in_extruder = old_nozzle_in_extruder_opt ? old_nozzle_in_extruder_opt->group_id : -1;
-        int new_nozzle_in_extruder = new_nozzle_in_extruder_opt ? new_nozzle_in_extruder_opt->group_id : -1;
-
-        int old_filament_in_nozzle = m_nozzle_status_recorder.get_filament_in_nozzle(new_nozzle_in_extruder);
-
-        bool is_extruder_change = (old_extruder_id != new_extruder_id);
-        bool is_nozzle_change = (old_nozzle_in_extruder != new_nozzle_in_extruder);
-        bool is_filament_change = (old_filament_in_nozzle != next_filament_id);
-
-
-        if (is_extruder_change) {
-            extra_time += get_extruder_change_time(next_extruder_id);
-        }
-        if (is_nozzle_change) {
-            extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_nozzle));
-            extra_time += get_hotend_change_time();
-            m_time_processor.extruder_unloaded = false;
-            extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
-        }
-        if (is_filament_change) {
-            extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_nozzle));
-            m_time_processor.extruder_unloaded = false;
-            extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
-        }
-
-        m_result.lock();
-        if (is_extruder_change || is_nozzle_change || is_filament_change) {
-            process_filaments(CustomGCode::ToolChange);
-        }
-
-        if(is_extruder_change){
-            m_result.print_statistics.total_extruder_changes++;
-        }
-        else if(is_nozzle_change){
-            m_result.print_statistics.total_nozzle_changes++;
-        }
-        else if(is_filament_change){
-            m_result.print_statistics.total_filament_changes++;
-        }
-        m_result.unlock();
-
-        m_filament_id[next_extruder_id] = next_filament_id;
-        m_extruder_id = new_extruder_id;
-        m_nozzle_status_recorder.set_nozzle_status(new_nozzle_in_extruder, next_filament_id);
-    }
     m_cp_color.current = m_extruder_colors[next_filament_id];
     simulate_st_synchronize(extra_time);
     // store tool change move
     store_move_vertex(EMoveType::Tool_change);
+    }
+    else {
+        // BBL parity: nozzle_group_result path (H2C/H2S multi-nozzle)
+        // Rewritten to match BambuStudio 2.7-beta process_filament_change.
+        int next_filament_id = id;
+
+        std::optional<MultiNozzleUtils::NozzleInfo> target_nozzle_info;
+        // If nozzle_id is specified, try to get the nozzle info by nozzle_id
+        if (nozzle_id != -1)
+            target_nozzle_info = m_nozzle_group_result->get_nozzle_from_id(nozzle_id);
+        // If nozzle_id is not specified or not found, try to get the nozzle info for the filament
+        if (!target_nozzle_info) {
+            auto target_opt = m_nozzle_group_result->get_nozzle_for_filament(next_filament_id);
+            if (!target_opt)
+                return;
+            target_nozzle_info = target_opt;
+        }
+        if (!target_nozzle_info)
+            return;
+
+        int new_extruder_id = target_nozzle_info->extruder_id;
+        int old_extruder_id = prev_extruder_id;
+
+        int new_nozzle_id_in_extruder = target_nozzle_info->group_id;
+        int old_nozzle_id_in_extruder = m_nozzle_status_recorder.get_nozzle_in_extruder(new_extruder_id);
+
+        int old_filament_in_nozzle = m_nozzle_status_recorder.get_filament_in_nozzle(new_nozzle_id_in_extruder);
+        int old_filament_in_extruder = m_nozzle_status_recorder.get_filament_in_nozzle(old_nozzle_id_in_extruder);
+
+        bool extruder_change = (new_extruder_id != old_extruder_id);
+        bool nozzle_in_extruder_change = (new_nozzle_id_in_extruder != old_nozzle_id_in_extruder);
+        bool filament_in_nozzle_change = (next_filament_id != old_filament_in_nozzle);
+
+        m_result.lock();
+        // Extruder change time (e.g. dual-extruder swap)
+        if (extruder_change && old_extruder_id != -1) {
+            extra_time += get_extruder_change_time(new_extruder_id);
+        }
+        // BBL parity: combined condition — ONE unload + ONE load
+        // (not separate if-blocks, which would double-count when both are true)
+        if (nozzle_in_extruder_change || filament_in_nozzle_change) {
+            if (old_filament_in_extruder >= 0)
+                extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
+            m_time_processor.extruder_unloaded = false;
+            extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+
+            if (filament_in_nozzle_change && old_filament_in_nozzle != -1)
+                m_result.print_statistics.total_flush_filament_changes++;
+        }
+        // Note: hotend_change_time is NOT added here — it's already accounted
+        // for in SYNC gcode commands emitted by the firmware template.
+
+        if (prev_filament_id != -1)
+            m_result.print_statistics.total_filament_changes++;
+
+        process_filaments(CustomGCode::ToolChange);
+
+        m_result.unlock();
+
+        if (new_extruder_id != -1) {
+            m_filament_id[new_extruder_id] = next_filament_id;
+        }
+        m_extruder_id = new_extruder_id;
+
+        // Record nozzle state for future lookups
+        m_nozzle_status_recorder.set_nozzle_status(new_nozzle_id_in_extruder, next_filament_id);
+
+        m_cp_color.current = m_extruder_colors[next_filament_id];
+        // store tool change move
+        store_move_vertex(EMoveType::Tool_change);
+        simulate_st_synchronize(extra_time);
+    }
 }
 
 void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)

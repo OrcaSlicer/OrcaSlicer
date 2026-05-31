@@ -79,6 +79,7 @@ class Print;
 
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
         unsigned int                                        total_filament_changes;
+        unsigned int                                        total_flush_filament_changes;
         unsigned int                                        total_extruder_changes;
         unsigned int                                        total_nozzle_changes;
         float                                               total_filament_load_time;
@@ -104,6 +105,7 @@ class Print;
             flush_per_filament.clear();
             used_filaments_per_role.clear();
             total_filament_changes = 0;
+            total_flush_filament_changes = 0;
             total_extruder_changes = 0;
             total_nozzle_changes   = 0;
             total_filament_load_time = 0.0f;
@@ -1321,13 +1323,13 @@ class Print;
 
         // Processes T line (Select Tool)
         void process_T(const GCodeReader::GCodeLine& line);
-        void process_T(const std::string_view command);
+        void process_T(const std::string_view command, int nozzle_id = -1);
         void process_M1020(const GCodeReader::GCodeLine &line);
 
         void process_M622(const GCodeReader::GCodeLine &line);
         void process_M623(const GCodeReader::GCodeLine &line);
 
-        void process_filament_change(int id);
+        void process_filament_change(int id, int nozzle_id = -1);
 
         // post process the file with the given filename to:
         // 1) add remaining time lines M73 and update moves' gcode ids accordingly
