@@ -3039,6 +3039,23 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
 
     auto format_line_M106 = []() { return std::string{"M106 S255\n"};};
     auto format_line_M633 = []() { return std::string{"M633\n"};};
+
+    // M632 = firmware "prepare nozzle switch" command.
+    //   S<filament_id>  — destination filament slot
+    //   M N             — flags (Material, Nozzle) for firmware routing
+    //
+    // TODO (Fix 4): Port nozzle_id H-parameter from BBL.
+    //   BBL format (BambuStudio WipeTower.cpp:3357-3363, commit 3f2570c):
+    //     auto format_line_M632 = [](int filament_id, int nozzle_id) {
+    //         std::string buffer = "M632 S" + std::to_string(filament_id);
+    //         if (nozzle_id >= 0)  buffer += " H" + std::to_string(nozzle_id);
+    //         buffer += " M N\n";
+    //         return buffer;
+    //     };
+    //
+    //   The H-parameter tells firmware WHICH physical nozzle to activate.
+    //   Without it, firmware falls back to its own nozzle routing table.
+    //   Requires: get_nozzle_id(filament_id, layer_id) + dynamic nozzle map.
     auto format_line_M632 = [](int filament_id) {
         std::string buffer = "M632 S" + std::to_string(filament_id) + " M N" + "\n";
         return buffer;
@@ -3074,23 +3091,45 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         // THIS IS THE ACTIVE CODE PATH for H2C multi-nozzle printers:
         //   generate_wipe_tower_layers() → tool_change_new() → ramming() → HERE
         //
-        // Was: .append("; Nozzle change start\n")  — plain text comment
+        // Was: .append("; Nozzle change start\n")  — plain text comment, invisible to GCodeProcessor
         //   GCodeProcessor could NOT parse this → firmware saw regular tool change → full flush
         //
         // Now: .append("; NOZZLE_CHANGE_START OF0 NF1\n")  — structured GCodeProcessor tag
         //   GCodeProcessor parses OF/NF → builds ExtruderUsageBlock → firmware does nozzle switch
         //
-        // BBL uses format_nozzle_change_line() lambda with nozzle IDs:
-        //   Ref: BambuStudio WipeTower.cpp:3377-3383, 3409 (commit 3f2570c)
-        //     snprintf(buff, ";%s OF%d NF%d ON%d NN%d\n", tag, old_f, new_f, old_noz, new_noz)
+        // BBL uses format_nozzle_change_line() lambda with additional ON/NN nozzle IDs:
+        //   Ref: BambuStudio WipeTower.cpp:3377-3383 (commit 3f2570c):
+        //     auto format_nozzle_change_line = [this](bool start, int old_f, int new_f) {
+        //         int old_noz = get_nozzle_id(old_f, m_cur_layer_id);
+        //         int new_noz = get_nozzle_id(new_f, m_cur_layer_id);
+        //         snprintf(buff, ";%s OF%d NF%d ON%d NN%d\n", tag, old_f, new_f, old_noz, new_noz);
+        //     };
+        //   Ref: BambuStudio WipeTower.cpp:3409 — emitted at nozzle change preamble
         //
-        // Our format omits ON/NN because get_nozzle_id(filament, layer_id) is not yet ported.
-        // The firmware primarily uses OF/NF for the nozzle switch decision; ON/NN are used by
-        // the BBL PreCoolingInjector for temperature pre-scheduling.
+        // TODO (Fix 5): Port ON/NN nozzle IDs:
+        //   Requires get_nozzle_id(filament_id, layer_id) which depends on
+        //   m_multi_nozzle_group_result->is_support_dynamic_nozzle_map() (Fix 8).
+        //   Without ON/NN, PreCoolingInjector (Fix 6) cannot pre-schedule temperatures.
+        //   Firmware still works — it uses OF/NF for the nozzle switch decision.
         .append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart)
             + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
 
-    //only for nozzle change
+    // Nozzle-change firmware sequence (only when switching nozzle, NOT extruder):
+    //   M632 S<filament> [H<nozzle>] M N  — prepare nozzle switch
+    //   M104 S<precool_temp> T<extruder>  — pre-cool current hotend (if configured)
+    //   M106 S255                         — fan 100% to assist cooling
+    //   M633                              — commit nozzle switch to firmware
+    //
+    // BBL sequence (BambuStudio WipeTower.cpp:3411-3421, commit 3f2570c):
+    //   writer.append(format_line_M632(new_filament_id, new_nozzle_id));  ← with H-param
+    //   if (m_filpar[tool].precool_target_temp.second != 0) {
+    //       writer.format_line_M104(..., get_extruder_id(tool, m_cur_layer_id))
+    //             .append(format_line_M106());
+    //   }
+    //   writer.append(format_line_M633());
+    //
+    // Our version: M632 without H-param (see TODO Fix 4 above).
+    // precool_target_temp.second = nozzle-change pre-cool temperature (vs .first = extruder-change).
     if (!extruder_change)
     {
         writer.append(format_line_M632(new_filament_id));
@@ -3182,14 +3221,17 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         }
     }
 
-    // H2C FIX (CRITICAL): Matching NozzleChangeEnd tag in ramming() — active code path.
-    // The post-processor uses the Start/End pair to delimit the nozzle-change block for:
-    //   1. Building ExtruderUsageBlocks (tracking per-extruder gcode ranges)
-    //   2. Counting total_nozzle_changes vs total_filament_changes in statistics
-    //   3. Pre-cooling injection points (BBL's PreCoolingInjector, not yet ported)
+    // H2C FIX (CRITICAL): Matching NozzleChangeEnd tag — active code path.
+    // Start/End pair delimits the nozzle-change block in the gcode stream for:
+    //   1. GCodeProcessor builds ExtruderUsageBlocks (per-extruder gcode ranges)
+    //   2. Statistics: total_nozzle_changes vs total_filament_changes
+    //   3. BBL's PreCoolingInjector uses End markers as injection points (Fix 6, not ported)
     //
-    // Ref: BambuStudio WipeTower.cpp:3527 (commit 3f2570c)
+    // BBL (BambuStudio WipeTower.cpp:3527, commit 3f2570c):
     //   writer.append(format_nozzle_change_line(false, old_filament_id, new_filament_id));
+    //   → emits "; NOZZLE_CHANGE_END OF0 NF1 ON0 NN1\n"
+    //
+    // Ours: same but without ON/NN (see TODO Fix 5 at NozzleChangeStart).
     writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd)
         + " OF" + std::to_string(old_filament_id) + " NF" + std::to_string(new_filament_id) + "\n");
 
