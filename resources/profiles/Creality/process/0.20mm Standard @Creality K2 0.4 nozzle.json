@@ -132,7 +132,6 @@
 	"overhang_reverse_internal_only": "0",
 	"overhang_reverse_threshold": "50%",
 	"overhang_speed_classic": "0",
-	"overhang_totally_speed": "25",
 	"precise_outer_wall": "0",
 	"prime_tower_brim_width": "3",
 	"prime_tower_enhance_type": "chamfer",
@@ -265,5 +264,6 @@
 	"wipe_tower_rotation_angle": "0",
 	"wiping_volumes_extruders": "70,70,70,70,70,70,70,70,70,70",
 	"xy_contour_compensation": "0",
-	"xy_hole_compensation": "0"
+	"xy_hole_compensation": "0",
+	"overhang_totally_speed": "25"
 }
