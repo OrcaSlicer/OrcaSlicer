@@ -1295,8 +1295,20 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     bool   num_extruders_changed  = false;
     if (! full_config_diff.empty()) {
         //BBS: add more logs
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: found full_config_diff changed.")%__LINE__;
-        update_apply_status(this->invalidate_step(psGCodeExport));
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: found full_config_diff changed, auto_filament_map=%2%")%__LINE__ %m_has_auto_filament_map_result;
+        // H2C fix: If the full_config_diff was caused by update_filament_maps_to_config()
+        // during auto filament map computation in Print::process(), suppress step invalidation.
+        // The auto map updates filament-variant config keys in m_full_print_config, which
+        // causes a spurious diff on the next apply() call from GUI. Without this guard the
+        // slice result is invalidated and the user must press Slice twice.
+        if (m_has_auto_filament_map_result) {
+            // Don't invalidate — just mark as CHANGED so parser/config are refreshed below.
+            update_apply_status(false);
+            m_has_auto_filament_map_result = false;
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": suppressed full_config_diff invalidation (auto filament map)";
+        } else {
+            update_apply_status(this->invalidate_step(psGCodeExport));
+        }
         m_placeholder_parser.clear_config();
         // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
         m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
