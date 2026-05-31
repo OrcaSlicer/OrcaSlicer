@@ -335,6 +335,7 @@ void GCodeProcessor::TimeMachine::reset()
     g1_times_cache = std::vector<G1LinesCacheItem>();
     first_layer_time = 0.0f;
     prepare_time = 0.0f;
+    m_additional_time_buffer.clear();
 }
 
 static void planner_forward_pass_kernel(const GCodeProcessor::TimeBlock& prev, GCodeProcessor::TimeBlock& curr)
@@ -420,12 +421,44 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
     }
 }
 
-void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks, float additional_time)
+GCodeProcessor::TimeMachine::AdditionalBuffer GCodeProcessor::TimeMachine::merge_adjacent_addtional_time_blocks(const AdditionalBuffer& buffer)
 {
-    if (!enabled || blocks.size() < 2)
+    AdditionalBuffer merged;
+    if (buffer.empty())
+        return merged;
+
+    auto current_block = buffer.front();
+    for (size_t idx = 1; idx < buffer.size(); ++idx) {
+        auto next_block = buffer[idx];
+        if (current_block.first == next_block.first) {
+            current_block.second += next_block.second;
+        } else {
+            merged.push_back(current_block);
+            current_block = next_block;
+        }
+    }
+    merged.push_back(current_block);
+    return merged;
+}
+
+void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks, float additional_time, ExtrusionRole target_role)
+{
+    if (!enabled)
         return;
 
+    if (blocks.size() < 2) {
+        if (additional_time > 0.0f) {
+            m_additional_time_buffer.emplace_back(target_role, additional_time);
+        }
+        return;
+    }
+
     assert(keep_last_n_blocks <= blocks.size());
+
+    AdditionalBuffer additional_buffer = m_additional_time_buffer;
+    if (additional_time > 0.0f)
+        additional_buffer.emplace_back(target_role, additional_time);
+    additional_buffer = merge_adjacent_addtional_time_blocks(additional_buffer);
 
     // reverse_pass
     for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i) {
@@ -440,11 +473,22 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
     recalculate_trapezoids(blocks);
 
     const size_t n_blocks_process = blocks.size() - keep_last_n_blocks;
+    size_t additional_buffer_idx = 0;
+
     for (size_t i = 0; i < n_blocks_process; ++i) {
         const TimeBlock& block = blocks[i];
         float block_time = block.time();
-        if (i == 0)
-            block_time += additional_time;
+
+        if (additional_buffer_idx < additional_buffer.size()) {
+            ExtrusionRole buf_role = additional_buffer[additional_buffer_idx].first;
+            float buf_time = additional_buffer[additional_buffer_idx].second;
+            bool is_valid_block = (buf_role == ExtrusionRole::erNone) ||
+                                  (buf_role == block.role);
+            if (is_valid_block) {
+                block_time += buf_time;
+                additional_buffer_idx += 1;
+            }
+        }
 
         time += double(block_time);
         result.moves[block.move_id].time[static_cast<size_t>(mode)] = block_time;
@@ -555,6 +599,11 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
             [](const StopTime& t, unsigned int value) { return t.g1_line_id < value; });
         if (it_stop_time != stop_times.end() && it_stop_time->g1_line_id == block.g1_line_id)
             it_stop_time->elapsed_time = float(time);
+    }
+
+    m_additional_time_buffer.clear();
+    if (additional_buffer_idx < additional_buffer.size()) {
+        m_additional_time_buffer.insert(m_additional_time_buffer.end(), additional_buffer.begin() + additional_buffer_idx, additional_buffer.end());
     }
 
     if (keep_last_n_blocks) {
@@ -5498,9 +5547,10 @@ void GCodeProcessor::process_SYNC(const GCodeReader::GCodeLine& line)
     }
     if (line.has_value('T', time)) {
         // BBL parity: role 1 = flush time, role 0 = prepare time (none)
-        // TODO: pass erFlush/erNone to simulate_st_synchronize once
-        // our TimeMachine supports ExtrusionRole categorization.
-        simulate_st_synchronize(time);
+        if (time_role_int == 1)
+            simulate_st_synchronize(time, ExtrusionRole::erFlush);
+        else
+            simulate_st_synchronize(time, ExtrusionRole::erNone);
     }
 }
 
@@ -6082,13 +6132,13 @@ void GCodeProcessor::process_filaments(CustomGCode::Type code)
     }
 }
 
-void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks, float additional_time)
+void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks, float additional_time, ExtrusionRole target_role)
 {
     // calculate times
     std::vector<TimeMachine::ActualSpeedMove> actual_speed_moves;
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
-        machine.calculate_time(m_result, static_cast<PrintEstimatedStatistics::ETimeMode>(i), keep_last_n_blocks, additional_time);
+        machine.calculate_time(m_result, static_cast<PrintEstimatedStatistics::ETimeMode>(i), keep_last_n_blocks, additional_time, target_role);
         if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal)
             actual_speed_moves = std::move(machine.actual_speed_moves);
     }
@@ -6142,9 +6192,9 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
     }
 }
 
-void GCodeProcessor::simulate_st_synchronize(float additional_time)
+void GCodeProcessor::simulate_st_synchronize(float additional_time, ExtrusionRole target_role)
 {
-    calculate_time(m_result, 0, additional_time);
+    calculate_time(m_result, 0, additional_time, target_role);
 }
 
 void GCodeProcessor::update_estimated_times_stats()

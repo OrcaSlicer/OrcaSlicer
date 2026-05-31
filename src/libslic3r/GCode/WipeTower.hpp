@@ -346,6 +346,10 @@ public:
         float               tower_interface_purge_length = 0.f;
         std::pair<int,int>    precool_target_temp;
         float filament_cooling_before_tower = 0.f;
+        std::pair<float,float>  max_e_ramming_speed;//[0]extruder change [1]nozzle change
+        std::pair<float, float> ramming_travel_time; // Travel time after ramming
+        std::pair<std::vector<float>,std::vector<float>>  precool_t;//Pre-cooling time, set to 0 to ensure the ramming speed is controlled solely by ramming volumetric speed.
+        std::pair<std::vector<float>, std::vector<float>> precool_t_first_layer;
     };
 
 
