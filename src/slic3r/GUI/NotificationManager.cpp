@@ -791,6 +791,42 @@ void NotificationManager::PopNotification::render_hypertext(ImGuiWrapper& imgui,
 
 }
 
+void NotificationManager::PopNotification::render_hyperlink_action(ImGuiWrapper& imgui, float text_x, float text_y,
+	const std::string& text, const char* button_id, const std::function<void()>& on_click)
+{
+	// Invisible button over the label
+	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
+	ImGui::SetCursorPosX(text_x - 4);
+	ImGui::SetCursorPosY(text_y - 5);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+	if (imgui.button(button_id, part_size.x + 6, part_size.y + 10) && on_click)
+		on_click();
+	ImGui::PopStyleColor(3);
+
+	// Hover color
+	ImVec4 color = m_HyperTextColor;
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
+		color = m_HyperTextColorHover;
+
+	// Text
+	push_style_color(ImGuiCol_Text, color, m_state == EState::FadingOut, m_current_fade_opacity);
+	ImGui::SetCursorPosX(text_x);
+	ImGui::SetCursorPosY(text_y);
+	imgui.text(text.c_str());
+	ImGui::PopStyleColor();
+
+	// Underline
+	ImVec2 lineEnd = ImGui::GetItemRectMax();
+	lineEnd.y -= 2;
+	ImVec2 lineStart = lineEnd;
+	lineStart.x = ImGui::GetItemRectMin().x;
+	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
+		IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
+			(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+}
+
 void NotificationManager::PopNotification::render_close_button(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
 {
     ensure_ui_inited();
@@ -2346,40 +2382,8 @@ bool NotificationManager::SharedProfilesNotification::on_text_click()
 void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrapper& imgui,
 	const float text_x, const float text_y, const std::string text, bool more)
 {
-	// Invisible button
-	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
-	ImGui::SetCursorPosX(text_x - 4);
-	ImGui::SetCursorPosY(text_y - 5);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
-	if (imgui.button("##browse_btn", part_size.x + 6, part_size.y + 10)) {
-		if (on_text_click()) {
-			close();
-		}
-	}
-	ImGui::PopStyleColor(3);
-
-	// Hover color
-	ImVec4 HyperColor = m_HyperTextColor;
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
-		HyperColor = m_HyperTextColorHover;
-
-	// Text
-	push_style_color(ImGuiCol_Text, HyperColor, m_state == EState::FadingOut, m_current_fade_opacity);
-	ImGui::SetCursorPosX(text_x);
-	ImGui::SetCursorPosY(text_y);
-	imgui.text(text.c_str());
-	ImGui::PopStyleColor();
-
-	// Underline
-	ImVec2 lineEnd = ImGui::GetItemRectMax();
-	lineEnd.y -= 2;
-	ImVec2 lineStart = lineEnd;
-	lineStart.x = ImGui::GetItemRectMin().x;
-	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
-		IM_COL32((int)(HyperColor.x * 255), (int)(HyperColor.y * 255), (int)(HyperColor.z * 255),
-			(int)(HyperColor.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+	render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn",
+		[this] { if (on_text_click()) close(); });
 }
 
 void NotificationManager::OrcaSyncConflictNotification::init()
@@ -2413,46 +2417,14 @@ void NotificationManager::OrcaSyncConflictNotification::render_text(ImGuiWrapper
 
 	const float action_y = starting_y + m_endlines.size() * shift_y;
 	const std::string pull_text = _u8L("Pull");
-	render_action_link(imgui, x_offset, action_y, pull_text, "##orca_sync_pull", m_pull_callback);
+	render_hyperlink_action(imgui, x_offset, action_y, pull_text, "##orca_sync_pull",
+		[this] { if (m_pull_callback && m_pull_callback(m_evt_handler)) close(); });
 	if (m_force_push_callback) {
 		const std::string force_push_text = _u8L("Force push");
 		const float force_x = x_offset + ImGui::CalcTextSize((pull_text + "   ").c_str()).x;
-		render_action_link(imgui, force_x, action_y, force_push_text, "##orca_sync_force_push", m_force_push_callback);
+		render_hyperlink_action(imgui, force_x, action_y, force_push_text, "##orca_sync_force_push",
+			[this] { if (m_force_push_callback && m_force_push_callback(m_evt_handler)) close(); });
 	}
-}
-
-void NotificationManager::OrcaSyncConflictNotification::render_action_link(ImGuiWrapper& imgui, float text_x, float text_y, const std::string& text,
-	const char* id, const std::function<bool(wxEvtHandler*)>& callback)
-{
-	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
-	ImGui::SetCursorPosX(text_x - 4);
-	ImGui::SetCursorPosY(text_y - 5);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
-	if (imgui.button(id, part_size.x + 6, part_size.y + 10)) {
-		if (callback && callback(m_evt_handler))
-			close();
-	}
-	ImGui::PopStyleColor(3);
-
-	ImVec4 color = m_HyperTextColor;
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
-		color = m_HyperTextColorHover;
-
-	push_style_color(ImGuiCol_Text, color, m_state == EState::FadingOut, m_current_fade_opacity);
-	ImGui::SetCursorPosX(text_x);
-	ImGui::SetCursorPosY(text_y);
-	imgui.text(text.c_str());
-	ImGui::PopStyleColor();
-
-	ImVec2 lineEnd = ImGui::GetItemRectMax();
-	lineEnd.y -= 2;
-	ImVec2 lineStart = lineEnd;
-	lineStart.x = ImGui::GetItemRectMin().x;
-	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
-		IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
-			(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
 }
 
 void NotificationManager::push_shared_profiles_notification(const std::string& explore_url)
