@@ -1492,12 +1492,11 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
     m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
 {
-    // H2C: populate the per-filament change-length tables consumed by plan_toolchange.
-    // Mirrors BBL WipeTower.cpp:1764-1765. .first is the extruder-change length,
-    // .second is the nozzle-change length. Without this, m_filaments_change_length.first
-    // is empty and the H2C dual-nozzle plan_toolchange path indexes OOB → SIGSEGV.
-    m_filaments_change_length.first  = config.filament_change_length.values;
-    m_filaments_change_length.second = config.filament_change_length_nc.values;
+    // H2C patches: change-length tables, max speed, multi-nozzle detection
+    // — EXTRACTED to VortekWipeTowerInit.inl
+#define H2C_WIPE_TOWER_INIT_CTOR
+#include "VortekWipeTowerInit.inl"
+#undef H2C_WIPE_TOWER_INIT_CTOR
     m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
     // Read absolute value of first layer speed, if given as percentage,
     // it is taken over following default. Speeds from config are not
@@ -1506,13 +1505,6 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_first_layer_speed = config.get_abs_value("initial_layer_speed");
     if (m_first_layer_speed == 0.f) // just to make sure autospeed doesn't break it.
         m_first_layer_speed = default_speed / 2.f;
-
-    // H2C: use configurable max wipe tower speed instead of hardcoded 5400 mm/min.
-    // Mirrors BBL: m_max_speed = config.prime_tower_max_speed * 60.f
-    // Orca already has wipe_tower_max_purge_speed (default 90 mm/s) in PrintConfig.
-    m_max_speed = float(config.wipe_tower_max_purge_speed) * 60.f;
-    if (m_max_speed <= 0.f)
-        m_max_speed = 5400.f; // fallback to 90 mm/s
 
     // If this is a single extruder MM printer, we will use all the SE-specific config values.
     // Otherwise, the defaults will be used to turn off the SE stuff.
@@ -1547,16 +1539,7 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_bed_bottom_left = m_bed_shape == RectangularBed
                   ? Vec2f(bed_points.front().x(), bed_points.front().y())
                   : Vec2f::Zero();
-    // H2C FIX: Detect whether this printer has multi-nozzle extruders (e.g. H2C = 2 nozzles
-    // per extruder). This flag gates several downstream decisions:
-    //   - plan_toolchange() uses it to distinguish nozzle-change vs. extruder-change flush volumes
-    //   - tool_change() uses it for TPU pre-extrusion travel paths
-    //   - finish_layer_new() uses it for gap-wall calculations
-    // Was commented out as "H2C TODO" in the original PR #13409, breaking all multi-nozzle logic.
-    //
-    // Ref: BambuStudio WipeTower.cpp:1834 (commit 3f2570c)
-    //   m_is_multiple_nozzle = std::any_of(config.extruder_max_nozzle_count.values.begin(), ...)
-    m_is_multiple_nozzle = std::any_of(config.extruder_max_nozzle_count.values.begin(), config.extruder_max_nozzle_count.values.end(), [](auto &elem) { return elem > 1; });
+    // H2C FIX: multi-nozzle detection — EXTRACTED to VortekWipeTowerInit.inl (CTOR section)
 }
 
 
@@ -1610,30 +1593,10 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
 
     m_perimeter_width = nozzle_diameter * Width_To_Nozzle_Ratio; // all extruders are now assumed to have the same diameter
     {
-        // H2C FIX: Nozzle-change perimeter width — the line width used when extruding the
-        // ramming / nozzle-change block inside the wipe tower. BBL uses a tuned lookup table
-        // keyed by physical nozzle diameter, NOT a simple 2× multiplier, because the optimal
-        // line width for purging depends on the orifice geometry.
-        //
-        // The old code was: m_nozzle_change_perimeter_width = 2 * m_perimeter_width;
-        // which was too wide for 0.2mm nozzles (gave 0.48mm) and too narrow for 0.8mm (gave 1.52mm),
-        // resulting in under-purge or over-purge of the nozzle during H2C switching.
-        //
-        // BBL defines this as a file-scope static const map:
-        //   Ref: BambuStudio WipeTower.cpp:25 (commit 3f2570c)
-        //     static const std::map<float, float> nozzle_diameter_to_nozzle_change_width{
-        //         {0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}
-        //     };
-        //   Usage: WipeTower.cpp:1933
-        //     m_nozzle_change_perimeter_width = nozzle_diameter_to_nozzle_change_width.at(nozzle_diameter);
-        //
-        // We use .find() + fallback instead of .at() to avoid exceptions on unsupported diameters.
-        static const std::map<float, float> nozzle_diameter_to_nozzle_change_width{
-            {0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}
-        };
-        auto it = nozzle_diameter_to_nozzle_change_width.find(nozzle_diameter);
-        m_nozzle_change_perimeter_width = (it != nozzle_diameter_to_nozzle_change_width.end())
-            ? it->second : 2 * m_perimeter_width;
+        // H2C FIX: Nozzle-change perimeter width — EXTRACTED to VortekWipeTowerInit.inl
+#define H2C_WIPE_TOWER_INIT_SET_EXTRUDER
+#include "VortekWipeTowerInit.inl"
+#undef H2C_WIPE_TOWER_INIT_SET_EXTRUDER
     }
     // BBS: remove useless config
 #if 0
@@ -1865,146 +1828,12 @@ WipeTower::ToolChangeResult WipeTower::tool_change(size_t tool, bool extrude_per
     return construct_tcr(writer, false, old_tool, false, true, purge_volume, false);
 }
 
-WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int new_filament_id)
-{
-    float wipe_depth               = 0.f;
-    float wipe_length              = 0.f;
-    float purge_volume             = 0.f;
-    int   nozzle_change_line_count = 0;
-
-    // Finds this toolchange info
-    if (new_filament_id != (unsigned int) (-1)) {
-        for (const auto &b : m_layer_info->tool_changes)
-            if (b.new_tool == new_filament_id) {
-                wipe_length              = b.wipe_length;
-                wipe_depth               = b.required_depth;
-                purge_volume             = b.purge_volume;
-                if (has_tpu_filament())
-                    nozzle_change_line_count = ((b.nozzle_change_depth + WT_EPSILON) / m_nozzle_change_perimeter_width) / 2;
-                else
-                    nozzle_change_line_count = (b.nozzle_change_depth + WT_EPSILON) / m_nozzle_change_perimeter_width;
-                break;
-            }
-    } else {
-        // Otherwise we are going to Unload only. And m_layer_info would be invalid.
-    }
-
-    float nozzle_change_speed = 60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow;
-    if (is_tpu_filament(m_current_tool)) {
-        nozzle_change_speed *= 0.25;
-    }
-
-    WipeTowerWriter writer(m_layer_height, m_perimeter_width, m_gcode_flavor, m_filpar);
-    writer.set_extrusion_flow(m_extrusion_flow)
-        .set_z(m_z_pos)
-        .set_initial_tool(m_current_tool)
-        .set_extrusion_flow(m_extrusion_flow)
-        .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        // H2C FIX: Emit structured NozzleChangeStart tag with ON/NN nozzle IDs.
-        // This is the LEGACY code path (nozzle_change(), called from tool_change()).
-        // The ACTIVE path for H2C is ramming() called from tool_change_new().
-        // Ref: BambuStudio WipeTower.cpp:2210-2213, 2228 (commit 3f2570c)
-        .append([&]() {
-            char buff[64];
-            int old_noz = get_nozzle_id(old_filament_id, m_cur_layer_id);
-            int new_noz = get_nozzle_id(new_filament_id, m_cur_layer_id);
-            snprintf(buff, sizeof(buff), ";%s OF%d NF%d ON%d NN%d\n",
-                     GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeStart).c_str(),
-                     old_filament_id, new_filament_id, old_noz, new_noz);
-            return std::string(buff);
-        }());
-
-    box_coordinates cleaning_box(Vec2f(m_perimeter_width, m_perimeter_width), m_wipe_tower_width - 2 * m_perimeter_width,
-                                 (new_filament_id != (unsigned int) (-1) ? wipe_depth + m_depth_traversed - m_perimeter_width : m_wipe_tower_depth - m_perimeter_width));
-
-    Vec2f initial_position = cleaning_box.ld + Vec2f(0.f, m_depth_traversed);
-    writer.set_initial_position(initial_position, m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
-
-    const float &xl = cleaning_box.ld.x();
-    const float &xr = cleaning_box.rd.x();
-
-    float dy = m_layer_info->extra_spacing * m_perimeter_width;
-    if (has_tpu_filament())
-        dy = 2 * m_perimeter_width;
-
-    float start_y = writer.y();
-
-    m_left_to_right = true;
-
-    bool need_change_flow = false;
-    // now the wiping itself:
-    for (int i = 0; true; ++i) {
-        if (m_left_to_right)
-            writer.extrude(xr + wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), nozzle_change_speed);
-        else
-            writer.extrude(xl - wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), nozzle_change_speed);
-
-        if (writer.y() - float(EPSILON) > cleaning_box.lu.y())
-            break; // in case next line would not fit
-
-        if (i == nozzle_change_line_count - 1)
-            break;
-
-        // stepping to the next line:
-        writer.extrude(writer.x(), writer.y() + dy);
-        m_left_to_right = !m_left_to_right;
-    }
-
-    writer.set_extrusion_flow(m_extrusion_flow); // Reset the extrusion flow.
-
-    m_depth_traversed += nozzle_change_line_count * dy;
-
-    NozzleChangeResult result;
-
-    if (is_tpu_filament(m_current_tool))
-    {
-        bool left_to_right = !m_left_to_right;
-        double tpu_travel_length        = 5;
-        double e_flow                   = extrusion_flow(m_layer_height);
-        double length                   = tpu_travel_length / e_flow;
-        int    tpu_line_count = length / (m_wipe_tower_width - 2 * m_perimeter_width) + 1;
-
-        writer.travel(writer.x(), writer.y() - m_perimeter_width);
-
-        for (int i = 0; true; ++i) {
-            if (left_to_right)
-                writer.travel(xr - m_perimeter_width, writer.y(), nozzle_change_speed);
-            else
-                writer.travel(xl + m_perimeter_width, writer.y(), nozzle_change_speed);
-
-            if (i == tpu_line_count - 1)
-                break;
-
-            writer.travel(writer.x(), writer.y() - dy);
-            left_to_right = !left_to_right;
-        }
-    }
-    else {
-        result.wipe_path.push_back(writer.pos());
-        if (m_left_to_right) {
-             result.wipe_path.push_back(Vec2f(0, writer.y()));
-        } else {
-             result.wipe_path.push_back(Vec2f(m_wipe_tower_width, writer.y()));
-        }
-    }
-
-    // H2C FIX: Matching NozzleChangeEnd tag with ON/NN nozzle IDs.
-    // Ref: BambuStudio WipeTower.cpp:2306 (commit 3f2570c)
-    {
-        char buff[64];
-        int old_noz = get_nozzle_id(old_filament_id, m_cur_layer_id);
-        int new_noz = get_nozzle_id(new_filament_id, m_cur_layer_id);
-        snprintf(buff, sizeof(buff), ";%s OF%d NF%d ON%d NN%d\n",
-                 GCodeProcessor::reserved_tag(GCodeProcessor::ETags::NozzleChangeEnd).c_str(),
-                 old_filament_id, new_filament_id, old_noz, new_noz);
-        writer.append(std::string(buff));
-    }
-
-    result.start_pos = writer.start_pos_rotated();
-    result.end_pos   = writer.pos();
-    result.gcode     = std::move(writer.gcode());
-    return result;
-}
+// ============================================================================
+// H2C WipeTower methods — EXTRACTED to VortekWipeTowerNozzle.inl
+// Contains: nozzle_change(), is_need_ramming(), is_same_extruder(), is_same_nozzle()
+// Included here because WipeTowerWriter is defined in this TU (not in .hpp).
+// ============================================================================
+#include "VortekWipeTowerNozzle.inl"
 
 // Ram the hot material out of the melt zone, retract the filament into the cooling tubes and let it cool.
 void WipeTower::toolchange_Unload(
@@ -2519,31 +2348,6 @@ WipeTower::ToolChangeResult WipeTower::finish_layer(bool extrude_perimeter, bool
     return construct_tcr(writer, false, old_tool, true, false, 0.f, false);
 }
 
-
-// All three accessors below treat a missing nozzle group result as
-// "single-extruder, single-nozzle printer" so AMS-style multi-color on
-// a single hot-end keeps slicing instead of SIGSEGVing in plan_toolchange.
-// Multi-nozzle printers (H2C dual extruder) get the result wired in
-// Print::_make_wipe_tower; the null branch is purely defensive there.
-
-bool WipeTower::is_need_ramming(int filament_id_1, int filament_id_2, int layer_id)
-{
-    if (!m_multi_nozzle_group_result) return false;
-    return !m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
-    //return !is_in_same_extruder(filament_id_1, filament_id_2);
-}
-
-bool WipeTower::is_same_extruder(int filament_id_1, int filament_id_2, int layer_id)
-{
-    if (!m_multi_nozzle_group_result) return true;
-    return m_multi_nozzle_group_result->are_filaments_same_extruder(filament_id_1, filament_id_2, layer_id);
-}
-
-bool WipeTower::is_same_nozzle(int filament_id_1, int filament_id_2, int layer_id)
-{
-    if (!m_multi_nozzle_group_result) return true;
-    return m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
-}
 
 // Appends a toolchange into m_plan and calculates neccessary depth of the corresponding box
 void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool,

@@ -474,6 +474,10 @@ set(lisbslic3r_sources
     FilamentGroupUtils.cpp
     GCode/ToolOrderUtils.hpp
     GCode/ToolOrderUtils.cpp
+    # Vortek: H2C-specific logic extracted from core Orca files
+    VortekGroupReorder.hpp
+    VortekGroupReorder.cpp
+    VortekPreCooling.cpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp
 )
