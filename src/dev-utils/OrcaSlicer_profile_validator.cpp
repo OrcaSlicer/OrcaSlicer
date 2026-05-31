@@ -75,7 +75,7 @@ void generate_custom_presets(PresetBundle* preset_bundle, AppConfig& app_config)
     fs::path folder(dir_user_presets);
     if (!fs::exists(folder))
         fs::create_directory(folder);
-    std::vector<std::string> need_to_delete_list; // store setting ids of preset
+    std::map<std::string, std::string> need_to_delete_list; // store setting ids of preset
 
     preset_bundle->prints.save_user_presets(dir_user_presets, PRESET_PRINT_NAME, need_to_delete_list);
     preset_bundle->filaments.save_user_presets(dir_user_presets, PRESET_FILAMENT_NAME, need_to_delete_list);

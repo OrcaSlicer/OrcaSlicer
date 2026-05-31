@@ -1,4 +1,5 @@
 #include "SwitchButton.hpp"
+#include "Button.hpp"
 #include "Label.hpp"
 #include "StaticBox.hpp"
 
@@ -11,11 +12,18 @@
 #include "libslic3r/MacUtils.hpp"
 #endif
 
+#ifdef __WXGTK3__
+#include "../GUI_Utils.hpp"
+#endif
+
 #include <wx/dcmemory.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
 
+#include <algorithm>
+
 wxDEFINE_EVENT(wxCUSTOMEVT_SWITCH_POS, wxCommandEvent);
+wxDEFINE_EVENT(wxCUSTOMEVT_MULTISWITCH_SELECTION, wxCommandEvent);
 
 SwitchButton::SwitchButton(wxWindow* parent, wxWindowID id)
 	: wxBitmapToggleButton(parent, id, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT)
@@ -28,6 +36,11 @@ SwitchButton::SwitchButton(wxWindow* parent, wxWindowID id)
 	SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
 	Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { update(); e.Skip(); });
 	SetFont(Label::Body_12);
+
+#ifdef __WXGTK3__
+    Slic3r::GUI::RemoveButtonBorder(this);
+#endif
+
 	Rescale();
 }
 
@@ -207,14 +220,40 @@ void SwitchButton::update()
 ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
 {
     background_color = StateColor(
-        std::make_pair(wxColour(0xF1, 0xF1, 0xF1), (int) StateColor::Disabled),
-        std::make_pair(wxColour(0xE3, 0xE3, 0xE3), (int) StateColor::Pressed),
-        std::make_pair(wxColour(0xD9, 0xD9, 0xD9), (int) StateColor::Normal));
+        std::make_pair(wxColour("#D9D9D9"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#D9D9D9"), (int) StateColor::Normal)
+    );
     border_color = StateColor(
-        std::make_pair(wxColour(0xEA, 0xEA, 0xEA), (int) StateColor::Disabled),
-        std::make_pair(wxColour(0xBC, 0xBC, 0xBC), (int) StateColor::Hovered),
-        std::make_pair(wxColour(0xC8, 0xC8, 0xC8), (int) StateColor::Focused),
-        std::make_pair(wxColour(0xCE, 0xCE, 0xCE), (int) StateColor::Normal));
+        std::make_pair(wxColour("#D9D9D9"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#D9D9D9"), (int) StateColor::Hovered | ~StateColor::Focused),
+        std::make_pair(wxColour("#26A69A"), (int) StateColor::Focused),
+        std::make_pair(wxColour("#D9D9D9"), (int) StateColor::Normal)
+    );
+    track_background = StateColor(
+        std::make_pair(wxColour("#009688"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#009688"), (int) StateColor::Normal)
+    );
+    track_border = StateColor(
+        std::make_pair(wxColour("#D9D9D9"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#009688"), (int) StateColor::Hovered | ~StateColor::Focused),
+        std::make_pair(wxColour("#26A69A"), (int) StateColor::Focused),
+        std::make_pair(wxColour("#009688"), (int) StateColor::Normal)
+    );
+    dot_active = StateColor(
+        std::make_pair(wxColour("#FFFEFE"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#FFFEFE"), (int) StateColor::Normal)
+    );
+    dot_dimmed = StateColor(
+        std::make_pair(wxColour("#EEEEEE"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#EEEEEE"), (int) StateColor::Normal)
+    );
+    text_color = StateColor(
+        std::make_pair(wxColour("#6B6B6B"), (int) StateColor::Disabled),
+        std::make_pair(wxColour("#6B6B6B"), (int) StateColor::Normal)
+    );
+
+    state_handler.attach(std::vector<StateColor const*>{&dot_active, &dot_dimmed, &text_color});
+    state_handler.update_binds();
 
     StaticBox::Create(parent, id, wxDefaultPosition, wxDefaultSize, 0);
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
@@ -250,7 +289,7 @@ void ModeSwitchButton::SelectAndNotify(int selection)
 
 void ModeSwitchButton::Rescale()
 {
-    const wxSize button_size = FromDIP(wxSize(48, 20));
+    const wxSize button_size = FromDIP(wxSize(48, 18));
     SetMinSize(button_size);
     SetMaxSize(button_size);
     SetSize(button_size);
@@ -261,63 +300,70 @@ void ModeSwitchButton::Rescale()
 bool ModeSwitchButton::Enable(bool enable /* = true */)
 {
     const bool changed = StaticBox::Enable(enable);
-    if (changed)
+    if (changed){
+        wxCommandEvent e(EVT_ENABLE_CHANGED);
+        e.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(e);
+        m_enabled = enable; // IsEnabled() not works because variable changes after paint event
         Refresh();
+    }
     return changed;
 }
 
 void ModeSwitchButton::doRender(wxDC& dc)
 {
-    dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.SetBrush(wxBrush(GetBackgroundColour()));
-    dc.DrawRectangle(GetClientRect());
-
-    const wxRect bounds = GetClientRect().Deflate(1);
+    const wxRect bounds = GetClientRect();
     if (bounds.width <= 0 || bounds.height <= 0)
         return;
 
-    const int states = state_handler.states();
-    const bool hovered = (states & StateHandler::Hovered) != 0;
-    const bool focused = (states & StateHandler::Focused) != 0;
-    const bool disabled = !IsEnabled();
-
-    const wxColour track_fill = disabled ? wxColour(0xD0, 0xD0, 0xD4) :
-                               m_pressed ? wxColour(0x5A, 0x5D, 0x64) : wxColour(0x66, 0x69, 0x70);
-    const wxColour track_border = disabled ? wxColour(0xDD, 0xDD, 0xE0) :
-                                 focused ? wxColour("#009688") :
-                                 hovered ? wxColour(0x7A, 0x7D, 0x84) : wxColour(0x75, 0x78, 0x7F);
-    const wxColour active_fill = disabled ? wxColour(0x9E, 0xBE, 0xB9) :
-                                m_pressed ? wxColour(0x00877B) : wxColour("#009688");
-    const wxColour active_dot = disabled ? wxColour(0xEC, 0xF4, 0xF2) : wxColour(0xB7, 0xEB, 0xE3);
-    const wxColour inactive_dot = disabled ? wxColour(0xF2, 0xF2, 0xF4) : wxColour(0xB5, 0xB7, 0xBD);
-    const wxColour thumb_fill = disabled ? wxColour(0xFA, 0xFA, 0xFA) : *wxWHITE;
-    const wxColour thumb_border = disabled ? wxColour(0xE7, 0xE7, 0xEA) : wxColour(0xDD, 0xDF, 0xE3);
-
-    dc.SetPen(wxPen(track_border, 1));
-    dc.SetBrush(wxBrush(track_fill));
-    dc.DrawRoundedRectangle(bounds, bounds.height / 2.0);
-
-    const wxRect thumb = thumb_rect_for(m_selection);
-    const int fill_right = std::min(bounds.GetRight(), thumb.GetX() + thumb.GetWidth() / 2 + FromDIP(2));
-    wxRect active(bounds.x, bounds.y, fill_right - bounds.x + 1, bounds.height);
     dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.SetBrush(wxBrush(active_fill));
-    dc.DrawRoundedRectangle(active, bounds.height / 2.0);
+    dc.SetBrush(wxBrush(GetBackgroundColour()));
+    dc.DrawRectangle(bounds);
 
-    const int dot_radius = std::max(FromDIP(1), thumb.height / 7);
-    for (int idx = 0; idx < 3; ++idx) {
-        if (idx == m_selection)
-            continue;
+    int    states   = state_handler.states();
+    double v_center = bounds.height / 2.0;
 
-        const wxRect slot = thumb_rect_for(idx);
-        const wxPoint center(slot.GetX() + slot.GetWidth() / 2, slot.GetY() + slot.GetHeight() / 2);
-        dc.SetBrush(wxBrush(idx < m_selection ? active_dot : inactive_dot));
-        dc.DrawCircle(center, dot_radius);
+    // Background
+    dc.SetPen(wxPen(border_color.colorForStates(states), 1));
+    dc.SetBrush(wxBrush(background_color.colorForStates(states)));
+    dc.DrawRoundedRectangle(bounds, v_center);
+
+    if (m_enabled) {
+        double dot_dist = (bounds.width - bounds.height) * 0.50;
+
+        // Track
+        dc.SetPen(wxPen(track_border.colorForStates(states), 1));
+        dc.SetBrush(wxBrush(track_background.colorForStates(states)));
+        wxRect track_rc = bounds;
+        track_rc.width = int(v_center * 2.0 + dot_dist * m_selection);
+        dc.DrawRoundedRectangle(track_rc, v_center);
+
+        // Dots
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        for (int idx = 0; idx < 3; ++idx) {
+            dc.SetBrush(wxBrush((idx <= m_selection ? dot_active : dot_dimmed).colorForStates(states)));
+            dc.DrawCircle(wxPoint(v_center + dot_dist * idx, v_center), track_rc.height * (double)(idx == m_selection ? 0.32 : 0.16));
+        }
     }
+    else { // Developer mode
+        wxString str = "DEV";
+        int kerning = 3; // pixels between chars
+        dc.SetTextForeground(text_color.colorForStates(states));
 
-    dc.SetPen(wxPen(thumb_border, 1));
-    dc.SetBrush(wxBrush(thumb_fill));
-    dc.DrawRoundedRectangle(thumb, thumb.height / 2.0);
+        wxCoord totalWidth = 0;
+        for (char c : str)
+            totalWidth += dc.GetTextExtent(wxString(c)).x + kerning;
+        totalWidth -= kerning;
+
+        wxCoord x = bounds.x + (bounds.width - totalWidth) / 2;
+        wxCoord y = bounds.y + (bounds.height - dc.GetTextExtent(str).y) / 2 - 1;
+
+        for (char c : str) {
+            wxString ch(c);
+            dc.DrawText(ch, x, y);
+            x += dc.GetTextExtent(ch).x + kerning;
+        }
+    }
 }
 
 void ModeSwitchButton::mouseDown(wxMouseEvent& event)
@@ -380,6 +426,192 @@ wxRect ModeSwitchButton::thumb_rect_for(int selection) const
 void ModeSwitchButton::update_tooltip()
 {
     SetToolTip(m_tooltips[m_selection]);
+}
+
+MultiSwitchButton::MultiSwitchButton(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)
+    : StaticBox(parent, id, pos, size, style)
+    , m_bg_color(StateColor(
+          std::make_pair(0xE8E8E8, (int) StateColor::NotChecked),
+          std::make_pair(0x009688, (int) StateColor::Normal)))
+    , m_text_color(StateColor(
+          std::make_pair(0x6B6B6B, (int) StateColor::NotChecked),
+          std::make_pair(0xFFFFFE, (int) StateColor::Normal)))
+    , m_button_radius(10.0)
+    , m_button_padding(10, 6)
+{
+    SetCornerRadius(m_button_radius);
+    SetBorderWidth(0);
+
+    sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto *hsizer = new wxBoxSizer(wxVERTICAL);
+    hsizer->Add(sizer, 1, wxEXPAND);
+    SetSizer(hsizer);
+    SetMinSize(wxSize(-1, 20));
+
+    Bind(wxEVT_COMMAND_BUTTON_CLICKED, &MultiSwitchButton::button_clicked, this);
+    SetFont(Label::Body_12);
+}
+
+MultiSwitchButton::~MultiSwitchButton()
+{
+    DeleteAllOptions();
+}
+
+int MultiSwitchButton::AppendOption(const wxString &option, void *clientData)
+{
+    Button *btn = new Button();
+    btn->Create(this, option, "", wxBORDER_NONE);
+    btn->SetFont(GetFont());
+    btn->SetBackgroundColor(m_bg_color);
+    btn->SetTextColor(m_text_color);
+    btn->SetCornerRadius(m_button_radius);
+    btn->SetPaddingSize(m_button_padding);
+    btn->SetClientData(clientData);
+
+    btns.push_back(btn);
+    sizer->Add(btn, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+
+    wxSize text_size = btn->GetTextExtent(option);
+    btn->SetMinSize(wxSize(text_size.x + m_button_padding.x * 2 + 6, -1));
+
+    return int(btns.size()) - 1;
+}
+
+void MultiSwitchButton::SetOptions(const std::vector<wxString> &options)
+{
+    DeleteAllOptions();
+    for (const auto &option : options)
+        AppendOption(option);
+
+    Layout();
+    Refresh();
+}
+
+void MultiSwitchButton::DeleteAllOptions()
+{
+    sel = -1;
+    for (auto *btn : btns) {
+        if (btn)
+            btn->Destroy();
+    }
+    btns.clear();
+    if (sizer)
+        sizer->Clear();
+}
+
+unsigned int MultiSwitchButton::GetCount() const
+{
+    return (unsigned int) btns.size();
+}
+
+int MultiSwitchButton::GetSelection() const
+{
+    return sel;
+}
+
+void MultiSwitchButton::SetSelection(int index)
+{
+    if (index < 0 || index >= (int) btns.size() || index == sel)
+        return;
+
+    sel = index;
+    update_button_styles();
+    send_selection_event();
+    Refresh();
+}
+
+wxString MultiSwitchButton::GetSelectedText() const
+{
+    return sel >= 0 && sel < (int) btns.size() ? btns[sel]->GetLabel() : wxString();
+}
+
+wxString MultiSwitchButton::GetOptionText(unsigned int index) const
+{
+    return index < btns.size() ? btns[index]->GetLabel() : wxString();
+}
+
+void MultiSwitchButton::SetOptionText(unsigned int index, const wxString &text)
+{
+    if (index >= btns.size())
+        return;
+    btns[index]->SetLabel(text);
+}
+
+void *MultiSwitchButton::GetOptionData(unsigned int index) const
+{
+    return index < btns.size() ? btns[index]->GetClientData() : nullptr;
+}
+
+void MultiSwitchButton::SetOptionData(unsigned int index, void *clientData)
+{
+    if (index >= btns.size())
+        return;
+    btns[index]->SetClientData(clientData);
+}
+
+void MultiSwitchButton::update_button_styles()
+{
+    for (int i = 0; i < (int) btns.size(); ++i) {
+        btns[i]->SetValue(i == sel);
+        btns[i]->SetBackgroundColor(m_bg_color);
+        btns[i]->SetTextColor(m_text_color);
+        btns[i]->Refresh();
+    }
+}
+
+void MultiSwitchButton::SetBackgroundColor(const StateColor &color)
+{
+    m_bg_color = color;
+    update_button_styles();
+}
+
+void MultiSwitchButton::SetTextColor(const StateColor &color)
+{
+    m_text_color = color;
+    update_button_styles();
+}
+
+void MultiSwitchButton::SetButtonCornerRadius(double radius)
+{
+    m_button_radius = radius;
+    SetCornerRadius(radius);
+    for (auto *btn : btns)
+        btn->SetCornerRadius(radius);
+    Layout();
+    Refresh();
+}
+
+void MultiSwitchButton::SetButtonPadding(const wxSize &padding)
+{
+    m_button_padding = padding;
+    for (auto *btn : btns)
+        btn->SetPaddingSize(padding);
+    Layout();
+    Refresh();
+}
+
+void MultiSwitchButton::Rescale()
+{
+    for (auto *btn : btns)
+        btn->Rescale();
+}
+
+void MultiSwitchButton::button_clicked(wxCommandEvent &event)
+{
+    SetFocus();
+    auto *btn  = event.GetEventObject();
+    auto  iter = std::find(btns.begin(), btns.end(), btn);
+    SetSelection(iter == btns.end() ? -1 : int(iter - btns.begin()));
+}
+
+bool MultiSwitchButton::send_selection_event()
+{
+    wxCommandEvent evt(wxCUSTOMEVT_MULTISWITCH_SELECTION, GetId());
+    evt.SetEventObject(this);
+    evt.SetInt(sel);
+    evt.SetString(GetSelectedText());
+    GetEventHandler()->ProcessEvent(evt);
+    return true;
 }
 
 SwitchBoard::SwitchBoard(wxWindow *parent, wxString leftL, wxString right, wxSize size)

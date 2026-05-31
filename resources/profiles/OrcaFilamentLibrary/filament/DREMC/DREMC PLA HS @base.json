@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "DREMC PLA+ HS @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "DREMC011",
+	"instantiation": "false",
+	"filament_cost": [
+		"26"
+	],
+	"filament_density": [
+		"1.25"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_vendor": [
+		"DREMC"
+	]
+}

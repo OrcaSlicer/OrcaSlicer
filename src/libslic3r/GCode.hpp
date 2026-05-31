@@ -221,10 +221,12 @@ public:
     const Vec2d&    origin() const { return m_origin; }
     void            set_origin(const Vec2d &pointf);
     void            set_origin(const coordf_t x, const coordf_t y) { this->set_origin(Vec2d(x, y)); }
-    const Point&    last_pos() const { return m_last_pos; }
+    Point           last_pos() const { return m_last_pos.to_point(); }
     Vec2d           point_to_gcode(const Point &point) const;
+    Vec3d                    point_to_gcode(const Point3& point) const;
     Point           gcode_to_point(const Vec2d &point) const;
     Vec2d point_to_gcode_quantized(const Point& point) const;
+    Vec3d                    point_to_gcode_quantized(const Point3& point) const;
     const FullPrintConfig &config() const { return m_config; }
     const Layer*    layer() const { return m_layer; }
     GCodeWriter&    writer() { return m_writer; }
@@ -383,7 +385,8 @@ private:
     void check_placeholder_parser_failed();
     size_t get_extruder_id(unsigned int filament_id) const;
 
-    void            set_last_pos(const Point &pos) { m_last_pos = pos; m_last_pos_defined = true; }
+    void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
+    void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
     bool            last_pos_defined() const { return m_last_pos_defined; }
     void            set_extruders(const std::vector<unsigned int> &extruder_ids);
     std::string     preamble();
@@ -391,13 +394,20 @@ private:
     std::string     change_layer(coordf_t print_z);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string     extrude_entity(const ExtrusionEntity &entity, std::string description = "", double speed = -1., const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
+    std::string extrude_entity(const ExtrusionEntity&      entity,
+                               const std::string&          description       = "",
+                               double                      speed             = -1.,
+                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string     extrude_loop(ExtrusionLoop loop, std::string description, double speed = -1., const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(), const Point* start_point = nullptr);
-    std::string     extrude_multi_path(ExtrusionMultiPath multipath, std::string description = "", double speed = -1.);
-    std::string     extrude_path(ExtrusionPath path, std::string description = "", double speed = -1.);
-    
+    std::string extrude_loop(const ExtrusionLoop&        loop,
+                             const std::string&          description,
+                             double                      speed             = -1.,
+                             const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
+                             const Point*                start_point       = nullptr);
+    std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
+    std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
+
     // Orca: Adaptive PA variables
     // Used for adaptive PA when extruding paths with multiple, varying flow segments.
     // This contains the sum of the mm3_per_mm values weighted by the length of each path segment.
@@ -549,6 +559,7 @@ private:
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);
     // ORCA: Add support for role based fan speed control
     std::array<bool, ExtrusionRole::erCount> m_is_role_based_fan_on;
+    std::array<int, ExtrusionRole::erCount>  m_role_based_fan_marker_layer;
     // Markers for the Pressure Equalizer to recognize the extrusion type.
     // The Pressure Equalizer removes the markers from the final G-code.
     bool                                m_enable_extrusion_role_markers;
@@ -584,7 +595,7 @@ private:
     std::map<std::string, std::vector<std::string>> m_placeholder_error_messages;
 #endif
 
-    Point                               m_last_pos;
+    Point3                              m_last_pos;
     bool                                m_last_pos_defined;
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;

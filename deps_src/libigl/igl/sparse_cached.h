@@ -13,41 +13,30 @@
 #include <Eigen/Sparse>
 namespace igl
 {
-  // Build a sparse matrix from list of indices and values (I,J,V), similarly to 
-  // the sparse function in matlab. Divides the construction in two phases, one
-  // for fixing the sparsity pattern, and one to populate it with values. Compared to
-  // igl::sparse, this version is slower for the first time (since it requires a
-  // precomputation), but faster to the subsequent evaluations.
-  //
-  // Templates:
-  //   IndexVector  list of indices, value should be non-negative and should
-  //     expect to be cast to an index. Must implement operator(i) to retrieve
-  //     ith element
-  //   ValueVector  list of values, value should be expect to be cast to type
-  //     T. Must implement operator(i) to retrieve ith element
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Input:
-  //   I  nnz vector of row indices of non zeros entries in X
-  //   J  nnz vector of column indices of non zeros entries in X
-  //   V  nnz vector of non-zeros entries in X
-  //   Optional:
-  //     m  number of rows
-  //     n  number of cols
-  // Outputs:
-  //   X  m by n matrix of type T whose entries are to be found 
-  //
-  // Example:
-  //   Eigen::SparseMatrix<double> A;
-  //   std::vector<Eigen::Triplet<double> > IJV;
-  //   buildA(IJV);
-  //   if (A.rows() == 0)
-  //   {
-  //     A = Eigen::SparseMatrix<double>(rows,cols);
-  //     igl::sparse_cached_precompute(IJV,A,A_data);
-  //   }
-  //   else
-  //     igl::sparse_cached(IJV,s.A,s.A_data);
-
+  /// Build a sparse matrix from list of indices and values (I,J,V), similarly to 
+  /// the sparse function in matlab. Divides the construction in two phases, one
+  /// for fixing the sparsity pattern, and one to populate it with values. Compared to
+  /// igl::sparse, this version is slower for the first time (since it requires a
+  /// precomputation), but faster to the subsequent evaluations.
+  ///
+  /// @param[in] I  nnz vector of row indices of non zeros entries in X
+  /// @param[in] J  nnz vector of column indices of non zeros entries in X
+  /// @param[out] data ?? vector of ??
+  /// @param[out] X  m by n matrix of type T whose entries are to be found 
+  ///
+  /// #### Example:
+  ///
+  ///       Eigen::SparseMatrix<double> A;
+  ///       std::vector<Eigen::Triplet<double> > IJV;
+  ///       slim_buildA(IJV);
+  ///       if (A.rows() == 0)
+  ///       {
+  ///         A = Eigen::SparseMatrix<double>(rows,cols);
+  ///         igl::sparse_cached_precompute(IJV,A_data,A);
+  ///       }
+  ///       else
+  ///         igl::sparse_cached(IJV,A_data,A);
+  ///
   template <typename DerivedI, typename Scalar>
   IGL_INLINE void sparse_cached_precompute(
     const Eigen::MatrixBase<DerivedI> & I,
@@ -55,20 +44,26 @@ namespace igl
     Eigen::VectorXi& data,
     Eigen::SparseMatrix<Scalar>& X
     );
-  
+  /// \overload
+  /// @param[in] triplets  nnz vector of triplets of non zeros entries in X
   template <typename Scalar>
   IGL_INLINE void sparse_cached_precompute(
     const std::vector<Eigen::Triplet<Scalar> >& triplets,
     Eigen::VectorXi& data,
     Eigen::SparseMatrix<Scalar>& X
     );
-
+  /// Build a sparse matrix from cached list of data and values
+  ///
+  /// @param[in] triplets  nnz vector of triplets of non zeros entries in X
+  /// @param[in] data ?? vector of ??
+  /// @param[in,out] X  m by n matrix of type T whose entries are to be found 
   template <typename Scalar>
   IGL_INLINE void sparse_cached(
     const std::vector<Eigen::Triplet<Scalar> >& triplets,
     const Eigen::VectorXi& data,
     Eigen::SparseMatrix<Scalar>& X);
-
+  /// \overload 
+  /// @param[in] V #V list of values
   template <typename DerivedV, typename Scalar>
   IGL_INLINE void sparse_cached(
     const Eigen::MatrixBase<DerivedV>& V,
