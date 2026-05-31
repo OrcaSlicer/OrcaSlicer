@@ -405,6 +405,12 @@ public:
     bool support_different_extruders();
     std::vector<int> get_default_nozzle_volume_types_for_filaments(std::vector<int>& f_maps);
 
+    // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
+    // Called from (load|update)_selections before the parallel project_config arrays
+    // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
+    // short saved filament list doesn't truncate the loaded colors.
+    void update_filament_count();
+
     // Load user configuration and store it into the user profiles.
     // This method is called by the configuration wizard.
     void                        load_config_from_wizard(const std::string &name, DynamicPrintConfig config, Semver file_version)
@@ -499,6 +505,7 @@ public:
 	static const char *ORCA_DEFAULT_PRINTER_VARIANT;
 	static const char *ORCA_DEFAULT_FILAMENT;
     static const char *ORCA_FILAMENT_LIBRARY;
+    static const char *ORCA_DEFAULT_FILAMENT_PLACEHOLDER;
 
 
     static std::array<Preset::Type, 3>  types_list(PrinterTechnology pt) {

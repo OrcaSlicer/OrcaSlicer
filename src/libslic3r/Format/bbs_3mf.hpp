@@ -66,7 +66,7 @@ struct PlateData
         objects_and_instances.clear();
     }
 
-    void parse_filament_info(GCodeProcessorResult *result, const DynamicPrintConfig *config = nullptr);
+    void parse_filament_info(GCodeProcessorResult *result);
 
     int plate_index;
     std::vector<std::pair<int, int>> objects_and_instances;
@@ -99,6 +99,9 @@ struct PlateData
     using LayerFilaments = std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>, GCodeProcessorResult::FilamentSequenceHash>;
     LayerFilaments layer_filaments;
     std::vector<unsigned int> filament_change_sequence;
+    std::vector<unsigned int> nozzle_change_sequence;
+    std::vector<int> optimal_assignment;
+
     // Hexadecimal number,
     // the 0th digit corresponds to extruder 1
     // the 1th digit corresponds to extruder 2
@@ -153,7 +156,7 @@ inline bool operator & (SaveStrategy & lhs, SaveStrategy rhs)
 }
 
 enum {
-    brim_points_format_version = 1
+    brim_points_format_version = 0
 };
 
 enum class LoadStrategy

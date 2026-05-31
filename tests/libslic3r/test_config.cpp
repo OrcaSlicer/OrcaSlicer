@@ -265,6 +265,56 @@ SCENARIO("DynamicPrintConfig serialization", "[Config]") {
     }
 }
 
+SCENARIO("update_non_diff_values_to_base_config preserves child vectors when child has more extruders than parent",
+         "[Config][Variant]") {
+    GIVEN("A 2-extruder child printer config inheriting from a 1-extruder parent") {
+        Slic3r::DynamicPrintConfig child;
+        Slic3r::DynamicPrintConfig parent;
+
+        child.set_key_value("nozzle_diameter",           new Slic3r::ConfigOptionFloats({0.4, 0.4}));
+        child.set_key_value("printer_extruder_id",       new Slic3r::ConfigOptionInts({1, 2}));
+        child.set_key_value("printer_extruder_variant",  new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard"}));
+        child.set_key_value("retraction_length",         new Slic3r::ConfigOptionFloats({1.5, 1.5}));
+
+        parent.set_key_value("nozzle_diameter",          new Slic3r::ConfigOptionFloats({0.4}));
+        parent.set_key_value("printer_extruder_id",      new Slic3r::ConfigOptionInts({1}));
+        parent.set_key_value("printer_extruder_variant", new Slic3r::ConfigOptionStrings({"Direct Drive Standard"}));
+        parent.set_key_value("retraction_length",        new Slic3r::ConfigOptionFloats({0.8}));
+
+        const Slic3r::t_config_option_keys keys = {
+            "retraction_length", "printer_extruder_id", "printer_extruder_variant"
+        };
+        const std::set<std::string> different_keys = {
+            "retraction_length", "printer_extruder_id", "printer_extruder_variant"
+        };
+
+        WHEN("update_non_diff_values_to_base_config is called") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+            child.update_non_diff_values_to_base_config(
+                parent, keys, different_keys, id_name, var_name,
+                Slic3r::printer_options_with_variant_1,
+                Slic3r::printer_options_with_variant_2);
+
+            THEN("printer_extruder_id retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionInts>("printer_extruder_id")->values.size() == 2);
+            }
+            THEN("printer_extruder_variant retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionStrings>("printer_extruder_variant")->values.size() == 2);
+            }
+            THEN("retraction_length retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionFloats>("retraction_length")->values.size() == 2);
+            }
+            THEN("printer_extruder_id values are preserved for both extruders") {
+                auto* pe_id = child.option<Slic3r::ConfigOptionInts>("printer_extruder_id");
+                REQUIRE(pe_id->values.size() == 2);
+                REQUIRE(pe_id->values[0] == 1);
+                REQUIRE(pe_id->values[1] == 2);
+            }
+        }
+    }
+}
+
 // SCENARIO("DynamicPrintConfig JSON serialization", "[Config]") {
 //     WHEN("DynamicPrintConfig is serialized and deserialized") {
 // 	auto now = std::chrono::high_resolution_clock::now();

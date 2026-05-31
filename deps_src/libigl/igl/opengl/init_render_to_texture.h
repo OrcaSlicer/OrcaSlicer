@@ -14,47 +14,46 @@ namespace igl
 {
   namespace opengl
   {
-    // Create a frame buffer that renders color to a RGBA texture a depth to a
-    // "render buffer".
-    //
-    // After calling this, you can use with something like:
-    //
-    //     glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
-    //     if(!depth_texture)
-    //     {
-    //       glBindRenderbuffer(GL_RENDERBUFFER, d_id);
-    //     }
-    //     //
-    //     // draw scene ...
-    //     //
-    //     // clean up
-    //     glBindFramebuffer(GL_FRAMEBUFFER,0);
-    //     if(!depth_texture)
-    //     {
-    //       glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    //     }
-    //     // Later ...
-    //     glActiveTexture(GL_TEXTURE0+0);
-    //     glBindTexture(GL_TEXTURE_2D,tex_id);
-    //     if(depth_texture)
-    //     {
-    //       glActiveTexture(GL_TEXTURE0+1);
-    //       glBindTexture(GL_TEXTURE_2D,d_id);
-    //     }
-    //     // draw textures
-    //      
-    //     
-    //
-    // Inputs:
-    //   width  image width
-    //   height  image height
-    //   depth_texture  whether to create a texture for depth or to create a
-    //     render buffer for depth 
-    // Outputs:
-    //   tex_id  id of the texture
-    //   fbo_id  id of the frame buffer object
-    //   d_id  id of the depth texture or frame buffer object
-    //
+    /// Create a frame buffer that renders color to a RGBA texture a depth to a
+    /// "render buffer".
+    ///
+    /// After calling this, you can use with something like:
+    ///
+    /// \code{cpp}
+    ///     glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
+    ///     if(!depth_texture)
+    ///     {
+    ///       glBindRenderbuffer(GL_RENDERBUFFER, d_id);
+    ///     }
+    ///     //
+    ///     // draw scene ...
+    ///     //
+    ///     // clean up
+    ///     glBindFramebuffer(GL_FRAMEBUFFER,0);
+    ///     if(!depth_texture)
+    ///     {
+    ///       glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    ///     }
+    ///     // Later ...
+    ///     glActiveTexture(GL_TEXTURE0+0);
+    ///     glBindTexture(GL_TEXTURE_2D,tex_id);
+    ///     if(depth_texture)
+    ///     {
+    ///       glActiveTexture(GL_TEXTURE0+1);
+    ///       glBindTexture(GL_TEXTURE_2D,d_id);
+    ///     }
+    ///     // draw textures
+    /// \endcode
+    ///      
+    ///     
+    /// @param[in] width  image width
+    /// @param[in] height  image height
+    /// @param[in] depth_texture  whether to create a texture for depth or to create a
+    ///     render buffer for depth 
+    /// @param[out] tex_id  id of the texture
+    /// @param[out] fbo_id  id of the frame buffer object
+    /// @param[out] d_id  id of the depth texture or frame buffer object
+    ///
     IGL_INLINE void init_render_to_texture(
       const size_t width,
       const size_t height,
@@ -62,7 +61,8 @@ namespace igl
       GLuint & tex_id,
       GLuint & fbo_id,
       GLuint & d_id);
-    // Wrapper with depth_texture = false for legacy reasons
+    /// \overload
+    /// \brief Wrapper with depth_texture = false for legacy reasons
     IGL_INLINE void init_render_to_texture(
       const size_t width,
       const size_t height,

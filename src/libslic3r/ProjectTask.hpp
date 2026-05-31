@@ -51,10 +51,8 @@ struct FilamentInfo
     int         mapping_result = 0;
     bool        used_for_support{false};
     bool        used_for_object{false};
-
-    /*for multi nozzle*/
-    int group_id {-1};
-    double nozzle_diameter{0};
+    std::vector<int> group_id;
+    double      nozzle_diameter{0.0};
     std::string nozzle_volume_type;
 
     /*for new ams mapping*/

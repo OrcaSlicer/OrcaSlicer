@@ -23,7 +23,7 @@
 		"0x802"
 	],
 	"default_filament_profile": [
-		"Generic PLA @Z-Bolt"
+		"Generic PLA @Z-Bolt 0.4 nozzle"
 	],
 	"default_print_profile": "0.20mm Standard @Z-Bolt S800",
 	"extruder_colour": [
