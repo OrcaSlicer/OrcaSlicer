@@ -3172,18 +3172,24 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (is_bbl_printers) {
         this->_print_first_layer_extruder_temperatures(file, print, machine_start_gcode, initial_extruder_id, true);
     }
-    // Orca: when activate_air_filtration is set on any extruder, find and set the highest during_print_exhaust_fan_speed
-    bool activate_air_filtration_during_print = false;
-    int  during_print_exhaust_fan_speed = 0;
-    for (const auto &extruder : m_writer.extruders()) {
-        if (m_config.activate_air_filtration.get_at(extruder.id()) && m_config.activate_air_filtration_during_print.get_at(extruder.id())) {
-            activate_air_filtration_during_print = true;
-            during_print_exhaust_fan_speed = std::max(during_print_exhaust_fan_speed,
-                                                      m_config.during_print_exhaust_fan_speed.get_at(extruder.id()));
+
+    // Orca: when air filtration is supported, check if it needs to be activated during printing and set the exhaust fan speed accordingly
+    if (m_config.support_air_filtration.value) {
+        bool activate_air_filtration_during_print = false;
+        int  during_print_exhaust_fan_speed = 0;
+
+        // Orca: when activate_air_filtration is set on any extruder, find and set the highest during_print_exhaust_fan_speed
+        for (const auto &extruder : m_writer.extruders()) {
+            if (m_config.activate_air_filtration.get_at(extruder.id()) && m_config.activate_air_filtration_during_print.get_at(extruder.id())) {
+                activate_air_filtration_during_print = true;
+                during_print_exhaust_fan_speed = std::max(during_print_exhaust_fan_speed,
+                                                        m_config.during_print_exhaust_fan_speed.get_at(extruder.id()));
+            }
         }
+
+        if (activate_air_filtration_during_print)
+            file.write(m_writer.set_exhaust_fan(during_print_exhaust_fan_speed));
     }
-    if (activate_air_filtration_during_print)
-        file.write(m_writer.set_exhaust_fan(during_print_exhaust_fan_speed, true));
 
     print.throw_if_canceled();
 
@@ -3482,16 +3488,23 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (activate_chamber_temp_control && max_chamber_temp > 0)
         file.write(m_writer.set_chamber_temperature(0, false));  //close chamber_temperature
 
-    bool activate_air_filtration_on_completion = false;
-    int complete_print_exhaust_fan_speed = 0;
-    for (const auto& extruder : m_writer.extruders()) {
-        if (m_config.activate_air_filtration.get_at(extruder.id()) && m_config.activate_air_filtration_on_completion.get_at(extruder.id())) {
-            activate_air_filtration_on_completion = true;
-            complete_print_exhaust_fan_speed = std::max(complete_print_exhaust_fan_speed, m_config.complete_print_exhaust_fan_speed.get_at(extruder.id()));
+    // Orca: when air filtration is supported, check if it needs to be activated after print completion and set the exhaust fan speed accordingly
+    if (m_config.support_air_filtration.value) {
+        bool activate_air_filtration_on_completion = false;
+        int complete_print_exhaust_fan_speed = 0;
+
+        // Orca: when activate_air_filtration is set on any extruder, find and set the highest complete_print_exhaust_fan_speed
+        for (const auto& extruder : m_writer.extruders()) {
+            if (m_config.activate_air_filtration.get_at(extruder.id()) && m_config.activate_air_filtration_on_completion.get_at(extruder.id())) {
+                activate_air_filtration_on_completion = true;
+                complete_print_exhaust_fan_speed = std::max(complete_print_exhaust_fan_speed, m_config.complete_print_exhaust_fan_speed.get_at(extruder.id()));
+            }
         }
+
+        if (activate_air_filtration_on_completion)
+            file.write(m_writer.set_exhaust_fan(complete_print_exhaust_fan_speed));
     }
-    if (activate_air_filtration_on_completion)
-        file.write(m_writer.set_exhaust_fan(complete_print_exhaust_fan_speed, true));
+
     // adds tags for time estimators
     file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Last_Line_M73_Placeholder).c_str());
     file.write_format("; EXECUTABLE_BLOCK_END\n\n");
