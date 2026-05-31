@@ -383,11 +383,12 @@ int NetworkAgent::put_setting(std::string                         setting_id,
                               std::string                         name,
                               std::map<std::string, std::string>* values_map,
                               unsigned int*                       http_code,
-                              const std::string&                  provider)
+                              const std::string&                  provider,
+                              bool force)
 {
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
-        return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code);
+        return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code, force);
     return -1;
 }
 
