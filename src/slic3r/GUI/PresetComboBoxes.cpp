@@ -1408,7 +1408,8 @@ void PlaterPresetComboBox::update()
     add_presets(bundle_presets, selected_bundle_preset, L("Bundle presets"), bundle_group_name);
     // BBS: move system to the end
     add_presets(system_presets, selected_system_preset, L("System presets"), _L("System"));
-    add_presets(uncompatible_presets, {}, L("Unsupported presets"), _L("Unsupported") + " ");
+    // Orca: don't show unsupported presets, as that don't make any sense
+    // add_presets(uncompatible_presets, {}, L("Unsupported presets"), _L("Unsupported") + " ");
 
     //BBS: remove unused pysical printer logic
     /*if (m_type == Preset::TYPE_PRINTER)
