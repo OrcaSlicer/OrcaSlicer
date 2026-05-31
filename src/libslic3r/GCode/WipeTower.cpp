@@ -1507,6 +1507,13 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     if (m_first_layer_speed == 0.f) // just to make sure autospeed doesn't break it.
         m_first_layer_speed = default_speed / 2.f;
 
+    // H2C: use configurable max wipe tower speed instead of hardcoded 5400 mm/min.
+    // Mirrors BBL: m_max_speed = config.prime_tower_max_speed * 60.f
+    // Orca already has wipe_tower_max_purge_speed (default 90 mm/s) in PrintConfig.
+    m_max_speed = float(config.wipe_tower_max_purge_speed) * 60.f;
+    if (m_max_speed <= 0.f)
+        m_max_speed = 5400.f; // fallback to 90 mm/s
+
     // If this is a single extruder MM printer, we will use all the SE-specific config values.
     // Otherwise, the defaults will be used to turn off the SE stuff.
     // BBS: remove useless config
@@ -1700,7 +1707,9 @@ Vec2f WipeTower::get_next_pos(const WipeTower::box_coordinates &cleaning_box, fl
 WipeTower::ToolChangeResult WipeTower::tool_change(size_t tool, bool extrude_perimeter, bool first_toolchange_to_nonsoluble)
 {
     m_nozzle_change_result.gcode.clear();
-    if (!m_filament_map.empty() && tool < m_filament_map.size() && m_filament_map[m_current_tool] != m_filament_map[tool]) {
+    if (is_need_ramming(static_cast<int>(m_current_tool),
+                        static_cast<int>(tool),
+                        static_cast<int>(m_cur_layer_id))) {
         m_nozzle_change_result = nozzle_change(m_current_tool, tool);
     }
 
@@ -1749,7 +1758,7 @@ WipeTower::ToolChangeResult WipeTower::tool_change(size_t tool, bool extrude_per
     writer.speed_override_backup();
 	writer.speed_override(100);
 
-    float feedrate = is_first_layer() ? std::min(m_first_layer_speed * 60.f, 5400.f) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, 5400.f);
+    float feedrate = is_first_layer() ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
 
     // Increase the extruder driver current to allow fast ramming.
     //BBS
@@ -2362,7 +2371,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer(bool extrude_perimeter, bool
 	// Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, 5400.f) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, 5400.f);
+    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
     if (m_enable_tower_interface_features && m_prev_layer_had_interface)
         feedrate = std::min(feedrate, 20.f * 60.f);
     float fill_box_y = m_layer_info->toolchanges_depth() + m_perimeter_width;
@@ -2583,14 +2592,25 @@ void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned in
     depth += std::ceil(length_to_extrude / width) * m_perimeter_width;
     //depth *= m_extra_spacing;
 
+    int layer_id = static_cast<int>(m_plan.size()) - 1;
+    // Use dynamic nozzle topology check (BBL: is_need_ramming / is_same_extruder)
+    // instead of static m_filament_map comparison. The static map fails when an
+    // external spool maps both filaments to the same extruder — is_need_ramming
+    // delegates to LayeredNozzleGroupResult::are_filaments_same_nozzle() which
+    // knows the actual nozzle assignments.
+    float filament_change_length_val = 0.f;
+    if (old_tool < m_filaments_change_length.first.size()) {
+        filament_change_length_val = !is_same_extruder(old_tool, new_tool, layer_id)
+            ? m_filaments_change_length.first[old_tool]
+            : (old_tool < m_filaments_change_length.second.size()
+                ? m_filaments_change_length.second[old_tool]
+                : m_filaments_change_length.first[old_tool]);
+    }
+
     float nozzle_change_depth = 0;
-    if (!m_filament_map.empty()
-        && old_tool < m_filament_map.size() && new_tool < m_filament_map.size()
-        && m_filament_map[old_tool] != m_filament_map[new_tool]
-        && old_tool < m_filaments_change_length.first.size()) {
+    if (is_need_ramming(old_tool, new_tool, layer_id)) {
         double e_flow                   = nozzle_change_extrusion_flow(layer_height_par);
-        // BBL stores the filament_change_length table per filament; index by old_tool.
-        double length                   = m_filaments_change_length.first[old_tool] / e_flow;
+        double length                   = filament_change_length_val / e_flow;
         int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
         if (has_tpu_filament())
             nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
@@ -2754,7 +2774,7 @@ int WipeTower::first_toolchange_to_nonsoluble_nonsupport(
     return -1;
 }
 
-static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
+WipeTower::ToolChangeResult WipeTower::merge_tcr(WipeTower::ToolChangeResult& first,
                                              WipeTower::ToolChangeResult& second)
 {
     assert(first.new_tool == second.initial_tool);
@@ -2762,7 +2782,7 @@ static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
     out.is_contact = first.is_contact || second.is_contact;
     if ((first.end_pos - second.start_pos).norm() > (float)EPSILON) {
         std::string travel_gcode = "G1 X" + Slic3r::float_to_string_decimal_point(second.start_pos.x(), 3) + " Y" +
-                                   Slic3r::float_to_string_decimal_point(second.start_pos.y(), 3) + " F5400" + "\n";
+                                   Slic3r::float_to_string_decimal_point(second.start_pos.y(), 3) + " F" + std::to_string((int)m_max_speed) + "\n";
         bool need_insert_travel = true;
         if (second.is_tool_change
             && is_approx(second.start_pos.x(), second.tool_change_start_pos.x())
@@ -2857,27 +2877,18 @@ void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
 WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool solid_toolchange, bool solid_nozzlechange)
 {
     m_nozzle_change_result.gcode.clear();
-    if (!m_filament_map.empty() && new_tool < m_filament_map.size() && m_filament_map[m_current_tool] != m_filament_map[new_tool]) {
-        // Route the H2C wipe-tower swap through ramming() instead of the older
-        // nozzle_change(). Both produce the "; Nozzle change start" wipe block, but
-        // ramming() honours two pieces of state nozzle_change() ignored:
-        //   - solid_nozzlechange: when the layer is a wipe-tower Contact layer
-        //     (interface between dissimilar filament categories), switch to a
-        //     denser wipe pattern at 40 mm/s instead of the per-filament max-flow
-        //     speed. Without this the contact layer is under-wiped and bleeds the
-        //     prior colour through.
-        //   - extruder_change: when the swap also crosses physical extruders
-        //     (m_filament_map[old] != m_filament_map[new], the gate above), emit
-        //     M632 / M104 / M106 / M633 around the wipe so the destination hotend
-        //     is pre-cooled before purge.
-        // hotend_change uses BBL's quirky naming where it's actually
-        // is_same_extruder. Inside this branch the map definitionally differs, so
-        // is_same_extruder == false, but the predicate also covers the H2C
-        // dual-nozzle "different nozzle, same extruder" edge case if the gate is
-        // ever loosened to match BBL's is_need_ramming.
-        const bool hotend_change = is_same_extruder(static_cast<int>(m_current_tool),
-                                                    static_cast<int>(new_tool),
-                                                    static_cast<int>(m_cur_layer_id));
+    // Use dynamic nozzle topology (BBL: is_need_ramming) instead of static
+    // m_filament_map comparison. The static map fails when external spool maps
+    // both filaments to the same extruder; is_need_ramming delegates to
+    // LayeredNozzleGroupResult::are_filaments_same_nozzle() which knows the
+    // actual nozzle assignments.
+    bool hotend_change = false;
+    if (is_need_ramming(static_cast<int>(m_current_tool),
+                        static_cast<int>(new_tool),
+                        static_cast<int>(m_cur_layer_id))) {
+        hotend_change = is_same_extruder(static_cast<int>(m_current_tool),
+                                         static_cast<int>(new_tool),
+                                         static_cast<int>(m_cur_layer_id));
         m_nozzle_change_result = ramming(static_cast<int>(m_current_tool),
                                          static_cast<int>(new_tool),
                                          solid_nozzlechange,
@@ -3238,7 +3249,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, 5400.f) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, 5400.f);
+    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
 
     float fill_box_depth = m_wipe_tower_depth - 2 * m_perimeter_width;
     if (m_wipe_tower_blocks.size() == 1) {
@@ -3412,7 +3423,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block(const WipeTowerBlock &block,
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, 5400.f) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, 5400.f);
+    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, m_max_speed);
 
     box_coordinates fill_box(Vec2f(0, 0), 0, 0);
     fill_box = box_coordinates(Vec2f(m_perimeter_width, block.cur_depth), m_wipe_tower_width - 2 * m_perimeter_width, block.start_depth + block.layer_depths[m_cur_layer_id] - block.cur_depth - m_perimeter_width);
@@ -3526,7 +3537,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, 5400.f) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, 5400.f);
+    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, m_max_speed);
     feedrate       = interface_solid ? 20.f * 60.f : feedrate;
     box_coordinates fill_box(Vec2f(0, 0), 0, 0);
     fill_box = box_coordinates(Vec2f(m_perimeter_width, block.cur_depth), m_wipe_tower_width - 2 * m_perimeter_width,
@@ -3947,12 +3958,17 @@ void WipeTower::plan_tower_new()
                 float length_to_extrude   = toolchange.wipe_length;
                 float depth               = std::ceil(length_to_extrude / width) * m_perimeter_width;
                 float nozzle_change_depth = 0;
-                if (!m_filament_map.empty()
-                    && toolchange.old_tool < m_filament_map.size() && toolchange.new_tool < m_filament_map.size()
-                    && m_filament_map[toolchange.old_tool] != m_filament_map[toolchange.new_tool]
-                    && toolchange.old_tool < m_filaments_change_length.first.size()) {
+                if (is_need_ramming(toolchange.old_tool, toolchange.new_tool, static_cast<int>(m_cur_layer_id))) {
+                    float filament_change_len = 0.f;
+                    if (toolchange.old_tool < m_filaments_change_length.first.size()) {
+                        filament_change_len = !is_same_extruder(toolchange.old_tool, toolchange.new_tool, static_cast<int>(m_cur_layer_id))
+                            ? m_filaments_change_length.first[toolchange.old_tool]
+                            : (toolchange.old_tool < m_filaments_change_length.second.size()
+                                ? m_filaments_change_length.second[toolchange.old_tool]
+                                : m_filaments_change_length.first[toolchange.old_tool]);
+                    }
                     double e_flow                   = nozzle_change_extrusion_flow(m_plan[idx].height);
-                    double length                   = m_filaments_change_length.first[toolchange.old_tool] / e_flow;
+                    double length                   = filament_change_len / e_flow;
                     int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
                     if (has_tpu_filament())
                         nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
@@ -4432,7 +4448,7 @@ WipeTower::ToolChangeResult WipeTower::only_generate_out_wall(bool is_new_mode)
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, 5400.f) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, 5400.f);
+    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
     float           fill_box_y = m_layer_info->toolchanges_depth() + m_perimeter_width;
     box_coordinates fill_box(Vec2f(m_perimeter_width, fill_box_y), m_wipe_tower_width - 2 * m_perimeter_width, m_layer_info->depth - fill_box_y);
 

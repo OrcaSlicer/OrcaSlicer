@@ -391,6 +391,7 @@ public:
     int get_wall_filament_for_all_layer();
 	// for generate new wipe tower
     void generate_new(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+    ToolChangeResult merge_tcr(ToolChangeResult& first, ToolChangeResult& second);
 
 	void plan_tower_new();
 	void generate_wipe_tower_blocks();
@@ -450,6 +451,7 @@ private:
     int    m_old_temperature    = -1;   // To keep track of what was the last temp that we set (so we don't issue the command when not neccessary)
     float  m_travel_speed       = 0.f;
     float  m_first_layer_speed  = 0.f;
+    float  m_max_speed          = 5400.f;  // Maximum wipe tower print speed (mm/min), configurable via wipe_tower_max_purge_speed
     size_t m_first_layer_idx    = size_t(-1);
 
     std::pair<std::vector<double>,std::vector<double>> m_filaments_change_length;//[0]extruder change [1]nozzle change
