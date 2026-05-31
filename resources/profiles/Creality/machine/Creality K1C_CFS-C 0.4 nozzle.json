@@ -4,7 +4,6 @@
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality K1C_CFS-C",
-	"printer_structure": "undefine",
 	"auxiliary_fan": "1",
 	"bbl_use_printhost": "0",
 	"bed_exclude_area": "0x0",

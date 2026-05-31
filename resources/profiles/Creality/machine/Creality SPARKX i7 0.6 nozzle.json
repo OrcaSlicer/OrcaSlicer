@@ -4,7 +4,6 @@
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality SPARKX i7",
-	"printer_structure": "undefine",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
 	"bbl_use_printhost": "0",

@@ -179,7 +179,6 @@
 		"0.4"
 	],
 	"name": "Creality K2 0.6 nozzle",
-	"printer_structure": "undefine",
 	"adaptive_bed_mesh_margin": "0",
 	"bbl_use_printhost": "0",
 	"bed_exclude_area": "0x0",

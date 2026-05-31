@@ -130,7 +130,6 @@
 		"96x96",
 		"300x300"
 	],
-	"printer_structure": "undefine",
 	"bbl_use_printhost": "0",
 	"bed_exclude_area": "0x0",
 	"bed_mesh_max": "99999,99999",

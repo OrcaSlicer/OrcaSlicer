@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"name": "0.24mm Optimal @Creality K1C",
+	"name": "0.36mm Draft @Creality K1C",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
 	"setting_id": "GP004",
@@ -33,7 +33,7 @@
 	"internal_bridge_support_thickness": "0.8",
 	"initial_layer_acceleration": "500",
 	"initial_layer_line_width": "0.5",
-	"initial_layer_print_height": "0.24",
+	"initial_layer_print_height": "0.36",
 	"initial_layer_speed": "50",
 	"gap_infill_speed": "50",
 	"infill_combination": "0",
@@ -45,7 +45,7 @@
 	"ironing_spacing": "0.15",
 	"ironing_speed": "30",
 	"ironing_type": "no ironing",
-	"layer_height": "0.24",
+	"layer_height": "0.36",
 	"reduce_infill_retraction": "1",
 	"filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
 	"detect_overhang_wall": "1",
@@ -112,6 +112,6 @@
 	"xy_contour_compensation": "0",
 	"gcode_label_objects": "0",
 	"compatible_printers": [
-		"Creality K1C (0.6 nozzle)"
+		"Creality K1C 0.6 nozzle"
 	]
 }
