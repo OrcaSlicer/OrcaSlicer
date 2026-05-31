@@ -1,31 +1,36 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
 	"name": "re3D Gigabot 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_re3D_common",
+	"instantiation": "true",
+	"machine_tech": "FFF",
+	"model_id": "GB4",
 	"printer_model": "re3D Gigabot 4",
-	"nozzle_diameter": [
-		"0.4",
-		"0.4"
-	],
-	"printer_variant": "0.4",
+	"bed_texture": "Gigabot 4_buildplate_texture.png",
+	"default_materials": "re3D PETG;re3D PLA;re3D PC",
 	"printable_area": [
 		"0x0",
 		"590x0",
 		"590x600",
 		"0x600"
 	],
-	"printable_height": "590",
+	"printable_height": "600",
+	"nozzle_diameter": [
+		"0.4",
+		"0.4"
+	],
+	"printer_variant": "0.4",
 	"max_layer_height": [
 		"0.32"
 	],
 	"min_layer_height": [
 		"0.2"
 	],
-	"retraction_length": [
-		"0.6"
+	"default_filament_profile": [
+		"re3D PLA @0.4 nozzle",
+		"re3D PETG @0.4 nozzle"
 	],
-	"default_print_profile": "0.28mm Standard @re3D fdm 0.4"
+	"default_print_profile": "0.26 Standard",
+	"printer_settings_id": "re3d_gigbot4_04",
+	"setting_id": "re3d_gigbot4_04"
 }

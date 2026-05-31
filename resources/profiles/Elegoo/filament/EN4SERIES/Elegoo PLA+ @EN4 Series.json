@@ -1,0 +1,35 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA+ @EN4 Series",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"setting_id": "EPLAPLUSEN4",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 4 0.4 nozzle",
+		"Elegoo Neptune 4 0.6 nozzle",
+		"Elegoo Neptune 4 0.8 nozzle",
+		"Elegoo Neptune 4 1.0 nozzle",
+		"Elegoo Neptune 4 Pro 0.4 nozzle",
+		"Elegoo Neptune 4 Pro 0.6 nozzle",
+		"Elegoo Neptune 4 Pro 0.8 nozzle",
+		"Elegoo Neptune 4 Pro 1.0 nozzle",
+		"Elegoo Neptune 4 Plus 0.4 nozzle",
+		"Elegoo Neptune 4 Plus 0.6 nozzle",
+		"Elegoo Neptune 4 Plus 0.8 nozzle",
+		"Elegoo Neptune 4 Plus 1.0 nozzle",
+		"Elegoo Neptune 4 Max 0.4 nozzle",
+		"Elegoo Neptune 4 Max 0.6 nozzle",
+		"Elegoo Neptune 4 Max 0.8 nozzle",
+		"Elegoo Neptune 4 Max 1.0 nozzle"
+	]
+}
