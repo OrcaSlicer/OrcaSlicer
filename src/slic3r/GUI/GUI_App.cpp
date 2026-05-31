@@ -4509,18 +4509,43 @@ std::string GUI_App::handle_web_request(std::string cmd)
         boost::optional<std::string> command = root.get_optional<std::string>("command");
         if (command.has_value()) {
             std::string command_str = command.value();
-            static const std::unordered_set<std::string> stealth_blocked_commands = {
+            static const std::unordered_set<std::string> stealth_blocked_info_commands = {
                 "get_login_info",
                 "get_orca_login_info",
                 "get_bambu_login_info",
+            };
+            static const std::unordered_set<std::string> stealth_blocked_login_commands = {
                 "homepage_login_or_register",
                 "homepage_orca_login_or_register",
                 "homepage_bambu_login_or_register",
             };
-            if (app_config->get_stealth_mode() && stealth_blocked_commands.count(command_str)) {
+            if (app_config->get_stealth_mode() && stealth_blocked_info_commands.count(command_str)) {
                 CallAfter([this] {
                     if (mainframe && mainframe->m_webview)
                         mainframe->m_webview->SendCloudProvidersInfo();
+                });
+                return "";
+            }
+            if (app_config->get_stealth_mode() && stealth_blocked_login_commands.count(command_str)) {
+                CallAfter([this, command_str] {
+                    MessageDialog dlg(mainframe,
+                        _L("You are currently in Stealth Mode. To log into the Cloud, you need to disable Stealth Mode first."),
+                        _L("Stealth Mode"),
+                        wxOK | wxCANCEL | wxCENTRE);
+                    dlg.SetButtonLabel(wxID_OK, _L("Quit Stealth Mode"));
+                    if (dlg.ShowModal() == wxID_OK) {
+                        app_config->set_bool("stealth_mode", false);
+                        app_config->save();
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendCloudProvidersInfo();
+                        // Continue with login
+                        if (command_str == "homepage_login_or_register")
+                            this->request_login(true);
+                        else if (command_str == "homepage_orca_login_or_register")
+                            this->request_login(true, ORCA_CLOUD_PROVIDER);
+                        else if (command_str == "homepage_bambu_login_or_register")
+                            this->request_login(true, BBL_CLOUD_PROVIDER);
+                    }
                 });
                 return "";
             }
