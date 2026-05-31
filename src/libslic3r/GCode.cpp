@@ -1,3 +1,6 @@
+/**
+ * Region-Aware Filament Runout Pause Feature Concept & Implementation Copyright (C) 2026 Famtory <famtory@gmail.com>
+ */
 #include "BoundingBox.hpp"
 #include "Config.hpp"
 #include "GCodeWriter.hpp"
