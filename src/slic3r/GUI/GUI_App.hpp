@@ -323,6 +323,7 @@ private:
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
+    std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -534,6 +535,9 @@ public:
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            restart_sync_user_preset();
+    // Resolve a cloud sync 409 by force-pushing the conflicting preset: clears the "hold"
+    // state the conflict left behind and queues it to be re-uploaded with force=true.
+    void            force_push_conflicting_preset(const std::string& setting_id);
     void            on_stealth_mode_enter();
 
     // Bundle subscription sync

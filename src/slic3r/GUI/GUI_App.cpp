@@ -4894,17 +4894,17 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         BOOST_LOG_TRIVIAL(info) << "Http error 409.";
         // Parse the conflict body to extract the error code and server profile id
         int conflict_code = 0;
-        json conflict_body;
+        std::string conflict_setting_id;
         try {
-            conflict_body = json::parse(body_str);
+            json conflict_body = json::parse(body_str);
             if (conflict_body.contains("code"))
                 conflict_code = conflict_body["code"].get<int>();
+            if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")
+                && conflict_body["server_profile"]["id"].is_string())
+                conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
         }
-        std::string conflict_setting_id;
-        if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id"))
-            conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
         auto* plater = wxGetApp().plater();
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
@@ -4918,16 +4918,17 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
             plater->get_notification_manager()->push_orca_sync_conflict_notification(
                 text,
                 [this](wxEvtHandler*) {
-                    std::thread([this]() {
-                        if (is_closing() || !m_agent || !preset_bundle)
-                            return;
-                        BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
-                        restart_sync_user_preset();
-                    }).detach();
-
+                    // Runs on the GUI thread (on_http_error is a queued wx event); restart_sync_user_preset()
+                    // already joins the old sync thread off the UI thread, so no extra thread is needed here.
+                    if (is_closing() || !m_agent || !preset_bundle)
+                        return false;
+                    BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
+                    restart_sync_user_preset();
                     return true;
                 },
                 [this, conflict_setting_id](wxEvtHandler*) {
+                    if (mainframe == nullptr)
+                        return false;
                     MessageDialog
                         dlg(mainframe,
                             _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
@@ -4935,11 +4936,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
-                    if (!conflict_setting_id.empty()) {
-                        std::unique_lock lock(conflict_ids_mutex);
-                        m_pending_conflict_setting_ids.push_back(conflict_setting_id);
-                    }
-
+                    force_push_conflicting_preset(conflict_setting_id);
                     return true;
                 });
         }
@@ -6759,7 +6756,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             // Sync once immediately, then every 60 seconds.
             while (!t.expired()) {
                 ++tick_tock;
-                if (tick_tock % 120 == 0) {
+                // Sync once immediately, then every 60s, or right away when a force-push asked for it.
+                if (tick_tock % 120 == 0 || m_sync_user_presets_now.exchange(false, std::memory_order_acq_rel)) {
                     tick_tock = 0;
                     if (m_agent) {
                         if (!m_agent->is_user_login()) {
@@ -6980,6 +6978,35 @@ void GUI_App::restart_sync_user_preset()
                     start_sync_user_preset(true);
             });
     }).detach();
+}
+
+void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
+{
+    if (setting_id.empty() || !preset_bundle)
+        return;
+
+    // Queue the id so the next push-sync re-uploads this preset with force=true.
+    {
+        std::scoped_lock lock(conflict_ids_mutex);
+        m_pending_conflict_setting_ids.push_back(setting_id);
+    }
+
+    // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
+    // "update" so the next push-sync re-includes it and consumes the queued force flag.
+    // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
+    // the local changes the user is trying to force-push.)
+    PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
+    for (PresetCollection* coll : collections) {
+        for (const Preset& preset : coll->get_presets()) {
+            if (preset.setting_id == setting_id && preset.sync_info == "hold") {
+                coll->set_sync_info_and_save(preset.name, preset.setting_id, "update", 0);
+                break;
+            }
+        }
+    }
+
+    // Nudge the sync loop to push on its next tick instead of waiting for the 60s cadence.
+    m_sync_user_presets_now.store(true, std::memory_order_release);
 }
 
 void GUI_App::on_stealth_mode_enter()
