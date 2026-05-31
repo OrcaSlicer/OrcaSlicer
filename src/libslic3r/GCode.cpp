@@ -1935,8 +1935,55 @@ namespace DoExport {
         total_cost += config.time_cost.getFloat() * hours;
 
         double kw             = config.printer_power_watts.getFloat() / 1000.0;
-        print_statistics.cost_electricity =
-            kw * hours * config.electricity_rate.getFloat();
+        {
+            auto *night_rate_opt = config.option<ConfigOptionFloat>("electricity_rate_night");
+            double night_rate = (night_rate_opt != nullptr) ? night_rate_opt->getFloat() : 0.0;
+            if (night_rate == 0.0) {
+                // Fallback: single rate (backward compatible with old .3mf projects)
+                print_statistics.cost_electricity =
+                    kw * hours * config.electricity_rate.getFloat();
+            } else {
+                auto *night_start_opt = config.option<ConfigOptionFloat>("night_start_hour");
+                auto *night_end_opt   = config.option<ConfigOptionFloat>("night_end_hour");
+                auto *print_start_opt = config.option<ConfigOptionFloat>("print_start_hour");
+                double day_rate       = config.electricity_rate.getFloat();
+
+                double night_start = (night_start_opt != nullptr) ? night_start_opt->getFloat() : 22.0;
+                double night_end   = (night_end_opt   != nullptr) ? night_end_opt->getFloat()   : 6.0;
+                double print_start = (print_start_opt != nullptr) ? print_start_opt->getFloat() : 8.0;
+
+                // Normalize night window: handle wrap-around (e.g., 22:00 to 06:00)
+                double n_start = night_start;
+                double n_end   = (night_end > night_start) ? night_end : night_end + 24.0;
+                double n_len   = n_end - n_start;
+
+                // Linear timeline from print start
+                double p_start = print_start;
+                double p_end   = print_start + hours;
+
+                // Position first night window before or at print start
+                double win = n_start;
+                while (win + n_len < p_start)
+                    win += 24.0;
+                while (win > p_start + n_len && win > 24.0)
+                    win -= 24.0;
+
+                // Sum night hours across all overlapping night windows
+                double night_hours = 0.0;
+                while (win < p_end) {
+                    double o_start = std::max(win, p_start);
+                    double o_end   = std::min(win + n_len, p_end);
+                    if (o_end > o_start)
+                        night_hours += o_end - o_start;
+                    win += 24.0;
+                }
+
+                double day_hours = hours - night_hours;
+                if (day_hours < 0.0) day_hours = 0.0;
+                print_statistics.cost_electricity =
+                    kw * (day_hours * day_rate + night_hours * night_rate);
+            }
+        }
 
         double lifetime       = config.printer_lifetime_hours.getFloat();
         double wear_per_hour  = (lifetime > 0)

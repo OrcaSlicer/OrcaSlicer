@@ -4503,6 +4503,10 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("maintenance_cost_per_hour", "printer_basic_information_advanced#maintenance-cost-per-hour");
         optgroup->append_single_option_line("fixed_cost_per_print", "printer_basic_information_advanced#fixed-cost-per-print");
         optgroup->append_single_option_line("failure_rate_percent", "printer_basic_information_advanced#failure-rate-percent");
+        optgroup->append_single_option_line("electricity_rate_night", "printer_basic_information_advanced#electricity-rate-night");
+        optgroup->append_single_option_line("night_start_hour", "printer_basic_information_advanced#night-start-hour");
+        optgroup->append_single_option_line("night_end_hour", "printer_basic_information_advanced#night-end-hour");
+        optgroup->append_single_option_line("print_start_hour", "printer_basic_information_advanced#print-start-hour");
         optgroup->append_single_option_line("profit_margin_percent", "printer_basic_information_advanced#profit-margin-percent");
         optgroup->append_single_option_line("tax_percent", "printer_basic_information_advanced#tax-percent");
 

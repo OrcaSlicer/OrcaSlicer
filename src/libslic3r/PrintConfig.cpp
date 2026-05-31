@@ -3856,6 +3856,41 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    def = this->add("electricity_rate_night", coFloat);
+    def->label = L("Night electricity rate");
+    def->tooltip = L("Cost per kWh during night hours.");
+    def->sidetext = L("money/kWh");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("night_start_hour", coFloat);
+    def->label = L("Night rate start hour");
+    def->tooltip = L("Hour when night electricity rate begins (0-23). Example: 22 means 10:00 PM.");
+    def->sidetext = L("h");
+    def->min = 0;
+    def->max = 23;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(22));
+
+    def = this->add("night_end_hour", coFloat);
+    def->label = L("Night rate end hour");
+    def->tooltip = L("Hour when night electricity rate ends (0-23). Example: 6 means 6:00 AM.");
+    def->sidetext = L("h");
+    def->min = 0;
+    def->max = 23;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(6));
+
+    def = this->add("print_start_hour", coFloat);
+    def->label = L("Estimated print start hour");
+    def->tooltip = L("The hour you usually start printing (0-23). Used to calculate how much of the print falls in night vs day rate.");
+    def->sidetext = L("h");
+    def->min = 0;
+    def->max = 23;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(8));
+
     // Orca: may remove this option later
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");

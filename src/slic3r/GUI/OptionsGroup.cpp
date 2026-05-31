@@ -945,6 +945,10 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 	boost::any ret;
 	wxString text_value = wxString("");
 	const ConfigOptionDef* opt = config.def()->get(opt_key);
+	if (opt == nullptr)
+		return ret;
+	if (!config.has(opt_key))
+		return ret;
 
     if (opt->nullable)
     {
@@ -1125,6 +1129,10 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
 
     boost::any ret;
     const ConfigOptionDef* opt = config.def()->get(opt_key);
+    if (opt == nullptr)
+        return ret;
+    if (!config.has(opt_key))
+        return ret;
 
     if (opt->nullable)
     {

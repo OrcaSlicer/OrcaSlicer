@@ -13872,6 +13872,97 @@ msgstr ""
 msgid "money/h"
 msgstr ""
 
+# Printer cost module
+msgid "Printer power consumption"
+msgstr ""
+
+msgid "Average power consumption of the printer in watts (W). Used to calculate electricity cost automatically."
+msgstr ""
+
+msgid "W"
+msgstr ""
+
+msgid "Electricity rate"
+msgstr ""
+
+msgid "Cost per kilowatt-hour (kWh) of electricity."
+msgstr ""
+
+msgid "money/kWh"
+msgstr ""
+
+msgid "Printer purchase price"
+msgstr ""
+
+msgid "Original purchase price of the printer. Used to calculate depreciation per print."
+msgstr ""
+
+msgid "money"
+msgstr ""
+
+msgid "Printer expected lifetime"
+msgstr ""
+
+msgid "Expected total printing hours before the printer needs replacement."
+msgstr ""
+
+msgid "h"
+msgstr ""
+
+msgid "Maintenance cost per hour"
+msgstr ""
+
+msgid "Estimated cost of consumables (nozzles, build plate, lubricant, etc.) averaged per hour of printing."
+msgstr ""
+
+msgid "Fixed cost per print"
+msgstr ""
+
+msgid "Fixed overhead per print job: preparation, post-processing, packaging, etc."
+msgstr ""
+
+msgid "Profit margin"
+msgstr ""
+
+msgid "Percentage added on top of total costs as profit margin."
+msgstr ""
+
+msgid "Tax / VAT"
+msgstr ""
+
+msgid "Percentage of tax or VAT applied to the final price."
+msgstr ""
+
+msgid "Estimated failure rate"
+msgstr ""
+
+msgid "Percentage of prints that fail on average. Increases material and electricity costs proportionally."
+msgstr ""
+
+msgid "Night electricity rate"
+msgstr ""
+
+msgid "Cost per kWh during night hours."
+msgstr ""
+
+msgid "Night rate start hour"
+msgstr ""
+
+msgid "Hour when night electricity rate begins (0-23). Example: 22 means 10:00 PM."
+msgstr ""
+
+msgid "Night rate end hour"
+msgstr ""
+
+msgid "Hour when night electricity rate ends (0-23). Example: 6 means 6:00 AM."
+msgstr ""
+
+msgid "Estimated print start hour"
+msgstr ""
+
+msgid "The hour you usually start printing (0-23). Used to calculate how much of the print falls in night vs day rate."
+msgstr ""
+
 msgid "Support control chamber temperature"
 msgstr ""
 
