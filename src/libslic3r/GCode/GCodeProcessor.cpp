@@ -5548,7 +5548,7 @@ void GCodeProcessor::process_SYNC(const GCodeReader::GCodeLine& line)
     if (line.has_value('T', time)) {
         // BBL parity: role 1 = flush time, role 0 = prepare time (none)
         if (time_role_int == 1)
-            simulate_st_synchronize(time, ExtrusionRole::erFlush);
+            simulate_st_synchronize(time, ExtrusionRole::erWipeTower);
         else
             simulate_st_synchronize(time, ExtrusionRole::erNone);
     }

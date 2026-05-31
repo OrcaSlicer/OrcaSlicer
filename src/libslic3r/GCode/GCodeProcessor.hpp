@@ -631,6 +631,7 @@ class Print;
             float first_layer_time;
             std::vector<ActualSpeedMove> actual_speed_moves;
             //BBS: prepare stage time before print model, including start gcode time and mostly same with start gcode time
+            float prepare_time;
             using AdditionalBuffer = std::vector<std::pair<ExtrusionRole, float>>;
             AdditionalBuffer m_additional_time_buffer;
 
