@@ -26,6 +26,10 @@ if(support_multi_nozzle && m_print->get_layered_nozzle_group_result()){
             layer_data.geometric_unprintables, layer_data.filament_unprintable_volumes,
             map_mode, m_initial_nozzle_status.get_nozzle_filament_map());
 
+        // BBL parity: Time estimator's extruder printing times are global and not
+        // suitable for dynamic per-combo-range local grouping. Force group_with_time to false.
+        grouping_context.speed_info.group_with_time = false;
+
         OrderingContext order_ctx;
         order_ctx.filament_lists = filament_lists;
         order_ctx.get_custom_seq = get_custom_seq;
