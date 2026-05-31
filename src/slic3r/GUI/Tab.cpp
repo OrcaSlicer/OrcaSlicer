@@ -1935,6 +1935,26 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
+    if (opt_key == "parallel_printheads_count" || opt_key == "parallel_printheads_bed_exclude_areas") {
+        if (m_config->opt_bool("support_parallel_printheads")) {
+            const int count = opt_key == "parallel_printheads_count" ? boost::any_cast<int>(value) : m_config->opt_int("parallel_printheads_count");
+            if (auto *field = this->get_field("bed_exclude_area")) {
+                wxString exclude_area;
+                if (count > 0) {
+                    if (const auto *areas = m_config->option<ConfigOptionStrings>("parallel_printheads_bed_exclude_areas");
+                        areas != nullptr) {
+                        const size_t index = static_cast<size_t>(count - 1);
+                        if (index < areas->values.size())
+                            exclude_area = wxString::FromUTF8(areas->values[index]);
+                    }
+                }
+
+                field->set_value(exclude_area, true);
+                field->propagate_value();
+            }
+        }
+    }
+
     if (m_postpone_update_ui) {
         // It means that not all values are rolled to the system/last saved values jet.
         // And call of the update() can causes a redundant check of the config values,
@@ -4429,6 +4449,7 @@ void TabPrinter::build_fff()
         create_line_with_widget(optgroup.get(), "printable_area", "custom-svg-and-png-bed-textures_124612", [this](wxWindow* parent) {
            return 	create_bed_shape_widget(parent);
         });
+        optgroup->append_single_option_line("parallel_printheads_count");
         Option option = optgroup->get_option("bed_exclude_area");
         option.opt.full_width = true;
         optgroup->append_single_option_line(option, "printer_basic_information_printable_space#excluded-bed-area");
@@ -5409,6 +5430,7 @@ void TabPrinter::toggle_options()
     //    toggle_option("change_filament_gcode", have_multiple_extruders);
     //}
     if (m_active_page->title() == L("Basic information")) {
+        const auto &printer_cfg = m_preset_bundle->printers.get_edited_preset().config;
 
         // SoftFever: hide BBL specific settings
         for (auto el : {"scan_first_layer", "bbl_calib_mark_logo", "bbl_use_printhost"})
@@ -5420,6 +5442,9 @@ void TabPrinter::toggle_options()
 
         auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
         toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
+
+        const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
+        toggle_line("parallel_printheads_count", support_parallel_printheads);
     }
     
 

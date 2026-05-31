@@ -1480,6 +1480,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))
     ((ConfigOptionPointsGroups,       extruder_printable_area))
+    ((ConfigOptionBool,               support_parallel_printheads))
+    ((ConfigOptionInt,                parallel_printheads_count))
+    ((ConfigOptionStrings,            parallel_printheads_bed_exclude_areas))
     //BBS: add bed_exclude_area
     ((ConfigOptionPoints,             bed_exclude_area))
     ((ConfigOptionPoints,             head_wrap_detect_zone))

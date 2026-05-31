@@ -693,6 +693,26 @@ void PrintConfigDef::init_common_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPointsGroups{});
 
+    def           = this->add("support_parallel_printheads", coBool);
+    def->label    = L("Support parallel printheads");
+    def->tooltip  = L("Enable printer settings for machines that can use multiple printheads in parallel.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool{false});
+
+    def           = this->add("parallel_printheads_count", coInt);
+    def->label    = L("Parallel printheads count");
+    def->tooltip  = L("Set the number of parallel printheads for machines like OrangeStorm Giga printer.");
+    def->mode     = comAdvanced;
+    def->min      = 1;
+    def->max      = 4;
+    def->set_default_value(new ConfigOptionInt{1});
+
+    def           = this->add("parallel_printheads_bed_exclude_areas", coStrings);
+    def->label    = L("Parallel printheads bed exclude areas");
+    def->tooltip  = L("Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings());
+
     //BBS: add "bed_exclude_area"
     def = this->add("bed_exclude_area", coPoints);
     def->label = L("Bed exclude area");
