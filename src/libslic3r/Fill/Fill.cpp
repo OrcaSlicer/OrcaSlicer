@@ -256,17 +256,15 @@ struct SurfaceFillParams
 
 	// Index of this entry in a linear vector.
     size_t 			idx = 0;
-	// infill speed settings
-	float			sparse_infill_speed = 0;
-	float			top_surface_speed = 0;
-	float			solid_infill_speed = 0;
+	// Infill speed setting for the effective extrusion role.
+	float role_speed = 0;
 
     // Params for lattice infill angles
     float lateral_lattice_angle_1 = 0.f;
     float lateral_lattice_angle_2 = 0.f;
-    float infill_lock_depth          = 0;
-    float skin_infill_depth          = 0;
-    bool symmetric_infill_y_axis = false;
+    float infill_lock_depth       = 0;
+    float skin_infill_depth       = 0;
+    bool symmetric_infill_y_axis  = false;
 
     // Params for Lateral honeycomb
     float infill_overhang_angle = 60.f;
@@ -298,9 +296,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(flow.nozzle_diameter());
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, bridge);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, extrusion_role);
-		RETURN_COMPARE_NON_EQUAL(sparse_infill_speed);
-		RETURN_COMPARE_NON_EQUAL(top_surface_speed);
-		RETURN_COMPARE_NON_EQUAL(solid_infill_speed);
+		RETURN_COMPARE_NON_EQUAL(role_speed);
         RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_1);
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
@@ -312,30 +308,28 @@ struct SurfaceFillParams
 	}
 
 	bool operator==(const SurfaceFillParams &rhs) const {
-		return  this->extruder 			== rhs.extruder 		&&
-				this->pattern 			== rhs.pattern 			&&
-				this->spacing 			== rhs.spacing 			&&
-				this->overlap 			== rhs.overlap 			&&
-				this->angle   			== rhs.angle   			&&
-				this->fixed_angle == rhs.fixed_angle &&
-				this->bridge   			== rhs.bridge   		&&
-				this->bridge_angle 		== rhs.bridge_angle		&&
-				this->density   		== rhs.density   		&&
-				this->multiline             == rhs.multiline    &&
-//				this->dont_adjust   	== rhs.dont_adjust 		&&
-				this->anchor_length  	== rhs.anchor_length    &&
-				this->anchor_length_max == rhs.anchor_length_max &&
-				this->flow 				== rhs.flow 			&&
-				this->extrusion_role	== rhs.extrusion_role	&&
-				this->sparse_infill_speed	== rhs.sparse_infill_speed &&
-				this->top_surface_speed		== rhs.top_surface_speed &&
-				this->solid_infill_speed	== rhs.solid_infill_speed &&
-                this->lateral_lattice_angle_1		== rhs.lateral_lattice_angle_1 &&
-				this->lateral_lattice_angle_2	    == rhs.lateral_lattice_angle_2 &&
-				this->infill_lock_depth      ==  rhs.infill_lock_depth &&
-				this->skin_infill_depth      ==  rhs.skin_infill_depth &&
-                this->infill_overhang_angle == rhs.infill_overhang_angle &&
-                this->gyroid_optimized      == rhs.gyroid_optimized;
+		return  this->extruder 			      == rhs.extruder                &&
+				this->pattern 			      == rhs.pattern                 &&
+				this->spacing 			      == rhs.spacing                 &&
+				this->overlap 			      == rhs.overlap                 &&
+				this->angle   			      == rhs.angle                   &&
+				this->fixed_angle             == rhs.fixed_angle             &&
+				this->bridge                  == rhs.bridge                  &&
+				this->bridge_angle            == rhs.bridge_angle            &&
+				this->density                 == rhs.density                 &&
+				this->multiline               == rhs.multiline               &&
+//				this->dont_adjust             == rhs.dont_adjust             &&
+				this->anchor_length           == rhs.anchor_length           &&
+				this->anchor_length_max       == rhs.anchor_length_max       &&
+				this->flow                    == rhs.flow                    &&
+				this->extrusion_role          == rhs.extrusion_role          &&
+				this->role_speed              == rhs.role_speed              &&
+                this->lateral_lattice_angle_1 == rhs.lateral_lattice_angle_1 &&
+				this->lateral_lattice_angle_2 == rhs.lateral_lattice_angle_2 &&
+				this->infill_lock_depth       == rhs.infill_lock_depth       &&
+				this->skin_infill_depth       == rhs.skin_infill_depth       &&
+                this->infill_overhang_angle   == rhs.infill_overhang_angle   &&
+                this->gyroid_optimized        == rhs.gyroid_optimized;
 	}
 };
 
@@ -954,15 +948,18 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 					//Orca: enable thick bridge based on config
 					layerm.bridging_flow(extrusion_role, is_thick_bridge) :
 					layerm.flow(extrusion_role, (surface.thickness == -1) ? layer.height : surface.thickness);
-				// record speed params
-                if (!params.bridge) {
-                    if (params.extrusion_role == erInternalInfill)
-                        params.sparse_infill_speed = region_config.sparse_infill_speed;
-                    else if (params.extrusion_role == erTopSolidInfill) {
-                        params.top_surface_speed = region_config.top_surface_speed;
-                    } else if (params.extrusion_role == erSolidInfill)
-                        params.solid_infill_speed = region_config.internal_solid_infill_speed;
-                }
+
+				params.role_speed = 0;
+                if (params.extrusion_role == erBridgeInfill)
+                    params.role_speed = region_config.bridge_speed;
+                else if (params.extrusion_role == erInternalBridgeInfill)
+                    params.role_speed = region_config.get_abs_value("internal_bridge_speed");
+                else if (params.extrusion_role == erInternalInfill)
+                    params.role_speed = region_config.sparse_infill_speed;
+                else if (params.extrusion_role == erTopSolidInfill)
+                    params.role_speed = region_config.top_surface_speed;
+                else if (params.extrusion_role == erSolidInfill)
+                    params.role_speed = region_config.internal_solid_infill_speed;
 				// Calculate flow spacing for infill pattern generation.
 		        if (surface.is_solid() || is_bridge) {
 		            params.spacing = params.flow.spacing();
