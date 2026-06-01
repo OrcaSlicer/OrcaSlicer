@@ -23,6 +23,7 @@ public:
     virtual bool can_test() const { return true; };
     bool has_auto_discovery() const override { return false; }
     bool is_cloud() const override { return true; }
+    bool can_login() const override { return true; }
     bool get_login_url(wxString& auth_url) const override;
     std::string  get_host() const override;
 

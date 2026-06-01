@@ -140,7 +140,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             }
             this->update();
         } else if (opt_key == "host_type" || opt_key == "printhost_authorization_type") {
-            this->update();
+            this->update(opt_key);
         }
         if (opt_key == "print_host")
             this->update_printhost_buttons();
@@ -261,7 +261,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                 wxBusyCursor wait;
                 result = host->test(msg);
 
-                if (!result && host->is_cloud()) {
+                if (!result && host->is_cloud() && host->can_login()) {
                     if (const auto h = dynamic_cast<SimplyPrint*>(host.get()); h) {
                         OAuthDialog dlg(this, h->get_oauth_params());
                         dlg.ShowModal();
@@ -457,6 +457,31 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                 if (field)
                     field->propagate_value();
             }), temp->GetId());
+
+            this->Bind(wxEVT_RIGHT_DOWN, [m_optgroup, printhost_field](wxMouseEvent& e) {
+                // Something with the use of BORDER_W causes an offset. This seems to correlate with the position offset of
+                // the optgroup staticbox. This likely because the position of the mouse event is relative to PhysicalPrinterDialog
+                // while the field is relative to its parent, the optgroup
+                auto pos = e.GetPosition();
+                if (m_optgroup->staticbox)
+                    pos -= m_optgroup->stb->GetPosition();
+                if (!printhost_field->getWindow()->GetRect().Contains(pos)) {
+                    e.Skip();
+                    return;
+                }
+                Field* host_type = m_optgroup->get_field("host_type");
+                if (htSimplyPrint != any_cast<int>(host_type->get_value())) {
+                    e.Skip();
+                    return;
+                }
+                wxMenu menu;
+                menu.Append(1, _L("Edit host"), _("Edit SimplyPrint host\nThis is an an advanced function that is not needed by most users"));
+                printhost_field->getWindow()->PopupMenu(&menu);
+            });
+
+            printhost_field->getWindow()->Bind(wxEVT_MENU, [printhost_field](wxCommandEvent& e) {
+                printhost_field->enable();
+            });
     }
 
     // Always fill in the "printhost_port" combo box from the config and select it.
@@ -467,6 +492,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     }
 
     update();
+    if (m_config->opt_enum<PrintHostType>("host_type") == htSimplyPrint)
+        m_optgroup->disable_field("print_host");
 }
 
 void PhysicalPrinterDialog::update_ports() {
@@ -518,7 +545,7 @@ void PhysicalPrinterDialog::update_webui()
                 }
             }
 
-            const std::string v = bbl_use_print_host_webui ? "https://simplyprint.io/panel" : "";
+            const std::string v = bbl_use_print_host_webui ? m_config->opt_string("print_host") : "";
             if (Field* printhost_webui_field = m_optgroup->get_field("print_host_webui"); printhost_webui_field) {
                 if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_webui_field)->text_ctrl(); temp) {
                     temp->SetValue(v);
@@ -618,7 +645,7 @@ void PhysicalPrinterDialog::update_preset_input() {
     }
 }
 
-void PhysicalPrinterDialog::update(bool printer_change)
+void PhysicalPrinterDialog::update(const string& changed_key, bool printer_change)
 {
     m_optgroup->reload_config();
 
@@ -630,6 +657,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
         const auto opt = m_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
         m_optgroup->show_field("host_type");
 
+        bool printhost_was_disabled = !m_optgroup->get_field("print_host")->getWindow()->IsThisEnabled();
         m_optgroup->enable_field("print_host");
         m_optgroup->show_field("print_host_webui");
         m_optgroup->hide_field("bbl_use_print_host_webui");
@@ -643,8 +671,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
             if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_field)->text_ctrl(); temp) {
                 const auto current_host = temp->GetValue();
                 if (current_host == L"https://connect.prusa3d.com" ||
-                    current_host == L"https://app.obico.io" ||
-                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel") {
+                    current_host == L"https://app.obico.io") {
                     temp->SetValue(wxString());
                     m_config->opt_string("print_host") = "";
                 }
@@ -678,35 +705,12 @@ void PhysicalPrinterDialog::update(bool printer_change)
                     }
                 }
             } else if (opt->value == htSimplyPrint) {
-                // Set the host url
-                if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
-                    printhost_field->disable();
-                    if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_field)->text_ctrl(); temp && temp->GetValue().IsEmpty()) {
-                        temp->SetValue("https://simplyprint.io/panel");
-                    }
-                    m_config->opt_string("print_host") = "https://simplyprint.io/panel";
-                }
-
-                const auto current_webui = m_config->opt_string("print_host_webui");
-                if (!current_webui.empty()) {
-                    if (Field* printhost_webui_field = m_optgroup->get_field("print_host_webui"); printhost_webui_field) {
-                        if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_webui_field)->text_ctrl(); temp) {
-                            temp->SetValue("https://simplyprint.io/panel");
-                        }
-                    }
-                    m_config->opt_string("print_host_webui") = "https://simplyprint.io/panel";
-                }
-
-                // For bbl printers, show option to control the device tab
-                if (wxGetApp().preset_bundle->is_bbl_vendor()) {
-                    m_optgroup->show_field("bbl_use_print_host_webui");
-                    const bool use_print_host_webui = !current_webui.empty();
-                    if (Field* printhost_webui_field = m_optgroup->get_field("bbl_use_print_host_webui"); printhost_webui_field) {
-                        if (CheckBox* temp = dynamic_cast<CheckBox*>(printhost_webui_field); temp) {
-                            temp->set_value(use_print_host_webui);
-                        }
-                    }
-                }
+                if (changed_key == "host_type") {
+                    m_config->opt_string("print_host")
+                        = m_config->opt_string("print_host_webui") = "https://simplyprint.io/panel";
+                    m_optgroup->disable_field("print_host");
+                } else if (printhost_was_disabled)
+                    m_optgroup->disable_field("print_host");
 
                 m_optgroup->hide_field("print_host_webui");
                 m_optgroup->hide_field("printhost_apikey");
@@ -746,6 +750,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
 
     update_printhost_buttons();
 
+    m_optgroup->reload_config();
     this->SetSize(this->GetBestSize());
     this->Layout();
 }

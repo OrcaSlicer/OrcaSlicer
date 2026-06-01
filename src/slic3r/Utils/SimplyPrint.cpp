@@ -3,6 +3,7 @@
 #include <openssl/sha.h>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 
 #include "nlohmann/json.hpp"
@@ -12,19 +13,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 
-
 namespace Slic3r {
 
-// to make testing easier
-//#define SIMPLYPRINT_TEST
-
-#ifdef SIMPLYPRINT_TEST
-#define URL_BASE_HOME "https://test.simplyprint.io"
-#define URL_BASE_API "https://testapi.simplyprint.io"
-#else
-#define URL_BASE_HOME "https://simplyprint.io"
-#define URL_BASE_API "https://api.simplyprint.io"
-#endif
 
 static constexpr boost::asio::ip::port_type CALLBACK_PORT = 21328;
 static const std::string CALLBACK_URL = "http://localhost:21328/callback";
@@ -32,13 +22,13 @@ static const std::string RESPONSE_TYPE  = "code";
 static const std::string CLIENT_ID = "simplyprintorcaslicer";
 static const std::string CLIENT_SCOPES = "user.read files.temp_upload";
 static const std::string OAUTH_CREDENTIAL_PATH = "simplyprint_oauth.json";
-static const std::string TOKEN_URL = URL_BASE_API"/oauth2/Token";
+static const std::string TOKEN_URL_ENDPOINT = "/oauth2/Token";
 #ifdef SIMPLYPRINT_TEST
 static constexpr uint64_t MAX_SINGLE_UPLOAD_FILE_SIZE = 100000ull; // Max file size that can be uploaded in a single http request
 #else
 static constexpr uint64_t MAX_SINGLE_UPLOAD_FILE_SIZE = 100000000ull; // Max file size that can be uploaded in a single http request
 #endif
-static const std::string CHUNCK_RECEIVE_URL = URL_BASE_API"/0/files/ChunkReceive";
+static const std::string CHUNK_RECEIVE_URL_ENDPOINT = "/0/files/ChunkReceive";
 
 static std::string generate_verification_code(int code_length = 32)
 {
@@ -104,6 +94,15 @@ SimplyPrint::SimplyPrint(DynamicPrintConfig* config)
 {
     cred_file = (boost::filesystem::path(data_dir()) / OAUTH_CREDENTIAL_PATH).make_preferred().string();
     load_oauth_credential();
+    auto host_opt = config->opt_string("print_host");
+    boost::regex url_regex(R"((?<url_base>https?:\/\/[a-z\-\._]*)(?:\/.*)?)", boost::regbase::icase);
+    boost::smatch results;
+    if (boost::regex_match(host_opt, results, url_regex)) {
+        initialized = true;
+        std::string url_base = results["url_base"];
+        url_api = url_base + "/api";
+        url_home = url_base;
+    }
 }
 
 GUI::OAuthParams SimplyPrint::get_oauth_params() const
@@ -122,7 +121,7 @@ GUI::OAuthParams SimplyPrint::get_oauth_params() const
         {"code_challenge", code_challenge},
         {"code_challenge_method", "S256"},
     };
-    const auto login_url = (boost::format(URL_BASE_HOME"/panel/oauth2/authorize?%s") % url_encode(query_parameters)).str();
+    const auto login_url = (boost::format(url_home + "/panel/oauth2/authorize?%s") % url_encode(query_parameters)).str();
 
     return GUI::OAuthParams{
         login_url,
@@ -131,9 +130,9 @@ GUI::OAuthParams SimplyPrint::get_oauth_params() const
         CALLBACK_URL,
         CLIENT_SCOPES,
         RESPONSE_TYPE,
-        URL_BASE_HOME"/login-success",
-        URL_BASE_HOME"/login-success",
-        TOKEN_URL,
+        url_home + "/login-success",
+        url_home + "/login-success",
+        url_api + TOKEN_URL_ENDPOINT,
         verification_code,
         state,
     };
@@ -211,7 +210,7 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
                                                   http_status % body;
                 BOOST_LOG_TRIVIAL(info) << "SimplyPrint: Attempt to refresh access token";
 
-                auto http = Http::post(TOKEN_URL);
+                auto http = Http::post(url_api + TOKEN_URL_ENDPOINT);
                 http.timeout_connect(5)
                     .timeout_max(5)
                     .form_add("grant_type", "refresh_token")
@@ -255,13 +254,13 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
 
 bool SimplyPrint::test(wxString& curl_msg) const
 {
-    if (cred.find("access_token") == cred.end()) {
+    if (!initialized || cred.find("access_token") == cred.end()) {
         return false;
     }
 
     return do_api_call(
-        [](bool is_retry) {
-            auto http = Http::get(URL_BASE_API"/oauth2/TokenInfo");
+        [&](bool is_retry) {
+            auto http = Http::get(url_api + "/oauth2/TokenInfo");
             http.header("Accept", "application/json");
             return http;
         },
@@ -289,8 +288,8 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
     }
 
     return do_api_call(
-        [&file_path, &chunk_id, &prorgess_fn, &filename](bool is_retry) {
-            auto http = Http::post(URL_BASE_HOME"/api/files/TempUpload");
+        [&](bool is_retry) {
+            auto http = Http::post(url_api + "/api/files/TempUpload");
             if (!file_path.empty()) {
                 http.form_add_file("file", file_path, filename);
             } else {
@@ -300,7 +299,7 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
 
             return http;
         },
-        [&error_fn, &filename, this](std::string body, unsigned status) {
+        [&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(info) << boost::format("SimplyPrint: File uploaded: HTTP %1%: %2%") % status % body;
 
             // Get file UUID
@@ -319,7 +318,7 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
             const std::string uuid = j["uuid"];
 
             // Launch external browser for file importing after uploading
-            const auto url = URL_BASE_HOME"/panel?" + url_encode({{"import", "tmp:" + uuid}, {"filename", filename}});
+            const auto url = url_home + "/panel?" + url_encode({{"import", "tmp:" + uuid}, {"filename", filename}});
 
             if (should_open_in_external_browser()) {
                 wxLaunchDefaultBrowser(url);
@@ -369,7 +368,7 @@ bool SimplyPrint::do_chunk_upload(const boost::filesystem::path& file_path, cons
             {"temp", "true"},
             {"delete", delete_token},
         };
-        const auto url = (boost::format("%s?%s") % CHUNCK_RECEIVE_URL % url_encode(query_parameters)).str();
+        const auto url = (boost::format("%s%s?%s") % url_api % CHUNK_RECEIVE_URL_ENDPOINT % url_encode(query_parameters)).str();
         do_api_call(
             [&url](bool is_retry) {
                 auto http = Http::get(url);
@@ -401,7 +400,7 @@ bool SimplyPrint::do_chunk_upload(const boost::filesystem::path& file_path, cons
             } else {
                 query_parameters.emplace_back("id", chunk_id);
             }
-            url = (boost::format("%s?%s") % CHUNCK_RECEIVE_URL % url_encode(query_parameters)).str();
+            url = (boost::format("%s%s?%s") % url_api % CHUNK_RECEIVE_URL_ENDPOINT % url_encode(query_parameters)).str();
         }
 
         // Calculate the offset and length of current chunk
@@ -474,6 +473,10 @@ bool SimplyPrint::do_chunk_upload(const boost::filesystem::path& file_path, cons
 
 bool SimplyPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
+    if (!initialized) {
+        error_fn(_L("The provided host URL is invalid"));
+        return false;
+    }
     if (cred.find("access_token") == cred.end()) {
         error_fn(_L("SimplyPrint account not linked. Go to Connect options to set it up."));
         return false;

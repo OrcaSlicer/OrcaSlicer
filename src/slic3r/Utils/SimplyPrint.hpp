@@ -13,6 +13,10 @@ class SimplyPrint : public PrintHost
     std::string cred_file;
     std::map<std::string, std::string> cred;
 
+    bool initialized{false};
+    std::string url_api;
+    std::string url_home;
+
     void load_oauth_credential();
 
     /**
@@ -54,7 +58,8 @@ public:
     bool can_test() const override { return true; }
     bool has_auto_discovery() const override { return false; }
     bool is_cloud() const override { return true; }
-    std::string get_host() const override { return "https://simplyprint.io"; }
+    bool can_login() const override { return initialized; }
+    std::string get_host() const override { return url_home; }
 
     GUI::OAuthParams get_oauth_params() const;
     void             save_oauth_credential(const GUI::OAuthResult& cred) const;

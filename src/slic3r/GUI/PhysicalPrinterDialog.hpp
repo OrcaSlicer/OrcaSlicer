@@ -58,7 +58,7 @@ public:
     ValidationType  m_valid_type;
     std::string     m_preset_name;
 
-    void        update(bool printer_change = false);
+    void        update(const std::string& changed_key = "", bool printer_change = false);
     void        update_host_type(bool printer_change);
     void        update_printer_agent_type();
     void        update_preset_input();
