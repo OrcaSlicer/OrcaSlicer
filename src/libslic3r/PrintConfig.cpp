@@ -5552,6 +5552,16 @@ void PrintConfigDef::init_fff_params()
     def->max = 18;
     def->set_default_value(new ConfigOptionFloatsNullable { 10. });
 
+    def = this->add("filament_ramming_volumetric_speed", coFloats);
+    def->label = L("Ramming volumetric speed (extruder change)");
+    def->tooltip = L("Volumetric flow used while ramming the filament during an extruder change. "
+                     "0 falls back to the max volumetric speed.");
+    def->sidetext = L("mm³/s");
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->min = 0;
+    def->set_default_value(new ConfigOptionFloatsNullable { 0. });
+
     def = this->add("filament_ramming_volumetric_speed_nc", coFloats);
     def->label = L("Ramming volumetric speed (nozzle change)");
     def->tooltip = L("Volumetric flow used while ramming the filament during a nozzle change. "

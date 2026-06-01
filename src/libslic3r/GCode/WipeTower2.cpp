@@ -1330,8 +1330,8 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
 
 void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
 {
-    //while (m_filpar.size() < idx+1)   // makes sure the required element is in the vector
-    m_filpar.push_back(FilamentParameters());
+    if (m_filpar.size() < idx+1)   // makes sure the required element is in the vector
+        m_filpar.resize(idx+1);
 
     m_filpar[idx].material = config.filament_type.get_at(idx);
     if (m_wipe_tower_filament > 0)
