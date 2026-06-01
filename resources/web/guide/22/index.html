@@ -6,6 +6,7 @@
 <title>引导_P21</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
+<link rel="stylesheet" type="text/css" href="../22/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <link rel="stylesheet" type="text/css" href="22.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
 <script type="text/javascript" src="test.js"></script>
@@ -14,6 +15,7 @@
 <script type="text/javascript" src="../../data/text.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
 <script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../22/common.js"></script> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <script type="text/javascript" src="./22.js"></script>	
 </head>
 <body onLoad="OnInit()">
@@ -129,98 +131,6 @@
 		//	e.returnValue = false;
 		//}
 	};
-
-	function addClearBtnEvents(el){
-		el.addEventListener('click', e => {
-			if (el.getAttribute("onclear") == "1") {
-				el.value = '';
-				el.dispatchEvent(new Event('input', {bubbles: true}));
-			}
-		});
-		el.addEventListener('mousemove', e => {
-			const rc = el.getBoundingClientRect();
-			const onRight = el.value && (e.clientX - rc.left > rc.width - 32);
-			el.setAttribute("onclear", onRight ? "1" : "0");
-		});
-		el.addEventListener('mouseleave', e => {
-			el.setAttribute("onclear", "0");
-		});
-	}
-
-	document.querySelectorAll('.cbr-search-bar').forEach(searchBar => {
-        searchBar.addEventListener('input', function() {
-            const search = this.value.trim().toLowerCase(),
-            	  list   = this.closest('.cbr-column').querySelector('.cbr-content'),
-            	  items  = list.querySelectorAll('label');
-            let   hidden = 0;
-
-            items.forEach((item, i) => {
-				if(i == 0){
-					item.style.display ="block";
-					return;
-				};
-                const text = item.querySelector("span").textContent.toLowerCase();
-                const hide = search && !text.includes(search);
-                item.style.display = hide ? "none" : "block";
-                if(hide) hidden++;
-            });
-
-			if(items.length - hidden == 1){
-				items[0].style.display = "none";
-				hidden++;
-			}
-
-            list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
-        });
-		addClearBtnEvents(searchBar);
-	});
-
-	const filterBar         = document.querySelector('.cbr-filter-bar');
-	const filterModeFilter  = document.querySelector('.cbr-filter-mode-filter' );
-	const filterModeVisible = document.querySelector('.cbr-filter-mode-visible');
-	
-	filterBar.addEventListener('input', function() {
-        const search = this.value.trim().toLowerCase();
-        const list   = this.closest('.cbr-column').querySelector('.cbr-content');
-        const items  = list.querySelectorAll('label');
-        let   hidden = 0;
-		
-		filterModeFilter.style.display  = search ? "block" : "none";
-		filterModeVisible.style.display = search ? "none" : "block";
-
-		const showSel   = search == "::checked";
-		const showUnsel = search == "::unchecked";
-		
-		if(showSel || showUnsel){
-			items.forEach(item => {
-				const cb   = item.querySelector("input");
-				const hide = showSel ? !cb.checked : cb.checked;
-				item.style.position = hide ? "absolute" : "unset";
-				if(hide) hidden++;
-			});
-		}
-		else {
-			items.forEach(item => {
-				const text = item.querySelector("span").textContent.toLowerCase();
-				const hide = search && !text.includes(search);
-				item.style.position = hide ? "absolute" : "unset";
-				if(hide) hidden++;
-			});
-		}
-	
-        list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
-
-		UpdateStats();
-	});
-	addClearBtnEvents(filterBar);
-
-	document.querySelector('#filter-tags').addEventListener('change', e => {
-		let v = e.target.value;
-		filterBar.value = v == "1" ? "::checked" : "::unchecked";
-		filterBar.dispatchEvent(new Event('input', {bubbles: true}));
-		filterBar.focus();
-		e.target.value = 0; // reset back to make dropdown items always selectable
-    });
-
+	initInputEvents();
 </script>
 </html>

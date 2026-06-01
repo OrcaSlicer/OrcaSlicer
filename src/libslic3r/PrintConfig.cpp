@@ -3051,7 +3051,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Lightning overhang angle");
     def->category = L("Strength");
     def->tooltip  = L("Maximum overhang angle for Lightning infill support propagation.");
-    def->sidetext = u8"°";
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 5;
     def->max      = 85;
     def->mode     = comExpert;
@@ -3060,8 +3060,9 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("lightning_prune_angle", coFloat);
     def->label    = L("Prune angle");
     def->category = L("Strength");
-    def->tooltip  = L("Controls how aggressively short or unsupported Lightning branches are pruned. This angle is converted internally to a per-layer distance.");
-    def->sidetext = u8"°";
+    def->tooltip  = L("Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+                      "This angle is converted internally to a per-layer distance.");
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 5;
     def->max      = 85;
     def->mode     = comExpert;
@@ -3071,7 +3072,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Straightening angle");
     def->category = L("Strength");
     def->tooltip  = L("Maximum straightening angle used to simplify Lightning branches.");
-    def->sidetext = u8"°";
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 5;
     def->max      = 85;
     def->mode     = comExpert;
