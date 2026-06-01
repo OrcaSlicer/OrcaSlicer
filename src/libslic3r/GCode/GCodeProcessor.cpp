@@ -5797,12 +5797,30 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         m_extruder_id = new_extruder_id;
 
         // Record nozzle state for future lookups
-        m_nozzle_status_recorder.set_nozzle_status(new_nozzle_id_in_extruder, next_filament_id);
+        m_nozzle_status_recorder.set_nozzle_status(new_nozzle_id_in_extruder, next_filament_id, new_extruder_id);
 
         m_cp_color.current = m_extruder_colors[next_filament_id];
         // store tool change move
         store_move_vertex(EMoveType::Tool_change);
-        simulate_st_synchronize(extra_time);
+
+        // BBL parity: construct a new time block to handle filament change
+        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+            TimeMachine& machine = m_time_processor.machines[i];
+            if (!machine.enabled)
+                continue;
+            TimeBlock block;
+            block.move_id = m_result.moves.size() - 1;
+            block.role = ExtrusionRole::erWipeTower;
+            block.move_type = EMoveType::Tool_change;
+            block.layer_id = std::max<unsigned int>(1, m_layer_id);
+            block.g1_line_id = m_g1_line_id;
+            block.flags.prepare_stage = m_processing_start_custom_gcode;
+            block.distance = 0;
+            block.calculate_trapezoid();
+            machine.blocks.push_back(block);
+        }
+
+        simulate_st_synchronize(extra_time, ExtrusionRole::erWipeTower);
     }
 }
 
