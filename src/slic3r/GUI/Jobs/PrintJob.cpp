@@ -215,8 +215,13 @@ void PrintJob::process(Ctl &ctl)
             std::string devIP = m_dev_ip;
             std::string accessCode = m_access_code;
             std::string url = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
-            std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
-            emmc_ok = tunnel->sync_start_connect();
+            try {
+                std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+                emmc_ok = tunnel->sync_start_connect();
+            } catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(warning) << "eMMC tunnel unavailable, falling back to FTP: " << e.what();
+                emmc_ok = false;
+            }
         }
         {
             params.dev_id = m_dev_id;
@@ -270,7 +275,17 @@ void PrintJob::process(Ctl &ctl)
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
     params.task_ext_change_assist = this->task_ext_change_assist;
-    params.try_emmc_print         = this->could_emmc_print;
+    // Allow disabling the eMMC print path via AppConfig. Plugin 02.03.00.62's
+    // eMMC tunnel code hangs indefinitely at the upload phase with some
+    // printers (e.g., Bambu H2D), so we default to disabled. Users with
+    // working eMMC support can opt-in by setting disable_emmc_print = 0.
+    bool disable_emmc = true;
+    if (wxGetApp().app_config) {
+        auto v = wxGetApp().app_config->get("disable_emmc_print");
+        if (v == "0" || v == "false")
+            disable_emmc = false;
+    }
+    params.try_emmc_print         = this->could_emmc_print && !disable_emmc;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;

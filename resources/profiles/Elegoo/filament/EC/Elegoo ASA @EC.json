@@ -15,6 +15,7 @@
 		"270"
 	],
 	"compatible_printers": [
+		"Elegoo Centauri 0.2 nozzle",
 		"Elegoo Centauri 0.4 nozzle",
 		"Elegoo Centauri 0.6 nozzle",
 		"Elegoo Centauri 0.8 nozzle"

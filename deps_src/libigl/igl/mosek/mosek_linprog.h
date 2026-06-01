@@ -15,22 +15,20 @@ namespace igl
 {
   namespace mosek
   {
-    // Solve a linear program using mosek:
-    // 
-    // min c'x
-    // s.t. lc <= A x <= uc
-    //      lx <= x <= ux
-    //
-    // Inputs:
-    //   c  #x list of linear objective coefficients
-    //   A  #A by #x matrix of linear inequality constraint coefficients
-    //   lc  #A list of lower constraint bounds
-    //   uc  #A list of upper constraint bounds
-    //   lx  #x list of lower variable bounds
-    //   ux  #x list of upper variable bounds
-    // Outputs:
-    //   x  #x list of solution values
-    // Returns true iff success.
+    /// Solve a linear program using mosek. Given in the form:
+    /// 
+    ///     min c'x
+    ///     s.t. lc <= A x <= uc
+    ///          lx <= x <= ux
+    ///
+    /// @param[in] c  #x list of linear objective coefficients
+    /// @param[in] A  #A by #x matrix of linear inequality constraint coefficients
+    /// @param[in] lc  #A list of lower constraint bounds
+    /// @param[in] uc  #A list of upper constraint bounds
+    /// @param[in] lx  #x list of lower variable bounds
+    /// @param[in] ux  #x list of upper variable bounds
+    /// @param[out] x  #x list of solution values
+    /// @return true iff success.
     IGL_INLINE bool mosek_linprog(
         const Eigen::VectorXd & c,
         const Eigen::SparseMatrix<double> & A,
@@ -39,8 +37,12 @@ namespace igl
         const Eigen::VectorXd & lx,
         const Eigen::VectorXd & ux,
         Eigen::VectorXd & x);
-    // Wrapper that keeps mosek environment alive (if licence checking is
-    // becoming a bottleneck)
+    /// \overload
+    ///
+    /// \brief Wrapper that keeps mosek environment alive (if licence checking is
+    /// becoming a bottleneck)
+    ///
+    /// @param[in] env  mosek environment
     IGL_INLINE bool mosek_linprog(
         const Eigen::VectorXd & c,
         const Eigen::SparseMatrix<double> & A,
