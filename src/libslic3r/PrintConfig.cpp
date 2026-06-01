@@ -6990,6 +6990,23 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(45.));
 
+    // BBS: per-filament prime volumes for H2C EC/NC distinction
+    def = this->add("filament_prime_volume", coFloats);
+    def->label = L("Filament change");
+    def->tooltip = L("The volume of material required to prime the extruder on the tower, excluding a hotend change.");
+    def->sidetext = L(u8"mm³");
+    def->min = 1.0;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloats{45.});
+
+    def = this->add("filament_prime_volume_nc", coFloats);
+    def->label = L("Hotend change");
+    def->tooltip = L("The volume of material required to prime the extruder for a hotend change on the tower.");
+    def->sidetext = L(u8"mm³");
+    def->min = 1.0;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloats{60.});
+
     def = this->add("wipe_tower_x", coFloats);
     //def->label = L("Position X");
     //def->tooltip = L("X coordinate of the left front corner of a wipe tower.");
@@ -8396,7 +8413,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "retraction_distance_when_cut",
         "internal_bridge_support_thickness", "top_area_threshold", "reduce_wall_solid_infill","filament_load_time","filament_unload_time",
         "smooth_coefficient", "overhang_totally_speed", "silent_mode",
-        "overhang_speed_classic", "filament_prime_volume",
+        "overhang_speed_classic",
     };
 
     if (ignore.find(opt_key) != ignore.end()) {
