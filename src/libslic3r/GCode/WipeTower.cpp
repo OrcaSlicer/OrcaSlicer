@@ -2990,7 +2990,7 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         // Fix 4: resolve nozzle_id for H-parameter via dynamic nozzle map.
         // When dynamic mapping is active, firmware uses H to select the physical nozzle.
         // When static, pass -1 → M632 omits H, firmware uses its own routing table.
-        int new_nozzle_id = m_multi_nozzle_group_result->is_support_dynamic_nozzle_map()
+        int new_nozzle_id = (m_multi_nozzle_group_result && m_multi_nozzle_group_result->is_support_dynamic_nozzle_map())
                                 ? get_nozzle_id(new_filament_id, m_cur_layer_id) : -1;
         writer.append(format_line_M632(new_filament_id, new_nozzle_id));
         if (m_filpar[m_current_tool].precool_target_temp.second != 0) {
@@ -4593,10 +4593,12 @@ bool WipeTower::need_thick_bridge_flow(float pos_y) const {
 // BBL parity: per-layer nozzle/extruder ID lookup via LayeredNozzleGroupResult.
 // Ref: BambuStudio WipeTower.cpp:5252-5256 (commit 3f2570c)
 int WipeTower::get_nozzle_id(int filament_id, int layer_id) const {
+    if (!m_multi_nozzle_group_result) return -1;
     return m_multi_nozzle_group_result->get_nozzle_id(filament_id, layer_id);
 }
 
 int WipeTower::get_extruder_id(int filament_id, int layer_id) const {
+    if (!m_multi_nozzle_group_result) return 0;
     return m_multi_nozzle_group_result->get_extruder_id(filament_id, layer_id);
 }
 

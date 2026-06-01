@@ -1,4 +1,4 @@
-// H2C TODO
+
             // context.filament_nozzle_temp,
             // context.extruder_max_nozzle_count,
             // context.filament_cooling_before_tower,
@@ -2751,6 +2751,7 @@ void GCodeProcessor::initialize(const std::string& filename)
 void GCodeProcessor::initialize_from_context(const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result)
 {
     m_nozzle_group_result = std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(nozzle_group_result);
+    m_result.nozzle_group_result = m_nozzle_group_result;
 }
 
 
@@ -2961,6 +2962,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
 /* std::cout << line.raw() << std::endl; */
 
     ++m_line_id;
+
 
     // update start position
     m_start_position = m_end_position;
@@ -5769,6 +5771,11 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         // Extruder change time (e.g. dual-extruder swap)
         if (extruder_change && old_extruder_id != -1) {
             extra_time += get_extruder_change_time(new_extruder_id);
+            m_result.print_statistics.total_extruder_changes++;
+        }
+        // Nozzle change within same extruder
+        if (nozzle_in_extruder_change && !extruder_change) {
+            m_result.print_statistics.total_nozzle_changes++;
         }
         // BBL parity: combined condition — ONE unload + ONE load
         // (not separate if-blocks, which would double-count when both are true)
@@ -6237,6 +6244,8 @@ void GCodeProcessor::update_estimated_times_stats()
     m_result.print_statistics.flush_per_filament      = m_used_filaments.flush_per_filament;
     m_result.print_statistics.used_filaments_per_role   = m_used_filaments.filaments_per_role;
     m_result.print_statistics.total_volumes_per_extruder = m_used_filaments.total_volumes_per_filament;
+
+
 }
 
 double GCodeProcessor::extract_absolute_position_on_axis(Axis axis, const GCodeReader::GCodeLine& line, double area_filament_cross_section)

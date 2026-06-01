@@ -42,6 +42,34 @@ if (m_max_speed <= 0.f)
 // Ref: BambuStudio WipeTower.cpp:1834 (commit 3f2570c)
 m_is_multiple_nozzle = std::any_of(config.extruder_max_nozzle_count.values.begin(), config.extruder_max_nozzle_count.values.end(), [](auto &elem) { return elem > 1; });
 
+// H2C: Initialize the physical_extruder_map so that format_line_M104 in
+// ramming() can emit correct "T<physical_id>" parameters.
+// Without this the vector is empty and any [index] → SIGSEGV.
+// Ref: BambuStudio WipeTower constructor (commit 3f2570c)
+{
+    auto* opt = config.option<ConfigOptionInts>("physical_extruder_map");
+    if (opt && !opt->values.empty())
+        m_physical_extruder_map = opt->values;
+    else {
+        // Fallback: identity map [0, 1, ..., nozzle_count-1]
+        m_physical_extruder_map.resize(config.nozzle_diameter.size());
+        std::iota(m_physical_extruder_map.begin(), m_physical_extruder_map.end(), 0);
+    }
+}
+
+// H2C: Initialize m_hotend_heating_rate — used by toolchange_wipe_new()
+// to compute heat_time for speed_factor. Without this → OOB on empty vector.
+// Ref: BambuStudio WipeTower constructor (commit 3f2570c)
+{
+    size_t n = config.nozzle_diameter.size();
+    m_hotend_heating_rate.resize(n, 2.0); // default 2 °C/s
+    for (size_t i = 0; i < n; ++i) {
+        if (i < config.hotend_heating_rate.size() && !config.hotend_heating_rate.is_nil(i)
+            && config.hotend_heating_rate.values[i] > 0)
+            m_hotend_heating_rate[i] = config.hotend_heating_rate.values[i];
+    }
+}
+
 #elif defined(H2C_WIPE_TOWER_INIT_SET_EXTRUDER)
 
 // --- Section 2: called from WipeTower::set_extruder() ---

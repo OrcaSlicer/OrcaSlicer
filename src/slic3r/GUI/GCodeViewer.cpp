@@ -3743,6 +3743,12 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buffer, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", ps.total_used_filament / /*1000*/koef, total_weight_text.c_str());
         total_filaments.push_back(buffer);
 
+        // Determine if multi-nozzle printer (H2C Vortek rack)
+        bool is_show_nozzle_column = false;
+        if (m_gcode_result && m_gcode_result->nozzle_group_result) {
+            auto nozzles = m_gcode_result->nozzle_group_result->get_used_nozzles_in_extruder();
+            is_show_nozzle_column = nozzles.size() > 1;
+        }
 
         std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
@@ -3760,6 +3766,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
         if ((displayed_columns & ~ColumnData::Model) > 0) {
             title_columns.push_back({ _u8L("Total"), total_filaments });
+        }
+        if (is_show_nozzle_column) {
+            title_columns.push_back({ _u8L("Nozzle"), {""} });
         }
         title_columns.push_back({ _u8L("Display"), {""}}); // ORCA Add spacing for eye icon. used as color_print_offsets[_u8L("Display")]
         auto offsets_ = calculate_offsets(title_columns, icon_size);
@@ -4086,6 +4095,27 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
                 }
 
+                // Nozzle label column (multi-nozzle only)
+                if (m_gcode_result && m_gcode_result->nozzle_group_result &&
+                    color_print_offsets.count(_u8L("Nozzle"))) {
+                    auto nozzles = m_gcode_result->nozzle_group_result->get_nozzles_for_filament(static_cast<int>(extruder_idx));
+                    std::string nozzle_label;
+                    for (size_t ni = 0; ni < nozzles.size(); ++ni) {
+                        if (ni > 0) nozzle_label += ", ";
+                        const auto& nz = nozzles[ni];
+                        if (nz.extruder_id == 0)
+                            nozzle_label += "L";
+                        else {
+                            nozzle_label += "R";
+                            // Append group_id for multi-nozzle extruders
+                            auto all_nozzles = m_gcode_result->nozzle_group_result->get_used_nozzles_in_extruder(nz.extruder_id);
+                            if (all_nozzles.size() > 1)
+                                nozzle_label += std::to_string(nz.group_id);
+                        }
+                    }
+                    columns_offsets.push_back({ nozzle_label, color_print_offsets[_u8L("Nozzle")] });
+                }
+
                 float checkbox_pos = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
                 append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, [this, extruder_idx]() {});
             }
@@ -4152,6 +4182,15 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         imgui.text(_u8L("Tool changes") + ":");
         ImGui::SameLine();
         imgui.text(format_compact_count(m_print_statistics.total_extruder_changes));
+
+        //display nozzle change times (multi-nozzle extruders, e.g. Vortek H2C)
+        if (m_print_statistics.total_nozzle_changes > 0) {
+            ImGui::Dummy({window_padding, window_padding});
+            ImGui::SameLine();
+            imgui.text(_u8L("Nozzle changes") + ":");
+            ImGui::SameLine();
+            imgui.text(format_compact_count(m_print_statistics.total_nozzle_changes));
+        }
 
         //BBS display cost
         ImGui::Dummy({ window_padding, window_padding });

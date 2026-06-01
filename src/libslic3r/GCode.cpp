@@ -89,6 +89,22 @@ namespace Slic3r {
 // filament_nozzle_map lookup. Mirrors BambuStudio GCode.cpp:82.
 #define NOZZLE_ID_FOR_GCODE(RESULT, ID) ((RESULT) && (RESULT)->is_support_dynamic_nozzle_map() ? (ID) : -1)
 
+// H2C: Build a vector of nozzle diameters indexed by nozzle group_id.
+// BBL ref: BambuStudio GCode.cpp:84-96 (commit 3f2570c)
+static std::vector<double> get_nozzle_diameters_by_nozzle_id(const MultiNozzleUtils::NozzleGroupResultBase *group_result)
+{
+    std::vector<double> diameters;
+    if (!group_result)
+        return diameters;
+    for (int id = 0;; ++id) {
+        auto nozzle = group_result->get_nozzle_from_id(id);
+        if (!nozzle)
+            break;
+        diameters.push_back(std::stod(nozzle->diameter));
+    }
+    return diameters;
+}
+
     //! macro used to mark string used at localization,
     //! return same string
 #define L(s) (s)
@@ -865,8 +881,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             int next_hotend_id = -1;
             if (gcodegen.m_print) {
                 auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
-                int next_nozzle_id = gr ? gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index) : -1;
-                next_hotend_id = NOZZLE_ID_FOR_GCODE(gr, next_nozzle_id);
+                if (gr)
+                    next_hotend_id = gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index);
             }
             std::string old_extruder_variant_str, new_extruder_variant_str;
             if (gcodegen.m_print) {
@@ -1123,8 +1139,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         int current_hotend_id = -1;
         if (gcodegen.m_print) {
             auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
-            int current_nozzle_id = gr ? gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index) : -1;
-            current_hotend_id = NOZZLE_ID_FOR_GCODE(gr, current_nozzle_id);
+            if (gr)
+                current_hotend_id = gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index);
         }
         gcodegen.placeholder_parser().set("current_hotend", current_hotend_id);
         gcodegen.placeholder_parser().set("retraction_distance_when_cut", gcodegen.m_config.retraction_distances_when_cut.get_at(new_filament_id));
@@ -2942,8 +2958,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         if (filament_id < 0) return -1;
         auto gr = print.get_layered_nozzle_group_result();
         if (!gr) return -1;
-        int nozzle_id = gr->get_nozzle_id(filament_id);
-        return NOZZLE_ID_FOR_GCODE(gr, nozzle_id);
+        return gr->get_nozzle_id(filament_id);
     };
     std::vector<int> first_non_support_hotends;
     first_non_support_hotends.reserve(first_non_support_filaments.size());
@@ -2957,6 +2972,29 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // parser aborts at end-of-print and plate_1.gcode never gets finalized. Seed from
     // resolve_hotend_id so dual-nozzle slices get the right hotend at start-of-print.
     this->placeholder_parser().set("current_hotend", resolve_hotend_id(initial_extruder_id));
+    // H2C: Nozzle-level placeholders for machine_start_gcode / change_filament_gcode.
+    // BBL ref: BambuStudio GCode.cpp:2496-2502 (commit 3f2570c)
+    {
+        auto gr = print.get_layered_nozzle_group_result();
+        if (gr) {
+            auto first_nozzle = gr->get_first_nozzle_for_filament(initial_extruder_id);
+            this->placeholder_parser().set("initial_nozzle_id",
+                first_nozzle ? (int)first_nozzle->group_id : -1);
+
+            auto first_ns_nozzle = gr->get_first_nozzle_for_filament(initial_non_support_extruder_id);
+            this->placeholder_parser().set("initial_no_support_nozzle_id",
+                first_ns_nozzle ? (int)first_ns_nozzle->group_id : -1);
+
+            this->placeholder_parser().set("initial_filament_id", (int)initial_extruder_id);
+            this->placeholder_parser().set("initial_extruder_id", (int)get_extruder_id(initial_extruder_id));
+
+            this->placeholder_parser().set("initial_no_support_filament_id", (int)initial_non_support_extruder_id);
+            this->placeholder_parser().set("initial_no_support_extruder_id", (int)get_extruder_id(initial_non_support_extruder_id));
+
+            this->placeholder_parser().set("nozzle_diameter_at_nozzle_id",
+                new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(gr.get())));
+        }
+    }
     //Orca: set the key for compatibilty
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
@@ -3286,11 +3324,36 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         {
             DynamicConfig config;
             config.set_key_value("filament_extruder_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
+            config.set_key_value("current_filament_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
+            config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(initial_non_support_extruder_id)));
+            // H2C: current_nozzle_id for filament_start_gcode
+            // BBL ref: BambuStudio GCode.cpp:2779 (commit 3f2570c)
+            {
+                auto gr = m_print->get_layered_nozzle_group_result();
+                int cur_nozzle = gr ? gr->get_nozzle_id(initial_non_support_extruder_id) : -1;
+                config.set_key_value("current_nozzle_id", new ConfigOptionInt(cur_nozzle));
+                config.set_key_value("nozzle_diameter_at_nozzle_id",
+                    new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(gr.get())));
+            }
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
             std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
             file.writeln(filament_start_gcode);
-            // mark the first filament used in print
-            file.write_format(";VT%d\n", initial_extruder_id);
+            // H2C: mark the first filament used in print with nozzle ID
+            // BBL ref: BambuStudio GCode.cpp:2785-2786 (commit 3f2570c)
+            {
+                auto gr = m_print->get_layered_nozzle_group_result();
+                if (gr) {
+                    auto first_nozzle = gr->get_first_nozzle_for_filament(initial_extruder_id);
+                    int initial_nozzle_id = first_nozzle
+                        ? first_nozzle->group_id : -1;
+                    if (initial_nozzle_id >= 0)
+                        file.write_format(";VT%d H%d\n", initial_extruder_id, initial_nozzle_id);
+                    else
+                        file.write_format(";VT%d\n", initial_extruder_id);
+                } else {
+                    file.write_format(";VT%d\n", initial_extruder_id);
+                }
+            }
         }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
@@ -3743,29 +3806,81 @@ void GCode::export_layer_filaments(GCodeProcessorResult* result)
         }
     }
 
-    result->filament_change_sequence.clear();
-    result->nozzle_change_sequence.clear();
+    // H2C: Build nozzle_change_sequence and optimal_assignment using LayeredNozzleGroupResult
+    // for proper Vortek multi-nozzle routing.
+    // BBL ref: BambuStudio GCode.cpp:3231-3294 (commit 3f2570c)
+    {
+        result->filament_change_sequence.clear();
+        result->nozzle_change_sequence.clear();
 
-    int prev_sequence_filament = -1;
-    int prev_sequence_nozzle = -1;
-    for (size_t layer_idx = 0; layer_idx < m_sorted_layer_filaments.size(); ++layer_idx) {
-        for (unsigned int filament_id : m_sorted_layer_filaments[layer_idx]) {
-            int nozzle_id = 0;
-            if (filament_id < filament_map.size() && filament_map[filament_id] > 0)
-                nozzle_id = filament_map[filament_id] - 1;
-            if (prev_sequence_nozzle != nozzle_id || prev_sequence_filament != static_cast<int>(filament_id)) {
-                result->nozzle_change_sequence.emplace_back(static_cast<unsigned int>(nozzle_id));
-                result->filament_change_sequence.emplace_back(filament_id);
-                prev_sequence_nozzle = nozzle_id;
-                prev_sequence_filament = static_cast<int>(filament_id);
+        std::optional<unsigned int> prev_filament;
+        std::optional<unsigned int> prev_nozzle;
+        auto group_result = m_print->get_layered_nozzle_group_result();
+
+        if (m_sorted_layer_filaments.empty() && m_print->calib_params().mode == CalibMode::Calib_PA_Line) {
+            // PA line calibration writes its own G-code; publish the used filament explicitly.
+            unsigned int fidx = m_writer.filament() ? m_writer.filament()->id() : 0;
+            result->filament_change_sequence.emplace_back(fidx);
+            if (group_result)
+                result->nozzle_change_sequence.emplace_back(group_result->get_nozzle_id(fidx, 0));
+        } else {
+            for (size_t layer_idx = 0; layer_idx < m_sorted_layer_filaments.size(); ++layer_idx) {
+                for (auto fidx : m_sorted_layer_filaments[layer_idx]) {
+                    int nozzle_idx = group_result
+                        ? group_result->get_nozzle_id(fidx, layer_idx)
+                        : (fidx < filament_map.size() && filament_map[fidx] > 0
+                              ? filament_map[fidx] - 1 : 0);
+                    if (!prev_nozzle || !prev_filament
+                        || *prev_nozzle != static_cast<unsigned int>(nozzle_idx)
+                        || *prev_filament != fidx) {
+                        result->nozzle_change_sequence.emplace_back(static_cast<unsigned int>(nozzle_idx));
+                        result->filament_change_sequence.emplace_back(fidx);
+                        prev_nozzle = static_cast<unsigned int>(nozzle_idx);
+                        prev_filament = fidx;
+                    }
+                }
             }
         }
-    }
 
-    result->optimal_assignment.clear();
-    result->optimal_assignment.reserve(filament_map.size());
-    for (int nozzle_id : filament_map)
-        result->optimal_assignment.emplace_back(nozzle_id > 0 ? nozzle_id - 1 : 0);
+        // Compute optimal physical assignment via BBL algorithm
+        std::vector<int> optimal_assignment;
+        if (group_result) {
+            std::vector<int> logical_filaments = cast<int>(group_result->get_used_filaments());
+            auto nozzle_list = group_result->get_used_nozzles_in_extruder();
+            int group_count = group_result->get_extruder_count();
+            std::vector<int> filament_seq = cast<int>(result->filament_change_sequence);
+            std::vector<int> nozzle_seq = cast<int>(result->nozzle_change_sequence);
+
+            double load_time   = m_config.machine_load_filament_time.value;
+            double unload_time = m_config.machine_unload_filament_time.value;
+            MultiNozzleUtils::FilamentChangeTimeParams time_params;
+            time_params.selector_load_time   = static_cast<float>(load_time / 2);
+            time_params.selector_unload_time = static_cast<float>(unload_time / 2);
+            time_params.standard_load_time   = static_cast<float>(load_time);
+            time_params.standard_unload_time = static_cast<float>(unload_time);
+
+            bool can_compute = !logical_filaments.empty() && !nozzle_list.empty()
+                            && !filament_seq.empty() && !nozzle_seq.empty() && group_count > 0;
+            size_t all_filaments_count = m_config.filament_map.values.size();
+            std::vector<int> final_assignment(all_filaments_count, 0);
+            if (can_compute) {
+                auto used_assignment = MultiNozzleUtils::find_optimal_physical_assignment(
+                    logical_filaments, nozzle_list, filament_seq, nozzle_seq, group_count, time_params);
+                for (size_t idx = 0; idx < logical_filaments.size() && idx < used_assignment.size(); ++idx) {
+                    int fid = logical_filaments[idx];
+                    if (fid >= 0 && static_cast<size_t>(fid) < final_assignment.size())
+                        final_assignment[fid] = used_assignment[idx];
+                }
+            }
+            optimal_assignment = std::move(final_assignment);
+        } else {
+            // Fallback: use filament_map directly
+            optimal_assignment.reserve(filament_map.size());
+            for (int nozzle_id : filament_map)
+                optimal_assignment.emplace_back(nozzle_id > 0 ? nozzle_id - 1 : 0);
+        }
+        result->optimal_assignment = std::move(optimal_assignment);
+    }
 }
 
 //BBS
@@ -7877,6 +7992,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
 
+    // BBL H2C: resolve the nozzle_id for this filament from the layered nozzle group result
+    int new_nozzle_id = -1;
+    if (m_print) {
+        auto gr = m_print->get_layered_nozzle_group_result();
+        if (gr)
+            new_nozzle_id = gr->get_nozzle_id(new_filament_id, m_layer_index);
+    }
+
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {
         this->placeholder_parser().set("current_extruder", new_filament_id);
@@ -7910,7 +8033,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(new_filament_id));
         }
 
-        gcode += m_writer.toolchange(new_filament_id);
+        gcode += m_writer.toolchange(new_filament_id, new_nozzle_id);
         return gcode;
     }
 
@@ -8036,14 +8159,16 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     new_filament_e_feedrate = new_filament_e_feedrate == 0 ? 100 : new_filament_e_feedrate;
 
     // BBL H2C: hotend ID for `next_hotend` placeholder in change_filament_gcode and for
-    // `current_hotend` after the toolchange completes. NOZZLE_ID_FOR_GCODE returns -1 when
-    // no dynamic-nozzle layered map is in play, telling H2C firmware to look the slot up
-    // from filament_nozzle_map (which is pushed per-layer by update_layer_related_config).
+    // `current_hotend` after the toolchange completes.
+    // For multi-nozzle printers (H2C) we always pass the resolved nozzle_id so that
+    // M620 S[next_extruder]A H[next_hotend] and T[next_extruder] H[next_hotend]
+    // emit the correct physical hotend selector. For single-nozzle printers nozzle_id
+    // will be -1 (no layered result), which is fine — H-1 won't be emitted by template.
     int next_hotend_id = -1;
     if (m_print) {
         auto gr = m_print->get_layered_nozzle_group_result();
-        int next_nozzle_id = gr ? gr->get_nozzle_id(new_filament_id, m_layer_index) : -1;
-        next_hotend_id = NOZZLE_ID_FOR_GCODE(gr, next_nozzle_id);
+        if (gr)
+            next_hotend_id = gr->get_nozzle_id(new_filament_id, m_layer_index);
     }
 
     // BBL H2C: per-extruder variant strings (e.g. "Direct Drive Standard",
@@ -8199,7 +8324,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
     //BBS: don't add T[next extruder] if there is no T cmd on filament change
      //We inform the writer about what is happening, but we may not use the resulting gcode.
-    std::string toolchange_command = m_writer.toolchange(new_filament_id);
+    std::string toolchange_command = m_writer.toolchange(new_filament_id, new_nozzle_id);
     if (!custom_gcode_changes_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(), new_filament_id))
         gcode += toolchange_command;
     else {

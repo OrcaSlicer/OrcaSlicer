@@ -165,7 +165,8 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
 
 bool WipeTower::is_need_ramming(int filament_id_1, int filament_id_2, int layer_id)
 {
-    if (!m_multi_nozzle_group_result) return false;
+    if (!m_multi_nozzle_group_result)
+        return false;
     return !m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
 }
 

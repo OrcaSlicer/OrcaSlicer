@@ -562,7 +562,7 @@ std::string GCodeWriter::toolchange_prefix() const
     return gcode;
 }
 
-std::string GCodeWriter::toolchange(unsigned int filament_id)
+std::string GCodeWriter::toolchange(unsigned int filament_id, int nozzle_id)
 {
     // set the new extruder
     auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
@@ -574,8 +574,11 @@ std::string GCodeWriter::toolchange(unsigned int filament_id)
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;
     if (this->multiple_extruders || (this->config.filament_diameter.values.size() > 1 && !is_bbl_printers())) {
-        // Orca: call toolchange_prefix() to get the correct command prefix based on the configuration and flavor.
-        gcode << this->toolchange_prefix() << filament_id;
+        // BBL printers: emit M1020 S<filament> H<nozzle_id> for multi-nozzle support
+        if (this->m_is_bbl_printers && nozzle_id >= 0)
+            gcode << "M1020 S" << filament_id << " H" << nozzle_id;
+        else
+            gcode << this->toolchange_prefix() << filament_id;
         if (GCodeWriter::full_gcode_comment)
             gcode << " ; change extruder";
         gcode << "\n";
@@ -1213,13 +1216,12 @@ void GCodeWriter::add_object_change_labels(std::string& gcode)
     add_object_start_labels(gcode);
 }
 
-std::string GCodeWriter::set_extruder(unsigned int filament_id)
+std::string GCodeWriter::set_extruder(unsigned int filament_id, int nozzle_id)
 {
     auto filament_ext_it = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
     unsigned int extruder_id = filament_ext_it->extruder_id();
     assert(filament_ext_it != m_filament_extruders.end() && filament_ext_it->id() == filament_id);
-    //TODO: optmize here, pass extruder_id to toolchange
-    return this->need_toolchange(filament_id) ? this->toolchange(filament_id) : "";
+    return this->need_toolchange(filament_id) ? this->toolchange(filament_id, nozzle_id) : "";
 }
 
 void GCodeWriter::init_extruder(unsigned int filament_id)

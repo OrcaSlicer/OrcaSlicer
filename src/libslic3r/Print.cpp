@@ -2666,6 +2666,8 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     gcode.set_gcode_offset(origin(0), origin(1));
     gcode.do_export(this, path.c_str(), result, thumbnail_cb);
     gcode.export_layer_filaments(result);
+
+
     //BBS
     result->conflict_result = m_conflict_result;
     return path.c_str();
@@ -3045,15 +3047,6 @@ void Print::finalize_first_layer_convex_hull()
 
 void Print::update_filament_maps_to_config(std::vector<int> f_maps, std::vector<int> f_volume_maps, std::vector<int> f_nozzle_maps)
 {
-    {
-        auto fmt_vec = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-UFM] in: f_maps.sz=" << f_maps.size() << "=" << fmt_vec(f_maps)
-            << " f_vol.sz=" << f_volume_maps.size() << "=" << fmt_vec(f_volume_maps)
-            << " f_noz.sz=" << f_nozzle_maps.size() << "=" << fmt_vec(f_nozzle_maps);
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-UFM] cfg: m_cfg.filament_map.sz=" << m_config.filament_map.values.size() << "=" << fmt_vec(m_config.filament_map.values)
-            << " m_cfg.filament_volume_map.sz=" << m_config.filament_volume_map.values.size() << "=" << fmt_vec(m_config.filament_volume_map.values)
-            << " m_cfg.filament_nozzle_map.sz=" << m_config.filament_nozzle_map.values.size() << "=" << fmt_vec(m_config.filament_nozzle_map.values);
-    }
     if ((m_config.filament_map.values != f_maps) || (m_config.filament_volume_map.values != f_volume_maps) || (m_config.filament_nozzle_map.values != f_nozzle_maps))
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament maps changed after pre-slicing.");
