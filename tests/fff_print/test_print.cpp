@@ -898,6 +898,26 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
     CHECK(per_layer.find(";Layer:200 (0.1 mm) max 20\n") != std::string::npos);
 }
 
+TEST_CASE("Initial Z clearance follows machine start G-code", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "gcode_flavor",              "klipper" },
+        { "machine_start_gcode",       "G28\nM117 INITIAL_Z_CLEARANCE_START" },
+        { "initial_z_clearance_height", 0.8 },
+    });
+
+    // The config block also contains this text, but as a comment rather than a command.
+    const size_t start_gcode = gcode.find("\nM117 INITIAL_Z_CLEARANCE_START\n");
+    const size_t clearance = gcode.find("; Raise Z for clearance\n");
+    REQUIRE(start_gcode != std::string::npos);
+    REQUIRE(clearance != std::string::npos);
+    CHECK(start_gcode < clearance);
+
+    const size_t relative_move = gcode.find("G91\nG1 Z0.800", clearance);
+    REQUIRE(relative_move != std::string::npos);
+    CHECK(gcode.find("G90", relative_move) != std::string::npos);
+}
+
 // A finished export is reused, so a renamed plate needs the export step invalidated.
 TEST_CASE("Plate name reaches the G-code once G-code export is invalidated", "[Print]")
 {
