@@ -1,4 +1,10 @@
 {
+	"type": "filament",
+	"name": "addnorth PLA rPLA RE-ADD",
+	"inherits": "Generic PLA @base",
+	"from": "system",
+	"filament_id": "GF_ANRPL",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
 	],
@@ -56,10 +62,10 @@
 		"70"
 	],
 	"cool_plate_temp": [
-		"35"
+		"55"
 	],
 	"cool_plate_temp_initial_layer": [
-		"35"
+		"5"
 	],
 	"counter_coef_1": [
 		"0"
@@ -113,10 +119,10 @@
 		"10"
 	],
 	"filament_cost": [
-		"54.5"
+		"23"
 	],
 	"filament_density": [
-		"1.24"
+		"1.25"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -136,7 +142,6 @@
 		"0.98",
 		"0.98"
 	],
-	"filament_id": "GF_ANPLW",
 	"filament_is_support": [
 		"0"
 	],
@@ -145,8 +150,8 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"8",
-		"8"
+		"12",
+		"16"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -207,7 +212,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PLA Wood"
+		"addnorth PLA rPLA RE-ADD"
 	],
 	"filament_shrink": [
 		"100%"
@@ -240,7 +245,6 @@
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
 		"0"
 	],
@@ -260,30 +264,27 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"60"
+		"55"
 	],
 	"hot_plate_temp_initial_layer": [
-		"60"
+		"55"
 	],
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic PLA @System",
-	"instantiation": "true",
-	"name": "addnorth PLA Wood",
 	"nozzle_temperature": [
-		"230",
-		"230"
+		"240",
+		"240"
 	],
 	"nozzle_temperature_initial_layer": [
-		"230",
-		"230"
+		"235",
+		"235"
 	],
 	"nozzle_temperature_range_high": [
-		"230"
+		"240"
 	],
 	"nozzle_temperature_range_low": [
-		"200"
+		"190"
 	],
 	"overhang_fan_speed": [
 		"100"
@@ -295,7 +296,7 @@
 		"95%"
 	],
 	"pre_start_fan_time": [
-		"0"
+		"2"
 	],
 	"pressure_advance": [
 		"0.02"
@@ -325,10 +326,9 @@
 		"50"
 	],
 	"textured_plate_temp": [
-		"60"
+		"65"
 	],
 	"textured_plate_temp_initial_layer": [
-		"60"
-	],
-	"version": "2.0.0.77"
+		"65"
+	]
 }

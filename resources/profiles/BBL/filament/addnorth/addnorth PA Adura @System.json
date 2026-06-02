@@ -1,4 +1,10 @@
 {
+	"type": "filament",
+	"name": "addnorth PA Adura",
+	"inherits": "Generic PA @base",
+	"from": "system",
+	"filament_id": "GF_ANAD",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -113,10 +119,10 @@
 		"10"
 	],
 	"filament_cost": [
-		"109"
+		"50"
 	],
 	"filament_density": [
-		"1.2"
+		"1.1"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -136,7 +142,6 @@
 		"0.99",
 		"0.99"
 	],
-	"filament_id": "GF_ANAX",
 	"filament_is_support": [
 		"0"
 	],
@@ -146,7 +151,7 @@
 	],
 	"filament_max_volumetric_speed": [
 		"8",
-		"15"
+		"11"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -183,8 +188,8 @@
 		"nil"
 	],
 	"filament_retraction_length": [
-		"nil",
-		"nil"
+		"1",
+		"1"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil",
@@ -207,7 +212,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PA-CF Adura X"
+		"addnorth PA Adura"
 	],
 	"filament_shrink": [
 		"100%"
@@ -219,7 +224,7 @@
 		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"PA-CF"
+		"PA"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -233,14 +238,13 @@
 		"nil"
 	],
 	"filament_z_hop": [
-		"nil",
-		"nil"
+		"0.4",
+		"0.4"
 	],
 	"filament_z_hop_types": [
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
 		"2"
 	],
@@ -268,25 +272,22 @@
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic PA-CF @System",
-	"instantiation": "true",
-	"name": "addnorth PA-CF Adura X",
 	"nozzle_temperature": [
-		"280",
-		"280"
+		"265",
+		"265"
 	],
 	"nozzle_temperature_initial_layer": [
-		"275",
-		"275"
+		"265",
+		"265"
 	],
 	"nozzle_temperature_range_high": [
-		"280"
+		"270"
 	],
 	"nozzle_temperature_range_low": [
-		"260"
+		"245"
 	],
 	"overhang_fan_speed": [
-		"90"
+		"70"
 	],
 	"overhang_fan_threshold": [
 		"10%"
@@ -310,7 +311,7 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"2"
+		"10"
 	],
 	"slow_down_min_speed": [
 		"20"
@@ -322,13 +323,12 @@
 		"0"
 	],
 	"temperature_vitrification": [
-		"120"
+		"110"
 	],
 	"textured_plate_temp": [
 		"100"
 	],
 	"textured_plate_temp_initial_layer": [
 		"100"
-	],
-	"version": "2.0.0.77"
+	]
 }

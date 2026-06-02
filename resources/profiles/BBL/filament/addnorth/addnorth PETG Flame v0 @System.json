@@ -1,9 +1,15 @@
 {
+	"type": "filament",
+	"name": "addnorth PETG Flame v0",
+	"inherits": "Generic PETG @base",
+	"from": "system",
+	"filament_id": "GF_ANPF",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
 	],
 	"additional_cooling_fan_speed": [
-		"70"
+		"0"
 	],
 	"chamber_temperatures": [
 		"0"
@@ -12,7 +18,7 @@
 		"200"
 	],
 	"close_fan_the_first_x_layers": [
-		"1"
+		"3"
 	],
 	"compatible_printers": [
 		"Bambu Lab A1 mini 0.4 nozzle",
@@ -56,10 +62,10 @@
 		"70"
 	],
 	"cool_plate_temp": [
-		"55"
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
-		"5"
+		"0"
 	],
 	"counter_coef_1": [
 		"0"
@@ -92,31 +98,31 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"0"
+		"70"
 	],
 	"eng_plate_temp_initial_layer": [
-		"0"
+		"70"
 	],
 	"fan_cooling_layer_time": [
-		"100"
+		"30"
 	],
 	"fan_max_speed": [
-		"100"
+		"90"
 	],
 	"fan_min_speed": [
-		"100"
+		"40"
 	],
 	"filament_adhesiveness_category": [
-		"100"
+		"300"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"20"
+		"71"
 	],
 	"filament_density": [
-		"1.24"
+		"1.27"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -133,10 +139,9 @@
 		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
-		"0.98",
-		"0.98"
+		"0.97",
+		"0.97"
 	],
-	"filament_id": "GF_ANEP",
 	"filament_is_support": [
 		"0"
 	],
@@ -145,13 +150,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"12",
-		"12"
+		"20",
+		"20"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.61 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.2 high reliability - V.Pack:10_03_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -195,7 +200,7 @@
 		"nil"
 	],
 	"filament_scarf_gap": [
-		"15%"
+		"0%"
 	],
 	"filament_scarf_height": [
 		"10%"
@@ -207,7 +212,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PLA E-PLA"
+		"addnorth PETG Flame V0"
 	],
 	"filament_shrink": [
 		"100%"
@@ -216,10 +221,10 @@
 		"0"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode {if (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200 {elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150 {elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50 {endif} {if activate_air_filtration[current_extruder] && support_air_filtration} M106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} {endif}"
+		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"PLA"
+		"PETG"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -240,7 +245,6 @@
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
 		"0"
 	],
@@ -260,36 +264,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"55"
+		"80"
 	],
 	"hot_plate_temp_initial_layer": [
-		"55"
+		"80"
 	],
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic PLA @System",
-	"instantiation": "true",
-	"name": "addnorth PLA E-PLA",
 	"nozzle_temperature": [
-		"240",
-		"240"
+		"290",
+		"290"
 	],
 	"nozzle_temperature_initial_layer": [
-		"235",
-		"235"
+		"290",
+		"290"
 	],
 	"nozzle_temperature_range_high": [
-		"240"
+		"290"
 	],
 	"nozzle_temperature_range_low": [
-		"190"
+		"225"
 	],
 	"overhang_fan_speed": [
-		"100"
+		"90"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"10%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -316,19 +317,18 @@
 		"20"
 	],
 	"supertack_plate_temp": [
-		"45"
+		"70"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"45"
+		"70"
 	],
 	"temperature_vitrification": [
-		"50"
+		"70"
 	],
 	"textured_plate_temp": [
-		"65"
+		"70"
 	],
 	"textured_plate_temp_initial_layer": [
-		"65"
-	],
-	"version": "2.0.0.77"
+		"70"
+	]
 }

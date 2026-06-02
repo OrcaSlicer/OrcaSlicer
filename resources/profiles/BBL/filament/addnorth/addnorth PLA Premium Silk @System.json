@@ -1,9 +1,15 @@
 {
+	"type": "filament",
+	"name": "addnorth PLA Premium Silk",
+	"inherits": "Generic PLA Silk @base",
+	"from": "system",
+	"filament_id": "GF_ANPS",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
 	],
 	"additional_cooling_fan_speed": [
-		"70"
+		"50"
 	],
 	"chamber_temperatures": [
 		"0"
@@ -12,7 +18,7 @@
 		"200"
 	],
 	"close_fan_the_first_x_layers": [
-		"1"
+		"2"
 	],
 	"compatible_printers": [
 		"Bambu Lab A1 mini 0.4 nozzle",
@@ -56,10 +62,10 @@
 		"70"
 	],
 	"cool_plate_temp": [
-		"0"
+		"55"
 	],
 	"cool_plate_temp_initial_layer": [
-		"0"
+		"55"
 	],
 	"counter_coef_1": [
 		"0"
@@ -92,35 +98,35 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"30"
+		"0"
 	],
 	"eng_plate_temp_initial_layer": [
-		"30"
+		"0"
 	],
 	"fan_cooling_layer_time": [
-		"100"
+		"80"
 	],
 	"fan_max_speed": [
-		"100"
+		"90"
 	],
 	"fan_min_speed": [
-		"100"
+		"70"
 	],
 	"filament_adhesiveness_category": [
-		"600"
+		"100"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"82"
+		"42.5"
 	],
 	"filament_density": [
-		"1.1"
+		"1.26"
 	],
 	"filament_deretraction_speed": [
-		"40",
-		"40"
+		"nil",
+		"nil"
 	],
 	"filament_diameter": [
 		"1.75"
@@ -136,7 +142,6 @@
 		"1",
 		"1"
 	],
-	"filament_id": "GF_ANEF",
 	"filament_is_support": [
 		"0"
 	],
@@ -145,13 +150,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"3.9",
-		"5"
+		"8",
+		"10"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.6 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.61 - V.Pack:10_03_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -175,16 +180,16 @@
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
-		"0",
-		"0"
+		"nil",
+		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
 		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
-		"1",
-		"1"
+		"0.6",
+		"0.6"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil",
@@ -207,7 +212,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth TPU EasyFlex"
+		"addnorth PLA Premium Silk"
 	],
 	"filament_shrink": [
 		"100%"
@@ -219,7 +224,7 @@
 		"; filament start gcode {if (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200 {elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150 {elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50 {endif} {if activate_air_filtration[current_extruder] && support_air_filtration} M106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} {endif}"
 	],
 	"filament_type": [
-		"TPU"
+		"PLA"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -240,7 +245,6 @@
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
 		"0"
 	],
@@ -260,36 +264,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"35"
+		"60"
 	],
 	"hot_plate_temp_initial_layer": [
-		"35"
+		"60"
 	],
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic TPU @System",
-	"instantiation": "true",
-	"name": "addnorth TPU EasyFlex",
 	"nozzle_temperature": [
-		"240",
-		"240"
-	],
-	"nozzle_temperature_initial_layer": [
-		"235",
-		"235"
-	],
-	"nozzle_temperature_range_high": [
+		"250",
 		"250"
 	],
+	"nozzle_temperature_initial_layer": [
+		"245",
+		"245"
+	],
+	"nozzle_temperature_range_high": [
+		"255"
+	],
 	"nozzle_temperature_range_low": [
-		"230"
+		"235"
 	],
 	"overhang_fan_speed": [
-		"100"
+		"80"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"25%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -310,25 +311,24 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"10"
+		"8"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"supertack_plate_temp": [
-		"0"
+		"45"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"0"
+		"45"
 	],
 	"temperature_vitrification": [
-		"78"
+		"50"
 	],
 	"textured_plate_temp": [
-		"35"
+		"65"
 	],
 	"textured_plate_temp_initial_layer": [
-		"35"
-	],
-	"version": "2.0.0.77"
+		"65"
+	]
 }

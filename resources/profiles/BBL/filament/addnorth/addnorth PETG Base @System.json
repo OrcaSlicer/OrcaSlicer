@@ -1,4 +1,10 @@
 {
+	"type": "filament",
+	"name": "addnorth PETG Base",
+	"inherits": "Generic PETG @base",
+	"from": "system",
+	"filament_id": "GF_ANPE",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
 	],
@@ -136,7 +142,6 @@
 		"0.95",
 		"0.95"
 	],
-	"filament_id": "GF_ANPE",
 	"filament_is_support": [
 		"0"
 	],
@@ -240,7 +245,6 @@
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
 		"0"
 	],
@@ -268,9 +272,6 @@
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic PETG @System",
-	"instantiation": "true",
-	"name": "addnorth PETG Base",
 	"nozzle_temperature": [
 		"260",
 		"260"
@@ -329,6 +330,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"75"
-	],
-	"version": "2.0.0.77"
+	]
 }

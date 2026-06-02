@@ -1,18 +1,24 @@
 {
+	"type": "filament",
+	"name": "addnorth PA Adura FDA",
+	"inherits": "Generic PA @base",
+	"from": "system",
+	"filament_id": "GF_ANAF",
+	"instantiation": "true",
 	"activate_air_filtration": [
-		"0"
+		"1"
 	],
 	"additional_cooling_fan_speed": [
-		"70"
+		"0"
 	],
 	"chamber_temperatures": [
-		"0"
+		"50"
 	],
 	"circle_compensation_speed": [
 		"200"
 	],
 	"close_fan_the_first_x_layers": [
-		"1"
+		"3"
 	],
 	"compatible_printers": [
 		"Bambu Lab A1 mini 0.4 nozzle",
@@ -56,10 +62,10 @@
 		"70"
 	],
 	"cool_plate_temp": [
-		"30"
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
-		"30"
+		"0"
 	],
 	"counter_coef_1": [
 		"0"
@@ -92,28 +98,28 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"30"
+		"100"
 	],
 	"eng_plate_temp_initial_layer": [
-		"30"
+		"100"
 	],
 	"fan_cooling_layer_time": [
-		"100"
+		"5"
 	],
 	"fan_max_speed": [
-		"100"
+		"30"
 	],
 	"fan_min_speed": [
-		"100"
+		"10"
 	],
 	"filament_adhesiveness_category": [
-		"600"
+		"300"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"82"
+		"50"
 	],
 	"filament_density": [
 		"1.1"
@@ -133,10 +139,9 @@
 		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
-		"1",
-		"1"
+		"0.99",
+		"0.99"
 	],
-	"filament_id": "GF_ANTA",
 	"filament_is_support": [
 		"0"
 	],
@@ -145,13 +150,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"3.2",
-		"5"
+		"8",
+		"11"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.1 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.5 - V.Pack:10_03_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -175,8 +180,8 @@
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
-		"0",
-		"0"
+		"nil",
+		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
 		"nil",
@@ -191,11 +196,11 @@
 		"nil"
 	],
 	"filament_retraction_speed": [
-		"40",
-		"40"
+		"nil",
+		"nil"
 	],
 	"filament_scarf_gap": [
-		"15%"
+		"0%"
 	],
 	"filament_scarf_height": [
 		"10%"
@@ -207,7 +212,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth TPU Pro Matte 85A"
+		"addnorth PA Adura FDA"
 	],
 	"filament_shrink": [
 		"100%"
@@ -216,10 +221,10 @@
 		"0"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode {if (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200 {elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150 {elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50 {endif} {if activate_air_filtration[current_extruder] && support_air_filtration} M106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} {endif}"
+		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"TPU"
+		"PA"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -233,16 +238,15 @@
 		"nil"
 	],
 	"filament_z_hop": [
-		"nil",
-		"nil"
+		"0.4",
+		"0.4"
 	],
 	"filament_z_hop_types": [
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
-		"0"
+		"2"
 	],
 	"hole_coef_1": [
 		"0"
@@ -260,36 +264,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"35"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
-		"35"
+		"100"
 	],
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic TPU @System",
-	"instantiation": "true",
-	"name": "addnorth TPU Pro Matte 85A",
 	"nozzle_temperature": [
-		"250",
-		"250"
+		"265",
+		"265"
 	],
 	"nozzle_temperature_initial_layer": [
-		"250",
-		"250"
+		"265",
+		"265"
 	],
 	"nozzle_temperature_range_high": [
-		"250"
+		"270"
 	],
 	"nozzle_temperature_range_low": [
-		"230"
+		"245"
 	],
 	"overhang_fan_speed": [
-		"100"
+		"70"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"10%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -304,16 +305,16 @@
 		"1"
 	],
 	"required_nozzle_HRC": [
-		"3"
+		"40"
 	],
 	"slow_down_for_layer_cooling": [
 		"1"
 	],
 	"slow_down_layer_time": [
-		"8"
+		"10"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"supertack_plate_temp": [
 		"0"
@@ -322,13 +323,12 @@
 		"0"
 	],
 	"temperature_vitrification": [
-		"78"
+		"110"
 	],
 	"textured_plate_temp": [
-		"35"
+		"100"
 	],
 	"textured_plate_temp_initial_layer": [
-		"35"
-	],
-	"version": "2.0.0.77"
+		"100"
+	]
 }

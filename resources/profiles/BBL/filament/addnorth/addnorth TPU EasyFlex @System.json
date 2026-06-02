@@ -1,18 +1,24 @@
 {
+	"type": "filament",
+	"name": "addnorth TPU EasyFlex",
+	"inherits": "Generic TPU @base",
+	"from": "system",
+	"filament_id": "GF_ANEF",
+	"instantiation": "true",
 	"activate_air_filtration": [
-		"1"
-	],
-	"additional_cooling_fan_speed": [
 		"0"
 	],
+	"additional_cooling_fan_speed": [
+		"70"
+	],
 	"chamber_temperatures": [
-		"50"
+		"0"
 	],
 	"circle_compensation_speed": [
 		"200"
 	],
 	"close_fan_the_first_x_layers": [
-		"3"
+		"1"
 	],
 	"compatible_printers": [
 		"Bambu Lab A1 mini 0.4 nozzle",
@@ -92,35 +98,35 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"105"
-	],
-	"eng_plate_temp_initial_layer": [
-		"105"
-	],
-	"fan_cooling_layer_time": [
 		"30"
 	],
+	"eng_plate_temp_initial_layer": [
+		"30"
+	],
+	"fan_cooling_layer_time": [
+		"100"
+	],
 	"fan_max_speed": [
-		"25"
+		"100"
 	],
 	"fan_min_speed": [
-		"0"
+		"100"
 	],
 	"filament_adhesiveness_category": [
-		"200"
+		"600"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"43"
+		"82"
 	],
 	"filament_density": [
-		"1.03"
+		"1.1"
 	],
 	"filament_deretraction_speed": [
-		"nil",
-		"nil"
+		"40",
+		"40"
 	],
 	"filament_diameter": [
 		"1.75"
@@ -133,10 +139,9 @@
 		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
-		"0.95",
-		"0.95"
+		"1",
+		"1"
 	],
-	"filament_id": "GF_ANRA",
 	"filament_is_support": [
 		"0"
 	],
@@ -145,13 +150,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"12",
-		"12"
+		"3.9",
+		"5"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.5 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.6 - V.Pack:10_03_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -175,16 +180,16 @@
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
-		"nil",
-		"nil"
+		"0",
+		"0"
 	],
 	"filament_retraction_distances_when_cut": [
 		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
-		"nil",
-		"nil"
+		"1",
+		"1"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil",
@@ -195,7 +200,7 @@
 		"nil"
 	],
 	"filament_scarf_gap": [
-		"0%"
+		"15%"
 	],
 	"filament_scarf_height": [
 		"10%"
@@ -207,7 +212,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth ABS rABS "
+		"addnorth TPU EasyFlex"
 	],
 	"filament_shrink": [
 		"100%"
@@ -216,10 +221,10 @@
 		"0"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+		"; filament start gcode {if (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200 {elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150 {elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50 {endif} {if activate_air_filtration[current_extruder] && support_air_filtration} M106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} {endif}"
 	],
 	"filament_type": [
-		"ABS"
+		"TPU"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -240,7 +245,6 @@
 		"nil",
 		"nil"
 	],
-	"from": "User",
 	"full_fan_speed_layer": [
 		"0"
 	],
@@ -260,36 +264,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"105"
+		"35"
 	],
 	"hot_plate_temp_initial_layer": [
-		"105"
+		"35"
 	],
 	"impact_strength_z": [
 		"10"
 	],
-	"inherits": "Generic ABS @System",
-	"instantiation": "true",
-	"name": "addnorth ABS rABS",
 	"nozzle_temperature": [
-		"255",
-		"255"
+		"240",
+		"240"
 	],
 	"nozzle_temperature_initial_layer": [
-		"250",
-		"250"
+		"235",
+		"235"
 	],
 	"nozzle_temperature_range_high": [
-		"260"
+		"250"
 	],
 	"nozzle_temperature_range_low": [
 		"230"
 	],
 	"overhang_fan_speed": [
-		"50"
+		"100"
 	],
 	"overhang_fan_threshold": [
-		"25%"
+		"50%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -310,10 +311,10 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"8"
+		"10"
 	],
 	"slow_down_min_speed": [
-		"20"
+		"10"
 	],
 	"supertack_plate_temp": [
 		"0"
@@ -322,13 +323,12 @@
 		"0"
 	],
 	"temperature_vitrification": [
-		"100"
+		"78"
 	],
 	"textured_plate_temp": [
-		"105"
+		"35"
 	],
 	"textured_plate_temp_initial_layer": [
-		"105"
-	],
-	"version": "2.0.0.77"
+		"35"
+	]
 }
