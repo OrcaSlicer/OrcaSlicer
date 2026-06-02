@@ -354,6 +354,20 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
+    if (!is_plate_config && config->has("spiral_vase") && config->opt_bool("spiral_vase") &&
+        ! (config->opt_int("wall_loops") == 1 &&
+           config->opt_int("top_shell_layers") == 0 &&
+           sparse_infill_density == 0)) {
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("wall_loops", new ConfigOptionInt(1));
+        new_conf.set_key_value("top_shell_layers", new ConfigOptionInt(0));
+        new_conf.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
+        new_conf.set_key_value("bottom_shell_layers", new ConfigOptionInt(0));
+        new_conf.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+        apply(config, &new_conf);
+        sparse_infill_density = 0;
+    }
+
     if (config->opt_bool("alternate_extra_wall") &&
         (config->opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == evstAll)) {
         wxString msg_text = _(L("Alternate extra wall does't work well when ensure vertical shell thickness is set to All."));
@@ -641,7 +655,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig);
 
-    bool has_spiral_vase         = config->opt_bool("spiral_mode");
+    bool has_spiral_vase         = config->opt_bool("spiral_mode") ||
+        (config->has("spiral_vase") && config->opt_bool("spiral_vase"));
     toggle_line("spiral_mode_smooth", has_spiral_vase);
     toggle_line("spiral_mode_max_xy_smoothing", has_spiral_vase && config->opt_bool("spiral_mode_smooth"));
     toggle_line("spiral_starting_flow_ratio", has_spiral_vase);

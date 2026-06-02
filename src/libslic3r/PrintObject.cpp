@@ -1516,7 +1516,7 @@ void PrintObject::detect_surfaces_type()
             		((num_layers > 1) ? num_layers - 1 : num_layers) :
             		// In non-spiral vase mode, go over all layers.
             		m_layers.size()),
-            [this, region_id, interface_shells, &surfaces_new](const tbb::blocked_range<size_t>& range) {
+            [this, region_id, interface_shells, &surfaces_new, spiral_mode](const tbb::blocked_range<size_t>& range) {
                 // If we have soluble support material, don't bridge. The overhang will be squished against a soluble layer separating
                 // the support from the print.
                 // BBS: the above logic only applys for normal(auto) support. Complete logic:
@@ -1535,6 +1535,12 @@ void PrintObject::detect_surfaces_type()
                     // BOOST_LOG_TRIVIAL(trace) << "Detecting solid surfaces for region " << region_id << " and layer " << layer->print_z;
                     Layer       *layer  = m_layers[idx_layer];
                     LayerRegion *layerm = layer->m_regions[region_id];
+                    if (!spiral_mode && layerm->is_spiral_vase_active()) {
+                        Surfaces &surfaces_out = interface_shells ? surfaces_new[idx_layer] : layerm->slices.surfaces;
+                        surfaces_out.clear();
+                        surfaces_append(surfaces_out, to_expolygons(layerm->slices.surfaces), stInternal);
+                        continue;
+                    }
                     // comparison happens against the *full* slices (considering all regions)
                     // unless internal shells are requested
                     Layer       *upper_layer = (idx_layer + 1 < this->layer_count()) ? m_layers[idx_layer + 1] : nullptr;
@@ -3627,6 +3633,13 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         config.sparse_infill_density.value = std::min(config.sparse_infill_density.value, 100.);
     if (config.fuzzy_skin.value != FuzzySkinType::None && (config.fuzzy_skin_point_distance.value < 0.01 || config.fuzzy_skin_thickness.value < 0.001))
         config.fuzzy_skin.value = FuzzySkinType::None;
+    if (config.spiral_vase) {
+        config.wall_loops.value                   = 1;
+        config.alternate_extra_wall.value         = false;
+        config.top_shell_layers.value             = 0;
+        config.sparse_infill_density.value        = 0;
+        config.bottom_shell_layers.value          = 0;
+    }
     return config;
 }
 

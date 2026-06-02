@@ -278,7 +278,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             // Spiral Vase forces different kind of slicing than the normal model:
             // In Spiral Vase mode, holes are closed and only the largest area contour is kept at each layer.
             // Therefore toggling the Spiral Vase on / off requires complete reslicing.
-            || opt_key == "spiral_mode") {
+            || opt_key == "spiral_mode"
+            || opt_key == "spiral_vase") {
             osteps.emplace_back(posSlice);
         } else if (
                opt_key == "print_sequence"
@@ -1328,21 +1329,27 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
     }
 
-    if (m_config.spiral_mode) {
+    if (this->has_spiral_mode()) {
         size_t total_copies_count = 0;
         for (const PrintObject* object : m_objects)
             total_copies_count += object->instances().size();
+        const char *spiral_opt_key = m_config.spiral_mode ? "spiral_mode" : "spiral_vase";
         // #4043
         if (total_copies_count > 1 && m_config.print_sequence != PrintSequence::ByObject)
-            return {L("Please select \"By object\" print sequence to print multiple objects in spiral vase mode."), nullptr, "spiral_mode"};
-        assert(m_objects.size() == 1);
-        const auto all_regions = m_objects.front()->all_regions();
-        if (all_regions.size() > 1) {
-            // Orca: make sure regions are not compatible
-            if (std::any_of(all_regions.begin() + 1, all_regions.end(), [ra = all_regions.front()](const auto rb) {
-                return !Layer::is_perimeter_compatible(ra, rb);
-            })) {
-                return {L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, "spiral_mode"};
+            return {L("Please select \"By object\" print sequence to print multiple objects in spiral vase mode."), nullptr, spiral_opt_key};
+        // Whole-object multi-material restriction applies to global spiral mode only.
+        // Per-height-range spiral_vase is validated per layer during G-code export.
+        if (m_config.spiral_mode) {
+            assert(m_objects.size() == 1);
+            for (const PrintObject *object : m_objects) {
+                const auto all_regions = object->all_regions();
+                if (all_regions.size() > 1) {
+                    if (std::any_of(all_regions.begin() + 1, all_regions.end(), [ra = all_regions.front()](const auto rb) {
+                            return !Layer::is_perimeter_compatible(ra, rb);
+                        })) {
+                        return {L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, spiral_opt_key};
+                    }
+                }
             }
         }
     }
@@ -2029,6 +2036,16 @@ bool Print::has_support_material() const
 {
     for (const PrintObject *object : m_objects)
         if (object->has_support_material())
+            return true;
+    return false;
+}
+
+bool Print::has_spiral_mode() const
+{
+    if (m_config.spiral_mode)
+        return true;
+    for (const PrintRegion *region : m_print_regions)
+        if (region->config().spiral_vase)
             return true;
     return false;
 }

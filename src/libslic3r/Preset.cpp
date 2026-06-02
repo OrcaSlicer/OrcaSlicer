@@ -978,6 +978,7 @@ static std::vector<std::string> s_Preset_print_options{
     "spiral_mode_max_xy_smoothing",
     "spiral_starting_flow_ratio",
     "spiral_finishing_flow_ratio",
+    "spiral_vase",
     "slicing_mode",
     "top_shell_layers",
     "top_shell_thickness",

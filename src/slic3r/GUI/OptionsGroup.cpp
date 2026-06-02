@@ -744,11 +744,14 @@ void ConfigOptionsGroup::reload_config()
 	for (auto &kvp : m_opt_map) {
 		// Name of the option field (name of the configuration key, possibly suffixed with '#' and the index of a scalar inside a vector.
 		const std::string &opt_id    = kvp.first;
+		auto opt_it = m_options.find(opt_id);
+		if (opt_it == m_options.end())
+			continue;
 		// option key (may be scalar or vector)
 		const std::string &opt_key   = kvp.second.first;
 		// index in the vector option, zero for scalars
         int 			   opt_index = kvp.second.second;
-		const ConfigOptionDef &option = m_options.at(opt_id).opt;
+		const ConfigOptionDef &option = opt_it->second.opt;
 		this->set_value(opt_id, config_value(opt_key, opt_index, option.gui_flags == "serialized"));
 	}
 }

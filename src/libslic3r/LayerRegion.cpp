@@ -78,10 +78,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
     const PrintRegionConfig &region_config = this->region().config();
     const PrintObjectConfig& object_config = this->layer()->object()->config();
     // This needs to be in sync with PrintObject::_slice() slicing_mode_normal_below_layer!
-    bool spiral_mode = print_config.spiral_mode &&
-        //FIXME account for raft layers.
-        (this->layer()->id() >= size_t(region_config.bottom_shell_layers.value) &&
-         this->layer()->print_z >= region_config.bottom_shell_thickness - EPSILON);
+    bool spiral_mode = this->is_spiral_vase_active();
 
     PerimeterGenerator g(
         // input:
@@ -546,7 +543,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     Surfaces tops = expand_merge_surfaces(this->fill_surfaces.surfaces, stTop, expansion_zones, closing_radius);
 
     // turn too small internal regions into solid regions according to the user setting
-    if (!this->layer()->object()->print()->config().spiral_mode && this->region().config().sparse_infill_density.value > 0) {
+    if (!this->is_spiral_vase_active() && this->region().config().sparse_infill_density.value > 0) {
         // scaling an area requires two calls!
         double min_area = scale_(scale_(this->region().config().minimum_sparse_infill_area.value));
         ExPolygons small_regions{};
@@ -896,10 +893,10 @@ void LayerRegion::prepare_fill_surfaces()
         alter fill_surfaces boundaries on which our idempotency relies since that's
         the only meaningful information returned by psPerimeters. */
     
-    bool spiral_mode = this->layer()->object()->print()->config().spiral_mode;
+    const bool spiral_mode = this->is_spiral_vase_active();
 
     // if no solid layers are requested, turn top/bottom surfaces to internal
-    if (! spiral_mode && this->region().config().top_shell_layers == 0) {
+    if (!spiral_mode && this->region().config().top_shell_layers == 0) {
         for (Surface &surface : this->fill_surfaces.surfaces)
             if (surface.is_top())
                 //BBS
@@ -1024,7 +1021,7 @@ void LayerRegion::simplify_entity_collection(ExtrusionEntityCollection* entity_c
 void LayerRegion::simplify_path(ExtrusionPath* path)
 {
     const auto print_config = this->layer()->object()->print()->config();
-    const bool spiral_mode = print_config.spiral_mode;
+    const bool spiral_mode = this->is_spiral_vase_active();
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
@@ -1042,7 +1039,7 @@ void LayerRegion::simplify_path(ExtrusionPath* path)
 void LayerRegion::simplify_multi_path(ExtrusionMultiPath* multipath)
 {
     const auto print_config = this->layer()->object()->print()->config();
-    const bool spiral_mode = print_config.spiral_mode;
+    const bool spiral_mode = this->is_spiral_vase_active();
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
@@ -1062,7 +1059,7 @@ void LayerRegion::simplify_multi_path(ExtrusionMultiPath* multipath)
 void LayerRegion::simplify_loop(ExtrusionLoop* loop)
 {
     const auto print_config = this->layer()->object()->print()->config();
-    const bool spiral_mode = print_config.spiral_mode;
+    const bool spiral_mode = this->is_spiral_vase_active();
     const bool enable_arc_fitting = print_config.enable_arc_fitting;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 

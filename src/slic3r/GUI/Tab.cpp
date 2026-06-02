@@ -2979,6 +2979,21 @@ void TabPrintModel::build()
     m_pages.erase(std::remove_if(m_pages.begin(), m_pages.end(), [](auto & p) {
         return p->m_optgroups.empty();
     }), m_pages.end());
+
+    // Height range modifier only (TabPrintLayer has layer_height in m_keys).
+    if (has_key("layer_height")) {
+        for (auto p : m_pages) {
+            if (p->title() != L("Others"))
+                continue;
+            for (auto g : p->m_optgroups) {
+                if (g->title != L("Fuzzy Skin"))
+                    continue;
+                g->prepend_single_option_line("spiral_vase", "others_settings_special_mode#spiral-vase");
+                break;
+            }
+            break;
+        }
+    }
 }
 
 void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const & object_configs)

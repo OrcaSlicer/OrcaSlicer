@@ -63,7 +63,7 @@ SpiralVase::SpiralPoint nearest_point_on_lines(SpiralVase::SpiralPoint          
 }
 } // namespace SpiralVase
 
-std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
+std::string SpiralVase::process_layer(const std::string &gcode, bool last_spiral_layer)
 {
     /*  This post-processor relies on several assumptions:
         - all layers are processed through it, including those that are not supposed
@@ -120,7 +120,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
     // Tapering the absolute extruder distances requires to process every extrusion value after the first transition
     // layer.
     bool  transition_in = m_transition_layer && m_config.use_relative_e_distances.value;
-    bool  transition_out = last_layer && m_config.use_relative_e_distances.value;
+    bool  transition_out = last_spiral_layer && m_config.use_relative_e_distances.value;
 
     float starting_flowrate  = float(m_config.spiral_starting_flow_ratio.value);
     float finishing_flowrate = float(m_config.spiral_finishing_flow_ratio.value);

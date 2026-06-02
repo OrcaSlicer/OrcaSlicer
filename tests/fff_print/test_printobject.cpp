@@ -3,6 +3,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/Model.hpp"
 
 #include "test_data.hpp"
 
@@ -86,4 +87,19 @@ SCENARIO("PrintObject: object layer heights", "[PrintObject][.]") {
         }
 #endif
     }
+}
+
+TEST_CASE("Height range spiral_vase region config", "[PrintObject][SpiralVase]") {
+    PrintRegionConfig config;
+    REQUIRE_FALSE(config.spiral_vase);
+    config.spiral_vase.value = true;
+    config.wall_loops.value              = 1;
+    config.top_shell_layers.value        = 0;
+    config.sparse_infill_density.value   = 0;
+    config.bottom_shell_layers.value     = 0;
+    REQUIRE(config.spiral_vase);
+    REQUIRE(config.wall_loops == 1);
+    REQUIRE(config.top_shell_layers == 0);
+    REQUIRE(config.sparse_infill_density.value == 0.f);
+    REQUIRE(config.bottom_shell_layers == 0);
 }

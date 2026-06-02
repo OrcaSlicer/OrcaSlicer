@@ -1165,6 +1165,15 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("spiral_vase", coBool);
+    def->label = L("Spiral vase");
+    def->category = L("Others");
+    def->tooltip = L("When enabled on a height range modifier, this Z band is printed in spiral vase mode "
+                     "(single continuous wall, no infill or top solid layers). Use with wall loops = 1 and zero infill. "
+                     "Global Spiral vase in print settings overrides this.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("gap_fill_target", coEnum);
     def->label = L("Apply gap fill");
     def->category = L("Strength");

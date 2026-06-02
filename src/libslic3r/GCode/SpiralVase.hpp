@@ -30,7 +30,7 @@ public:
     	m_enabled 		   = en;
     }
 
-    std::string process_layer(const std::string &gcode, bool last_layer);
+    std::string process_layer(const std::string &gcode, bool last_spiral_layer);
     void set_max_xy_smoothing(float max) {
         m_max_xy_smoothing = max;
     }
