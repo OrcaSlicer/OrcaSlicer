@@ -681,15 +681,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
             machine_supports_junction_deviation = !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
         }
     }
-    toggle_line("default_junction_deviation", gcflavor == gcfMarlinFirmware);
+
     if (machine_supports_junction_deviation) {
-        toggle_field("default_junction_deviation", true);
-        toggle_field("default_jerk", false);
-        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"})
+        toggle_line("default_junction_deviation", true);
+        for (auto el : { "default_jerk", "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"})
             toggle_line(el, false);
     } else {
-        toggle_field("default_junction_deviation", false);
-        toggle_field("default_jerk", true);
+        toggle_line("default_junction_deviation", false);
+        toggle_line("default_jerk", true);
         bool have_default_jerk = config->has("default_jerk") && config->opt_float("default_jerk") > 0;
         for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"}) {
             toggle_line(el, true);
