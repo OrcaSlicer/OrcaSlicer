@@ -866,24 +866,19 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
             config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
             config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
-            config.set_key_value("current_hotend", new ConfigOptionInt(old_extruder_id >= 0 ?
-                hotend_id_for_gcode_placeholder(gcodegen.m_config, old_extruder_id) : -1));
-            config.set_key_value("next_hotend",
-                new ConfigOptionInt(hotend_id_for_gcode_placeholder(gcodegen.m_config, (int) gcodegen.get_extruder_id(new_filament_id))));
+            // H2C: firmware expects H-1 ("auto-select nozzle via remap") in
+            // change_filament_gcode.  The concrete nozzle mapping is communicated
+            // via NOZZLE_CHANGE_START tags and M632 in WipeTower G-code, NOT via
+            // the H/B parameters of T/M620/M620.11.  Ref: BBL G-code always
+            // emits B-1 / H-1.
+            config.set_key_value("current_hotend", new ConfigOptionInt(-1));
+            config.set_key_value("next_hotend", new ConfigOptionInt(-1));
             config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
             config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
             config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
 
-            // H2C: same dyn_config keys as the non-wipe-tower toolchange path at
-            // GCode.cpp:7833-7837. Without these, change_filament_gcode parsing throws
-            // "Variable does not exist" on H[next_hotend] etc. during multi-color
-            // wipe-tower toolchanges.
-            int next_hotend_id = -1;
-            if (gcodegen.m_print) {
-                auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
-                if (gr)
-                    next_hotend_id = gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index);
-            }
+            // H2C: per-extruder variant strings for placeholder evaluation.
+            // next_hotend is already set to -1 above (firmware auto-remap).
             std::string old_extruder_variant_str, new_extruder_variant_str;
             if (gcodegen.m_print) {
                 if (const auto* variants_opt = gcodegen.m_print->config().option<ConfigOptionStrings>("printer_extruder_variant")) {
@@ -895,7 +890,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         new_extruder_variant_str = variants[new_ext_id];
                 }
             }
-            config.set_key_value("next_hotend", new ConfigOptionInt(next_hotend_id));
             config.set_key_value("old_extruder_variant", new ConfigOptionString(old_extruder_variant_str));
             config.set_key_value("new_extruder_variant", new ConfigOptionString(new_extruder_variant_str));
             //            config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -1066,7 +1060,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string toolchange_command;
         if (tcr.priming || (new_filament_id >= 0 && gcodegen.writer().need_toolchange(new_filament_id)))
             toolchange_command = gcodegen.writer().toolchange(new_filament_id);
-        if (!custom_gcode_changes_tool(toolchange_gcode_str, gcodegen.writer().toolchange_prefix(), new_filament_id))
+        // H2C: change_filament_gcode uses "T<id> H<hotend>" but BBL
+        // toolchange_prefix() returns "M1020 S".  Check both prefixes
+        // so we don't emit a duplicate/spurious toolchange command.
+        if (!custom_gcode_changes_tool(toolchange_gcode_str, gcodegen.writer().toolchange_prefix(), new_filament_id)
+            && !custom_gcode_changes_tool(toolchange_gcode_str, "T", new_filament_id))
             toolchange_gcode_str += toolchange_command;
         else {
             // We have informed the m_writer about the current extruder_id, we can ignore the generated G-code.
@@ -1132,17 +1130,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         check_add_eol(toolchange_unretract_str);
 
         gcodegen.placeholder_parser().set("current_extruder", new_filament_id);
-        // current_hotend tracks current_extruder unless the active group result maps the
-        // filament onto a different physical hotend (H2C dual-nozzle layered group case).
-        // Fall back to -1 ("use current hotend") when no group result is available, matching
-        // BBL's NOZZLE_ID_FOR_GCODE behaviour — see initial set site for rationale.
-        int current_hotend_id = -1;
-        if (gcodegen.m_print) {
-            auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
-            if (gr)
-                current_hotend_id = gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index);
-        }
-        gcodegen.placeholder_parser().set("current_hotend", current_hotend_id);
+        // H2C: firmware expects current_hotend = -1 (auto-remap), matching BBL.
+        gcodegen.placeholder_parser().set("current_hotend", -1);
         gcodegen.placeholder_parser().set("retraction_distance_when_cut", gcodegen.m_config.retraction_distances_when_cut.get_at(new_filament_id));
         gcodegen.placeholder_parser().set("long_retraction_when_cut", gcodegen.m_config.long_retractions_when_cut.get_at(new_filament_id));
         gcodegen.placeholder_parser().set("retraction_distance_when_ec", gcodegen.m_config.retraction_distances_when_ec.get_at(new_filament_id));
@@ -2670,8 +2659,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     
     if(!has_BTT_thumbnail){   
         file.write_format("; HEADER_BLOCK_START\n");
-        // Write information on the generator.
-        file.write_format("; generated by %s on %s\n", Slic3r::header_slic3r_generated().c_str(), Slic3r::Utils::local_timestamp().c_str());
+        // H2C FIX: Bambu H2C firmware gates nozzle carousel switching (M632/M633)
+        // on the G-code header containing "BambuStudio". For multi-nozzle BBL
+        // printers we emit the BBL-compatible identifier so the firmware enables
+        // nozzle rotation. For all other printers use the normal OrcaSlicer header.
+        // Ref: H2C firmware source inspection; BBL GCode.cpp header_block (commit 3f2570c).
+        bool is_h2c_multi_nozzle = is_bbl_printers &&
+            (print.config().nozzle_diameter.size() > 1) &&
+            (print.config().extruder_max_nozzle_count.values.size() > 1) &&
+            (print.config().extruder_max_nozzle_count.values[1] > 1);
+        if (is_h2c_multi_nozzle) {
+            // Emit BBL-compatible header so H2C firmware enables nozzle carousel.
+            file.write_format("; BambuStudio 02.07.00.55\n");
+        } else {
+            file.write_format("; generated by %s on %s\n", Slic3r::header_slic3r_generated().c_str(), Slic3r::Utils::local_timestamp().c_str());
+        }
         if (is_bbl_printers)
             file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder).c_str());
         //BBS: total layer number
@@ -2907,6 +2909,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     m_cooling_buffer = make_unique<CoolingBuffer>(*this);
     m_cooling_buffer->set_current_extruder(initial_extruder_id);
+    // BBL printers: machine_start_gcode always sets fans to 0, so tell the CoolingBuffer
+    // that the initial fan state is known (0) rather than unknown (-1). This prevents
+    // CoolingBuffer from emitting redundant M106 S0 / M106 P2 S0 before ; CHANGE_LAYER.
+    if (is_bbl_printers) {
+        m_cooling_buffer->set_initial_fan_speed(0);
+        m_cooling_buffer->set_initial_additional_fan_speed(0);
+    }
 
     int extruder_id = get_extruder_id(initial_extruder_id);
 
@@ -2945,6 +2954,51 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     //BBS
     match_physical_extruder_for_each_filament(first_non_support_filaments, m_config);
 
+    // H2C FIX: Ensure the carousel initialises at the HOME nozzle (nozzle 1).
+    // The H2C nozzle carousel physically homes to nozzle 1 on power-up, and
+    // M640.2 R1 in machine_start_gcode resets it there again after bed levelling.
+    // M640.8 T A{first_non_support_filaments[0]} H-1 tells the firmware which
+    // nozzle is currently loaded. If that A-value does NOT correspond to nozzle 1,
+    // the firmware computes all subsequent M632 carousel rotations with a fixed
+    // angular offset, causing every nozzle change to land on the wrong nozzle (the
+    // symptom: "filament changes, nozzle never rotates").
+    //
+    // Fix: for multi-nozzle BBL printers (H2C), find the filament whose
+    // filament_nozzle_map entry equals 1 (nozzle 1 = home position) and force it
+    // into first_non_support_filaments[0].  The wipe tower's first purge block
+    // handles the subsequent switch to the actual first printing filament.
+    // Ref: BBL vs Orca G-code comparison; BBL always initialises with nozzle 1.
+    if (is_bbl_printers && !first_non_support_filaments.empty() &&
+        !print.config().filament_nozzle_map.values.empty()) {
+        const auto& nozzle_map = print.config().filament_nozzle_map.values;
+        // Detect H2C carousel: any filament maps to nozzle > 1.
+        const bool has_carousel = std::any_of(nozzle_map.begin(), nozzle_map.end(),
+            [](int v) { return v > 1; });
+        if (has_carousel) {
+            // Find the filament whose nozzle_id == 1 (carousel home position).
+            int home_filament = -1;
+            for (int i = 0; i < (int)nozzle_map.size(); ++i) {
+                if (nozzle_map[i] == 1) { home_filament = i; break; }
+            }
+            // Only override if home filament is actually used in this print.
+            const auto& all_ext = tool_ordering.all_extruders();
+            const bool home_is_used = home_filament >= 0 &&
+                std::find(all_ext.begin(), all_ext.end(), (unsigned int)home_filament) != all_ext.end();
+            if (home_is_used && home_filament != first_non_support_filaments[0]) {
+                const int old_first = first_non_support_filaments[0];
+                BOOST_LOG_TRIVIAL(info) << "[H2C] Overriding first_non_support_filaments[0]: "
+                    << old_first << " -> " << home_filament
+                    << " (nozzle 1 = carousel HOME). Required for correct M632 rotation offsets.";
+                first_non_support_filaments[0] = home_filament;
+                // Keep initial_non_support_extruder_id consistent.
+                if (initial_non_support_extruder_id == (unsigned int)old_first ||
+                    initial_non_support_extruder_id == (unsigned int)-1) {
+                    initial_non_support_extruder_id = (unsigned int)home_filament;
+                }
+            }
+        }
+    }
+
     this->placeholder_parser().set("first_non_support_tools", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
@@ -2954,11 +3008,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // MultiNozzleGroupResult is the rough equivalent (Print.cpp:2388 populates it for multi-nozzle
     // paths). Pull the group_id when we have one; fall back to the filament/extruder id otherwise so
     // single-nozzle slicing keeps producing correct output.
+    // H2C: firmware expects H-1 ("auto-select nozzle via remap") for ALL
+    // hotend-related placeholders in machine_start_gcode / change_filament_gcode.
+    // BBL always emits H-1 in M640.8, M620, T commands.  The concrete nozzle
+    // mapping is communicated via M620 N (hotend remap) + NOZZLE_CHANGE_START
+    // tags + M632 in WipeTower G-code, NOT via H-parameters in gcode templates.
     auto resolve_hotend_id = [&print](int filament_id) -> int {
-        if (filament_id < 0) return -1;
-        auto gr = print.get_layered_nozzle_group_result();
-        if (!gr) return -1;
-        return gr->get_nozzle_id(filament_id);
+        (void)print; // unused — always return -1 for firmware auto-remap
+        return -1;
     };
     std::vector<int> first_non_support_hotends;
     first_non_support_hotends.reserve(first_non_support_filaments.size());
@@ -2968,10 +3025,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     const int initial_hotend = resolve_hotend_id(initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_hotend", initial_hotend);
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
-    // BBL H2C end_gcode references [current_hotend]; without registering the placeholder the
-    // parser aborts at end-of-print and plate_1.gcode never gets finalized. Seed from
-    // resolve_hotend_id so dual-nozzle slices get the right hotend at start-of-print.
-    this->placeholder_parser().set("current_hotend", resolve_hotend_id(initial_extruder_id));
+    // H2C: current_hotend = -1 for firmware auto-remap, matching BBL.
+    this->placeholder_parser().set("current_hotend", -1);
     // H2C: Nozzle-level placeholders for machine_start_gcode / change_filament_gcode.
     // BBL ref: BambuStudio GCode.cpp:2496-2502 (commit 3f2570c)
     {
@@ -3000,6 +3055,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_ec", m_config.long_retractions_when_ec.get_at(initial_extruder_id));
+
+    // H2C carousel: current_extruder is correctly set to the home slot via initial_extruder_id.
+    // ToolOrdering::collect_extruder_statistics ensures all_extruders().back() = home slot
+    // (filament_nozzle_map[i] == 1) so that initial_extruder_id = 3 (nozzle 1 = HOME) in
+    // both wipe tower planning (Print.cpp) and G-code export (here). The placeholder
+    // current_extruder = 3 (line above) then produces M620.11 I3 in change_filament_gcode,
+    // matching the physical state after M640.2 R1 (carousel re-homes to nozzle 1 on start).
     this->placeholder_parser().set("temperature", new ConfigOptionInts(print.config().nozzle_temperature));
 
 
@@ -3313,6 +3375,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // Write the custom start G-code
     file.writeln(machine_start_gcode);
+    // BBS: add end-of-machine-start marker to match BambuStudio G-code structure
+    if (is_bbl_printers)
+        file.write("; MACHINE_START_GCODE_END\n");
 
     //BBS: gcode writer doesn't know where the real position of extruder is after inserting custom gcode
     m_writer.set_current_position_clear(false);
@@ -3344,10 +3409,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 auto gr = m_print->get_layered_nozzle_group_result();
                 if (gr) {
                     auto first_nozzle = gr->get_first_nozzle_for_filament(initial_extruder_id);
-                    int initial_nozzle_id = first_nozzle
-                        ? first_nozzle->group_id : -1;
+                    int initial_nozzle_id = first_nozzle ? first_nozzle->group_id : -1;
                     if (initial_nozzle_id >= 0)
-                        file.write_format(";VT%d H%d\n", initial_extruder_id, initial_nozzle_id);
+                        file.write_format(";VT%d H%d\n", initial_extruder_id, resolve_hotend_id(initial_extruder_id));
                     else
                         file.write_format(";VT%d\n", initial_extruder_id);
                 } else {
@@ -3553,8 +3617,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 }
 
                 // Orca: disable power loss recovery if it was enabled earlier
+                // For BBL printers: treat 'printer_configuration' as Enable
                 {
-                    const auto plr_mode = print.config().enable_power_loss_recovery.value;
+                    auto plr_mode = print.config().enable_power_loss_recovery.value;
+                    if (print.is_BBL_printer() && plr_mode == PowerLossRecoveryMode::PrinterConfiguration)
+                        plr_mode = PowerLossRecoveryMode::Enable;
                     if (m_second_layer_things_done && plr_mode == PowerLossRecoveryMode::Enable) {
                         file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
                     }
@@ -3576,8 +3643,27 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 m_wipe_tower->set_wipe_tower_depth(print.get_wipe_tower_depth());
                 m_wipe_tower->set_wipe_tower_bbx(print.get_wipe_tower_bbx());
                 m_wipe_tower->set_rib_offset(print.get_rib_offset());
-                //BBS
-                file.write(m_writer.travel_to_z(initial_layer_print_height + m_config.z_offset.value, "Move to the first layer height"));
+                //BBS: match BambuStudio behavior for BBL multi-nozzle printers (H2C):
+                // 1. Emit travel acceleration before the initial Z move (BambuStudio always does this)
+                // 2. Travel to first_layer_height + z_hop rather than just first_layer_height.
+                //    Without z_hop the writer's Z is already at first_layer_height when change_layer()
+                //    is later called, so will_move_z() returns false and change_layer() skips the
+                //    retract — shifting G1 E-.4 to appear after M73/M991 instead of before.
+                if (is_bbl_printers) {
+                    if (m_config.default_acceleration.value > 0 && m_config.travel_acceleration.value > 0) {
+                        // Force emit M204 even if the value hasn't changed since machine_start_gcode
+                        m_writer.reset_last_acceleration();
+                        file.write(m_writer.set_travel_acceleration(
+                            (unsigned int)floor(m_config.travel_acceleration.value + 0.5)));
+                    }
+                    // Use z_hop of the initial extruder (per-nozzle config, wraps safely)
+                    const double z_hop_for_init = m_config.z_hop.get_at(initial_extruder_id);
+                    file.write(m_writer.travel_to_z(
+                        initial_layer_print_height + m_config.z_offset.value + z_hop_for_init,
+                        "Move to the first layer height"));
+                } else {
+                    file.write(m_writer.travel_to_z(initial_layer_print_height + m_config.z_offset.value, "Move to the first layer height"));
+                }
 
                 if (wipe_tower_type == WipeTowerType::Type2 && print.config().single_extruder_multi_material_priming) {
                     file.write(m_wipe_tower->prime(*this));
@@ -3635,7 +3721,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             }
 
             // Orca: disable power loss recovery
-            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == PowerLossRecoveryMode::Enable) {
+            // For BBL printers: treat 'printer_configuration' as Enable (same override as in process_layer)
+            auto plr_end_mode = print.config().enable_power_loss_recovery.value;
+            if (print.is_BBL_printer() && plr_end_mode == PowerLossRecoveryMode::PrinterConfiguration)
+                plr_end_mode = PowerLossRecoveryMode::Enable;
+            if (m_second_layer_things_done && plr_end_mode == PowerLossRecoveryMode::Enable) {
                 file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
             }
             if (m_wipe_tower)
@@ -4863,7 +4953,10 @@ LayerResult GCode::process_layer(
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
     }
     //BBS: set layer time fan speed after layer change gcode
-    gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
+    // Note: This marker is never processed by CoolingBuffer or any downstream stage.
+    // For BBL printers it creates noise in the G-code, so skip it.
+    if (!is_BBL_Printer())
+        gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
 
     //Calibration Layer-specific GCode
     switch (print.calib_mode()) {
@@ -4954,7 +5047,11 @@ LayerResult GCode::process_layer(
 
     if (!first_layer && !m_second_layer_things_done) {
         // Orca: set power loss recovery
-        const auto plr_mode = print.config().enable_power_loss_recovery.value;
+        // For BBL printers: firmware always supports PLR, so treat 'printer_configuration' as Enable
+        // to match BambuStudio which always emits M1003 S1 on layer 2.
+        auto plr_mode = print.config().enable_power_loss_recovery.value;
+        if (print.is_BBL_printer() && plr_mode == PowerLossRecoveryMode::PrinterConfiguration)
+            plr_mode = PowerLossRecoveryMode::Enable;
         gcode += m_writer.enable_power_loss_recovery(plr_mode);
 
         if (print.is_BBL_printer()) {
@@ -5576,7 +5673,7 @@ LayerResult GCode::process_layer(
                 if (m_config.reduce_crossing_wall)
                     m_avoid_crossing_perimeters.init_layer(*m_layer);
 
-                if (this->config().gcode_label_objects) {
+                if (this->config().gcode_label_objects && !(is_BBL_Printer() && m_config.nozzle_diameter.size() > 1)) {
                     gcode += std::string("; printing object ") + instance_to_print.print_object.model_object()->name +
                              " id:" + std::to_string(instance_to_print.print_object.get_id()) + " copy " +
                              std::to_string(inst.id) + "\n";
@@ -5584,10 +5681,17 @@ LayerResult GCode::process_layer(
                 // exclude objects
                 if (m_enable_exclude_object) {
                     if (is_BBL_Printer()) {
-                        m_writer.set_object_start_str(
-                            std::string("; start printing object, unique label id: ") +
-                            std::to_string(instance_to_print.label_object_id) + "\n" + "M624 " +
-                            _encode_label_ids_to_base64({instance_to_print.label_object_id}) + "\n");
+                        // Multi-nozzle BBL printers (H2C) use "; OBJECT_ID:" comments
+                        // instead of M624 binary encoding (which is for single-nozzle P1/X1/A1).
+                        if (m_config.nozzle_diameter.size() > 1) {
+                            m_writer.set_object_start_str(
+                                "; OBJECT_ID: " + std::to_string(instance_to_print.label_object_id) + "\n");
+                        } else {
+                            m_writer.set_object_start_str(
+                                std::string("; start printing object, unique label id: ") +
+                                std::to_string(instance_to_print.label_object_id) + "\n" + "M624 " +
+                                _encode_label_ids_to_base64({instance_to_print.label_object_id}) + "\n");
+                        }
                     } else {
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
@@ -5713,7 +5817,7 @@ LayerResult GCode::process_layer(
                     gcode += this->extrude_infill(print,by_region_specific, true);
                 }
 
-                if (this->config().gcode_label_objects) {
+                if (this->config().gcode_label_objects && !(is_BBL_Printer() && m_config.nozzle_diameter.size() > 1)) {
                     gcode += std::string("; stop printing object ") +
                              instance_to_print.print_object.model_object()->name +
                              " id:" + std::to_string(instance_to_print.print_object.get_id()) + " copy " +
@@ -5725,9 +5829,16 @@ LayerResult GCode::process_layer(
                     m_writer.set_object_start_str("");
                 } else if (m_enable_exclude_object) {
                     if (is_BBL_Printer()) {
-                        m_writer.set_object_end_str(std::string("; stop printing object, unique label id: ") +
-                                                    std::to_string(instance_to_print.label_object_id) + "\n" +
-                                                    "M625\n");
+                        // Multi-nozzle BBL (H2C): no end-of-object marker needed.
+                        // The next "; OBJECT_ID:" comment implicitly ends the previous object.
+                        // Single-nozzle BBL: keep M625 protocol.
+                        if (m_config.nozzle_diameter.size() > 1) {
+                            m_writer.set_object_end_str("");
+                        } else {
+                            m_writer.set_object_end_str(std::string("; stop printing object, unique label id: ") +
+                                                        std::to_string(instance_to_print.label_object_id) + "\n" +
+                                                        "M625\n");
+                        }
                     } else {
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
@@ -8158,18 +8269,11 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_filament_e_feedrate = (int)(60.0 * m_config.filament_max_volumetric_speed.get_at(new_filament_id) / filament_area);
     new_filament_e_feedrate = new_filament_e_feedrate == 0 ? 100 : new_filament_e_feedrate;
 
-    // BBL H2C: hotend ID for `next_hotend` placeholder in change_filament_gcode and for
-    // `current_hotend` after the toolchange completes.
-    // For multi-nozzle printers (H2C) we always pass the resolved nozzle_id so that
-    // M620 S[next_extruder]A H[next_hotend] and T[next_extruder] H[next_hotend]
-    // emit the correct physical hotend selector. For single-nozzle printers nozzle_id
-    // will be -1 (no layered result), which is fine — H-1 won't be emitted by template.
+    // BBL H2C: firmware expects H-1 ("auto-select nozzle via remap") in
+    // change_filament_gcode.  The concrete nozzle mapping is communicated
+    // via NOZZLE_CHANGE_START tags and M632 in WipeTower G-code.
+    // Ref: BBL G-code always emits T<id> H-1 / M620 S<id>A H-1.
     int next_hotend_id = -1;
-    if (m_print) {
-        auto gr = m_print->get_layered_nozzle_group_result();
-        if (gr)
-            next_hotend_id = gr->get_nozzle_id(new_filament_id, m_layer_index);
-    }
 
     // BBL H2C: per-extruder variant strings (e.g. "Direct Drive Standard",
     // "Direct Drive TPU High Flow") for `{old,new}_extruder_variant` placeholders.
@@ -8192,7 +8296,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
     dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
-    dyn_config.set_key_value("next_hotend", new ConfigOptionInt(next_hotend_id));
+    // H2C: firmware auto-remap — always pass -1, not the resolved group_id.
+    dyn_config.set_key_value("next_hotend", new ConfigOptionInt(-1));
     dyn_config.set_key_value("old_extruder_variant", new ConfigOptionString(old_extruder_variant_str));
     dyn_config.set_key_value("new_extruder_variant", new ConfigOptionString(new_extruder_variant_str));
     dyn_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
@@ -8325,7 +8430,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     //BBS: don't add T[next extruder] if there is no T cmd on filament change
      //We inform the writer about what is happening, but we may not use the resulting gcode.
     std::string toolchange_command = m_writer.toolchange(new_filament_id, new_nozzle_id);
-    if (!custom_gcode_changes_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(), new_filament_id))
+    // H2C: also check for "T" prefix — change_filament_gcode uses "T<id> H<hotend>"
+    // but BBL toolchange_prefix() returns "M1020 S".
+    if (!custom_gcode_changes_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(), new_filament_id)
+        && !custom_gcode_changes_tool(toolchange_gcode_parsed, "T", new_filament_id))
         gcode += toolchange_command;
     else {
         // user provided his own toolchange gcode, no need to do anything
@@ -8340,9 +8448,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
 
     this->placeholder_parser().set("current_extruder", new_filament_id);
-    // Same hotend ID that flowed into `next_hotend` above — `current_hotend` is
-    // the hotend we just switched to.
-    this->placeholder_parser().set("current_hotend", next_hotend_id);
+    // H2C: firmware expects current_hotend = -1 (auto-remap), matching BBL.
+    this->placeholder_parser().set("current_hotend", -1);
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));

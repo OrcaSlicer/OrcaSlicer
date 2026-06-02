@@ -994,6 +994,51 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
         m_all_printing_extruders.emplace_back(m_first_printing_extruder);
         m_first_printing_extruder = m_all_printing_extruders.front();
     }
+
+    // H2C carousel: unconditionally force m_first_printing_extruder to the carousel home
+    // slot (the filament whose filament_nozzle_map entry == 1, i.e. nozzle 1 = physical HOME).
+    // This MUST run outside prime_multi_material because wipe_tower_type() always returns
+    // Type1 for BBL printers (Print.hpp:1094), so prime_multi_material is always false for
+    // H2C prints and the block above never fires.
+    //
+    // Setting m_first_printing_extruder = home_slot here ensures that BOTH:
+    //   1. Print::make_wipe_tower() plans the wipe tower starting from home slot.
+    //   2. GCode::_do_export() picks initial_extruder_id = home_slot via first_extruder().
+    // Without this both values disagree, causing:
+    //   "WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect."
+    // BBL reference: always initialises G-code from the home slot (;VT3 H-1 / M620 S3A H-1).
+    if (m_print_full_config && !m_all_printing_extruders.empty()) {
+        const auto* nozzle_map_opt = m_print_full_config->option<ConfigOptionInts>("filament_nozzle_map");
+        const auto* max_nozzle_opt = m_print_full_config->option<ConfigOptionInts>("extruder_max_nozzle_count");
+        bool has_carousel = max_nozzle_opt &&
+            std::any_of(max_nozzle_opt->values.begin(), max_nozzle_opt->values.end(),
+                [](int v) { return v > 1; });
+        if (has_carousel && nozzle_map_opt && !nozzle_map_opt->values.empty()) {
+            const auto& nm = nozzle_map_opt->values;
+            int home_slot = -1;
+            for (int i = 0; i < (int)nm.size(); ++i) {
+                if (nm[i] == 1) { home_slot = i; break; }  // nozzle 1 == physical home
+            }
+            if (home_slot >= 0) {
+                auto it = std::find(m_all_printing_extruders.begin(),
+                                    m_all_printing_extruders.end(),
+                                    (unsigned int)home_slot);
+                if (it != m_all_printing_extruders.end()) {
+                    // Set the first extruder so first_extruder() == home_slot.
+                    m_first_printing_extruder = (unsigned int)home_slot;
+                    // Keep home slot at back of all_extruders() for consistency
+                    // with the Type2 code path that uses all_extruders().back().
+                    if (it != std::prev(m_all_printing_extruders.end())) {
+                        m_all_printing_extruders.erase(it);
+                        m_all_printing_extruders.push_back((unsigned int)home_slot);
+                    }
+                    BOOST_LOG_TRIVIAL(info) << "[H2C] collect_extruder_statistics: "
+                        << "m_first_printing_extruder -> " << home_slot
+                        << " (carousel home, nozzle 1)";
+                }
+            }
+        }
+    }
 }
 
 void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)

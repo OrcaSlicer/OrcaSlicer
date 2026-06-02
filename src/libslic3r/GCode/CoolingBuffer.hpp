@@ -26,6 +26,10 @@ public:
     CoolingBuffer(GCode &gcodegen);
     void        reset(const Vec3d &position);
     void        set_current_extruder(unsigned int extruder_id) { m_current_extruder = extruder_id; }
+    // Set initial fan speed state to prevent redundant M106 S0 emission at layer start.
+    // Use when the fan state is already known (e.g. BBL machine_start_gcode sets fans to 0).
+    void        set_initial_fan_speed(int speed) { m_fan_speed = speed; m_current_fan_speed = speed; }
+    void        set_initial_additional_fan_speed(int speed) { m_additional_fan_speed = speed; }
     std::string process_layer(std::string &&gcode, size_t layer_id, bool flush);
 
 private:

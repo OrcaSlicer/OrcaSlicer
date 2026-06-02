@@ -127,6 +127,10 @@ public:
     const bool is_bbl_printers() const {return m_is_bbl_printers;}
     void set_is_first_layer(bool bval) { m_is_first_layer = bval; }
     GCodeFlavor get_gcode_flavor() const { return config.gcode_flavor; }
+    // BBS: Reset acceleration tracking so the next set_travel_acceleration() call
+    // always emits M204, regardless of the previously cached value.
+    // Used to match BambuStudio output after machine_start_gcode completes.
+    void reset_last_acceleration() { m_last_acceleration = 0; m_last_travel_acceleration = 0; }
 
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);

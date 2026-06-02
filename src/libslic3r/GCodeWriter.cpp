@@ -512,6 +512,8 @@ std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
     const bool enable = mode == PowerLossRecoveryMode::Enable;
 
     if (m_is_bbl_printers) {
+        // BBL firmware uses these exact comments for PLR state transitions
+        gcode << (enable ? "; open powerlost recovery\n" : "; close powerlost recovery\n");
         gcode << "M1003 S" << (enable ? "1" : "0");
     }
     else if (FLAVOR_IS(gcfMarlinFirmware)) {
@@ -519,7 +521,7 @@ std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
     } else {
         return std::string();
     }
-    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
+    if (!m_is_bbl_printers && GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
     gcode << "\n";
     return gcode.str();
 }

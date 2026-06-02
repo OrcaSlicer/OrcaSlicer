@@ -2993,6 +2993,10 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
         int new_nozzle_id = (m_multi_nozzle_group_result && m_multi_nozzle_group_result->is_support_dynamic_nozzle_map())
                                 ? get_nozzle_id(new_filament_id, m_cur_layer_id) : -1;
         writer.append(format_line_M632(new_filament_id, new_nozzle_id));
+        // H2C: M400 synchronizes the firmware motion planner before precool.
+        // Without this, M632 may not be fully processed before M104/M633.
+        // Ref: BambuStudio WipeTower.cpp (commit 3f2570c) — M400 after M632.
+        writer.append("M400\n");
         if (m_filpar[m_current_tool].precool_target_temp.second != 0) {
             writer.append(format_line_M104(m_filpar[m_current_tool].precool_target_temp.second,
                                            get_extruder_id(m_current_tool, m_cur_layer_id)))
@@ -3070,6 +3074,15 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
     block->cur_depth += real_nozzle_change_line_count * dy;
     block->last_nozzle_change_id = old_filament_id;
 
+    // H2C: Post-ramming — re-arm nozzle change for fast wipe / travel phase.
+    // BBL emits a second M632 here so firmware knows we're still mid-switch.
+    // Ref: BambuStudio WipeTower.cpp:3482-3486 (commit 3f2570c)
+    if (!extruder_change) {
+        int new_nozzle_id = (m_multi_nozzle_group_result && m_multi_nozzle_group_result->is_support_dynamic_nozzle_map())
+                                ? get_nozzle_id(new_filament_id, m_cur_layer_id) : -1;
+        writer.append(format_line_M632(new_filament_id, new_nozzle_id));
+    }
+
     NozzleChangeResult result;
     if (is_tpu_filament(m_current_tool)) {
         bool   left_to_right     = !m_left_to_right;
@@ -3090,13 +3103,33 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
             left_to_right = !left_to_right;
         }
     } else {
-        result.wipe_path.push_back(writer.pos_rotated());
+        // H2C FIX: BBL emits fast wipe travel INSIDE the second M632/M633 block
+        // (between M632 and M633). Orca was putting it in result.wipe_path (= outside).
+        // Without any G1 motion between M632 and M633, some firmware versions may
+        // skip the nozzle rotation entirely. Emit the travel inline, matching BBL.
+        // Ref: BambuStudio WipeTower.cpp:3493-3508 (commit 3f2570c)
+        float fast_wipe_speed = 60.0f * 93.f; // ~5580 mm/min, matches BBL M204 S6000 travel
+        writer.append("M204 S6000\n");
         if (m_left_to_right) {
-            result.wipe_path.push_back(Vec2f(0, writer.pos_rotated().y()));
+            // ended going right → fast wipe back to left
+            writer.travel(xl + m_perimeter_width, writer.y(), fast_wipe_speed);
+            writer.travel(writer.x(), writer.y() + 1.0f);
+            writer.travel(xr - m_perimeter_width, writer.y(), fast_wipe_speed);
+            writer.travel(writer.x(), writer.y() - 1.0f);
+            writer.travel(xl + m_perimeter_width, writer.y(), fast_wipe_speed);
         } else {
-            result.wipe_path.push_back(Vec2f(m_wipe_tower_width, writer.pos_rotated().y()));
+            // ended going left → fast wipe back to right
+            writer.travel(xr - m_perimeter_width, writer.y(), fast_wipe_speed);
+            writer.travel(writer.x(), writer.y() + 1.0f);
+            writer.travel(xl + m_perimeter_width, writer.y(), fast_wipe_speed);
+            writer.travel(writer.x(), writer.y() - 1.0f);
+            writer.travel(xr - m_perimeter_width, writer.y(), fast_wipe_speed);
         }
     }
+
+    // H2C: Close the second M632/M633 block (post-ramming).
+    // Ref: BambuStudio WipeTower.cpp:3524 (commit 3f2570c)
+    if (!extruder_change) writer.append(format_line_M633());
 
     // H2C FIX: Matching NozzleChangeEnd tag with ON/NN nozzle IDs.
     // Ref: BambuStudio WipeTower.cpp:3527 (commit 3f2570c)
