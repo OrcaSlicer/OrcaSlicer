@@ -17,11 +17,12 @@ namespace Slic3r {
  * TSP post-processing utilities
  * ==================================================================== */
 
-void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_passes)
+bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_passes)
 {
     size_t pn = path.size();
-    if (pn <= 2) return;
+    if (pn <= 2) return false;
 
+    bool improved = false;
     for (int pass = 0; max_passes <= 0 || pass < max_passes; ++pass) {
         size_t best_i = pn, best_j = pn;
         double best_gain = 0;
@@ -33,6 +34,8 @@ void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
 
             for (size_t j = i + 2; j < pn; ++j) {
                 size_t j_next = (j + 1) % pn;
+                // Skip the swap that would reverse the entire cycle (removes both
+                // edges (0,1) and (pn-1,0), equivalent to traversing the cycle backwards).
                 if (i == 0 && j_next == 0) continue;
 
                 const Vec2d& pj   = centers[path[j]].cast<double>();
@@ -51,9 +54,11 @@ void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
         }
 
         if (best_i == pn) break;
+        improved = true;
         size_t a = best_i + 1, b = best_j;
         while (a < b) std::swap(path[a++], path[b--]);
     }
+    return improved;
 }
 
 // Fast bounding-box overlap test (rejects most non-intersecting pairs).
@@ -65,12 +70,16 @@ static inline bool bboxes_overlap(const Point& a, const Point& b, const Point& c
              std::max(c.y(), d.y()) < std::min(a.y(), b.y()));
 }
 
-void tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
+bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
 {
     size_t pn = path.size();
-    if (pn <= 3) return;
+    if (pn <= 3) return false;
 
-    // Open path: edges 0..pn-2 (no artificial closing edge pn-1→0).
+    // Open path: edges 0..pn-2. The closing edge (pn-1->0) is a travel move
+    // and is not checked for crossings (consistent with how slicing treats it).
+    // Note: tsp_2opt_improve treats the path as a cycle and CAN improve the
+    // closing edge. This is intentional — 2-opt can shorten the travel move,
+    // but we don't care if the travel move crosses other edges.
     size_t n_edges = pn - 1;
 
     // Scan for first crossing; returns {i, j} or {npos, npos} if none.
@@ -94,12 +103,15 @@ void tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
     // Process crossings one at a time: find first, reverse it, restart scan.
     // Cap iterations to prevent infinite loops on collinear/overlapping segments.
     int max_iters = static_cast<int>(pn * pn);
+    bool improved = false;
     while (max_iters-- > 0) {
         auto [ci, cj] = find_crossing();
         if (ci == std::numeric_limits<size_t>::max()) break;
+        improved = true;
         size_t a = ci + 1, b = cj;
         while (a < b) std::swap(path[a++], path[b--]);
     }
+    return improved;
 }
 
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers)
@@ -126,6 +138,12 @@ static std::vector<size_t> row_serpentine_path(const Points& centers, double fra
 
     size_t n = centers.size();
 
+    // Row detection parameters.
+    constexpr double MIN_GAP_FILTER = 1.0;        // ignore sub-micron gaps (coord_t = 1/100mm)
+    constexpr double GAP_THRESHOLD_RATIO = 0.5;   // threshold = half the min gap
+    constexpr double MAX_ROW_FRACTION = 0.3;      // at most 30% of points may be separate rows
+    constexpr double ROW_GAP_MULTIPLIER = 2.0;    // min gap must be < 2× average gap
+
     // Compute row threshold from the minimum gap between distinct Y values.
     // This adapts to variable row spacing instead of using a fixed fraction
     // of the total Y range (which breaks when rows have different spacing).
@@ -144,21 +162,22 @@ static std::vector<size_t> row_serpentine_path(const Points& centers, double fra
     double min_gap = std::numeric_limits<double>::max();
     for (size_t i = 1; i < ys.size(); ++i) {
         double gap = ys[i] - ys[i - 1];
-        if (gap > 1.0 && gap < min_gap) min_gap = gap;
+        if (gap > MIN_GAP_FILTER && gap < min_gap) min_gap = gap;
     }
 
     // Use min_gap-based threshold only if it produces a reasonable number of rows.
-    // Estimate row count as range / threshold. If too many rows (> n/3), fall back
-    // to fraction-based threshold to avoid splitting random noise into separate rows.
+    // Estimate row count as range / threshold. If too many rows (> n * MAX_ROW_FRACTION),
+    // fall back to fraction-based threshold to avoid splitting random noise into separate rows.
     // Also require min_gap to be significantly smaller than the average gap to
     // confirm a true row structure exists.
     double row_threshold;
-    if (min_gap < std::numeric_limits<double>::max()) {
-        double est_rows = (y_max - y_min) / (min_gap * 0.5);
+    if (min_gap < std::numeric_limits<double>::max() && ys.size() > 1) {
+        double est_rows = (y_max - y_min) / (min_gap * GAP_THRESHOLD_RATIO);
         double avg_gap = (y_max - y_min) / (ys.size() - 1);
-        bool has_row_structure = est_rows <= n * 0.3 && min_gap < avg_gap * 2.0;
+        bool has_row_structure = est_rows <= n * MAX_ROW_FRACTION &&
+                                 min_gap < avg_gap * ROW_GAP_MULTIPLIER;
         if (has_row_structure)
-            row_threshold = min_gap * 0.5;
+            row_threshold = min_gap * GAP_THRESHOLD_RATIO;
         else
             row_threshold = (y_max - y_min) * fraction_of_y_range;
     } else {
@@ -231,10 +250,11 @@ std::vector<size_t> snake_core(const Points& centers)
     std::vector<size_t> path = row_serpentine_path(centers);
 
     // Post-processing: alternate 2-opt and crossing removal to eliminate
-    // long inter-row jumps and self-crossings.
+    // long inter-row jumps and self-crossings. Break early if neither improves.
     for (int iter = 0; iter < 3; ++iter) {
-        tsp_2opt_improve(path, centers);
-        tsp_remove_crossings(path, centers);
+        bool improved = tsp_2opt_improve(path, centers);
+        improved |= tsp_remove_crossings(path, centers);
+        if (!improved) break;
     }
     tsp_rotate_minimize_closing(path, centers);
 

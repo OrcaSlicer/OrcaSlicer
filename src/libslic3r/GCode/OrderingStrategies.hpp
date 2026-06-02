@@ -19,12 +19,15 @@ namespace Slic3r {
 
 // --- Path improvement (operate on index vectors into `centers`) ---
 
-void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_passes = 10);
+// 2-opt improvement: reverses segments that reduce total cycle path length.
+// Returns true if any improvement was made.
+bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_passes = 10);
 
 // Crossing removal: reverse any segment pair whose edges geometrically cross.
-void tsp_remove_crossings(std::vector<size_t>& path, const Points& centers);
+// Returns true if any crossing was removed.
+bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers);
 
-// Rotate the cycle so the closing edge (last → first) is minimized.
+// Rotate the cycle so the closing edge (last -> first) is minimized.
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers);
 
 // Total Euclidean path length of a cycle (including closing edge).

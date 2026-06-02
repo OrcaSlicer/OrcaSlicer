@@ -1121,10 +1121,11 @@ std::vector<size_t> chain_points_with_postprocessing(const Points &points, const
 	std::vector<size_t> path = chain_points(points, start_near);
 	// Alternate 2-opt and crossing removal until convergence.
 	// 2-opt can create new crossings, and crossing removal can create new
-	// opportunities for 2-opt improvement.
+	// opportunities for 2-opt improvement. Break early if neither improves.
 	for (int iter = 0; iter < 3; ++iter) {
-		tsp_2opt_improve(path, points);
-		tsp_remove_crossings(path, points);
+		bool improved = tsp_2opt_improve(path, points);
+		improved |= tsp_remove_crossings(path, points);
+		if (!improved) break;
 	}
 	tsp_rotate_minimize_closing(path, points);
 	return path;

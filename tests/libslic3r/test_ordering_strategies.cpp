@@ -202,6 +202,36 @@ TEST_CASE("snake produces good path on grid", "[Snake]") {
     CHECK(!has_crossings(path, centers));
 }
 
+// --- Core Strategy Tests: Variable Row Spacing ---
+
+TEST_CASE("snake handles variable Y spacing", "[Snake]") {
+    // Rows at Y = 0, 50, 100, 1000 (large gap between last two rows).
+    // The adaptive row detection should identify the tight cluster (0, 50, 100)
+    // and the isolated row (1000) without splitting them incorrectly.
+    Points pts;
+    pts.emplace_back(0, 0);       pts.emplace_back(100000, 0);
+    pts.emplace_back(0, 50000);   pts.emplace_back(100000, 50000);
+    pts.emplace_back(0, 100000);  pts.emplace_back(100000, 100000);
+    pts.emplace_back(0, 1000000); pts.emplace_back(100000, 1000000);
+
+    auto path = snake_core(pts);
+    REQUIRE(is_permutation(path, pts.size()));
+    CHECK(!has_crossings(path, pts));
+}
+
+// --- Core Strategy Tests: All Points Same Y ---
+
+TEST_CASE("snake handles all points on same Y", "[Snake]") {
+    // All points share the same Y coordinate. This exercises the
+    // division-by-zero guard (ys.size() == 1).
+    Points pts;
+    for (int i = 0; i < 6; ++i)
+        pts.emplace_back(100000 * i, 50000);
+
+    auto path = snake_core(pts);
+    REQUIRE(is_permutation(path, pts.size()));
+}
+
 // --- Core Strategy Tests: Collinear Points ---
 
 TEST_CASE("all strategies handle collinear points", "[Strategies]") {
