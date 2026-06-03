@@ -149,7 +149,6 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_spiral
     bool  transition_out = last_spiral_layer && m_config.use_relative_e_distances.value;
     bool  skip_travel_moves = true;
     bool  filter_short_extrusions = m_config.spiral_mode;
-    bool  split_long_extrusions = false;
 
     float starting_flowrate  = float(m_config.spiral_starting_flow_ratio.value);
     float finishing_flowrate = float(m_config.spiral_finishing_flow_ratio.value);
@@ -161,7 +160,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_spiral
     float pending_travel_y = 0.f;
     float pending_travel_length = 0.f;
     SpiralVase::SpiralPoint last_point = previous_layer != NULL && previous_layer->size() >0? previous_layer->at(previous_layer->size()-1): SpiralVase::SpiralPoint(0,0);
-    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_length, skip_travel_moves, filter_short_extrusions, split_long_extrusions, connect_skipped_travels, &has_pending_travel, &pending_travel_x, &pending_travel_y, &pending_travel_length]
+    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_length, skip_travel_moves, filter_short_extrusions, connect_skipped_travels, &has_pending_travel, &pending_travel_x, &pending_travel_y, &pending_travel_length]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
         if (line.cmd_is("G1")) {
             // Orca: Filter out retractions at layer change
@@ -207,25 +206,6 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_spiral
                             float finishing_e_factor = finishing_flowrate + ((1.f -factor) * (1.f - finishing_flowrate));
                             transitionLine.set(E, line.e() * finishing_e_factor, 5 /*decimal_digits*/);
                             transition_gcode += transitionLine.raw() + '\n';
-                        }
-                        if (split_long_extrusions && dist_XY > 5.f && total_layer_length > EPSILON) {
-                            const int   segments = int(std::ceil(dist_XY / 5.f));
-                            const float x0 = reader.x();
-                            const float y0 = reader.y();
-                            const float x1 = line.new_X(reader);
-                            const float y1 = line.new_Y(reader);
-                            const float e_per_segment = line.e() / segments;
-                            for (int i = 1; i <= segments; ++i) {
-                                const float segment_factor = float(i) / float(segments);
-                                const float layer_factor = (len_before + dist_XY * segment_factor) / total_layer_length;
-                                GCodeReader::GCodeLine segment_line(line);
-                                segment_line.set(X, x0 + (x1 - x0) * segment_factor);
-                                segment_line.set(Y, y0 + (y1 - y0) * segment_factor);
-                                segment_line.set(E, e_per_segment, 5 /*decimal_digits*/);
-                                segment_line.set(Z, z + layer_factor * layer_height);
-                                new_gcode += segment_line.raw() + '\n';
-                            }
-                            return;
                         }
                         // This line is the core of Spiral Vase mode, ramp up the Z smoothly
                         line.set(Z, z + factor * layer_height);

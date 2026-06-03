@@ -4602,6 +4602,15 @@ LayerResult GCode::process_layer(
 
     // BBS: don't use lazy_raise when enable spiral vase
     gcode += this->change_layer(print_z);  // this will increase m_layer_index
+    // Per-height-range vase: keep XY at the previous loop split point so the next
+    // perimeter does not travel from a timelapse/layer-change park position.
+    if (m_spiral_vase_layer && !print.config().spiral_mode && m_range_spiral_vase_loop_end_valid) {
+        m_need_change_layer_lift_z = false;
+        this->set_last_pos(m_range_spiral_vase_loop_end);
+        m_writer.set_position(Vec3d(unscale<double>(m_range_spiral_vase_loop_end.x()),
+                                      unscale<double>(m_range_spiral_vase_loop_end.y()),
+                                      m_nominal_z));
+    }
     m_layer = &layer;
     m_object_layer_over_raft = false;
 
@@ -5114,7 +5123,8 @@ LayerResult GCode::process_layer(
         return timelapse_gcode;
     };
 
-    if (!need_insert_timelapse_gcode_for_traditional  && is_BBL_Printer()) { // Equivalent to the timelapse gcode placed in layer_change_gcode
+    // Skip BBL timelapse park/retract on active spiral-vase layers (global or per-range).
+    if (!need_insert_timelapse_gcode_for_traditional && is_BBL_Printer() && !m_spiral_vase_layer) {
         if (FILAMENT_CONFIG(retract_when_changing_layer)) {
             gcode += this->retract(false, false, auto_lift_type, true);
         }
@@ -5697,7 +5707,7 @@ std::string GCode::change_layer(coordf_t print_z)
         gcode += m_writer.update_progress(++ m_layer_index, m_layer_count);
     //BBS
     coordf_t z = print_z + m_config.z_offset.value;  // in unscaled coordinates
-    if (FILAMENT_CONFIG(retract_when_changing_layer) && m_writer.will_move_z(z)) {
+    if (FILAMENT_CONFIG(retract_when_changing_layer) && m_writer.will_move_z(z) && !m_spiral_vase_layer) {
         LiftType lift_type = this->to_lift_type(ZHopType(FILAMENT_CONFIG(z_hop_types)));
         //BBS: force to use SpiralLift when change layer if lift type is auto
         gcode += this->retract(false, false, ZHopType(FILAMENT_CONFIG(z_hop_types)) == ZHopType::zhtAuto ? LiftType::SpiralLift : lift_type);
@@ -5934,7 +5944,7 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
             m_multi_flow_segment_path_pa_set = true;
         }
         if (m_spiral_vase_layer && !m_config.spiral_mode && !paths.empty()) {
-            m_range_spiral_vase_loop_end       = paths.back().last_point();
+            m_range_spiral_vase_loop_end       = paths.front().first_point();
             m_range_spiral_vase_loop_end_valid = true;
         }
     } else {
