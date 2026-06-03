@@ -1081,7 +1081,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 spiral_vase))
     ((ConfigOptionFloat,                bridge_angle))
     ((ConfigOptionFloat,                internal_bridge_angle)) // ORCA: Internal bridge angle override
+    ((ConfigOptionBool,                 relative_bridge_angle)) // ORCA: Relative bridge angle flag
     ((ConfigOptionFloat,                bridge_flow))
+    ((ConfigOptionFloatOrPercent,       bridge_line_width))
     ((ConfigOptionFloat,                internal_bridge_flow))
     ((ConfigOptionFloat,                bridge_speed))
     ((ConfigOptionFloatOrPercent,       internal_bridge_speed))
