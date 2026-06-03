@@ -1,0 +1,15 @@
+{
+	"type": "machine_model",
+	"name": "SeeMeCNC BOSSdelta 300",
+	"bed_model": "SeeMeCNC_Buildplate_Model.STL",
+	"bed_texture": "SeeMeCNC_Buildplate_texture.png",
+	"default_materials": "SeeMeCNC PLA",
+	"nozzle_diameter": "0.4;0.5;0.7;1.0",
+	"machine_tech": "FFF",
+	"family": "SeeMeCNC BOSSdelta 300",
+	"thumbnail": "SeeMeCNC BOSSdelta 300_cover.png",
+	"machine_load_filament_time": "4",
+	"machine_unload_filament_time": "4",
+	"model_id": "SEEMECNC_BOSSDELTA_300",
+	"description": "SeeMeCNC configurations"
+}

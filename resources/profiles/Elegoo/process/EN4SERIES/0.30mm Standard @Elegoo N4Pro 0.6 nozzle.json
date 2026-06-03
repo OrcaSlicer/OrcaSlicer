@@ -1,0 +1,16 @@
+{
+	"type": "process",
+	"name": "0.30mm Standard @Elegoo N4Pro 0.6 nozzle",
+	"inherits": "fdm_process_elegoo_06030",
+	"from": "system",
+	"setting_id": "PEN4Pro06030",
+	"instantiation": "true",
+	"filename_format": "EN4Pro_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+	"compatible_printers": [
+		"Elegoo Neptune 4 Pro 0.6 nozzle"
+	],
+	"default_acceleration": "6000",
+	"min_width_top_surface": "50%",
+	"outer_wall_acceleration": "5000",
+	"renamed_from": "0.20mm Standard @Elegoo Neptune4Pro (0.6 nozzle)"
+}

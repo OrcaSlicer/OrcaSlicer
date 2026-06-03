@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic ASA-CF @Elegoo Centauri",
+	"inherits": "Generic ASA @base",
+	"from": "system",
+	"setting_id": "GASACF00",
+	"instantiation": "true",
+	"filament_type": [
+		"ASA-CF"
+	],
+	"fan_cooling_layer_time": [
+		"25"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"compatible_printers": [
+		"Elegoo Centauri 0.4 nozzle",
+		"Elegoo Centauri 0.6 nozzle",
+		"Elegoo Centauri 0.8 nozzle",
+		"Elegoo Centauri Carbon 0.4 nozzle",
+		"Elegoo Centauri Carbon 0.6 nozzle",
+		"Elegoo Centauri Carbon 0.8 nozzle",
+		"Elegoo Centauri Carbon 2 0.4 nozzle",
+		"Elegoo Centauri Carbon 2 0.6 nozzle",
+		"Elegoo Centauri Carbon 2 0.8 nozzle"
+	]
+}
