@@ -7,6 +7,5 @@
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",
-	"layer_height": "0.20",
-	"travel_acceleration": "500"
+	"layer_height": "0.20"
 }

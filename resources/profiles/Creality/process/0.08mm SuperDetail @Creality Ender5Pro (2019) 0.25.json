@@ -8,6 +8,5 @@
 	"bottom_shell_layers": "9",
 	"top_shell_layers": "11",
 	"layer_height": "0.08",
-	"bridge_flow": "0.7",
-	"travel_acceleration": "500"
+	"bridge_flow": "0.7"
 }
