@@ -1554,6 +1554,13 @@ void PrintObject::detect_surfaces_type()
                         if (upper_layer->any_spiral_vase_active())
                             upper_layer = nullptr;
                     }
+                    // Transition out of a spiral-vase zone: force the first non-spiral layer above
+                    // to be treated as bottom, so infill above the spiral band gets floor shells.
+                    // The slice outline matches the spiral layer below, so geometric bottom detection fails.
+                    if (!spiral_mode && lower_layer != nullptr && !layerm->is_spiral_vase_active()) {
+                        if (lower_layer->any_spiral_vase_active())
+                            lower_layer = nullptr;
+                    }
                     // collapse very narrow parts (using the safety offset in the diff is not enough)
                     const float offset = layerm->flow(frExternalPerimeter).scaled_width() / 10.f;
 
