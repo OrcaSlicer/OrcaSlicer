@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge PA-CF @FF C5P",
+	"inherits": "Generic PA-CF @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -28,11 +33,6 @@
 	"filament_start_gcode": [
 		"; filament start gcode\n"
 	],
-	"from": "system",
-	"inherits": "Generic PA-CF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PA-CF @FF C5P",
 	"nozzle_temperature": [
 		"290"
 	],
@@ -50,6 +50,5 @@
 	],
 	"textured_cool_plate_temp_initial_layer": [
 		"0"
-	],
-	"version": "2.3.0.3"
+	]
 }

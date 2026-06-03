@@ -791,6 +791,42 @@ void NotificationManager::PopNotification::render_hypertext(ImGuiWrapper& imgui,
 
 }
 
+void NotificationManager::PopNotification::render_hyperlink_action(ImGuiWrapper& imgui, float text_x, float text_y,
+	const std::string& text, const char* button_id, const std::function<void()>& on_click)
+{
+	// Invisible button over the label
+	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
+	ImGui::SetCursorPosX(text_x - 4);
+	ImGui::SetCursorPosY(text_y - 5);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+	if (imgui.button(button_id, part_size.x + 6, part_size.y + 10) && on_click)
+		on_click();
+	ImGui::PopStyleColor(3);
+
+	// Hover color
+	ImVec4 color = m_HyperTextColor;
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
+		color = m_HyperTextColorHover;
+
+	// Text
+	push_style_color(ImGuiCol_Text, color, m_state == EState::FadingOut, m_current_fade_opacity);
+	ImGui::SetCursorPosX(text_x);
+	ImGui::SetCursorPosY(text_y);
+	imgui.text(text.c_str());
+	ImGui::PopStyleColor();
+
+	// Underline
+	ImVec2 lineEnd = ImGui::GetItemRectMax();
+	lineEnd.y -= 2;
+	ImVec2 lineStart = lineEnd;
+	lineStart.x = ImGui::GetItemRectMin().x;
+	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
+		IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
+			(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+}
+
 void NotificationManager::PopNotification::render_close_button(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
 {
     ensure_ui_inited();
@@ -2346,40 +2382,49 @@ bool NotificationManager::SharedProfilesNotification::on_text_click()
 void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrapper& imgui,
 	const float text_x, const float text_y, const std::string text, bool more)
 {
-	// Invisible button
-	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
-	ImGui::SetCursorPosX(text_x - 4);
-	ImGui::SetCursorPosY(text_y - 5);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
-	if (imgui.button("##browse_btn", part_size.x + 6, part_size.y + 10)) {
-		if (on_text_click()) {
-			close();
+	render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn",
+		[this] { if (on_text_click()) close(); });
+}
+
+void NotificationManager::OrcaSyncConflictNotification::init()
+{
+	PopNotification::init();
+	// Reserve a dedicated action row for the two conflict-resolution links.
+	m_lines_count = m_lines_count + 1;
+}
+
+void NotificationManager::OrcaSyncConflictNotification::render_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	float x_offset = m_left_indentation;
+	float shift_y = m_line_height;
+	float starting_y = m_line_height / 2;
+
+	int last_end = 0;
+	std::string line;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(x_offset);
+			ImGui::SetCursorPosY(starting_y + i * shift_y);
+			imgui.text(line.c_str());
 		}
 	}
-	ImGui::PopStyleColor(3);
 
-	// Hover color
-	ImVec4 HyperColor = m_HyperTextColor;
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
-		HyperColor = m_HyperTextColorHover;
-
-	// Text
-	push_style_color(ImGuiCol_Text, HyperColor, m_state == EState::FadingOut, m_current_fade_opacity);
-	ImGui::SetCursorPosX(text_x);
-	ImGui::SetCursorPosY(text_y);
-	imgui.text(text.c_str());
-	ImGui::PopStyleColor();
-
-	// Underline
-	ImVec2 lineEnd = ImGui::GetItemRectMax();
-	lineEnd.y -= 2;
-	ImVec2 lineStart = lineEnd;
-	lineStart.x = ImGui::GetItemRectMin().x;
-	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
-		IM_COL32((int)(HyperColor.x * 255), (int)(HyperColor.y * 255), (int)(HyperColor.z * 255),
-			(int)(HyperColor.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+	const float action_y = starting_y + m_endlines.size() * shift_y;
+	const std::string pull_text = _u8L("Pull");
+	render_hyperlink_action(imgui, x_offset, action_y, pull_text, "##orca_sync_pull",
+		[this] { if (m_pull_callback && m_pull_callback(m_evt_handler)) close(); });
+	if (m_force_push_callback) {
+		const std::string force_push_text = _u8L("Force push");
+		const float force_x = x_offset + ImGui::CalcTextSize((pull_text + "   ").c_str()).x;
+		render_hyperlink_action(imgui, force_x, action_y, force_push_text, "##orca_sync_force_push",
+			[this] { if (m_force_push_callback && m_force_push_callback(m_evt_handler)) close(); });
+	}
 }
 
 void NotificationManager::push_shared_profiles_notification(const std::string& explore_url)
@@ -2389,6 +2434,16 @@ void NotificationManager::push_shared_profiles_notification(const std::string& e
 		_u8L("Shared profiles may be available for this printer."),
 		_u8L("Browse shared profiles") };
 	push_notification_data(std::make_unique<NotificationManager::SharedProfilesNotification>(data, m_id_provider, m_evt_handler, explore_url), 0);
+}
+
+void NotificationManager::push_orca_sync_conflict_notification(const std::string& text,
+	std::function<bool(wxEvtHandler*)> pull_callback,
+	std::function<bool(wxEvtHandler*)> force_push_callback)
+{
+	close_notification_of_type(NotificationType::OrcaSyncConflict);
+	NotificationData data{ NotificationType::OrcaSyncConflict, NotificationLevel::WarningNotificationLevel, 0, text };
+	push_notification_data(std::make_unique<NotificationManager::OrcaSyncConflictNotification>(
+		data, m_id_provider, m_evt_handler, std::move(pull_callback), std::move(force_push_callback)), 0);
 }
 
 void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)

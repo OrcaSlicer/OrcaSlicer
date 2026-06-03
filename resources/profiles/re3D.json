@@ -51,24 +51,24 @@
 			"sub_path": "process/0.26mm Standard @re3D fdm 0.4.json"
 		},
 		{
-			"name": "0.32 Draft",
-			"sub_path": "process/0.32mm Draft @re3D fdm 0.4.json"
-		},
-		{
 			"name": "0.3 Fine",
 			"sub_path": "process/0.3mm Fine @re3D fdm 0.8.json"
+		},
+		{
+			"name": "0.32 Draft",
+			"sub_path": "process/0.32mm Draft @re3D fdm 0.4.json"
 		},
 		{
 			"name": "0.4 Standard",
 			"sub_path": "process/0.4mm Draft @re3D fdm 0.8.json"
 		},
 		{
-			"name": "1.0 Standard",
-			"sub_path": "process/1.0mm Standard @re3D fgf 1.75.json"
-		},
-		{
 			"name": "0.6 Standard",
 			"sub_path": "process/0.6mm Standard @re3D fgf 0.8.json"
+		},
+		{
+			"name": "1.0 Standard",
+			"sub_path": "process/1.0mm Standard @re3D fgf 1.75.json"
 		}
 	],
 	"filament_list": [
@@ -77,52 +77,20 @@
 			"sub_path": "filament/fdm_filament_common.json"
 		},
 		{
-			"name": "fdm_filament_pla",
-			"sub_path": "filament/fdm_filament_pla.json"
+			"name": "fdm_filament_pc",
+			"sub_path": "filament/fdm_filament_pc.json"
 		},
 		{
 			"name": "fdm_filament_pet",
 			"sub_path": "filament/fdm_filament_pet.json"
 		},
 		{
-			"name": "fdm_filament_pc",
-			"sub_path": "filament/fdm_filament_pc.json"
-		},
-		{
-			"name": "re3D PLA",
-			"sub_path": "filament/re3D PLA.json"
-		},
-		{
-			"name": "re3D PETG",
-			"sub_path": "filament/re3D PETG.json"
+			"name": "fdm_filament_pla",
+			"sub_path": "filament/fdm_filament_pla.json"
 		},
 		{
 			"name": "re3D PC",
 			"sub_path": "filament/re3D PC.json"
-		},
-		{
-			"name": "re3D Greengate rPETG",
-			"sub_path": "filament/re3D Greengate rPETG.json"
-		},
-		{
-			"name": "re3D rPP",
-			"sub_path": "filament/re3D rPP.json"
-		},
-		{
-			"name": "re3D PLA @0.4 nozzle",
-			"sub_path": "filament/re3D PLA @0.4 nozzle.json"
-		},
-		{
-			"name": "re3D PLA @0.8 nozzle",
-			"sub_path": "filament/re3D PLA @0.8 nozzle.json"
-		},
-		{
-			"name": "re3D PETG @0.4 nozzle",
-			"sub_path": "filament/re3D PETG @0.4 nozzle.json"
-		},
-		{
-			"name": "re3D PETG @0.8 nozzle",
-			"sub_path": "filament/re3D PETG @0.8 nozzle.json"
 		},
 		{
 			"name": "re3D PC @0.4 nozzle",
@@ -133,6 +101,10 @@
 			"sub_path": "filament/re3D PC @0.8 nozzle.json"
 		},
 		{
+			"name": "re3D Greengate rPETG",
+			"sub_path": "filament/re3D Greengate rPETG.json"
+		},
+		{
 			"name": "re3D Greengate rPETG @0.8 nozzle",
 			"sub_path": "filament/re3D Greengate rPETG @0.8 nozzle.json"
 		},
@@ -141,12 +113,40 @@
 			"sub_path": "filament/re3D Greengate rPETG @1.75 nozzle.json"
 		},
 		{
+			"name": "re3D PETG",
+			"sub_path": "filament/re3D PETG.json"
+		},
+		{
+			"name": "re3D PETG @0.4 nozzle",
+			"sub_path": "filament/re3D PETG @0.4 nozzle.json"
+		},
+		{
+			"name": "re3D PETG @0.8 nozzle",
+			"sub_path": "filament/re3D PETG @0.8 nozzle.json"
+		},
+		{
+			"name": "re3D rPP",
+			"sub_path": "filament/re3D rPP.json"
+		},
+		{
 			"name": "re3D rPP @0.8 nozzle",
 			"sub_path": "filament/re3D rPP @0.8 nozzle.json"
 		},
 		{
 			"name": "re3D rPP @1.75 nozzle",
 			"sub_path": "filament/re3D rPP @1.75 nozzle.json"
+		},
+		{
+			"name": "re3D PLA",
+			"sub_path": "filament/re3D PLA.json"
+		},
+		{
+			"name": "re3D PLA @0.4 nozzle",
+			"sub_path": "filament/re3D PLA @0.4 nozzle.json"
+		},
+		{
+			"name": "re3D PLA @0.8 nozzle",
+			"sub_path": "filament/re3D PLA @0.8 nozzle.json"
 		}
 	],
 	"machine_list": [
@@ -179,6 +179,14 @@
 			"sub_path": "machine/re3D Gigabot 4 XLT 0.8 nozzle.json"
 		},
 		{
+			"name": "re3D Terabot 4 0.4 nozzle",
+			"sub_path": "machine/re3D Terabot 4 0.4 nozzle.json"
+		},
+		{
+			"name": "re3D Terabot 4 0.8 nozzle",
+			"sub_path": "machine/re3D Terabot 4 0.8 nozzle.json"
+		},
+		{
 			"name": "re3D GigabotX 2 0.8 nozzle",
 			"sub_path": "machine/re3D GigabotX 2 0.8 nozzle.json"
 		},
@@ -193,14 +201,6 @@
 		{
 			"name": "re3D GigabotX 2 XLT 1.75 nozzle",
 			"sub_path": "machine/re3D GigabotX 2 XLT 1.75 nozzle.json"
-		},
-		{
-			"name": "re3D Terabot 4 0.4 nozzle",
-			"sub_path": "machine/re3D Terabot 4 0.4 nozzle.json"
-		},
-		{
-			"name": "re3D Terabot 4 0.8 nozzle",
-			"sub_path": "machine/re3D Terabot 4 0.8 nozzle.json"
 		},
 		{
 			"name": "re3D TerabotX 2 0.8 nozzle",
