@@ -2987,12 +2987,12 @@ void TabPrintModel::build()
         for (auto p : m_pages) {
             if (p->title() != L("Others"))
                 continue;
-            for (auto g : p->m_optgroups) {
-                if (g->title != L("Fuzzy Skin"))
-                    continue;
-                g->prepend_single_option_line("spiral_vase", "others_settings_special_mode#spiral-vase");
-                break;
-            }
+            auto optgroup = p->new_optgroup(L("Spiral vase"), L"param_special");
+            optgroup->append_single_option_line("range_spiral_mode", "others_settings_special_mode#spiral-vase");
+            optgroup->append_single_option_line("range_spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
+            optgroup->append_single_option_line("range_spiral_max_xy_smoothing", "others_settings_special_mode#max-xy-smoothing");
+            optgroup->append_single_option_line("range_spiral_starting_flow_ratio", "others_settings_special_mode#spiral-starting-flow-ratio");
+            optgroup->append_single_option_line("range_spiral_finishing_flow_ratio", "others_settings_special_mode#spiral-finishing-flow-ratio");
             break;
         }
     }

@@ -942,7 +942,7 @@ public:
     std::vector<unsigned int> extruders(bool conside_custom_gcode = false) const;
     double              max_allowed_layer_height() const;
     bool                has_support_material() const;
-    // Global spiral vase or any print region with per-height-range spiral_vase enabled.
+    // Global spiral vase or any print region with per-height-range range_spiral_mode enabled.
     bool                has_spiral_mode() const;
     // Make sure the background processing has no access to this model_object during this call!
     void                auto_assign_extruders(ModelObject* model_object) const;

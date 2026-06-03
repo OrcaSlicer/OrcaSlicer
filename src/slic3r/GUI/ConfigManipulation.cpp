@@ -318,7 +318,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     int    fill_multiline        = config->option<ConfigOptionInt>("fill_multiline")->value;
     auto timelapse_type = config->opt_enum<TimelapseType>("timelapse_type");
 
-    if (!is_plate_config &&
+    if (!is_plate_config && !config->has("layer_height") &&
         config->opt_bool("spiral_mode") &&
         ! (config->opt_int("wall_loops") == 1 &&
            config->opt_int("top_shell_layers") == 0 &&
@@ -354,7 +354,8 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
-    if (!is_plate_config && config->has("spiral_vase") && config->opt_bool("spiral_vase") &&
+    // Height range modifier: auto-adjust region settings when per-range spiral is enabled.
+    if (!is_plate_config && config->has("layer_height") && config->opt_bool("range_spiral_mode") &&
         ! (config->opt_int("wall_loops") == 1 &&
            config->opt_int("top_shell_layers") == 0 &&
            sparse_infill_density == 0)) {
@@ -656,11 +657,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig);
 
     bool has_spiral_vase         = config->opt_bool("spiral_mode") ||
-        (config->has("spiral_vase") && config->opt_bool("spiral_vase"));
+        (config->has("range_spiral_mode") && config->opt_bool("range_spiral_mode"));
     toggle_line("spiral_mode_smooth", has_spiral_vase);
     toggle_line("spiral_mode_max_xy_smoothing", has_spiral_vase && config->opt_bool("spiral_mode_smooth"));
     toggle_line("spiral_starting_flow_ratio", has_spiral_vase);
     toggle_line("spiral_finishing_flow_ratio", has_spiral_vase);
+    toggle_line("range_spiral_mode_smooth", has_spiral_vase);
+    toggle_line("range_spiral_max_xy_smoothing", has_spiral_vase && config->opt_bool("range_spiral_mode_smooth"));
+    toggle_line("range_spiral_starting_flow_ratio", has_spiral_vase);
+    toggle_line("range_spiral_finishing_flow_ratio", has_spiral_vase);
     bool has_top_shell    = config->opt_int("top_shell_layers") > 0 || (has_spiral_vase && config->opt_int("bottom_shell_layers") > 1);
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
     bool has_solid_infill = has_top_shell || has_bottom_shell;

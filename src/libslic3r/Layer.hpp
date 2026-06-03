@@ -100,7 +100,7 @@ public:
     // Is there any valid extrusion assigned to this LayerRegion?
     bool    has_extrusions() const { return ! this->perimeters.entities.empty() || ! this->fills.entities.empty(); }
 
-    // True when this region/layer should use spiral vase slicing (global spiral_mode or region spiral_vase).
+    // True when this region/layer should use spiral vase slicing (global spiral_mode or per-height-range range_spiral_mode).
     bool    is_spiral_vase_active() const;
     //BBS
     void    simplify_infill_extrusion_entity() { simplify_entity_collection(&fills); }

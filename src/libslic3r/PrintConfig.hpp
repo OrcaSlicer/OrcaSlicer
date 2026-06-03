@@ -1078,7 +1078,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,  print_extruder_variant))
     ((ConfigOptionInt,                  bottom_shell_layers))
     ((ConfigOptionFloat,                bottom_shell_thickness))
-    ((ConfigOptionBool,                 spiral_vase))
+    ((ConfigOptionBool,                 range_spiral_mode))
+    ((ConfigOptionBool,                 range_spiral_mode_smooth))
+    ((ConfigOptionFloatOrPercent,       range_spiral_max_xy_smoothing))
+    ((ConfigOptionFloat,                range_spiral_starting_flow_ratio))
+    ((ConfigOptionFloat,                range_spiral_finishing_flow_ratio))
     ((ConfigOptionFloat,                bridge_angle))
     ((ConfigOptionFloat,                internal_bridge_angle)) // ORCA: Internal bridge angle override
     ((ConfigOptionBool,                 relative_bridge_angle)) // ORCA: Relative bridge angle flag

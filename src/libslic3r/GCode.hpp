@@ -165,11 +165,21 @@ public:
     static const std::vector<std::string>& get() { return Colors; }
 };
 
+struct SpiralVaseLayerParams
+{
+    bool  smooth_spiral            { false };
+    float max_xy_smoothing         { 0.f };
+    float starting_flow_ratio      { 0.f };
+    float finishing_flow_ratio     { 0.f };
+    bool  filter_short_extrusions  { false };
+};
+
 struct LayerResult {
     std::string gcode;
     size_t      layer_id;
     // Is spiral vase post processing enabled for this layer?
     bool        spiral_vase_enable { false };
+    SpiralVaseLayerParams spiral_params;
     // Last layer of a spiral vase height-range zone (flow ramp-out), not necessarily the object's last layer.
     bool        spiral_vase_zone_last { false };
     // Should the cooling buffer content be flushed at the end of this layer?

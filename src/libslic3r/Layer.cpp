@@ -41,7 +41,7 @@ bool LayerRegion::is_spiral_vase_active() const
     if (print_config.spiral_mode)
         return this->layer()->id() >= size_t(region_config.bottom_shell_layers.value) &&
                this->layer()->print_z >= region_config.bottom_shell_thickness - EPSILON;
-    if (!region_config.spiral_vase)
+    if (!region_config.range_spiral_mode)
         return false;
 
     const PrintObjectRegions *shared_regions = this->layer()->object()->shared_regions();
@@ -53,9 +53,9 @@ bool LayerRegion::is_spiral_vase_active() const
         if (z <= layer_range.layer_height_range.first + EPSILON ||
             z >= layer_range.layer_height_range.second - EPSILON)
             continue;
-        if (layer_range.config == nullptr || !layer_range.config->has("spiral_vase"))
+        if (layer_range.config == nullptr || !layer_range.config->has("range_spiral_mode"))
             return false;
-        const ConfigOptionBool *spiral_opt = layer_range.config->option<ConfigOptionBool>("spiral_vase");
+        const ConfigOptionBool *spiral_opt = layer_range.config->option<ConfigOptionBool>("range_spiral_mode");
         return spiral_opt != nullptr && spiral_opt->value;
     }
     return false;

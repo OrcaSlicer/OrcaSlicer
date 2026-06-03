@@ -279,7 +279,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             // In Spiral Vase mode, holes are closed and only the largest area contour is kept at each layer.
             // Therefore toggling the Spiral Vase on / off requires complete reslicing.
             || opt_key == "spiral_mode"
-            || opt_key == "spiral_vase") {
+            || opt_key == "range_spiral_mode") {
             osteps.emplace_back(posSlice);
         } else if (
                opt_key == "print_sequence"
@@ -1333,12 +1333,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         size_t total_copies_count = 0;
         for (const PrintObject* object : m_objects)
             total_copies_count += object->instances().size();
-        const char *spiral_opt_key = m_config.spiral_mode ? "spiral_mode" : "spiral_vase";
+        const char *spiral_opt_key = "spiral_mode";
         // #4043
         if (total_copies_count > 1 && m_config.print_sequence != PrintSequence::ByObject)
             return {L("Please select \"By object\" print sequence to print multiple objects in spiral vase mode."), nullptr, spiral_opt_key};
         // Whole-object multi-material restriction applies to global spiral mode only.
-        // Per-height-range spiral_vase is validated per layer during G-code export.
+        // Per-height-range range_spiral_mode is validated per layer during G-code export.
         if (m_config.spiral_mode) {
             assert(m_objects.size() == 1);
             for (const PrintObject *object : m_objects) {
@@ -2063,22 +2063,22 @@ bool Print::has_spiral_mode() const
 {
     if (m_config.spiral_mode)
         return true;
-    // Per-height-range spiral_vase may not always be represented in m_print_regions.
+    // Per-height-range range_spiral_mode may not always be represented in m_print_regions.
     // Detect it from resolved PrintObject layer ranges so spiral post-processing is enabled.
     for (const PrintObject *object : m_objects) {
         const PrintObjectRegions *shared_regions = object->shared_regions();
         if (shared_regions == nullptr)
             continue;
         for (const auto &layer_range : shared_regions->layer_ranges) {
-            if (layer_range.config == nullptr || !layer_range.config->has("spiral_vase"))
+            if (layer_range.config == nullptr || !layer_range.config->has("range_spiral_mode"))
                 continue;
-            const ConfigOptionBool *spiral_opt = layer_range.config->option<ConfigOptionBool>("spiral_vase");
+            const ConfigOptionBool *spiral_opt = layer_range.config->option<ConfigOptionBool>("range_spiral_mode");
             if (spiral_opt != nullptr && spiral_opt->value)
                 return true;
         }
     }
     for (const PrintRegion *region : m_print_regions)
-        if (region->config().spiral_vase)
+        if (region->config().range_spiral_mode)
             return true;
     return false;
 }

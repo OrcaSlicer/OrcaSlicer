@@ -141,11 +141,11 @@ static inline bool model_volume_needs_slicing(const ModelVolume &mv)
     return type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER;
 }
 
-static bool layer_range_config_spiral_vase(const DynamicPrintConfig *cfg)
+static bool layer_range_config_range_spiral_mode(const DynamicPrintConfig *cfg)
 {
     if (cfg == nullptr)
         return false;
-    const ConfigOptionBool *opt = cfg->option<ConfigOptionBool>("spiral_vase");
+    const ConfigOptionBool *opt = cfg->option<ConfigOptionBool>("range_spiral_mode");
     return opt != nullptr && opt->value;
 }
 
@@ -225,7 +225,7 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                 for (const PrintObjectRegions::LayerRangeRegions &layer_range : layer_ranges)
                     if (layer_range.has_volume(model_volume->id())) {
                         slicing_ranges.emplace_back(layer_range.layer_height_range);
-                        if (model_volume->is_model_part() && (print_config.spiral_mode || layer_range_config_spiral_vase(layer_range.config)))
+                        if (model_volume->is_model_part() && (print_config.spiral_mode || layer_range_config_range_spiral_mode(layer_range.config)))
                             per_range_spiral = true;
                     }
                 if (! slicing_ranges.empty()) {
@@ -242,7 +242,7 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                             if (z_range.empty())
                                 continue;
                             MeshSlicingParamsEx params_range = params;
-                            if (model_volume->is_model_part() && layer_range_config_spiral_vase(layer_range.config)) {
+                            if (model_volume->is_model_part() && layer_range_config_range_spiral_mode(layer_range.config)) {
                                 params_range.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
                                 params_range.slicing_mode_normal_below_layer = 0;
                             }

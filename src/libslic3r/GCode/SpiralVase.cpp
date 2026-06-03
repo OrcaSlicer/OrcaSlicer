@@ -148,10 +148,10 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_spiral
     bool  transition_in = m_transition_layer && m_config.use_relative_e_distances.value;
     bool  transition_out = last_spiral_layer && m_config.use_relative_e_distances.value;
     bool  skip_travel_moves = true;
-    bool  filter_short_extrusions = m_config.spiral_mode;
+    bool  filter_short_extrusions = m_filter_short_extrusions;
 
-    float starting_flowrate  = float(m_config.spiral_starting_flow_ratio.value);
-    float finishing_flowrate = float(m_config.spiral_finishing_flow_ratio.value);
+    float starting_flowrate  = m_starting_flow_ratio;
+    float finishing_flowrate = m_finishing_flow_ratio;
     const float min_segment_length = std::max(float(EPSILON), 2 * float(m_config.resolution.value));
 
     float len = 0.f;

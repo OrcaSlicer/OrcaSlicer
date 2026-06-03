@@ -1233,6 +1233,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "tree_support_angle_slow"
             || opt_key == "tree_support_wall_count") {
             steps.emplace_back(posSupportMaterial);
+        } else if (opt_key == "range_spiral_mode") {
+            steps.emplace_back(posSlice);
         } else if (
                opt_key == "bottom_shell_layers"
             || opt_key == "top_shell_layers") {
@@ -1413,8 +1415,11 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "brim_flow_ratio"
             || opt_key == "filament_flow_ratio"
             || opt_key == "scarf_joint_flow_ratio"
-            || opt_key == "spiral_starting_flow_ratio"
-            || opt_key == "spiral_finishing_flow_ratio") {
+            || opt_key == "range_spiral_mode"
+            || opt_key == "range_spiral_mode_smooth"
+            || opt_key == "range_spiral_max_xy_smoothing"
+            || opt_key == "range_spiral_starting_flow_ratio"
+            || opt_key == "range_spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else if (
                opt_key == "flush_into_infill"
@@ -3662,7 +3667,7 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         config.sparse_infill_density.value = std::min(config.sparse_infill_density.value, 100.);
     if (config.fuzzy_skin.value != FuzzySkinType::None && (config.fuzzy_skin_point_distance.value < 0.01 || config.fuzzy_skin_thickness.value < 0.001))
         config.fuzzy_skin.value = FuzzySkinType::None;
-    if (config.spiral_vase) {
+    if (config.range_spiral_mode) {
         config.wall_loops.value                   = 1;
         config.alternate_extra_wall.value         = false;
         config.top_shell_layers.value             = 0;

@@ -1165,7 +1165,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.));
 
-    def = this->add("spiral_vase", coBool);
+    def = this->add("range_spiral_mode", coBool);
     def->label = L("Spiral vase");
     def->category = L("Others");
     def->tooltip = L("When enabled on a height range modifier, this Z band is printed in spiral vase mode "
@@ -1173,6 +1173,48 @@ void PrintConfigDef::init_fff_params()
                      "Global Spiral vase in print settings overrides this.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("range_spiral_mode_smooth", coBool);
+    def->label = L("Smooth Spiral");
+    def->tooltip = L("Smooth Spiral smooths out X and Y moves as well, "
+                     "resulting in no visible seam at all, even in the XY directions on walls that are not vertical.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("range_spiral_max_xy_smoothing", coFloatOrPercent);
+    def->label = L("Max XY Smoothing");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Maximum distance to move points in XY to try to achieve a smooth spiral. "
+                     "If expressed as a %, it will be computed over nozzle diameter.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "nozzle_diameter";
+    def->min = 0;
+    def->max = 1000;
+    def->max_literal = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(200, true));
+
+    def = this->add("range_spiral_starting_flow_ratio", coFloat);
+    def->label = L("Spiral starting flow ratio");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Sets the starting flow ratio while transitioning from the last bottom layer to the spiral. "
+                    "Normally the spiral transition scales the flow ratio from 0% to 100% during the first loop "
+                    "which can in some cases lead to under extrusion at the start of the spiral.");
+    def->min = 0;
+    def->max = 1;
+    def->set_default_value(new ConfigOptionFloat(0));
+    def->mode = comAdvanced;
+
+    def = this->add("range_spiral_finishing_flow_ratio", coFloat);
+    def->label = L("Spiral finishing flow ratio");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Sets the finishing flow ratio while ending the spiral. "
+                    "Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop "
+                    "which can in some cases lead to under extrusion at the end of the spiral.");
+    def->min = 0;
+    def->max = 1;
+    def->set_default_value(new ConfigOptionFloat(0));
+    def->mode = comAdvanced;
 
     def = this->add("gap_fill_target", coEnum);
     def->label = L("Apply gap fill");
@@ -5799,7 +5841,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Spiral vase");
     def->tooltip = L("Spiralize smooths out the Z moves of the outer contour. "
                      "And turns a solid model into a single walled print with solid bottom layers. "
-                     "The final generated model has no seam.");
+                     "The final generated model has no seam. "
+                     "Global Spiral vase in print settings overrides per-range height modifiers.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
