@@ -202,12 +202,16 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
     if (machine == m_machine) {
         if (m_last_state == MEDIASTATE_IDLE && IsEnabled())
             Play();
-        else if (m_last_state == MEDIASTATE_LOADING && m_tutk_state == "disable"
-                && m_last_user_play + wxTimeSpan::Seconds(3) < wxDateTime::Now()) {
-            // resend ttcode to printer
-            if (auto agent = wxGetApp().getAgent())
-                agent->get_camera_url(machine, [](auto) {}, wxGetApp().get_printer_cloud_provider());
-            m_last_user_play = wxDateTime::Now();
+        if (m_last_state == MEDIASTATE_LOADING || m_last_state == MEDIASTATE_INITIALIZING) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - m_play_timer).count();
+            if (elapsed >= 15) {
+                BOOST_LOG_TRIVIAL(error) << "MediaPlayCtrl: loading/initializing timeout after " << elapsed
+                                         << "s, forcing stop";
+                m_failed_code = 2;
+                Stop(_L("Loading failed. Please check the network and try again."));
+                return;
+            }
         }
         return;
     }
@@ -305,6 +309,7 @@ void MediaPlayCtrl::Play()
         return;
     }
 
+    m_play_timer = std::chrono::system_clock::now();
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play: " << m_lan_proto << m_remote_proto << m_disable_lan;
     NetworkAgent *agent = wxGetApp().getAgent();
     std::string  agent_version = agent ? agent->get_version() : "";

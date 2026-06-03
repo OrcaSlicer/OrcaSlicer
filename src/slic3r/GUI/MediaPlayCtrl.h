@@ -17,6 +17,7 @@
 
 #include <deque>
 #include <set>
+#include <chrono>
 
 class Button;
 class Label;
@@ -101,6 +102,7 @@ private:
     int m_failed_retry = 0;
     int m_failed_code = 0;
     int m_zero_fps_count = 0;  // watchdog: consecutive stat_log ticks with FPS ≈ 0
+    std::chrono::system_clock::time_point m_play_timer;  // BBL-style: timeout for LOADING/INITIALIZING + idle tracking
     std::vector<double> m_stat;
     std::set<int> m_last_failed_codes;
     wxDateTime    m_last_user_play;
