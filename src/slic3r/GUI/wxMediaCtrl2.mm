@@ -40,10 +40,11 @@ void wxMediaCtrl2::bambu_log(void const * ctx, int level, char const * msg)
             wxPostEvent(ctrl, evt);
         }
     } else if (level < 0) {
+        BOOST_LOG_TRIVIAL(warning) << "BambuPlayer ERROR (level=" << level << "): " << msg;
         wxMediaCtrl2 * ctrl = (wxMediaCtrl2 *) ctx;
         ctrl->NotifyStopped();
     }
-    BOOST_LOG_TRIVIAL(info) << msg;
+    BOOST_LOG_TRIVIAL(warning) << "BambuPlayer [" << level << "]: " << msg;
 }
 
 wxMediaCtrl2::wxMediaCtrl2(wxWindow * parent)

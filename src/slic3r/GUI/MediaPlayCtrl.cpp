@@ -85,23 +85,30 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const w
             m_stat.push_back(value);
         }
         // Freeze watchdog: if FPS ≈ 0 for 3+ consecutive stat ticks while PLAYING,
-        // the stream is silently frozen — force stop and retry.
+        // the stream is silently frozen — gentle retry once, then stop.
         if (m_last_state == wxMEDIASTATE_PLAYING || m_last_state == wxMEDIASTATE_PAUSED) {
             double fps = m_stat.empty() ? -1.0 : m_stat[0];
             if (fps >= 0 && fps < 0.5) {
                 ++m_zero_fps_count;
                 BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: zero FPS detected (" << m_zero_fps_count << "/3)";
                 if (m_zero_fps_count >= 3) {
-                    BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: stream frozen, auto-restarting...";
                     m_zero_fps_count = 0;
-                    m_failed_code = 0;
-                    Stop(_L("Stream frozen, reconnecting..."));
-                    m_failed_retry = 0;
-                    m_next_retry = wxDateTime::Now();
-                    Play();
+                    if (m_failed_retry < 2) {
+                        BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: stream frozen, retry " << (m_failed_retry + 1);
+                        m_failed_code = 0;
+                        Stop(_L("Stream frozen, reconnecting..."));
+                        ++m_failed_retry;
+                        m_next_retry = wxDateTime::Now() + wxTimeSpan::Seconds(3);
+                    } else {
+                        BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: stream frozen after " << m_failed_retry << " retries, stopping";
+                        m_failed_code = 2;
+                        Stop(_L("Stream frozen. Please click play to retry."));
+                    }
                 }
             } else {
                 m_zero_fps_count = 0;
+                // Stream is alive — reset retry counter
+                if (m_failed_retry > 0) m_failed_retry = 0;
             }
         } else {
             m_zero_fps_count = 0;
