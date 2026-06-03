@@ -1328,7 +1328,9 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     // Orca H2C port: per-filament Vortek nozzle-swap parameters
     "filament_pre_cooling_temperature_nc", "filament_retract_length_nc",
     "filament_ramming_volumetric_speed_nc", "filament_ramming_travel_time_nc",
-    "filament_preheat_temperature_delta"
+    "filament_preheat_temperature_delta",
+    // Orca H2C port: per-filament prime volumes (EC = extruder-change, NC = nozzle-change)
+    "filament_prime_volume", "filament_prime_volume_nc"
     };
 
 static std::vector<std::string> s_Preset_machine_limits_options {

@@ -145,6 +145,8 @@
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
 	],
+	"wipe_tower_wall_type": "rib",
+	"wipe_tower_max_purge_speed": "150",
 	"prime_tower_flat_ironing": "1",
 	"slowdown_start_height": [
 		"0",

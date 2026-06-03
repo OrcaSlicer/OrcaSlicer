@@ -3289,7 +3289,7 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 
 
     if (! is_step_done(psWipeTower) && filaments_cnt !=0) {
-        double wipe_volume  = m_config.prime_volume;
+        double wipe_volume  = *std::max_element(m_config.filament_prime_volume.values.begin(), m_config.filament_prime_volume.values.end());
         // H2C TODO
         // if (m_config.prime_volume_mode == pvmSaving) {
         //     for (auto& v : filament_wipe_volume)

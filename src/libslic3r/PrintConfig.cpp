@@ -7583,7 +7583,8 @@ void PrintConfigDef::init_filament_option_keys()
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "filament_colour",
         "default_filament_profile","retraction_distances_when_cut","long_retractions_when_cut"/*,"filament_seam_gap"*/,
-        "filament_pre_cooling_temperature_nc","filament_cooling_before_tower","filament_retract_length_nc"
+        "filament_pre_cooling_temperature_nc","filament_cooling_before_tower","filament_retract_length_nc",
+        "filament_prime_volume","filament_prime_volume_nc"
     };
 
     m_filament_retract_keys = {
@@ -8612,7 +8613,9 @@ std::set<std::string> filament_options_with_variant = {
     "complete_print_exhaust_fan_speed",
     "filament_pre_cooling_temperature_nc",
     "filament_cooling_before_tower",
-    "filament_retract_length_nc"
+    "filament_retract_length_nc",
+    "filament_prime_volume",
+    "filament_prime_volume_nc"
 };
 
 // Parameters that are the same as the number of extruders
@@ -10321,11 +10324,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
@@ -10342,11 +10343,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
@@ -10363,11 +10362,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
@@ -10384,11 +10381,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
@@ -10405,11 +10400,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
@@ -10426,11 +10419,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
@@ -10447,11 +10438,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
-                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
-                            continue;
-                        }
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                        int vi = variant_index[f_index];
+                        if (vi < 0) vi = 0;
+                        new_values[f_index] = opt->get_at(vi);
                     }
                     opt->values = new_values;
                     break;
