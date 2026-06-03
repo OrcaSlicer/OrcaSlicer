@@ -144,6 +144,7 @@ private:
 
     //When there are more than 9 colors, shortcut key coloring
     wxTimer m_timer_set_color;
+    int m_pending_color_shortcut_tens = 0;
     void on_set_color_timer(wxTimerEvent& evt);
 
     // key MENU_ICON_NAME, value = ImtextureID

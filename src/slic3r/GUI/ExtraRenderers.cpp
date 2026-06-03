@@ -263,6 +263,33 @@ bool BitmapChoiceRenderer::GetValue(wxVariant& value) const
     return true;
 }
 
+static std::vector<wxBitmap*> mixed_aware_extruder_icons(bool thin_icon = false)
+{
+    std::vector<wxBitmap*> icons = get_extruder_color_icons(thin_icon);
+
+    if (Slic3r::GUI::wxGetApp().plater() == nullptr)
+        return icons;
+
+    const std::vector<std::string> all_colors =
+        Slic3r::GUI::wxGetApp().plater()->get_extruder_colors_from_plater_config(nullptr, true);
+    if (all_colors.size() <= icons.size())
+        return icons;
+
+    const double em = Slic3r::GUI::wxGetApp().em_unit();
+    const int    icon_width  = int((thin_icon ? 2.0 : 4.4) * em + 0.5);
+    const int    icon_height = int(2.0 * em + 0.5);
+    for (size_t idx = icons.size(); idx < all_colors.size(); ++idx) {
+        if (all_colors[idx].empty()) {
+            icons.push_back(nullptr);
+            continue;
+        }
+
+        icons.push_back(get_extruder_color_icon(all_colors[idx], std::to_string(idx + 1), icon_width, icon_height));
+    }
+
+    return icons;
+}
+
 bool BitmapChoiceRenderer::Render(wxRect rect, wxDC* dc, int state)
 {
     const wxBitmap& icon = m_value.GetBitmap();
@@ -301,7 +328,7 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
     if (can_create_editor_ctrl && !can_create_editor_ctrl())
         return nullptr;
 
-    std::vector<wxBitmap*> icons = get_extruder_color_icons();
+    std::vector<wxBitmap*> icons = mixed_aware_extruder_icons(false);
     if (icons.empty())
         return nullptr;
 
@@ -317,12 +344,14 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         c_editor->Append(_L("default"), *get_default_extruder_color_icon());
 
     for (size_t i = 0; i < icons.size(); i++)
-        c_editor->Append(wxString::Format("%d", i+1), *icons[i]);
+        c_editor->Append(wxString::Format("%d", i + 1), icons[i] ? *icons[i] : wxNullBitmap);
 
-    if (has_default_extruder && has_default_extruder())
-        c_editor->SetSelection(atoi(data.GetText().c_str()));
-    else
-        c_editor->SetSelection(atoi(data.GetText().c_str()) - 1);
+    int selection = (has_default_extruder && has_default_extruder())
+        ? atoi(data.GetText().c_str())
+        : atoi(data.GetText().c_str()) - 1;
+    if (selection < 0 || selection >= int(c_editor->GetCount()))
+        selection = 0;
+    c_editor->SetSelection(selection);
 
     c_editor->Bind(wxEVT_SET_FOCUS, [c_editor](wxFocusEvent& evt) {
 #ifdef __WXGTK__

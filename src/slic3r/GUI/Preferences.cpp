@@ -7,6 +7,7 @@
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Format/DRC.hpp"
+#include "libslic3r/MixedFilament.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -1040,6 +1041,19 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             }
         }
 
+        if (param == "auto_generate_gradients") {
+            MixedFilamentManager::set_auto_generate_enabled(checkbox->GetValue());
+            if (wxGetApp().preset_bundle != nullptr && wxGetApp().plater() != nullptr) {
+                const size_t num_physical = wxGetApp().preset_bundle->filament_presets.size();
+                // FullSpectrum: record the toggle as the user's authoritative decision for
+                // the current count, suppressing any future dialog at this same count.
+                // Adding more filaments later misses the cache and re-prompts as expected.
+                wxGetApp().plater()->set_auto_generated_gradient_decision(num_physical, checkbox->GetValue());
+                wxGetApp().preset_bundle->update_multi_material_filament_presets();
+                wxGetApp().plater()->on_filament_count_change(num_physical);
+            }
+        }
+
         if (param == "enable_high_low_temp_mixed_printing") {
             if (checkbox->GetValue()) {
                 const wxString warning_title = _L("Bed Temperature Difference Warning");
@@ -1478,6 +1492,9 @@ void PreferencesDialog::create_items()
     std::vector<std::string> FlushOptionValues = { "all","color change","disabled" };
     auto item_auto_flush = create_item_combobox(_L("Auto flush after changing..."), _L("Auto calculate flushing volumes when selected values changed"), "auto_calculate_flush", FlushOptionLabels, FlushOptionValues);
     g_sizer->Add(item_auto_flush);
+
+    auto item_auto_generate_gradients = create_item_checkbox(_L("Mixed filaments: Auto-generate gradients."), _L("If enabled, OrcaSlicer automatically creates gradient mixed filaments from physical filament pairs."), "auto_generate_gradients");
+    g_sizer->Add(item_auto_generate_gradients);
 
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);

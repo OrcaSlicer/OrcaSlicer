@@ -75,6 +75,7 @@
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/MixedFilament.hpp"
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
@@ -2950,6 +2951,11 @@ bool GUI_App::on_init_inner()
     // BBS if load user preset failed
     //if (loaded_preset_result != 0) {
         try {
+            // Apply the user's auto_generate_gradients preference before load_presets
+            // triggers PresetBundle::sync_mixed_filaments_from_config, which calls
+            // MixedFilamentManager::auto_generate. The static atomic defaults to true,
+            // so without this the preference is ignored on the initial preset load.
+            MixedFilamentManager::set_auto_generate_enabled(app_config->get_bool("auto_generate_gradients"));
             // Enable all substitutions (in both user and system profiles), but log the substitutions in user profiles only.
             // If there are substitutions in system profiles, then a "reconfigure" event shall be triggered, which will force
             // installation of a compatible system preset, thus nullifying the system preset substitutions.

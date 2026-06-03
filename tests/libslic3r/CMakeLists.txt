@@ -16,6 +16,8 @@ add_executable(${_TEST_NAME}_tests
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
+    test_mixed_filament.cpp
+    test_review_fixes.cpp
     test_stl.cpp
     test_meshboolean.cpp
     test_marchingsquares.cpp

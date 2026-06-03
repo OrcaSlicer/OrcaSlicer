@@ -216,6 +216,18 @@ OtherLayersSeqPanel::OtherLayersSeqPanel(wxWindow* parent)
     Layout();
     top_sizer->Fit(this);
 
+    // Disable custom sequence when mixed (virtual) filaments are in use.
+    {
+        size_t total    = wxGetApp().preset_bundle->total_filament_count();
+        size_t num_phys = wxGetApp().preset_bundle->filament_presets.size();
+        if (total > num_phys) {
+            m_other_layer_print_seq_choice->Disable();
+            auto* warn = new wxStaticText(this, wxID_ANY,
+                _L("Custom layer sequence is unavailable when mixed filaments are used."));
+            warn->SetForegroundColour(wxColour(255, 100, 0));
+            top_sizer->Add(warn, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
+        }
+    }
 
     m_other_layer_print_seq_choice->Bind(wxEVT_COMBOBOX, [this, buttons_sizer](auto& e) {
         if (e.GetSelection() == 0) {

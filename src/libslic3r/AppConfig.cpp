@@ -408,6 +408,10 @@ void AppConfig::set_defaults()
         set("auto_calculate_flush","all");
     }
 
+    if (get("auto_generate_gradients").empty()) {
+        set_bool("auto_generate_gradients", true);
+    }
+
     if (get("show_canvas_zoom_button").empty()) {
         set_bool("show_canvas_zoom_button", true);
     }

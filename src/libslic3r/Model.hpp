@@ -742,6 +742,9 @@ public:
                                                        EnforcerBlockerType replace_filament = EnforcerBlockerType::NONE);
     indexed_triangle_set get_facets_strict(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool has_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
+    // Shift all non-NONE leaf states >= threshold by delta.
+    // Used to renumber painted filament IDs after a filament slot insertion/deletion.
+    void shift_states_above(const ModelVolume& mv, EnforcerBlockerType threshold, int delta);
     bool empty() const { return m_data.triangles_to_split.empty(); }
 
     // Following method clears the config and increases its timestamp, so the deleted
@@ -925,7 +928,8 @@ public:
     // BBS
     std::vector<int>    get_extruders() const;
     void                update_extruder_count(size_t extruder_count);
-    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1);
+    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1,
+                                                                   const std::vector<unsigned char>& filament_is_mixed = {});
 
     // Split this volume, append the result to the object owning this volume.
     // Return the number of volumes created from this one.

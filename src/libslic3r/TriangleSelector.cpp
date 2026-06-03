@@ -1691,9 +1691,11 @@ void TriangleSelector::get_seed_fill_contour_recursive(const int facet_idx, cons
 
 TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
     // Each original triangle of the mesh is assigned a number encoding its state
-    // or how it is split. Each triangle is encoded by 4 bits (xxyy) or 8 bits (zzzzxxyy):
+    // or how it is split. Each triangle is encoded by 4 bits (xxyy), 8 bits
+    // (zzzzxxyy), or 12 bits (wwwwzzzzxxyy):
     // leaf triangle: xx = EnforcerBlockerType (Only values 0, 1, and 2. Value 3 is used as an indicator for additional 4 bits.), yy = 0
-    // leaf triangle: xx = 0b11, yy = 0b00, zzzz = EnforcerBlockerType (subtracted by 3)
+    // leaf triangle: xx = 0b11, yy = 0b00, zzzz = EnforcerBlockerType (subtracted by 3) for states 3..16
+    // leaf triangle: xx = 0b11, yy = 0b00, zzzz = 0b1110, wwww = EnforcerBlockerType (subtracted by 17) for states 17..32
     // non-leaf:      xx = special side, yy = number of split sides
     // These are bitwise appended and formed into one 64-bit integer.
 
@@ -1736,13 +1738,25 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
                     data.used_states[n] = true;
 
                 if (n >= 3) {
-                    assert(n <= 16);
-                    if (n <= 16) {
-                        // Store "11" plus 4 bits of (n-3).
-                        data.bitstream.insert(data.bitstream.end(), { true, true });
-                        n -= 3;
+                    assert(n <= int(EnforcerBlockerType::ExtruderMax));
+
+                    auto push_nibble = [&data = this->data](int value) {
                         for (size_t bit_idx = 0; bit_idx < 4; ++bit_idx)
-                            data.bitstream.push_back(n & (uint64_t(0b0001) << bit_idx));
+                            data.bitstream.push_back((value & (1 << int(bit_idx))) != 0);
+                    };
+
+                    // Store "11" plus either one nibble (legacy 3..16) or
+                    // an escaped second nibble for 17..32.
+                    data.bitstream.insert(data.bitstream.end(), { true, true });
+                    if (n <= 16) {
+                        push_nibble(n - 3);
+                    } else {
+                        // 0b1110 marks the extended range 17..32.
+                        constexpr int extended_prefix = 0b1110;
+                        const int encoded = n - 17;
+                        assert(encoded >= 0 && encoded <= 15);
+                        push_nibble(extended_prefix);
+                        push_nibble(encoded);
                     }
                 } else {
                     // Simple case, compatible with PrusaSlicer 2.3.1 and older for storing paint on supports and seams.
@@ -1818,8 +1832,19 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
             int num_of_split_sides = code & 0b11;
             int num_of_children = num_of_split_sides == 0 ? 0 : num_of_split_sides + 1;
             bool is_split = num_of_children != 0;
-            // Only valid if not is_split. Value of the second nibble was subtracted by 3, so it is added back.
-            auto state = is_split ? EnforcerBlockerType::NONE : EnforcerBlockerType((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2);
+            // Only valid if not is_split.
+            auto decode_leaf_state = [&next_nibble](int leaf_code) -> EnforcerBlockerType {
+                if ((leaf_code & 0b1100) != 0b1100)
+                    return EnforcerBlockerType(leaf_code >> 2);
+
+                const int extended = next_nibble();
+                if (extended == 0b1110)
+                    return EnforcerBlockerType(next_nibble() + 17);
+
+                // Legacy path (states 3..16, plus historical fallback for 18).
+                return EnforcerBlockerType(extended + 3);
+            };
+            auto state = is_split ? EnforcerBlockerType::NONE : decode_leaf_state(code);
 
             // BBS
             if (state == to_delete_filament)
@@ -1916,7 +1941,17 @@ void TriangleSelector::TriangleSplittingData::update_used_states(const size_t bi
         if (const bool is_split = (code & 0b11) != 0; is_split)
             continue;
 
-        const uint8_t facet_state = (code & 0b1100) == 0b1100 ? read_next_nibble() + 3 : code >> 2;
+        uint8_t facet_state = 0;
+        if ((code & 0b1100) != 0b1100) {
+            facet_state = code >> 2;
+        } else {
+            const uint8_t extended = read_next_nibble();
+            if (extended == 0b1110)
+                facet_state = read_next_nibble() + 17;
+            else
+                facet_state = extended + 3;
+        }
+
         assert(facet_state < this->used_states.size());
         if (facet_state >= this->used_states.size())
             continue;
@@ -1946,9 +1981,17 @@ bool TriangleSelector::has_facets(const TriangleSplittingData &data, const Enfor
         auto num_children_or_state = [&next_nibble]() -> int {
             int code               = next_nibble();
             int num_of_split_sides = code & 0b11;
-            return num_of_split_sides == 0 ?
-                ((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2) :
-                - num_of_split_sides - 1;
+            if (num_of_split_sides != 0)
+                return - num_of_split_sides - 1;
+
+            if ((code & 0b1100) != 0b1100)
+                return code >> 2;
+
+            const int extended = next_nibble();
+            if (extended == 0b1110)
+                return next_nibble() + 17;
+
+            return extended + 3;
         };
 
         int state = num_children_or_state();
@@ -2522,6 +2565,19 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     }
 
     return target_selector.serialize();
+}
+
+void TriangleSelector::shift_states_above(EnforcerBlockerType threshold, int delta)
+{
+    for (Triangle &triangle : m_triangles) {
+        if (triangle.is_split() || !triangle.valid()) continue;
+        EnforcerBlockerType s = triangle.get_state();
+        if (s != EnforcerBlockerType::NONE && s >= threshold) {
+            int new_val = static_cast<int>(s) + delta;
+            if (new_val >= 0)
+                triangle.set_state(EnforcerBlockerType(new_val));
+        }
+    }
 }
 
 } // namespace Slic3r

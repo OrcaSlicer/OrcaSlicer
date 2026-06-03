@@ -2561,7 +2561,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             if (!model_volume.is_model_part())
                 continue;
 
-            unsigned int filaments_count = (unsigned int)dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"))->values.size();
+            unsigned int filament_colour_size = (unsigned int)dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"))->values.size();
+            unsigned int filaments_count = std::max(filament_colour_size, (unsigned int)wxGetApp().preset_bundle->total_filament_count());
             model_volume.update_extruder_count(filaments_count);
         }
     }
@@ -2829,6 +2830,23 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
 		for (GLVolume* volume : m_volumes.volumes)
 			if (volume->object_idx() < (int)m_model->objects.size() && m_model->objects[volume->object_idx()]->instances[volume->instance_idx()]->is_printable())
 				volume->set_sla_shift_z(shift_zs[volume->object_idx()]);
+    }
+
+    // BBS: single-extruder mixed filament risk notification
+    if (printer_technology == ptFFF && wxGetApp().preset_bundle) {
+        const size_t total_filaments = wxGetApp().preset_bundle->total_filament_count();
+        const size_t num_phys        = wxGetApp().preset_bundle->filament_presets.size();
+        const bool   any_mixed       = total_filaments > num_phys;
+        auto* printer_extruder_id_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
+                                            .config.option<ConfigOptionInts>("printer_extruder_id");
+        const int printer_extruders_count = printer_extruder_id_opt ? (int)printer_extruder_id_opt->values.size() : 1;
+        auto& nm = *wxGetApp().plater()->get_notification_manager();
+        if (printer_extruders_count == 1 && any_mixed)
+            nm.push_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk,
+                                 NotificationManager::NotificationLevel::WarningNotificationLevel,
+                                 _u8L("Mixed filaments are unreliable on a single-extruder printer."));
+        else
+            nm.close_notification_of_type(NotificationType::BBLSingleExtruderMixedFilamentRisk);
     }
 
     // BBS

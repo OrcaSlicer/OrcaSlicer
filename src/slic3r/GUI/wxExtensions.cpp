@@ -783,6 +783,24 @@ void apply_extruder_selector(Slic3r::GUI::BitmapComboBox** ctrl,
                              bool use_thin_icon/* = false*/)
 {
     std::vector<wxBitmap*> icons = get_extruder_color_icons(use_thin_icon);
+    if (dynamic_cast<Slic3r::GUI::ObjectList*>(parent) != nullptr && Slic3r::GUI::wxGetApp().plater() != nullptr) {
+        const std::vector<std::string> all_colors =
+            Slic3r::GUI::wxGetApp().plater()->get_extruder_colors_from_plater_config(nullptr, true);
+
+        if (all_colors.size() > icons.size()) {
+            const double em = Slic3r::GUI::wxGetApp().em_unit();
+            const int    icon_width  = int((use_thin_icon ? 2.0 : 4.4) * em + 0.5);
+            const int    icon_height = int(2.0 * em + 0.5);
+            for (size_t idx = icons.size(); idx < all_colors.size(); ++idx) {
+                if (all_colors[idx].empty()) {
+                    icons.push_back(nullptr);
+                    continue;
+                }
+
+                icons.push_back(get_extruder_color_icon(all_colors[idx], std::to_string(idx + 1), icon_width, icon_height));
+            }
+        }
+    }
 
     if (!*ctrl) {
         *ctrl = new Slic3r::GUI::BitmapComboBox(parent, wxID_ANY, wxEmptyString, pos, size, 0, nullptr, wxCB_READONLY);
@@ -811,13 +829,13 @@ void apply_extruder_selector(Slic3r::GUI::BitmapComboBox** ctrl,
     for (wxBitmap* bmp : icons) {
         if (i == 0) {
             if (!first_item.empty())
-                (*ctrl)->Append(_(first_item), *bmp);
+                (*ctrl)->Append(_(first_item), bmp ? *bmp : wxNullBitmap);
             ++i;
         }
 
         (*ctrl)->Append(use_full_item_name
                         ? Slic3r::GUI::from_u8((boost::format("%1% %2%") % str % i).str())
-                        : wxString::Format("%d", i), *bmp);
+                        : wxString::Format("%d", i), bmp ? *bmp : wxNullBitmap);
         ++i;
     }
     (*ctrl)->SetSelection(0);

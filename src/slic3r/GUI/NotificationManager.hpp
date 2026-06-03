@@ -166,6 +166,8 @@ enum class NotificationType
     OrcaSharedProfilesAvailable,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
+    BBLMixedFilamentBroken,
+    BBLSingleExtruderMixedFilamentRisk,
     NotificationTypeCount
 
 };

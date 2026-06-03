@@ -250,3 +250,7 @@ src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
 src/libslic3r/PresetBundle.cpp
+src/slic3r/GUI/MixedFilamentColorMatchDialog.cpp
+src/slic3r/GUI/MixedFilamentColorMatchDialog.hpp
+src/slic3r/GUI/MixedFilamentConfigPanel.cpp
+src/slic3r/GUI/MixedFilamentConfigPanel.hpp

@@ -176,6 +176,9 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
+    filament_mixer.cpp
+    filament_mixer.h
+    filament_mixer_model.h
     Flow.cpp
     Flow.hpp
     FlushVolCalc.cpp
@@ -286,6 +289,7 @@ set(lisbslic3r_sources
     Line.hpp
     LocalesUtils.cpp
     LocalesUtils.hpp
+    LocalZOrderOptimizer.hpp
     MarchingSquares.hpp
     Measure.cpp
     Measure.hpp
@@ -295,6 +299,8 @@ set(lisbslic3r_sources
     MinAreaBoundingBox.hpp
     MinimumSpanningTree.cpp
     MinimumSpanningTree.hpp
+    MixedFilament.cpp
+    MixedFilament.hpp
     miniz_extension.cpp
     miniz_extension.hpp
     ModelArrange.cpp
