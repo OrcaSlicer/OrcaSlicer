@@ -23,6 +23,17 @@
 
 static wxColour s_red_clr("#D01B1B");
 
+// Compute a contrasting border for the filament colour box:
+// dark filaments get a light-gray border so they're visible on dark backgrounds.
+static wxColour contrastingBorderColor(const wxColour& fill)
+{
+    // Perceived luminance (ITU-R BT.709)
+    double lum = 0.2126 * fill.Red() / 255.0
+               + 0.7152 * fill.Green() / 255.0
+               + 0.0722 * fill.Blue() / 255.0;
+    return lum < 0.35 ? wxColour(160, 160, 160) : fill;
+}
+
 namespace Slic3r::GUI
 {
 
@@ -69,24 +80,28 @@ wgtDeviceNozzleRackUprade::wgtDeviceNozzleRackUprade(wxWindow* parent,
 
 void wgtDeviceNozzleRackUprade::CreateGui()
 {
-    SetBackgroundColour(*wxWHITE);
+    SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
     // Main vertical sizer
     auto* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Header: title + buttons
+    // Header: title + separator
     auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    // Title label
     auto* title_label = new Label(this, _L("Hotends Info"));
-    title_label->SetFont(Label::Head_14);
+    title_label->SetFont(Label::Head_16);
     header_sizer->Add(title_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
-
-    // Spacer
     header_sizer->AddStretchSpacer();
-    main_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxRIGHT, FromDIP(10));
+    main_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxRIGHT, FromDIP(14));
 
-    // "Nozzles"
+    // Separator line below title
+    wxPanel* title_sep = new wxPanel(this);
+    title_sep->SetMaxSize(wxSize(-1, FromDIP(1)));
+    title_sep->SetMinSize(wxSize(-1, FromDIP(1)));
+    title_sep->SetBackgroundColour(WXCOLOUR_GREY300);
+    main_sizer->Add(title_sep, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
+
+    // Extruder ("R")
     m_extruder_nozzle_item = new wgtDeviceNozzleRackHotendUpdate(this, "R");
     m_extruder_nozzle_item->UpdateColourStyle(wxColour("#F8F8F8"));
     m_extruder_nozzle_item->SetExtruderNozzleId(MAIN_EXTRUDER_ID);
@@ -160,8 +175,9 @@ wgtDeviceNozzleRackHotendUpdate::wgtDeviceNozzleRackHotendUpdate(wxWindow* paren
 
 void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 {
-    SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
-    SetBorderColor(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
+    wxColour bg_clr = StateColor::darkModeColorFor(*wxWHITE);
+    SetBackgroundColour(bg_clr);
+    SetBorderColor(bg_clr);
     SetCornerRadius(0);
 
     //load nozzle hs image
@@ -183,11 +199,11 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
     // Index
     m_idx_label = new Label(this);
     m_idx_label->SetFont(Label::Head_14);
-    m_idx_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
     content_sizer->Add(m_idx_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(25));
 
     // Icon
     wxPanel* imagePanel = new wxPanel(this);
+    imagePanel->SetBackgroundColour(bg_clr);
     imagePanel->SetMaxSize(WX_DIP_SIZE(46, -1));
     imagePanel->SetMinSize(WX_DIP_SIZE(46, -1));
     imagePanel->SetSize(wxSize(FromDIP(46), FromDIP(-1)));
@@ -203,13 +219,13 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 
     // Diameter/type (vertical)
     wxPanel* type_panel = new wxPanel(this);
+    type_panel->SetBackgroundColour(bg_clr);
     auto* main_type_sizer = new wxBoxSizer(wxVERTICAL);
     auto* type_sizer_row_1 = new wxBoxSizer(wxHORIZONTAL);
     auto* type_sizer_row_2 = new wxBoxSizer(wxHORIZONTAL);
 
     m_material_label = new Label(type_panel);
     m_material_label->SetFont(Label::Body_12);
-    m_material_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     m_colour_box = new StaticBox(type_panel);
     m_colour_box->SetMaxSize(WX_DIP_SIZE(16, 16));
@@ -226,15 +242,12 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 
     m_diameter_label = new Label(type_panel);
     m_diameter_label->SetFont(Label::Body_12);
-    m_diameter_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     m_flowtype_label = new Label(type_panel);
     m_flowtype_label->SetFont(Label::Body_12);
-    m_flowtype_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     m_type_label = new Label(type_panel);
     m_type_label->SetFont(Label::Body_12);
-    m_type_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     type_sizer_row_2->Add(m_diameter_label, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT );
     type_sizer_row_2->Add(m_flowtype_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
@@ -251,19 +264,17 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 
     // SN and version (vertical)
     wxPanel* info_panel = new wxPanel(this);
+    info_panel->SetBackgroundColour(bg_clr);
     auto* info_sizer = new wxBoxSizer(wxVERTICAL);
     m_sn_label = new Label(info_panel);
     m_sn_label->SetFont(Label::Body_12);
-    m_sn_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     auto* version_h_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_version_label = new Label(info_panel);
     m_version_label->SetFont(Label::Body_12);
-    m_version_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     m_version_new_label = new Label(info_panel);
     m_version_new_label->SetFont(Label::Body_12);
-    m_version_new_label->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
     m_version_new_label->SetForegroundColour(wxColour(0, 168, 84)); // Green
 
     version_h_sizer->Add(m_version_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -278,7 +289,6 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
     //Used Time
     m_used_time = new Label(this);
     m_used_time->SetFont(Label::Body_12);
-    m_used_time->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     m_refresh_icon = new ScalableBitmap(this, "refresh_printer", 12);
     // m_in_refreh_icon = new ScalableBitmap(this, "refresh_nozzle", 12);
@@ -378,7 +388,7 @@ void wgtDeviceNozzleRackHotendUpdate::OnBitmapHoverEnter(wxMouseEvent& event)
     m_hoverFrame = new wxFrame(nullptr, wxID_ANY, "", 
                                 wxDefaultPosition, wxDefaultSize, 
                                 wxFRAME_NO_TASKBAR | wxBORDER_NONE | wxTRANSPARENT_WINDOW);
-    m_hoverFrame->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
+    m_hoverFrame->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_hoverFrame->SetSize(scaledW, scaledH);
     wxBoxSizer* frameSizer = new wxBoxSizer(wxVERTICAL);
     m_hoverFrame->SetSizer(frameSizer);
@@ -450,8 +460,9 @@ void wgtDeviceNozzleRackHotendUpdate::updateNozzleImage(const DevNozzle& nozzle)
 
 void wgtDeviceNozzleRackHotendUpdate::UpdateColourStyle(const wxColour& clr)
 {
-    SetBackgroundColour(clr);
-    SetBorderColor(clr);
+    wxColour dm_clr = StateColor::darkModeColorFor(clr);
+    SetBackgroundColour(dm_clr);
+    SetBorderColor(dm_clr);
 
     // BFS: Update all children background color
     auto children = GetChildren();
@@ -459,7 +470,7 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateColourStyle(const wxColour& clr)
     {
         auto win = children.front();
         children.pop_front();
-        win->SetBackgroundColour(clr);
+        win->SetBackgroundColour(dm_clr);
 
         for (auto child : win->GetChildren())
         {
@@ -514,11 +525,20 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateInfo(const DevNozzle& nozzle)
     for (auto iter = GUI::wxGetApp().preset_bundle->filaments.begin(); iter != GUI::wxGetApp().preset_bundle->filaments.end(); ++iter) 
     {
         const Preset& filament_preset = *iter;
-        // const auto& config = filament_preset.config;
         if (filament_preset.filament_id == nozzle.GetFilamentId()) 
         {
             filamentDisplayName = wxString(filament_preset.alias);
+            break;
         }
+    }
+    // Fallback: show filament_id when no matching preset found
+    if (filamentDisplayName.empty() && !nozzle.GetFilamentId().empty())
+    {
+        filamentDisplayName = wxString::FromUTF8(nozzle.GetFilamentId());
+    }
+    if (filamentDisplayName.empty() && !nozzle.IsEmpty() && !nozzle.IsUnknown())
+    {
+        filamentDisplayName = wxString("--");
     }
 
     if (nozzle.IsEmpty() && m_nozzle_status != NOZZLE_STATUS_EMPTY)
@@ -549,8 +569,11 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateInfo(const DevNozzle& nozzle)
         m_nozzle_status = NOZZLE_STATUS_NORMAL;
 
         m_material_label->SetLabel(filamentDisplayName);
-        m_colour_box->SetBackgroundColour(wxColour("#" + nozzle.GetFilamentColor()));
-        m_colour_box->SetBorderColor(wxColour("#" + nozzle.GetFilamentColor()));
+        {
+            wxColour fill_clr("#" + nozzle.GetFilamentColor());
+            m_colour_box->SetBackgroundColour(fill_clr);
+            m_colour_box->SetBorderColor(contrastingBorderColor(fill_clr));
+        }
         m_material_label->Show(true);
         m_colour_box->Show(true);
 
@@ -575,8 +598,11 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateInfo(const DevNozzle& nozzle)
         m_nozzle_status = NOZZLE_STATUS_ABNORMAL;
 
         m_material_label->SetLabel(filamentDisplayName);
-        m_colour_box->SetBackgroundColour(wxColour("#" + nozzle.GetFilamentColor()));
-        m_colour_box->SetBorderColor(wxColour("#" + nozzle.GetFilamentColor()));
+        {
+            wxColour fill_clr("#" + nozzle.GetFilamentColor());
+            m_colour_box->SetBackgroundColour(fill_clr);
+            m_colour_box->SetBorderColor(contrastingBorderColor(fill_clr));
+        }
         m_material_label->Show(true);
         m_colour_box->Show(true);
 

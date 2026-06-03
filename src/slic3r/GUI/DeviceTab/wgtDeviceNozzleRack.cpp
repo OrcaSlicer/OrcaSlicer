@@ -126,17 +126,18 @@ class wgtDeviceNozzleRackTitle : public StaticBox
 public:
     wgtDeviceNozzleRackTitle(wxWindow* parent, const wxString& title) : StaticBox(parent)
     {
-        SetBackgroundColour(WXCOLOUR_GREY200);
-        SetBorderColor(*wxWHITE);
+        wxColour bg_clr = StateColor::darkModeColorFor(WXCOLOUR_GREY200);
+        SetBackgroundColour(bg_clr);
+        SetBorderColor(bg_clr);
         SetCornerRadius(0);
 
         m_title_label = new Label(this, title);
-        m_title_label->SetFont(Label::Body_14);
-        m_title_label->SetBackgroundColour(WXCOLOUR_GREY200);
+        m_title_label->SetFont(Label::Head_14);
+        m_title_label->SetBackgroundColour(bg_clr);
 
         wxSizer* title_sizer = new wxBoxSizer(wxHORIZONTAL);
         title_sizer->AddStretchSpacer();
-        title_sizer->Add(m_title_label, 0, wxEXPAND | wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(5));
+        title_sizer->Add(m_title_label, 0, wxEXPAND | wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(6));
         title_sizer->AddStretchSpacer();
         SetSizer(title_sizer);
     };
@@ -167,12 +168,10 @@ void wgtDeviceNozzleRackToolHead::CreateGui()
     // Nozzle info
     m_nozzle_diamenter_label = new Label(this);
     m_nozzle_diamenter_label->SetFont(Label::Body_13);
-    m_nozzle_diamenter_label->SetBackgroundColour(*wxWHITE);
     mainSizer->Add(m_nozzle_diamenter_label, 0, wxALIGN_CENTRE_HORIZONTAL | wxBOTTOM | wxTOP, FromDIP(5));
 
     m_nozzle_flowtype_label = new Label(this);
     m_nozzle_flowtype_label->SetFont(Label::Body_13);
-    m_nozzle_flowtype_label->SetBackgroundColour(*wxWHITE);
     mainSizer->Add(m_nozzle_flowtype_label, 0, wxALIGN_CENTRE_HORIZONTAL);
     mainSizer->AddStretchSpacer();
 
@@ -265,13 +264,13 @@ void wgtDeviceNozzleRackArea::CreateGui()
     m_btn_hotends_infos = new Button(m_panel_content, _L("Hotends Info"));
     m_btn_hotends_infos->SetFont(Label::Body_12);
     m_btn_hotends_infos->SetBackgroundColor(StateColor::createButtonStyleGray());
-    m_btn_hotends_infos->SetBackgroundColour(*wxWHITE);
+    m_btn_hotends_infos->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_btn_hotends_infos->Bind(wxEVT_BUTTON, &wgtDeviceNozzleRackArea::OnBtnHotendsInfos, this);
 
     m_btn_read_all = new Button(m_panel_content, _L("Read All"));
     m_btn_read_all->SetFont(Label::Body_12);
     m_btn_read_all->SetBackgroundColor(StateColor::createButtonStyleGray());
-    m_btn_read_all->SetBackgroundColour(*wxWHITE);
+    m_btn_read_all->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_btn_read_all->Bind(wxEVT_BUTTON, &wgtDeviceNozzleRackArea::OnBtnReadAll, this);
 
     btn_sizer->Add(m_btn_hotends_infos, 0, wxLEFT);
@@ -305,20 +304,20 @@ wxSizer* wgtDeviceNozzleRackArea::CreateRefreshBook(wxPanel* parent)
     wxSizer* progress_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     Label* progress_prefix = new Label(parent, _L("Reading "));
-    progress_prefix->SetBackgroundColour(*wxWHITE);
+    progress_prefix->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_progress_refresh = new Label(parent, "(1/6)");
     m_progress_refresh->SetFont(Label::Body_14);
-    m_progress_refresh->SetBackgroundColour(*wxWHITE);
+    m_progress_refresh->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_progress_refresh->SetForegroundColour(*wxGREEN);
     Label* progress_suffix = new Label(parent, " ...");
-    progress_suffix->SetBackgroundColour(*wxWHITE);
+    progress_suffix->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
     progress_sizer->Add(progress_prefix, 0, wxLEFT);
     progress_sizer->Add(m_progress_refresh, 0, wxLEFT);
     progress_sizer->Add(progress_suffix, 0, wxLEFT);
 
     Label* refresh_tip = new Label(parent, _L("Please wait"));
-    refresh_tip->SetBackgroundColour(*wxWHITE);
+    refresh_tip->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
     refresh_sizer->Add(0, 0, 1, wxEXPAND, 0);
     refresh_sizer->Add(m_refresh_icon, 0, wxALIGN_CENTER_HORIZONTAL, 0);
@@ -332,8 +331,8 @@ wxSizer* wgtDeviceNozzleRackArea::CreateRefreshBook(wxPanel* parent)
 StaticBox* wgtDeviceNozzleRackArea::CreateNozzleBox(const std::vector<int> nozzle_idxes)
 {
     StaticBox* nozzle_box = new StaticBox(m_panel_content);
-    nozzle_box->SetBackgroundColor(*wxWHITE);
-    nozzle_box->SetBorderColor(*wxWHITE);
+    nozzle_box->SetBackgroundColor(StateColor::darkModeColorFor(*wxWHITE));
+    nozzle_box->SetBorderColor(StateColor::darkModeColorFor(*wxWHITE));
     nozzle_box->SetCornerRadius(0);
 
     wxSizer* h_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -555,9 +554,9 @@ void wgtDeviceNozzleRackPos::CreateGui()
     m_rowbottom_panel->SetSizer(rowb_sizer);
 
     // bg style
-    SetBackgroundColour(*wxWHITE);
-    s_set_bg_style(m_rowup_panel, m_btn_rowup, m_label_rowup, m_label_rowup_status, *wxWHITE);
-    s_set_bg_style(m_rowbottom_panel, m_btn_rowbottom_up, m_label_rowbottom, m_label_rowbottom_status, *wxWHITE);
+    SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    s_set_bg_style(m_rowup_panel, m_btn_rowup, m_label_rowup, m_label_rowup_status, StateColor::darkModeColorFor(*wxWHITE));
+    s_set_bg_style(m_rowbottom_panel, m_btn_rowbottom_up, m_label_rowbottom, m_label_rowbottom_status, StateColor::darkModeColorFor(*wxWHITE));
 
     // main sizer
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
@@ -740,16 +739,16 @@ void wgtDeviceNozzleRackNozzleItem::CreateGui()
 
     m_nozzle_label_id = new Label(this);
     m_nozzle_label_id->SetFont(Label::Body_12);
-    m_nozzle_label_id->SetBackgroundColour(*wxWHITE);
+    m_nozzle_label_id->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_nozzle_label_id->SetLabel(wxString::Format("%d", m_nozzle_id + 1));
 
     m_status             = NOZZLE_STATUS::NOZZLE_EMPTY;
     m_nozzle_empty_image = new ScalableBitmap(this, "dev_rack_nozzle_empty", 46);
     m_nozzle_icon = new wxStaticBitmap(this, wxID_ANY, m_nozzle_empty_image->bmp(), wxDefaultPosition, WX_DIP_SIZE_46);
-    m_nozzle_icon->SetBackgroundColour(*wxWHITE);
+    m_nozzle_icon->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
     m_nozzle_selected_bitmap = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, WX_DIP_SIZE(20, 20));
-    m_nozzle_selected_bitmap->SetBackgroundColour(*wxWHITE);
+    m_nozzle_selected_bitmap->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
     top_h_sizer->Add(m_nozzle_label_id, 0, wxTOP | wxLEFT, FromDIP(6));
     top_h_sizer->AddStretchSpacer(1);
@@ -763,7 +762,7 @@ void wgtDeviceNozzleRackNozzleItem::CreateGui()
     wxSizer* label_h_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_nozzle_label_1 = new Label(this);
     m_nozzle_label_1->SetFont(Label::Body_12);
-    m_nozzle_label_1->SetBackgroundColour(*wxWHITE);
+    m_nozzle_label_1->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_nozzle_label_1->SetLabel(_L("Empty"));
 
     label_h_sizer->Add(m_nozzle_label_1, 0, wxALIGN_LEFT);
@@ -773,7 +772,7 @@ void wgtDeviceNozzleRackNozzleItem::CreateGui()
     m_nozzle_status_icon->Bind(wxEVT_LEFT_DOWN, &wgtDeviceNozzleRackNozzleItem::OnBtnNozzleStatus, this);
     m_nozzle_status_icon->Bind(wxEVT_ENTER_WINDOW, [this](auto&) { SetCursor(wxCURSOR_HAND); });
     m_nozzle_status_icon->Bind(wxEVT_LEAVE_WINDOW, [this](auto&) { SetCursor(wxCURSOR_ARROW); });
-    m_nozzle_status_icon->SetBackgroundColour(*wxWHITE);
+    m_nozzle_status_icon->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_nozzle_status_icon->Show(false);
 
     label_h_sizer->Add(m_nozzle_status_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(2));
@@ -781,7 +780,7 @@ void wgtDeviceNozzleRackNozzleItem::CreateGui()
 
     m_nozzle_label_2 = new Label(this);
     m_nozzle_label_2->SetFont(Label::Body_12);
-    m_nozzle_label_2->SetBackgroundColour(*wxWHITE);
+    m_nozzle_label_2->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     bottom_v->Add(m_nozzle_label_2, 0, wxALIGN_CENTER_HORIZONTAL);
 
     // Main sizer

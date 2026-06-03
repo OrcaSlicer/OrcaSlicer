@@ -569,7 +569,7 @@ void DevNozzleSystem::AddFirmwareInfoWTM(const DevFirmwareVersionInfo& info)
         try
         {
             auto str = info.name.substr(s_wtm_prefix.size()); // remove "wtm/" prefix
-            int rack_nozzle_id = std::stoi(str) - 0x10; // rack nozzle IDs start from 0x10
+            int rack_nozzle_id = std::stoi(str, nullptr, 0) - 0x10; // rack nozzle IDs start from 0x10
             m_nozzle_rack->AddNozzleFirmwareInfo(rack_nozzle_id, info);
         }
         catch (const std::exception& e)
@@ -855,6 +855,13 @@ void DevNozzleSystemParser::ParseV2_0(const json& device_json, DevNozzleSystem* 
             if (njon.contains("p_t"))/*maybe not contains*/
             {
                 nozzle_obj.m_nozzle_print_time = njon["p_t"].get<int>();
+                BOOST_LOG_TRIVIAL(trace) << "DevNozzleSystem: nozzle id=" << nozzle_obj.m_nozzle_id
+                                         << " p_t=" << nozzle_obj.m_nozzle_print_time;
+            }
+            else
+            {
+                BOOST_LOG_TRIVIAL(trace) << "DevNozzleSystem: nozzle id=" << nozzle_obj.m_nozzle_id
+                                         << " p_t field MISSING";
             }
             if (njon.contains("color_m"))/*maybe not contains*/
             {

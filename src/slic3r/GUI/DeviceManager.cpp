@@ -866,6 +866,9 @@ void MachineObject::clear_version_info()
     laser_version_info = DevFirmwareVersionInfo();
     cutting_module_version_info = DevFirmwareVersionInfo();
     extinguish_version_info = DevFirmwareVersionInfo();
+    if (m_nozzle_system) {
+        m_nozzle_system->ClearFirmwareInfoWTM();
+    }
     module_vers.clear();
 }
 
@@ -879,6 +882,11 @@ void MachineObject::store_version_info(const DevFirmwareVersionInfo& info)
         cutting_module_version_info = info;
     } else if (info.isExtinguishSystem()) {
         extinguish_version_info = info;
+    }
+
+    // Route WTM (nozzle) firmware info to the nozzle system
+    if (m_nozzle_system && (info.name == "wtm" || info.name.rfind("wtm/", 0) == 0)) {
+        m_nozzle_system->AddFirmwareInfoWTM(info);
     }
 
     module_vers.emplace(info.name, info);
