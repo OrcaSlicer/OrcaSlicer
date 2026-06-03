@@ -9770,7 +9770,7 @@ msgid "Continue"
 msgstr "ดำเนินการต่อ"
 
 msgid "Back"
-msgstr "ย้อนกลับ"
+msgstr "หลัง"
 
 msgid "Don't warn again for this preset"
 msgstr "ไม่ต้องเตือนอีกสำหรับค่าที่กำหนดล่วงหน้านี้"
@@ -9811,7 +9811,7 @@ msgid "Transfer"
 msgstr "โอนย้าย"
 
 msgid "Don't save"
-msgstr "อย่าบันทึก"
+msgstr "ไม่บันทึก"
 
 msgid "Discard"
 msgstr "ทิ้ง"
@@ -11864,10 +11864,10 @@ msgid ""
 msgstr "สร้างเส้นทางรอบขอบเพิ่มไส้ในเหนือส่วนยื่นสูงชันและพื้นที่ที่ไม่สามารถทอดสมอสะพานได้"
 
 msgid "Reverse on even"
-msgstr "ย้อนกลับในคู่"
+msgstr "กลับด้านหน้าเลขคู่"
 
 msgid "Overhang reversal"
-msgstr "การกลับรายการยื่นออกมา"
+msgstr "การกลับด้านส่วนยื่นออกมา"
 
 msgid ""
 "Extrude perimeters that have a part over an overhang in the reverse "
@@ -11879,7 +11879,7 @@ msgid ""
 msgstr "รีดเส้นรอบวงที่มีส่วนยื่นออกมาในทิศทางย้อนกลับบนชั้นคู่ รูปแบบการสลับนี้สามารถปรับปรุงระยะยื่นที่สูงชันได้อย่างมาก\n\nการตั้งค่านี้ยังช่วยลดการบิดงอของชิ้นส่วนเนื่องจากการลดความเค้นในผนังชิ้นส่วนอีกด้วย"
 
 msgid "Reverse only internal perimeters"
-msgstr "ย้อนกลับเฉพาะขอบเขตภายในเท่านั้น"
+msgstr "กลับด้านเฉพาะขอบเขตภายในเท่านั้น"
 
 msgid ""
 "Apply the reverse perimeters logic only on internal perimeters.\n"
@@ -11914,7 +11914,7 @@ msgid "Sacrificial layer"
 msgstr "ชั้นบูชายัญ"
 
 msgid "Reverse threshold"
-msgstr "เกณฑ์ย้อนกลับ"
+msgstr "เกณฑ์การกลับด้าน"
 
 msgid "Overhang reversal threshold"
 msgstr "เกณฑ์การกลับรายการส่วนเกิน"
