@@ -32,7 +32,7 @@ public:
 	bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
 	bool has_auto_discovery() const override { return false; }
 	bool can_test() const override { return true; }
-    PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint | PrintHostPostUploadAction::StartSimulation; }
+    PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint; }
 	std::string get_host() const override { return host; }
 	const std::string& get_api_user() const { return m_api_username; }
 	const std::string& get_api_username() const { return m_api_username; }
@@ -62,6 +62,7 @@ private:
 	void set_auth(Http& http) const;
 	void disconnect(ConnectionType connectionType) const;
 	bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const;
+	// bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType) const; // TODO: re-enable and replace the line above
 	int get_err_code_from_body(const std::string &body) const;
 };
 
