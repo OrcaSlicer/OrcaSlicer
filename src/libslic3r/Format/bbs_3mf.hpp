@@ -110,6 +110,7 @@ struct PlateData
     std::vector<int>          limit_filament_maps;
 
     std::vector<GCodeProcessorResult::SliceWarning> warnings;
+    std::optional<MultiNozzleUtils::LayeredNozzleGroupResult> nozzle_group_result;
 
     std::string get_gcode_prediction_str() {
         return gcode_prediction;

@@ -2669,7 +2669,10 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
 
 
     //BBS
-    result->conflict_result = m_conflict_result;
+    if (result != nullptr) {
+        result->conflict_result     = m_conflict_result;
+        result->nozzle_group_result = this->get_layered_nozzle_group_result();
+    }
     return path.c_str();
 }
 

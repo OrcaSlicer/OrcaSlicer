@@ -2162,9 +2162,6 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.initialize(path_tmp);
     m_processor.set_print(print);
 
-    if (auto gr = print->get_layered_nozzle_group_result())
-        m_processor.initialize_from_context(*gr);
-
     GCodeOutputStream file(boost::nowide::fopen(path_tmp.c_str(), "wb"), m_processor);
     if (! file.is_open()) {
         BOOST_LOG_TRIVIAL(error) << std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n" << std::endl;
@@ -2289,11 +2286,14 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
 // free functions called by GCode::_do_export()
 namespace DoExport {
-    static void init_gcode_processor(const PrintConfig& config, GCodeProcessor& processor, bool& silent_time_estimator_enabled)
+    static void init_gcode_processor(const PrintConfig& config, GCodeProcessor& processor, bool& silent_time_estimator_enabled,
+        const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult>& nozzle_group_result = nullptr)
     {
         silent_time_estimator_enabled = (config.gcode_flavor == gcfMarlinLegacy || config.gcode_flavor == gcfMarlinFirmware)
                                         && config.silent_mode;
         processor.reset();
+        if (nozzle_group_result)
+            processor.initialize_from_context(*nozzle_group_result);
         processor.initialize_result_moves();
         processor.apply_config(config);
         processor.enable_stealth_time_estimator(silent_time_estimator_enabled);
@@ -2553,8 +2553,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     update_layer_related_config(0);
 
     // modifies m_silent_time_estimator_enabled
-    DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
+    DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled, print.get_layered_nozzle_group_result());
     const bool is_bbl_printers = print.is_BBL_printer();
+    const bool is_h2c_multi_nozzle = is_bbl_printers &&
+        (print.config().nozzle_diameter.size() > 1) &&
+        (print.config().extruder_max_nozzle_count.values.size() > 1) &&
+        (print.config().extruder_max_nozzle_count.values[1] > 1);
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
     // resets analyzer's tracking data
@@ -2937,8 +2941,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // Let the start-up script prime the 1st printing tool.
 
+    // ─── H2C: use BBL placeholder parser setup (via group_result) ───
+    if (is_h2c_multi_nozzle) {
+#include "VortekGCodeInit.inl"
+    } else {
+    // ─── Standard Orca placeholder parser setup ───
     auto match_physical_extruder_for_each_filament = [](std::vector<int> &filaments, const FullPrintConfig &config) {
-        // match the filament to the physical extruder
         std::vector<int> physicial_first_filaments;
         physicial_first_filaments.resize(filaments.size());
         for (int extruder_id = 0; extruder_id < filaments.size(); extruder_id++) {
@@ -2951,117 +2959,32 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_filaments", new ConfigOptionInts(first_filaments));
     this->placeholder_parser().set("initial_tool", initial_extruder_id);
     this->placeholder_parser().set("initial_extruder", initial_extruder_id);
-    //BBS
     match_physical_extruder_for_each_filament(first_non_support_filaments, m_config);
-
-    // H2C FIX: Ensure the carousel initialises at the HOME nozzle (nozzle 1).
-    // The H2C nozzle carousel physically homes to nozzle 1 on power-up, and
-    // M640.2 R1 in machine_start_gcode resets it there again after bed levelling.
-    // M640.8 T A{first_non_support_filaments[0]} H-1 tells the firmware which
-    // nozzle is currently loaded. If that A-value does NOT correspond to nozzle 1,
-    // the firmware computes all subsequent M632 carousel rotations with a fixed
-    // angular offset, causing every nozzle change to land on the wrong nozzle (the
-    // symptom: "filament changes, nozzle never rotates").
-    //
-    // Fix: for multi-nozzle BBL printers (H2C), find the filament whose
-    // filament_nozzle_map entry equals 1 (nozzle 1 = home position) and force it
-    // into first_non_support_filaments[0].  The wipe tower's first purge block
-    // handles the subsequent switch to the actual first printing filament.
-    // Ref: BBL vs Orca G-code comparison; BBL always initialises with nozzle 1.
-    if (is_bbl_printers && !first_non_support_filaments.empty() &&
-        !print.config().filament_nozzle_map.values.empty()) {
-        const auto& nozzle_map = print.config().filament_nozzle_map.values;
-        // Detect H2C carousel: any filament maps to nozzle > 1.
-        const bool has_carousel = std::any_of(nozzle_map.begin(), nozzle_map.end(),
-            [](int v) { return v > 1; });
-        if (has_carousel) {
-            // Find the filament whose nozzle_id == 1 (carousel home position).
-            int home_filament = -1;
-            for (int i = 0; i < (int)nozzle_map.size(); ++i) {
-                if (nozzle_map[i] == 1) { home_filament = i; break; }
-            }
-            // Only override if home filament is actually used in this print.
-            const auto& all_ext = tool_ordering.all_extruders();
-            const bool home_is_used = home_filament >= 0 &&
-                std::find(all_ext.begin(), all_ext.end(), (unsigned int)home_filament) != all_ext.end();
-            if (home_is_used && home_filament != first_non_support_filaments[0]) {
-                const int old_first = first_non_support_filaments[0];
-                BOOST_LOG_TRIVIAL(info) << "[H2C] Overriding first_non_support_filaments[0]: "
-                    << old_first << " -> " << home_filament
-                    << " (nozzle 1 = carousel HOME). Required for correct M632 rotation offsets.";
-                first_non_support_filaments[0] = home_filament;
-                // Keep initial_non_support_extruder_id consistent.
-                if (initial_non_support_extruder_id == (unsigned int)old_first ||
-                    initial_non_support_extruder_id == (unsigned int)-1) {
-                    initial_non_support_extruder_id = (unsigned int)home_filament;
-                }
-            }
-        }
-    }
 
     this->placeholder_parser().set("first_non_support_tools", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
-    // BBL H2C templates (20260422+) reference per-filament hotend ids via H[initial_no_support_hotend]
-    // and H{first_non_support_hotend[N]}. BBL derives these from LayeredNozzleGroupResult; Orca's
-    // MultiNozzleGroupResult is the rough equivalent (Print.cpp:2388 populates it for multi-nozzle
-    // paths). Pull the group_id when we have one; fall back to the filament/extruder id otherwise so
-    // single-nozzle slicing keeps producing correct output.
-    // H2C: firmware expects H-1 ("auto-select nozzle via remap") for ALL
-    // hotend-related placeholders in machine_start_gcode / change_filament_gcode.
-    // BBL always emits H-1 in M640.8, M620, T commands.  The concrete nozzle
-    // mapping is communicated via M620 N (hotend remap) + NOZZLE_CHANGE_START
-    // tags + M632 in WipeTower G-code, NOT via H-parameters in gcode templates.
-    auto resolve_hotend_id = [&print](int filament_id) -> int {
-        (void)print; // unused — always return -1 for firmware auto-remap
-        return -1;
-    };
-    std::vector<int> first_non_support_hotends;
-    first_non_support_hotends.reserve(first_non_support_filaments.size());
-    for (int filament_id : first_non_support_filaments)
-        first_non_support_hotends.push_back(resolve_hotend_id(filament_id));
-    this->placeholder_parser().set("first_non_support_hotend", new ConfigOptionInts(first_non_support_hotends));
-    const int initial_hotend = resolve_hotend_id(initial_non_support_extruder_id);
-    this->placeholder_parser().set("initial_no_support_hotend", initial_hotend);
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
-    // H2C: current_hotend = -1 for firmware auto-remap, matching BBL.
     this->placeholder_parser().set("current_hotend", -1);
-    // H2C: Nozzle-level placeholders for machine_start_gcode / change_filament_gcode.
-    // BBL ref: BambuStudio GCode.cpp:2496-2502 (commit 3f2570c)
     {
         auto gr = print.get_layered_nozzle_group_result();
         if (gr) {
             auto first_nozzle = gr->get_first_nozzle_for_filament(initial_extruder_id);
             this->placeholder_parser().set("initial_nozzle_id",
                 first_nozzle ? (int)first_nozzle->group_id : -1);
-
-            auto first_ns_nozzle = gr->get_first_nozzle_for_filament(initial_non_support_extruder_id);
-            this->placeholder_parser().set("initial_no_support_nozzle_id",
-                first_ns_nozzle ? (int)first_ns_nozzle->group_id : -1);
-
             this->placeholder_parser().set("initial_filament_id", (int)initial_extruder_id);
             this->placeholder_parser().set("initial_extruder_id", (int)get_extruder_id(initial_extruder_id));
-
-            this->placeholder_parser().set("initial_no_support_filament_id", (int)initial_non_support_extruder_id);
-            this->placeholder_parser().set("initial_no_support_extruder_id", (int)get_extruder_id(initial_non_support_extruder_id));
-
             this->placeholder_parser().set("nozzle_diameter_at_nozzle_id",
                 new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(gr.get())));
         }
     }
-    //Orca: set the key for compatibilty
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_ec", m_config.long_retractions_when_ec.get_at(initial_extruder_id));
+    } // end of orca placeholder parser
 
-    // H2C carousel: current_extruder is correctly set to the home slot via initial_extruder_id.
-    // ToolOrdering::collect_extruder_statistics ensures all_extruders().back() = home slot
-    // (filament_nozzle_map[i] == 1) so that initial_extruder_id = 3 (nozzle 1 = HOME) in
-    // both wipe tower planning (Print.cpp) and G-code export (here). The placeholder
-    // current_extruder = 3 (line above) then produces M620.11 I3 in change_filament_gcode,
-    // matching the physical state after M640.2 R1 (carousel re-homes to nozzle 1 on start).
     this->placeholder_parser().set("temperature", new ConfigOptionInts(print.config().nozzle_temperature));
 
 
@@ -3089,7 +3012,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
     this->placeholder_parser().set("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
     this->placeholder_parser().set("flush_temperatures", new ConfigOptionInts(flush_temps));
-    this->placeholder_parser().set("filament_cooling_before_tower", new ConfigOptionFloatsNullable(m_config.filament_cooling_before_tower));
     //Set variable for total layer count so it can be used in custom gcode.
     this->placeholder_parser().set("total_layer_count", m_layer_count);
     // Useful for sequential prints.
@@ -3384,46 +3306,25 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_start_gcode_filament = GCodeProcessor::get_gcode_last_filament(machine_start_gcode);
 
     if (is_bbl_printers) {
-        m_writer.init_extruder(initial_non_support_extruder_id);
-        // add the missing filament start gcode in machine start gcode
-        {
-            DynamicConfig config;
-            config.set_key_value("filament_extruder_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
-            config.set_key_value("current_filament_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
-            config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(initial_non_support_extruder_id)));
-            // H2C: current_nozzle_id for filament_start_gcode
-            // BBL ref: BambuStudio GCode.cpp:2779 (commit 3f2570c)
+        if (is_h2c_multi_nozzle) {
+            // ─── H2C: BBL filament_start_gcode + VT comment ───
+#include "VortekGCodeFilamentStart.inl"
+        } else {
+            m_writer.init_extruder(initial_non_support_extruder_id);
             {
-                auto gr = m_print->get_layered_nozzle_group_result();
-                int cur_nozzle = gr ? gr->get_nozzle_id(initial_non_support_extruder_id) : -1;
-                config.set_key_value("current_nozzle_id", new ConfigOptionInt(cur_nozzle));
-                config.set_key_value("nozzle_diameter_at_nozzle_id",
-                    new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(gr.get())));
-            }
-            config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
-            std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
-            file.writeln(filament_start_gcode);
-            // H2C: mark the first filament used in print with nozzle ID
-            // BBL ref: BambuStudio GCode.cpp:2785-2786 (commit 3f2570c)
-            {
-                auto gr = m_print->get_layered_nozzle_group_result();
-                if (gr) {
-                    auto first_nozzle = gr->get_first_nozzle_for_filament(initial_extruder_id);
-                    int initial_nozzle_id = first_nozzle ? first_nozzle->group_id : -1;
-                    if (initial_nozzle_id >= 0)
-                        file.write_format(";VT%d H%d\n", initial_extruder_id, resolve_hotend_id(initial_extruder_id));
-                    else
-                        file.write_format(";VT%d\n", initial_extruder_id);
-                } else {
-                    file.write_format(";VT%d\n", initial_extruder_id);
-                }
+                DynamicConfig config;
+                config.set_key_value("filament_extruder_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
+                config.set_key_value("current_filament_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
+                config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(initial_non_support_extruder_id)));
+                config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
+                std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
+                file.writeln(filament_start_gcode);
+                file.write_format(";VT%d\n", initial_extruder_id);
             }
         }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
             file.write(m_writer.set_pressure_advance(m_config.pressure_advance.get_at(initial_non_support_extruder_id)));
-            // Orca: Adaptive PA
-            // Reset Adaptive PA processor last PA value
             m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(initial_non_support_extruder_id));
         }
     }
@@ -3757,6 +3658,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // adds tag for processor
     file.write_format(";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(erCustom).c_str());
+    // BBL H2C firmware marker: must be present before machine_end_gcode
+    if (is_bbl_printers)
+        file.write("; MACHINE_END_GCODE_START\n");
 
     // Process filament-specific gcode in extruder order.
     {
@@ -5684,8 +5588,12 @@ LayerResult GCode::process_layer(
                         // Multi-nozzle BBL printers (H2C) use "; OBJECT_ID:" comments
                         // instead of M624 binary encoding (which is for single-nozzle P1/X1/A1).
                         if (m_config.nozzle_diameter.size() > 1) {
-                            m_writer.set_object_start_str(
-                                "; OBJECT_ID: " + std::to_string(instance_to_print.label_object_id) + "\n");
+                            // BBL H2C: COOLING_NODE paired with OBJECT_ID only on layers >= 2
+                            // (first 2 layers are adhesion layers without cooling markers)
+                            std::string obj_str = "; OBJECT_ID: " + std::to_string(instance_to_print.label_object_id) + "\n";
+                            if (m_layer_index >= 2)
+                                obj_str += "; COOLING_NODE: 0\n";
+                            m_writer.set_object_start_str(obj_str);
                         } else {
                             m_writer.set_object_start_str(
                                 std::string("; start printing object, unique label id: ") +
@@ -7176,6 +7084,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     assert(is_decimal_separator_point());
 
     if (path.role() != m_last_processor_extrusion_role) {
+        // BBL H2C firmware: emit '; COOLING_NODE: 0' boundary marker at inner wall → outer wall
+        // transition.  BBL Studio pairs this with M204 S250 to signal a cooling-zone boundary.
+        if (is_BBL_Printer() && m_config.nozzle_diameter.size() > 1 &&
+            m_layer_index >= 2 &&
+            m_last_processor_extrusion_role == erPerimeter &&
+            path.role() == erExternalPerimeter) {
+            gcode += "; COOLING_NODE: 0\n";
+            gcode += "M204 S250\n";
+        }
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;

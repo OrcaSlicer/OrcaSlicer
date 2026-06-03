@@ -360,13 +360,16 @@ public:
     std::vector<int> m_filament_categories;
     const MultiNozzleUtils::LayeredNozzleGroupResult *m_multi_nozzle_group_result{nullptr};
 
+    // BBL parity: layer type enum for contact/solid interface layers
+    enum class WipeTowerLayerType : unsigned char { Normal, Contact, Solid, Contact_UP };
+
 	struct WipeTowerBlock
     {
         int              block_id{0};
         int              filament_adhesiveness_category{0};
         std::vector<float>      layer_depths;
-		std::vector<bool>       solid_infill;
         std::vector<float>      finish_depth{0}; // the start pos of finish frame for every layer
+        std::vector<WipeTowerLayerType> layers_type; // BBL parity: type of the layer
         float            depth{0};
         float            start_depth{0};
         float            cur_depth{0};
@@ -407,9 +410,12 @@ public:
     NozzleChangeResult ramming(int old_filament_id, int new_filament_id, bool solid_change = false, bool extruder_change = true); // extruder_chang means nozzle_change
     ToolChangeResult   finish_layer_new(bool extrude_perimeter = true, bool extrude_fill = true, bool extrude_fill_wall = true);
     ToolChangeResult   finish_block(const WipeTowerBlock &block, int filament_id, bool extrude_fill = true);
-    ToolChangeResult   finish_block_solid(const WipeTowerBlock &block, int filament_id, bool extrude_fill = true ,bool interface_solid =false);
+    ToolChangeResult   finish_block_solid(const WipeTowerBlock &block, int filament_id, bool extrude_fill = true, WipeTowerLayerType layer_type = WipeTowerLayerType::Normal);
     void toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinates &cleaning_box, float wipe_length,bool solid_toolchange=false);
     Vec2f              get_rib_offset() const { return m_rib_offset; }
+    void               set_shared_print_bed(const Polygons &bed) { m_shared_print_bed = bed; }
+    void               calc_block_infill_gap();
+    float              get_block_gap_width(int tool, bool is_nozzlechange = false);
     bool               is_need_ramming(int filament_id_1, int filament_id_2, int layer_id = -1);
     bool               is_same_extruder(int filament_id_1, int filament_id_2, int layer_id = -1);
     bool               is_same_nozzle(int filament_id_1, int filament_id_2, int layer_id = -1);
@@ -484,6 +490,18 @@ private:
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
     bool                      m_is_multiple_nozzle = false;
+    // BBL parity: acceleration/arc/heating members
+    std::vector<unsigned int> m_normal_accels;
+    std::vector<unsigned int> m_first_layer_normal_accels;
+    std::vector<unsigned int> m_travel_accels;
+    std::vector<unsigned int> m_first_layer_travel_accels;
+    unsigned int              m_max_accels = 0;
+    bool                      m_accel_to_decel_enable = false;
+    float                     m_accel_to_decel_factor = 1.f;
+    bool                      m_enable_arc_fitting = true;
+    std::vector<double>       m_hotend_heating_rate;
+    std::vector<double>       m_hotend_cooling_rate;
+    Polygons                  m_shared_print_bed;
     // Bed properties
     enum {
         RectangularBed,
@@ -491,18 +509,18 @@ private:
         CustomBed
     } m_bed_shape;
     float m_bed_width; // width of the bed bounding box
-    std::vector<double>       m_hotend_heating_rate;
     Vec2f m_bed_bottom_left; // bottom-left corner coordinates (for rectangular beds)
 
+    float m_first_layer_flow_ratio = 1.f;
 	float m_perimeter_width = 0.4f * Width_To_Nozzle_Ratio; // Width of an extrusion line, also a perimeter spacing for 100% infill.
     float m_nozzle_change_perimeter_width = 0.4f * Width_To_Nozzle_Ratio;
+    std::unordered_map<int, std::pair<float,float>> m_block_infill_gap_width; // BBL: categories to infill_gap
 	float m_extrusion_flow = 0.038f; //0.029f;// Extrusion flow is derived from m_perimeter_width, layer height and filament diameter.
 
 	// Extruder specific parameters.
     std::vector<FilamentParameters> m_filpar;
 
 
-    float m_first_layer_flow_ratio = 1.f;
 	// State of the wipe tower generator.
 	unsigned int m_num_layer_changes = 0; // Layer change counter for the output statistics.
 	unsigned int m_num_tool_changes  = 0; // Tool change change counter for the output statistics.
@@ -523,7 +541,10 @@ private:
     std::map<float,Polylines> m_outer_wall;
     bool is_first_layer() const { return size_t(m_layer_info - m_plan.begin()) == m_first_layer_idx; }
     bool                       m_flat_ironing=false;
+    bool                       m_contact_ironing = false;
+    float                      m_contact_speed   = 20 * 60.f;
     bool                       m_enable_tower_interface_features=false;
+    bool                       m_need_reverse_travel{false};
     bool                       m_enable_tower_interface_cooldown_during_tower=false;
     bool                       m_prev_layer_had_interface=false;
     bool                       m_current_layer_has_interface=false;
@@ -546,8 +567,11 @@ private:
 
 	bool is_tpu_filament(int filament_id) const;
 
+	bool is_need_reverse_travel(int filament, bool extruder_change) const;
 	// BBS
 	box_coordinates align_perimeter(const box_coordinates& perimeter_box);
+
+    void set_for_wipe_tower_writer(WipeTowerWriter &writer);
 
 
     // to store information about tool changes for a given layer
@@ -561,6 +585,7 @@ private:
             float wipe_volume;
 			float wipe_length;
             float nozzle_change_depth{0};
+            float nozzle_change_length{0};
 			// BBS
 			float purge_volume;
             ToolChange(size_t old, size_t newtool, float depth=0.f, float ramming_depth=0.f, float fwl=0.f, float wv=0.f, float wl = 0, float pv = 0)
@@ -611,6 +636,12 @@ private:
 		const box_coordinates  &cleaning_box,
 		float wipe_volume);
     void get_wall_skip_points(const WipeTowerInfo &layer);
+    void get_all_wall_skip_points();
+    std::vector<std::vector<Vec2f>> m_wall_skip_points_new;
+    std::vector<double>        m_printable_height;
+    WipeTowerInfo::ToolChange set_toolchange(int old_tool, int new_tool, float layer_height, float wipe_volume, float purge_volume, int layer_id);
+    std::vector<int>    m_last_layer_id;
+    Vec2f               m_origin;
 };
 
 

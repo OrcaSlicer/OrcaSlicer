@@ -698,12 +698,39 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
         info.id = it->first;
         info.used_g = used_filament_g;
         info.used_m = used_filament_m;
+
+        if (result && result->nozzle_group_result) {
+            auto nozzles_for_filament = result->nozzle_group_result->get_nozzles_for_filament(it->first);
+            if (!nozzles_for_filament.empty()) {
+                info.group_id.reserve(nozzles_for_filament.size());
+                std::set<double> diameters;
+                std::set<NozzleVolumeType> volume_types;
+                for (const auto& nozzle : nozzles_for_filament) {
+                    info.group_id.emplace_back(nozzle.group_id);
+                    diameters.insert(string_to_double_decimal_point(nozzle.diameter.c_str()));
+                    volume_types.insert(nozzle.volume_type);
+                }
+                std::sort(info.group_id.begin(), info.group_id.end());
+                info.group_id.erase(std::unique(info.group_id.begin(), info.group_id.end()), info.group_id.end());
+                if (!diameters.empty())
+                    info.nozzle_diameter = *diameters.begin();
+                if (volume_types.size() > 1)
+                    info.nozzle_volume_type = get_nozzle_volume_type_string(nvtHybrid);
+                else if (!volume_types.empty())
+                    info.nozzle_volume_type = get_nozzle_volume_type_string(*volume_types.begin());
+            }
+        }
+
         auto model_volume_it = ps.model_volumes_per_extruder.find(it->first);
         auto support_volume_it = ps.support_volumes_per_extruder.find(it->first);
         info.used_for_object = model_volume_it != ps.model_volumes_per_extruder.end() && model_volume_it->second > EPSILON;
         info.used_for_support = support_volume_it != ps.support_volumes_per_extruder.end() && support_volume_it->second > EPSILON;
         slice_filaments_info.push_back(info);
     }
+
+    auto layered_group_result = std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(result->nozzle_group_result);
+    if (layered_group_result)
+        nozzle_group_result = *layered_group_result;
 
     /* only for test
     GCodeProcessorResult::SliceWarning sw;
@@ -8118,7 +8145,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 [](unsigned int filament_id) { return filament_id + 1; });
 
             const std::string plate_key = "plate_" + std::to_string(idx + 1);
-            sequence_json[plate_key]["sequence"] = filament_sequence;
+
+            bool enable_dynamic_map = plate_data->nozzle_group_result && plate_data->nozzle_group_result->is_support_dynamic_nozzle_map();
+            std::string seq_key;
+            if (enable_dynamic_map)
+                seq_key = "filament_sequence";
+            else
+                seq_key = "sequence";
+            sequence_json[plate_key][seq_key] = filament_sequence;
             sequence_json[plate_key]["nozzle_sequence"] = plate_data->nozzle_change_sequence;
             sequence_json[plate_key]["optimal_assignment"] = plate_data->optimal_assignment;
         }
@@ -8198,7 +8232,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << OUTSIDE_ATTR      << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->toolpath_outside << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SUPPORT_USED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->is_support_used << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LABEL_OBJECT_ENABLED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->is_label_object_enabled << "\"/>\n";
-                stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ENABLE_FILAMENT_DYNAMIC_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << false << "\"/>\n";
+                if (plate_data && plate_data->nozzle_group_result)
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ENABLE_FILAMENT_DYNAMIC_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << plate_data->nozzle_group_result->is_support_dynamic_nozzle_map() << "\"/>\n";
+                else
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ENABLE_FILAMENT_DYNAMIC_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << false << "\"/>\n";
                 {
                     bool has_filament_switcher = config.has("has_filament_switcher") ? config.opt_bool("has_filament_switcher") : false;
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << HAS_FILAMENT_SWITCHER_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << has_filament_switcher << "\"/>\n";
@@ -8301,12 +8338,21 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     stream << "    <" << SLICE_WARNING_TAG << " msg=\"" << it->msg << "\" level=\"" << std::to_string(it->level) << "\" error_code =\"" << it->error_code << "\"  />\n";
                 }
 
-                for (int nozzle_group_id : used_nozzle_groups) {
-                    stream << "    <" << NOZZLE_TAG << " "
-                           << "id=\"" << nozzle_group_id << "\" "
-                           << "extruder_id=\"" << nozzle_group_id + 1 << "\" "
-                           << "nozzle_diameter=\"" << get_nozzle_diameter_str(nozzle_group_id) << "\" "
-                           << "volume_type=\"" << get_nozzle_volume_type(nozzle_group_id) << "\"/>\n";
+                if (plate_data->nozzle_group_result) {
+                    auto used_nozzle_list = plate_data->nozzle_group_result->get_used_nozzles_in_extruder();
+                    if(!used_nozzle_list.empty()){
+                        for(auto& used_nozzle: used_nozzle_list){
+                            stream <<"    <"<< NOZZLE_TAG <<" "<< used_nozzle.serialize() <<"/>\n";
+                        }
+                    }
+                } else {
+                    for (int nozzle_group_id : used_nozzle_groups) {
+                        stream << "    <" << NOZZLE_TAG << " "
+                               << "id=\"" << nozzle_group_id << "\" "
+                               << "extruder_id=\"" << nozzle_group_id + 1 << "\" "
+                               << "nozzle_diameter=\"" << get_nozzle_diameter_str(nozzle_group_id) << "\" "
+                               << "volume_type=\"" << get_nozzle_volume_type(nozzle_group_id) << "\"/>\n";
+                    }
                 }
 
                 if (!plate_data->layer_filaments.empty()) {

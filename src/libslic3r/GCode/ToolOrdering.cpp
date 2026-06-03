@@ -994,51 +994,6 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
         m_all_printing_extruders.emplace_back(m_first_printing_extruder);
         m_first_printing_extruder = m_all_printing_extruders.front();
     }
-
-    // H2C carousel: unconditionally force m_first_printing_extruder to the carousel home
-    // slot (the filament whose filament_nozzle_map entry == 1, i.e. nozzle 1 = physical HOME).
-    // This MUST run outside prime_multi_material because wipe_tower_type() always returns
-    // Type1 for BBL printers (Print.hpp:1094), so prime_multi_material is always false for
-    // H2C prints and the block above never fires.
-    //
-    // Setting m_first_printing_extruder = home_slot here ensures that BOTH:
-    //   1. Print::make_wipe_tower() plans the wipe tower starting from home slot.
-    //   2. GCode::_do_export() picks initial_extruder_id = home_slot via first_extruder().
-    // Without this both values disagree, causing:
-    //   "WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect."
-    // BBL reference: always initialises G-code from the home slot (;VT3 H-1 / M620 S3A H-1).
-    if (m_print_full_config && !m_all_printing_extruders.empty()) {
-        const auto* nozzle_map_opt = m_print_full_config->option<ConfigOptionInts>("filament_nozzle_map");
-        const auto* max_nozzle_opt = m_print_full_config->option<ConfigOptionInts>("extruder_max_nozzle_count");
-        bool has_carousel = max_nozzle_opt &&
-            std::any_of(max_nozzle_opt->values.begin(), max_nozzle_opt->values.end(),
-                [](int v) { return v > 1; });
-        if (has_carousel && nozzle_map_opt && !nozzle_map_opt->values.empty()) {
-            const auto& nm = nozzle_map_opt->values;
-            int home_slot = -1;
-            for (int i = 0; i < (int)nm.size(); ++i) {
-                if (nm[i] == 1) { home_slot = i; break; }  // nozzle 1 == physical home
-            }
-            if (home_slot >= 0) {
-                auto it = std::find(m_all_printing_extruders.begin(),
-                                    m_all_printing_extruders.end(),
-                                    (unsigned int)home_slot);
-                if (it != m_all_printing_extruders.end()) {
-                    // Set the first extruder so first_extruder() == home_slot.
-                    m_first_printing_extruder = (unsigned int)home_slot;
-                    // Keep home slot at back of all_extruders() for consistency
-                    // with the Type2 code path that uses all_extruders().back().
-                    if (it != std::prev(m_all_printing_extruders.end())) {
-                        m_all_printing_extruders.erase(it);
-                        m_all_printing_extruders.push_back((unsigned int)home_slot);
-                    }
-                    BOOST_LOG_TRIVIAL(info) << "[H2C] collect_extruder_statistics: "
-                        << "m_first_printing_extruder -> " << home_slot
-                        << " (carousel home, nozzle 1)";
-                }
-            }
-        }
-    }
 }
 
 void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)
@@ -1327,7 +1282,8 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
     }
 
 
-    if (extruder_nums == 2 && print->is_BBL_printer())
+    bool has_multiple_extruder = extruder_nums > 1;
+    if ((has_multiple_extruder && print->is_BBL_printer()) || has_multiple_nozzle)
     {
         std::vector<std::string> extruder_ams_count_str = print_config.extruder_ams_count.values;
         auto extruder_ams_counts = get_extruder_ams_count(extruder_ams_count_str);
@@ -1578,14 +1534,34 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
 
     filament_maps = m_print->get_filament_maps();
     map_mode = m_print->get_filament_map_mode();
-    // only check and map in sequence mode, in by object mode, we check the map in print.cpp
-    if (print_config->print_sequence != PrintSequence::ByObject || m_print->objects().size() == 1) {
+    // H2C FIX: compute nozzle group result unconditionally for ALL print sequences.
+    //
+    // Original code guarded this block with:
+    //   if (print_config->print_sequence != PrintSequence::ByObject || m_print->objects().size() == 1)
+    // which skipped nozzle group computation for multi-object ByObject prints.
+    //
+    // This caused m_print->get_layered_nozzle_group_result() to return nullptr
+    // in bbs_3mf.cpp PlateData::parse_filament_info(), which triggered the
+    // fallback path that assigned group_id=1 to ALL filaments and emitted only
+    // a single <nozzle> tag instead of one per filament slot.
+    //
+    // The H2C firmware requires:
+    //   - Unique group_id per filament (e.g., 4,3,2,1 for 4-color prints)
+    //   - One <nozzle> tag per filament slot in slice_info.config
+    // Without this, the printer shows only the first color in the carousel.
+    //
+    // Ref: bbs_3mf.cpp:8341 (nozzle tag serialization)
+    //      bbs_3mf.cpp:702  (parse_filament_info group_id assignment)
+    {
         {
+            // Resolve print config from either direct pointer or via print object
             const PrintConfig* print_config = m_print_config_ptr;
             if (!print_config && m_print_object_ptr) {
                 print_config = &(m_print_object_ptr->print()->config());
             }
 
+            // Reuse existing nozzle group result if already computed (e.g., by a
+            // previous slice), otherwise compute fresh from filament maps
             if (auto existing = m_print->get_layered_nozzle_group_result()) {
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-APL] reusing existing LayeredNozzleGroupResult: extruder_map.sz=" << existing->get_extruder_map().size()
                     << " nozzle_map.sz=" << existing->get_nozzle_map().size();
@@ -1594,12 +1570,15 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
             else {
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-APL] no existing LNGR, computing fresh via get_recommended_filament_maps mode=" << (int)map_mode;
                 auto group_result = ToolOrdering::get_recommended_filament_maps(m_print,layer_filaments,map_mode,physical_unprintables,geometric_unprintables);
+                // Store result so bbs_3mf serialization can access it for
+                // <nozzle> tag and group_id generation
                 m_print->set_nozzle_group_result(std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(group_result));
                 filament_maps = group_result.get_extruder_map();
             }
             if (filament_maps.empty())
                 return;
 
+            // Update filament map and volume map in config for 3MF serialization
             auto group_result = m_print->get_layered_nozzle_group_result();
                 m_print->update_filament_maps_to_config(
                 FilamentGroupUtils::update_used_filament_values(print_config->filament_map.values,group_result->get_extruder_map(false),used_filaments),
@@ -1610,10 +1589,6 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         }
         if (m_print->is_BBL_printer())
         check_filament_printable_after_group(used_filaments, filament_maps, print_config);
-    }
-    else {
-        // we just need to change the map to 0 based
-        std::transform(filament_maps.begin(), filament_maps.end(), filament_maps.begin(), [](int value) {return value - 1; });
     }
 
     std::vector<std::vector<unsigned int>>filament_sequences;

@@ -176,6 +176,31 @@
         extruder_blocks.back().initialize_step_3(machine_end_gcode_start_line_id, last_filament, machine_end_gcode_start_line_id, last_nozzle);
     }
 
+    // BBL parity: inject M73 E (remaining filament changes counter)
+    // BambuStudio GCodeProcessor.cpp:1106-1123
+    {
+        int curr_filament = -1;
+        int total_filament_count = 0;
+        for (const auto& fb : filament_blocks) {
+            if (curr_filament != -1 && curr_filament != fb.filament_id)
+                total_filament_count += 1;
+            curr_filament = fb.filament_id;
+        }
+        curr_filament = -1;
+        int curr_filament_change_num = 0;
+        for (const auto& fb : filament_blocks) {
+            if (curr_filament != -1 && curr_filament != fb.filament_id) {
+                curr_filament_change_num += 1;
+                char buf[64];
+                snprintf(buf, sizeof(buf), "M73 E%d\n", total_filament_count - curr_filament_change_num);
+                precooling_inserted_lines[fb.lower_gcode_id].emplace_back(
+                    std::string(buf), TimeProcessor::InsertLineType::FilamentChangePredict);
+            }
+            curr_filament = fb.filament_id;
+        }
+        BOOST_LOG_TRIVIAL(info) << "M73 E: total filament changes = " << total_filament_count;
+    }
+
     // Create PreCoolingInjector and generate M104 injection map
     size_t valid_machine_id = 0;
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
