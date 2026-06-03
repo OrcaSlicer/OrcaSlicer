@@ -505,7 +505,14 @@ if [[ -n "${USE_LLD}" ]] ; then
 fi
 
 export CMAKE_CCACHE_ARGS=()
-if command -v sccache >/dev/null 2>&1 ; then
+CMAKE_CCACHE=${CMAKE_CCACHE:-}
+if [ -n "$CMAKE_CCACHE" ]; then
+        echo "Checking ${CMAKE_CCACHE} environment variable for compiler cache program..."
+        CMAKE_CCACHE=$(command -v "${CMAKE_CCACHE}") || {
+            echo "CMAKE_CCACHE environment variable is set to '${CMAKE_CCACHE}' but it was not found in PATH."
+            CMAKE_CCACHE=""
+        }
+elif command -v sccache >/dev/null 2>&1 ; then
         CMAKE_CCACHE=$(command -v sccache)
 elif command -v ccache >/dev/null 2>&1 ; then
         CMAKE_CCACHE=$(command -v ccache)
