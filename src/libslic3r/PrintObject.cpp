@@ -1277,6 +1277,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "internal_bridge_angle" // ORCA: Internal bridge angle override
             || opt_key == "relative_bridge_angle" // ORCA: Relative bridge angle
             //BBS
+            || opt_key == "bridge_line_width"
             || opt_key == "bridge_density"
             || opt_key == "internal_bridge_density") {
             steps.emplace_back(posPrepareInfill);
