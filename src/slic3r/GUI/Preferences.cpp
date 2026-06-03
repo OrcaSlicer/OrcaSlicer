@@ -152,7 +152,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_CATALAN,
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
-        wxLANGUAGE_VIETNAMESE
+        wxLANGUAGE_VIETNAMESE,
+        wxLANGUAGE_THAI
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
@@ -258,6 +259,9 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_VIETNAMESE)) {
             language_name = wxString::FromUTF8("Tiếng Việt");
+        }
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_THAI)) {
+            language_name = wxString::FromUTF8("\xE0\xB9\x84\xE0\xB8\x97\xE0\xB8\xA2");
         }
 
         if (app_config->get(param) == vlist[i]->CanonicalName) {
