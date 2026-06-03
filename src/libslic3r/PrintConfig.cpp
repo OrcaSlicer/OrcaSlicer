@@ -1241,11 +1241,16 @@ void PrintConfigDef::init_fff_params()
     def->label = L("External bridge infill direction");
     def->category = L("Strength");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("Bridging angle override. If left to zero, the bridging angle will be calculated "
-        "automatically. Otherwise the provided angle will be used for external bridges. "
-        "Use 180° for zero angle.");
+    def->tooltip = L("External Bridging angle override.\n"
+        "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+        "Otherwise the provided angle will be used according to:\n"
+        " - The absolute coordinates\n"
+        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+        " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
+        "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
+    def->max = 180;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
     
@@ -1253,13 +1258,27 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_bridge_angle", coFloat);
     def->label = L("Internal bridge infill direction");
     def->category = L("Strength");
-    def->tooltip = L("Internal bridging angle override. If left to zero, the bridging angle will be calculated "
-        "automatically. Otherwise the provided angle will be used for internal bridges. "
-        "Use 180° for zero angle.\n\nIt is recommended to leave it at 0 unless there is a specific model need not to.");
+    def->tooltip = L("Internal Bridging angle override.\n"
+        "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+        "Otherwise the provided angle will be used according to:\n"
+        " - The absolute coordinates\n"
+        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+        " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
+        "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
+    def->max = 180;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
+
+    // ORCA: Relative bridge angle
+    def = this->add("relative_bridge_angle", coBool);
+    def->label = L("Relative bridge angle");
+    def->category = L("Strength");
+    def->tooltip = L("When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.\n"
+        "Recommended to add a small angle (<10°) to improve bridge covering in closed shapes.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");
@@ -2924,7 +2943,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("align_infill_direction_to_model", coBool);
     def->label    = L("Align infill direction to model");
     def->category = L("Strength");
-    def->tooltip  = L("Aligns infill and surface fill directions to follow the model's orientation on the build plate. When enabled, fill directions rotate with the model to maintain optimal strength characteristics.");
+    def->tooltip  = L("Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
+                      "When enabled, directions rotate with the model to maintain optimal strength characteristics.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

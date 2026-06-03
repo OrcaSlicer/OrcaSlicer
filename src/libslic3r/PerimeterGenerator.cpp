@@ -1760,8 +1760,14 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                             BridgeDetector detector{ unsupported,
                                                     lower_island.expolygons,
                                                     perimeter_spacing / 4}; // Use a finer BridgeDetector. This affects coverage resolution, not extrusion spacing.
-
-                            if (detector.detect_angle(Geometry::deg2rad(this->config->bridge_angle.value)))
+                            // ORCA: Relative/Align Bridge Angle
+                            const double custom_angle_deg = this->config->bridge_angle.value;
+                            const bool   relative_angle   = this->config->relative_bridge_angle.value;
+                            const double detect_angle_rad = (custom_angle_deg > 0.0 && !relative_angle)
+                                ? Geometry::deg2rad(custom_angle_deg) +
+                                      (this->config->align_infill_direction_to_model ? this->m_model_rotation_rad : 0.0)
+                                : 0.0;
+                            if (detector.detect_angle(detect_angle_rad))
                                 expolygons_append(bridgeable, union_ex(detector.coverage(-1, true)));
                         }
                         if (!bridgeable.empty() && !surface->expolygon.holes.empty()) { // keep out if cannot be bridged or no holes to bridge
