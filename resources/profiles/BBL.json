@@ -1,9 +1,9 @@
 {
 	"name": "Bambulab",
 	"url": "http://www.bambulab.com/Parameters/vendor/BBL.json",
-	"version": "02.01.00.10",
+	"version": "02.01.00.15",
 	"force_update": "0",
-	"description": "the initial version of BBL configurations",
+	"description": "BBL configurations",
 	"machine_model_list": [
 		{
 			"name": "Bambu Lab A1",
@@ -14,12 +14,12 @@
 			"sub_path": "machine/Bambu Lab A1 mini.json"
 		},
 		{
-			"name": "Bambu Lab H2D",
-			"sub_path": "machine/Bambu Lab H2D.json"
-		},
-		{
 			"name": "Bambu Lab H2C",
 			"sub_path": "machine/Bambu Lab H2C.json"
+		},
+		{
+			"name": "Bambu Lab H2D",
+			"sub_path": "machine/Bambu Lab H2D.json"
 		},
 		{
 			"name": "Bambu Lab H2D Pro",
@@ -52,6 +52,10 @@
 		{
 			"name": "Bambu Lab X1E",
 			"sub_path": "machine/Bambu Lab X1E.json"
+		},
+		{
+			"name": "Bambu Lab X2D",
+			"sub_path": "machine/Bambu Lab X2D.json"
 		}
 	],
 	"process_list": [
@@ -244,12 +248,32 @@
 			"sub_path": "process/0.08mm Extra Fine @BBL H2DP 0.2 nozzle.json"
 		},
 		{
+			"name": "0.08mm High Quality @BBL H2C 0.2 nozzle",
+			"sub_path": "process/0.08mm High Quality @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "0.08mm High Quality @BBL X2D 0.2 nozzle",
+			"sub_path": "process/0.08mm High Quality @BBL X2D 0.2 nozzle.json"
+		},
+		{
 			"name": "0.08mm Extra Fine @BBL H2D",
 			"sub_path": "process/0.08mm Extra Fine @BBL H2D.json"
 		},
 		{
 			"name": "0.08mm Extra Fine @BBL H2DP",
 			"sub_path": "process/0.08mm Extra Fine @BBL H2DP.json"
+		},
+		{
+			"name": "0.08mm High Quality @BBL H2C",
+			"sub_path": "process/0.08mm High Quality @BBL H2C.json"
+		},
+		{
+			"name": "0.08mm High Quality @BBL X2D",
+			"sub_path": "process/0.08mm High Quality @BBL X2D.json"
+		},
+		{
+			"name": "0.10mm Standard @BBL H2C 0.2 nozzle",
+			"sub_path": "process/0.10mm Standard @BBL H2C 0.2 nozzle.json"
 		},
 		{
 			"name": "0.10mm Standard @BBL H2D 0.2 nozzle",
@@ -260,12 +284,24 @@
 			"sub_path": "process/0.10mm Standard @BBL H2DP 0.2 nozzle.json"
 		},
 		{
+			"name": "0.10mm Standard @BBL X2D 0.2 nozzle",
+			"sub_path": "process/0.10mm Standard @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "0.12mm Balanced Quality @BBL H2C 0.2 nozzle",
+			"sub_path": "process/0.12mm Balanced Quality @BBL H2C 0.2 nozzle.json"
+		},
+		{
 			"name": "0.12mm Balanced Quality @BBL H2D 0.2 nozzle",
 			"sub_path": "process/0.12mm Balanced Quality @BBL H2D 0.2 nozzle.json"
 		},
 		{
 			"name": "0.12mm Balanced Quality @BBL H2DP 0.2 nozzle",
 			"sub_path": "process/0.12mm Balanced Quality @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "0.12mm Balanced Quality @BBL X2D 0.2 nozzle",
+			"sub_path": "process/0.12mm Balanced Quality @BBL X2D 0.2 nozzle.json"
 		},
 		{
 			"name": "0.12mm Fine @BBL H2D",
@@ -276,12 +312,32 @@
 			"sub_path": "process/0.12mm Fine @BBL H2DP.json"
 		},
 		{
+			"name": "0.12mm High Quality @BBL H2C",
+			"sub_path": "process/0.12mm High Quality @BBL H2C.json"
+		},
+		{
+			"name": "0.12mm High Quality @BBL X2D",
+			"sub_path": "process/0.12mm High Quality @BBL X2D.json"
+		},
+		{
 			"name": "0.16mm Balanced Quality @BBL H2D",
 			"sub_path": "process/0.16mm Balanced Quality @BBL H2D.json"
 		},
 		{
 			"name": "0.16mm Balanced Quality @BBL H2DP",
 			"sub_path": "process/0.16mm Balanced Quality @BBL H2DP.json"
+		},
+		{
+			"name": "0.16mm High Quality @BBL H2C",
+			"sub_path": "process/0.16mm High Quality @BBL H2C.json"
+		},
+		{
+			"name": "0.16mm High Quality @BBL X2D",
+			"sub_path": "process/0.16mm High Quality @BBL X2D.json"
+		},
+		{
+			"name": "0.16mm Standard @BBL H2C",
+			"sub_path": "process/0.16mm Standard @BBL H2C.json"
 		},
 		{
 			"name": "0.16mm Standard @BBL H2D",
@@ -292,12 +348,24 @@
 			"sub_path": "process/0.16mm Standard @BBL H2DP.json"
 		},
 		{
+			"name": "0.16mm Standard @BBL X2D",
+			"sub_path": "process/0.16mm Standard @BBL X2D.json"
+		},
+		{
+			"name": "0.18mm Balanced Quality @BBL H2C 0.6 nozzle",
+			"sub_path": "process/0.18mm Balanced Quality @BBL H2C 0.6 nozzle.json"
+		},
+		{
 			"name": "0.18mm Balanced Quality @BBL H2D 0.6 nozzle",
 			"sub_path": "process/0.18mm Balanced Quality @BBL H2D 0.6 nozzle.json"
 		},
 		{
 			"name": "0.18mm Balanced Quality @BBL H2DP 0.6 nozzle",
 			"sub_path": "process/0.18mm Balanced Quality @BBL H2DP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.18mm Balanced Quality @BBL X2D 0.6 nozzle",
+			"sub_path": "process/0.18mm Balanced Quality @BBL X2D 0.6 nozzle.json"
 		},
 		{
 			"name": "0.20mm Balanced Strength @BBL H2D",
@@ -308,12 +376,32 @@
 			"sub_path": "process/0.20mm Balanced Strength @BBL H2DP.json"
 		},
 		{
+			"name": "0.20mm High Quality @BBL H2C",
+			"sub_path": "process/0.20mm High Quality @BBL H2C.json"
+		},
+		{
+			"name": "0.20mm High Quality @BBL X2D",
+			"sub_path": "process/0.20mm High Quality @BBL X2D.json"
+		},
+		{
+			"name": "0.20mm Standard @BBL H2C",
+			"sub_path": "process/0.20mm Standard @BBL H2C.json"
+		},
+		{
 			"name": "0.20mm Standard @BBL H2D",
 			"sub_path": "process/0.20mm Standard @BBL H2D.json"
 		},
 		{
 			"name": "0.20mm Standard @BBL H2DP",
 			"sub_path": "process/0.20mm Standard @BBL H2DP.json"
+		},
+		{
+			"name": "0.20mm Standard @BBL X2D",
+			"sub_path": "process/0.20mm Standard @BBL X2D.json"
+		},
+		{
+			"name": "0.24mm Standard @BBL H2C",
+			"sub_path": "process/0.24mm Standard @BBL H2C.json"
 		},
 		{
 			"name": "0.24mm Standard @BBL H2D",
@@ -324,12 +412,28 @@
 			"sub_path": "process/0.24mm Standard @BBL H2DP.json"
 		},
 		{
+			"name": "0.24mm Standard @BBL X2D",
+			"sub_path": "process/0.24mm Standard @BBL X2D.json"
+		},
+		{
+			"name": "0.24mm Balanced Quality @BBL X2D 0.6 nozzle",
+			"sub_path": "process/0.24mm Balanced Quality @BBL X2D 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Balanced Strength @BBL H2C 0.6 nozzle",
+			"sub_path": "process/0.24mm Balanced Strength @BBL H2C 0.6 nozzle.json"
+		},
+		{
 			"name": "0.24mm Balanced Strength @BBL H2D 0.6 nozzle",
 			"sub_path": "process/0.24mm Balanced Strength @BBL H2D 0.6 nozzle.json"
 		},
 		{
 			"name": "0.24mm Balanced Strength @BBL H2DP 0.6 nozzle",
 			"sub_path": "process/0.24mm Balanced Strength @BBL H2DP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Balanced Quality @BBL H2C 0.8 nozzle",
+			"sub_path": "process/0.24mm Balanced Quality @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "0.24mm Balanced Quality @BBL H2D 0.8 nozzle",
@@ -340,12 +444,32 @@
 			"sub_path": "process/0.24mm Balanced Quality @BBL H2DP 0.8 nozzle.json"
 		},
 		{
+			"name": "0.24mm Balanced Quality @BBL X2D 0.8 nozzle",
+			"sub_path": "process/0.24mm Balanced Quality @BBL X2D 0.8 nozzle.json"
+		},
+		{
+			"name": "0.30mm Standard @BBL H2C 0.6 nozzle",
+			"sub_path": "process/0.30mm Standard @BBL H2C 0.6 nozzle.json"
+		},
+		{
 			"name": "0.30mm Standard @BBL H2D 0.6 nozzle",
 			"sub_path": "process/0.30mm Standard @BBL H2D 0.6 nozzle.json"
 		},
 		{
 			"name": "0.30mm Standard @BBL H2DP 0.6 nozzle",
 			"sub_path": "process/0.30mm Standard @BBL H2DP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.30mm Standard @BBL X2D 0.6 nozzle",
+			"sub_path": "process/0.30mm Standard @BBL X2D 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Balanced Quality @BBL X2D 0.8 nozzle",
+			"sub_path": "process/0.32mm Balanced Quality @BBL X2D 0.8 nozzle.json"
+		},
+		{
+			"name": "0.32mm Balanced Strength @BBL H2C 0.8 nozzle",
+			"sub_path": "process/0.32mm Balanced Strength @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "0.32mm Balanced Strength @BBL H2D 0.8 nozzle",
@@ -356,6 +480,10 @@
 			"sub_path": "process/0.32mm Balanced Strength @BBL H2DP 0.8 nozzle.json"
 		},
 		{
+			"name": "0.40mm Standard @BBL H2C 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @BBL H2C 0.8 nozzle.json"
+		},
+		{
 			"name": "0.40mm Standard @BBL H2D 0.8 nozzle",
 			"sub_path": "process/0.40mm Standard @BBL H2D 0.8 nozzle.json"
 		},
@@ -364,68 +492,8 @@
 			"sub_path": "process/0.40mm Standard @BBL H2DP 0.8 nozzle.json"
 		},
 		{
-			"name": "0.08mm High Quality @BBL H2C 0.2 nozzle",
-			"sub_path": "process/0.08mm High Quality @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "0.08mm High Quality @BBL H2C",
-			"sub_path": "process/0.08mm High Quality @BBL H2C.json"
-		},
-		{
-			"name": "0.10mm Standard @BBL H2C 0.2 nozzle",
-			"sub_path": "process/0.10mm Standard @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "0.12mm Balanced Quality @BBL H2C 0.2 nozzle",
-			"sub_path": "process/0.12mm Balanced Quality @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "0.12mm High Quality @BBL H2C",
-			"sub_path": "process/0.12mm High Quality @BBL H2C.json"
-		},
-		{
-			"name": "0.16mm High Quality @BBL H2C",
-			"sub_path": "process/0.16mm High Quality @BBL H2C.json"
-		},
-		{
-			"name": "0.16mm Standard @BBL H2C",
-			"sub_path": "process/0.16mm Standard @BBL H2C.json"
-		},
-		{
-			"name": "0.18mm Balanced Quality @BBL H2C 0.6 nozzle",
-			"sub_path": "process/0.18mm Balanced Quality @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "0.20mm High Quality @BBL H2C",
-			"sub_path": "process/0.20mm High Quality @BBL H2C.json"
-		},
-		{
-			"name": "0.20mm Standard @BBL H2C",
-			"sub_path": "process/0.20mm Standard @BBL H2C.json"
-		},
-		{
-			"name": "0.24mm Balanced Quality @BBL H2C 0.8 nozzle",
-			"sub_path": "process/0.24mm Balanced Quality @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "0.24mm Balanced Strength @BBL H2C 0.6 nozzle",
-			"sub_path": "process/0.24mm Balanced Strength @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "0.24mm Standard @BBL H2C",
-			"sub_path": "process/0.24mm Standard @BBL H2C.json"
-		},
-		{
-			"name": "0.30mm Standard @BBL H2C 0.6 nozzle",
-			"sub_path": "process/0.30mm Standard @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "0.32mm Balanced Strength @BBL H2C 0.8 nozzle",
-			"sub_path": "process/0.32mm Balanced Strength @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "0.40mm Standard @BBL H2C 0.8 nozzle",
-			"sub_path": "process/0.40mm Standard @BBL H2C 0.8 nozzle.json"
+			"name": "0.40mm Standard @BBL X2D 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @BBL X2D 0.8 nozzle.json"
 		},
 		{
 			"name": "0.06mm Fine @BBL A1 0.2 nozzle",
@@ -1198,6 +1266,10 @@
 			"sub_path": "filament/FusRock/FusRock ABS-GF @BBL X1C.json"
 		},
 		{
+			"name": "BETA ABS @base",
+			"sub_path": "filament/BETA/BETA ABS @base.json"
+		},
+		{
 			"name": "Bambu ABS @base",
 			"sub_path": "filament/Bambu ABS @base.json"
 		},
@@ -1216,6 +1288,10 @@
 		{
 			"name": "PolyLite ABS @base",
 			"sub_path": "filament/Polymaker/PolyLite ABS @base.json"
+		},
+		{
+			"name": "BETA ASA @base",
+			"sub_path": "filament/BETA/BETA ASA @base.json"
 		},
 		{
 			"name": "Bambu ASA @base",
@@ -1246,8 +1322,16 @@
 			"sub_path": "filament/Generic EVA @base.json"
 		},
 		{
+			"name": "BETA HIPS @base",
+			"sub_path": "filament/BETA/BETA HIPS @base.json"
+		},
+		{
 			"name": "Generic HIPS @base",
 			"sub_path": "filament/Generic HIPS @base.json"
+		},
+		{
+			"name": "BETA PAHT-CF @base",
+			"sub_path": "filament/BETA/BETA PAHT-CF @base.json"
 		},
 		{
 			"name": "Bambu PA-CF @base",
@@ -1278,16 +1362,32 @@
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @base.json"
 		},
 		{
+			"name": "Fiberon PA12-CF10 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA12-CF10 @base.json"
+		},
+		{
 			"name": "Fiberon PA6-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA6-CF @base.json"
+		},
+		{
+			"name": "Fiberon PA6-CF20 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA6-CF20 @base.json"
 		},
 		{
 			"name": "Fiberon PA6-GF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA6-GF @base.json"
 		},
 		{
+			"name": "Fiberon PA6-GF25 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA6-GF25 @base.json"
+		},
+		{
 			"name": "Fiberon PA612-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA612-CF @base.json"
+		},
+		{
+			"name": "Fiberon PA612-CF15 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA612-CF15 @base.json"
 		},
 		{
 			"name": "Generic PA @base",
@@ -1322,6 +1422,62 @@
 			"sub_path": "filament/Generic PE-CF @base.json"
 		},
 		{
+			"name": "BETA PETG @base",
+			"sub_path": "filament/BETA/BETA PETG @base.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @base",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @base.json"
+		},
+		{
+			"name": "BETA PETG Glitter @base",
+			"sub_path": "filament/BETA/BETA PETG Glitter @base.json"
+		},
+		{
+			"name": "BETA PETG Glow @base",
+			"sub_path": "filament/BETA/BETA PETG Glow @base.json"
+		},
+		{
+			"name": "BETA PETG Gradient @base",
+			"sub_path": "filament/BETA/BETA PETG Gradient @base.json"
+		},
+		{
+			"name": "BETA PETG HF @base",
+			"sub_path": "filament/BETA/BETA PETG HF @base.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @base",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @base.json"
+		},
+		{
+			"name": "BETA PETG Marble @base",
+			"sub_path": "filament/BETA/BETA PETG Marble @base.json"
+		},
+		{
+			"name": "BETA PETG Matte @base",
+			"sub_path": "filament/BETA/BETA PETG Matte @base.json"
+		},
+		{
+			"name": "BETA PETG Metallic @base",
+			"sub_path": "filament/BETA/BETA PETG Metallic @base.json"
+		},
+		{
+			"name": "BETA PETG Transparent @base",
+			"sub_path": "filament/BETA/BETA PETG Transparent @base.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @base",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @base.json"
+		},
+		{
+			"name": "BETA PETG-CF @base",
+			"sub_path": "filament/BETA/BETA PETG-CF @base.json"
+		},
+		{
+			"name": "BETA PETG-GF @base",
+			"sub_path": "filament/BETA/BETA PETG-GF @base.json"
+		},
+		{
 			"name": "Bambu PET-CF @base",
 			"sub_path": "filament/Bambu PET-CF @base.json"
 		},
@@ -1346,12 +1502,20 @@
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @base.json"
 		},
 		{
+			"name": "Fiberon PET-CF17 @base",
+			"sub_path": "filament/Polymaker/Fiberon PET-CF17 @base.json"
+		},
+		{
 			"name": "Fiberon PETG-ESD @base",
 			"sub_path": "filament/Polymaker/Fiberon PETG-ESD @base.json"
 		},
 		{
 			"name": "Fiberon PETG-rCF @base",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @base.json"
+		},
+		{
+			"name": "Fiberon PETG-rCF08 @base",
+			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @base.json"
 		},
 		{
 			"name": "Generic PETG @base",
@@ -1376,6 +1540,90 @@
 		{
 			"name": "Generic PHA @base",
 			"sub_path": "filament/Generic PHA @base.json"
+		},
+		{
+			"name": "BETA PLA Basic @base",
+			"sub_path": "filament/BETA/BETA PLA Basic @base.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @base",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @base.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @base",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @base.json"
+		},
+		{
+			"name": "BETA PLA Glitter @base",
+			"sub_path": "filament/BETA/BETA PLA Glitter @base.json"
+		},
+		{
+			"name": "BETA PLA Glow @base",
+			"sub_path": "filament/BETA/BETA PLA Glow @base.json"
+		},
+		{
+			"name": "BETA PLA Gradient @base",
+			"sub_path": "filament/BETA/BETA PLA Gradient @base.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @base",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @base.json"
+		},
+		{
+			"name": "BETA PLA High Speed @base",
+			"sub_path": "filament/BETA/BETA PLA High Speed @base.json"
+		},
+		{
+			"name": "BETA PLA High Temp @base",
+			"sub_path": "filament/BETA/BETA PLA High Temp @base.json"
+		},
+		{
+			"name": "BETA PLA Marble @base",
+			"sub_path": "filament/BETA/BETA PLA Marble @base.json"
+		},
+		{
+			"name": "BETA PLA Matte @base",
+			"sub_path": "filament/BETA/BETA PLA Matte @base.json"
+		},
+		{
+			"name": "BETA PLA Metal @base",
+			"sub_path": "filament/BETA/BETA PLA Metal @base.json"
+		},
+		{
+			"name": "BETA PLA Metallic @base",
+			"sub_path": "filament/BETA/BETA PLA Metallic @base.json"
+		},
+		{
+			"name": "BETA PLA PRO @base",
+			"sub_path": "filament/BETA/BETA PLA PRO @base.json"
+		},
+		{
+			"name": "BETA PLA Silk @base",
+			"sub_path": "filament/BETA/BETA PLA Silk @base.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @base",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @base.json"
+		},
+		{
+			"name": "BETA PLA Transparent @base",
+			"sub_path": "filament/BETA/BETA PLA Transparent @base.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @base",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @base.json"
+		},
+		{
+			"name": "BETA PLA Wood @base",
+			"sub_path": "filament/BETA/BETA PLA Wood @base.json"
+		},
+		{
+			"name": "BETA PLA Youth @base",
+			"sub_path": "filament/BETA/BETA PLA Youth @base.json"
+		},
+		{
+			"name": "BETA PLA-CF @base",
+			"sub_path": "filament/BETA/BETA PLA-CF @base.json"
 		},
 		{
 			"name": "Bambu PLA Aero @base",
@@ -1412,6 +1660,10 @@
 		{
 			"name": "Bambu PLA Metal @base",
 			"sub_path": "filament/Bambu PLA Metal @base.json"
+		},
+		{
+			"name": "Bambu PLA Pure @base",
+			"sub_path": "filament/Bambu PLA Pure @base.json"
 		},
 		{
 			"name": "Bambu PLA Silk @base",
@@ -1554,16 +1806,52 @@
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @base.json"
 		},
 		{
+			"name": "PolyLite CosPLA @base",
+			"sub_path": "filament/Polymaker/PolyLite CosPLA @base.json"
+		},
+		{
 			"name": "PolyLite PLA @base",
 			"sub_path": "filament/Polymaker/PolyLite PLA @base.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Galaxy @base.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Glow @base.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Luminous @base.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Neon @base.json"
 		},
 		{
 			"name": "PolyLite PLA Pro @base",
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @base.json"
 		},
 		{
+			"name": "PolyLite PLA Starlight @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Starlight @base.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Translucent @base.json"
+		},
+		{
 			"name": "PolyTerra PLA @base",
 			"sub_path": "filament/Polymaker/PolyTerra PLA @base.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @base",
+			"sub_path": "filament/Polymaker/PolyTerra PLA Marble @base.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @base",
+			"sub_path": "filament/Polymaker/PolyTerra PLA+ @base.json"
 		},
 		{
 			"name": "Polymaker HT-PLA @base",
@@ -1650,6 +1938,26 @@
 			"sub_path": "filament/Generic SBS @base.json"
 		},
 		{
+			"name": "BETA PEBA 90A @base",
+			"sub_path": "filament/BETA/BETA PEBA 90A @base.json"
+		},
+		{
+			"name": "BETA TPU 90A @base",
+			"sub_path": "filament/BETA/BETA TPU 90A @base.json"
+		},
+		{
+			"name": "BETA TPU 95A @base",
+			"sub_path": "filament/BETA/BETA TPU 95A @base.json"
+		},
+		{
+			"name": "BETA TPU 98A @base",
+			"sub_path": "filament/BETA/BETA TPU 98A @base.json"
+		},
+		{
+			"name": "BETA TPU Matte @base",
+			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
+		},
+		{
 			"name": "Bambu TPU 85A @base",
 			"sub_path": "filament/Bambu TPU 85A @base.json"
 		},
@@ -1678,12 +1986,44 @@
 			"sub_path": "filament/Generic TPU for AMS @base.json"
 		},
 		{
+			"name": "BETA ABS @BBL A1",
+			"sub_path": "filament/BETA/BETA ABS @BBL A1.json"
+		},
+		{
+			"name": "BETA ABS @BBL H2D",
+			"sub_path": "filament/BETA/BETA ABS @BBL H2D.json"
+		},
+		{
+			"name": "BETA ABS @BBL P1P",
+			"sub_path": "filament/BETA/BETA ABS @BBL P1P.json"
+		},
+		{
+			"name": "BETA ABS @BBL X1C",
+			"sub_path": "filament/BETA/BETA ABS @BBL X1C.json"
+		},
+		{
 			"name": "Bambu ABS @BBL A1",
 			"sub_path": "filament/Bambu ABS @BBL A1.json"
 		},
 		{
 			"name": "Bambu ABS @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Bambu ABS @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu ABS @BBL H2C",
+			"sub_path": "filament/Bambu ABS @BBL H2C.json"
+		},
+		{
+			"name": "Bambu ABS @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu ABS @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu ABS @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu ABS @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu ABS @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu ABS @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu ABS @BBL H2D",
@@ -1782,8 +2122,32 @@
 			"sub_path": "filament/Bambu ABS @BBL X1E 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu ABS @BBL X2D",
+			"sub_path": "filament/Bambu ABS @BBL X2D.json"
+		},
+		{
+			"name": "Bambu ABS @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu ABS @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu ABS @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu ABS @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu ABS @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu ABS @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu ABS-GF @BBL A1",
 			"sub_path": "filament/Bambu ABS-GF @BBL A1.json"
+		},
+		{
+			"name": "Bambu ABS-GF @BBL H2C",
+			"sub_path": "filament/Bambu ABS-GF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu ABS-GF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu ABS-GF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu ABS-GF @BBL H2D",
@@ -1810,8 +2174,24 @@
 			"sub_path": "filament/Bambu ABS-GF @BBL X1C.json"
 		},
 		{
+			"name": "Bambu ABS-GF @BBL X2D",
+			"sub_path": "filament/Bambu ABS-GF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu ABS-GF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu ABS-GF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Support for ABS @BBL A1",
 			"sub_path": "filament/Bambu Support for ABS @BBL A1.json"
+		},
+		{
+			"name": "Bambu Support for ABS @BBL H2C",
+			"sub_path": "filament/Bambu Support for ABS @BBL H2C.json"
+		},
+		{
+			"name": "Bambu Support for ABS @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu Support for ABS @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Support for ABS @BBL H2D",
@@ -1834,6 +2214,14 @@
 			"sub_path": "filament/Bambu Support for ABS @BBL X1C.json"
 		},
 		{
+			"name": "Bambu Support for ABS @BBL X2D",
+			"sub_path": "filament/Bambu Support for ABS @BBL X2D.json"
+		},
+		{
+			"name": "Bambu Support for ABS @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu Support for ABS @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic ABS",
 			"sub_path": "filament/Generic ABS.json"
 		},
@@ -1848,6 +2236,18 @@
 		{
 			"name": "Generic ABS @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Generic ABS @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ABS @BBL H2C",
+			"sub_path": "filament/Generic ABS @BBL H2C.json"
+		},
+		{
+			"name": "Generic ABS @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic ABS @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ABS @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic ABS @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic ABS @BBL H2D",
@@ -1880,6 +2280,18 @@
 		{
 			"name": "Generic ABS @BBL P2S 0.2 nozzle",
 			"sub_path": "filament/Generic ABS @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ABS @BBL X2D",
+			"sub_path": "filament/Generic ABS @BBL X2D.json"
+		},
+		{
+			"name": "Generic ABS @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic ABS @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ABS @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic ABS @BBL X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "PolyLite ABS @BBL A1",
@@ -1922,6 +2334,18 @@
 			"sub_path": "filament/Polymaker/PolyLite ABS @BBL X1E 0.2 nozzle.json"
 		},
 		{
+			"name": "BETA ASA @BBL A1 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA ASA @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA ASA @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA ASA @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA ASA @BBL X1C 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA ASA @BBL X1C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu ASA @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Bambu ASA @BBL A1 0.2 nozzle.json"
 		},
@@ -1932,6 +2356,22 @@
 		{
 			"name": "Bambu ASA @BBL A1 0.6 nozzle",
 			"sub_path": "filament/Bambu ASA @BBL A1 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu ASA @BBL H2C",
+			"sub_path": "filament/Bambu ASA @BBL H2C.json"
+		},
+		{
+			"name": "Bambu ASA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu ASA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu ASA @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu ASA @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu ASA @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu ASA @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu ASA @BBL H2D 0.2 nozzle",
@@ -2030,8 +2470,28 @@
 			"sub_path": "filament/Bambu ASA @BBL X1E 0.4 nozzle.json"
 		},
 		{
+			"name": "Bambu ASA @BBL X2D",
+			"sub_path": "filament/Bambu ASA @BBL X2D.json"
+		},
+		{
+			"name": "Bambu ASA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu ASA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu ASA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu ASA @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu ASA-Aero @BBL A1",
 			"sub_path": "filament/Bambu ASA-Aero @BBL A1.json"
+		},
+		{
+			"name": "Bambu ASA-Aero @BBL H2C",
+			"sub_path": "filament/Bambu ASA-Aero @BBL H2C.json"
+		},
+		{
+			"name": "Bambu ASA-Aero @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu ASA-Aero @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu ASA-Aero @BBL H2D",
@@ -2058,12 +2518,28 @@
 			"sub_path": "filament/Bambu ASA-Aero @BBL X1C.json"
 		},
 		{
+			"name": "Bambu ASA-Aero @BBL X2D",
+			"sub_path": "filament/Bambu ASA-Aero @BBL X2D.json"
+		},
+		{
+			"name": "Bambu ASA-Aero @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu ASA-Aero @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu ASA-CF @BBL A1",
 			"sub_path": "filament/Bambu ASA-CF @BBL A1.json"
 		},
 		{
 			"name": "Bambu ASA-CF @BBL A1 0.6 nozzle",
 			"sub_path": "filament/Bambu ASA-CF @BBL A1 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu ASA-CF @BBL H2C",
+			"sub_path": "filament/Bambu ASA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu ASA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu ASA-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu ASA-CF @BBL H2D 0.4 nozzle",
@@ -2110,6 +2586,14 @@
 			"sub_path": "filament/Bambu ASA-CF @BBL X1C 0.6 nozzle.json"
 		},
 		{
+			"name": "Bambu ASA-CF @BBL X2D",
+			"sub_path": "filament/Bambu ASA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu ASA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu ASA-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic ASA",
 			"sub_path": "filament/Generic ASA.json"
 		},
@@ -2124,6 +2608,18 @@
 		{
 			"name": "Generic ASA @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Generic ASA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ASA @BBL H2C",
+			"sub_path": "filament/Generic ASA @BBL H2C.json"
+		},
+		{
+			"name": "Generic ASA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic ASA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ASA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic ASA @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic ASA @BBL H2D",
@@ -2156,6 +2652,18 @@
 		{
 			"name": "Generic ASA @BBL P2S 0.2 nozzle",
 			"sub_path": "filament/Generic ASA @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ASA @BBL X2D",
+			"sub_path": "filament/Generic ASA @BBL X2D.json"
+		},
+		{
+			"name": "Generic ASA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic ASA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic ASA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic ASA @BBL X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "PolyLite ASA @BBL A1",
@@ -2202,6 +2710,14 @@
 			"sub_path": "filament/Generic BVOH @BBL A1M.json"
 		},
 		{
+			"name": "Generic BVOH @BBL H2C",
+			"sub_path": "filament/Generic BVOH @BBL H2C.json"
+		},
+		{
+			"name": "Generic BVOH @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic BVOH @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic BVOH @BBL H2D",
 			"sub_path": "filament/Generic BVOH @BBL H2D.json"
 		},
@@ -2222,12 +2738,28 @@
 			"sub_path": "filament/Generic BVOH @BBL X1C.json"
 		},
 		{
+			"name": "Generic BVOH @BBL X2D",
+			"sub_path": "filament/Generic BVOH @BBL X2D.json"
+		},
+		{
+			"name": "Generic BVOH @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic BVOH @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic EVA @BBL A1",
 			"sub_path": "filament/Generic EVA @BBL A1.json"
 		},
 		{
 			"name": "Generic EVA @BBL A1M",
 			"sub_path": "filament/Generic EVA @BBL A1M.json"
+		},
+		{
+			"name": "Generic EVA @BBL H2C",
+			"sub_path": "filament/Generic EVA @BBL H2C.json"
+		},
+		{
+			"name": "Generic EVA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic EVA @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic EVA @BBL H2D",
@@ -2250,6 +2782,22 @@
 			"sub_path": "filament/Generic EVA @BBL X1C.json"
 		},
 		{
+			"name": "Generic EVA @BBL X2D",
+			"sub_path": "filament/Generic EVA @BBL X2D.json"
+		},
+		{
+			"name": "Generic EVA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic EVA @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA HIPS @BBL H2D",
+			"sub_path": "filament/BETA/BETA HIPS @BBL H2D.json"
+		},
+		{
+			"name": "BETA HIPS @BBL X1C",
+			"sub_path": "filament/BETA/BETA HIPS @BBL X1C.json"
+		},
+		{
 			"name": "Generic HIPS @BBL A1",
 			"sub_path": "filament/Generic HIPS @BBL A1.json"
 		},
@@ -2264,6 +2812,18 @@
 		{
 			"name": "Generic HIPS @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Generic HIPS @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic HIPS @BBL H2C",
+			"sub_path": "filament/Generic HIPS @BBL H2C.json"
+		},
+		{
+			"name": "Generic HIPS @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic HIPS @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic HIPS @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic HIPS @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic HIPS @BBL H2D",
@@ -2306,8 +2866,40 @@
 			"sub_path": "filament/Generic HIPS @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Generic HIPS @BBL X2D",
+			"sub_path": "filament/Generic HIPS @BBL X2D.json"
+		},
+		{
+			"name": "Generic HIPS @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic HIPS @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic HIPS @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic HIPS @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PAHT-CF @BBL H2D",
+			"sub_path": "filament/BETA/BETA PAHT-CF @BBL H2D.json"
+		},
+		{
+			"name": "BETA PAHT-CF @BBL P1P",
+			"sub_path": "filament/BETA/BETA PAHT-CF @BBL P1P.json"
+		},
+		{
+			"name": "BETA PAHT-CF @BBL X1C",
+			"sub_path": "filament/BETA/BETA PAHT-CF @BBL X1C.json"
+		},
+		{
 			"name": "Bambu PA-CF @BBL A1",
 			"sub_path": "filament/Bambu PA-CF @BBL A1.json"
+		},
+		{
+			"name": "Bambu PA-CF @BBL H2C",
+			"sub_path": "filament/Bambu PA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PA-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PA-CF @BBL H2D",
@@ -2338,8 +2930,24 @@
 			"sub_path": "filament/Bambu PA-CF @BBL X1E.json"
 		},
 		{
+			"name": "Bambu PA-CF @BBL X2D",
+			"sub_path": "filament/Bambu PA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PA-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PA6-CF @BBL A1",
 			"sub_path": "filament/Bambu PA6-CF @BBL A1.json"
+		},
+		{
+			"name": "Bambu PA6-CF @BBL H2C",
+			"sub_path": "filament/Bambu PA6-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PA6-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PA6-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PA6-CF @BBL H2D",
@@ -2366,8 +2974,24 @@
 			"sub_path": "filament/Bambu PA6-CF @BBL X1E.json"
 		},
 		{
+			"name": "Bambu PA6-CF @BBL X2D",
+			"sub_path": "filament/Bambu PA6-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PA6-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PA6-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PA6-GF @BBL A1",
 			"sub_path": "filament/Bambu PA6-GF @BBL A1.json"
+		},
+		{
+			"name": "Bambu PA6-GF @BBL H2C",
+			"sub_path": "filament/Bambu PA6-GF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PA6-GF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PA6-GF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PA6-GF @BBL H2D",
@@ -2394,8 +3018,24 @@
 			"sub_path": "filament/Bambu PA6-GF @BBL X1C.json"
 		},
 		{
+			"name": "Bambu PA6-GF @BBL X2D",
+			"sub_path": "filament/Bambu PA6-GF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PA6-GF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PA6-GF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PAHT-CF @BBL A1",
 			"sub_path": "filament/Bambu PAHT-CF @BBL A1.json"
+		},
+		{
+			"name": "Bambu PAHT-CF @BBL H2C",
+			"sub_path": "filament/Bambu PAHT-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PAHT-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PAHT-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PAHT-CF @BBL H2D",
@@ -2422,8 +3062,24 @@
 			"sub_path": "filament/Bambu PAHT-CF @BBL X1C.json"
 		},
 		{
+			"name": "Bambu PAHT-CF @BBL X2D",
+			"sub_path": "filament/Bambu PAHT-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PAHT-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PAHT-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Support For PA/PET @BBL A1",
 			"sub_path": "filament/Bambu Support For PA PET @BBL A1.json"
+		},
+		{
+			"name": "Bambu Support For PA/PET @BBL H2C",
+			"sub_path": "filament/Bambu Support For PA PET @BBL H2C.json"
+		},
+		{
+			"name": "Bambu Support For PA/PET @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu Support For PA PET @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Support For PA/PET @BBL H2D",
@@ -2450,8 +3106,24 @@
 			"sub_path": "filament/Bambu Support For PA PET @BBL X1C.json"
 		},
 		{
+			"name": "Bambu Support For PA/PET @BBL X2D",
+			"sub_path": "filament/Bambu Support For PA PET @BBL X2D.json"
+		},
+		{
+			"name": "Bambu Support For PA/PET @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu Support For PA PET @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Support G @BBL A1",
 			"sub_path": "filament/Bambu Support G @BBL A1.json"
+		},
+		{
+			"name": "Bambu Support G @BBL H2C",
+			"sub_path": "filament/Bambu Support G @BBL H2C.json"
+		},
+		{
+			"name": "Bambu Support G @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu Support G @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Support G @BBL H2D",
@@ -2482,12 +3154,24 @@
 			"sub_path": "filament/Bambu Support G @BBL X1E.json"
 		},
 		{
+			"name": "Bambu Support G @BBL X2D",
+			"sub_path": "filament/Bambu Support G @BBL X2D.json"
+		},
+		{
+			"name": "Bambu Support G @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu Support G @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @BBL H2D",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @BBL H2D.json"
 		},
 		{
 			"name": "Fiberon PA12-CF @BBL X1C",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @BBL X1C.json"
+		},
+		{
+			"name": "Fiberon PA12-CF10 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PA12-CF10 @BBL X1.json"
 		},
 		{
 			"name": "Fiberon PA6-CF @BBL H2D",
@@ -2498,12 +3182,20 @@
 			"sub_path": "filament/Polymaker/Fiberon PA6-CF @BBL X1C.json"
 		},
 		{
+			"name": "Fiberon PA6-CF20 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PA6-CF20 @BBL X1.json"
+		},
+		{
 			"name": "Fiberon PA6-GF @BBL H2D",
 			"sub_path": "filament/Polymaker/Fiberon PA6-GF @BBL H2D.json"
 		},
 		{
 			"name": "Fiberon PA6-GF @BBL X1C",
 			"sub_path": "filament/Polymaker/Fiberon PA6-GF @BBL X1C.json"
+		},
+		{
+			"name": "Fiberon PA6-GF25 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PA6-GF25 @BBL X1.json"
 		},
 		{
 			"name": "Fiberon PA612-CF @BBL H2D",
@@ -2514,8 +3206,20 @@
 			"sub_path": "filament/Polymaker/Fiberon PA612-CF @BBL X1C.json"
 		},
 		{
+			"name": "Fiberon PA612-CF15 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PA612-CF15 @BBL X1.json"
+		},
+		{
 			"name": "Generic PA",
 			"sub_path": "filament/Generic PA.json"
+		},
+		{
+			"name": "Generic PA @BBL H2C",
+			"sub_path": "filament/Generic PA @BBL H2C.json"
+		},
+		{
+			"name": "Generic PA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PA @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PA @BBL H2D",
@@ -2538,6 +3242,14 @@
 			"sub_path": "filament/Generic PA @BBL P2S.json"
 		},
 		{
+			"name": "Generic PA @BBL X2D",
+			"sub_path": "filament/Generic PA @BBL X2D.json"
+		},
+		{
+			"name": "Generic PA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PA @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PA-CF",
 			"sub_path": "filament/Generic PA-CF.json"
 		},
@@ -2554,12 +3266,36 @@
 			"sub_path": "filament/Generic PA-CF @BBL P2S.json"
 		},
 		{
+			"name": "Generic PA-CF @BBL X2D",
+			"sub_path": "filament/Generic PA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PA-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PC @BBL A1",
 			"sub_path": "filament/Bambu PC @BBL A1.json"
 		},
 		{
 			"name": "Bambu PC @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Bambu PC @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PC @BBL H2C",
+			"sub_path": "filament/Bambu PC @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PC @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PC @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PC @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu PC @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PC @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu PC @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu PC @BBL H2D 0.2 nozzle",
@@ -2662,12 +3398,36 @@
 			"sub_path": "filament/Bambu PC @BBL X1E 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PC @BBL X2D",
+			"sub_path": "filament/Bambu PC @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PC @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PC @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PC @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu PC @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu PC FR @BBL A1",
 			"sub_path": "filament/Bambu PC FR @BBL A1.json"
 		},
 		{
 			"name": "Bambu PC FR @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Bambu PC FR @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PC FR @BBL H2C",
+			"sub_path": "filament/Bambu PC FR @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PC FR @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PC FR @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PC FR @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PC FR @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PC FR @BBL H2D 0.2 nozzle",
@@ -2778,6 +3538,18 @@
 			"sub_path": "filament/Bambu PC FR @BBL X1E 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PC FR @BBL X2D",
+			"sub_path": "filament/Bambu PC FR @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PC FR @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PC FR @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PC FR @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu PC FR @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Generic PC",
 			"sub_path": "filament/Generic PC.json"
 		},
@@ -2792,6 +3564,18 @@
 		{
 			"name": "Generic PC @BBL A1 0.2 nozzle",
 			"sub_path": "filament/Generic PC @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PC @BBL H2C",
+			"sub_path": "filament/Generic PC @BBL H2C.json"
+		},
+		{
+			"name": "Generic PC @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic PC @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PC @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PC @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PC @BBL H2D",
@@ -2818,12 +3602,32 @@
 			"sub_path": "filament/P1P/Generic PC @BBL P1P 0.2 nozzle.json"
 		},
 		{
+			"name": "Generic PC @BBL X2D",
+			"sub_path": "filament/Generic PC @BBL X2D.json"
+		},
+		{
+			"name": "Generic PC @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic PC @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PC @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PC @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PCTG @BBL A1",
 			"sub_path": "filament/Generic PCTG @BBL A1.json"
 		},
 		{
 			"name": "Generic PCTG @BBL A1M",
 			"sub_path": "filament/Generic PCTG @BBL A1M.json"
+		},
+		{
+			"name": "Generic PCTG @BBL H2C",
+			"sub_path": "filament/Generic PCTG @BBL H2C.json"
+		},
+		{
+			"name": "Generic PCTG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PCTG @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PCTG @BBL H2D",
@@ -2846,12 +3650,28 @@
 			"sub_path": "filament/Generic PCTG @BBL X1C.json"
 		},
 		{
+			"name": "Generic PCTG @BBL X2D",
+			"sub_path": "filament/Generic PCTG @BBL X2D.json"
+		},
+		{
+			"name": "Generic PCTG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PCTG @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PE @BBL A1",
 			"sub_path": "filament/Generic PE @BBL A1.json"
 		},
 		{
 			"name": "Generic PE @BBL A1M",
 			"sub_path": "filament/Generic PE @BBL A1M.json"
+		},
+		{
+			"name": "Generic PE @BBL H2C",
+			"sub_path": "filament/Generic PE @BBL H2C.json"
+		},
+		{
+			"name": "Generic PE @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PE @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PE @BBL H2D",
@@ -2874,12 +3694,28 @@
 			"sub_path": "filament/Generic PE @BBL X1C.json"
 		},
 		{
+			"name": "Generic PE @BBL X2D",
+			"sub_path": "filament/Generic PE @BBL X2D.json"
+		},
+		{
+			"name": "Generic PE @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PE @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PE-CF @BBL A1",
 			"sub_path": "filament/Generic PE-CF @BBL A1.json"
 		},
 		{
 			"name": "Generic PE-CF @BBL A1M",
 			"sub_path": "filament/Generic PE-CF @BBL A1M.json"
+		},
+		{
+			"name": "Generic PE-CF @BBL H2C",
+			"sub_path": "filament/Generic PE-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PE-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PE-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PE-CF @BBL H2D",
@@ -2902,8 +3738,256 @@
 			"sub_path": "filament/Generic PE-CF @BBL X1C.json"
 		},
 		{
+			"name": "Generic PE-CF @BBL X2D",
+			"sub_path": "filament/Generic PE-CF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PE-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PE-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Glitter @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Glitter @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Glitter @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Glitter @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Glow @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Glow @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Glow @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Glow @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Gradient @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Gradient @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Gradient @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Gradient @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG HF @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL A1M",
+			"sub_path": "filament/BETA/BETA PETG HF @BBL A1M.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG HF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG HF @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Marble @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Marble @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Marble @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Marble @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Matte @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Matte @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Matte @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Matte @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Metallic @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Metallic @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Metallic @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Metallic @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG Transparent @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL A1M",
+			"sub_path": "filament/BETA/BETA PETG Transparent @BBL A1M.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG Transparent @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG Transparent @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL A1",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL A1 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-CF @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-CF @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-CF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL P1P 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-CF @BBL P1P 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL X1C 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-CF @BBL X1C 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL A1 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-GF @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-GF @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-GF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL P1P 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-GF @BBL P1P 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL X1C 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PETG-GF @BBL X1C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PET-CF @BBL A1",
 			"sub_path": "filament/Bambu PET-CF @BBL A1.json"
+		},
+		{
+			"name": "Bambu PET-CF @BBL H2C",
+			"sub_path": "filament/Bambu PET-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PET-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PET-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PET-CF @BBL H2D",
@@ -2934,6 +4018,14 @@
 			"sub_path": "filament/Bambu PET-CF @BBL X1E.json"
 		},
 		{
+			"name": "Bambu PET-CF @BBL X2D",
+			"sub_path": "filament/Bambu PET-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PET-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PET-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PETG Basic @BBL A1",
 			"sub_path": "filament/Bambu PETG Basic @BBL A1.json"
 		},
@@ -2956,6 +4048,18 @@
 		{
 			"name": "Bambu PETG Basic @BBL A1M 0.8 nozzle",
 			"sub_path": "filament/Bambu PETG Basic @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Basic @BBL H2C",
+			"sub_path": "filament/Bambu PETG Basic @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PETG Basic @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PETG Basic @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Basic @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG Basic @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PETG Basic @BBL H2D 0.2 nozzle",
@@ -3014,6 +4118,18 @@
 			"sub_path": "filament/Bambu PETG Basic @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PETG Basic @BBL X2D",
+			"sub_path": "filament/Bambu PETG Basic @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PETG Basic @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PETG Basic @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Basic @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG Basic @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PETG HF @BBL A1",
 			"sub_path": "filament/Bambu PETG HF @BBL A1.json"
 		},
@@ -3036,6 +4152,22 @@
 		{
 			"name": "Bambu PETG HF @BBL A1M 0.8 nozzle",
 			"sub_path": "filament/Bambu PETG HF @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG HF @BBL H2C",
+			"sub_path": "filament/Bambu PETG HF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PETG HF @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PETG HF @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG HF @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu PETG HF @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG HF @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu PETG HF @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu PETG HF @BBL H2D 0.2 nozzle",
@@ -3110,6 +4242,18 @@
 			"sub_path": "filament/Bambu PETG HF @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PETG HF @BBL X2D",
+			"sub_path": "filament/Bambu PETG HF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PETG HF @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PETG HF @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG HF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG HF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PETG Translucent @BBL A1",
 			"sub_path": "filament/Bambu PETG Translucent @BBL A1.json"
 		},
@@ -3132,6 +4276,18 @@
 		{
 			"name": "Bambu PETG Translucent @BBL A1M 0.8 nozzle",
 			"sub_path": "filament/Bambu PETG Translucent @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Translucent @BBL H2C",
+			"sub_path": "filament/Bambu PETG Translucent @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PETG Translucent @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PETG Translucent @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Translucent @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG Translucent @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PETG Translucent @BBL H2D 0.2 nozzle",
@@ -3190,6 +4346,22 @@
 			"sub_path": "filament/Bambu PETG Translucent @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PETG Translucent @BBL X2D",
+			"sub_path": "filament/Bambu PETG Translucent @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PETG Translucent @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PETG Translucent @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Translucent @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG Translucent @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG Translucent @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu PETG Translucent @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu PETG-CF @BBL A1 0.4 nozzle",
 			"sub_path": "filament/Bambu PETG-CF @BBL A1 0.4 nozzle.json"
 		},
@@ -3200,6 +4372,14 @@
 		{
 			"name": "Bambu PETG-CF @BBL A1M",
 			"sub_path": "filament/Bambu PETG-CF @BBL A1M.json"
+		},
+		{
+			"name": "Bambu PETG-CF @BBL H2C",
+			"sub_path": "filament/Bambu PETG-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PETG-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PETG-CF @BBL H2D 0.4 nozzle",
@@ -3246,6 +4426,18 @@
 			"sub_path": "filament/Bambu PETG-CF @BBL X1C 0.4 nozzle.json"
 		},
 		{
+			"name": "Bambu PETG-CF @BBL X2D",
+			"sub_path": "filament/Bambu PETG-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PETG-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PETG-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PETG-CF @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu PETG-CF @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Fiberon PET-CF @BBL H2D",
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @BBL H2D.json"
 		},
@@ -3254,8 +4446,16 @@
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @BBL X1C.json"
 		},
 		{
+			"name": "Fiberon PET-CF17 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PET-CF17 @BBL X1.json"
+		},
+		{
 			"name": "Fiberon PETG-ESD @BBL H2D",
 			"sub_path": "filament/Polymaker/Fiberon PETG-ESD @BBL H2D.json"
+		},
+		{
+			"name": "Fiberon PETG-ESD @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PETG-ESD @BBL X1.json"
 		},
 		{
 			"name": "Fiberon PETG-ESD @BBL X1C",
@@ -3268,6 +4468,10 @@
 		{
 			"name": "Fiberon PETG-rCF @BBL X1C",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @BBL X1C.json"
+		},
+		{
+			"name": "Fiberon PETG-rCF08 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @BBL X1.json"
 		},
 		{
 			"name": "Generic PETG",
@@ -3292,6 +4496,18 @@
 		{
 			"name": "Generic PETG @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Generic PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PETG @BBL H2C",
+			"sub_path": "filament/Generic PETG @BBL H2C.json"
+		},
+		{
+			"name": "Generic PETG @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic PETG @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PETG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PETG @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PETG @BBL H2D",
@@ -3334,6 +4550,18 @@
 			"sub_path": "filament/Generic PETG @BBL P2S 0.2 nozzle.json"
 		},
 		{
+			"name": "Generic PETG @BBL X2D",
+			"sub_path": "filament/Generic PETG @BBL X2D.json"
+		},
+		{
+			"name": "Generic PETG @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic PETG @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PETG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PETG @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PETG HF @BBL A1",
 			"sub_path": "filament/Generic PETG HF @BBL A1.json"
 		},
@@ -3348,6 +4576,18 @@
 		{
 			"name": "Generic PETG HF @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Generic PETG HF @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PETG HF @BBL H2C",
+			"sub_path": "filament/Generic PETG HF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PETG HF @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic PETG HF @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PETG HF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PETG HF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PETG HF @BBL H2D",
@@ -3402,12 +4642,32 @@
 			"sub_path": "filament/Generic PETG HF @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Generic PETG HF @BBL X2D",
+			"sub_path": "filament/Generic PETG HF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PETG HF @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic PETG HF @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PETG HF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PETG HF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PETG-CF @BBL A1",
 			"sub_path": "filament/Generic PETG-CF @BBL A1.json"
 		},
 		{
 			"name": "Generic PETG-CF @BBL A1M",
 			"sub_path": "filament/P1P/Generic PETG-CF @BBL A1M.json"
+		},
+		{
+			"name": "Generic PETG-CF @BBL H2C",
+			"sub_path": "filament/Generic PETG-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PETG-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PETG-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PETG-CF @BBL H2D",
@@ -3432,6 +4692,14 @@
 		{
 			"name": "Generic PETG-CF @BBL X1C",
 			"sub_path": "filament/Generic PETG-CF @BBL X1C.json"
+		},
+		{
+			"name": "Generic PETG-CF @BBL X2D",
+			"sub_path": "filament/Generic PETG-CF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PETG-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PETG-CF @BBL X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "PolyLite PETG @BBL A1",
@@ -3522,6 +4790,14 @@
 			"sub_path": "filament/Generic PHA @BBL A1M.json"
 		},
 		{
+			"name": "Generic PHA @BBL H2C",
+			"sub_path": "filament/Generic PHA @BBL H2C.json"
+		},
+		{
+			"name": "Generic PHA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PHA @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PHA @BBL H2D",
 			"sub_path": "filament/Generic PHA @BBL H2D.json"
 		},
@@ -3542,12 +4818,448 @@
 			"sub_path": "filament/Generic PHA @BBL X1C.json"
 		},
 		{
+			"name": "Generic PHA @BBL X2D",
+			"sub_path": "filament/Generic PHA @BBL X2D.json"
+		},
+		{
+			"name": "Generic PHA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PHA @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Basic @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Basic @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Basic @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Basic @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Basic @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Glitter @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Glitter @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Glitter @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Glitter @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Glitter @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Glow @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Glow @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Glow @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Glow @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Glow @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Gradient @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Gradient @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Gradient @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Gradient @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Gradient @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA High Speed @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA High Speed @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA High Speed @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA High Speed @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA High Speed @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA High Temp @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA High Temp @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA High Temp @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA High Temp @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA High Temp @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Marble @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Marble @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Marble @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Marble @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Marble @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Matte @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Matte @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Matte @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Matte @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Matte @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Metal @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Metal @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Metal @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Metal @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Metal @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Metallic @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Metallic @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Metallic @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Metallic @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Metallic @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA PRO @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA PRO @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA PRO @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA PRO @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA PRO @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Silk @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Silk @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Silk @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Silk @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Silk @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Transparent @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Transparent @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Transparent @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Transparent @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Transparent @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Wood @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Wood @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Wood @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Wood @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Wood @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA Youth @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA Youth @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL H2D",
+			"sub_path": "filament/BETA/BETA PLA Youth @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA Youth @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA Youth @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL A1",
+			"sub_path": "filament/BETA/BETA PLA-CF @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL A1M",
+			"sub_path": "filament/BETA/BETA PLA-CF @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BETA PLA-CF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL P1P",
+			"sub_path": "filament/BETA/BETA PLA-CF @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL X1C",
+			"sub_path": "filament/BETA/BETA PLA-CF @BBL X1C.json"
+		},
+		{
 			"name": "Bambu PLA Aero @BBL A1",
 			"sub_path": "filament/Bambu PLA Aero @BBL A1.json"
 		},
 		{
 			"name": "Bambu PLA Aero @BBL A1M",
 			"sub_path": "filament/Bambu PLA Aero @BBL A1M.json"
+		},
+		{
+			"name": "Bambu PLA Aero @BBL H2C",
+			"sub_path": "filament/Bambu PLA Aero @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Aero @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Aero @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Aero @BBL H2D",
@@ -3578,6 +5290,14 @@
 			"sub_path": "filament/Bambu PLA Aero @BBL X1C.json"
 		},
 		{
+			"name": "Bambu PLA Aero @BBL X2D",
+			"sub_path": "filament/Bambu PLA Aero @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Aero @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Aero @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Basic @BBL A1",
 			"sub_path": "filament/Bambu PLA Basic @BBL A1.json"
 		},
@@ -3592,6 +5312,22 @@
 		{
 			"name": "Bambu PLA Basic @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Basic @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Basic @BBL H2C",
+			"sub_path": "filament/Bambu PLA Basic @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Basic @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Basic @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Basic @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Basic @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Basic @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Basic @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Basic @BBL H2D",
@@ -3682,6 +5418,18 @@
 			"sub_path": "filament/Bambu PLA Basic @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Basic @BBL X2D",
+			"sub_path": "filament/Bambu PLA Basic @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Basic @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Basic @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Basic @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Basic @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Dynamic @BBL A1",
 			"sub_path": "filament/Bambu PLA Dynamic @BBL A1.json"
 		},
@@ -3696,6 +5444,18 @@
 		{
 			"name": "Bambu PLA Dynamic @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Dynamic @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Dynamic @BBL H2C",
+			"sub_path": "filament/Bambu PLA Dynamic @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Dynamic @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Dynamic @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Dynamic @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Dynamic @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Dynamic @BBL H2D",
@@ -3762,6 +5522,18 @@
 			"sub_path": "filament/Bambu PLA Dynamic @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Dynamic @BBL X2D",
+			"sub_path": "filament/Bambu PLA Dynamic @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Dynamic @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Dynamic @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Dynamic @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Dynamic @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Galaxy @BBL A1",
 			"sub_path": "filament/Bambu PLA Galaxy @BBL A1.json"
 		},
@@ -3776,6 +5548,18 @@
 		{
 			"name": "Bambu PLA Galaxy @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Galaxy @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Galaxy @BBL H2C",
+			"sub_path": "filament/Bambu PLA Galaxy @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Galaxy @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Galaxy @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Galaxy @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Galaxy @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Galaxy @BBL H2D",
@@ -3842,6 +5626,18 @@
 			"sub_path": "filament/Bambu PLA Galaxy @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Galaxy @BBL X2D",
+			"sub_path": "filament/Bambu PLA Galaxy @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Galaxy @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Galaxy @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Galaxy @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Galaxy @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Glow @BBL A1",
 			"sub_path": "filament/Bambu PLA Glow @BBL A1.json"
 		},
@@ -3856,6 +5652,18 @@
 		{
 			"name": "Bambu PLA Glow @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Glow @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Glow @BBL H2C",
+			"sub_path": "filament/Bambu PLA Glow @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Glow @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Glow @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Glow @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Glow @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Glow @BBL H2D",
@@ -3910,6 +5718,14 @@
 			"sub_path": "filament/Bambu PLA Glow @BBL X1E.json"
 		},
 		{
+			"name": "Bambu PLA Glow @BBL X2D",
+			"sub_path": "filament/Bambu PLA Glow @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Glow @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Glow @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Lite @BBL A1",
 			"sub_path": "filament/Bambu PLA Lite @BBL A1.json"
 		},
@@ -3924,6 +5740,18 @@
 		{
 			"name": "Bambu PLA Lite @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Lite @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Lite @BBL H2C",
+			"sub_path": "filament/Bambu PLA Lite @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Lite @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Lite @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Lite @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Lite @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Lite @BBL H2D",
@@ -3998,12 +5826,32 @@
 			"sub_path": "filament/Bambu PLA Lite @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Lite @BBL X2D",
+			"sub_path": "filament/Bambu PLA Lite @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Lite @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Lite @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Lite @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Lite @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Marble @BBL A1",
 			"sub_path": "filament/Bambu PLA Marble @BBL A1.json"
 		},
 		{
 			"name": "Bambu PLA Marble @BBL A1M",
 			"sub_path": "filament/Bambu PLA Marble @BBL A1M.json"
+		},
+		{
+			"name": "Bambu PLA Marble @BBL H2C",
+			"sub_path": "filament/Bambu PLA Marble @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Marble @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Marble @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Marble @BBL H2D",
@@ -4038,6 +5886,14 @@
 			"sub_path": "filament/Bambu PLA Marble @BBL X1C.json"
 		},
 		{
+			"name": "Bambu PLA Marble @BBL X2D",
+			"sub_path": "filament/Bambu PLA Marble @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Marble @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Marble @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Matte @BBL A1",
 			"sub_path": "filament/Bambu PLA Matte @BBL A1.json"
 		},
@@ -4052,6 +5908,22 @@
 		{
 			"name": "Bambu PLA Matte @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Matte @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Matte @BBL H2C",
+			"sub_path": "filament/Bambu PLA Matte @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Matte @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Matte @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Matte @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Matte @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Matte @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Matte @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Matte @BBL H2D",
@@ -4142,6 +6014,18 @@
 			"sub_path": "filament/Bambu PLA Matte @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Matte @BBL X2D",
+			"sub_path": "filament/Bambu PLA Matte @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Matte @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Matte @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Matte @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Matte @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Metal @BBL A1",
 			"sub_path": "filament/Bambu PLA Metal @BBL A1.json"
 		},
@@ -4156,6 +6040,18 @@
 		{
 			"name": "Bambu PLA Metal @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Metal @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Metal @BBL H2C",
+			"sub_path": "filament/Bambu PLA Metal @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Metal @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Metal @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Metal @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Metal @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Metal @BBL H2D",
@@ -4218,6 +6114,26 @@
 			"sub_path": "filament/Bambu PLA Metal @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Metal @BBL X2D",
+			"sub_path": "filament/Bambu PLA Metal @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Metal @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Metal @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Metal @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Metal @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL H2C",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2C 0.2 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Silk @BBL A1",
 			"sub_path": "filament/Bambu PLA Silk @BBL A1.json"
 		},
@@ -4232,6 +6148,18 @@
 		{
 			"name": "Bambu PLA Silk @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Silk @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Silk @BBL H2C",
+			"sub_path": "filament/Bambu PLA Silk @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Silk @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Silk @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Silk @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Silk @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Silk @BBL H2D",
@@ -4294,6 +6222,18 @@
 			"sub_path": "filament/Bambu PLA Silk @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Silk @BBL X2D",
+			"sub_path": "filament/Bambu PLA Silk @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Silk @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Silk @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Silk @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Silk @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Silk+ @BBL A1",
 			"sub_path": "filament/Bambu PLA Silk+ @BBL A1.json"
 		},
@@ -4308,6 +6248,18 @@
 		{
 			"name": "Bambu PLA Silk+ @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Silk+ @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Silk+ @BBL H2C",
+			"sub_path": "filament/Bambu PLA Silk+ @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Silk+ @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Silk+ @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Silk+ @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Silk+ @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Silk+ @BBL H2D",
@@ -4370,12 +6322,32 @@
 			"sub_path": "filament/Bambu PLA Silk+ @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Silk+ @BBL X2D",
+			"sub_path": "filament/Bambu PLA Silk+ @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Silk+ @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Silk+ @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Silk+ @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Silk+ @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Sparkle @BBL A1",
 			"sub_path": "filament/Bambu PLA Sparkle @BBL A1.json"
 		},
 		{
 			"name": "Bambu PLA Sparkle @BBL A1M",
 			"sub_path": "filament/Bambu PLA Sparkle @BBL A1M.json"
+		},
+		{
+			"name": "Bambu PLA Sparkle @BBL H2C",
+			"sub_path": "filament/Bambu PLA Sparkle @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Sparkle @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Sparkle @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Sparkle @BBL H2D",
@@ -4414,6 +6386,14 @@
 			"sub_path": "filament/Bambu PLA Sparkle @BBL X1C.json"
 		},
 		{
+			"name": "Bambu PLA Sparkle @BBL X2D",
+			"sub_path": "filament/Bambu PLA Sparkle @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Sparkle @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Sparkle @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Tough @BBL A1",
 			"sub_path": "filament/Bambu PLA Tough @BBL A1.json"
 		},
@@ -4428,6 +6408,18 @@
 		{
 			"name": "Bambu PLA Tough @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Tough @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough @BBL H2C",
+			"sub_path": "filament/Bambu PLA Tough @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Tough @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Tough @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Tough @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Tough @BBL H2D",
@@ -4482,6 +6474,18 @@
 			"sub_path": "filament/Bambu PLA Tough @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Tough @BBL X2D",
+			"sub_path": "filament/Bambu PLA Tough @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Tough @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Tough @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Tough @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Tough+ @BBL A1",
 			"sub_path": "filament/Bambu PLA Tough+ @BBL A1.json"
 		},
@@ -4496,6 +6500,22 @@
 		{
 			"name": "Bambu PLA Tough+ @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Tough+ @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @BBL H2C",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Tough+ @BBL H2D",
@@ -4586,6 +6606,18 @@
 			"sub_path": "filament/Bambu PLA Tough+ @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Tough+ @BBL X2D",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Tough+ @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Translucent @BBL A1",
 			"sub_path": "filament/Bambu PLA Translucent @BBL A1.json"
 		},
@@ -4608,6 +6640,14 @@
 		{
 			"name": "Bambu PLA Translucent @BBL A1M 0.8 nozzle",
 			"sub_path": "filament/Bambu PLA Translucent @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @BBL H2C",
+			"sub_path": "filament/Bambu PLA Translucent @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Translucent @BBL H2C 0.2 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Translucent @BBL H2D",
@@ -4682,12 +6722,36 @@
 			"sub_path": "filament/Bambu PLA Translucent @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Translucent @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Translucent @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Translucent @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @BBL X2D 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Translucent @BBL X2D 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Translucent @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Wood @BBL A1",
 			"sub_path": "filament/Bambu PLA Wood @BBL A1.json"
 		},
 		{
 			"name": "Bambu PLA Wood @BBL A1M",
 			"sub_path": "filament/Bambu PLA Wood @BBL A1M.json"
+		},
+		{
+			"name": "Bambu PLA Wood @BBL H2C",
+			"sub_path": "filament/Bambu PLA Wood @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA Wood @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Wood @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Wood @BBL H2D",
@@ -4738,6 +6802,14 @@
 			"sub_path": "filament/Bambu PLA Wood @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Wood @BBL X2D",
+			"sub_path": "filament/Bambu PLA Wood @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA Wood @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Wood @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA-CF @BBL A1",
 			"sub_path": "filament/Bambu PLA-CF @BBL A1.json"
 		},
@@ -4752,6 +6824,14 @@
 		{
 			"name": "Bambu PLA-CF @BBL A1M 0.8 nozzle",
 			"sub_path": "filament/Bambu PLA-CF @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA-CF @BBL H2C",
+			"sub_path": "filament/Bambu PLA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PLA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA-CF @BBL H2D 0.4 nozzle",
@@ -4798,6 +6878,14 @@
 			"sub_path": "filament/Bambu PLA-CF @BBL X1C 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA-CF @BBL X2D",
+			"sub_path": "filament/Bambu PLA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PLA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Support For PLA @BBL A1",
 			"sub_path": "filament/Bambu Support For PLA @BBL A1.json"
 		},
@@ -4812,6 +6900,18 @@
 		{
 			"name": "Bambu Support For PLA @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu Support For PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support For PLA @BBL H2C",
+			"sub_path": "filament/Bambu Support For PLA @BBL H2C.json"
+		},
+		{
+			"name": "Bambu Support For PLA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu Support For PLA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support For PLA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu Support For PLA @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Support For PLA @BBL H2D",
@@ -4862,6 +6962,18 @@
 			"sub_path": "filament/Bambu Support For PLA @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu Support For PLA @BBL X2D",
+			"sub_path": "filament/Bambu Support For PLA @BBL X2D.json"
+		},
+		{
+			"name": "Bambu Support For PLA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu Support For PLA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support For PLA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu Support For PLA @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Support For PLA/PETG @BBL A1",
 			"sub_path": "filament/Bambu Support For PLA-PETG @BBL A1.json"
 		},
@@ -4876,6 +6988,18 @@
 		{
 			"name": "Bambu Support For PLA/PETG @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu Support For PLA-PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support For PLA/PETG @BBL H2C",
+			"sub_path": "filament/Bambu Support For PLA-PETG @BBL H2C.json"
+		},
+		{
+			"name": "Bambu Support For PLA/PETG @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu Support For PLA-PETG @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support For PLA/PETG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu Support For PLA-PETG @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Support For PLA/PETG @BBL H2D",
@@ -4926,6 +7050,18 @@
 			"sub_path": "filament/Bambu Support For PLA-PETG @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu Support For PLA/PETG @BBL X2D",
+			"sub_path": "filament/Bambu Support For PLA-PETG @BBL X2D.json"
+		},
+		{
+			"name": "Bambu Support For PLA/PETG @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu Support For PLA-PETG @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support For PLA/PETG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu Support For PLA-PETG @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Support W @BBL A1",
 			"sub_path": "filament/Bambu Support W @BBL A1.json"
 		},
@@ -4940,6 +7076,18 @@
 		{
 			"name": "Bambu Support W @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Bambu Support W @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support W @BBL H2C",
+			"sub_path": "filament/Bambu Support W @BBL H2C.json"
+		},
+		{
+			"name": "Bambu Support W @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Bambu Support W @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support W @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu Support W @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Support W @BBL H2D",
@@ -4994,6 +7142,18 @@
 			"sub_path": "filament/Bambu Support W @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu Support W @BBL X2D",
+			"sub_path": "filament/Bambu Support W @BBL X2D.json"
+		},
+		{
+			"name": "Bambu Support W @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu Support W @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Support W @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu Support W @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PLA",
 			"sub_path": "filament/Generic PLA.json"
 		},
@@ -5016,6 +7176,18 @@
 		{
 			"name": "Generic PLA @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Generic PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PLA @BBL H2C",
+			"sub_path": "filament/Generic PLA @BBL H2C.json"
+		},
+		{
+			"name": "Generic PLA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic PLA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PLA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PLA @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PLA @BBL H2D",
@@ -5058,6 +7230,18 @@
 			"sub_path": "filament/Generic PLA @BBL P2S 0.2 nozzle.json"
 		},
 		{
+			"name": "Generic PLA @BBL X2D",
+			"sub_path": "filament/Generic PLA @BBL X2D.json"
+		},
+		{
+			"name": "Generic PLA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic PLA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PLA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PLA @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PLA High Speed @BBL A1",
 			"sub_path": "filament/Generic PLA High Speed @BBL A1.json"
 		},
@@ -5068,6 +7252,18 @@
 		{
 			"name": "Generic PLA High Speed @BBL A1M",
 			"sub_path": "filament/Generic PLA High Speed @BBL A1M.json"
+		},
+		{
+			"name": "Generic PLA High Speed @BBL H2C",
+			"sub_path": "filament/Generic PLA High Speed @BBL H2C.json"
+		},
+		{
+			"name": "Generic PLA High Speed @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic PLA High Speed @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PLA High Speed @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PLA High Speed @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PLA High Speed @BBL H2D",
@@ -5110,6 +7306,14 @@
 			"sub_path": "filament/Generic PLA High Speed @BBL X1C.json"
 		},
 		{
+			"name": "Generic PLA High Speed @BBL X2D",
+			"sub_path": "filament/Generic PLA High Speed @BBL X2D.json"
+		},
+		{
+			"name": "Generic PLA High Speed @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PLA High Speed @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PLA Silk",
 			"sub_path": "filament/Generic PLA Silk.json"
 		},
@@ -5120,6 +7324,14 @@
 		{
 			"name": "Generic PLA Silk @BBL A1M",
 			"sub_path": "filament/Generic PLA Silk @BBL A1M.json"
+		},
+		{
+			"name": "Generic PLA Silk @BBL H2C",
+			"sub_path": "filament/Generic PLA Silk @BBL H2C.json"
+		},
+		{
+			"name": "Generic PLA Silk @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PLA Silk @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PLA Silk @BBL H2D",
@@ -5142,6 +7354,14 @@
 			"sub_path": "filament/Generic PLA Silk @BBL P2S.json"
 		},
 		{
+			"name": "Generic PLA Silk @BBL X2D",
+			"sub_path": "filament/Generic PLA Silk @BBL X2D.json"
+		},
+		{
+			"name": "Generic PLA Silk @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PLA Silk @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PLA-CF",
 			"sub_path": "filament/Generic PLA-CF.json"
 		},
@@ -5152,6 +7372,14 @@
 		{
 			"name": "Generic PLA-CF @BBL A1M",
 			"sub_path": "filament/Generic PLA-CF @BBL A1M.json"
+		},
+		{
+			"name": "Generic PLA-CF @BBL H2C",
+			"sub_path": "filament/Generic PLA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PLA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PLA-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PLA-CF @BBL H2D",
@@ -5172,6 +7400,14 @@
 		{
 			"name": "Generic PLA-CF @BBL P2S",
 			"sub_path": "filament/Generic PLA-CF @BBL P2S.json"
+		},
+		{
+			"name": "Generic PLA-CF @BBL X2D",
+			"sub_path": "filament/Generic PLA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PLA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PLA-CF @BBL X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "Numakers PLA+ @BBL A1",
@@ -5986,6 +8222,22 @@
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "PolyLite CosPLA @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite CosPLA @BBL A1.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite CosPLA @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite CosPLA @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite CosPLA @BBL X1.json"
+		},
+		{
 			"name": "PolyLite PLA @BBL A1",
 			"sub_path": "filament/Polymaker/PolyLite PLA @BBL A1.json"
 		},
@@ -6038,6 +8290,70 @@
 			"sub_path": "filament/Polymaker/PolyLite PLA @BBL X1C.json"
 		},
 		{
+			"name": "PolyLite PLA Galaxy @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Galaxy @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite PLA Galaxy @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite PLA Galaxy @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Galaxy @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Glow @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite PLA Glow @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite PLA Glow @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Glow @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Luminous @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite PLA Luminous @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite PLA Luminous @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Luminous @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Neon @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite PLA Neon @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite PLA Neon @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Neon @BBL X1.json"
+		},
+		{
 			"name": "PolyLite PLA Pro @BBL A1",
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @BBL A1.json"
 		},
@@ -6076,6 +8392,38 @@
 		{
 			"name": "PolyLite PLA Pro @BBL X1C 0.2 nozzle",
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Starlight @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite PLA Starlight @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite PLA Starlight @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Starlight @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL A1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Translucent @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyLite PLA Translucent @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyLite PLA Translucent @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL X1",
+			"sub_path": "filament/Polymaker/PolyLite PLA Translucent @BBL X1.json"
 		},
 		{
 			"name": "PolyTerra PLA @BBL A1",
@@ -6128,6 +8476,38 @@
 		{
 			"name": "PolyTerra PLA @BBL X1C",
 			"sub_path": "filament/Polymaker/PolyTerra PLA @BBL X1C.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL A1",
+			"sub_path": "filament/Polymaker/PolyTerra PLA Marble @BBL A1.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyTerra PLA Marble @BBL A1M.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyTerra PLA Marble @BBL P1P.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL X1",
+			"sub_path": "filament/Polymaker/PolyTerra PLA Marble @BBL X1.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL A1",
+			"sub_path": "filament/Polymaker/PolyTerra PLA+ @BBL A1.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL A1M",
+			"sub_path": "filament/Polymaker/PolyTerra PLA+ @BBL A1M.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL P1P",
+			"sub_path": "filament/Polymaker/PolyTerra PLA+ @BBL P1P.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL X1",
+			"sub_path": "filament/Polymaker/PolyTerra PLA+ @BBL X1.json"
 		},
 		{
 			"name": "Polymaker HT-PLA @BBL A1",
@@ -6462,6 +8842,14 @@
 			"sub_path": "filament/Generic PP @BBL A1M.json"
 		},
 		{
+			"name": "Generic PP @BBL H2C",
+			"sub_path": "filament/Generic PP @BBL H2C.json"
+		},
+		{
+			"name": "Generic PP @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PP @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PP @BBL H2D",
 			"sub_path": "filament/Generic PP @BBL H2D.json"
 		},
@@ -6482,8 +8870,24 @@
 			"sub_path": "filament/Generic PP @BBL X1C.json"
 		},
 		{
+			"name": "Generic PP @BBL X2D",
+			"sub_path": "filament/Generic PP @BBL X2D.json"
+		},
+		{
+			"name": "Generic PP @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PP @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PP-CF @BBL A1",
 			"sub_path": "filament/Generic PP-CF @BBL A1.json"
+		},
+		{
+			"name": "Generic PP-CF @BBL H2C",
+			"sub_path": "filament/Generic PP-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PP-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PP-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PP-CF @BBL H2D",
@@ -6506,8 +8910,24 @@
 			"sub_path": "filament/Generic PP-CF @BBL X1C.json"
 		},
 		{
+			"name": "Generic PP-CF @BBL X2D",
+			"sub_path": "filament/Generic PP-CF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PP-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PP-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PP-GF @BBL A1",
 			"sub_path": "filament/Generic PP-GF @BBL A1.json"
+		},
+		{
+			"name": "Generic PP-GF @BBL H2C",
+			"sub_path": "filament/Generic PP-GF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PP-GF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PP-GF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PP-GF @BBL H2D",
@@ -6528,6 +8948,22 @@
 		{
 			"name": "Generic PP-GF @BBL X1C",
 			"sub_path": "filament/Generic PP-GF @BBL X1C.json"
+		},
+		{
+			"name": "Generic PP-GF @BBL X2D",
+			"sub_path": "filament/Generic PP-GF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PP-GF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PP-GF @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PPA-CF @BBL H2C",
+			"sub_path": "filament/Bambu PPA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PPA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PPA-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu PPA-CF @BBL H2D",
@@ -6554,6 +8990,22 @@
 			"sub_path": "filament/Bambu PPA-CF @BBL X1E.json"
 		},
 		{
+			"name": "Bambu PPA-CF @BBL X2D",
+			"sub_path": "filament/Bambu PPA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PPA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PPA-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Generic PPA-CF @BBL H2C",
+			"sub_path": "filament/Generic PPA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PPA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PPA-CF @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PPA-CF @BBL H2D",
 			"sub_path": "filament/Generic PPA-CF @BBL H2D.json"
 		},
@@ -6576,6 +9028,22 @@
 		{
 			"name": "Generic PPA-CF @BBL X1E",
 			"sub_path": "filament/Generic PPA-CF @BBL X1E.json"
+		},
+		{
+			"name": "Generic PPA-CF @BBL X2D",
+			"sub_path": "filament/Generic PPA-CF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PPA-CF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PPA-CF @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Generic PPA-GF @BBL H2C",
+			"sub_path": "filament/Generic PPA-GF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PPA-GF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PPA-GF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PPA-GF @BBL H2D",
@@ -6602,6 +9070,22 @@
 			"sub_path": "filament/Generic PPA-GF @BBL X1E.json"
 		},
 		{
+			"name": "Generic PPA-GF @BBL X2D",
+			"sub_path": "filament/Generic PPA-GF @BBL X2D.json"
+		},
+		{
+			"name": "Generic PPA-GF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PPA-GF @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PPS-CF @BBL H2C",
+			"sub_path": "filament/Bambu PPS-CF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PPS-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PPS-CF @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PPS-CF @BBL H2D",
 			"sub_path": "filament/Bambu PPS-CF @BBL H2D.json"
 		},
@@ -6618,6 +9102,14 @@
 			"sub_path": "filament/Bambu PPS-CF @BBL X1E.json"
 		},
 		{
+			"name": "Generic PPS @BBL H2C",
+			"sub_path": "filament/Generic PPS @BBL H2C.json"
+		},
+		{
+			"name": "Generic PPS @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PPS @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PPS @BBL H2D",
 			"sub_path": "filament/Generic PPS @BBL H2D.json"
 		},
@@ -6632,6 +9124,14 @@
 		{
 			"name": "Generic PPS @BBL X1E",
 			"sub_path": "filament/Generic PPS @BBL X1E.json"
+		},
+		{
+			"name": "Generic PPS-CF @BBL H2C",
+			"sub_path": "filament/Generic PPS-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PPS-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PPS-CF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PPS-CF @BBL H2D",
@@ -6666,6 +9166,14 @@
 			"sub_path": "filament/Bambu PVA @BBL A1M 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PVA @BBL H2C",
+			"sub_path": "filament/Bambu PVA @BBL H2C.json"
+		},
+		{
+			"name": "Bambu PVA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu PVA @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PVA @BBL H2D",
 			"sub_path": "filament/Bambu PVA @BBL H2D.json"
 		},
@@ -6698,6 +9206,14 @@
 			"sub_path": "filament/Bambu PVA @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PVA @BBL X2D",
+			"sub_path": "filament/Bambu PVA @BBL X2D.json"
+		},
+		{
+			"name": "Bambu PVA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PVA @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PVA",
 			"sub_path": "filament/Generic PVA.json"
 		},
@@ -6720,6 +9236,18 @@
 		{
 			"name": "Generic PVA @BBL A1M 0.2 nozzle",
 			"sub_path": "filament/Generic PVA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PVA @BBL H2C",
+			"sub_path": "filament/Generic PVA @BBL H2C.json"
+		},
+		{
+			"name": "Generic PVA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Generic PVA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PVA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PVA @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PVA @BBL H2D",
@@ -6750,8 +9278,124 @@
 			"sub_path": "filament/Generic PVA @BBL P2S 0.2 nozzle.json"
 		},
 		{
+			"name": "Generic PVA @BBL X2D",
+			"sub_path": "filament/Generic PVA @BBL X2D.json"
+		},
+		{
+			"name": "Generic PVA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic PVA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PVA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic PVA @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic SBS",
 			"sub_path": "filament/Generic SBS.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL A1",
+			"sub_path": "filament/BETA/BETA PEBA 90A @BBL A1.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL A1M",
+			"sub_path": "filament/BETA/BETA PEBA 90A @BBL A1M.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL H2D",
+			"sub_path": "filament/BETA/BETA PEBA 90A @BBL H2D.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL P1P",
+			"sub_path": "filament/BETA/BETA PEBA 90A @BBL P1P.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL X1C",
+			"sub_path": "filament/BETA/BETA PEBA 90A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL A1",
+			"sub_path": "filament/BETA/BETA TPU 90A @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL A1M",
+			"sub_path": "filament/BETA/BETA TPU 90A @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL H2D",
+			"sub_path": "filament/BETA/BETA TPU 90A @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL P1P",
+			"sub_path": "filament/BETA/BETA TPU 90A @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL X1C",
+			"sub_path": "filament/BETA/BETA TPU 90A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL A1",
+			"sub_path": "filament/BETA/BETA TPU 95A @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL A1M",
+			"sub_path": "filament/BETA/BETA TPU 95A @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL H2D",
+			"sub_path": "filament/BETA/BETA TPU 95A @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL P1P",
+			"sub_path": "filament/BETA/BETA TPU 95A @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL X1C",
+			"sub_path": "filament/BETA/BETA TPU 95A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL A1",
+			"sub_path": "filament/BETA/BETA TPU 98A @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL A1M",
+			"sub_path": "filament/BETA/BETA TPU 98A @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL H2D",
+			"sub_path": "filament/BETA/BETA TPU 98A @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL P1P",
+			"sub_path": "filament/BETA/BETA TPU 98A @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL X1C",
+			"sub_path": "filament/BETA/BETA TPU 98A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL A1",
+			"sub_path": "filament/BETA/BETA TPU Matte @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL A1M",
+			"sub_path": "filament/BETA/BETA TPU Matte @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL H2D",
+			"sub_path": "filament/BETA/BETA TPU Matte @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL P1P",
+			"sub_path": "filament/BETA/BETA TPU Matte @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL X1C",
+			"sub_path": "filament/BETA/BETA TPU Matte @BBL X1C.json"
+		},
+		{
+			"name": "Bambu TPU 85A @BBL H2C",
+			"sub_path": "filament/Bambu TPU 85A @BBL H2C.json"
 		},
 		{
 			"name": "Bambu TPU 85A @BBL H2D",
@@ -6790,12 +9434,28 @@
 			"sub_path": "filament/Bambu TPU 85A @BBL X1C.json"
 		},
 		{
+			"name": "Bambu TPU 85A @BBL X2D",
+			"sub_path": "filament/Bambu TPU 85A @BBL X2D.json"
+		},
+		{
+			"name": "Bambu TPU 85A @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu TPU 85A @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu TPU 90A @BBL A1",
 			"sub_path": "filament/Bambu TPU 90A @BBL A1.json"
 		},
 		{
 			"name": "Bambu TPU 90A @BBL A1M",
 			"sub_path": "filament/Bambu TPU 90A @BBL A1M.json"
+		},
+		{
+			"name": "Bambu TPU 90A @BBL H2C",
+			"sub_path": "filament/Bambu TPU 90A @BBL H2C.json"
+		},
+		{
+			"name": "Bambu TPU 90A @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU 90A @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu TPU 90A @BBL H2D",
@@ -6838,12 +9498,32 @@
 			"sub_path": "filament/Bambu TPU 90A @BBL X1C.json"
 		},
 		{
+			"name": "Bambu TPU 90A @BBL X2D",
+			"sub_path": "filament/Bambu TPU 90A @BBL X2D.json"
+		},
+		{
+			"name": "Bambu TPU 90A @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU 90A @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu TPU 90A @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu TPU 90A @BBL X2D 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu TPU 95A @BBL A1",
 			"sub_path": "filament/Bambu TPU 95A @BBL A1.json"
 		},
 		{
 			"name": "Bambu TPU 95A @BBL A1M",
 			"sub_path": "filament/Bambu TPU 95A @BBL A1M.json"
+		},
+		{
+			"name": "Bambu TPU 95A @BBL H2C",
+			"sub_path": "filament/Bambu TPU 95A @BBL H2C.json"
+		},
+		{
+			"name": "Bambu TPU 95A @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU 95A @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu TPU 95A @BBL H2D",
@@ -6874,12 +9554,28 @@
 			"sub_path": "filament/Bambu TPU 95A @BBL X1C.json"
 		},
 		{
+			"name": "Bambu TPU 95A @BBL X2D",
+			"sub_path": "filament/Bambu TPU 95A @BBL X2D.json"
+		},
+		{
+			"name": "Bambu TPU 95A @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU 95A @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu TPU 95A HF @BBL A1",
 			"sub_path": "filament/Bambu TPU 95A HF @BBL A1.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @BBL A1M",
 			"sub_path": "filament/Bambu TPU 95A HF @BBL A1M.json"
+		},
+		{
+			"name": "Bambu TPU 95A HF @BBL H2C",
+			"sub_path": "filament/Bambu TPU 95A HF @BBL H2C.json"
+		},
+		{
+			"name": "Bambu TPU 95A HF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU 95A HF @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @BBL H2D",
@@ -6918,12 +9614,28 @@
 			"sub_path": "filament/Bambu TPU 95A HF @BBL X1E.json"
 		},
 		{
+			"name": "Bambu TPU 95A HF @BBL X2D",
+			"sub_path": "filament/Bambu TPU 95A HF @BBL X2D.json"
+		},
+		{
+			"name": "Bambu TPU 95A HF @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU 95A HF @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu TPU for AMS @BBL A1",
 			"sub_path": "filament/Bambu TPU for AMS @BBL A1.json"
 		},
 		{
 			"name": "Bambu TPU for AMS @BBL A1M",
 			"sub_path": "filament/Bambu TPU for AMS @BBL A1M.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @BBL H2C",
+			"sub_path": "filament/Bambu TPU for AMS @BBL H2C.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU for AMS @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu TPU for AMS @BBL H2D",
@@ -6950,8 +9662,24 @@
 			"sub_path": "filament/Bambu TPU for AMS @BBL X1C.json"
 		},
 		{
+			"name": "Bambu TPU for AMS @BBL X2D",
+			"sub_path": "filament/Bambu TPU for AMS @BBL X2D.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu TPU for AMS @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic TPU",
 			"sub_path": "filament/Generic TPU.json"
+		},
+		{
+			"name": "Generic TPU @BBL H2C",
+			"sub_path": "filament/Generic TPU @BBL H2C.json"
+		},
+		{
+			"name": "Generic TPU @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic TPU @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic TPU @BBL H2D",
@@ -6970,12 +9698,28 @@
 			"sub_path": "filament/Generic TPU @BBL P2S.json"
 		},
 		{
+			"name": "Generic TPU @BBL X2D",
+			"sub_path": "filament/Generic TPU @BBL X2D.json"
+		},
+		{
+			"name": "Generic TPU @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic TPU @BBL X2D 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic TPU for AMS @BBL A1",
 			"sub_path": "filament/Generic TPU for AMS @BBL A1.json"
 		},
 		{
 			"name": "Generic TPU for AMS @BBL A1M",
 			"sub_path": "filament/Generic TPU for AMS @BBL A1M.json"
+		},
+		{
+			"name": "Generic TPU for AMS @BBL H2C",
+			"sub_path": "filament/Generic TPU for AMS @BBL H2C.json"
+		},
+		{
+			"name": "Generic TPU for AMS @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic TPU for AMS @BBL H2C 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic TPU for AMS @BBL H2D",
@@ -7000,6 +9744,14 @@
 		{
 			"name": "Generic TPU for AMS @BBL X1C",
 			"sub_path": "filament/Generic TPU for AMS @BBL X1C.json"
+		},
+		{
+			"name": "Generic TPU for AMS @BBL X2D",
+			"sub_path": "filament/Generic TPU for AMS @BBL X2D.json"
+		},
+		{
+			"name": "Generic TPU for AMS @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Generic TPU for AMS @BBL X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic ABS @BBL H2DP",
@@ -7062,6 +9814,14 @@
 			"sub_path": "filament/Generic PA-CF @BBL A1.json"
 		},
 		{
+			"name": "Generic PA-CF @BBL H2C",
+			"sub_path": "filament/Generic PA-CF @BBL H2C.json"
+		},
+		{
+			"name": "Generic PA-CF @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Generic PA-CF @BBL H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic PA-CF @BBL H2D",
 			"sub_path": "filament/Generic PA-CF @BBL H2D.json"
 		},
@@ -7110,758 +9870,6 @@
 			"sub_path": "filament/Generic PC @BBL H2DP 0.2 nozzle.json"
 		},
 		{
-			"name": "Bambu ABS @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu ABS @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu ABS @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu ABS @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu ABS @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu ABS @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu ABS @BBL H2C",
-			"sub_path": "filament/Bambu ABS @BBL H2C.json"
-		},
-		{
-			"name": "Bambu ABS-GF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu ABS-GF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu ABS-GF @BBL H2C",
-			"sub_path": "filament/Bambu ABS-GF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu ASA @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu ASA @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu ASA @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu ASA @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu ASA @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu ASA @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu ASA @BBL H2C",
-			"sub_path": "filament/Bambu ASA @BBL H2C.json"
-		},
-		{
-			"name": "Bambu ASA-Aero @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu ASA-Aero @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu ASA-Aero @BBL H2C",
-			"sub_path": "filament/Bambu ASA-Aero @BBL H2C.json"
-		},
-		{
-			"name": "Bambu ASA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu ASA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu ASA-CF @BBL H2C",
-			"sub_path": "filament/Bambu ASA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PA-CF @BBL H2C",
-			"sub_path": "filament/Bambu PA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PA6-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PA6-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PA6-CF @BBL H2C",
-			"sub_path": "filament/Bambu PA6-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PA6-GF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PA6-GF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PA6-GF @BBL H2C",
-			"sub_path": "filament/Bambu PA6-GF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PAHT-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PAHT-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PAHT-CF @BBL H2C",
-			"sub_path": "filament/Bambu PAHT-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PC @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PC @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PC @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu PC @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu PC @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu PC @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu PC @BBL H2C",
-			"sub_path": "filament/Bambu PC @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PC FR @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PC FR @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PC FR @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PC FR @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PC FR @BBL H2C",
-			"sub_path": "filament/Bambu PC FR @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PET-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PET-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PET-CF @BBL H2C",
-			"sub_path": "filament/Bambu PET-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PETG Basic @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PETG Basic @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG Basic @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PETG Basic @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG Basic @BBL H2C",
-			"sub_path": "filament/Bambu PETG Basic @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PETG HF @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PETG HF @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG HF @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu PETG HF @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG HF @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu PETG HF @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG HF @BBL H2C",
-			"sub_path": "filament/Bambu PETG HF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PETG Translucent @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PETG Translucent @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG Translucent @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PETG Translucent @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG Translucent @BBL H2C",
-			"sub_path": "filament/Bambu PETG Translucent @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PETG-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PETG-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PETG-CF @BBL H2C",
-			"sub_path": "filament/Bambu PETG-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Aero @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Aero @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Aero @BBL H2C",
-			"sub_path": "filament/Bambu PLA Aero @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Basic @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Basic @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Basic @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu PLA Basic @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Basic @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu PLA Basic @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Basic @BBL H2C",
-			"sub_path": "filament/Bambu PLA Basic @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Dynamic @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Dynamic @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Dynamic @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Dynamic @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Dynamic @BBL H2C",
-			"sub_path": "filament/Bambu PLA Dynamic @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Galaxy @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Galaxy @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Galaxy @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Galaxy @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Galaxy @BBL H2C",
-			"sub_path": "filament/Bambu PLA Galaxy @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Glow @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Glow @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Glow @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Glow @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Glow @BBL H2C",
-			"sub_path": "filament/Bambu PLA Glow @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Lite @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Lite @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Lite @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Lite @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Lite @BBL H2C",
-			"sub_path": "filament/Bambu PLA Lite @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Marble @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Marble @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Marble @BBL H2C",
-			"sub_path": "filament/Bambu PLA Marble @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Matte @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Matte @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Matte @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu PLA Matte @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Matte @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu PLA Matte @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Matte @BBL H2C",
-			"sub_path": "filament/Bambu PLA Matte @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Metal @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Metal @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Metal @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Metal @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Metal @BBL H2C",
-			"sub_path": "filament/Bambu PLA Metal @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Silk @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Silk @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Silk @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Silk @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Silk @BBL H2C",
-			"sub_path": "filament/Bambu PLA Silk @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Silk+ @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Silk+ @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Silk+ @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Silk+ @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Silk+ @BBL H2C",
-			"sub_path": "filament/Bambu PLA Silk+ @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Sparkle @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Sparkle @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Sparkle @BBL H2C",
-			"sub_path": "filament/Bambu PLA Sparkle @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Tough @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Tough @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Tough @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Tough @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Tough @BBL H2C",
-			"sub_path": "filament/Bambu PLA Tough @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Tough+ @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Tough+ @BBL H2C 0.6 nozzle",
-			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Tough+ @BBL H2C 0.8 nozzle",
-			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C 0.8 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Tough+ @BBL H2C",
-			"sub_path": "filament/Bambu PLA Tough+ @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Translucent @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu PLA Translucent @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Translucent @BBL H2C",
-			"sub_path": "filament/Bambu PLA Translucent @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA Wood @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA Wood @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA Wood @BBL H2C",
-			"sub_path": "filament/Bambu PLA Wood @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PLA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PLA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PLA-CF @BBL H2C",
-			"sub_path": "filament/Bambu PLA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PPA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PPA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PPA-CF @BBL H2C",
-			"sub_path": "filament/Bambu PPA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PPS-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PPS-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PPS-CF @BBL H2C",
-			"sub_path": "filament/Bambu PPS-CF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu PVA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu PVA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu PVA @BBL H2C",
-			"sub_path": "filament/Bambu PVA @BBL H2C.json"
-		},
-		{
-			"name": "Bambu Support For PA/PET @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu Support For PA PET @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu Support For PA/PET @BBL H2C",
-			"sub_path": "filament/Bambu Support For PA PET @BBL H2C.json"
-		},
-		{
-			"name": "Bambu Support For PLA @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu Support For PLA @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu Support For PLA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu Support For PLA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu Support For PLA @BBL H2C",
-			"sub_path": "filament/Bambu Support For PLA @BBL H2C.json"
-		},
-		{
-			"name": "Bambu Support For PLA/PETG @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu Support For PLA-PETG @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu Support For PLA/PETG @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu Support For PLA-PETG @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu Support For PLA/PETG @BBL H2C",
-			"sub_path": "filament/Bambu Support For PLA-PETG @BBL H2C.json"
-		},
-		{
-			"name": "Bambu Support G @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu Support G @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu Support G @BBL H2C",
-			"sub_path": "filament/Bambu Support G @BBL H2C.json"
-		},
-		{
-			"name": "Bambu Support W @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Bambu Support W @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Bambu Support W @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu Support W @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu Support W @BBL H2C",
-			"sub_path": "filament/Bambu Support W @BBL H2C.json"
-		},
-		{
-			"name": "Bambu Support for ABS @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu Support for ABS @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu Support for ABS @BBL H2C",
-			"sub_path": "filament/Bambu Support for ABS @BBL H2C.json"
-		},
-		{
-			"name": "Bambu TPU 85A @BBL H2C",
-			"sub_path": "filament/Bambu TPU 85A @BBL H2C.json"
-		},
-		{
-			"name": "Bambu TPU 90A @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu TPU 90A @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu TPU 90A @BBL H2C",
-			"sub_path": "filament/Bambu TPU 90A @BBL H2C.json"
-		},
-		{
-			"name": "Bambu TPU 95A @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu TPU 95A @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu TPU 95A @BBL H2C",
-			"sub_path": "filament/Bambu TPU 95A @BBL H2C.json"
-		},
-		{
-			"name": "Bambu TPU 95A HF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu TPU 95A HF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu TPU 95A HF @BBL H2C",
-			"sub_path": "filament/Bambu TPU 95A HF @BBL H2C.json"
-		},
-		{
-			"name": "Bambu TPU for AMS @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Bambu TPU for AMS @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Bambu TPU for AMS @BBL H2C",
-			"sub_path": "filament/Bambu TPU for AMS @BBL H2C.json"
-		},
-		{
-			"name": "Generic ABS @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic ABS @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic ABS @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic ABS @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic ABS @BBL H2C",
-			"sub_path": "filament/Generic ABS @BBL H2C.json"
-		},
-		{
-			"name": "Generic ASA @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic ASA @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic ASA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic ASA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic ASA @BBL H2C",
-			"sub_path": "filament/Generic ASA @BBL H2C.json"
-		},
-		{
-			"name": "Generic BVOH @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic BVOH @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic BVOH @BBL H2C",
-			"sub_path": "filament/Generic BVOH @BBL H2C.json"
-		},
-		{
-			"name": "Generic EVA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic EVA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic EVA @BBL H2C",
-			"sub_path": "filament/Generic EVA @BBL H2C.json"
-		},
-		{
-			"name": "Generic HIPS @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic HIPS @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic HIPS @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic HIPS @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic HIPS @BBL H2C",
-			"sub_path": "filament/Generic HIPS @BBL H2C.json"
-		},
-		{
-			"name": "Generic PA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PA @BBL H2C",
-			"sub_path": "filament/Generic PA @BBL H2C.json"
-		},
-		{
-			"name": "Generic PA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PA-CF @BBL H2C",
-			"sub_path": "filament/Generic PA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PC @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic PC @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic PC @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PC @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PC @BBL H2C",
-			"sub_path": "filament/Generic PC @BBL H2C.json"
-		},
-		{
-			"name": "Generic PCTG @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PCTG @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PCTG @BBL H2C",
-			"sub_path": "filament/Generic PCTG @BBL H2C.json"
-		},
-		{
-			"name": "Generic PE @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PE @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PE @BBL H2C",
-			"sub_path": "filament/Generic PE @BBL H2C.json"
-		},
-		{
-			"name": "Generic PE-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PE-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PE-CF @BBL H2C",
-			"sub_path": "filament/Generic PE-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PETG @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic PETG @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic PETG @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PETG @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PETG @BBL H2C",
-			"sub_path": "filament/Generic PETG @BBL H2C.json"
-		},
-		{
-			"name": "Generic PETG HF @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic PETG HF @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic PETG HF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PETG HF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PETG HF @BBL H2C",
-			"sub_path": "filament/Generic PETG HF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PETG-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PETG-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PETG-CF @BBL H2C",
-			"sub_path": "filament/Generic PETG-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PHA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PHA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PHA @BBL H2C",
-			"sub_path": "filament/Generic PHA @BBL H2C.json"
-		},
-		{
-			"name": "Generic PLA @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic PLA @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic PLA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PLA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PLA @BBL H2C",
-			"sub_path": "filament/Generic PLA @BBL H2C.json"
-		},
-		{
-			"name": "Generic PLA High Speed @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic PLA High Speed @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic PLA High Speed @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PLA High Speed @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PLA High Speed @BBL H2C",
-			"sub_path": "filament/Generic PLA High Speed @BBL H2C.json"
-		},
-		{
-			"name": "Generic PLA Silk @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PLA Silk @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PLA Silk @BBL H2C",
-			"sub_path": "filament/Generic PLA Silk @BBL H2C.json"
-		},
-		{
-			"name": "Generic PLA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PLA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PLA-CF @BBL H2C",
-			"sub_path": "filament/Generic PLA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PP @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PP @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PP @BBL H2C",
-			"sub_path": "filament/Generic PP @BBL H2C.json"
-		},
-		{
-			"name": "Generic PP-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PP-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PP-CF @BBL H2C",
-			"sub_path": "filament/Generic PP-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PP-GF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PP-GF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PP-GF @BBL H2C",
-			"sub_path": "filament/Generic PP-GF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PPA-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PPA-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PPA-CF @BBL H2C",
-			"sub_path": "filament/Generic PPA-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PPA-GF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PPA-GF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PPA-GF @BBL H2C",
-			"sub_path": "filament/Generic PPA-GF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PPS @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PPS @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PPS @BBL H2C",
-			"sub_path": "filament/Generic PPS @BBL H2C.json"
-		},
-		{
-			"name": "Generic PPS-CF @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PPS-CF @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PPS-CF @BBL H2C",
-			"sub_path": "filament/Generic PPS-CF @BBL H2C.json"
-		},
-		{
-			"name": "Generic PVA @BBL H2C 0.2 nozzle",
-			"sub_path": "filament/Generic PVA @BBL H2C 0.2 nozzle.json"
-		},
-		{
-			"name": "Generic PVA @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic PVA @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PVA @BBL H2C",
-			"sub_path": "filament/Generic PVA @BBL H2C.json"
-		},
-		{
-			"name": "Generic TPU @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic TPU @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic TPU @BBL H2C",
-			"sub_path": "filament/Generic TPU @BBL H2C.json"
-		},
-		{
-			"name": "Generic TPU for AMS @BBL H2C 0.4 nozzle",
-			"sub_path": "filament/Generic TPU for AMS @BBL H2C 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic TPU for AMS @BBL H2C",
-			"sub_path": "filament/Generic TPU for AMS @BBL H2C.json"
-		},
-		{
 			"name": "Generic PC @BBL P1S 0.2 nozzle",
 			"sub_path": "filament/Generic PC @BBL P1S 0.2 nozzle.json"
 		},
@@ -7902,6 +9910,10 @@
 			"sub_path": "filament/Bambu PLA Glow @BBL X1C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Glow @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Glow @BBL X2D 0.2 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Glow @BBL X1E 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Glow @BBL X1E 0.2 nozzle.json"
 		},
@@ -7916,6 +9928,10 @@
 		{
 			"name": "Generic PLA High Speed @BBL X1C 0.2 nozzle",
 			"sub_path": "filament/Generic PLA High Speed @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Generic PLA High Speed @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Generic PLA High Speed @BBL X2D 0.2 nozzle.json"
 		},
 		{
 			"name": "Overture Matte PLA @BBL A1M 0.2 nozzle",
@@ -8524,982 +10540,6 @@
 		{
 			"name": "fdm_filament_dual_common",
 			"sub_path": "filament/fdm_filament_dual_common.json"
-		},
-		{
-			"name": "BETA ABS @base",
-			"sub_path": "filament/BETA/BETA ABS @base.json"
-		},
-		{
-			"name": "BETA ABS @BBL P1P",
-			"sub_path": "filament/BETA/BETA ABS @BBL P1P.json"
-		},
-		{
-			"name": "BETA ABS @BBL A1",
-			"sub_path": "filament/BETA/BETA ABS @BBL A1.json"
-		},
-		{
-			"name": "BETA ABS @BBL H2D",
-			"sub_path": "filament/BETA/BETA ABS @BBL H2D.json"
-		},
-		{
-			"name": "BETA ABS @BBL X1C",
-			"sub_path": "filament/BETA/BETA ABS @BBL X1C.json"
-		},
-		{
-			"name": "BETA ASA @base",
-			"sub_path": "filament/BETA/BETA ASA @base.json"
-		},
-		{
-			"name": "BETA ASA @BBL A1 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA ASA @BBL A1 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA ASA @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA ASA @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA ASA @BBL X1C 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA ASA @BBL X1C 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @base",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @base.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL H2D.json"
-		},
-		{
-			"name": "BETA PAHT-CF @base",
-			"sub_path": "filament/BETA/BETA PAHT-CF @base.json"
-		},
-		{
-			"name": "BETA PAHT-CF @BBL P1P",
-			"sub_path": "filament/BETA/BETA PAHT-CF @BBL P1P.json"
-		},
-		{
-			"name": "BETA PAHT-CF @BBL H2D",
-			"sub_path": "filament/BETA/BETA PAHT-CF @BBL H2D.json"
-		},
-		{
-			"name": "BETA PAHT-CF @BBL X1C",
-			"sub_path": "filament/BETA/BETA PAHT-CF @BBL X1C.json"
-		},
-		{
-			"name": "BETA PEBA 90A @base",
-			"sub_path": "filament/BETA/BETA PEBA 90A @base.json"
-		},
-		{
-			"name": "BETA PEBA 90A @BBL A1",
-			"sub_path": "filament/BETA/BETA PEBA 90A @BBL A1.json"
-		},
-		{
-			"name": "BETA PEBA 90A @BBL A1M",
-			"sub_path": "filament/BETA/BETA PEBA 90A @BBL A1M.json"
-		},
-		{
-			"name": "BETA PEBA 90A @BBL H2D",
-			"sub_path": "filament/BETA/BETA PEBA 90A @BBL H2D.json"
-		},
-		{
-			"name": "BETA PEBA 90A @BBL P1P",
-			"sub_path": "filament/BETA/BETA PEBA 90A @BBL P1P.json"
-		},
-		{
-			"name": "BETA PEBA 90A @BBL X1C",
-			"sub_path": "filament/BETA/BETA PEBA 90A @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Heat Color Change @base",
-			"sub_path": "filament/BETA/BETA PETG Heat Color Change @base.json"
-		},
-		{
-			"name": "BETA PETG Heat Color Change @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Heat Color Change @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Heat Color Change @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Heat Color Change @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Fluorescence @base",
-			"sub_path": "filament/BETA/BETA PETG Fluorescence @base.json"
-		},
-		{
-			"name": "BETA PETG Fluorescence @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Fluorescence @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Fluorescence @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Fluorescence @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Glitter @base",
-			"sub_path": "filament/BETA/BETA PETG Glitter @base.json"
-		},
-		{
-			"name": "BETA PETG Glitter @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Glitter @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Glitter @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Glitter @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Glitter @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Glitter @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Glitter @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Glitter @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Glow @base",
-			"sub_path": "filament/BETA/BETA PETG Glow @base.json"
-		},
-		{
-			"name": "BETA PETG Glow @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Glow @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Glow @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Glow @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Glow @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Glow @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Glow @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Glow @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Gradient @base",
-			"sub_path": "filament/BETA/BETA PETG Gradient @base.json"
-		},
-		{
-			"name": "BETA PETG Gradient @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Gradient @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Gradient @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Gradient @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Gradient @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Gradient @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Gradient @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Gradient @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG HF @base",
-			"sub_path": "filament/BETA/BETA PETG HF @base.json"
-		},
-		{
-			"name": "BETA PETG HF @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG HF @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG HF @BBL A1M",
-			"sub_path": "filament/BETA/BETA PETG HF @BBL A1M.json"
-		},
-		{
-			"name": "BETA PETG HF @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG HF @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG HF @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG HF @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Marble @base",
-			"sub_path": "filament/BETA/BETA PETG Marble @base.json"
-		},
-		{
-			"name": "BETA PETG Marble @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Marble @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Marble @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Marble @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Marble @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Marble @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Marble @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Marble @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Matte @base",
-			"sub_path": "filament/BETA/BETA PETG Matte @base.json"
-		},
-		{
-			"name": "BETA PETG Matte @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Matte @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Matte @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Matte @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Matte @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Matte @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Matte @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Matte @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Metallic @base",
-			"sub_path": "filament/BETA/BETA PETG Metallic @base.json"
-		},
-		{
-			"name": "BETA PETG Metallic @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Metallic @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Metallic @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Metallic @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Metallic @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Metallic @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Metallic @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Metallic @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Transparent @base",
-			"sub_path": "filament/BETA/BETA PETG Transparent @base.json"
-		},
-		{
-			"name": "BETA PETG Transparent @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG Transparent @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG Transparent @BBL A1M",
-			"sub_path": "filament/BETA/BETA PETG Transparent @BBL A1M.json"
-		},
-		{
-			"name": "BETA PETG Transparent @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG Transparent @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG Transparent @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG Transparent @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG UV Color Change @base",
-			"sub_path": "filament/BETA/BETA PETG UV Color Change @base.json"
-		},
-		{
-			"name": "BETA PETG UV Color Change @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG UV Color Change @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG UV Color Change @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG UV Color Change @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG-CF @base",
-			"sub_path": "filament/BETA/BETA PETG-CF @base.json"
-		},
-		{
-			"name": "BETA PETG-CF @BBL P1P 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-CF @BBL P1P 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-CF @BBL A1 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-CF @BBL A1 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-CF @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-CF @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-CF @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-CF @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-CF @BBL X1C 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-CF @BBL X1C 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-GF @base",
-			"sub_path": "filament/BETA/BETA PETG-GF @base.json"
-		},
-		{
-			"name": "BETA PETG-GF @BBL P1P 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-GF @BBL P1P 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-GF @BBL A1 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-GF @BBL A1 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-GF @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-GF @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-GF @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-GF @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG-GF @BBL X1C 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG-GF @BBL X1C 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG @base",
-			"sub_path": "filament/BETA/BETA PETG @base.json"
-		},
-		{
-			"name": "BETA PETG @BBL A1M 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG @BBL A1M 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PETG @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PETG @BBL A1",
-			"sub_path": "filament/BETA/BETA PETG @BBL A1.json"
-		},
-		{
-			"name": "BETA PETG @BBL X1C",
-			"sub_path": "filament/BETA/BETA PETG @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Basic @base",
-			"sub_path": "filament/BETA/BETA PLA Basic @base.json"
-		},
-		{
-			"name": "BETA PLA Basic @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Basic @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Basic @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Basic @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Basic @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Basic @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Basic @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Basic @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Basic @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Basic @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Chameleon @base",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @base.json"
-		},
-		{
-			"name": "BETA PLA Chameleon @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Chameleon @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Chameleon @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Chameleon @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Chameleon @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @base",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @base.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Fluorescence @base",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @base.json"
-		},
-		{
-			"name": "BETA PLA Fluorescence @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Fluorescence @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Fluorescence @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Fluorescence @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Fluorescence @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Glitter @base",
-			"sub_path": "filament/BETA/BETA PLA Glitter @base.json"
-		},
-		{
-			"name": "BETA PLA Glitter @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Glitter @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Glitter @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Glitter @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Glitter @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Glitter @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Glitter @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Glitter @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Glitter @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Glitter @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Glow @base",
-			"sub_path": "filament/BETA/BETA PLA Glow @base.json"
-		},
-		{
-			"name": "BETA PLA Glow @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Glow @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Glow @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Glow @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Glow @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Glow @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Glow @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Glow @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Glow @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Glow @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Gradient @base",
-			"sub_path": "filament/BETA/BETA PLA Gradient @base.json"
-		},
-		{
-			"name": "BETA PLA Gradient @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Gradient @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Gradient @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Gradient @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Gradient @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Gradient @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Gradient @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Gradient @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Gradient @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Gradient @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Marble @base",
-			"sub_path": "filament/BETA/BETA PLA Marble @base.json"
-		},
-		{
-			"name": "BETA PLA Marble @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Marble @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Marble @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Marble @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Marble @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Marble @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Marble @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Marble @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Marble @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Marble @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Matte @base",
-			"sub_path": "filament/BETA/BETA PLA Matte @base.json"
-		},
-		{
-			"name": "BETA PLA Matte @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Matte @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Matte @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Matte @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Matte @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Matte @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Matte @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Matte @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Matte @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Matte @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Metal @base",
-			"sub_path": "filament/BETA/BETA PLA Metal @base.json"
-		},
-		{
-			"name": "BETA PLA Metal @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Metal @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Metal @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Metal @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Metal @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Metal @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Metal @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Metal @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Metal @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Metal @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Metallic @base",
-			"sub_path": "filament/BETA/BETA PLA Metallic @base.json"
-		},
-		{
-			"name": "BETA PLA Metallic @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Metallic @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Metallic @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Metallic @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Metallic @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Metallic @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Metallic @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Metallic @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Metallic @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Metallic @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA PRO @base",
-			"sub_path": "filament/BETA/BETA PLA PRO @base.json"
-		},
-		{
-			"name": "BETA PLA PRO @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA PRO @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA PRO @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA PRO @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA PRO @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA PRO @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA PRO @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA PRO @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA PRO @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA PRO @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Silk @base",
-			"sub_path": "filament/BETA/BETA PLA Silk @base.json"
-		},
-		{
-			"name": "BETA PLA Silk @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Silk @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Silk @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Silk @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Silk @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Silk @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Silk @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Silk @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Silk @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Silk @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Transparent @base",
-			"sub_path": "filament/BETA/BETA PLA Transparent @base.json"
-		},
-		{
-			"name": "BETA PLA Transparent @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Transparent @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Transparent @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Transparent @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Transparent @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Transparent @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Transparent @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Transparent @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Transparent @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Transparent @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @base",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @base.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Youth @base",
-			"sub_path": "filament/BETA/BETA PLA Youth @base.json"
-		},
-		{
-			"name": "BETA PLA Youth @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Youth @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Youth @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Youth @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Youth @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Youth @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Youth @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Youth @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Youth @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Youth @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA-CF @base",
-			"sub_path": "filament/BETA/BETA PLA-CF @base.json"
-		},
-		{
-			"name": "BETA PLA-CF @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA-CF @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA-CF @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA-CF @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA-CF @BBL H2D 0.4 nozzle",
-			"sub_path": "filament/BETA/BETA PLA-CF @BBL H2D 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PLA-CF @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA-CF @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA-CF @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA-CF @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA High Temp @base",
-			"sub_path": "filament/BETA/BETA PLA High Temp @base.json"
-		},
-		{
-			"name": "BETA PLA High Temp @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA High Temp @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA High Temp @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA High Temp @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA High Temp @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA High Temp @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA High Temp @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA High Temp @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA High Temp @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA High Temp @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Wood @base",
-			"sub_path": "filament/BETA/BETA PLA Wood @base.json"
-		},
-		{
-			"name": "BETA PLA Wood @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA Wood @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA Wood @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA Wood @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA Wood @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA Wood @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Wood @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA Wood @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA Wood @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA Wood @BBL X1C.json"
-		},
-		{
-			"name": "BETA TPU Matte @base",
-			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
-		},
-		{
-			"name": "BETA TPU Matte @BBL A1",
-			"sub_path": "filament/BETA/BETA TPU Matte @BBL A1.json"
-		},
-		{
-			"name": "BETA TPU Matte @BBL A1M",
-			"sub_path": "filament/BETA/BETA TPU Matte @BBL A1M.json"
-		},
-		{
-			"name": "BETA TPU Matte @BBL H2D",
-			"sub_path": "filament/BETA/BETA TPU Matte @BBL H2D.json"
-		},
-		{
-			"name": "BETA TPU Matte @BBL P1P",
-			"sub_path": "filament/BETA/BETA TPU Matte @BBL P1P.json"
-		},
-		{
-			"name": "BETA TPU Matte @BBL X1C",
-			"sub_path": "filament/BETA/BETA TPU Matte @BBL X1C.json"
-		},
-		{
-			"name": "BETA TPU 95A @base",
-			"sub_path": "filament/BETA/BETA TPU 95A @base.json"
-		},
-		{
-			"name": "BETA TPU 95A @BBL A1",
-			"sub_path": "filament/BETA/BETA TPU 95A @BBL A1.json"
-		},
-		{
-			"name": "BETA TPU 95A @BBL A1M",
-			"sub_path": "filament/BETA/BETA TPU 95A @BBL A1M.json"
-		},
-		{
-			"name": "BETA TPU 95A @BBL H2D",
-			"sub_path": "filament/BETA/BETA TPU 95A @BBL H2D.json"
-		},
-		{
-			"name": "BETA TPU 95A @BBL P1P",
-			"sub_path": "filament/BETA/BETA TPU 95A @BBL P1P.json"
-		},
-		{
-			"name": "BETA TPU 95A @BBL X1C",
-			"sub_path": "filament/BETA/BETA TPU 95A @BBL X1C.json"
-		},
-		{
-			"name": "BETA TPU 98A @base",
-			"sub_path": "filament/BETA/BETA TPU 98A @base.json"
-		},
-		{
-			"name": "BETA TPU 98A @BBL A1",
-			"sub_path": "filament/BETA/BETA TPU 98A @BBL A1.json"
-		},
-		{
-			"name": "BETA TPU 98A @BBL A1M",
-			"sub_path": "filament/BETA/BETA TPU 98A @BBL A1M.json"
-		},
-		{
-			"name": "BETA TPU 98A @BBL H2D",
-			"sub_path": "filament/BETA/BETA TPU 98A @BBL H2D.json"
-		},
-		{
-			"name": "BETA TPU 98A @BBL P1P",
-			"sub_path": "filament/BETA/BETA TPU 98A @BBL P1P.json"
-		},
-		{
-			"name": "BETA TPU 98A @BBL X1C",
-			"sub_path": "filament/BETA/BETA TPU 98A @BBL X1C.json"
-		},
-		{
-			"name": "BETA TPU 90A @base",
-			"sub_path": "filament/BETA/BETA TPU 90A @base.json"
-		},
-		{
-			"name": "BETA TPU 90A @BBL A1",
-			"sub_path": "filament/BETA/BETA TPU 90A @BBL A1.json"
-		},
-		{
-			"name": "BETA TPU 90A @BBL A1M",
-			"sub_path": "filament/BETA/BETA TPU 90A @BBL A1M.json"
-		},
-		{
-			"name": "BETA TPU 90A @BBL H2D",
-			"sub_path": "filament/BETA/BETA TPU 90A @BBL H2D.json"
-		},
-		{
-			"name": "BETA TPU 90A @BBL P1P",
-			"sub_path": "filament/BETA/BETA TPU 90A @BBL P1P.json"
-		},
-		{
-			"name": "BETA TPU 90A @BBL X1C",
-			"sub_path": "filament/BETA/BETA TPU 90A @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA High Speed @base",
-			"sub_path": "filament/BETA/BETA PLA High Speed @base.json"
-		},
-		{
-			"name": "BETA PLA High Speed @BBL A1",
-			"sub_path": "filament/BETA/BETA PLA High Speed @BBL A1.json"
-		},
-		{
-			"name": "BETA PLA High Speed @BBL A1M",
-			"sub_path": "filament/BETA/BETA PLA High Speed @BBL A1M.json"
-		},
-		{
-			"name": "BETA PLA High Speed @BBL H2D",
-			"sub_path": "filament/BETA/BETA PLA High Speed @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA High Speed @BBL P1P",
-			"sub_path": "filament/BETA/BETA PLA High Speed @BBL P1P.json"
-		},
-		{
-			"name": "BETA PLA High Speed @BBL X1C",
-			"sub_path": "filament/BETA/BETA PLA High Speed @BBL X1C.json"
-		},
-		{
-			"name": "BETA HIPS @base",
-			"sub_path": "filament/BETA/BETA HIPS @base.json"
-		},
-		{
-			"name": "BETA HIPS @BBL H2D",
-			"sub_path": "filament/BETA/BETA HIPS @BBL H2D.json"
-		},
-		{
-			"name": "BETA HIPS @BBL X1C",
-			"sub_path": "filament/BETA/BETA HIPS @BBL X1C.json"
 		}
 	],
 	"machine_list": [
@@ -9552,12 +10592,20 @@
 			"sub_path": "machine/Bambu Lab X1E 0.4 nozzle.json"
 		},
 		{
+			"name": "Bambu Lab H2C 0.4 nozzle",
+			"sub_path": "machine/Bambu Lab H2C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu Lab H2D 0.4 nozzle",
 			"sub_path": "machine/Bambu Lab H2D 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Lab H2D Pro 0.4 nozzle",
 			"sub_path": "machine/Bambu Lab H2D Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu Lab X2D 0.4 nozzle",
+			"sub_path": "machine/Bambu Lab X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "Bambu Lab A1 0.2 nozzle",
@@ -9668,6 +10716,18 @@
 			"sub_path": "machine/Bambu Lab X1E 0.8 nozzle.json"
 		},
 		{
+			"name": "Bambu Lab H2C 0.2 nozzle",
+			"sub_path": "machine/Bambu Lab H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu Lab H2C 0.6 nozzle",
+			"sub_path": "machine/Bambu Lab H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu Lab H2C 0.8 nozzle",
+			"sub_path": "machine/Bambu Lab H2C 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu Lab H2D 0.2 nozzle",
 			"sub_path": "machine/Bambu Lab H2D 0.2 nozzle.json"
 		},
@@ -9692,20 +10752,16 @@
 			"sub_path": "machine/Bambu Lab H2D Pro 0.8 nozzle.json"
 		},
 		{
-			"name": "Bambu Lab H2C 0.4 nozzle",
-			"sub_path": "machine/Bambu Lab H2C 0.4 nozzle.json"
+			"name": "Bambu Lab X2D 0.2 nozzle",
+			"sub_path": "machine/Bambu Lab X2D 0.2 nozzle.json"
 		},
 		{
-			"name": "Bambu Lab H2C 0.2 nozzle",
-			"sub_path": "machine/Bambu Lab H2C 0.2 nozzle.json"
+			"name": "Bambu Lab X2D 0.6 nozzle",
+			"sub_path": "machine/Bambu Lab X2D 0.6 nozzle.json"
 		},
 		{
-			"name": "Bambu Lab H2C 0.6 nozzle",
-			"sub_path": "machine/Bambu Lab H2C 0.6 nozzle.json"
-		},
-		{
-			"name": "Bambu Lab H2C 0.8 nozzle",
-			"sub_path": "machine/Bambu Lab H2C 0.8 nozzle.json"
+			"name": "Bambu Lab X2D 0.8 nozzle",
+			"sub_path": "machine/Bambu Lab X2D 0.8 nozzle.json"
 		}
 	]
 }
