@@ -23,7 +23,6 @@
     "extruder_clearance_height_to_lid": "201",
     "extruder_clearance_height_to_rod": "47.4",
     "extruder_clearance_max_radius": "96",
-    "extruder_clearance_radius": "49",
     "extruder_height_gap": "5",
     "extruder_printable_area": [
         "0x0,325x0,325x320,0x320",
