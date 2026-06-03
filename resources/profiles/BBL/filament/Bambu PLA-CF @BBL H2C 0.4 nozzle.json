@@ -6,13 +6,13 @@
 	"setting_id": "GFSA50_18",
 	"instantiation": "true",
 	"counter_coef_2": [
-		"0.012"
+		"0.0003"
 	],
 	"counter_coef_3": [
-		"-0.063"
+		"0.0224"
 	],
 	"counter_limit_max": [
-		"0.07"
+		"0.03"
 	],
 	"eng_plate_temp": [
 		"55"
@@ -64,10 +64,10 @@
 		"4"
 	],
 	"hole_coef_2": [
-		"-0.0103"
+		"-0.0028"
 	],
 	"hole_coef_3": [
-		"0.1974"
+		"0.1173"
 	],
 	"nozzle_temperature": [
 		"230",
@@ -98,8 +98,13 @@
 		"1",
 		"1"
 	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
+	"counter_limit_min": [
+		"0.0224"
+	],
+	"hole_limit_max": [
+		"0.1173"
+	],
+	"hole_limit_min": [
+		"0.048"
 	]
 }

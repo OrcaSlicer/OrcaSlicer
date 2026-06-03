@@ -68,9 +68,5 @@
 	"long_retractions_when_ec": [
 		"1",
 		"1"
-	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
 	]
 }

@@ -1,37 +1,43 @@
 {
 	"type": "filament",
-	"name": "Bambu Support For PLA/PETG @BBL H2C 0.2 nozzle",
-	"inherits": "Bambu Support For PLA/PETG @base",
+	"name": "Bambu PLA Pure @BBL H2C",
+	"inherits": "Bambu PLA Pure @base",
 	"from": "system",
-	"setting_id": "GFSS05_19",
+	"setting_id": "GFSA19_10",
 	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"75"
+	],
 	"eng_plate_temp": [
-		"60"
+		"55"
 	],
 	"eng_plate_temp_initial_layer": [
-		"60"
+		"55"
+	],
+	"filament_change_length": [
+		"4"
+	],
+	"filament_change_length_nc": [
+		"4"
 	],
 	"filament_cooling_before_tower": [
 		"10",
 		"10"
 	],
 	"filament_flow_ratio": [
-		"1",
-		"1"
+		"0.98",
+		"0.98"
 	],
 	"filament_max_volumetric_speed": [
-		"0.5",
-		"0.5"
-	],
-	"filament_prime_volume": [
-		"30"
-	],
-	"filament_prime_volume_nc": [
-		"30"
+		"12",
+		"12"
 	],
 	"filament_pre_cooling_temperature_nc": [
 		"180",
 		"180"
+	],
+	"filament_prime_volume_nc": [
+		"30"
 	],
 	"filament_ramming_travel_time": [
 		"0",
@@ -45,14 +51,21 @@
 		"18",
 		"18"
 	],
-	"filament_change_length": [
-		"4"
+	"filament_retraction_length": [
+		"0.4",
+		"0.4"
 	],
-	"first_x_layer_fan_speed": [
-		"0"
+	"filament_wipe": [
+		"1",
+		"1"
 	],
-	"filament_change_length_nc": [
-		"4"
+	"filament_wipe_distance": [
+		"1",
+		"1"
+	],
+	"filament_z_hop_types": [
+		"Spiral Lift",
+		"Spiral Lift"
 	],
 	"nozzle_temperature": [
 		"220",
@@ -62,31 +75,29 @@
 		"220",
 		"220"
 	],
-	"supertack_plate_temp": [
-		"0"
-	],
 	"slow_down_min_speed": [
 		"20",
 		"20"
 	],
-	"temperature_vitrification": [
+	"supertack_plate_temp": [
 		"40"
 	],
+	"supertack_plate_temp_initial_layer": [
+		"40"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1"
+	],
 	"compatible_printers": [
-		"Bambu Lab H2C 0.2 nozzle"
+		"Bambu Lab H2C 0.4 nozzle",
+		"Bambu Lab H2C 0.6 nozzle",
+		"Bambu Lab H2C 0.8 nozzle"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
-	],
-	"filament_preheat_temperature_delta": [
-		"20",
-		"20"
-	],
-	"long_retractions_when_ec": [
-		"1",
-		"1"
 	]
 }

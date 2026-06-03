@@ -104,8 +104,7 @@
 		"1",
 		"1"
 	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
+	"overhang_fan_speed": [
+		"50"
 	]
 }

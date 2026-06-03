@@ -33,6 +33,12 @@ m_max_speed = float(config.wipe_tower_max_purge_speed) * 60.f;
 if (m_max_speed <= 0.f)
     m_max_speed = 5400.f; // fallback to 90 mm/s
 
+// H2C: BBL always caps tower speed at 5400 mm/min (90 mm/s) on the first layer,
+// even when wipe_tower_max_purge_speed is higher. Without this cap, the tower
+// infill on the first layer runs at m_max_speed (e.g. F9000 at 150 mm/s), which
+// is too fast for reliable bed adhesion.
+m_first_layer_max_speed = std::min(m_max_speed, 5400.f);
+
 // H2C FIX: Detect whether this printer has multi-nozzle extruders (e.g. H2C = 2 nozzles
 // per extruder). This flag gates several downstream decisions:
 //   - plan_toolchange() uses it to distinguish nozzle-change vs. extruder-change flush volumes

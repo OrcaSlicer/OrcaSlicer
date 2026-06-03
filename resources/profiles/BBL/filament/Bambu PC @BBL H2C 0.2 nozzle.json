@@ -85,8 +85,28 @@
 		"1",
 		"1"
 	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
+	"counter_coef_2": [
+		"0.0081"
+	],
+	"counter_coef_3": [
+		"0.0183"
+	],
+	"counter_limit_max": [
+		"0.2208"
+	],
+	"counter_limit_min": [
+		"0.0183"
+	],
+	"hole_coef_2": [
+		"0.0009"
+	],
+	"hole_coef_3": [
+		"0.0725"
+	],
+	"hole_limit_max": [
+		"0.095"
+	],
+	"hole_limit_min": [
+		"0.0725"
 	]
 }

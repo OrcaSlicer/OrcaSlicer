@@ -18,6 +18,7 @@
 	"support_cooling_filter": "1",
 	"tree_support_wall_count": "-1",
 	"raft_first_layer_expansion": "-1",
+	"role_based_wipe_speed": "0",
 
 	"bridge_speed": [
 		"50",

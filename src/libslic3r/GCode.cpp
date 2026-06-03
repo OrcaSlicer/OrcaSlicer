@@ -6866,14 +6866,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         //BBS: for solid infill of first layer, speed can be higher as long as
         //wall lines have be attached
         if (path.role() != erBottomSurface) {
-            speed = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
-                                                m_config.get_abs_value("initial_layer_infill_speed");
+            speed = (is_perimeter(path.role()) || path.role() == erGapFill)
+                        ? m_config.get_abs_value("initial_layer_speed")
+                        : m_config.get_abs_value("initial_layer_infill_speed");
         }
     } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
         
         if (_layer > 0 && _layer < m_config.slow_down_layers) {
             const auto first_layer_speed =
-                is_perimeter(path.role())
+                (is_perimeter(path.role()) || path.role() == erGapFill)
                     ? m_config.get_abs_value("initial_layer_speed")
                     : m_config.get_abs_value("initial_layer_infill_speed");
             if (first_layer_speed < speed) {
@@ -6887,7 +6888,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         
         if (_layer > m_config.raft_layers && (_layer - m_config.raft_layers) < m_config.slow_down_layers) {
             const auto first_layer_speed 
-                = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
+                = (is_perimeter(path.role()) || path.role() == erGapFill) ? m_config.get_abs_value("initial_layer_speed") :
                                                                        m_config.get_abs_value("initial_layer_infill_speed");
             if (first_layer_speed < speed) {
                 speed = std::min(speed, Slic3r::lerp(first_layer_speed, speed,

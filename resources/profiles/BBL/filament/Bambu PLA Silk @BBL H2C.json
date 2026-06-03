@@ -9,16 +9,16 @@
 		"75"
 	],
 	"counter_coef_2": [
-		"0.02"
+		"0.0036"
 	],
 	"counter_coef_3": [
-		"-0.01"
+		"-0.0218"
 	],
 	"counter_limit_min": [
-		"-0.05"
+		"-0.0218"
 	],
 	"counter_limit_max": [
-		"0.05"
+		"0.0682"
 	],
 	"eng_plate_temp": [
 		"55"
@@ -86,10 +86,10 @@
 		"4"
 	],
 	"hole_coef_2": [
-		"-0.0081"
+		"-0.0037"
 	],
 	"hole_coef_3": [
-		"0.2"
+		"0.1261"
 	],
 	"nozzle_temperature": [
 		"230",
@@ -127,8 +127,10 @@
 		"1",
 		"1"
 	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
+	"hole_limit_max": [
+		"0.1261"
+	],
+	"hole_limit_min": [
+		"0.0336"
 	]
 }

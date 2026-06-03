@@ -462,6 +462,7 @@ private:
     float  m_travel_speed       = 0.f;
     float  m_first_layer_speed  = 0.f;
     float  m_max_speed          = 5400.f;  // Maximum wipe tower print speed (mm/min), configurable via wipe_tower_max_purge_speed
+    float  m_first_layer_max_speed = 5400.f;  // H2C: first layer cap — BBL always uses 5400 (90 mm/s) on the first layer
     size_t m_first_layer_idx    = size_t(-1);
 
     std::pair<std::vector<double>,std::vector<double>> m_filaments_change_length;//[0]extruder change [1]nozzle change

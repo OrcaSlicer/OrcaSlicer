@@ -6,13 +6,13 @@
 	"setting_id": "GFSG50_19",
 	"instantiation": "true",
 	"counter_coef_2": [
-		"0.00565"
+		"0.0022"
 	],
 	"counter_coef_3": [
-		"-0.0112"
+		"-0.0178"
 	],
 	"counter_limit_max": [
-		"0.065"
+		"0.036"
 	],
 	"fan_cooling_layer_time": [
 		"30"
@@ -59,13 +59,13 @@
 		"4"
 	],
 	"hole_coef_2": [
-		"-0.0121"
+		"-0.0014"
 	],
 	"hole_coef_3": [
-		"0.145"
+		"0.11"
 	],
 	"hole_limit_min": [
-		"0.068"
+		"0.075"
 	],
 	"nozzle_temperature": [
 		"255",
@@ -104,8 +104,10 @@
 		"1",
 		"1"
 	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
+	"counter_limit_min": [
+		"-0.0178"
+	],
+	"hole_limit_max": [
+		"0.11"
 	]
 }

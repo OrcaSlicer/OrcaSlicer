@@ -9,13 +9,13 @@
 		"65"
 	],
 	"counter_coef_2": [
-		"0.00565"
+		"0.0003"
 	],
 	"counter_coef_3": [
-		"-0.0202"
+		"-0.0033"
 	],
 	"counter_limit_max": [
-		"0.03"
+		"0.0036"
 	],
 	"filament_cooling_before_tower": [
 		"10",
@@ -88,8 +88,19 @@
 		"1",
 		"1"
 	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10"
+	"counter_limit_min": [
+		"-0.0033"
+	],
+	"hole_coef_2": [
+		"-0.0033"
+	],
+	"hole_coef_3": [
+		"0.1176"
+	],
+	"hole_limit_max": [
+		"0.1176"
+	],
+	"hole_limit_min": [
+		"0.035"
 	]
 }

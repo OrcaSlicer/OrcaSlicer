@@ -1867,7 +1867,7 @@ WipeTower::ToolChangeResult WipeTower::tool_change(size_t tool, bool extrude_per
     writer.speed_override_backup();
 	writer.speed_override(100);
 
-    float feedrate = is_first_layer() ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
+    float feedrate = is_first_layer() ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
 
     // Increase the extruder driver current to allow fast ramming.
     //BBS
@@ -2346,7 +2346,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer(bool extrude_perimeter, bool
 	// Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
+    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
     if (m_enable_tower_interface_features && m_prev_layer_had_interface)
         feedrate = std::min(feedrate, 20.f * 60.f);
     float fill_box_y = m_layer_info->toolchanges_depth() + m_perimeter_width;
@@ -3247,7 +3247,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
+    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
 
     float fill_box_depth = m_wipe_tower_depth - 2 * m_perimeter_width;
     if (m_wipe_tower_blocks.size() == 1) {
@@ -3418,7 +3418,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block(const WipeTowerBlock &block,
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, m_max_speed);
+    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, m_max_speed);
 
     box_coordinates fill_box(Vec2f(0, 0), 0, 0);
     fill_box = box_coordinates(Vec2f(m_perimeter_width, block.cur_depth), m_wipe_tower_width - 2 * m_perimeter_width, block.start_depth + block.layer_depths[m_cur_layer_id] - block.cur_depth - m_perimeter_width);
@@ -3530,7 +3530,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
 
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
-    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, m_max_speed);
+    float feedrate = first_layer ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : std::min(60.0f * m_filpar[filament_id].max_e_speed / m_extrusion_flow, m_max_speed);
     feedrate       = (layer_type == WipeTowerLayerType::Contact || layer_type == WipeTowerLayerType::Contact_UP) ? m_contact_speed : feedrate;
     box_coordinates fill_box(Vec2f(0, 0), 0, 0);
     fill_box = box_coordinates(Vec2f(m_perimeter_width, block.cur_depth), m_wipe_tower_width - 2 * m_perimeter_width,
@@ -3651,7 +3651,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
     float x_to_wipe = wipe_length;
     float dy        = solid_tool_toolchange ? m_perimeter_width :m_layer_info->extra_spacing * m_perimeter_width;
     x_to_wipe                = solid_tool_toolchange ? std::numeric_limits<float>::max(): x_to_wipe;
-    float target_speed = is_first_layer() ? std::min(m_first_layer_speed * 60.f, m_max_speed) : m_max_speed;
+    float target_speed = is_first_layer() ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : m_max_speed;
     target_speed             = solid_tool_toolchange ? 20.f * 60.f : target_speed;
     const std::vector<float> WipeSpeedMap{0.33f * target_speed, 0.375f * target_speed, 0.458f * target_speed, 0.875f * target_speed,
                                         std::min(target_speed, 0.875f * target_speed + 50.f)};
@@ -4531,7 +4531,7 @@ WipeTower::ToolChangeResult WipeTower::only_generate_out_wall(bool is_new_mode)
     // Slow down on the 1st layer.
     bool first_layer = is_first_layer();
     // BBS: speed up perimeter speed to 90mm/s for non-first layer
-    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
+    float           feedrate   = first_layer ? std::min(m_first_layer_speed * 60.f, m_first_layer_max_speed) : std::min(60.0f * m_filpar[m_current_tool].max_e_speed / m_extrusion_flow, m_max_speed);
     float           fill_box_y = m_layer_info->toolchanges_depth() + m_perimeter_width;
     box_coordinates fill_box(Vec2f(m_perimeter_width, fill_box_y), m_wipe_tower_width - 2 * m_perimeter_width, m_layer_info->depth - fill_box_y);
 
