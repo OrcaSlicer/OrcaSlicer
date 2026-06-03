@@ -4548,6 +4548,8 @@ LayerResult GCode::process_layer(
         // If we're going to apply spiralvase to this layer, disable loop clipping.
         m_enable_loop_clipping = !enable;
     }
+    if (!m_spiral_vase_layer || print.config().spiral_mode)
+        m_range_spiral_vase_loop_end_valid = false;
 
     std::string gcode;
     assert(is_decimal_separator_point()); // for the sprintfs
@@ -5771,7 +5773,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
     // find the point of the loop that is closest to the current extruder position
     // or randomize if requested;
     // or, if `start_point` is specified, start the loop at point closest to it
-    Point last_pos = start_point ? *start_point : this->last_pos();
+    Point last_pos = start_point ? *start_point :
+        (m_spiral_vase_layer && !m_config.spiral_mode && m_range_spiral_vase_loop_end_valid ?
+             m_range_spiral_vase_loop_end :
+             this->last_pos());
     float seam_overhang = std::numeric_limits<float>::lowest();
     if (!m_spiral_vase_layer && description == "perimeter") {
         assert(m_layer != nullptr);
@@ -5927,6 +5932,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
             // in the first extrude move
             // TODO: testing is needed with slope seams and adaptive PA.
             m_multi_flow_segment_path_pa_set = true;
+        }
+        if (m_spiral_vase_layer && !m_config.spiral_mode && !paths.empty()) {
+            m_range_spiral_vase_loop_end       = paths.back().last_point();
+            m_range_spiral_vase_loop_end_valid = true;
         }
     } else {
         // Create seam slope

@@ -79,7 +79,6 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
     const PrintObjectConfig& object_config = this->layer()->object()->config();
     // This needs to be in sync with PrintObject::_slice() slicing_mode_normal_below_layer!
     bool spiral_mode = this->is_spiral_vase_active();
-
     PerimeterGenerator g(
         // input:
         &slices,

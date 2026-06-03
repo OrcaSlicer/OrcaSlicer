@@ -1545,6 +1545,15 @@ void PrintObject::detect_surfaces_type()
                     // unless internal shells are requested
                     Layer       *upper_layer = (idx_layer + 1 < this->layer_count()) ? m_layers[idx_layer + 1] : nullptr;
                     Layer       *lower_layer = (idx_layer > 0) ? m_layers[idx_layer - 1] : nullptr;
+                    // Transition into a spiral-vase zone: force the last non-spiral layer to be treated
+                    // as top, so infill below the spiral band gets capped by solid layers.
+                    if (!spiral_mode && upper_layer != nullptr && !layerm->is_spiral_vase_active()) {
+                        // Height-range overrides may create a different PrintRegion for the
+                        // spiral band, so the upper spiral region is not guaranteed to have
+                        // the same region_id as the normal region below it.
+                        if (upper_layer->any_spiral_vase_active())
+                            upper_layer = nullptr;
+                    }
                     // collapse very narrow parts (using the safety offset in the diff is not enough)
                     const float offset = layerm->flow(frExternalPerimeter).scaled_width() / 10.f;
 

@@ -2044,6 +2044,20 @@ bool Print::has_spiral_mode() const
 {
     if (m_config.spiral_mode)
         return true;
+    // Per-height-range spiral_vase may not always be represented in m_print_regions.
+    // Detect it from resolved PrintObject layer ranges so spiral post-processing is enabled.
+    for (const PrintObject *object : m_objects) {
+        const PrintObjectRegions *shared_regions = object->shared_regions();
+        if (shared_regions == nullptr)
+            continue;
+        for (const auto &layer_range : shared_regions->layer_ranges) {
+            if (layer_range.config == nullptr || !layer_range.config->has("spiral_vase"))
+                continue;
+            const ConfigOptionBool *spiral_opt = layer_range.config->option<ConfigOptionBool>("spiral_vase");
+            if (spiral_opt != nullptr && spiral_opt->value)
+                return true;
+        }
+    }
     for (const PrintRegion *region : m_print_regions)
         if (region->config().spiral_vase)
             return true;

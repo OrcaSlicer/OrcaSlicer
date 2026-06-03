@@ -550,6 +550,8 @@ private:
     TimelapsePosPicker                  m_timelapse_pos_picker;
     bool                                m_enable_loop_clipping;
     bool                                m_spiral_vase_layer { false };
+    bool                                m_range_spiral_vase_loop_end_valid { false };
+    Point                               m_range_spiral_vase_loop_end;
     //resonance avoidance
     bool                                m_resonance_avoidance; 
     // If enabled, the G-code generator will put following comments at the ends
