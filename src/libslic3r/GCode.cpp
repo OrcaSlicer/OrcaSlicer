@@ -6827,7 +6827,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         } 
         else if(path.role() == erInternalBridgeInfill) {
             speed = m_config.get_abs_value("internal_bridge_speed");
-        } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
+        } else if (path.role() == erOverhangPerimeter) {
+            // Use overhang_4_4_speed when overhang speed control is enabled,
+            // matching BBL Studio behavior for classified overhang perimeters.
+            if (m_config.enable_overhang_speed) {
+                double ref_speed = m_config.get_abs_value("outer_wall_speed");
+                double oh_speed = m_config.get_abs_value("overhang_4_4_speed", ref_speed);
+                speed = (oh_speed > 0.5) ? oh_speed : m_config.get_abs_value("bridge_speed");
+            } else {
+                speed = m_config.get_abs_value("bridge_speed");
+            }
+        } else if (path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = m_config.get_abs_value("bridge_speed");
         } else if (path.role() == erInternalInfill) {
             speed = m_config.get_abs_value("sparse_infill_speed");
