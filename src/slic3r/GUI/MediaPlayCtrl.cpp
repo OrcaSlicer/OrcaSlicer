@@ -84,6 +84,28 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const w
             }
             m_stat.push_back(value);
         }
+        // Freeze watchdog: if FPS ≈ 0 for 3+ consecutive stat ticks while PLAYING,
+        // the stream is silently frozen — force stop and retry.
+        if (m_last_state == wxMEDIASTATE_PLAYING || m_last_state == wxMEDIASTATE_PAUSED) {
+            double fps = m_stat.empty() ? -1.0 : m_stat[0];
+            if (fps >= 0 && fps < 0.5) {
+                ++m_zero_fps_count;
+                BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: zero FPS detected (" << m_zero_fps_count << "/3)";
+                if (m_zero_fps_count >= 3) {
+                    BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: stream frozen, auto-restarting...";
+                    m_zero_fps_count = 0;
+                    m_failed_code = 0;
+                    Stop(_L("Stream frozen, reconnecting..."));
+                    m_failed_retry = 0;
+                    m_next_retry = wxDateTime::Now();
+                    Play();
+                }
+            } else {
+                m_zero_fps_count = 0;
+            }
+        } else {
+            m_zero_fps_count = 0;
+        }
     });
 
     m_button_play->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &e) { TogglePlay(); });

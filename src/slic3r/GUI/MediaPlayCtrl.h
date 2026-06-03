@@ -100,6 +100,7 @@ private:
     bool m_user_triggered = false;
     int m_failed_retry = 0;
     int m_failed_code = 0;
+    int m_zero_fps_count = 0;  // watchdog: consecutive stat_log ticks with FPS ≈ 0
     std::vector<double> m_stat;
     std::set<int> m_last_failed_codes;
     wxDateTime    m_last_user_play;
