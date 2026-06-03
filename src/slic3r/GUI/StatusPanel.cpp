@@ -1612,12 +1612,15 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
 
     auto temp_axis_ctrl_sizer = create_temp_axis_group(parent);
     auto m_ams_ctrl_sizer = create_ams_group(parent);
+    auto m_nozzle_rack_ctrl_sizer = create_nozzle_rack_group(parent);
     auto m_filament_load_sizer = create_filament_group(parent);
 
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(8));
     bSizer_control->Add(temp_axis_ctrl_sizer,   0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
     bSizer_control->Add(m_ams_ctrl_sizer,       0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
+    bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
+    bSizer_control->Add(m_nozzle_rack_ctrl_sizer, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
     bSizer_control->Add(m_filament_load_sizer,  0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(4));
@@ -2054,6 +2057,39 @@ wxBoxSizer *StatusBasePanel::create_ams_group(wxWindow *parent)
     return sizer;
 }
 
+wxBoxSizer *StatusBasePanel::create_nozzle_rack_group(wxWindow *parent)
+{
+    auto sizer     = new wxBoxSizer(wxVERTICAL);
+    auto sizer_box = new wxBoxSizer(wxVERTICAL);
+
+    m_nozzle_rack_box = new StaticBox(parent);
+
+    StateColor box_colour(std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
+    StateColor box_border_colour(std::pair<wxColour, int>(STATUS_PANEL_BG, StateColor::Normal));
+
+    m_nozzle_rack_box->SetBackgroundColor(box_colour);
+    m_nozzle_rack_box->SetBorderColor(box_border_colour);
+    m_nozzle_rack_box->SetCornerRadius(5);
+
+    m_nozzle_rack_box->SetMinSize(wxSize(FromDIP(586), -1));
+    m_nozzle_rack_box->SetBackgroundColour(*wxWHITE);
+
+    m_nozzle_rack_panel = new wgtDeviceNozzleRack(m_nozzle_rack_box, wxID_ANY);
+    m_nozzle_rack_panel->SetDoubleBuffered(true);
+    sizer_box->Add(m_nozzle_rack_panel, 0, wxEXPAND | wxALL, FromDIP(10));
+
+    m_nozzle_rack_box->SetSizer(sizer_box);
+    m_nozzle_rack_box->Layout();
+    m_nozzle_rack_box->Fit();
+
+    // Hidden by default — shown only for printers with rack support (H2C)
+    m_nozzle_rack_panel->Hide();
+    m_nozzle_rack_box->Hide();
+
+    sizer->Add(m_nozzle_rack_box, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(0));
+    return sizer;
+}
+
 wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
@@ -2206,6 +2242,19 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control_box->Show(show);
         m_ams_control->Layout();
         m_ams_control->Fit();
+        Layout();
+        Fit();
+        wxGetApp().mainframe->m_monitor->Layout();
+    }
+}
+
+void StatusBasePanel::show_nozzle_rack_group(bool show)
+{
+    if (m_nozzle_rack_panel && m_nozzle_rack_panel->IsShown() != show) {
+        m_nozzle_rack_panel->Show(show);
+    }
+    if (m_nozzle_rack_box && m_nozzle_rack_box->IsShown() != show) {
+        m_nozzle_rack_box->Show(show);
         Layout();
         Fit();
         wxGetApp().mainframe->m_monitor->Layout();
@@ -2776,6 +2825,7 @@ void StatusPanel::update(MachineObject *obj)
     update_misc_ctrl(obj);
 
     update_ams(obj);
+    update_nozzle_rack(obj);
     update_cali(obj);
 
     if (obj) {
@@ -5085,6 +5135,7 @@ void StatusPanel::set_default()
     m_ams_control->Hide();
     m_ams_control_box->Hide();
     m_ams_control->Reset();
+    show_nozzle_rack_group(false);
     m_scale_panel->Hide();
     m_filament_load_box->Hide();
     m_filament_step->Hide();
@@ -5262,6 +5313,9 @@ void StatusPanel::msw_rescale()
     m_extruder_switching_status->msw_rescale();
 
     m_ams_control->msw_rescale();
+    if (m_nozzle_rack_panel) {
+        m_nozzle_rack_panel->Rescale();
+    }
     // m_filament_step->Rescale();
 
 
@@ -5281,6 +5335,23 @@ void StatusPanel::msw_rescale()
 
     Layout();
     Refresh();
+}
+
+void StatusPanel::update_nozzle_rack(MachineObject *obj)
+{
+    if (!obj) {
+        show_nozzle_rack_group(false);
+        return;
+    }
+
+    auto rack = obj->GetNozzleRack();
+    if (!rack || !rack->IsSupported()) {
+        show_nozzle_rack_group(false);
+        return;
+    }
+
+    show_nozzle_rack_group(true);
+    m_nozzle_rack_panel->UpdateRackInfo(rack);
 }
 
 void StatusPanel::update_filament_loading_panel(MachineObject* obj)

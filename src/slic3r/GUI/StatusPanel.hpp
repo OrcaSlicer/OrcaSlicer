@@ -36,6 +36,7 @@
 #include "Widgets/FanControl.hpp"
 #include "HMS.hpp"
 #include "PartSkipDialog.hpp"
+#include "DeviceTab/wgtDeviceNozzleRack.h"
 #include "DeviceErrorDialog.hpp"
 
 class StepIndicator;
@@ -523,6 +524,10 @@ protected:
     wxStaticBitmap *m_ams_extruder_img;
     wxStaticBitmap* m_bitmap_extruder_img;
 
+    /* Nozzle Rack (H2C) */
+    wgtDeviceNozzleRack* m_nozzle_rack_panel{nullptr};
+    StaticBox*           m_nozzle_rack_box{nullptr};
+
     wxPanel *       m_panel_separator_right;
     wxPanel *       m_panel_separotor_bottom;
     wxGridBagSizer *m_tasklist_info_sizer{nullptr};
@@ -604,11 +609,13 @@ public:
     int before_error_code = 0;
     int skip_print_error = 0;
     wxBoxSizer *create_ams_group(wxWindow *parent);
+    wxBoxSizer *create_nozzle_rack_group(wxWindow *parent);
     wxBoxSizer *create_settings_group(wxWindow *parent);
     wxBoxSizer* create_filament_group(wxWindow* parent);
 
 	void           expand_filament_loading(wxMouseEvent &e);
     void           show_ams_group(bool show = true);
+    void           show_nozzle_rack_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
 };
@@ -767,6 +774,7 @@ protected:
     void update_temp_ctrl(MachineObject *obj);
     void update_misc_ctrl(MachineObject *obj);
     void update_ams(MachineObject* obj);
+    void update_nozzle_rack(MachineObject* obj);
     void update_filament_loading_panel(MachineObject* obj);
 
     void update_extruder_status(MachineObject* obj);
