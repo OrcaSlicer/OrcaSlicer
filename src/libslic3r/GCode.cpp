@@ -4543,13 +4543,13 @@ LayerResult GCode::process_layer(
             const bool global_spiral = print.config().spiral_mode;
             bool       has_spiral_region = false;
             for (const LayerRegion *layer_region : layer.regions()) {
-                if (!layer_region->is_spiral_vase_active())
-                    continue;
-                has_spiral_region = true;
-                if (layer_region->perimeters.items_count() > 1u || layer_region->fills.items_count() > 0) {
+                if (layer_region->perimeters.items_count() > 1u ||
+                    layer_region->fills.items_count() > 0) {
                     enable = false;
                     break;
                 }
+                if (layer_region->is_spiral_vase_active())
+                    has_spiral_region = true;
             }
             if (!global_spiral && !has_spiral_region)
                 enable = false;
