@@ -83,7 +83,7 @@ bool UltiMaker::test(wxString &msg) const
             catch (const std::exception &) {
                 res = false;
                 msg = "Could not parse server response";
-				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: test function Caught error") % name;
 				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
             }
         })
@@ -167,7 +167,7 @@ bool UltiMaker::is_authorized() const{
             }
             catch (const std::exception &) {
                 rtn = false;
-				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: is_authorized Caught error") % name;
 				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
             }
         })
@@ -215,7 +215,7 @@ std::string UltiMaker::auth_status() const{
 
             }
             catch (const std::exception &) {
-				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: auth_status Caught error") % name;
 				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
             }
         })
@@ -252,24 +252,40 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 		where id is the m_api_username and key is the m_api_password
 	*/
 	
-	// Send POST request to generate creds
-	const char* name = get_name();
+	const std::string name = get_name();
 
-	std::string rtn = "ERROR: unknown value";
 	std::string application = "OrcaSlicer";
+	std::string application_key = "application";
 	std::string user = "OrcaSlicer"; // TODO: get the user name from OrcaSlicer
+	std::string user_key = "user";
+	std::string exclusionKey = "OrcaSlicer";
+	std::string exclusionKey_key = "OrcaSlicer";
 
-    auto url = (boost::format("http://%1%/api/v1/auth/request?application=%2%&user=%3%") % host % application % user).str();
+    auto url = (boost::format("http://%1%/api/v1/auth/request") % host).str();
+	BOOST_LOG_TRIVIAL(error) << " url = " << url; // TODO: remove
 
-    auto http = Http::get(std::move(url));
-    // set_auth(http);
-    http.on_error([&](std::string body, std::string error, unsigned status) {
+    auto http = Http::post(std::move(url));
+
+	// Note: the body/form cannot be blank or OrcaSlicer's Http library crashes on perform_sync()
+	
+	http.form_clear();
+	http.mime_form_add_text(application_key,application);
+	http.mime_form_add_text(user_key,user);
+	http.mime_form_add_text(exclusionKey_key,exclusionKey);
+
+
+    http.on_error([this, name, &msg, &ret](std::string body, std::string error, unsigned status) {
         BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error generating credentials: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
-
+        msg = "Error generating credentials! See the log for details."; // todo: format correctly
+		ret = false;
         })
-        .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: url completed without error: %2%") % name % url;
+        .on_complete([this, name, &msg, &ret](std::string body, unsigned) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: body: %2%") % name % body; // TODO: remove this
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: POST request completed without error") % name;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
+
+			BOOST_LOG_TRIVIAL(error) << "body size = " << body.size(); // TODO: remove this
+			std::cerr << body << std::endl; // TODO: remove this
 
 			std::stringstream sin(body);
 			boost::property_tree::ptree pt;
@@ -284,15 +300,18 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 				BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: KEY=%1%") % key;
 
 				if (id.empty() || key.empty()) {
+					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Either ID or KEY is empty.") % name;
 					msg = GUI::from_u8("ERROR: Either ID or KEY is empty. ID=" + id + " KEY=" + key);
-					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Either ID or KEY is empty.") % name % id % key;
 					ret = false;
 				} else {
-					msg = "Username: " + id + "  Password: " + key + "  \n Please select the \"Allow\" button on the machine to authorize access. ";
+					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: ID and KEY are both present. Setting message appropriately.") % name;
+					msg = GUI::from_u8("Username: " + id + "  Password: " + key + "  \n Please select the \"Allow\" button on the machine to authorize access. ");
+					BOOST_LOG_TRIVIAL(error) << "msg after assignment = " << msg.ToUTF8().data();
 				}
             }
-            catch (const std::exception &) {
-				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+            catch (const std::exception & e) {
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: generate_auth_creds Caught error") % name;
+				BOOST_LOG_TRIVIAL(error) << "Json parse err: " << e.what();
 				ret = false;
             }
         })
@@ -307,7 +326,7 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
         .perform_sync();
 
 	
-	// Wait for user to authorize on the physical machine
+	BOOST_LOG_TRIVIAL(error) << "msg before return = " << msg.ToUTF8().data();
 
 	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds done! ret=" << ret;
 	return ret;
