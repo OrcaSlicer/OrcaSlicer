@@ -260,7 +260,8 @@ bool CrealityPrint::supports_multi_color_print() const
     // K2-platform printers with CFS support
     return m_model == "F008"    // K2 Plus
         || m_model == "F012"    // K2 Pro
-        || m_model == "F021";   // K2
+        || m_model == "F021"    // K2
+        || m_model == "F022";   // SPARKX i7
 }
 
 std::string CrealityPrint::model_name() const
@@ -269,6 +270,7 @@ std::string CrealityPrint::model_name() const
         {"F008", "K2 Plus"},
         {"F012", "K2 Pro"},
         {"F021", "K2"},
+        {"F022", "SPARKX i7"},
     };
     query_model();
     if (m_model.empty())
