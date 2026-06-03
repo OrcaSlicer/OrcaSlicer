@@ -1,0 +1,62 @@
+{
+	"type": "filament",
+	"name": "Elegoo PET-CF @ECC2",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "EPETCFECC2",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.05"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"5"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"overhang_fan_threshold": [
+		"0%"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"2"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"filament_type": [
+		"PET-CF"
+	],
+	"compatible_printers": [
+		"Elegoo Centauri Carbon 2 0.2 nozzle",
+		"Elegoo Centauri Carbon 2 0.4 nozzle",
+		"Elegoo Centauri Carbon 2 0.6 nozzle",
+		"Elegoo Centauri Carbon 2 0.8 nozzle"
+	]
+}

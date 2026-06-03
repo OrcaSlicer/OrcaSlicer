@@ -32,7 +32,7 @@
 #include <wx/display.h> // detection of change DPI
 #include <boost/log/trivial.hpp>
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <chrono> // measure enumeration of fonts
 #include <sstream> // save for svg
 #include <array>

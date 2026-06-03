@@ -1,6 +1,7 @@
 #include "FilamentMapPanel.hpp"
 #include "GUI_App.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/utils.h>
 #include "wx/graphics.h"
 
 namespace Slic3r { namespace GUI {
@@ -54,14 +55,14 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
     m_right_panel->SetMinSize({ FromDIP(260),-1 });
 
     drag_sizer->AddStretchSpacer();
-    drag_sizer->Add(m_left_panel, 1, wxALIGN_CENTER | wxEXPAND);
+    drag_sizer->Add(m_left_panel, 1, wxEXPAND);
     drag_sizer->AddSpacer(FromDIP(7));
     drag_sizer->Add(m_switch_btn, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(1));
     drag_sizer->AddSpacer(FromDIP(7));
-    drag_sizer->Add(m_right_panel, 1, wxALIGN_CENTER | wxEXPAND);
+    drag_sizer->Add(m_right_panel, 1, wxEXPAND);
     drag_sizer->AddStretchSpacer();
 
-    top_sizer->Add(drag_sizer, 0, wxALIGN_CENTER | wxEXPAND);
+    top_sizer->Add(drag_sizer, 0, wxEXPAND);
 
     m_tips = new Label(this, _L("Tip: You can drag the filaments to reassign them to different nozzles."));
     m_tips->SetFont(Label::Body_14);
@@ -133,14 +134,14 @@ GUI::FilamentMapBtnPanel::FilamentMapBtnPanel(wxWindow *parent, const wxString &
 
     auto label_sizer = new wxBoxSizer(wxHORIZONTAL);
     label_sizer->AddStretchSpacer();
-    label_sizer->Add(m_btn, 0, wxALIGN_CENTER | wxEXPAND | wxLEFT, FromDIP(1));
-    label_sizer->Add(m_label, 0, wxALIGN_CENTER | wxEXPAND| wxALL, FromDIP(3));
+    label_sizer->Add(m_btn, 0, wxEXPAND | wxLEFT, FromDIP(1));
+    label_sizer->Add(m_label, 0, wxEXPAND| wxALL, FromDIP(3));
     label_sizer->AddStretchSpacer();
 
     m_disable_tip = new Label(this, _L("(Sync with printer)"));
 
     sizer->AddSpacer(FromDIP(32));
-    sizer->Add(label_sizer, 0, wxALIGN_CENTER | wxEXPAND);
+    sizer->Add(label_sizer, 0, wxEXPAND);
     sizer->Add(m_disable_tip, 0, wxALIGN_CENTER);
     sizer->AddSpacer(FromDIP(3));
 
@@ -154,7 +155,7 @@ GUI::FilamentMapBtnPanel::FilamentMapBtnPanel(wxWindow *parent, const wxString &
     detail_sizer->Add(m_detail, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, horizontal_margin);
     detail_sizer->AddStretchSpacer();
 
-    sizer->Add(detail_sizer, 0, wxALIGN_CENTER | wxEXPAND);
+    sizer->Add(detail_sizer, 0, wxEXPAND);
     sizer->AddSpacer(FromDIP(10));
 
     SetSizer(sizer);
@@ -364,7 +365,7 @@ FilamentMapDefaultPanel::FilamentMapDefaultPanel(wxWindow *parent) : wxPanel(par
     m_label->Wrap(FromDIP(500));
 
     sizer->AddStretchSpacer();
-    sizer->Add(m_label, 1, wxEXPAND | wxALIGN_CENTER);
+    sizer->Add(m_label, 1, wxEXPAND);
     sizer->AddStretchSpacer();
 
     SetSizerAndFit(sizer);

@@ -1,0 +1,27 @@
+{
+	"type": "process",
+	"setting_id": "fgf_175_10",
+	"name": "1.0 Standard",
+	"renamed_from": "1.0mm Standard @re3D fgf 1.75",
+	"from": "system",
+	"inherits": "fgf_process_re3D_common",
+	"instantiation": "true",
+	"layer_height": "1.0",
+	"initial_layer_print_height": "1.0",
+	"line_width": "1.9",
+	"outer_wall_line_width": "1.9",
+	"inner_wall_line_width": "1.9",
+	"initial_layer_line_width": "1.9",
+	"sparse_infill_line_width": "1.9",
+	"internal_solid_infill_line_width": "1.9",
+	"top_surface_line_width": "1.9",
+	"support_line_width": "1.9",
+	"support_top_z_distance": "0",
+	"support_bottom_z_distance": "0",
+	"top_shell_layers": "3",
+	"compatible_printers": [
+		"re3D GigabotX 2 1.75 nozzle",
+		"re3D GigabotX 2 XLT 1.75 nozzle",
+		"re3D TerabotX 2 1.75 nozzle"
+	]
+}

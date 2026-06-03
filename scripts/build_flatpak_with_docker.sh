@@ -4,7 +4,7 @@
 # as the CI (build_all.yml).
 #
 # Usage:
-#   ./scripts/build_flatpak_with_docker.sh [--arch <x86_64|aarch64>] [--no-debug-info]
+#   ./scripts/build_flatpak_with_docker.sh [--arch <x86_64|aarch64>] [--no-debug-info] [--pull]
 #
 # Requirements:
 #   - Docker (or Podman with docker compatibility)
@@ -12,6 +12,7 @@
 # The resulting .flatpak bundle is placed in the project root.
 
 set -euo pipefail
+SECONDS=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -19,10 +20,9 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # ---------- defaults ----------
 ARCH="$(uname -m)"
 NO_DEBUG_INFO=false
-NO_PULL=false
+FORCE_PULL=false
 FORCE_CLEAN=true
-PRIVILEGED=false
-CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-49"
+CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-50"
 
 normalize_arch() {
     case "$1" in
@@ -45,16 +45,18 @@ while [[ $# -gt 0 ]]; do
             ARCH="$2"; shift 2 ;;
         --no-debug-info)
             NO_DEBUG_INFO=true; shift ;;
+        --pull)
+            FORCE_PULL=true; shift ;;
         --no-pull)
-            NO_PULL=true; shift ;;
+            FORCE_PULL=false; shift ;;  # kept for backward compat (now default)
         --keep-build)
             FORCE_CLEAN=false; shift ;;
-        --privileged)
-            PRIVILEGED=true; shift ;;
         --image)
             CONTAINER_IMAGE="$2"; shift 2 ;;
         -h|--help)
-            echo "Usage: $0 [--arch <x86_64|aarch64>] [--no-debug-info] [--no-pull] [--keep-build] [--privileged] [--image <image>]"
+            echo "Usage: $0 [--arch <x86_64|aarch64>] [--no-debug-info] [--pull] [--keep-build] [--image <image>]"
+            echo "  --pull         Force pull the container image (default: use cached, auto-pull if missing)"
+            echo "  --no-pull      Do not force pull (default, kept for backward compat)"
             exit 0 ;;
         *)
             echo "Unknown option: $1" >&2; exit 1 ;;
@@ -91,13 +93,13 @@ echo "  Arch:       ${ARCH}"
 echo "  Image:      ${CONTAINER_IMAGE}"
 echo "  Bundle:     ${BUNDLE_NAME}"
 echo "  Debug info: $([ "$NO_DEBUG_INFO" = true ] && echo "disabled" || echo "enabled")"
-echo "  Privileged: $([ "$PRIVILEGED" = true ] && echo "enabled" || echo "disabled")"
+echo "  Pull mode:  $([ "$FORCE_PULL" = true ] && echo "force" || echo "auto (cached if available)")"
 echo "  ccache:     enabled"
 echo ""
 
 # ---------- prepare manifest ----------
-MANIFEST_SRC="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
-MANIFEST_DOCKER="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml"
+MANIFEST_SRC="scripts/flatpak/com.orcaslicer.OrcaSlicer.yml"
+MANIFEST_DOCKER="scripts/flatpak/com.orcaslicer.OrcaSlicer.docker.yml"
 # Ensure cleanup on exit (success or failure)
 trap 'rm -f "$PROJECT_ROOT/$MANIFEST_DOCKER"' EXIT
 
@@ -123,9 +125,14 @@ sed "/name: OrcaSlicer/{
 # ---------- run build in Docker ----------
 DOCKER="${DOCKER:-docker}"
 
-if [ "$NO_PULL" = false ]; then
-    echo "=== Pulling container image ==="
+if [ "$FORCE_PULL" = true ]; then
+    echo "=== Pulling container image (--pull requested) ==="
     "$DOCKER" pull "$CONTAINER_IMAGE"
+elif ! "$DOCKER" image inspect "$CONTAINER_IMAGE" &>/dev/null; then
+    echo "=== Pulling container image (not found locally) ==="
+    "$DOCKER" pull "$CONTAINER_IMAGE"
+else
+    echo "=== Using cached container image (use --pull to update) ==="
 fi
 
 FORCE_CLEAN_FLAG=""
@@ -133,9 +140,16 @@ if [ "$FORCE_CLEAN" = true ]; then
     FORCE_CLEAN_FLAG="--force-clean"
 fi
 
-DOCKER_RUN_ARGS=(run --rm)
-if [ "$PRIVILEGED" = true ]; then
-    DOCKER_RUN_ARGS+=(--privileged)
+DOCKER_RUN_ARGS=(run --rm -i --privileged)
+
+# When building from a git worktree, $PROJECT_ROOT/.git is a file pointing to the
+# main repo's git dir (outside $PROJECT_ROOT). The git commands and flatpak-builder
+# inside the container need that path to resolve, so bind-mount the common git dir
+# read-only at its original absolute path. No-op for a normal clone.
+GIT_COMMON_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [ -n "$GIT_COMMON_DIR" ] && [ "$GIT_COMMON_DIR" != "$PROJECT_ROOT/.git" ]; then
+    echo "  Git worktree detected; mounting common git dir read-only: $GIT_COMMON_DIR"
+    DOCKER_RUN_ARGS+=(-v "$GIT_COMMON_DIR":"$GIT_COMMON_DIR":ro)
 fi
 
 # Pass build parameters as env vars so the inner script doesn't need
@@ -163,10 +177,16 @@ format_duration() {
 overall_start=$(date +%s)
 install_start=$overall_start
 
+# This container runs as root, but the bind-mounted workspace and .flatpak-builder
+# cache are host-user-owned, so git's dubious-ownership check rejects them and
+# breaks flatpak-builder's git checkouts (e.g. wxWidgets). Trust every repo: safe
+# in this ephemeral build container, and covers the workspace, mirrors and builds.
+git config --global --add safe.directory '*'
+
 # Install required SDK extensions (not pre-installed in the container image)
 flatpak install -y --noninteractive --arch="$BUILD_ARCH" flathub \
-    org.gnome.Platform//49 \
-    org.gnome.Sdk//49 \
+    org.gnome.Platform//50 \
+    org.gnome.Sdk//50 \
     org.freedesktop.Sdk.Extension.llvm21//25.08 || true
 
 install_end=$(date +%s)
@@ -181,7 +201,7 @@ flatpak-builder $FORCE_CLEAN_FLAG \
     --arch="$BUILD_ARCH" \
     --repo=flatpak-repo \
     flatpak-build \
-    scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml
+    scripts/flatpak/com.orcaslicer.OrcaSlicer.docker.yml
 builder_end=$(date +%s)
 builder_duration=$((builder_end - builder_start))
 
@@ -190,7 +210,7 @@ flatpak build-bundle \
     --arch="$BUILD_ARCH" \
     flatpak-repo \
     "$BUNDLE_NAME" \
-    io.github.orcaslicer.OrcaSlicer
+    com.orcaslicer.OrcaSlicer
 bundle_end=$(date +%s)
 bundle_duration=$((bundle_end - bundle_start))
 
@@ -216,3 +236,6 @@ echo "  ${PROJECT_ROOT}/${BUNDLE_NAME}"
 echo ""
 echo "Install with:"
 echo "  flatpak install --user ${BUNDLE_NAME}"
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))

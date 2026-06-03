@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "re3D PLA",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pla",
+	"filament_id": "GFL99",
+	"setting_id": "re3d_pla",
+	"filament_settings_id": [
+		"re3D PLA"
+	],
+	"compatible_printers": [
+		"re3D Gigabot 4",
+		"re3D Gigabot 4 XLT",
+		"re3D Terabot 4"
+	],
+	"filament_vendor": [
+		"re3D"
+	]
+}

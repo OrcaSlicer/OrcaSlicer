@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "re3D Greengate rPETG",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_id": "GFG01",
+	"setting_id": "re3d_greengate_rpetg",
+	"filament_settings_id": [
+		"re3D Greengate rPETG"
+	],
+	"compatible_printers": [
+		"re3D GigabotX 2",
+		"re3D GigabotX 2 XLT",
+		"re3D TerabotX 2"
+	],
+	"filament_vendor": [
+		"re3D"
+	]
+}

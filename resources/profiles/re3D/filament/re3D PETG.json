@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "re3D PETG",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_id": "GFG03",
+	"setting_id": "re3d_petg",
+	"filament_settings_id": [
+		"re3D PETG"
+	],
+	"compatible_printers": [
+		"re3D Gigabot 4",
+		"re3D Gigabot 4 XLT",
+		"re3D Terabot 4"
+	],
+	"filament_vendor": [
+		"re3D"
+	]
+}

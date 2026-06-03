@@ -28,15 +28,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          lfs: 'true'
+          lfs: 'false'
         
       - name: set outputs
         id: set_outputs
         env:
           # Keep macOS cache keys and paths architecture-specific.
-          cache-os: ${{ contains(inputs.os, 'macos') && format('macos-{0}', inputs.arch) || inputs.os }}
-          dep-folder-name: ${{ contains(inputs.os, 'macos') && format('/{0}', inputs.arch) || '/OrcaSlicer_dep' }}
-          output-cmd: ${{ inputs.os == 'windows-latest' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
+          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && 'windows' || 'linux-clang') }}
+          dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || '/OrcaSlicer_dep' }}
+          output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
           echo cache-path=${{ github.workspace }}/deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}

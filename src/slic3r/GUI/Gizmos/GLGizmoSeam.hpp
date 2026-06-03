@@ -24,8 +24,6 @@ protected:
     std::string on_get_name() const override;
     PainterGizmoType get_painter_type() const override;
 
-    void show_tooltip_information(float caption_max, float x, float y);
-
     void tool_changed(wchar_t old_tool, wchar_t new_tool);
 
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
@@ -51,6 +49,9 @@ private:
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
     std::map<std::string, wxString> m_desc;
+
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts;
 };
 
 

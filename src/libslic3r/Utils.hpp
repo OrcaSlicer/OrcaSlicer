@@ -707,7 +707,19 @@ inline std::string filter_characters(const std::string& str, const std::string& 
     return filteredStr;
 }
 
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter = nullptr);
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter = nullptr,
+                                bool merge_mode                               = false);
+
+// Install vendor bundles from resources directory to data directory
+// bundle_names: vector of vendor bundle names (without .json extension)
+// resource_subdir: subdirectory under resources_dir() (default: "profiles")
+// data_subdir: subdirectory under data_dir() (default: "system")
+// Returns: true if all bundles installed successfully, false otherwise
+bool install_vendor_bundles_from_resources(const std::vector<std::string>& bundle_names,
+                                           const std::string& resource_subdir = "profiles",
+                                           const std::string& data_subdir     = "system");
 
 // Orca: Since 1.7.9 Boost deprecated save_string_file and load_string_file, copy and modified from boost 1.7.8
 void save_string_file(const boost::filesystem::path& p, const std::string& str);

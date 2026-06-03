@@ -1,139 +1,154 @@
 {
-    "type": "machine",
-    "name": "fdm_elegoo_common",
-    "inherits": "fdm_machine_common",
-    "from": "system",
-    "instantiation": "false",
-    "gcode_flavor": "marlin",
-    "machine_max_acceleration_e": [
-        "5000",
-        "5000"
-    ],
-    "machine_max_acceleration_extruding": [
-        "500",
-        "500"
-    ],
-    "machine_max_acceleration_retracting": [
-        "1000",
-        "1000"
-    ],
-    "machine_max_acceleration_travel": [
-        "500",
-        "500"
-    ],
-    "machine_max_acceleration_x": [
-        "500",
-        "500"
-    ],
-    "machine_max_acceleration_y": [
-        "500",
-        "500"
-    ],
-    "machine_max_acceleration_z": [
-        "200",
-        "200"
-    ],
-    "machine_max_speed_e": [
-        "60",
-        "60"
-    ],
-    "machine_max_speed_x": [
-        "500",
-        "500"
-    ],
-    "machine_max_speed_y": [
-        "500",
-        "500"
-    ],
-    "machine_max_speed_z": [
-        "10",
-        "10"
-    ],
-    "machine_max_jerk_e": [
-        "5",
-        "5"
-    ],
-    "machine_max_jerk_x": [
-        "8",
-        "8"
-    ],
-    "machine_max_jerk_y": [
-        "8",
-        "8"
-    ],
-    "machine_max_jerk_z": [
-        "0.4",
-        "0.4"
-    ],
-    "machine_min_extruding_rate": [
-        "0",
-        "0"
-    ],
-    "machine_min_travel_rate": [
-        "0",
-        "0"
-    ],
-    "max_layer_height": [
-        "0.32"
-    ],
-    "min_layer_height": [
-        "0.08"
-    ],
-    "printable_height": "280",
-    "extruder_clearance_radius": "47",
-    "extruder_clearance_height_to_rod": "34",
-    "extruder_clearance_height_to_lid": "34",
-    "printer_settings_id": "",
-    "printer_technology": "FFF",
-    "printer_variant": "0.4",
-    "retraction_minimum_travel": [
-        "2"
-    ],
-    "retract_before_wipe": [
-        "70%"
-    ],
-    "retract_when_changing_layer": [
-        "1"
-    ],
-    "retraction_length": [
-        "5"
-    ],
-    "retract_length_toolchange": [
-        "2"
-    ],
-    "z_hop": [
-        "0.4"
-    ],
-    "retract_restart_extra": [
-        "0"
-    ],
-    "retract_restart_extra_toolchange": [
-        "0"
-    ],
-    "retraction_speed": [
-        "60"
-    ],
-    "deretraction_speed": [
-        "40"
-    ],
-    "silent_mode": "0",
-    "single_extruder_multi_material": "1",
-    "change_filament_gcode": "",
-    "machine_pause_gcode": "M25 ;pause print",
-    "wipe": [
-        "1"
-    ],
-    "default_filament_profile": [
-        "Generic PLA @Elegoo"
-    ],
-    "default_print_profile": "",
-    "bed_exclude_area": [
-        "0x0"
-    ],
-    "machine_start_gcode": "",
-    "machine_end_gcode": "",
-    "layer_change_gcode": "",
-    "scan_first_layer": "0",
-    "nozzle_type": "undefine",
-    "auxiliary_fan": "0"
+	"type": "machine",
+	"name": "fdm_elegoo_common",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "fdm_machine_common",
+	"gcode_flavor": "marlin",
+	"printer_technology": "FFF",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"printable_area": [
+		"0x0",
+		"235x0",
+		"235x235",
+		"0x235"
+	],
+	"auxiliary_fan": "0",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"default_filament_profile": [
+		"Generic PLA @Elegoo"
+	],
+	"default_print_profile": "",
+	"extruder_colour": [
+		"#018001"
+	],
+	"machine_max_acceleration_e": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_extruding": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_retracting": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_x": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_y": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_z": [
+		"100",
+		"100"
+	],
+	"machine_max_speed_e": [
+		"70",
+		"70"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"machine_max_jerk_e": [
+		"2.5",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"9",
+		"9"
+	],
+	"machine_max_jerk_y": [
+		"9",
+		"9"
+	],
+	"machine_max_jerk_z": [
+		"3",
+		"3"
+	],
+	"machine_min_extruding_rate": [
+		"0",
+		"0"
+	],
+	"machine_min_travel_rate": [
+		"0",
+		"0"
+	],
+	"printable_height": "250",
+	"retract_lift_below": [
+		"249"
+	],
+	"extruder_clearance_max_radius": "68",
+	"extruder_clearance_height_to_rod": "34",
+	"extruder_clearance_height_to_lid": "34",
+	"nozzle_volume": "90",
+	"best_object_pos": "0.5x0.5",
+	"retraction_minimum_travel": [
+		"0.8"
+	],
+	"retract_before_wipe": [
+		"0%"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"wipe_distance": [
+		"1.2"
+	],
+	"retraction_length": [
+		"5"
+	],
+	"retract_length_toolchange": [
+		"2"
+	],
+	"z_hop": [
+		"0.4"
+	],
+	"retraction_speed": [
+		"60"
+	],
+	"deretraction_speed": [
+		"60"
+	],
+	"z_hop_types": [
+		"Auto Lift"
+	],
+	"thumbnails": [
+		"320x320",
+		"160x160"
+	],
+	"thumbnails_format": "PNG",
+	"nozzle_type": "brass",
+	"machine_end_gcode": "G90 ;Absolute positionning\nM83 ; extruder relative mode\nG1 X10 Y{print_bed_max[1]*0.8} Z{min(max_layer_z+100, printable_height)} E-8 F{travel_speed*60} ; Move print head up\nG1 Z{min(max_layer_z+100, printable_height-2)} F600\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM106 S0 ; turn off fan\nM84 ;Disable all steppers",
+	"silent_mode": "0",
+	"single_extruder_multi_material": "1",
+	"change_filament_gcode": "",
+	"machine_pause_gcode": "M600",
+	"wipe": [
+		"1"
+	],
+	"machine_start_gcode": "\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0\n",
+	"layer_change_gcode": ";LAYER:{layer_num+1}\n",
+	"scan_first_layer": "0"
 }

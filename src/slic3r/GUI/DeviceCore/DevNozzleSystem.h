@@ -15,7 +15,7 @@ namespace Slic3r
        int             m_nozzle_id = -1;
        NozzleFlowType  m_nozzle_flow = NozzleFlowType::S_FLOW;// 0-common 1-high flow
        NozzleType      m_nozzle_type = NozzleType::ntUndefine;// 0-stainless_steel 1-hardened_steel 5-tungsten_carbide
-       float           m_diameter = 0.4f;// 0.2mm  0.4mm  0.6mm 0.8mm
+       float           m_diameter = 0.0f;// unknown until reported by the printer
    };
 
    class DevNozzleSystem

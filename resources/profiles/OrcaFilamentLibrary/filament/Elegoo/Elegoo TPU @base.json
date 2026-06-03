@@ -1,0 +1,35 @@
+{
+	"type": "filament",
+	"name": "Elegoo TPU @base",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"filament_id": "OETPUB00",
+	"instantiation": "false",
+	"filament_density": [
+		"1.21"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_max_volumetric_speed": [
+		"3.6"
+	],
+	"filament_vendor": [
+		"Elegoo"
+	],
+	"nozzle_temperature": [
+		"225"
+	],
+	"nozzle_temperature_initial_layer": [
+		"225"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	]
+}

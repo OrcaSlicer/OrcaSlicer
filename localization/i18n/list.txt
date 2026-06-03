@@ -179,11 +179,12 @@ src/slic3r/GUI/KBShortcutsDialog.cpp
 src/slic3r/GUI/ReleaseNote.cpp
 src/slic3r/GUI/ReleaseNote.hpp
 src/slic3r/GUI/UpgradePanel.cpp
-src/slic3r/Utils/FixModelByWin10.cpp
+src/slic3r/Utils/FixModelByCgal.cpp
 src/slic3r/Utils/PresetUpdater.cpp
 src/slic3r/Utils/Http.cpp
 src/slic3r/Utils/Process.cpp
 src/libslic3r/GCode.cpp
+src/libslic3r/GCodeWriter.cpp
 src/libslic3r/GCode/ToolOrdering.cpp
 src/libslic3r/ExtrusionEntity.cpp
 src/libslic3r/Flow.cpp

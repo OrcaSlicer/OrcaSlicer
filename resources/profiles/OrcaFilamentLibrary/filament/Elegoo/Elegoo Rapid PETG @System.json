@@ -1,9 +1,37 @@
 {
-    "type": "filament",
-    "name": "Elegoo Rapid PETG @System",
-    "inherits": "Elegoo Rapid PETG @base",
-    "from": "system",
-    "setting_id": "OGFSE01_00",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Elegoo Rapid PETG @System",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "OERPETGS00",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.052"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"filament_density": [
+		"1.26"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"compatible_printers": [],
+	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+"
 }

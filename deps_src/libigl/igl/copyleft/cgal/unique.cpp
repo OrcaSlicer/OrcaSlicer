@@ -11,4 +11,5 @@
 #ifdef IGL_STATIC_LIBRARY
 #undef IGL_STATIC_LIBRARY
 #include "../../unique.cpp"
+template void igl::unique<CGAL::Point_2<CGAL::Epeck> >(std::vector<CGAL::Point_2<CGAL::Epeck>, std::allocator<CGAL::Point_2<CGAL::Epeck> > > const&, std::vector<CGAL::Point_2<CGAL::Epeck>, std::allocator<CGAL::Point_2<CGAL::Epeck> > >&, std::vector<unsigned long, std::allocator<unsigned long> >&, std::vector<unsigned long, std::allocator<unsigned long> >&);
 #endif

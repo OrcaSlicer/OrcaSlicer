@@ -1,0 +1,30 @@
+{
+	"type": "machine",
+	"setting_id": "SM_U1_04_06",
+	"name": "Snapmaker U1 (0.4+0.6 nozzle)",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_U1",
+	"printer_model": "Snapmaker U1",
+	"printer_variant": "0.4+0.6",
+	"default_print_profile": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",
+	"max_layer_height": [
+		"0.32",
+		"0.32",
+		"0.48",
+		"0.48"
+	],
+	"min_layer_height": [
+		"0.08",
+		"0.08",
+		"0.12",
+		"0.12"
+	],
+	"nozzle_diameter": [
+		"0.4",
+		"0.4",
+		"0.6",
+		"0.6"
+	],
+	"nozzle_type": "stainless_steel"
+}

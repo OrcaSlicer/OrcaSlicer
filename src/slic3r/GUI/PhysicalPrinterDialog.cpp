@@ -12,6 +12,7 @@
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
+#include <wx/choicdlg.h>
 #include <wx/statbox.h>
 #include <wx/wupdlock.h>
 
@@ -31,7 +32,7 @@
 #include "PrintHostDialogs.hpp"
 #include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/PrintHost.hpp"
-#include "../Utils/FixModelByWin10.hpp"
+#include "../Utils/Flashforge.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "RemovableDriveManager.hpp"
 #include "BitmapCache.hpp"
@@ -206,10 +207,37 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_browse_btn, "printer_host_browser", _L("Browse") + " " + dots);
         m_printhost_browse_btn->Bind(wxEVT_BUTTON, [=](wxCommandEvent& e) {
-            BonjourDialog dialog(this, Preset::printer_technology(*m_config));
-            if (dialog.show_and_lookup()) {
-                m_optgroup->set_value("print_host", dialog.get_selected(), true);
-                m_optgroup->get_field("print_host")->field_changed();
+            const auto host_type = m_config->opt_enum<PrintHostType>("host_type");
+            if (host_type == htFlashforge) {
+                wxBusyCursor                            wait;
+                std::vector<FlashforgeDiscoveredPrinter> printers;
+                wxString                               error_msg;
+                if (!Flashforge::discover_printers(printers, error_msg)) {
+                    show_error(this, error_msg);
+                    return;
+                }
+
+                wxArrayString choices;
+                for (const auto& printer : printers)
+                    choices.Add(from_u8((boost::format("%1% (%2%) [%3%]") % printer.name % printer.ip_address % printer.serial_number).str()));
+
+                wxSingleChoiceDialog dialog(this, _L("Select a Flashforge printer"), _L("Discovered Printers"), choices);
+                if (dialog.ShowModal() == wxID_OK) {
+                    const int idx = dialog.GetSelection();
+                    if (idx >= 0 && idx < static_cast<int>(printers.size())) {
+                        m_optgroup->set_value("print_host", from_u8(printers[idx].ip_address), true);
+                        m_optgroup->set_value("flashforge_serial_number", from_u8(printers[idx].serial_number), true);
+                        m_config->opt_string("print_host")                = printers[idx].ip_address;
+                        m_config->opt_string("flashforge_serial_number") = printers[idx].serial_number;
+                        update_printhost_buttons();
+                    }
+                }
+            } else {
+                BonjourDialog dialog(this, Preset::printer_technology(*m_config));
+                if (dialog.show_and_lookup()) {
+                    m_optgroup->set_value("print_host", dialog.get_selected(), true);
+                    m_optgroup->get_field("print_host")->field_changed();
+                }
             }
         });
 
@@ -337,6 +365,10 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
 
+    option = m_optgroup->get_option("flashforge_serial_number");
+    option.opt.width = Field::def_width_wider();
+    m_optgroup->append_single_option_line(option);
+
     option = m_optgroup->get_option("printhost_port");
     option.opt.width = Field::def_width_wider();
     Line port_line = m_optgroup->create_single_option_line(option);
@@ -391,7 +423,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             auto txt = new wxStaticText(parent, wxID_ANY, from_u8((boost::format("%1%\n\t%2%") % info % ca_file_hint).str()));
             txt->SetFont(wxGetApp().normal_font());
             auto sizer = new wxBoxSizer(wxHORIZONTAL);
-            sizer->Add(txt, 1, wxEXPAND|wxALIGN_LEFT);
+            sizer->Add(txt, 1, wxEXPAND);
             return sizer;
         };
         m_optgroup->append_line(line);
@@ -437,7 +469,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     // Always fill in the "printhost_port" combo box from the config and select it.
     {
         Choice* choice = dynamic_cast<Choice*>(m_optgroup->get_field("printhost_port"));
-        choice->set_values({ m_config->opt_string("printhost_port") });
+        choice->set_values(std::vector<std::string>{ m_config->opt_string("printhost_port") });
         choice->set_selection();
     }
 
@@ -539,7 +571,7 @@ void PhysicalPrinterDialog::update_preset_input() {
     }
 
     if (m_valid_type == Valid &&
-        (m_preset_name == "Default Setting" || m_preset_name == "Default Filament" || m_preset_name == "Default Printer")) {
+        (m_preset_name == "Default Setting" || m_preset_name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || m_preset_name == "Default Printer")) {
         info_line    = _L("Name is unavailable.");
         m_valid_type = NoValid;
     }
@@ -703,13 +735,17 @@ void PhysicalPrinterDialog::update(bool printer_change)
         }
         
         if (opt->value == htFlashforge) {
-                m_optgroup->hide_field("printhost_apikey");
-                m_optgroup->hide_field("printhost_authorization_type");
-            }
+            m_optgroup->show_field("printhost_apikey");
+            m_optgroup->show_field("flashforge_serial_number");
+            m_optgroup->hide_field("printhost_authorization_type");
+        } else {
+            m_optgroup->hide_field("flashforge_serial_number");
+        }
     }
     else {
         m_optgroup->set_value("host_type", int(PrintHostType::htOctoPrint), false);
         m_optgroup->hide_field("host_type");
+        m_optgroup->hide_field("flashforge_serial_number");
 
         m_optgroup->show_field("printhost_authorization_type");
 
@@ -827,7 +863,7 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 void PhysicalPrinterDialog::check_host_key_valid()
 {
-    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
+    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "flashforge_serial_number", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
     for (auto &key : keys) {
         auto it = m_config->option<ConfigOptionString>(key);
         if (!it) m_config->set_key_value(key, new ConfigOptionString(""));

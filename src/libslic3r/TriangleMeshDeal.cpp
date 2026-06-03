@@ -1,55 +1,41 @@
 #include "TriangleMeshDeal.hpp"
 
-#include <igl/read_triangle_mesh.h>
 #include <igl/loop.h>
-#include <igl/upsample.h>
-#include <igl/false_barycentric_subdivision.h>
+#undef NDEBUG
+#include <assert.h>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
-TriangleMesh TriangleMeshDeal::smooth_triangle_mesh(const TriangleMesh &mesh, bool &ok)
+TriangleMesh TriangleMeshDeal::smooth_triangle_mesh(const TriangleMesh& mesh, bool& ok)
 {
-        {
-            using namespace std;
-            using namespace igl;
-            Eigen::MatrixXi OF, F;
-            Eigen::MatrixXd OV, V;
-            auto            vertices_count = mesh.its.vertices.size();
-            OV                             = Eigen::MatrixXd(vertices_count, 3);
-            for (int i = 0; i < vertices_count; i++) {
-                auto v = mesh.its.vertices[i];
-                OV.row(i) << v[0], v[1], v[2];
-            }
-            auto indices_count = mesh.its.indices.size();
-            OF                 = Eigen::MatrixXi(indices_count, 3);
-            for (int i = 0; i < indices_count; i++) {
-                auto face = mesh.its.indices[i];
-                OF.row(i) << face[0], face[1], face[2];
-            }
-            //igl:: read_triangle_mesh( "E:/Download/libigl-2.6.0/out/build/x64-Debug/_deps/libigl_tutorial_data-src/decimated-knight.off", OV, OF);
-            V = OV;
-            F = OF;
+    {
+        using namespace igl;
+        typedef Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::DontAlign | Eigen::RowMajor> RowMatrixX3f;
+        typedef Eigen::Matrix<int, Eigen::Dynamic, 3, Eigen::DontAlign | Eigen::RowMajor>   RowMatrixX3i;
 
-            //igl::upsample(Eigen::MatrixXd(V), Eigen::MatrixXi(F), V, F);
-            ok = true;
-            if (!igl::loop(Eigen::MatrixXd(V), Eigen::MatrixXi(F), V, F)) {
-                ok = false;
-                return TriangleMesh();
-            }
-            //igl::false_barycentric_subdivision(Eigen::MatrixXd(V), Eigen::MatrixXi(F), V, F);
-            indexed_triangle_set its;
-            int         vertex_count = V.rows();
-            its.vertices.resize(vertex_count);
-            for (int i = 0; i < vertex_count; i++) {
-                its.vertices[i] = V.row(i).cast<float>();
-            }
-            int indice_count = F.rows();
-            its.indices.resize(indice_count);
-            for (int i = 0; i < indice_count; i++) {
-                auto cur                   = F.row(i);
-                its.indices[i] = Slic3r::Vec3i32(cur[0], cur[1], cur[2]);
-            }
-            TriangleMesh result_mesh(its);
-            return result_mesh;
-        }
+        auto vertices_count = mesh.its.vertices.size();
+        auto indices_count  = mesh.its.indices.size();
+        // Use Map to map the vertices and indicies into Matrixes without requiring a copy.
+        const Eigen::Map<const RowMatrixX3f> OV(mesh.its.vertices[0].data(), vertices_count, 3);
+        const Eigen::Map<const RowMatrixX3i> OF(mesh.its.indices[0].data(), indices_count, 3);
+        Eigen::MatrixX3f                     V;
+        Eigen::MatrixX3i                     F;
+
+        ok = true;
+        // TODO: add validation checks for the input mesh? Is this really necessary?
+        // if ( <not OK> ) {
+        //    ok = false;
+        //    return TriangleMesh();
+        // }
+        loop(OV, OF, V, F);
+
+        indexed_triangle_set its;
+        auto                 iterv = V.rowwise();
+        auto                 iterf = F.rowwise();
+        its.vertices.assign(iterv.cbegin(), iterv.cend());
+        its.indices.assign(iterf.cbegin(), iterf.cend());
+        TriangleMesh result_mesh(its);
+        return result_mesh;
     }
+}
 } // namespace Slic3r
