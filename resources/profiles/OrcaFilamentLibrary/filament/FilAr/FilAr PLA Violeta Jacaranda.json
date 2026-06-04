@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Violeta Jacaranda",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "filament_id": "FILAR0023",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#9342C9"
+    ]
+}

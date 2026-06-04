@@ -49,6 +49,8 @@ static inline FlowRole opt_key_to_flow_role(const std::string &opt_key)
         return frInfill;
     else if (opt_key == "internal_solid_infill_line_width")
         return frSolidInfill;
+    else if (opt_key == "bridge_line_width")
+        return frSolidInfill;
 	else if (opt_key == "top_surface_line_width")
 		return frTopSolidInfill;
 	else if (opt_key == "support_line_width")
@@ -67,6 +69,26 @@ double Flow::extrusion_width(const std::string& opt_key, const ConfigOptionFloat
 {
 	assert(opt != nullptr);
 
+    auto opt_nozzle_diameters = config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (opt_nozzle_diameters == nullptr)
+        throw_on_missing_variable(opt_key, "nozzle_diameter");
+    const float nozzle_diameter = float(opt_nozzle_diameters->get_at(first_printing_extruder));
+
+    if (opt_key == "bridge_line_width") {
+        if (opt->percent) {
+            const double bridge_width = opt->get_abs_value(nozzle_diameter);
+            if (bridge_width > 0.)
+                return bridge_width;
+        } else if (opt->value > 0.) {
+            return opt->value;
+        }
+
+        opt = config.option<ConfigOptionFloatOrPercent>("internal_solid_infill_line_width");
+        if (opt == nullptr)
+            throw_on_missing_variable(opt_key, "internal_solid_infill_line_width");
+        return extrusion_width("internal_solid_infill_line_width", opt, config, first_printing_extruder);
+    }
+
 #if 0
 // This is the logic used for skit / brim, but not for the rest of the 1st layer.
 	if (opt->value == 0. && first_layer) {
@@ -84,17 +106,13 @@ double Flow::extrusion_width(const std::string& opt_key, const ConfigOptionFloat
     		throw_on_missing_variable(opt_key, "line_width");
 	}
 
-    auto opt_nozzle_diameters = config.option<ConfigOptionFloats>("nozzle_diameter");
-    if (opt_nozzle_diameters == nullptr)
-        throw_on_missing_variable(opt_key, "nozzle_diameter");
-
     if (opt->percent) {
-		return opt->get_abs_value(float(opt_nozzle_diameters->get_at(first_printing_extruder)));
+        return opt->get_abs_value(nozzle_diameter);
 	}
 
 	if (opt->value == 0.) {
         // If user left option to 0, calculate a sane default width.
-        return auto_extrusion_width(opt_key_to_flow_role(opt_key), float(opt_nozzle_diameters->get_at(first_printing_extruder)));
+        return auto_extrusion_width(opt_key_to_flow_role(opt_key), nozzle_diameter);
     }
 
 	return opt->value;

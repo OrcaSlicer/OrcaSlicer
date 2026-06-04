@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Rojo de Carreras",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "filament_id": "FILAR0021",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#FA0F0F"
+    ]
+}
