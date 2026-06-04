@@ -2250,8 +2250,24 @@ void PrintObject::discover_vertical_shells()
                         int i = int(idx_layer) - 1;
                         int ibottom = int(idx_layer) - n_bottom_layers;
                         bool at_least_one_bottom_projected = false;
+                        // Above a spiral-vase band the transition layer can sit exactly at ibottom,
+                        // which the default i > ibottom loop skips; extend the range only there.
+                        bool extend_bottom_range_to_ibottom = false;
+                        if (!spiral_mode) {
+                            int  layers_since_spiral = 0;
+                            bool found_spiral_below  = false;
+                            for (int li = int(idx_layer) - 1; li >= 0; ++layers_since_spiral, --li) {
+                                if (m_layers[li]->any_spiral_vase_active()) {
+                                    found_spiral_below = true;
+                                    break;
+                                }
+                            }
+                            if (found_spiral_below && layers_since_spiral > 0 && layers_since_spiral <= n_bottom_layers)
+                                extend_bottom_range_to_ibottom = true;
+                        }
 	                    for (; i >= 0 &&
-	                         (i > ibottom || bottom_z - m_layers[i]->bottom_z() < region_config.bottom_shell_thickness - EPSILON);
+	                         ((extend_bottom_range_to_ibottom ? i >= ibottom : i > ibottom) ||
+	                          bottom_z - m_layers[i]->bottom_z() < region_config.bottom_shell_thickness - EPSILON);
 	                        -- i) {
                             if (!spiral_mode && m_layers[i]->any_spiral_vase_active())
                                 continue;
@@ -2260,33 +2276,6 @@ void PrintObject::discover_vertical_shells()
 							combine_holes(cache.holes);
                             combine_shells(cache.bottom_surfaces);
 	                    }
-
-                        // Layers above a spiral-vase band share identical outlines with the
-                        // transition layer; anchor bottom shell thickness from that layer.
-                        if (!spiral_mode) {
-                            int layers_since_spiral = 0;
-                            for (int li = int(idx_layer) - 1; li >= 0; ++layers_since_spiral, --li) {
-                                if (m_layers[li]->any_spiral_vase_active())
-                                    break;
-                            }
-                            if (layers_since_spiral > 0 && layers_since_spiral <= n_bottom_layers) {
-                                int transition_i = -1;
-                                for (int li = int(idx_layer) - 1; li >= 0; --li) {
-                                    if (m_layers[li]->any_spiral_vase_active()) {
-                                        transition_i = li + 1;
-                                        break;
-                                    }
-                                }
-                                if (transition_i >= 0) {
-                                    const Polygons &transition_bottom =
-                                        cache_top_botom_regions[transition_i].bottom_surfaces;
-                                    if (!transition_bottom.empty()) {
-                                        at_least_one_bottom_projected = true;
-                                        combine_shells(transition_bottom);
-                                    }
-                                }
-                            }
-                        }
 
                         if (!at_least_one_bottom_projected && i >= 0) {
                             Polygons anchor_area = intersection(expand(cache_top_botom_regions[idx_layer].bottom_surfaces,
@@ -2297,7 +2286,8 @@ void PrintObject::discover_vertical_shells()
 
                         if (one_more_layer_below_top_bottom_surfaces)
                             if (i >= 0 &&
-                                (i > ibottom || bottom_z - m_layers[i]->print_z < region_config.bottom_shell_thickness - EPSILON))
+                                ((extend_bottom_range_to_ibottom ? i >= ibottom : i > ibottom) ||
+                                 bottom_z - m_layers[i]->print_z < region_config.bottom_shell_thickness - EPSILON))
                                 combine_holes(cache_top_botom_regions[i].holes);
 	                }
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
