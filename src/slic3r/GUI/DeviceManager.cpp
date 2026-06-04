@@ -2909,6 +2909,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 }
 
               m_fan->ParseV2_0(jj);
+                m_fila_switch->ParseFilaSwitchInfo(jj);
 
                 if (jj.contains("support_filament_backup")) {
                     if (jj["support_filament_backup"].is_boolean()) {

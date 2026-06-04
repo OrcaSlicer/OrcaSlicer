@@ -4,6 +4,7 @@
 
 #include "DevDefs.h"
 #include "DevFilaAmsSetting.h"
+#include "DevFilaSwitch.h"
 #include "DevUtil.h"
 
 #include <map>
@@ -180,7 +181,7 @@ public:
     std::set<int> GetBindedExtruderSet() const { return m_binded_extruder_set; }
     void          SetBindedExtruderSet(const std::set<int>& s) { m_binded_extruder_set = s; }
     // BBL-port: Filament-Track-Switch position (only set when switcher is present).
-    std::optional<int> GetSwitcherPos() const { return std::nullopt; }
+    std::optional<DevFilaSwitch::SwitchPos> GetSwitcherPos() const { return m_binded_switcher_pos; }
 
 private:
     AmsType       m_ams_type = AmsType::AMS;
@@ -188,6 +189,7 @@ private:
     int           m_ext_id;//extruder id
     bool          m_exist = false;
     std::set<int> m_binded_extruder_set;
+    std::optional<DevFilaSwitch::SwitchPos> m_binded_switcher_pos;
 
     // slots and trays
     std::map<std::string, DevAmsTray*> m_trays;//id -> DevAmsTray*

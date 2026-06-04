@@ -362,23 +362,38 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     int extuder_id = MAIN_EXTRUDER_ID; // Default nozzle id
                     int type_id = 1;   // 0:dummy 1:ams 2:ams-lite 3:n3f 4:n3s
 
+                    /*FTS-aware extruder binding (BBL-port)*/
+                    std::set<int> binded_extruder_set;
+                    std::optional<DevFilaSwitch::SwitchPos> binded_switcher_pos;
+
                     /*ams info*/
                     if (it->contains("info")) {
                         const std::string& info = (*it)["info"].get<std::string>();
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
+
+                        if (extuder_id == 0xE && obj->GetFilaSwitch()->IsInstalled()) {
+                            /* AMS is routed through FTS — can feed both extruders */
+                            int bind_switch_in = DevUtil::get_flag_bits(info, 24, 4);
+                            if (bind_switch_in == 0 || bind_switch_in == 1) {
+                                binded_extruder_set = { MAIN_EXTRUDER_ID, DEPUTY_EXTRUDER_ID };
+                            }
+                            if (bind_switch_in == 0) {
+                                binded_switcher_pos = DevFilaSwitch::SwitchPos::POS_IN_B;
+                            } else if (bind_switch_in == 1) {
+                                binded_switcher_pos = DevFilaSwitch::SwitchPos::POS_IN_A;
+                            }
+                        } else if (extuder_id == 0xE) {
+                            /* FTS not installed — keep AMS with empty binding */
+                            binded_extruder_set = {};
+                        } else {
+                            binded_extruder_set = { extuder_id };
+                        }
                     } else {
                         if (!obj->is_enable_ams_np && obj->get_printer_ams_type() == "f1") {
                             type_id = DevAms::AMS_LITE;
                         }
-                    }
-
-                    /*AMS without initialization*/
-                    if (extuder_id == 0xE)
-                    {
-                        ams_id_set.erase(ams_id);
-                        system->amsList.erase(ams_id);
-                        continue;
+                        binded_extruder_set = { MAIN_EXTRUDER_ID };
                     }
 
                     ams_id_set.erase(ams_id);
@@ -386,22 +401,28 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     auto ams_it = system->amsList.find(ams_id);
                     if (ams_it == system->amsList.end())
                     {
-                        DevAms* new_ams = new DevAms(ams_id, std::set<int>{extuder_id}, type_id);
+                        DevAms* new_ams = new DevAms(ams_id, binded_extruder_set, type_id);
                         system->amsList.insert(std::make_pair(ams_id, new_ams));
                         // new ams added event
                         curr_ams = new_ams;
                     }
                     else
                     {
-                        if (extuder_id != ams_it->second->GetExtruderId())
-                        {
-                            ams_it->second->m_ext_id = extuder_id;
-                            ams_it->second->m_binded_extruder_set = {extuder_id};
-                        }
-
                         curr_ams = ams_it->second;
                     }
                     if (!curr_ams) continue;
+
+                    /* Update binded extruder set and switcher pos */
+                    if (curr_ams->m_binded_switcher_pos != binded_switcher_pos || curr_ams->m_binded_extruder_set != binded_extruder_set) {
+                        BOOST_LOG_TRIVIAL(info) << "[FilaSystem] AMS bind changed: ams_id=" << ams_id
+                            << ", extruder_set " << curr_ams->m_binded_extruder_set.size() << " -> " << binded_extruder_set.size()
+                            << ", switcher_pos "
+                            << (curr_ams->m_binded_switcher_pos.has_value() ? std::to_string((int)curr_ams->m_binded_switcher_pos.value()) : "nullopt")
+                            << " -> "
+                            << (binded_switcher_pos.has_value() ? std::to_string((int)binded_switcher_pos.value()) : "nullopt");
+                    }
+                    curr_ams->m_binded_extruder_set = binded_extruder_set;
+                    curr_ams->m_binded_switcher_pos = binded_switcher_pos;
 
                     /*set ams type flag*/
                     curr_ams->SetAmsType(type_id);
