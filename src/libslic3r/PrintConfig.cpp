@@ -5520,7 +5520,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("seam_position_ref", coEnum);
-    def->label = L("Relative seam reference");
+    def->label = L("Relative seam position");
     def->category = L("Quality");
     def->tooltip = L("When the seam position is set to \"Relative to Part\", choose whether the seam is placed "
                      "on the perimeter point closest to the reference point, or farthest from it. With the "
@@ -5533,6 +5533,17 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Farthest from point"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamRelativeReference>(srrClosest));
+
+    def = this->add("seam_position_align", coBool);
+    def->label = L("Align relative seam across layers");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Relative to Part\", align the per-layer seam points "
+                     "into a smooth vertical line (as the other seam modes do). Turn this off for thin or "
+                     "intricate parts (e.g. lattices) where the alignment's tolerance is wider than the feature "
+                     "and would pull the seam off the chosen edge; then each layer keeps its own closest/"
+                     "farthest point.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");

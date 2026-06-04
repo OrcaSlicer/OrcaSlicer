@@ -952,6 +952,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               seam_position_x))
     ((ConfigOptionFloat,               seam_position_y))
     ((ConfigOptionEnum<SeamRelativeReference>, seam_position_ref))
+    ((ConfigOptionBool,                seam_position_align))
     ((ConfigOptionBool,                staggered_inner_seams))
     ((ConfigOptionFloat,               slice_closing_radius))
     ((ConfigOptionEnum<SlicingMode>,   slicing_mode))

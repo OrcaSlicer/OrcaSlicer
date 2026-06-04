@@ -62,13 +62,17 @@ TEST_CASE("Relative-to-Part seam option is registered and round-trips", "[Seams]
     REQUIRE(config.opt_enum<SeamRelativeReference>("seam_position_ref") == srrFarthest);
     REQUIRE(config.opt_serialize("seam_position_ref") == "farthest");
 
+    // Cross-layer alignment defaults ON.
+    REQUIRE(config.opt_bool("seam_position_align") == true);
+
     // The new keys must be part of the Print preset, otherwise the Process tab cannot bind them
     // ("No <key> in ConfigOptionsGroup config." at runtime).
     const std::vector<std::string> &opts = Preset::print_options();
     REQUIRE(std::find(opts.begin(), opts.end(), "seam_position")     != opts.end());
     REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_x")   != opts.end());
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_y")   != opts.end());
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_ref") != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_y")     != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_ref")   != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_align") != opts.end());
 }
 
 // ---------------------------------------------------------------------------------------------
