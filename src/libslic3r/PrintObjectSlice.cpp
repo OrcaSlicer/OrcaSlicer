@@ -149,6 +149,7 @@ static bool layer_range_config_range_spiral_mode(const DynamicPrintConfig *cfg)
     return opt != nullptr && opt->value;
 }
 
+// Global spiral_mode only: bottom_shell_layers are sliced in normal mode, then spiral above.
 static void apply_spiral_vase_slicing_params(MeshSlicingParamsEx &params, const PrintRegionConfig &region_config, const std::vector<float> &zs)
 {
     params.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
@@ -244,6 +245,7 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                             MeshSlicingParamsEx params_range = params;
                             if (model_volume->is_model_part() && layer_range_config_range_spiral_mode(layer_range.config)) {
                                 params_range.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
+                                // Entire height band is spiral; no normal bottom layers inside the modifier.
                                 params_range.slicing_mode_normal_below_layer = 0;
                             }
                             std::vector<ExPolygons> range_slices = slice_volume(*model_volume, z_range, params_range, throw_on_cancel_callback);

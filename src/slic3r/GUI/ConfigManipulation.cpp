@@ -354,7 +354,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
-    // Height range modifier: auto-adjust region settings when per-range spiral is enabled.
+    // Height range modifier: auto-adjust for per-range spiral (no solid bottom inside the band).
     if (!is_plate_config && config->has("layer_height") && config->opt_bool("range_spiral_mode") &&
         ! (config->opt_int("wall_loops") == 1 &&
            config->opt_int("top_shell_layers") == 0 &&

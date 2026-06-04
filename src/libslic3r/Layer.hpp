@@ -101,6 +101,7 @@ public:
     bool    has_extrusions() const { return ! this->perimeters.entities.empty() || ! this->fills.entities.empty(); }
 
     // True when this region/layer should use spiral vase slicing (global spiral_mode or per-height-range range_spiral_mode).
+    // Global spiral respects bottom_shell_layers below the spiral; per-range spiral does not inside the band.
     bool    is_spiral_vase_active() const;
     //BBS
     void    simplify_infill_extrusion_entity() { simplify_entity_collection(&fills); }

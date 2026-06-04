@@ -1170,7 +1170,9 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Others");
     def->tooltip = L("When enabled on a height range modifier, this Z band is printed in spiral vase mode "
                      "(single continuous wall, no infill or top solid layers). Use with wall loops = 1 and zero infill. "
-                     "Global Spiral vase in print settings overrides this.");
+                     "Global Spiral vase in print settings overrides this. "
+                     "Unlike global Spiral vase, there are no solid bottom layers inside the band: spiral slicing starts on the first layer of the modifier. "
+                     "Place solid floors and walls in the print settings below the band; the slicer adds top solid layers on the last normal layer before the band.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 

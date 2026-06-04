@@ -237,7 +237,12 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "bed_temperature_formula",
         "filament_notes",
         "process_notes",
-        "printer_notes"
+        "printer_notes",
+        // Spiral vase post-processing (global print settings).
+        "spiral_mode_smooth",
+        "spiral_mode_max_xy_smoothing",
+        "spiral_starting_flow_ratio",
+        "spiral_finishing_flow_ratio",
     };
 
     static std::unordered_set<std::string> steps_ignore;
@@ -1257,6 +1262,25 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
 
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic.....FIXME:StringObjectException *warning can only contain one warning, but there might be many warnings, need a vector<StringObjectException>
+static StringObjectException validate_spiral_vase_compatible_regions(const Print &print, const bool global_spiral)
+{
+    const char *opt_key = global_spiral ? "spiral_mode" : "range_spiral_mode";
+    for (const PrintObject *object : print.objects()) {
+        std::vector<const PrintRegion *> spiral_regions;
+        for (const PrintRegion &region : object->all_regions()) {
+            if (global_spiral || region.config().range_spiral_mode)
+                spiral_regions.push_back(&region);
+        }
+        if (spiral_regions.size() <= 1)
+            continue;
+        const PrintRegion &reference = *spiral_regions.front();
+        for (size_t i = 1; i < spiral_regions.size(); ++i)
+            if (!Layer::is_perimeter_compatible(reference, *spiral_regions[i]))
+                return { L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, opt_key };
+    }
+    return {};
+}
+
 StringObjectException Print::validate(StringObjectException *warning, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     std::vector<unsigned int> extruders = this->extruders();
@@ -1333,25 +1357,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         size_t total_copies_count = 0;
         for (const PrintObject* object : m_objects)
             total_copies_count += object->instances().size();
-        const char *spiral_opt_key = "spiral_mode";
+        const char *spiral_opt_key = m_config.spiral_mode ? "spiral_mode" : "range_spiral_mode";
         // #4043
         if (total_copies_count > 1 && m_config.print_sequence != PrintSequence::ByObject)
             return {L("Please select \"By object\" print sequence to print multiple objects in spiral vase mode."), nullptr, spiral_opt_key};
-        // Whole-object multi-material restriction applies to global spiral mode only.
-        // Per-height-range range_spiral_mode is validated per layer during G-code export.
-        if (m_config.spiral_mode) {
-            assert(m_objects.size() == 1);
-            for (const PrintObject *object : m_objects) {
-                const auto all_regions = object->all_regions();
-                if (all_regions.size() > 1) {
-                    if (std::any_of(all_regions.begin() + 1, all_regions.end(), [ra = all_regions.front()](const auto rb) {
-                            return !Layer::is_perimeter_compatible(ra, rb);
-                        })) {
-                        return {L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, spiral_opt_key};
-                    }
-                }
-            }
-        }
+        if (StringObjectException err = validate_spiral_vase_compatible_regions(*this, m_config.spiral_mode); !err.string.empty())
+            return err;
     }
 
     // Cache of layer height profiles for checking:

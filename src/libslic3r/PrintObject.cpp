@@ -1415,7 +1415,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "brim_flow_ratio"
             || opt_key == "filament_flow_ratio"
             || opt_key == "scarf_joint_flow_ratio"
-            || opt_key == "range_spiral_mode"
+            // Per-range spiral post-processing only (range_spiral_mode itself needs posSlice above).
             || opt_key == "range_spiral_mode_smooth"
             || opt_key == "range_spiral_max_xy_smoothing"
             || opt_key == "range_spiral_starting_flow_ratio"
@@ -3693,6 +3693,7 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         config.alternate_extra_wall.value         = false;
         config.top_shell_layers.value             = 0;
         config.sparse_infill_density.value        = 0;
+        // Per-range spiral has no solid floor inside the band (unlike global spiral_mode).
         config.bottom_shell_layers.value          = 0;
     }
     return config;

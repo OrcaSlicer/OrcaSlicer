@@ -54,7 +54,7 @@ bool LayerRegion::is_spiral_vase_active() const
             z >= layer_range.layer_height_range.second - EPSILON)
             continue;
         if (layer_range.config == nullptr || !layer_range.config->has("range_spiral_mode"))
-            return false;
+            continue;
         const ConfigOptionBool *spiral_opt = layer_range.config->option<ConfigOptionBool>("range_spiral_mode");
         return spiral_opt != nullptr && spiral_opt->value;
     }
