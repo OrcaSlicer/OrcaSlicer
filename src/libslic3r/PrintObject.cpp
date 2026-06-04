@@ -232,7 +232,7 @@ void PrintObject::_transform_hole_to_polyholes()
                                 bool twist = this->m_layers[layer_idx]->m_regions[region_idx]->region().config().hole_to_polyhole_twisted.value;
                                 if (diameter_max - diameter_min < max_variation * 2 && diameter_line_max - diameter_line_min < max_variation * 2) {
                                     layerid2center[layer_idx].emplace_back(
-                                        std::tuple<Point, float, int, coord_t, bool>{center, diameter_max, layer->m_regions[region_idx]->region().config().wall_filament_id.value, max_variation, twist}, & hole);
+                                        std::tuple<Point, float, int, coord_t, bool>{center, diameter_max, layer->m_regions[region_idx]->region().config().outer_wall_filament_id.value, max_variation, twist}, & hole);
                                 }
                             }
                         }
@@ -316,18 +316,29 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                 continue;
             for (auto layerm : layer->regions()) {
                 auto region = layerm->region();
-                int wall_filament_id = region.config().wall_filament_id;
-                int solid_infill_filament_id = region.config().solid_infill_filament_id;
+                int outer_wall_filament_id = region.config().outer_wall_filament_id;
+                int inner_wall_filament_id = region.config().inner_wall_filament_id;
+                int internal_solid_filament_id = region.config().internal_solid_filament_id;
+                int top_surface_filament_id = region.config().top_surface_filament_id;
+                int bottom_surface_filament_id = region.config().bottom_surface_filament_id;
                 int sparse_infill_filament_id = region.config().sparse_infill_filament_id;
 
                 if (!layerm->fills.entities.empty()) {
-                    if (solid_infill_filament_id > 0)
-                        geometric_unprintables[extruder_id].insert(solid_infill_filament_id - 1);
+                    if (internal_solid_filament_id > 0)
+                        geometric_unprintables[extruder_id].insert(internal_solid_filament_id - 1);
+                    if (top_surface_filament_id > 0)
+                        geometric_unprintables[extruder_id].insert(top_surface_filament_id - 1);
+                    if (bottom_surface_filament_id > 0)
+                        geometric_unprintables[extruder_id].insert(bottom_surface_filament_id - 1);
                     if (sparse_infill_filament_id > 0)
                         geometric_unprintables[extruder_id].insert(sparse_infill_filament_id - 1);
                 }
-                if (!layerm->perimeters.entities.empty() && wall_filament_id > 0)
-                    geometric_unprintables[extruder_id].insert(wall_filament_id - 1);
+                if (!layerm->perimeters.entities.empty()) {
+                    if (outer_wall_filament_id > 0)
+                        geometric_unprintables[extruder_id].insert(outer_wall_filament_id - 1);
+                    if (inner_wall_filament_id > 0)
+                        geometric_unprintables[extruder_id].insert(inner_wall_filament_id - 1);
+                }
             }
         }
     }
@@ -352,8 +363,11 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                 auto layer = m_layers[j];
                 for (auto layerm : layer->regions()) {
                     const auto& region = layerm->region();
-                    int wall_filament_id = region.config().wall_filament_id;
-                    int solid_infill_filament_id = region.config().solid_infill_filament_id;
+                    int outer_wall_filament_id = region.config().outer_wall_filament_id;
+                    int inner_wall_filament_id = region.config().inner_wall_filament_id;
+                    int internal_solid_filament_id = region.config().internal_solid_filament_id;
+                    int top_surface_filament_id = region.config().top_surface_filament_id;
+                    int bottom_surface_filament_id = region.config().bottom_surface_filament_id;
                     int sparse_infill_filament_id = region.config().sparse_infill_filament_id;
                     std::optional<ExPolygons> fill_expolys;
                     BoundingBox fill_bbox;
@@ -361,11 +375,15 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                     BoundingBox wall_bbox;
 
                     for (size_t idx = 0; idx < unprintable_area_in_obj_coord.size(); ++idx) {
-                        bool do_infill_filament_detect = (solid_infill_filament_id > 0 && tbb_geometric_unprintables[idx].count(solid_infill_filament_id - 1) == 0) ||
+                        bool do_infill_filament_detect = (internal_solid_filament_id > 0 && tbb_geometric_unprintables[idx].count(internal_solid_filament_id - 1) == 0) ||
+                            (top_surface_filament_id > 0 && tbb_geometric_unprintables[idx].count(top_surface_filament_id - 1) == 0) ||
+                            (bottom_surface_filament_id > 0 && tbb_geometric_unprintables[idx].count(bottom_surface_filament_id - 1) == 0) ||
                             (sparse_infill_filament_id > 0 && tbb_geometric_unprintables[idx].count(sparse_infill_filament_id-1) == 0);
 
                         bool infill_unprintable = !layerm->fills.entities.empty() &&
-                            ((solid_infill_filament_id > 0 && tbb_geometric_unprintables[idx].count(solid_infill_filament_id - 1) > 0) ||
+                            ((internal_solid_filament_id > 0 && tbb_geometric_unprintables[idx].count(internal_solid_filament_id - 1) > 0) ||
+                                (top_surface_filament_id > 0 && tbb_geometric_unprintables[idx].count(top_surface_filament_id - 1) > 0) ||
+                                (bottom_surface_filament_id > 0 && tbb_geometric_unprintables[idx].count(bottom_surface_filament_id - 1) > 0) ||
                                 (sparse_infill_filament_id > 0 && tbb_geometric_unprintables[idx].count(sparse_infill_filament_id - 1) > 0));
 
                         if (!layerm->fills.entities.empty() && do_infill_filament_detect) {
@@ -375,19 +393,27 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                             }
                             if (fill_bbox.overlap(unprintable_area_bbox[idx]) &&
                                 !intersection(*fill_expolys, unprintable_area_in_obj_coord[idx]).empty()) {
-                                if (solid_infill_filament_id > 0)
-                                    tbb_geometric_unprintables[idx].insert(solid_infill_filament_id - 1);
+                                if (internal_solid_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(internal_solid_filament_id - 1);
+                                if (top_surface_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(top_surface_filament_id - 1);
+                                if (bottom_surface_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(bottom_surface_filament_id - 1);
                                 if (sparse_infill_filament_id > 0)
                                     tbb_geometric_unprintables[idx].insert(sparse_infill_filament_id - 1);
                                 infill_unprintable = true;
                             }
                         }
 
-                        bool do_wall_filament_detect = wall_filament_id > 0 && tbb_geometric_unprintables[idx].count(wall_filament_id - 1) == 0;
-                        if (!layerm->perimeters.entities.empty() && do_wall_filament_detect) {
+                        bool do_outer_wall_filament_detect = outer_wall_filament_id > 0 && tbb_geometric_unprintables[idx].count(outer_wall_filament_id - 1) == 0;
+                        bool do_inner_wall_filament_detect = inner_wall_filament_id > 0 && tbb_geometric_unprintables[idx].count(inner_wall_filament_id - 1) == 0;
+                        if (!layerm->perimeters.entities.empty() && (do_outer_wall_filament_detect || do_inner_wall_filament_detect)) {
                             // if infill is unprintable, no need to check wall since wall contour surrounds infill contour
                             if (infill_unprintable) {
-                                tbb_geometric_unprintables[idx].insert(wall_filament_id - 1);
+                                if (outer_wall_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(outer_wall_filament_id - 1);
+                                if (inner_wall_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(inner_wall_filament_id - 1);
                                 continue;
                             }
 
@@ -402,7 +428,10 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
 
                             if (wall_bbox.overlap(unprintable_area_bbox[idx]) &&
                                 !intersection(*wall_expolys, unprintable_area_in_obj_coord[idx]).empty()) {
-                                tbb_geometric_unprintables[idx].insert(wall_filament_id - 1);
+                                if (outer_wall_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(outer_wall_filament_id - 1);
+                                if (inner_wall_filament_id > 0)
+                                    tbb_geometric_unprintables[idx].insert(inner_wall_filament_id - 1);
                             }
                         }
                     }
@@ -1264,7 +1293,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "top_shell_thickness"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
-            || opt_key == "solid_infill_filament_id"
+            || opt_key == "internal_solid_filament_id"
+            || opt_key == "top_surface_filament_id"
+            || opt_key == "bottom_surface_filament_id"
             || opt_key == "sparse_infill_line_width"
             || opt_key == "skin_infill_line_width"
             || opt_key == "skeleton_infill_line_width"
@@ -1327,7 +1358,8 @@ bool PrintObject::invalidate_state_by_config_options(
             steps.emplace_back(posPrepareInfill);
         } else if (
                opt_key == "outer_wall_line_width"
-            || opt_key == "wall_filament_id"
+            || opt_key == "outer_wall_filament_id"
+            || opt_key == "inner_wall_filament_id"
             || opt_key == "fuzzy_skin"
             || opt_key == "fuzzy_skin_thickness"
             || opt_key == "fuzzy_skin_point_distance"
@@ -3548,13 +3580,23 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
 }
 
 const std::string                                                    key_extruder { "extruder" };
-static constexpr const std::initializer_list<const std::string_view> keys_extruders { "sparse_infill_filament_id"sv, "solid_infill_filament_id"sv, "wall_filament_id"sv };
+static constexpr const std::initializer_list<const std::string_view> keys_extruders {
+    "sparse_infill_filament_id"sv,
+    "internal_solid_filament_id"sv,
+    "top_surface_filament_id"sv,
+    "bottom_surface_filament_id"sv,
+    "outer_wall_filament_id"sv,
+    "inner_wall_filament_id"sv
+};
 
 struct FeatureFilamentOverrideMask
 {
     bool sparse_infill_filament_id = false;
-    bool solid_infill_filament_id  = false;
-    bool wall_filament_id          = false;
+    bool internal_solid_filament_id  = false;
+    bool top_surface_filament_id     = false;
+    bool bottom_surface_filament_id  = false;
+    bool outer_wall_filament_id    = false;
+    bool inner_wall_filament_id    = false;
 };
 
 static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides)
@@ -3574,17 +3616,29 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                         my_opt->setInt(extruder);
                         if (it->first == "sparse_infill_filament_id")
                             feature_overrides.sparse_infill_filament_id = true;
-                        else if (it->first == "solid_infill_filament_id")
-                            feature_overrides.solid_infill_filament_id = true;
-                        else if (it->first == "wall_filament_id")
-                            feature_overrides.wall_filament_id = true;
+                        else if (it->first == "internal_solid_filament_id")
+                            feature_overrides.internal_solid_filament_id = true;
+                        else if (it->first == "top_surface_filament_id")
+                            feature_overrides.top_surface_filament_id = true;
+                        else if (it->first == "bottom_surface_filament_id")
+                            feature_overrides.bottom_surface_filament_id = true;
+                        else if (it->first == "outer_wall_filament_id")
+                            feature_overrides.outer_wall_filament_id = true;
+                        else if (it->first == "inner_wall_filament_id")
+                            feature_overrides.inner_wall_filament_id = true;
                     } else {
                         if (it->first == "sparse_infill_filament_id")
                             feature_overrides.sparse_infill_filament_id = false;
-                        else if (it->first == "solid_infill_filament_id")
-                            feature_overrides.solid_infill_filament_id = false;
-                        else if (it->first == "wall_filament_id")
-                            feature_overrides.wall_filament_id = false;
+                        else if (it->first == "internal_solid_filament_id")
+                            feature_overrides.internal_solid_filament_id = false;
+                        else if (it->first == "top_surface_filament_id")
+                            feature_overrides.top_surface_filament_id = false;
+                        else if (it->first == "bottom_surface_filament_id")
+                            feature_overrides.bottom_surface_filament_id = false;
+                        else if (it->first == "outer_wall_filament_id")
+                            feature_overrides.outer_wall_filament_id = false;
+                        else if (it->first == "inner_wall_filament_id")
+                            feature_overrides.inner_wall_filament_id = false;
                     }
                 } else
                     my_opt->set(it->second.get());
@@ -3594,10 +3648,16 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
     if (base_extruder > 0) {
         if (!feature_overrides.sparse_infill_filament_id)
             out.sparse_infill_filament_id.value = base_extruder;
-        if (!feature_overrides.solid_infill_filament_id)
-            out.solid_infill_filament_id.value = base_extruder;
-        if (!feature_overrides.wall_filament_id)
-            out.wall_filament_id.value = base_extruder;
+        if (!feature_overrides.internal_solid_filament_id)
+            out.internal_solid_filament_id.value = base_extruder;
+        if (!feature_overrides.top_surface_filament_id)
+            out.top_surface_filament_id.value = base_extruder;
+        if (!feature_overrides.bottom_surface_filament_id)
+            out.bottom_surface_filament_id.value = base_extruder;
+        if (!feature_overrides.outer_wall_filament_id)
+            out.outer_wall_filament_id.value = base_extruder;
+        if (!feature_overrides.inner_wall_filament_id)
+            out.inner_wall_filament_id.value = base_extruder;
     }
 }
 
@@ -3609,8 +3669,11 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     // For model parts, non-zero values coming from the print defaults should stay explicit.
     if (volume.is_model_part()) {
         feature_overrides.sparse_infill_filament_id = (config.sparse_infill_filament_id.value > 0);
-        feature_overrides.solid_infill_filament_id  = (config.solid_infill_filament_id.value > 0);
-        feature_overrides.wall_filament_id          = (config.wall_filament_id.value > 0);
+        feature_overrides.internal_solid_filament_id  = (config.internal_solid_filament_id.value > 0);
+        feature_overrides.top_surface_filament_id     = (config.top_surface_filament_id.value > 0);
+        feature_overrides.bottom_surface_filament_id  = (config.bottom_surface_filament_id.value > 0);
+        feature_overrides.outer_wall_filament_id    = (config.outer_wall_filament_id.value > 0);
+        feature_overrides.inner_wall_filament_id    = (config.inner_wall_filament_id.value > 0);
     }
 
     if (volume.is_model_part()) {
@@ -3630,8 +3693,11 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     }
     // Resolve feature defaults and clamp invalid extruders to index 1.
     clamp_feature_filament_to_valid(config.sparse_infill_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.wall_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.solid_infill_filament_id, num_extruders);
+    clamp_feature_filament_to_valid(config.outer_wall_filament_id, num_extruders);
+    clamp_feature_filament_to_valid(config.inner_wall_filament_id, num_extruders);
+    clamp_feature_filament_to_valid(config.internal_solid_filament_id, num_extruders);
+    clamp_feature_filament_to_valid(config.top_surface_filament_id, num_extruders);
+    clamp_feature_filament_to_valid(config.bottom_surface_filament_id, num_extruders);
     if (config.sparse_infill_density.value < 0.00011f)
         // Switch of infill for very low infill rates, also avoid division by zero in infill generator for these very low rates.
         // See GH issue #5910.
@@ -3694,9 +3760,12 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
                 object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 				object_extruders);
 			for (const std::pair<const t_layer_height_range, ModelConfig> &range_and_config : model_object.layer_config_ranges)
-				if (range_and_config.second.has("wall_filament_id") ||
+				if (range_and_config.second.has("outer_wall_filament_id") ||
+					range_and_config.second.has("inner_wall_filament_id") ||
 					range_and_config.second.has("sparse_infill_filament_id") ||
-					range_and_config.second.has("solid_infill_filament_id"))
+					range_and_config.second.has("internal_solid_filament_id") ||
+					range_and_config.second.has("top_surface_filament_id") ||
+					range_and_config.second.has("bottom_surface_filament_id"))
 					PrintRegion::collect_object_printing_extruders(
 						print_config,
 						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders),
@@ -4114,7 +4183,7 @@ void PrintObject::combine_infill()
         //FIXME limit the layer height to max_layer_height
         double nozzle_diameter = std::min(
             this->print()->config().nozzle_diameter.get_at(region.config().sparse_infill_filament_id.value - 1),
-            this->print()->config().nozzle_diameter.get_at(region.config().solid_infill_filament_id.value - 1));
+            this->print()->config().nozzle_diameter.get_at(region.config().internal_solid_filament_id.value - 1));
         
         //Orca: Limit combination of infill to up to infill_combination_max_layer_height
         const double infill_combination_max_layer_height = region.config().infill_combination_max_layer_height.get_abs_value(nozzle_diameter);

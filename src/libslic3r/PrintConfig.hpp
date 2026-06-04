@@ -1156,14 +1156,17 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
-    ((ConfigOptionInt, wall_filament_id))
+    ((ConfigOptionInt, outer_wall_filament_id))
+    ((ConfigOptionInt, inner_wall_filament_id))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))
     // Total number of perimeters.
     ((ConfigOptionInt, wall_loops))
     ((ConfigOptionBool, alternate_extra_wall))
     ((ConfigOptionFloat, minimum_sparse_infill_area))
-    ((ConfigOptionInt, solid_infill_filament_id))
+    ((ConfigOptionInt, internal_solid_filament_id))
+    ((ConfigOptionInt, top_surface_filament_id))
+    ((ConfigOptionInt, bottom_surface_filament_id))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloat, internal_solid_infill_speed))
     // Detect thin walls.
