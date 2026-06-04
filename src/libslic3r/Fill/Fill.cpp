@@ -1571,12 +1571,12 @@ void Layer::make_ironing()
 				    ((config.top_shell_layers > 0 || (this->object()->print()->config().spiral_mode && config.bottom_shell_layers > 1)) &&
 					    (config.ironing_type == IroningType::TopSurfaces ||
 					        (config.ironing_type == IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.wall_filament == config.solid_infill_filament || config.wall_loops == 0) {
+				if (config.wall_filament_id == config.solid_infill_filament_id || config.wall_loops == 0) {
 					// Iron the whole face.
-					ironing_params.extruder = config.solid_infill_filament;
+					ironing_params.extruder = config.solid_infill_filament_id;
 				} else {
 					// Iron just the infill.
-					ironing_params.extruder = config.solid_infill_filament;
+					ironing_params.extruder = config.solid_infill_filament_id;
 				}
 			}
 			if (ironing_params.extruder != -1) {
