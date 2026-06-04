@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PETG Azul Boreal",
+    "inherits": "FilAr PETG @base",
+    "from": "system",
+    "filament_id": "FILAR0049",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#1B4F9C"
+    ]
+}

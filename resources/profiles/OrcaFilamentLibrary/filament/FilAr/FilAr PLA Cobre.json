@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Cobre",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "filament_id": "FILAR0003",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#87421E"
+    ]
+}
