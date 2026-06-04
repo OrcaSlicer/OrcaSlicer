@@ -8170,16 +8170,21 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         };
 
         auto layered_gr = m_print->get_layered_nozzle_group_result();
-        assert(layered_gr);
 
-        int new_nozzle_id = layered_gr->get_nozzle_id(new_filament_id, m_layer_index);
+        if (layered_gr) {
+            int new_nozzle_id = layered_gr->get_nozzle_id(new_filament_id, m_layer_index);
 
-        if (old_extruder_id != new_extruder_id || !layered_gr->are_filaments_same_nozzle(old_filament_id, new_filament_id, m_layer_index)) {
-            wipe_volume = switch_to_nozzle(new_filament_id, new_nozzle_id);
-        }
-        else {
+            if (old_extruder_id != new_extruder_id || !layered_gr->are_filaments_same_nozzle(old_filament_id, new_filament_id, m_layer_index)) {
+                wipe_volume = switch_to_nozzle(new_filament_id, new_nozzle_id);
+            }
+            else {
+                wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
+                wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
+            }
+        } else {
+            // Non-BBL toolchanger: standard flush matrix lookup
             wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
-            wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);  // if is multi_extruder only use the fist extruder matrix
+            wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
         }
         wipe_volume = std::max(0.f, wipe_volume-grab_purge_volume);
 
