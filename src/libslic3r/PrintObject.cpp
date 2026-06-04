@@ -1500,6 +1500,7 @@ void PrintObject::detect_surfaces_type()
     // This is useful if one of the parts is to be dissolved, or if it is transparent and the internal shells
     // should be visible.
     bool spiral_mode      = this->print()->config().spiral_mode.value;
+    const bool any_spiral_mode = m_print->has_spiral_mode();
     bool interface_shells = ! spiral_mode && m_config.interface_shells.value;
     size_t num_layers     = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
 
@@ -1523,7 +1524,7 @@ void PrintObject::detect_surfaces_type()
             		((num_layers > 1) ? num_layers - 1 : num_layers) :
             		// In non-spiral vase mode, go over all layers.
             		m_layers.size()),
-            [this, region_id, interface_shells, &surfaces_new, spiral_mode](const tbb::blocked_range<size_t>& range) {
+            [this, region_id, interface_shells, &surfaces_new, spiral_mode, any_spiral_mode](const tbb::blocked_range<size_t>& range) {
                 // If we have soluble support material, don't bridge. The overhang will be squished against a soluble layer separating
                 // the support from the print.
                 // BBS: the above logic only applys for normal(auto) support. Complete logic:
@@ -1554,7 +1555,7 @@ void PrintObject::detect_surfaces_type()
                     Layer       *lower_layer = (idx_layer > 0) ? m_layers[idx_layer - 1] : nullptr;
                     // Transition into a spiral-vase zone: force the last non-spiral layer to be treated
                     // as top, so infill below the spiral band gets capped by solid layers.
-                    if (!spiral_mode && upper_layer != nullptr && !layerm->is_spiral_vase_active()) {
+                    if (!spiral_mode && any_spiral_mode && upper_layer != nullptr && !layerm->is_spiral_vase_active()) {
                         // Height-range overrides may create a different PrintRegion for the
                         // spiral band, so the upper spiral region is not guaranteed to have
                         // the same region_id as the normal region below it.
@@ -1564,7 +1565,7 @@ void PrintObject::detect_surfaces_type()
                     // Transition out of a spiral-vase zone: force the first non-spiral layer above
                     // to be treated as bottom, so infill above the spiral band gets floor shells.
                     // The slice outline matches the spiral layer below, so geometric bottom detection fails.
-                    if (!spiral_mode && lower_layer != nullptr && !layerm->is_spiral_vase_active()) {
+                    if (!spiral_mode && any_spiral_mode && lower_layer != nullptr && !layerm->is_spiral_vase_active()) {
                         if (lower_layer->any_spiral_vase_active())
                             lower_layer = nullptr;
                     }
@@ -2014,6 +2015,7 @@ void PrintObject::discover_vertical_shells()
         Polygons    holes;
     };
     bool     spiral_mode      = this->print()->config().spiral_mode.value;
+    const bool any_spiral_mode = m_print->has_spiral_mode();
     size_t   num_layers       = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
     std::vector<DiscoverVerticalShellsCacheEntry> cache_top_botom_regions(num_layers, DiscoverVerticalShellsCacheEntry());
     bool top_bottom_surfaces_all_regions = this->num_printing_regions() > 1 && ! m_config.interface_shells.value;
@@ -2147,7 +2149,7 @@ void PrintObject::discover_vertical_shells()
         grain_size = 1;
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
-            [this, region_id, &cache_top_botom_regions, spiral_mode]
+            [this, region_id, &cache_top_botom_regions, spiral_mode, any_spiral_mode]
             (const tbb::blocked_range<size_t>& range) {
                 // printf("discover_vertical_shells from %d to %d\n", range.begin(), range.end());
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
@@ -2253,7 +2255,7 @@ void PrintObject::discover_vertical_shells()
                         // Above a spiral-vase band the transition layer can sit exactly at ibottom,
                         // which the default i > ibottom loop skips; extend the range only there.
                         bool extend_bottom_range_to_ibottom = false;
-                        if (!spiral_mode) {
+                        if (!spiral_mode && any_spiral_mode) {
                             int  layers_since_spiral = 0;
                             bool found_spiral_below  = false;
                             for (int li = int(idx_layer) - 1; li >= 0; ++layers_since_spiral, --li) {
@@ -2269,7 +2271,7 @@ void PrintObject::discover_vertical_shells()
 	                         ((extend_bottom_range_to_ibottom ? i >= ibottom : i > ibottom) ||
 	                          bottom_z - m_layers[i]->bottom_z() < region_config.bottom_shell_thickness - EPSILON);
 	                        -- i) {
-                            if (!spiral_mode && m_layers[i]->any_spiral_vase_active())
+                            if (!spiral_mode && any_spiral_mode && m_layers[i]->any_spiral_vase_active())
                                 continue;
                             at_least_one_bottom_projected = true;
 	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
