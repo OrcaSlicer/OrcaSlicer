@@ -1217,8 +1217,12 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     wxBoxSizer * hsizer_nozzle = new wxBoxSizer(wxHORIZONTAL);
     hsizer_nozzle->Add(label_flow, 0, wxALIGN_CENTER);
     hsizer_nozzle->Add(combo_flow, 1, wxEXPAND);
-    label_flow->Hide(); // TODO: Orca hack, hide flow selection
-    combo_flow->Hide();
+    // Flow selector shown only for dual-extruder BBL printers (index >= 0)
+    // For single extruders, remains hidden — no flow type selection needed
+    if (index < 0) {
+        label_flow->Hide();
+        combo_flow->Hide();
+    }
     if (index < 0) {
         label_ams->Hide();
         ams_not_installed_msg->Hide();
@@ -1233,7 +1237,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         vsizer->Add(hover_label,     0, wxLEFT | wxALL, FromDIP(2));
         vsizer->Add(hsizer_ams,      0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(2));
         vsizer->Add(hsizer_diameter, 0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT | wxBOTTOM, FromDIP(2));
-        //vsizer->Add(hsizer_nozzle, 0, wxEXPAND | wxALL, FromDIP(2));
+        vsizer->Add(hsizer_nozzle, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(2));
         this->sizer = vsizer;
     }
     AMSCountPopupWindow::UpdateAMSCount(index < 0 ? 0 : index, this);
@@ -1695,6 +1699,21 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     for (size_t idx = 0; idx < target_types.size(); ++idx)
         printer_tab->set_extruder_volume_type(idx, target_types[idx]);
 
+    // refresh sidebar combo_flow to reflect the synced volume types
+    if (extruder_nums > 1) {
+        auto select_flow = [](ExtruderGroup* extruder, NozzleVolumeType type) {
+            if (!extruder || !extruder->combo_flow) return;
+            for (unsigned int i = 0; i < extruder->combo_flow->GetCount(); ++i) {
+                if ((intptr_t)extruder->combo_flow->GetClientData(i) == (intptr_t)type) {
+                    extruder->combo_flow->SetSelection(i);
+                    return;
+                }
+            }
+        };
+        select_flow(left_extruder, target_types[0]);
+        select_flow(right_extruder, target_types.size() > 1 ? target_types[1] : NozzleVolumeType::nvtStandard);
+    }
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " finish sync_extruder_list";
     return true;
 }
@@ -1835,7 +1854,7 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
     struct ExtruderInfo
     {
         float diameter{0.4};
-        //int   nozzle_volue_type{0};
+        int   nozzle_volue_type{0};
         int   ams_4{0};
         int   ams_1{0};
         std::vector<DevAms *> ams_v4;
@@ -1844,8 +1863,8 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         bool operator==(const ExtruderInfo &other) const
         {
             return abs(diameter - other.diameter) < EPSILON
-                && /*nozzle_volue_type == other.nozzle_volue_type
-                &&*/ ams_4 == other.ams_4
+                && nozzle_volue_type == other.nozzle_volue_type
+                && ams_4 == other.ams_4
                 && ams_1 == other.ams_1;
         }
     };
@@ -1853,7 +1872,7 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
     auto is_same_nozzle_info = [obj](const ExtruderInfo &left, const ExtruderInfo &right) {
         bool is_same_nozzle_type = true;
         if (obj->is_nozzle_flow_type_supported())
-            is_same_nozzle_type = true;//left.nozzle_volue_type == right.nozzle_volue_type; // TODO: Orca hack
+            is_same_nozzle_type = (left.nozzle_volue_type == right.nozzle_volue_type);
         return abs(left.diameter - right.diameter) < EPSILON && is_same_nozzle_type;
     };
 
@@ -1864,9 +1883,9 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
 
     std::vector<ExtruderInfo> extruder_infos(extruder_nums);
     std::vector<int> nozzle_volume_types = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
-    //for (size_t i = 0; i < nozzle_volume_types.size(); ++i) {
-    //    extruder_infos[i].nozzle_volue_type = nozzle_volume_types[i];
-    //}
+    for (size_t i = 0; i < nozzle_volume_types.size() && i < extruder_infos.size(); ++i) {
+        extruder_infos[i].nozzle_volue_type = nozzle_volume_types[i];
+    }
 
     std::vector<std::map<int, int>> extruder_ams_counts = wxGetApp().preset_bundle->extruder_ams_counts;
     if (extruder_ams_counts.size() >= extruder_nums) {
@@ -1907,7 +1926,7 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
 
     const auto& extruders = obj->GetExtderSystem()->GetExtruders();
     for (const DevExtder &extruder : extruders) {
-        //machine_extruder_infos[extruder.GetExtId()].nozzle_volue_type = int(extruder.GetNozzleFlowType()) - 1;
+        machine_extruder_infos[extruder.GetExtId()].nozzle_volue_type = int(extruder.GetNozzleFlowType()) - 1;
         machine_extruder_infos[extruder.GetExtId()].diameter          = extruder.GetNozzleDiameter();
     }
     for (auto &item : obj->GetFilaSystem()->GetAmsList()) {
@@ -3054,11 +3073,51 @@ void Sidebar::update_presets(Preset::Type preset_type)
         };
         auto image_path = get_cur_select_bed_image();
         if (is_dual_extruder) {
+            // Populate flow type combo for each extruder (ported from BambuStudio)
+            auto extruder_variants = printer_preset.config.option<ConfigOptionStrings>("extruder_variant_list");
+            auto extruders_def = printer_preset.config.def()->get("extruder_type");
+            auto extruders = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
+            auto nozzle_volumes_def = preset_bundle.project_config.def()->get("nozzle_volume_type");
+            auto nozzle_volumes = preset_bundle.project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+            auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+            std::string printer_model_str = printer_preset.config.opt_string("printer_model");
+
+            auto update_extruder_variant = [&](ExtruderGroup& extruder, int index) {
+                extruder.combo_flow->Clear();
+                if (!extruder_variants || !extruders_def || !extruders || !nozzle_volumes_def || !nozzle_volumes ||
+                    index >= (int)extruder_variants->values.size() || index >= (int)extruders->values.size())
+                    return;
+                auto type = extruders_def->enum_labels[extruders->values[index]];
+                int select = -1;
+                for (size_t i = 0; i < nozzle_volumes_def->enum_labels.size(); ++i) {
+                    bool variant_match = boost::algorithm::contains(extruder_variants->values[index],
+                            type + " " + nozzle_volumes_def->enum_labels[i]);
+                    bool hybrid_match = extruder_max_nozzle_count &&
+                            index < (int)extruder_max_nozzle_count->values.size() &&
+                            extruder_max_nozzle_count->values[index] > 1 &&
+                            nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == nvtHybrid;
+                    if (variant_match || hybrid_match) {
+                        if (nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == nvtHighFlow &&
+                            (diameter == "0.2" || is_skip_high_flow_printer(printer_model_str)))
+                            continue;
+                        if (index < (int)nozzle_volumes->values.size() && nozzle_volumes->values[index] == (int)i)
+                            select = extruder.combo_flow->GetCount();
+                        extruder.combo_flow->Append(_L(nozzle_volumes_def->enum_labels[i]), {}, (void*)i);
+                    }
+                }
+                if (select == -1 && extruder.combo_flow->GetCount() > 0)
+                    select = extruder.combo_flow->GetCount() - 1;
+                if (select >= 0)
+                    extruder.combo_flow->SetSelection(select);
+            };
+
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
             p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             AMSCountPopupWindow::UpdateAMSCount(0, p->left_extruder);
             AMSCountPopupWindow::UpdateAMSCount(1, p->right_extruder);
+            update_extruder_variant(*p->left_extruder, 0);
+            update_extruder_variant(*p->right_extruder, 1);
             //if (!p->is_switching_diameter) {
                 update_extruder_diameter(0, *p->left_extruder);
                 update_extruder_diameter(1, *p->right_extruder);

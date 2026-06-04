@@ -3785,7 +3785,8 @@ void PartPlate::on_filament_deleted(int filament_count, int filament_id)
 {
     if (m_config.has("filament_map")) {
         std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
-        filament_maps.erase(filament_maps.begin() + filament_id);
+        if (filament_id >= 0 && (size_t)filament_id < filament_maps.size())
+            filament_maps.erase(filament_maps.begin() + filament_id);
     }
     update_first_layer_print_sequence_when_delete_filament(filament_id);
 }

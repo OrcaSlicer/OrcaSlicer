@@ -48,6 +48,7 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "Widgets/MultiNozzleSync.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "MarkdownTip.hpp"
 #include "Search.hpp"
@@ -7120,6 +7121,9 @@ void TabPrinter::set_extruder_volume_type(int extruder_id, NozzleVolumeType type
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     assert(nozzle_volumes->values.size() > (size_t)extruder_id);
     nozzle_volumes->values[extruder_id] = type;
+
+    m_preset_bundle->extruder_nozzle_stat.on_volume_type_switch(extruder_id, type);
+
     on_value_change((boost::format("nozzle_volume_type#%1%") % extruder_id).str(), int(type));
 
     //save to app config

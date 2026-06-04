@@ -911,9 +911,11 @@ static inline void apply_mm_segmentation(PrintObject &print_object, ThrowOnCance
                 by_extruder.assign(num_extruders, ByExtruder());
                 by_region.assign(layer.region_count(), ByRegion());
                 bool layer_split = false;
+                const size_t seg_count = segmentation[layer_id].size();
                 for (size_t extruder_id = 0; extruder_id < num_extruders; ++ extruder_id) {
                     ByExtruder &region = by_extruder[extruder_id];
-                    append(region.expolygons, std::move(segmentation[layer_id][extruder_id]));
+                    if (extruder_id < seg_count)
+                        append(region.expolygons, std::move(segmentation[layer_id][extruder_id]));
                     if (! region.expolygons.empty()) {
                         region.bbox = get_extents(region.expolygons);
                         layer_split = true;
