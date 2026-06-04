@@ -474,7 +474,6 @@ bool is_debugger_present();
 /// </summary>
 void fit_in_display(wxTopLevelWindow& window, wxSize desired_size);
 
-
 }}
 
 #endif

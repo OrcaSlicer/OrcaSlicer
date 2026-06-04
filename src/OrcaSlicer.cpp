@@ -1192,6 +1192,11 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
+    // ------------------------------------------------------------------
+    // ORIGINAL upstream block — kept for reference. To revert, swap the
+    // `#if 0` / `#if 1` flags between the two blocks below.
+    // ------------------------------------------------------------------
+#if 0
     // Safety fallback: if wxWidgets was not built with EGL support, native
     // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
     // backend cannot access an X11 display. Force X11 mode in that case.
@@ -1228,7 +1233,49 @@ int CLI::run(int argc, char **argv)
         }
     }
     #endif
-#endif
+#endif // 0 — end of original upstream block
+
+    // ------------------------------------------------------------------
+    // ACTIVE: AMD/Wayland reliability fix (mirrors v2.3 behaviour minus
+    // WEBKIT_DISABLE_COMPOSITING_MODE so WebKit HW accel is preserved).
+    // ------------------------------------------------------------------
+#if 1
+    // 2.3-mirror behaviour for AMD/Wayland reliability: wxGTK + wxWidgets 3.3
+    // native Wayland has open issues (wxGLCanvas EGL subsurface race causing
+    // the 3D canvas to briefly cover the top/left toolbars on startup,
+    // WebKit2GTK DMABUF renderer black-flicker + lockup on the Device tab,
+    // GTK dark-theme not picked up via xdg-desktop-portal on some setups).
+    // Force X11/XWayland to restore the known-good 2.3 stack. Power users can
+    // still opt back into native Wayland by removing this line.
+    //
+    // NOTE: 2.3 also set WEBKIT_DISABLE_COMPOSITING_MODE=1 here to mitigate a
+    // ~2020-era WebKit2GTK bug where the GL compositor failed silently under
+    // XWayland (blank WebViews). That workaround forces software compositing
+    // and kills WebKit hardware acceleration, which we want back. With
+    // WebKit2GTK >= 2.42 the underlying bug appears fixed, so we leave
+    // compositing enabled and let WebKit drive HW-accelerated rendering via
+    // its GL compositor on XWayland.
+    ::setenv("GDK_BACKEND", "x11", /* replace */ true);
+
+    // On Linux dual-GPU systems, request the high-performance discrete GPU.
+    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
+    ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+    // For NVIDIA proprietary driver PRIME render offload, set additional
+    // variables. Only set if the NVIDIA kernel module is loaded to avoid
+    // breaking systems without NVIDIA.
+    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+    }
+
+    // Also on Linux, tell Xlib that we will be using threads, lest we crash
+    // when GStreamer fires up.
+    #if __has_include(<X11/Xlib.h>)
+    XInitThreads();
+    #endif
+#endif // 1 — end of active AMD/Wayland reliability block
+#endif // __WXGTK__
 
 	// Switch boost::filesystem to utf8.
     try {
