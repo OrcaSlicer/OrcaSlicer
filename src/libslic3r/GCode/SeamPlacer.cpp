@@ -742,8 +742,11 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
 struct SeamComparator {
   SeamPosition setup;
   float angle_importance;
-  explicit SeamComparator(SeamPosition setup) :
-                                                setup(setup) {
+  // For spCustom: the reference point (in the object's local frame, origin = part center).
+  // Each perimeter loop's seam is placed at the point closest to this location.
+  Vec2f custom_point;
+  explicit SeamComparator(SeamPosition setup, const Vec2f &custom_point = Vec2f::Zero()) :
+                                                setup(setup), custom_point(custom_point) {
     angle_importance =
         setup == spNearest ? SeamPlacer::angle_importance_nearest : SeamPlacer::angle_importance_aligned;
   }
@@ -776,6 +779,15 @@ struct SeamComparator {
 
     if (setup == SeamPosition::spRear && a.position.y() != b.position.y()) {
       return a.position.y() > b.position.y();
+    }
+
+    // Place the seam at the perimeter point closest to the configured reference point.
+    if (setup == SeamPosition::spCustom) {
+      float dist_a = (a.position.head<2>() - custom_point).squaredNorm();
+      float dist_b = (b.position.head<2>() - custom_point).squaredNorm();
+      if (dist_a != dist_b) {
+        return dist_a < dist_b;
+      }
     }
 
     float distance_penalty_a = 0.0f;
@@ -838,6 +850,12 @@ struct SeamComparator {
 
     if (setup == SeamPosition::spRear) {
       return a.position.y() + SeamPlacer::seam_align_score_tolerance * 5.0f > b.position.y();
+    }
+
+    if (setup == SeamPosition::spCustom) {
+      float dist_a = (a.position.head<2>() - custom_point).norm();
+      float dist_b = (b.position.head<2>() - custom_point).norm();
+      return dist_a < dist_b + SeamPlacer::seam_align_score_tolerance * 5.0f;
     }
 
     float penalty_a = a.overhang + a.visibility
@@ -1361,7 +1379,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
         last_point_pos = current.position;
       }
 
-      if (comparator.setup == spRear) {
+      if (comparator.setup == spRear || comparator.setup == spCustom) {
         total_length *= 0.3f;
       }
 
@@ -1431,7 +1449,10 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
   for (const PrintObject *po : print.objects()) {
     throw_if_canceled_func();
     SeamPosition configured_seam_preference = po->config().seam_position.value;
-    SeamComparator comparator { configured_seam_preference };
+    // For "Relative to Part", the reference point is given in the object's local frame
+    // (origin = part center), which matches the frame of the gathered seam candidate positions.
+    const Vec2d &custom_point_d = po->config().seam_position_point.value;
+    SeamComparator comparator { configured_seam_preference, custom_point_d.cast<float>() };
 
     {
       GlobalModelInfo global_model_info { };
@@ -1483,7 +1504,7 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
           << "SeamPlacer: pick_seam_point : end";
     }
     throw_if_canceled_func();
-    if (configured_seam_preference == spAligned || configured_seam_preference == spRear || configured_seam_preference == spAlignedBack) {
+    if (configured_seam_preference == spAligned || configured_seam_preference == spRear || configured_seam_preference == spAlignedBack || configured_seam_preference == spCustom) {
       BOOST_LOG_TRIVIAL(debug)
           << "SeamPlacer: align_seam_points : start";
       align_seam_points(po, comparator);

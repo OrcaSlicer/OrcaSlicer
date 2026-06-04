@@ -353,7 +353,8 @@ static t_config_enum_values s_keys_map_SeamPosition {
     { "aligned",        spAligned },
     { "aligned_back",   spAlignedBack },
     { "back",           spRear },
-    { "random",         spRandom }
+    { "random",         spRandom },
+    { "custom",         spCustom }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamPosition)
 
@@ -5478,13 +5479,27 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("aligned_back");
     def->enum_values.push_back("back");
     def->enum_values.push_back("random");
+    def->enum_values.push_back("custom");
     def->enum_labels.push_back(L("Nearest"));
     def->enum_labels.push_back(L("Aligned"));
     def->enum_labels.push_back(L("Aligned back"));
     def->enum_labels.push_back(L("Back"));
     def->enum_labels.push_back(L("Random"));
+    def->enum_labels.push_back(L("Relative to Part"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamPosition>(spAligned));
+
+    def = this->add("seam_position_point", coPoint);
+    def->label = L("Relative seam position");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Relative to Part\", the seam of each perimeter loop "
+                     "is placed at the point closest to this X/Y coordinate. The coordinate is expressed in the "
+                     "part's own frame, where (0,0) is the part center. For example (0,-50) biases the seam "
+                     "towards the front of the part, (50,0) towards the right. For a rotationally symmetric part "
+                     "centered on (0,0) the position is ambiguous, so set a non-center point to pick a side.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionPoint(Vec2d(0, 0)));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");
