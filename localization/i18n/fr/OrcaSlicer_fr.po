@@ -1746,7 +1746,7 @@ msgstr "Fichiers AMF"
 msgid "3MF files"
 msgstr "Fichiers 3MF"
 
-msgid "Gcode 3MF files"
+msgid "G-code 3MF files"
 msgstr "Fichiers 3MF G-code"
 
 msgid "G-code files"

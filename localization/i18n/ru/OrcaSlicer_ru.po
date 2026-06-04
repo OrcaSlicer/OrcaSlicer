@@ -1758,7 +1758,7 @@ msgid "3MF files"
 msgstr "Файлы 3MF"
 
 # В окне выбора файла
-msgid "Gcode 3MF files"
+msgid "G-code 3MF files"
 msgstr "Файлы G-code 3MF"
 
 # В окне выбора файла

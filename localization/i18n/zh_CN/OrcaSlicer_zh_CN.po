@@ -1670,8 +1670,8 @@ msgstr "AMF 文件"
 msgid "3MF files"
 msgstr "3MF 文件"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF 文件"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF 文件"
 
 msgid "G-code files"
 msgstr "G-code 文件"

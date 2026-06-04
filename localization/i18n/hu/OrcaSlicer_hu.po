@@ -1713,8 +1713,8 @@ msgstr "AMF fájlok"
 msgid "3MF files"
 msgstr "3MF fájlok"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF fájlok"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF fájlok"
 
 msgid "G-code files"
 msgstr "G-code fájlok"

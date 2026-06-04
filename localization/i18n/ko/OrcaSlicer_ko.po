@@ -1696,8 +1696,8 @@ msgstr "AMF 파일"
 msgid "3MF files"
 msgstr "3MF 파일"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF 파일"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF 파일"
 
 msgid "G-code files"
 msgstr "G-code 파일"

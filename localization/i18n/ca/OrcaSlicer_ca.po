@@ -1725,7 +1725,7 @@ msgstr "Fitxers AMF"
 msgid "3MF files"
 msgstr "Fitxers 3MF"
 
-msgid "Gcode 3MF files"
+msgid "G-code 3MF files"
 msgstr "Fitxers G-code 3MF"
 
 msgid "G-code files"

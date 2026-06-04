@@ -1685,7 +1685,8 @@ msgstr "ไฟล์ AMF"
 msgid "3MF files"
 msgstr "ไฟล์ 3MF"
 
-msgid "Gcode 3MF files"
+#, fuzzy
+msgid "G-code 3MF files"
 msgstr "ไฟล์ Gcode3MF"
 
 msgid "G-code files"

@@ -1710,7 +1710,8 @@ msgstr "AMF dosyaları"
 msgid "3MF files"
 msgstr "3MF dosyaları"
 
-msgid "Gcode 3MF files"
+#, fuzzy
+msgid "G-code 3MF files"
 msgstr "Gcode 3MF dosyaları"
 
 msgid "G-code files"
