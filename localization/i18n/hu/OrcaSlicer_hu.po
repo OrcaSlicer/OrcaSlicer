@@ -8109,8 +8109,8 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "A kijelölt objektumot nem lehet feldarabolni."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
-msgstr "Letiltja az Auto-Drop funkciót a z pozicionálás megőrzéséhez?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
+msgstr "Letiltja az Auto-Drop funkciót a Z pozicionálás megőrzéséhez?\n"
 
 msgid "Object with floating parts was detected"
 msgstr "Lebegő részeket tartalmazó tárgyat észleltünk"
@@ -16848,8 +16848,8 @@ msgstr "Ne váltakozzon a töltési irány"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "A váltakozó kitöltési irány letiltása Z kontúrozás használatakor."
 
-msgid "Minimum z height"
-msgstr "Minimális z magasság"
+msgid "Minimum Z height"
+msgstr "Minimális Z magasság"
 
 msgid ""
 "Minimum Z-layer height.\n"

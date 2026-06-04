@@ -7540,7 +7540,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr ""
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 
 msgid "Object with floating parts was detected"
@@ -14881,7 +14881,7 @@ msgstr ""
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr ""
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr ""
 
 msgid ""

@@ -7697,7 +7697,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "选中的模型不可分裂。"
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "禁用自动落板以保留 Z 轴定位？\n"
 
 msgid "Object with floating parts was detected"
@@ -15646,7 +15646,7 @@ msgstr "不交替填充方向"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "在使用 Z 层抗锯齿时禁用交替填充方向。"
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "最小 Z 高度"
 
 msgid ""

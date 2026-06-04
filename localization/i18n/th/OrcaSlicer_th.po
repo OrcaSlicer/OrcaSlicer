@@ -7831,7 +7831,8 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "ไม่สามารถแยกวัตถุที่เลือกได้"
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+#, fuzzy
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "ปิดการใช้งานการวางอัตโนมัติเพื่อรักษาตำแหน่ง z หรือไม่\n"
 
 msgid "Object with floating parts was detected"
@@ -15957,7 +15958,8 @@ msgstr "อย่าสลับทิศทางไส้ใน"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "ปิดใช้งานการสลับทิศทางไส้ในเมื่อใช้โครงร่าง Z"
 
-msgid "Minimum z height"
+#, fuzzy
+msgid "Minimum Z height"
 msgstr "ความสูงขั้นต่ำ z"
 
 msgid ""
