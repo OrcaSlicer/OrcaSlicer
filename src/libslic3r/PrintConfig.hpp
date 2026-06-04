@@ -2156,6 +2156,15 @@ static void set_flush_volumes_matrix(std::vector<T> &out_matrix, const std::vect
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
+// Height-range modifier: true when DynamicPrintConfig enables per-band spiral vase.
+inline bool dynamic_config_range_spiral_mode(const DynamicPrintConfig *cfg)
+{
+    if (cfg == nullptr)
+        return false;
+    const ConfigOptionBool *opt = cfg->option<ConfigOptionBool>("range_spiral_mode");
+    return opt != nullptr && opt->value;
+}
+
 } // namespace Slic3r
 
 // Serialization through the Cereal library
