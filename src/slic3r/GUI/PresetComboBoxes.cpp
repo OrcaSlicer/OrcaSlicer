@@ -42,6 +42,7 @@
 #include "MsgDialog.hpp"
 #include "ParamsDialog.hpp"
 #include "FilamentPickerDialog.hpp"
+#include "FilamentPresetUtils.hpp"
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
@@ -233,11 +234,10 @@ int PresetComboBox::update_ams_color()
     std::string color;
     std::string ctype;
     std::vector<std::string> colors;
+    auto* preset = find_preset_by_name_or_alias(wxGetApp().preset_bundle, m_type, m_collection, GetValue().ToUTF8().data());
+    color = filament_default_colour(preset);
+    bool use_preset_default_color = !color.empty();
     if (idx < 0) {
-        auto  name   = Preset::remove_suffix_modified(GetValue().ToUTF8().data());
-        auto *preset = m_collection->find_preset(name);
-        if (preset)
-            color = preset->config.opt_string("default_filament_colour", 0u);
         if (color.empty()) return -1;
     } else {
         auto &ams_list = wxGetApp().preset_bundle->filament_ams_list;
@@ -246,9 +246,11 @@ int PresetComboBox::update_ams_color()
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": ams %1% out of range %2%") % idx % ams_list.size();
             return -1;
         }
-        color = iter->second.opt_string("filament_colour", 0u);
+        if (color.empty())
+            color = iter->second.opt_string("filament_colour", 0u);
         ctype = iter->second.opt_string("filament_colour_type", 0u);
-        colors = iter->second.opt<ConfigOptionStrings>("filament_multi_colour")->values;
+        if (!use_preset_default_color)
+            colors = iter->second.opt<ConfigOptionStrings>("filament_multi_colour")->values;
     }
     DynamicPrintConfig *cfg        = &wxGetApp().preset_bundle->project_config;
     auto color_head = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone()); // single color (the first color if multi-color filament)
