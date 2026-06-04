@@ -2147,7 +2147,7 @@ void PrintObject::discover_vertical_shells()
         grain_size = 1;
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
-            [this, region_id, &cache_top_botom_regions]
+            [this, region_id, &cache_top_botom_regions, spiral_mode]
             (const tbb::blocked_range<size_t>& range) {
                 // printf("discover_vertical_shells from %d to %d\n", range.begin(), range.end());
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
@@ -2253,11 +2253,40 @@ void PrintObject::discover_vertical_shells()
 	                    for (; i >= 0 &&
 	                         (i > ibottom || bottom_z - m_layers[i]->bottom_z() < region_config.bottom_shell_thickness - EPSILON);
 	                        -- i) {
-                                at_least_one_bottom_projected = true;
+                            if (!spiral_mode && m_layers[i]->any_spiral_vase_active())
+                                continue;
+                            at_least_one_bottom_projected = true;
 	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
 							combine_holes(cache.holes);
                             combine_shells(cache.bottom_surfaces);
 	                    }
+
+                        // Layers above a spiral-vase band share identical outlines with the
+                        // transition layer; anchor bottom shell thickness from that layer.
+                        if (!spiral_mode) {
+                            int layers_since_spiral = 0;
+                            for (int li = int(idx_layer) - 1; li >= 0; ++layers_since_spiral, --li) {
+                                if (m_layers[li]->any_spiral_vase_active())
+                                    break;
+                            }
+                            if (layers_since_spiral > 0 && layers_since_spiral <= n_bottom_layers) {
+                                int transition_i = -1;
+                                for (int li = int(idx_layer) - 1; li >= 0; --li) {
+                                    if (m_layers[li]->any_spiral_vase_active()) {
+                                        transition_i = li + 1;
+                                        break;
+                                    }
+                                }
+                                if (transition_i >= 0) {
+                                    const Polygons &transition_bottom =
+                                        cache_top_botom_regions[transition_i].bottom_surfaces;
+                                    if (!transition_bottom.empty()) {
+                                        at_least_one_bottom_projected = true;
+                                        combine_shells(transition_bottom);
+                                    }
+                                }
+                            }
+                        }
 
                         if (!at_least_one_bottom_projected && i >= 0) {
                             Polygons anchor_area = intersection(expand(cache_top_botom_regions[idx_layer].bottom_surfaces,
