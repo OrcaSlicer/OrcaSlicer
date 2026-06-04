@@ -1652,7 +1652,7 @@ msgstr "Warnung: Bitte wählen Sie die Funktion des Punktes oder Kreises."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"because the objects are restricted to bed \n"
 "and only parts can be lifted."
 msgstr ""
 "Es wird empfohlen, die Objekte zuerst zusammenzubauen,\n"

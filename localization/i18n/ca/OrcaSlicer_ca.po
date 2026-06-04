@@ -1646,7 +1646,7 @@ msgstr "Avís: seleccioneu la funció de Punt o Cercle."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"because the objects are restricted to bed \n"
 "and only parts can be lifted."
 msgstr ""
 "Es recomana muntar els objectes primer,\n"

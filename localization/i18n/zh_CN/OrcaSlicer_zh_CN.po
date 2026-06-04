@@ -1597,7 +1597,7 @@ msgstr "警告:请选择点或圆特征。"
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"because the objects are restricted to bed \n"
 "and only parts can be lifted."
 msgstr ""
 "建议先装配物体，\n"

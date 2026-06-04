@@ -1616,11 +1616,11 @@ msgstr "Warning: please select Point's or Circle's feature."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"because the objects are restricted to bed \n"
 "and only parts can be lifted."
 msgstr ""
 "It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"because the objects are restricted to bed \n"
 "and only parts can be lifted."
 
 msgid "Face and face assembly"
