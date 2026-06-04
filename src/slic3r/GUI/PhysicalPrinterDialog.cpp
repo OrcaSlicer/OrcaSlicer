@@ -231,7 +231,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                 result = host->test(msg); // using test with special input because I don't want to create the generate_auth_creds func for every printer
 
                 // Prompt user to approve access on the machine.
-                show_info(this, "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again.", "API Key created.");
+                show_info(this, "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again.\n"+msg, "API Key created.");
+                
                 
             }
             if (result)

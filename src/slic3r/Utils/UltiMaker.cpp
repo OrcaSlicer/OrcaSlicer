@@ -305,8 +305,7 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 					ret = false;
 				} else {
 					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: ID and KEY are both present. Setting message appropriately.") % name;
-					msg = GUI::from_u8("Username: " + id + "  Password: " + key + "  \n Please select the \"Allow\" button on the machine to authorize access. ");
-					BOOST_LOG_TRIVIAL(error) << "msg after assignment = " << msg.ToUTF8().data();
+					msg = GUI::from_u8("Username: " + id + "  Password: " + key);
 				}
             }
             catch (const std::exception & e) {
@@ -325,8 +324,6 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 #endif // WIN32
         .perform_sync();
 
-	
-	BOOST_LOG_TRIVIAL(error) << "msg before return = " << msg.ToUTF8().data();
 
 	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds done! ret=" << ret;
 	return ret;
