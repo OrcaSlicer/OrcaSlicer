@@ -743,10 +743,12 @@ struct SeamComparator {
   SeamPosition setup;
   float angle_importance;
   // For spCustom: the reference point (in the object's local frame, origin = part center).
-  // Each perimeter loop's seam is placed at the point closest to this location.
+  // Each perimeter loop's seam is placed at the point closest to (or, if custom_farthest, the
+  // point farthest from) this location.
   Vec2f custom_point;
-  explicit SeamComparator(SeamPosition setup, const Vec2f &custom_point = Vec2f::Zero()) :
-                                                setup(setup), custom_point(custom_point) {
+  bool  custom_farthest;
+  explicit SeamComparator(SeamPosition setup, const Vec2f &custom_point = Vec2f::Zero(), bool custom_farthest = false) :
+                                                setup(setup), custom_point(custom_point), custom_farthest(custom_farthest) {
     angle_importance =
         setup == spNearest ? SeamPlacer::angle_importance_nearest : SeamPlacer::angle_importance_aligned;
   }
@@ -781,12 +783,12 @@ struct SeamComparator {
       return a.position.y() > b.position.y();
     }
 
-    // Place the seam at the perimeter point closest to the configured reference point.
+    // Place the seam at the perimeter point closest to (or farthest from) the reference point.
     if (setup == SeamPosition::spCustom) {
       float dist_a = (a.position.head<2>() - custom_point).squaredNorm();
       float dist_b = (b.position.head<2>() - custom_point).squaredNorm();
       if (dist_a != dist_b) {
-        return dist_a < dist_b;
+        return custom_farthest ? dist_a > dist_b : dist_a < dist_b;
       }
     }
 
@@ -1446,7 +1448,8 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
     // For "Relative to Part", the reference point is given in the object's local frame
     // (origin = part center), which matches the frame of the gathered seam candidate positions.
     Vec2f custom_point { float(po->config().seam_position_x.value), float(po->config().seam_position_y.value) };
-    SeamComparator comparator { configured_seam_preference, custom_point };
+    bool  custom_farthest = po->config().seam_position_ref.value == srrFarthest;
+    SeamComparator comparator { configured_seam_preference, custom_point, custom_farthest };
 
     {
       GlobalModelInfo global_model_info { };

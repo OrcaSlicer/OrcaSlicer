@@ -997,6 +997,7 @@ static std::vector<std::string> s_Preset_print_options{
     "seam_position",
     "seam_position_x",
     "seam_position_y",
+    "seam_position_ref",
     "staggered_inner_seams",
     "wall_sequence",
     "is_infill_first",

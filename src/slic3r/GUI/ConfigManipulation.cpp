@@ -595,6 +595,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool is_custom_seam = have_perimeters && config->opt_enum<SeamPosition>("seam_position") == spCustom;
     toggle_line("seam_position_x", is_custom_seam);
     toggle_line("seam_position_y", is_custom_seam);
+    toggle_line("seam_position_ref", is_custom_seam);
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament uses the same logic as in Print::extruders()

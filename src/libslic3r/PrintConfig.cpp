@@ -358,6 +358,12 @@ static t_config_enum_values s_keys_map_SeamPosition {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamPosition)
 
+static t_config_enum_values s_keys_map_SeamRelativeReference {
+    { "closest",  srrClosest },
+    { "farthest", srrFarthest }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamRelativeReference)
+
 // Orca
 static t_config_enum_values s_keys_map_SeamScarfType{
     { "none",           int(SeamScarfType::None) },
@@ -5512,6 +5518,21 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("seam_position_ref", coEnum);
+    def->label = L("Relative seam reference");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Relative to Part\", choose whether the seam is placed "
+                     "on the perimeter point closest to the reference point, or farthest from it. With the "
+                     "reference point at the part center (0,0), \"Closest to point\" pulls the seam to the "
+                     "inner-facing side while \"Farthest from point\" pushes it to the outer-facing side.");
+    def->enum_keys_map = &ConfigOptionEnum<SeamRelativeReference>::get_enum_values();
+    def->enum_values.push_back("closest");
+    def->enum_values.push_back("farthest");
+    def->enum_labels.push_back(L("Closest to point"));
+    def->enum_labels.push_back(L("Farthest from point"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<SeamRelativeReference>(srrClosest));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");

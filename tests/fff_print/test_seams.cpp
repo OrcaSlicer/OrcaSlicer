@@ -56,12 +56,19 @@ TEST_CASE("Relative-to-Part seam option is registered and round-trips", "[Seams]
     REQUIRE(config.opt_float("seam_position_x") == 40.0);
     REQUIRE(config.opt_float("seam_position_y") == -15.0);
 
+    // The closest/farthest reference defaults to "closest" and round-trips to "farthest".
+    REQUIRE(config.opt_enum<SeamRelativeReference>("seam_position_ref") == srrClosest);
+    config.set_deserialize_strict({ { "seam_position_ref", "farthest" } });
+    REQUIRE(config.opt_enum<SeamRelativeReference>("seam_position_ref") == srrFarthest);
+    REQUIRE(config.opt_serialize("seam_position_ref") == "farthest");
+
     // The new keys must be part of the Print preset, otherwise the Process tab cannot bind them
     // ("No <key> in ConfigOptionsGroup config." at runtime).
     const std::vector<std::string> &opts = Preset::print_options();
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position")   != opts.end());
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_x") != opts.end());
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_y") != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position")     != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_x")   != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_y")   != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_ref") != opts.end());
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -79,13 +86,15 @@ TEST_CASE("Relative-to-Part seam option is registered and round-trips", "[Seams]
 // point (unlike a cube's corner ties), and its vertical wall is free of overhang interference.
 // init_print() is bypassed because its arrange_objects() also fails in this harness; the object
 // is placed manually. Seam placement is computed in object coordinates, so this is equivalent.
-static Vec2d outer_wall_seam_mean(const std::string &target_x, const std::string &target_y, size_t &n_seams)
+static Vec2d outer_wall_seam_mean(const std::string &target_x, const std::string &target_y, size_t &n_seams,
+                                  const std::string &reference = "closest")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "seam_position",      "custom"   },
         { "seam_position_x",    target_x   },
         { "seam_position_y",    target_y   },
+        { "seam_position_ref",  reference  },
         { "wall_loops",         "2"        },
         { "layer_height",       "0.3"      },
         { "first_layer_height", "0.3"      },
@@ -160,4 +169,11 @@ TEST_CASE("Relative-to-Part seam follows the configured X/Y point", "[Seams][.]"
     // Symmetric check on the Y axis.
     REQUIRE(seam_y_plus.y() - seam_y_minus.y() > 8.0);
     REQUIRE_THAT(seam_y_plus.x() - seam_y_minus.x(), Catch::Matchers::WithinAbs(0.0, 4.0));
+
+    // "Farthest from point" flips the side: aiming at +X with reference=farthest puts the seam
+    // on the -X side, i.e. opposite the closest-to-+X result.
+    size_t n_far = 0;
+    const Vec2d seam_x_plus_far = outer_wall_seam_mean("40", "0", n_far, "farthest");
+    REQUIRE(n_far > 5);
+    REQUIRE(seam_x_plus.x() - seam_x_plus_far.x() > 8.0);
 }
