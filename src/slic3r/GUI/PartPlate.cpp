@@ -1517,9 +1517,9 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
 	int glb_support_extr = glb_config.opt_int("support_filament");
-	int glb_wall_extr = glb_config.opt_int("wall_filament");
-	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament");
-	int glb_solid_infill_extr = glb_config.opt_int("solid_infill_filament");
+	int glb_wall_extr = glb_config.opt_int("wall_filament_id");
+	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament_id");
+	int glb_solid_infill_extr = glb_config.opt_int("solid_infill_filament_id");
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -1574,7 +1574,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
         }
 
         int obj_wall_extr = 0;
-		const ConfigOption* wall_opt = mo->config.option("wall_filament");
+		const ConfigOption* wall_opt = mo->config.option("wall_filament_id");
 		if (wall_opt != nullptr)
 			obj_wall_extr = wall_opt->getInt();
 		if (obj_wall_extr != 0)
@@ -1583,7 +1583,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 			plate_extruders.push_back(glb_wall_extr);
 
 		int obj_sparse_infill_extr = 0;
-		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament");
+		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament_id");
 		if (sparse_infill_opt != nullptr)
 			obj_sparse_infill_extr = sparse_infill_opt->getInt();
 		if (obj_sparse_infill_extr != 0)
@@ -1592,7 +1592,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 			plate_extruders.push_back(glb_sparse_infill_extr);
 
 		int obj_solid_infill_extr = 0;
-		const ConfigOption* solid_infill_opt = mo->config.option("solid_infill_filament");
+		const ConfigOption* solid_infill_opt = mo->config.option("solid_infill_filament_id");
 		if (solid_infill_opt != nullptr)
 			obj_solid_infill_extr = solid_infill_opt->getInt();
 		if (obj_solid_infill_extr != 0)
@@ -1629,9 +1629,9 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     // if 3mf file
     int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
     int glb_support_extr = full_config.opt_int("support_filament");
-	int glb_wall_extr = full_config.opt_int("wall_filament");
-	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament");
-	int glb_solid_infill_extr = full_config.opt_int("solid_infill_filament");
+	int glb_wall_extr = full_config.opt_int("wall_filament_id");
+	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament_id");
+	int glb_solid_infill_extr = full_config.opt_int("solid_infill_filament_id");
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -1696,7 +1696,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
                 plate_extruders.push_back(glb_support_extr);
 
 			int obj_wall_extr = 0;
-			const ConfigOption* wall_opt = object->config.option("wall_filament");
+			const ConfigOption* wall_opt = object->config.option("wall_filament_id");
 			if (wall_opt != nullptr)
 				obj_wall_extr = wall_opt->getInt();
 			if (obj_wall_extr != 0)
@@ -1705,7 +1705,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(glb_wall_extr);
 
 			int obj_sparse_infill_extr = 0;
-			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament");
+			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament_id");
 			if (sparse_infill_opt != nullptr)
 				obj_sparse_infill_extr = sparse_infill_opt->getInt();
 			if (obj_sparse_infill_extr != 0)
@@ -1714,7 +1714,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(glb_sparse_infill_extr);
 
 			int obj_solid_infill_extr = 0;
-			const ConfigOption* solid_infill_opt = object->config.option("solid_infill_filament");
+			const ConfigOption* solid_infill_opt = object->config.option("solid_infill_filament_id");
 			if (solid_infill_opt != nullptr)
 				obj_solid_infill_extr = solid_infill_opt->getInt();
 			if (obj_solid_infill_extr != 0)
