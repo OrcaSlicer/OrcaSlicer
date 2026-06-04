@@ -1407,13 +1407,20 @@ void PlaterPresetComboBox::update()
                                    : group_filament_presets  == "2" ? "by_type"            // Create sub menus with filament type
                                    : group_filament_presets  == "3" ? "by_vendor"          // Create sub menus with filament vendor
                                    : "";                                                   // Use without sub menu
-    add_presets(nonsys_presets, selected_user_preset, L("User presets"), group_filament_presets_by);
+    // ORCA: the by_type/by_vendor grouping is derived from filament-only attributes
+    // (filament_type/filament_vendor), which are empty for printer and material presets.
+    // Applying it to non-filament combos buckets every user preset under "Unspecified",
+    // so only group user presets by those attributes for the filament combobox.
+    add_presets(nonsys_presets, selected_user_preset, L("User presets"),
+                m_type == Preset::TYPE_FILAMENT ? group_filament_presets_by : wxString(""));
     // ORCA: add bundle presets with sub-dropdown grouping for filament and printer
     auto bundle_group_name = (m_type == Preset::TYPE_FILAMENT || m_type == Preset::TYPE_PRINTER) ? "by_bundle" : "";
     add_presets(bundle_presets, selected_bundle_preset, L("Bundle presets"), bundle_group_name);
     // BBS: move system to the end
     add_presets(system_presets, selected_system_preset, L("System presets"), _L("System"));
-    add_presets(uncompatible_presets, {}, L("Unsupported presets"), _L("Unsupported") + " ");
+    // Orca: optionally show unsupported presets (controlled by developer preference, default off)
+    if (wxGetApp().app_config->get_bool("show_unsupported_presets"))
+        add_presets(uncompatible_presets, {}, L("Unsupported presets"), _L("Unsupported") + " ");
 
     //BBS: remove unused pysical printer logic
     /*if (m_type == Preset::TYPE_PRINTER)
