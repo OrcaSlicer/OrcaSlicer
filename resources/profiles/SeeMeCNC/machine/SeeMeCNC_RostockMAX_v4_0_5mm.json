@@ -302,13 +302,13 @@
 		"18"
 	],
 	"retraction_length": [
-		"6"
+		"5.0"
 	],
 	"retraction_minimum_travel": [
 		"1"
 	],
 	"retraction_speed": [
-		"60"
+		"45"
 	],
 	"scan_first_layer": "0",
 	"silent_mode": "0",
@@ -339,7 +339,7 @@
 	"wrapping_detection_layers": "20",
 	"wrapping_exclude_area": [],
 	"z_hop": [
-		"0.4"
+		"0.2"
 	],
 	"z_hop_types": [
 		"Auto Lift"

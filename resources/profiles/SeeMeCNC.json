@@ -545,6 +545,118 @@
 		{
 			"name": "0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0",
 			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC Artemis 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC Artemis 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC BOSSdelta 300 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC BOSSdelta 300 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Solid @SeeMeCNC RostockMAX v4 0.5",
+			"sub_path": "process/0.25mm TPU Solid @SeeMeCNC RostockMAX v4 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC Artemis 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC Artemis 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC BOSSdelta 300 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC BOSSdelta 300 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.5.json"
+		},
+		{
+			"name": "0.25mm TPU Vase @SeeMeCNC RostockMAX v4 0.5",
+			"sub_path": "process/0.25mm TPU Vase @SeeMeCNC RostockMAX v4 0.5.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC Artemis 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC Artemis 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC BOSSdelta 300 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC BOSSdelta 300 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC RostockMAX v3.2 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC RostockMAX v3.2 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Solid @SeeMeCNC RostockMAX v4 1.0",
+			"sub_path": "process/0.40mm TPU Solid @SeeMeCNC RostockMAX v4 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC Artemis 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC Artemis 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC BOSSdelta 300 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC BOSSdelta 300 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC RostockMAX v3.2 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC RostockMAX v3.2 1.0.json"
+		},
+		{
+			"name": "0.40mm TPU Vase @SeeMeCNC RostockMAX v4 1.0",
+			"sub_path": "process/0.40mm TPU Vase @SeeMeCNC RostockMAX v4 1.0.json"
 		}
 	],
 	"filament_list": [

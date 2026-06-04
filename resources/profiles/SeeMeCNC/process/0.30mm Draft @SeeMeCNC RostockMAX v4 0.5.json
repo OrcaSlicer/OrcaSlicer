@@ -4,6 +4,9 @@
 	"inherits": "SeeMeCNC process base",
 	"from": "System",
 	"instantiation": "true",
+	"solid_infill_filament": "0",
+	"sparse_infill_filament": "0",
+	"wall_filament": "0",
 	"print_settings_id": "0.30mm Draft @SeeMeCNC RostockMAX v4 0.5",
 	"compatible_printers": [
 		"SeeMeCNC RostockMAX v4 0.5 nozzle"
@@ -17,6 +20,25 @@
 	"skirt_distance": "2",
 	"skirt_loops": "0",
 	"spiral_mode": "0",
-	"outer_wall_acceleration": "1200",
-	"inner_wall_acceleration": "1200"
+	"outer_wall_acceleration": "800",
+	"inner_wall_acceleration": "800",
+	"default_acceleration": "1200",
+	"bridge_acceleration": "30%",
+	"sparse_infill_acceleration": "100%",
+	"internal_solid_infill_acceleration": "100%",
+	"initial_layer_acceleration": "500",
+	"initial_layer_travel_speed": "100%",
+	"top_surface_acceleration": "500",
+	"travel_acceleration": "1500",
+	"default_jerk": "7",
+	"outer_wall_jerk": "5",
+	"inner_wall_jerk": "5",
+	"infill_jerk": "9",
+	"initial_layer_jerk": "5",
+	"top_surface_jerk": "5",
+	"travel_jerk": "10",
+	"outer_wall_speed": "45",
+	"inner_wall_speed": "45",
+	"sparse_infill_speed": "55",
+	"top_surface_speed": "30"
 }
