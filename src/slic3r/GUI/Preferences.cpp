@@ -114,7 +114,8 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     if (!current_setting.empty()) {
         auto compare  = [current_setting](string possible_setting) { return current_setting == possible_setting; };
         auto iterator = find_if(config_name_index.begin(), config_name_index.end(), compare);
-        current_index = iterator - config_name_index.begin();
+        if (iterator != config_name_index.end())
+            current_index = static_cast<unsigned int>(iterator - config_name_index.begin());
     }
 
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
@@ -151,7 +152,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_CATALAN,
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
-        wxLANGUAGE_VIETNAMESE
+        wxLANGUAGE_VIETNAMESE,
+        wxLANGUAGE_THAI
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
@@ -257,6 +259,9 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_VIETNAMESE)) {
             language_name = wxString::FromUTF8("Tiếng Việt");
+        }
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_THAI)) {
+            language_name = wxString::FromUTF8("\xE0\xB9\x84\xE0\xB8\x97\xE0\xB8\xA2");
         }
 
         if (app_config->get(param) == vlist[i]->CanonicalName) {
@@ -967,8 +972,13 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
+        else if (param == "hide_login_side_panel") {
+            if (wxGetApp().mainframe && wxGetApp().mainframe->m_webview) {
+                wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
+            }
+        }
 
-        #ifdef __WXMSW__
+#ifdef __WXMSW__
         if (param == "associate_3mf") {
              bool pbool = app_config->get("associate_3mf") == "true" ? true : false;
              if (pbool) {
@@ -1028,6 +1038,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             } else {
                 Slic3r::GUI::wxGetApp().update_internal_development();
             }
+        }
+
+        if (param == "show_unsupported_presets") {
+            wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
         if (param == "enable_high_low_temp_mixed_printing") {
@@ -1171,7 +1185,6 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetToolTip(tooltip);
     checkbox->SetValue(reg_to_current_instance); // If registered to the current instance, checkbox should be checked
-    checkbox->Enable(!reg_to_current_instance); // Since unregistering isn't supported, checkbox is disabled when checked
 
     // build text next to checkbox
     auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE);
@@ -1222,8 +1235,10 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     v_sizer->Add(registered_instance_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(DESIGN_LEFT_MARGIN));
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [=](wxCommandEvent& e) {
-        wxGetApp().associate_url(url_prefix.ToStdWstring());
-        checkbox->Disable();
+        if (checkbox->GetValue())
+            wxGetApp().associate_url(url_prefix.ToStdWstring());
+        else
+            wxGetApp().disassociate_url(url_prefix.ToStdWstring());
         update_current_association_str();
         e.Skip();
     });
@@ -1499,11 +1514,16 @@ void PreferencesDialog::create_items()
     auto item_use_free_camera  = create_item_checkbox(_L("Use free camera"), _L("If enabled, use free camera. If not enabled, use constrained camera."), "use_free_camera");
     g_sizer->Add(item_use_free_camera);
 
-    auto swap_pan_rotate       = create_item_checkbox(_L("Swap pan and rotate mouse buttons"), _L("If enabled, swaps the left and right mouse buttons pan and rotate functions."), "swap_mouse_buttons");
-    g_sizer->Add(swap_pan_rotate);
-
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
+
+    std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
+    auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_left_mouse_drag);
+    auto item_middle_mouse_drag  = create_item_combobox(_L("Middle Mouse Drag"), _L("Set the action that dragging the middle mouse button should perform."), "middle_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_middle_mouse_drag);
+    auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_right_mouse_drag);
 
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
@@ -1527,6 +1547,88 @@ void PreferencesDialog::create_items()
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
+    //// GRAPHICS TAB
+    /////////////////////////////////////
+    m_pref_tabs->AppendItem(_L("Graphics"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// GRAPHICS > Realistic view
+    g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
+
+    auto item_realistic_phong = create_item_checkbox(
+        _L("Phong shading"),
+        _L("Uses Phong shading inside realistic view.")
+        , SETTING_OPENGL_REALISTIC_PHONG
+    );
+    g_sizer->Add(item_realistic_phong);
+
+    auto item_realistic_ssao = create_item_checkbox(
+        _L("SSAO ambient occlusion"),
+        _L("Applies SSAO in realistic view."),
+        SETTING_OPENGL_PHONG_SSAO
+    );
+    g_sizer->Add(item_realistic_ssao);
+
+    auto item_realistic_shadows = create_item_checkbox(
+        _L("Shadows"),
+        _L("Renders cast shadows on the plate in realistic view."),
+        SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
+    );
+    g_sizer->Add(item_realistic_shadows);
+
+    //// GRAPHICS > Anti-aliasing
+    g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
+
+    auto item_antialiasing = create_item_combobox(
+        _L("MSAA Multiplier"),
+        _L("Set the Multi-Sample Anti-Aliasing level.\n"
+           "Higher values result in smoother edges, but the impact on performance is exponential.\n"
+           "Lower values improve performance, at the cost of jagged edges.\n"
+           "If disabled, its recommended to enable FXAA to reduce jagged edges with minimal performance impact.\n\n"
+           "Requires application restart."),
+        SETTING_OPENGL_AA_SAMPLES,
+        {_L("Disabled"), "2x", "4x", "8x", "16x"},
+        {"0", "2", "4", "8", "16"}
+    );
+    g_sizer->Add(item_antialiasing);
+
+    auto item_fxaa = create_item_checkbox(
+        _L("FXAA post-processing"),
+        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+           "Useful for disabling or reducing the MSAA setting to improve performance.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_FXAA_ENABLED
+    );
+    g_sizer->Add(item_fxaa);
+
+    //// GRAPHICS > FPS
+    g_sizer->Add(create_item_title(_L("FPS")), 1, wxEXPAND);
+
+    auto item_fps_cap = create_item_spinctrl(
+        _L("FPS cap"),
+        _L("(0 = unlimited)"),
+        _L("FPS"),
+        _L("Limits viewport frame rate to reduce GPU load and power usage.\n"
+           "Set to 0 for unlimited frame rate."),
+        SETTING_OPENGL_FPS_CAP,
+        0,
+        240
+    );
+    g_sizer->Add(item_fps_cap);
+
+    auto item_fps_overlay = create_item_checkbox(
+        _L("Show FPS overlay"),
+        _L("Displays current viewport FPS in the top-right corner."),
+        SETTING_OPENGL_SHOW_FPS_OVERLAY
+    );
+    g_sizer->Add(item_fps_overlay);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
     //// ONLINE TAB 
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Online"));
@@ -1540,8 +1642,11 @@ void PreferencesDialog::create_items()
     auto item_region           = create_item_region_combobox(_L("Login region"), "");
     g_sizer->Add(item_region);
  
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops the transmission of data to Bambu's cloud services too. Users who don't use BBL machines or use LAN mode only can safely turn on this function."), "stealth_mode");
+    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
     g_sizer->Add(item_stealth_mode);
+
+    auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");
+    g_sizer->Add(item_hide_login_side_panel);
 
     auto item_network_test     = create_item_button(_L("Network test"), _L("Test") + " " + dots, "", _L("Open Network Test"), []() {
         NetworkTestDialog dlg(wxGetApp().mainframe);
@@ -1793,6 +1898,12 @@ void PreferencesDialog::create_items()
 
     auto item_ams_blacklist    = create_item_checkbox(_L("Skip AMS blacklist check"), "", "skip_ams_blacklist_check");
     g_sizer->Add(item_ams_blacklist);
+
+    auto item_keep_painting    = create_item_checkbox(_L("(Experimental) Keep painted feature after mesh change"), _L("Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\nHighly experimental! Slow and may create artifact."), "keep_painting");
+    g_sizer->Add(item_keep_painting);
+
+    auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
+    g_sizer->Add(item_show_unsupported);
 
     g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
     auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");

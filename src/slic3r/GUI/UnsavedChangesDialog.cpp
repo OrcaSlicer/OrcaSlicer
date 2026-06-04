@@ -1009,6 +1009,32 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     // "Save" button
     if (ActionButtons::SAVE & m_buttons) add_btn(&m_save_btn, m_save_btn_id, "save", Action::Save, _L("Save"), false);
 
+    if (dependent_presets != nullptr) {
+        const wxString previous_profile = from_u8(dependent_presets->get_edited_preset().name);
+        const wxString new_profile      = new_selected_preset.empty() ? _L("the new profile") : from_u8(new_selected_preset);
+
+        if (m_discard_btn) {
+            m_discard_btn->SetToolTip(format_wxstr(
+                _L("Switch to\n\"%1%\"\ndiscarding any changes made in\n\"%2%\"."),
+                new_profile,
+                previous_profile));
+        }
+
+        if (m_transfer_btn) {
+            m_transfer_btn->SetToolTip(format_wxstr(
+                _L("All \"New Value\" settings modified in\n\"%1%\"\nwill be transferred to\n\"%2%\"."),
+                previous_profile,
+                new_profile));
+        }
+
+        if (m_save_btn) {
+            m_save_btn->SetToolTip(format_wxstr(
+                _L("All \"New Value\" settings are saved in\n\"%1%\"\nand \"%2%\" will open without any changes."),
+                previous_profile,
+                new_profile));
+        }
+    }
+
     /* ScalableButton *cancel_btn = new ScalableButton(this, wxID_CANCEL, "cross", _L("Cancel"), wxDefaultSize, wxDefaultPosition, wxBORDER_DEFAULT, true, 24);
       buttons->Add(cancel_btn, 1, wxLEFT | wxRIGHT, 5);
       cancel_btn->SetFont(btn_font);*/

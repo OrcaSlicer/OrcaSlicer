@@ -176,7 +176,12 @@ public:
     // ========================================================================
     int get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets) override;
     std::string request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
-    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
+    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) override;
+    SyncPushResult sync_push(const std::string& profile_id,
+                             const std::string& name,
+                             const nlohmann::json& content,
+                             const std::string& original_updated_time = "",
+                             bool force                               = false);
     int get_setting_list(std::string bundle_version, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int get_setting_list2(std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int delete_setting(std::string setting_id) override;
@@ -292,13 +297,6 @@ private:
     int sync_pull(
         std::function<void(const SyncPullResponse&)> on_success,
         std::function<void(int http_code, const std::string& error)> on_error
-    );
-
-    SyncPushResult sync_push(
-        const std::string& profile_id,
-        const std::string& name,
-        const nlohmann::json& content,
-        const std::string& original_updated_time = ""
     );
 
     // HTTP request helpers

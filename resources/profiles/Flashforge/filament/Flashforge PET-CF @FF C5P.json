@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge PET-CF @FF C5P",
+	"inherits": "Generic PETG-CF @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -55,17 +60,12 @@
 	"filament_type": [
 		"PET-CF"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"100"
 	],
 	"hot_plate_temp_initial_layer": [
 		"100"
 	],
-	"inherits": "Generic PETG-CF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PET-CF @FF C5P",
 	"nozzle_temperature": [
 		"270"
 	],
@@ -107,6 +107,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"100"
-	],
-	"version": "2.3.0.3"
+	]
 }

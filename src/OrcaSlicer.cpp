@@ -23,6 +23,7 @@
 #include <cstring>
 #include <iostream>
 #include <math.h>
+#include <csignal>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -1356,6 +1357,10 @@ int CLI::run(int argc, char **argv)
     else {
         set_logging_level(2);
     }
+    const ConfigOptionString* opt_logfile = m_config.opt<ConfigOptionString>("logfile");
+    if (opt_logfile) {
+        set_logging_file(opt_logfile->value);
+    }
 
     global_begin_time = (long long)Slic3r::Utils::get_current_time_utc();
     BOOST_LOG_TRIVIAL(warning) << boost::format("cli mode, Current OrcaSlicer Version %1%")%SoftFever_VERSION;
@@ -1590,7 +1595,7 @@ int CLI::run(int argc, char **argv)
                         record_exit_reson(outfile_dir, CLI_FILE_VERSION_NOT_SUPPORTED, 0, cli_errors[CLI_FILE_VERSION_NOT_SUPPORTED], sliced_info);
                         flush_and_exit(CLI_FILE_VERSION_NOT_SUPPORTED);
                     }
-                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0);
+                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0), old_version5("2.4.0");
                     if ((file_version < old_version) && !config.empty()) {
                         translate_old = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to translate")%file_version.to_string();
@@ -1603,6 +1608,19 @@ int CLI::run(int argc, char **argv)
                     if (file_version < old_version4) {
                         remove_wrapping_detect = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
+                    }
+
+                    if ((file_version < old_version5) && !config.empty()) {
+                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config);
+                        for (ModelObject *model_object : model.objects) {
+                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
+                            for (ModelVolume *model_volume : model_object->volumes)
+                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
+                        }
+
+                        if (converted_count > 0) {
+                            BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)") % file_version.to_string() % converted_count;
+                        }
                     }
 
                     if (normative_check) {
@@ -4465,7 +4483,7 @@ int CLI::run(int argc, char **argv)
                 size_t num_objects = model.objects.size();
                 for (size_t i = 0; i < num_objects; ++ i) {
                     ModelObjectPtrs new_objects;
-                    model.objects.front()->split(&new_objects);
+                    model.objects.front()->split(&new_objects, false); // TODO: add cli option to enable this?
                     model.delete_object(size_t(0));
                 }
             }
@@ -6444,6 +6462,7 @@ int CLI::run(int argc, char **argv)
             glfwGetVersion(&gl_major, &gl_minor, &gl_verbos);
             BOOST_LOG_TRIVIAL(info) << boost::format("opengl version %1%.%2%.%3%")%gl_major %gl_minor %gl_verbos;
 
+            bool thumbnail_opengl_ready = false;
             glfwSetErrorCallback(glfw_callback);
             int ret = glfwInit();
             if (ret == GLFW_FALSE) {
@@ -6472,13 +6491,22 @@ int CLI::run(int argc, char **argv)
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
                 if (window == NULL)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window" << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window; skipping thumbnail rendering for CLI export" << std::endl;
                 }
-                else
+                else {
                     glfwMakeContextCurrent(window);
+                    thumbnail_opengl_ready = true;
+                }
             }
 
             //opengl manager related logic
+            if (!thumbnail_opengl_ready) {
+                BOOST_LOG_TRIVIAL(error) << "OpenGL context unavailable; skip thumbnail generating" << std::endl;
+                need_create_thumbnail_group = false;
+                need_create_no_light_group = false;
+                need_create_top_group = false;
+            }
+            else
             {
                 GUI::OpenGLManager opengl_mgr;
                 bool opengl_valid = opengl_mgr.init_gl(false);
@@ -7458,6 +7486,13 @@ extern "C" {
 #else /* _MSC_VER */
 int main(int argc, char **argv)
 {
+#ifndef _WIN32
+    // Ignore SIGPIPE so a write to a closed socket (e.g. a dropped printer
+    // network connection) returns EPIPE to the caller instead of terminating
+    // the whole process. Without this, losing the printer link kills
+    // OrcaSlicer with SIGPIPE (exit 141) and produces no crash report.
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
     return CLI().run(argc, argv);
 }
 #endif /* _MSC_VER */

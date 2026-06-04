@@ -330,6 +330,8 @@ public:
 
     size_t hash() const throw() override { return std::hash<T>{}(this->value); }
 
+    // Warning mitigation: Indicate that virtual serialize() is not forgotten
+    using ConfigOption::serialize;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
@@ -752,6 +754,8 @@ public:
         return modified;
     }
 
+    // Warning mitigation: Indicate that virtual serialize() is not forgotten
+    using ConfigOptionVectorBase::serialize;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->values); }
@@ -2963,6 +2967,34 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const DynamicConfig::DynamicConfigDifference& diff);
+
+namespace ConfigMigrations {
+
+template <typename ConfigLike>
+inline int migrate_legacy_feature_filament_defaults(ConfigLike &cfg)
+{
+    static const char *feature_filament_keys[] = {
+        "wall_filament",
+        "sparse_infill_filament",
+        "solid_infill_filament"
+    };
+
+    int converted_count = 0;
+    for (const char *key : feature_filament_keys) {
+        if (!cfg.has(key))
+            continue;
+
+        const ConfigOption *opt = cfg.option(key);
+        if (opt != nullptr && opt->getInt() == 1) {
+            cfg.set_key_value(key, new ConfigOptionInt(0));
+            ++converted_count;
+        }
+    }
+
+    return converted_count;
+}
+
+}
 
 // Configuration store with a static definition of configuration values.
 // In Slic3r, the static configuration stores are during the slicing / g-code generation for efficiency reasons,

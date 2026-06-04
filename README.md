@@ -218,7 +218,7 @@ Open-source slicing has always been built on a tradition of collaboration and at
 
 OrcaSlicer began in that same spirit, drawing from BambuStudio, PrusaSlicer, and ideas inspired by CuraSlicer and SuperSlicer. But it has since grown far beyond its origins. Through relentless innovation — introducing advanced calibration tools, precise wall and seam control, tree supports, adaptive slicing, and hundreds of other features — OrcaSlicer has become the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry.
 
-The OrcaSlicer logo was designed by community member Justin Levine (@freejstnalxndr).
+The OrcaSlicer logo was designed by community member [Justin Levine](https://github.com/jal-co).
 
 # License
 - **OrcaSlicer** is licensed under the GNU Affero General Public License, version 3.
