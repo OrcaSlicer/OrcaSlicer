@@ -849,6 +849,15 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("printhost_custom_headers", coString);
+    def->label = L("Custom HTTP headers");
+    def->tooltip = L("Optional HTTP headers to send to the printer host, one per line, in the format Header-Name: value. "
+        "Use this for reverse proxies or custom authentication solutions.");
+    def->multiline = true;
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionString());
+
     def = this->add("flashforge_serial_number", coString);
     def->label = L("Serial Number");
     def->tooltip = L("Flashforge local API requires the printer serial number.");

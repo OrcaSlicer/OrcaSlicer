@@ -1,0 +1,41 @@
+name: Build macOS Custom Headers
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-deps-only:
+        description: Only build dependencies and refresh cache
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_macos_arch:
+    name: Build macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm64
+          - x86_64
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: macos-14
+      arch: ${{ matrix.arch }}
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+      force-build: true
+    secrets: inherit
+
+  build_macos_universal:
+    name: Build macOS Universal DMG
+    needs: build_macos_arch
+    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only }}
+    uses: ./.github/workflows/build_orca.yml
+    with:
+      os: macos-14
+      arch: universal
+      macos-combine-only: true
+    secrets: inherit

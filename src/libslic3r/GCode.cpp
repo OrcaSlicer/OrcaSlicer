@@ -5599,6 +5599,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "print_host_webui"sv,
         "printhost_apikey"sv,
         "printhost_cafile"sv,
+        "printhost_custom_headers"sv,
         "printhost_user"sv,
         "printhost_password"sv,
         "printhost_port"sv

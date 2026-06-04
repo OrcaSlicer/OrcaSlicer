@@ -3664,6 +3664,7 @@ bool ExportConfigsDialog::earse_preset_fields_for_safe(Preset *preset)
     config.erase("print_host");
     config.erase("print_host_webui");
     config.erase("printhost_apikey");
+    config.erase("printhost_custom_headers");
     config.erase("printhost_cafile");
     config.erase("printhost_user");
     config.erase("printhost_password");

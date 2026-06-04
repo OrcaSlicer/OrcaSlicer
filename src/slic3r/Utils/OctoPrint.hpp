@@ -2,6 +2,8 @@
 #define slic3r_OctoPrint_hpp_
 
 #include <string>
+#include <utility>
+#include <vector>
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
@@ -44,9 +46,11 @@ protected:
     std::string m_host;
     std::string m_apikey;
     std::string m_cafile;
+    std::vector<std::pair<std::string, std::string>> m_custom_http_headers;
     bool        m_ssl_revoke_best_effort;
 
     virtual void set_auth(Http &http) const;
+    void set_custom_http_headers(Http &http) const;
     std::string make_url(const std::string &path) const;
 
 #ifdef WIN32

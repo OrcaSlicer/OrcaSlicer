@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/nowide/convert.hpp>
 
 #include <curl/curl.h>
@@ -161,6 +162,32 @@ std::string escape_path_by_element(const boost::filesystem::path& path)
     }
     return ret_val;
 }
+std::vector<std::pair<std::string, std::string>> parse_custom_http_headers(const std::string& headers)
+{
+    std::vector<std::pair<std::string, std::string>> parsed_headers;
+    std::stringstream ss(headers);
+    std::string line;
+
+    while (std::getline(ss, line)) {
+        boost::trim(line);
+        if (line.empty())
+            continue;
+
+        const size_t separator = line.find(':');
+        if (separator == std::string::npos)
+            continue;
+
+        std::string name = line.substr(0, separator);
+        std::string value = line.substr(separator + 1);
+        boost::trim(name);
+        boost::trim(value);
+
+        if (!name.empty())
+            parsed_headers.emplace_back(std::move(name), std::move(value));
+    }
+
+    return parsed_headers;
+}
 } //namespace
 
 
@@ -168,6 +195,7 @@ OctoPrint::OctoPrint(DynamicPrintConfig *config) :
     m_host(config->opt_string("print_host")),
     m_apikey(config->opt_string("printhost_apikey")),
     m_cafile(config->opt_string("printhost_cafile")),
+    m_custom_http_headers(parse_custom_http_headers(config->opt_string("printhost_custom_headers"))),
     m_ssl_revoke_best_effort(config->opt_bool("printhost_ssl_ignore_revoke"))
 {}
 
@@ -524,11 +552,18 @@ bool OctoPrint::validate_version_text(const boost::optional<std::string> &versio
 
 void OctoPrint::set_auth(Http &http) const
 {
+    set_custom_http_headers(http);
     http.header("X-Api-Key", m_apikey);
 
     if (!m_cafile.empty()) {
         http.ca_file(m_cafile);
     }
+}
+
+void OctoPrint::set_custom_http_headers(Http& http) const
+{
+    for (const auto& header : m_custom_http_headers)
+        http.header(header.first, header.second);
 }
 
 std::string OctoPrint::make_url(const std::string &path) const
@@ -596,6 +631,8 @@ bool PrusaLink::validate_version_text(const boost::optional<std::string>& versio
 
 void PrusaLink::set_auth(Http& http) const
 {
+    set_custom_http_headers(http);
+
     switch (m_authorization_type) {
     case atKeyPassword:
         http.header("X-Api-Key", get_apikey());

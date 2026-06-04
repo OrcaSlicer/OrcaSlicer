@@ -365,6 +365,10 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
 
+    option = m_optgroup->get_option("printhost_custom_headers");
+    option.opt.width = Field::def_width_wider();
+    m_optgroup->append_single_option_line(option);
+
     option = m_optgroup->get_option("flashforge_serial_number");
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
@@ -863,7 +867,7 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 void PhysicalPrinterDialog::check_host_key_valid()
 {
-    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "flashforge_serial_number", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
+    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "printhost_custom_headers", "flashforge_serial_number", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
     for (auto &key : keys) {
         auto it = m_config->option<ConfigOptionString>(key);
         if (!it) m_config->set_key_value(key, new ConfigOptionString(""));
