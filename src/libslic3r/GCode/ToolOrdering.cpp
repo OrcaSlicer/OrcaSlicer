@@ -121,8 +121,13 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
             } else {
                 extruder = region.config().sparse_infill_filament_id;
             }
-        } else
-            extruder = region.config().outer_wall_filament_id.value;
+        } else {
+            const ExtrusionRole role = extrusions.role();
+            if (role == erPerimeter)
+                extruder = region.config().inner_wall_filament_id.value;
+            else
+                extruder = region.config().outer_wall_filament_id.value;
+        }
     } else
         extruder = this->extruder_override;
 
