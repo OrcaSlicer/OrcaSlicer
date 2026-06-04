@@ -9750,6 +9750,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: can not find opt define for %2%")%__LINE__%key;
                 continue;
             }
+
             switch (optdef->type) {
                 case coStrings:
                 {
@@ -10845,6 +10846,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->min = 0;
     def->cli_params = "level";
     def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("logfile", coInt);
+    def->label = L("Log file");
+    def->tooltip = L("Redirects debug logging to file.\n");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
 
     def = this->add("enable_timelapse", coBool);
     def->label = L("Enable timelapse for print");
