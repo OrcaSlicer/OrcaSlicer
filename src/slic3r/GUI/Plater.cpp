@@ -9559,6 +9559,14 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         wxGetApp().get_tab(preset_type)->select_preset(preset_name);
     }
 
+    // ORCA: With a single filament the multi-filament branch above is skipped, so the
+    // plater combo (and its color swatch / clr_picker) is never refreshed after a
+    // selection change. When the newly selected preset defines a color, update_ams_color()
+    // updates the project filament color but the swatch keeps showing the previous one.
+    // Refresh the combo explicitly here so the swatch matches the selected filament.
+    if (preset_type == Preset::TYPE_FILAMENT && !sidebar->is_multifilament())
+        combo->update();
+
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
     if (preset_type == Preset::TYPE_PRINTER) {

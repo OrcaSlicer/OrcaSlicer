@@ -234,7 +234,19 @@ int PresetComboBox::update_ams_color()
     std::string ctype;
     std::vector<std::string> colors;
     if (idx < 0) {
-        auto  name   = Preset::remove_suffix_modified(GetValue().ToUTF8().data());
+        // ORCA: The combo displays the preset alias while
+        // the stored preset name usually carries a printer suffix. Resolving with the raw display
+        // value via find_preset() fails for such presets, so this returned early and the
+        // filament color swatch (clr_picker) kept showing the previous color. Prefer the
+        // internal preset name stored per item, then fall back to alias resolution.
+        std::string name;
+        if (m_last_selected >= 0) {
+            wxString stored = GetItemAlias(m_last_selected);
+            if (!stored.empty())
+                name = Preset::remove_suffix_modified(stored.ToUTF8().data());
+        }
+        if (name.empty())
+            name = m_collection->get_preset_name_by_alias(Preset::remove_suffix_modified(GetValue().ToUTF8().data()));
         auto *preset = m_collection->find_preset(name);
         if (preset)
             color = preset->config.opt_string("default_filament_colour", 0u);
