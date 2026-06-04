@@ -2981,21 +2981,6 @@ void TabPrintModel::build()
     m_pages.erase(std::remove_if(m_pages.begin(), m_pages.end(), [](auto & p) {
         return p->m_optgroups.empty();
     }), m_pages.end());
-
-    // Height range modifier only (TabPrintLayer has layer_height in m_keys).
-    if (has_key("layer_height")) {
-        for (auto p : m_pages) {
-            if (p->title() != L("Others"))
-                continue;
-            auto optgroup = p->new_optgroup(L("Spiral vase"), L"param_special");
-            optgroup->append_single_option_line("range_spiral_mode", "others_settings_special_mode#spiral-vase");
-            optgroup->append_single_option_line("range_spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
-            optgroup->append_single_option_line("range_spiral_max_xy_smoothing", "others_settings_special_mode#max-xy-smoothing");
-            optgroup->append_single_option_line("range_spiral_starting_flow_ratio", "others_settings_special_mode#spiral-starting-flow-ratio");
-            optgroup->append_single_option_line("range_spiral_finishing_flow_ratio", "others_settings_special_mode#spiral-finishing-flow-ratio");
-            break;
-        }
-    }
 }
 
 void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const & object_configs)
@@ -3524,6 +3509,20 @@ TabPrintLayer::TabPrintLayer(ParamsPanel* parent) :
     TabPrintModel(parent, concat({ layer_height }, PrintRegionConfig().keys()))
 {
     m_parent_tab = wxGetApp().get_model_tab();
+}
+
+void TabPrintLayer::build()
+{
+    TabPrintModel::build();
+
+    PageShp page = add_options_page(L("Spiral vase"), "custom-gcode_other");
+    auto optgroup = page->new_optgroup("", L"param_special");
+    optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+    optgroup->append_single_option_line("range_spiral_mode", "others_settings_special_mode#spiral-vase");
+    optgroup->append_single_option_line("range_spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
+    optgroup->append_single_option_line("range_spiral_max_xy_smoothing", "others_settings_special_mode#max-xy-smoothing");
+    optgroup->append_single_option_line("range_spiral_starting_flow_ratio", "others_settings_special_mode#spiral-starting-flow-ratio");
+    optgroup->append_single_option_line("range_spiral_finishing_flow_ratio", "others_settings_special_mode#spiral-finishing-flow-ratio");
 }
 
 void TabPrintLayer::notify_changed(ObjectBase * object)

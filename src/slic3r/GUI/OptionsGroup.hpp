@@ -281,19 +281,6 @@ public:
 		Option option = get_option(title, idx);
 		append_single_option_line(option, path);
 	}
-	void		prepend_single_option_line(const std::string &opt_key, const std::string &path = std::string(), int idx = -1)
-	{
-		Option option = get_option(opt_key, idx);
-		Line line = create_single_option_line(option, path);
-		m_lines.insert(m_lines.begin(), line);
-		// Same bookkeeping as append_line(); required for reload_config() and update_visibility().
-		if (!(line.full_width && (line.widget != nullptr || !line.get_extra_widgets().empty()))) {
-			for (const Option &opt : line.get_options())
-				m_options.emplace(opt.opt_id, opt);
-			if (!line.get_options().empty())
-				m_options_mode.insert(m_options_mode.begin(), line.get_options().front().opt.mode);
-		}
-	}
 
 	void		on_change_OG(const t_config_option_key& opt_id, const boost::any& value) override;
 	void		back_to_initial_value(const std::string& opt_key) override;
