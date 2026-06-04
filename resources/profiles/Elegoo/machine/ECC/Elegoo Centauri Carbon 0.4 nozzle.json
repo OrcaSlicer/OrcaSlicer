@@ -48,6 +48,9 @@
 	"extruder_offset": [
 		"0x0"
 	],
+	"retract_length_toolchange": [
+		"0"
+	],
 	"default_bed_type": "4",
 	"auto_toolchange_command": "0",
 	"fan_speedup_time": "0.5",
