@@ -1554,6 +1554,30 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+    //// GRAPHICS > Realistic view
+    g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
+
+    auto item_realistic_phong = create_item_checkbox(
+        _L("Phong shading"),
+        _L("Uses Phong shading inside realistic view.")
+        , SETTING_OPENGL_REALISTIC_PHONG
+    );
+    g_sizer->Add(item_realistic_phong);
+
+    auto item_realistic_ssao = create_item_checkbox(
+        _L("SSAO ambient occlusion"),
+        _L("Applies SSAO in realistic view."),
+        SETTING_OPENGL_PHONG_SSAO
+    );
+    g_sizer->Add(item_realistic_ssao);
+
+    auto item_realistic_shadows = create_item_checkbox(
+        _L("Shadows"),
+        _L("Renders cast shadows on the plate in realistic view."),
+        SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
+    );
+    g_sizer->Add(item_realistic_shadows);
+
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
 
