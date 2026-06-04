@@ -50,8 +50,7 @@ bool LayerRegion::is_spiral_vase_active() const
 
     const double z = this->layer()->print_z;
     for (const PrintObjectRegions::LayerRangeRegions &layer_range : shared_regions->layer_ranges) {
-        if (z <= layer_range.layer_height_range.first + EPSILON ||
-            z >= layer_range.layer_height_range.second - EPSILON)
+        if (!layer_z_in_height_range(z, layer_range.layer_height_range))
             continue;
         if (!dynamic_config_range_spiral_mode(layer_range.config))
             continue;

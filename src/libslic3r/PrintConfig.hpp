@@ -2156,6 +2156,12 @@ static void set_flush_volumes_matrix(std::vector<T> &out_matrix, const std::vect
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
+// Height-range modifier: layer Z inside [min, max), matching slice_volume band selection.
+inline bool layer_z_in_height_range(double z, const std::pair<coordf_t, coordf_t> &layer_height_range)
+{
+    return z >= layer_height_range.first - EPSILON && z < layer_height_range.second - EPSILON;
+}
+
 // Height-range modifier: true when DynamicPrintConfig enables per-band spiral vase.
 inline bool dynamic_config_range_spiral_mode(const DynamicPrintConfig *cfg)
 {

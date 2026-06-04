@@ -656,17 +656,28 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig);
 
-    bool has_spiral_vase         = config->opt_bool("spiral_mode") ||
-        (config->has("range_spiral_mode") && config->opt_bool("range_spiral_mode"));
-    toggle_line("spiral_mode_smooth", has_spiral_vase);
-    toggle_line("spiral_mode_max_xy_smoothing", has_spiral_vase && config->opt_bool("spiral_mode_smooth"));
-    toggle_line("spiral_starting_flow_ratio", has_spiral_vase);
-    toggle_line("spiral_finishing_flow_ratio", has_spiral_vase);
-    toggle_line("range_spiral_mode_smooth", has_spiral_vase);
-    toggle_line("range_spiral_max_xy_smoothing", has_spiral_vase && config->opt_bool("range_spiral_mode_smooth"));
-    toggle_line("range_spiral_starting_flow_ratio", has_spiral_vase);
-    toggle_line("range_spiral_finishing_flow_ratio", has_spiral_vase);
-    bool has_top_shell    = config->opt_int("top_shell_layers") > 0 || (has_spiral_vase && config->opt_int("bottom_shell_layers") > 1);
+    // Global print spiral vs per-height-range spiral are edited on different tabs; toggle each group only when its key is present.
+    const bool has_global_spiral_vase = config->has("spiral_mode") && config->opt_bool("spiral_mode");
+    const bool has_range_spiral_vase  = config->has("range_spiral_mode") && config->opt_bool("range_spiral_mode");
+    if (config->has("spiral_mode_smooth"))
+        toggle_line("spiral_mode_smooth", has_global_spiral_vase);
+    if (config->has("spiral_mode_max_xy_smoothing"))
+        toggle_line("spiral_mode_max_xy_smoothing", has_global_spiral_vase && config->opt_bool("spiral_mode_smooth"));
+    if (config->has("spiral_starting_flow_ratio"))
+        toggle_line("spiral_starting_flow_ratio", has_global_spiral_vase);
+    if (config->has("spiral_finishing_flow_ratio"))
+        toggle_line("spiral_finishing_flow_ratio", has_global_spiral_vase);
+    if (config->has("range_spiral_mode_smooth"))
+        toggle_line("range_spiral_mode_smooth", has_range_spiral_vase);
+    if (config->has("range_spiral_max_xy_smoothing"))
+        toggle_line("range_spiral_max_xy_smoothing", has_range_spiral_vase && config->opt_bool("range_spiral_mode_smooth"));
+    if (config->has("range_spiral_starting_flow_ratio"))
+        toggle_line("range_spiral_starting_flow_ratio", has_range_spiral_vase);
+    if (config->has("range_spiral_finishing_flow_ratio"))
+        toggle_line("range_spiral_finishing_flow_ratio", has_range_spiral_vase);
+    // Global spiral keeps solid bottom layers below the vase; per-range spiral does not use that rule.
+    bool has_top_shell    = config->opt_int("top_shell_layers") > 0 ||
+        (has_global_spiral_vase && config->opt_int("bottom_shell_layers") > 1);
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
     bool has_solid_infill = has_top_shell || has_bottom_shell;
     toggle_field("top_surface_pattern", has_top_shell);
@@ -680,8 +691,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         })
         toggle_field(el, have_infill || has_solid_infill);
 
-    toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell);
-    toggle_field("bottom_shell_thickness", ! has_spiral_vase && has_bottom_shell);
+    toggle_field("top_shell_thickness", !has_global_spiral_vase && has_top_shell);
+    toggle_field("bottom_shell_thickness", !has_global_spiral_vase && has_bottom_shell);
 
     // Gap fill is newly allowed in between perimeter lines even for empty infill (see GH #1476).
     toggle_field("gap_infill_speed", have_perimeters);
@@ -939,7 +950,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
-    bool allow_overhang_reverse   = !has_spiral_vase;
+    bool allow_overhang_reverse   = !has_global_spiral_vase;
     toggle_line("overhang_reverse", allow_overhang_reverse);
     toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse);
     bool has_overhang_reverse_internal_only = config->opt_bool("overhang_reverse_internal_only");
@@ -956,8 +967,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("small_area_infill_flow_compensation_model", have_small_area_infill_flow_compensation);
 
 
-    toggle_field("seam_slope_type", !has_spiral_vase);
-    bool has_seam_slope = !has_spiral_vase && config->opt_enum<SeamScarfType>("seam_slope_type") != SeamScarfType::None;
+    toggle_field("seam_slope_type", !has_global_spiral_vase);
+    bool has_seam_slope = !has_global_spiral_vase && config->opt_enum<SeamScarfType>("seam_slope_type") != SeamScarfType::None;
     toggle_line("seam_slope_conditional", has_seam_slope);
     toggle_line("seam_slope_start_height", has_seam_slope);
     toggle_line("seam_slope_entire_loop", has_seam_slope);

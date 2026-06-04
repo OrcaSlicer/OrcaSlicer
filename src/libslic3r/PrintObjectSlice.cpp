@@ -229,8 +229,7 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                                 continue;
                             std::vector<float> z_range;
                             for (size_t i = 0; i < zs.size(); ++i)
-                                if (zs[i] >= layer_range.layer_height_range.first - EPSILON &&
-                                    zs[i] < layer_range.layer_height_range.second - EPSILON)
+                                if (layer_z_in_height_range(zs[i], layer_range.layer_height_range))
                                     z_range.push_back(zs[i]);
                             if (z_range.empty())
                                 continue;
@@ -243,8 +242,7 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                             std::vector<ExPolygons> range_slices = slice_volume(*model_volume, z_range, params_range, throw_on_cancel_callback);
                             size_t j = 0;
                             for (size_t i = 0; i < zs.size(); ++i)
-                                if (zs[i] >= layer_range.layer_height_range.first - EPSILON &&
-                                    zs[i] < layer_range.layer_height_range.second - EPSILON) {
+                                if (layer_z_in_height_range(zs[i], layer_range.layer_height_range)) {
                                     if (j < range_slices.size())
                                         layers_out[i] = std::move(range_slices[j++]);
                                 }

@@ -1198,13 +1198,6 @@ public:
     //static float min_skirt_length;
 };
 
-PrintRegionConfig region_config_from_model_volume(
-    const PrintRegionConfig   &default_or_parent_region_config,
-    const DynamicPrintConfig  *layer_range_config,
-    const ModelVolume         &volume,
-    size_t                     num_extruders);
-
-
 } /* slic3r_Print_hpp_ */
 
 #endif
