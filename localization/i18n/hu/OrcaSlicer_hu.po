@@ -11969,7 +11969,7 @@ msgstr "A Orca Slicer új verziója"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr "Ellenőrizd a GitHub-on"
 
 msgid "Open Microsoft Store"

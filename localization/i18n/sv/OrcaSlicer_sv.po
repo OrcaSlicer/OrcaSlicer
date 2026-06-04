@@ -11734,7 +11734,7 @@ msgstr "Ny version av Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr ""
 
 msgid "Open Microsoft Store"

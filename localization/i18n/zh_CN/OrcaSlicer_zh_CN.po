@@ -11260,8 +11260,8 @@ msgstr "新版本的Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
-msgstr "在 Github 上查看"
+msgid "Check on GitHub"
+msgstr "在 GitHub 上查看"
 
 msgid "Open Microsoft Store"
 msgstr ""

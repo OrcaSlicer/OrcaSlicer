@@ -11472,8 +11472,8 @@ msgstr "Orca Slicer เวอร์ชันใหม่"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
-msgstr "ตรวจสอบบน Github"
+msgid "Check on GitHub"
+msgstr "ตรวจสอบบน GitHub"
 
 msgid "Open Microsoft Store"
 msgstr ""

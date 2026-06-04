@@ -12157,8 +12157,8 @@ msgstr "Nueva versión de Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr "Echa un vistazo en Microsoft Store"
 
-msgid "Check on Github"
-msgstr "Ver en Github"
+msgid "Check on GitHub"
+msgstr "Ver en GitHub"
 
 msgid "Open Microsoft Store"
 msgstr "Abrir Microsoft Store"

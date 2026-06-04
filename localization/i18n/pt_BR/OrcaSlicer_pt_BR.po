@@ -12016,13 +12016,13 @@ msgid "New version of Orca Slicer"
 msgstr "Nova versão do OrcaSlicer"
 
 msgid "Check on Microsoft Store"
-msgstr ""
+msgstr "Verifique na Microsoft Store"
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr "Verifique no GitHub"
 
 msgid "Open Microsoft Store"
-msgstr ""
+msgstr "Abrir a Microsoft Store"
 
 msgid "Skip this Version"
 msgstr "Pular esta versão"
