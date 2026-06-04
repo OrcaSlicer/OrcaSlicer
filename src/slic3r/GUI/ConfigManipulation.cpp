@@ -592,7 +592,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_field(el, have_perimeters);
 
     // The relative seam reference point is only relevant when seam position is "Relative to Part".
-    toggle_line("seam_position_point", have_perimeters && config->opt_enum<SeamPosition>("seam_position") == spCustom);
+    bool is_custom_seam = have_perimeters && config->opt_enum<SeamPosition>("seam_position") == spCustom;
+    toggle_line("seam_position_x", is_custom_seam);
+    toggle_line("seam_position_y", is_custom_seam);
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament uses the same logic as in Print::extruders()

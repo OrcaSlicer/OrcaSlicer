@@ -1451,8 +1451,8 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
     SeamPosition configured_seam_preference = po->config().seam_position.value;
     // For "Relative to Part", the reference point is given in the object's local frame
     // (origin = part center), which matches the frame of the gathered seam candidate positions.
-    const Vec2d &custom_point_d = po->config().seam_position_point.value;
-    SeamComparator comparator { configured_seam_preference, custom_point_d.cast<float>() };
+    Vec2f custom_point { float(po->config().seam_position_x.value), float(po->config().seam_position_y.value) };
+    SeamComparator comparator { configured_seam_preference, custom_point };
 
     {
       GlobalModelInfo global_model_info { };

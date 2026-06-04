@@ -5489,17 +5489,29 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamPosition>(spAligned));
 
-    def = this->add("seam_position_point", coPoint);
-    def->label = L("Relative seam position");
+    def = this->add("seam_position_x", coFloat);
+    def->label = L("Relative seam x-position");
     def->category = L("Quality");
     def->tooltip = L("When the seam position is set to \"Relative to Part\", the seam of each perimeter loop "
-                     "is placed at the point closest to this X/Y coordinate. The coordinate is expressed in the "
-                     "part's own frame, where (0,0) is the part center. For example (0,-50) biases the seam "
-                     "towards the front of the part, (50,0) towards the right. For a rotationally symmetric part "
-                     "centered on (0,0) the position is ambiguous, so set a non-center point to pick a side.");
+                     "is placed at the point closest to this coordinate. The coordinate is expressed in the "
+                     "part's own frame, where (0,0) is the part center. For example x=50 biases the seam "
+                     "towards the right of the part. For a rotationally symmetric part centered on (0,0) the "
+                     "position is ambiguous, so set a non-center point to pick a side.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comSimple;
-    def->set_default_value(new ConfigOptionPoint(Vec2d(0, 0)));
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("seam_position_y", coFloat);
+    def->label = L("Relative seam y-position");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Relative to Part\", the seam of each perimeter loop "
+                     "is placed at the point closest to this coordinate. The coordinate is expressed in the "
+                     "part's own frame, where (0,0) is the part center. For example y=-50 biases the seam "
+                     "towards the front of the part. For a rotationally symmetric part centered on (0,0) the "
+                     "position is ambiguous, so set a non-center point to pick a side.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");
