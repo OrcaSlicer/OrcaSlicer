@@ -170,6 +170,10 @@
 #include "CloneDialog.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
+
+// Temporary: simulate FTS presence for UI testing
+#define FTS_SIMULATE 0
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevDefs.h"
@@ -618,6 +622,9 @@ struct Sidebar::priv
     std::vector<PlaterPresetComboBox*> combos_filament;
     int editing_filament = -1;
     wxBoxSizer *sizer_filaments = nullptr;
+    bool fila_switch_warning_shown = false;
+
+    wxStaticBitmap *extruder_separator_icon = nullptr;
 
     //BBS Sidebar widgets
     wxPanel* m_panel_print_title;
@@ -678,6 +685,9 @@ struct Sidebar::priv
     std::optional<NozzleOption> get_nozzle_options(MachineObject *obj, int extruder_count, bool support_multi_nozzle, bool is_manual);
     bool switch_diameter(bool single);
     void update_sync_status(const MachineObject* obj);
+    bool is_fila_switch_ready();
+    void update_extruder_separator_icon(bool show, bool ready);
+    void show_fila_switch_msg(bool ready);
 
 #ifdef _WIN32
     wxString btn_reslice_tip;
@@ -727,6 +737,18 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         extruder_dual_sizer->AddSpacer(FromDIP(4));
         extruder_dual_sizer->Add(right_extruder->sizer, 1, wxEXPAND, 0);
 
+        // FTS separator icon between left and right extruder groups
+        if (!extruder_separator_icon) {
+            auto bitmap = ScalableBitmap(m_panel_printer_content, "fila_switch", 10);
+            extruder_separator_icon = new wxStaticBitmap(m_panel_printer_content, wxID_ANY, bitmap.bmp(), wxDefaultPosition, bitmap.GetBmpSize());
+            extruder_separator_icon->Hide();
+            extruder_separator_icon->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
+                bool ready = is_fila_switch_ready();
+                show_fila_switch_msg(ready);
+                evt.Skip();
+            });
+        }
+
         // single
         extruder_single_sizer = single_extruder->sizer;
         wxBoxSizer * extruder_sizer = new wxBoxSizer(wxVERTICAL);
@@ -768,6 +790,84 @@ void Sidebar::priv::flush_printer_sync(bool restart)
     m_printer_bbl_sync->SetBitmap_((*counter_sync_printer & 1) ? "printer_sync_not" : "printer_sync_ok");
     if (--*counter_sync_printer <= 0)
         timer_sync_printer->Stop();
+}
+
+bool Sidebar::priv::is_fila_switch_ready()
+{
+#if FTS_SIMULATE
+    // Simulate FTS for testing
+    auto &preset_bundle = *wxGetApp().preset_bundle;
+    if (preset_bundle.get_printer_extruder_count() >= 2) return true;
+#endif
+    if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected(false)) {
+        return false;
+    }
+    auto device_manager = wxGetApp().getDeviceManager();
+    if (device_manager == nullptr) return false;
+    auto obj = device_manager->get_selected_machine();
+    if (obj == nullptr || !obj->is_online()) return false;
+    auto fila_switch = obj->GetFilaSwitch();
+    if (fila_switch == nullptr) return false;
+    return fila_switch->IsInstalled() && fila_switch->IsReady();
+}
+
+void Sidebar::priv::update_extruder_separator_icon(bool show, bool ready)
+{
+    if (!extruder_separator_icon) return;
+    static bool last_show = false;
+    static bool last_ready = false;
+    static bool first_call = true;
+
+    if (!first_call && last_show == show && last_ready == ready) {
+        return;
+    }
+    first_call = false;
+    last_show = show;
+    last_ready = ready;
+
+    if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected(false)) {
+        extruder_separator_icon->Hide();
+        m_panel_printer_content->Refresh();
+        return;
+    }
+    if (show) {
+        wxPoint left_box_pos = left_extruder->GetPosition();
+        wxSize  left_size = left_extruder->sizer->GetSize();
+        wxSize  icon_size = extruder_separator_icon->GetSize();
+        int     center_x  = left_size.GetWidth() + FromDIP(6);
+        int     center_y  = left_box_pos.y + (left_extruder->GetSize().GetHeight() - icon_size.GetHeight()) / 2;
+        center_x -= icon_size.GetWidth() / 2;
+        extruder_separator_icon->SetPosition(wxPoint(center_x, center_y));
+
+        auto normal_bitmap = ScalableBitmap(m_panel_printer_content, "fila_switch", 10);
+        auto error_bitmap  = ScalableBitmap(m_panel_printer_content, "fila_switch_error", 10);
+
+        if (ready) {
+            extruder_separator_icon->SetBitmap(normal_bitmap.bmp());
+        } else {
+            extruder_separator_icon->SetBitmap(error_bitmap.bmp());
+        }
+
+        extruder_separator_icon->Show();
+        extruder_separator_icon->Raise();
+    } else {
+        extruder_separator_icon->Hide();
+    }
+
+    m_panel_printer_content->Refresh();
+}
+
+void Sidebar::priv::show_fila_switch_msg(bool ready)
+{
+    wxString msg = ready ? _L("Filament switcher detected. All AMS filaments are now available for both extruders. "
+                              "The slicer will auto-assign for optimal printing. ") :
+                           _L("A filament switcher is detected but not calibrated and thus currently unavailable. "
+                              "Please calibrate it on the printer and synchronize before use. ");
+
+    long style = ready ? (wxICON_INFORMATION | wxOK) : (wxICON_WARNING | wxOK);
+    MessageDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), msg, _L("Tips"), style);
+    dlg.CenterOnParent();
+    dlg.ShowModal();
 }
 
 Sidebar::priv::~priv()
@@ -1713,6 +1813,10 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         select_flow(left_extruder, target_types[0]);
         select_flow(right_extruder, target_types.size() > 1 ? target_types[1] : NozzleVolumeType::nvtStandard);
     }
+
+    // Update FTS separator icon
+    bool fts_ready = is_fila_switch_ready();
+    update_extruder_separator_icon(fts_ready && extruder_nums > 1, fts_ready);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " finish sync_extruder_list";
     return true;

@@ -71,6 +71,8 @@ enum class AMSPanelPos : int {
 enum class AMSRoadShowMode : int {
     AMS_ROAD_MODE_FOUR,
     AMS_ROAD_MODE_DOUBLE,
+    AMS_ROAD_MODE_DOUBLE_FAR_ONLY,
+    AMS_ROAD_MODE_DOUBLE_NEAR_ONLY,
     AMS_ROAD_MODE_SINGLE,
     AMS_ROAD_MODE_SINGLE_N3S,
     AMS_ROAD_MODE_AMS_LITE,
@@ -368,6 +370,25 @@ public:
     ~AMSextruderImage();
 };
 
+/*************************************************
+Description:Switcher (FTS icon)
+**************************************************/
+class SwitcherImage: public wxWindow
+{
+public:
+    void setShowState(bool show_state) { m_show_state = show_state; };
+    void paintEvent(wxPaintEvent &evt);
+
+	void            render(wxDC &dc);
+    bool            m_show_state = {false};
+    wxColour        m_colour;
+    ScalableBitmap  m_switcher;
+    string m_file_name;
+    void            doRender(wxDC &dc);
+    SwitcherImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos = wxDefaultPosition);
+    ~SwitcherImage();
+};
+
 //AMSExtImage upon ext lib
 class AMSExtImage : public wxWindow
 {
@@ -543,6 +564,7 @@ public:
     wxColour                     m_road_def_color;
     wxColour                     m_road_color;
     void                         Update(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan);
+    void                         SetHideExtRoad(bool hide) { m_hide_ext_road = hide; Refresh(); }
 
     std::vector<ScalableBitmap> ams_humidity_img;
 
@@ -551,6 +573,7 @@ public:
     bool     m_show_humidity = { false };
     bool     m_vams_loading{false};
     AMSModel m_ams_model;
+    bool     m_hide_ext_road{false};
 
     void OnVamsLoading(bool load, wxColour col = AMS_CONTROL_GRAY500);
     void SetPassRoadColour(wxColour col);
@@ -588,6 +611,7 @@ public:
     void doRender(wxDC& dc);
 
     void msw_rescale();
+    void SetHideExtRoad(bool hide) { m_hide_ext_road = hide; Refresh(); }
 
 private:
     AMSinfo m_amsinfo;
@@ -614,6 +638,7 @@ private:
     bool     m_show_humidity = {false};
     bool     m_vams_loading{false};
     AMSModel m_ams_model;
+    bool     m_hide_ext_road{false};
 };
 
 
@@ -642,6 +667,7 @@ public:
     void doRender(wxDC& dc);
 
     void msw_rescale();
+    void SetHideExtRoad(bool hide) { m_hide_ext_road = hide; Refresh(); }
 
 private:
     int             m_nozzle_num           = {1};
@@ -661,6 +687,7 @@ private:
     std::map<int, wxColour> m_road_color;
     bool m_vams_loading{false};
     AMSModel m_ams_model;
+    bool     m_hide_ext_road{false};
 };
 
 /*************************************************

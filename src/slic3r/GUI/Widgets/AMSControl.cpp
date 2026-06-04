@@ -9,6 +9,7 @@
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
@@ -39,7 +40,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     SetBackgroundColour(*wxWHITE);
     // normal mode
     //Freeze();
-    wxBoxSizer *m_sizer_body = new wxBoxSizer(wxVERTICAL);
+    m_sizer_body = new wxBoxSizer(wxVERTICAL);
     m_amswin                 = new wxWindow(this, wxID_ANY);
     m_amswin->SetBackgroundColour(*wxWHITE);
     m_amswin->SetSize(wxSize(FromDIP(578), -1));
@@ -114,6 +115,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
 
     m_sizer_ams_option = new wxBoxSizer(wxHORIZONTAL);
+    m_sizer_switcher_option = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_option_left = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_option_mid = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_option_right = new wxBoxSizer(wxHORIZONTAL);
@@ -146,6 +148,11 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_sizer_option_left->Add(0, 0, 0, wxLEFT, FromDIP(20));
     m_sizer_option_left->Add(m_button_ams_setting, 0, wxALIGN_CENTER, 0);
 
+
+    /*option switch (FTS)*/
+    m_switcher = new SwitcherImage(m_amswin, wxID_ANY, "fila_switch", wxSize(FromDIP(29), FromDIP(16)), wxDefaultPosition);
+    m_switcher->Hide(); // hidden by default, shown when FTS installed
+    m_sizer_switcher_option->Add(m_switcher, 0, wxALIGN_CENTER, 0);
 
     /*option mid*/
     m_extruder = new AMSextruder(m_amswin, wxID_ANY, m_total_ext_count, wxDefaultPosition, AMS_EXTRUDER_SIZE);
@@ -207,6 +214,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_sizer_body->Add(0, 0, 1, wxEXPAND | wxTOP, FromDIP(10));
     m_sizer_body->Add(m_sizer_ams_body, 0, wxALIGN_CENTER, 0);
     m_sizer_body->Add(m_sizer_down_road, 0, wxALIGN_CENTER, 0);
+    m_sizer_body->Add(m_sizer_switcher_option, 0, wxALIGN_CENTER, 0);
     m_sizer_body->Add(m_sizer_ams_option, 0, wxEXPAND, 0);
 
     m_amswin->SetSizer(m_sizer_body);
@@ -276,6 +284,71 @@ void AMSControl::on_retry()
 }
 
 AMSControl::~AMSControl() {}
+
+// Temporary: simulate FTS presence for UI testing when no real FTS hardware
+#define FTS_SIMULATE 0
+
+std::tuple<bool, bool> AMSControl::isFilaSwitchReady()
+{
+#if FTS_SIMULATE
+    if (m_total_ext_count >= 2) return {true, true};
+#endif
+    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+    if (!dev) return {false, false};
+    MachineObject* obj = dev->get_selected_machine();
+    if (!obj) return {false, false};
+    std::shared_ptr<Slic3r::DevFilaSwitch> filaSwitch = obj->GetFilaSwitch();
+    if (filaSwitch)
+    {
+        return {filaSwitch->IsInstalled(), filaSwitch->IsReady()};
+    }
+    return {false, false};
+}
+
+bool AMSControl::isFilaSwitchInstalled() const
+{
+#if FTS_SIMULATE
+    if (m_total_ext_count >= 2) return true;
+#endif
+    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+    if (!dev) return false;
+    MachineObject* obj = dev->get_selected_machine();
+    if (!obj) return false;
+    std::shared_ptr<Slic3r::DevFilaSwitch> filaSwitch = obj->GetFilaSwitch();
+    if (filaSwitch) {
+        return filaSwitch->IsInstalled();
+    }
+    return false;
+}
+
+void AMSControl::show_switcher_status(bool show)
+{
+    if (tipPanel == nullptr)
+    {
+        m_sizer_body->Add(0, 0, 1, wxEXPAND | wxTOP, FromDIP(5));
+        tipPanel = new wxPanel(m_amswin);
+        tipPanel->SetBackgroundColour(wxColour(255, 153, 0));
+        tipSizer = new wxBoxSizer(wxHORIZONTAL);
+        tipPanel->SetSizer(tipSizer);
+        icon = new wxStaticBitmap(tipPanel, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_INFORMATION, wxART_MESSAGE_BOX, wxSize(FromDIP(16), FromDIP(16))));
+        tipSizer->Add(icon, 0, wxALL, FromDIP(8));
+        tipText = new wxStaticText(tipPanel, wxID_ANY, _L("AMS has not been initialized. Please initialize it before use."));
+        tipText->SetForegroundColour(wxColour(255, 255, 255));
+        tipText->SetFont(wxFont(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+        tipText->Wrap(-1);
+        tipText->SetMinSize(wxSize(-1, -1));
+        tipSizer->Add(tipText, 0, wxALL | wxALIGN_CENTER_VERTICAL | wxEXPAND, FromDIP(8));
+        m_sizer_body->Add(tipPanel, 1, wxEXPAND, 0);
+    }
+    if (tipPanel->IsShown() == show)
+    {
+        return;
+    }
+    tipPanel->Show(show);
+    m_amswin->Layout();
+    m_amswin->Fit();
+}
 
 std::string AMSControl::GetCurentAms() {
     return m_current_ams;
@@ -974,6 +1047,32 @@ void AMSControl::UpdateAms(const std::string   &series_name,
     if (m_extruder->updateNozzleNum(m_total_ext_count, series_name))
     {
         m_amswin->Layout();
+        Layout();
+    }
+
+    /*update FTS switch status*/
+    const auto[install, ready] = isFilaSwitchReady();
+    show_switcher_status(install && (!ready));
+    bool isShow = install && m_total_ext_count >= 2;
+    BOOST_LOG_TRIVIAL(warning) << "FTS: install=" << install << " ready=" << ready 
+                            << " ext_count=" << m_total_ext_count
+                            << " isShow=" << isShow 
+                            << " wasShown=" << m_switcher->IsShown()
+                            << " switcher_size=" << m_switcher->GetSize().x << "x" << m_switcher->GetSize().y;
+    if (m_switcher->IsShown() != isShow)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "FTS: toggling switcher to " << isShow;
+        m_switcher->Show(isShow);
+        m_amswin->Layout();
+        m_amswin->Fit();
+        Layout();
+        Refresh(true);
+    }
+
+    /*update road hide state for FTS*/
+    bool hide_ext = install && ready;
+    if (m_down_road) {
+        m_down_road->SetHideExtRoad(hide_ext);
     }
 }
 

@@ -51,6 +51,7 @@ protected:
 
     int         m_total_ext_count = 1;
     AMSextruder *m_extruder{nullptr};
+    SwitcherImage *m_switcher{nullptr};
     AMSRoadDownPart* m_down_road{ nullptr };
 
     /*items*/
@@ -68,6 +69,7 @@ protected:
 
     /*option*/
     wxBoxSizer *m_sizer_ams_option{nullptr};
+    wxBoxSizer *m_sizer_switcher_option{nullptr};
     wxBoxSizer* m_sizer_option_left{nullptr};
     wxBoxSizer* m_sizer_option_mid{nullptr};
     wxBoxSizer* m_sizer_option_right{nullptr};
@@ -87,7 +89,14 @@ protected:
     wxStaticText *m_tip_right_top{nullptr};
     Label        *m_tip_load_info{nullptr};
     wxWindow *    m_amswin{nullptr};
+    wxBoxSizer   *m_sizer_body{nullptr};
     wxBoxSizer*   m_vams_sizer{nullptr};
+
+    /*FTS tip panel*/
+    wxPanel *tipPanel{nullptr};
+    wxBoxSizer *tipSizer{nullptr};
+    wxStaticBitmap *icon{nullptr};
+    wxStaticText *tipText{nullptr};
     wxBoxSizer*   m_sizer_vams_tips{nullptr};
 
     Label*          m_ams_tip       {nullptr};
@@ -189,6 +198,9 @@ public:
     void on_clibration_cancel_click(wxMouseEvent &event);
     void Reset();
 
+    std::tuple<bool, bool> isFilaSwitchReady();
+    bool                   isFilaSwitchInstalled() const;
+    void show_switcher_status(bool show);
     void show_noams_mode();
     void show_auto_refill(bool show);
     void enable_ams_setting(bool en);

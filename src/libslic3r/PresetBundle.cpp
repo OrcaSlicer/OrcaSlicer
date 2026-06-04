@@ -3976,6 +3976,9 @@ void PresetBundle::update_filament_count()
 {
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
+    // Orca: SEMM printers (e.g. H2C) let the user choose filament count freely.
+    if (printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
+        return;
     const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
     if (filament_presets.size() >= num_extruders)
         return;
@@ -5381,7 +5384,10 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
 
     auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
     size_t num_extruders  = nozzle_diameter->values.size();
-    if (num_extruders > num_filaments) { // Verify validity of the current filament presets.
+    // Orca: For SEMM printers (e.g. H2C), the user controls the filament count freely —
+    // don't force it to match nozzle count. Only enforce for true multi-tool (non-SEMM) printers.
+    bool is_semm = printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
+    if (!is_semm && num_extruders > num_filaments) { // Verify validity of the current filament presets.
         for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++i)
             this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
         // Append the rest of filament presets.
