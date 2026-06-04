@@ -852,12 +852,6 @@ struct SeamComparator {
       return a.position.y() + SeamPlacer::seam_align_score_tolerance * 5.0f > b.position.y();
     }
 
-    if (setup == SeamPosition::spCustom) {
-      float dist_a = (a.position.head<2>() - custom_point).norm();
-      float dist_b = (b.position.head<2>() - custom_point).norm();
-      return dist_a < dist_b + SeamPlacer::seam_align_score_tolerance * 5.0f;
-    }
-
     float penalty_a = a.overhang + a.visibility
                       + angle_importance * compute_angle_penalty(a.local_ccw_angle);
     float penalty_b = b.overhang + b.visibility +
@@ -1379,7 +1373,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
         last_point_pos = current.position;
       }
 
-      if (comparator.setup == spRear || comparator.setup == spCustom) {
+      if (comparator.setup == spRear) {
         total_length *= 0.3f;
       }
 
@@ -1504,7 +1498,7 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
           << "SeamPlacer: pick_seam_point : end";
     }
     throw_if_canceled_func();
-    if (configured_seam_preference == spAligned || configured_seam_preference == spRear || configured_seam_preference == spAlignedBack || configured_seam_preference == spCustom) {
+    if (configured_seam_preference == spAligned || configured_seam_preference == spRear || configured_seam_preference == spAlignedBack) {
       BOOST_LOG_TRIVIAL(debug)
           << "SeamPlacer: align_seam_points : start";
       align_seam_points(po, comparator);
