@@ -4,7 +4,19 @@
 # Icezaza, 2026.
 #
 msgid ""
-msgstr "Project-Id-Version: Orca Slicer\nReport-Msgid-Bugs-To: \nPOT-Creation-Date: 2026-05-22 02:24+0800\nPO-Revision-Date: 2026-05-28 22:39+0700\nLast-Translator: Icezaza\nLanguage-Team: Thai\nLanguage: th\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=1; plural=0;\nX-Generator: Codex Thai translation bootstrap"
+msgstr ""
+"Project-Id-Version: Orca Slicer\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
+"PO-Revision-Date: 2026-05-28 22:39+0700\n"
+"Last-Translator: Icezaza\n"
+"Language-Team: Thai\n"
+"Language: th\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Codex Thai translation bootstrap\n"
 
 msgid "right"
 msgstr "ขวา"
@@ -9608,10 +9620,10 @@ msgid "Normal"
 msgstr "ปกติ"
 
 msgid "Resonance Compensation"
-msgstr "การชดเชยเสียงสะท้อน"
+msgstr "การชดเชยการสั่นพ้อง"
 
 msgid "Resonance Avoidance Speed"
-msgstr "ความเร็วการหลีกเลี่ยงเสียงสะท้อน"
+msgstr "ความเร็วการหลีกเลี่ยงการสั่นพ้อง"
 
 msgid "Frequency"
 msgstr "ความถี่"
@@ -9758,7 +9770,7 @@ msgid "Continue"
 msgstr "ดำเนินการต่อ"
 
 msgid "Back"
-msgstr "ย้อนกลับ"
+msgstr "หลัง"
 
 msgid "Don't warn again for this preset"
 msgstr "ไม่ต้องเตือนอีกสำหรับค่าที่กำหนดล่วงหน้านี้"
@@ -9799,7 +9811,7 @@ msgid "Transfer"
 msgstr "โอนย้าย"
 
 msgid "Don't save"
-msgstr "อย่าบันทึก"
+msgstr "ไม่บันทึก"
 
 msgid "Discard"
 msgstr "ทิ้ง"
@@ -11852,10 +11864,10 @@ msgid ""
 msgstr "สร้างเส้นทางรอบขอบเพิ่มไส้ในเหนือส่วนยื่นสูงชันและพื้นที่ที่ไม่สามารถทอดสมอสะพานได้"
 
 msgid "Reverse on even"
-msgstr "ย้อนกลับในคู่"
+msgstr "กลับด้านหน้าเลขคู่"
 
 msgid "Overhang reversal"
-msgstr "การกลับรายการยื่นออกมา"
+msgstr "การกลับด้านส่วนยื่นออกมา"
 
 msgid ""
 "Extrude perimeters that have a part over an overhang in the reverse "
@@ -11867,7 +11879,7 @@ msgid ""
 msgstr "รีดเส้นรอบวงที่มีส่วนยื่นออกมาในทิศทางย้อนกลับบนชั้นคู่ รูปแบบการสลับนี้สามารถปรับปรุงระยะยื่นที่สูงชันได้อย่างมาก\n\nการตั้งค่านี้ยังช่วยลดการบิดงอของชิ้นส่วนเนื่องจากการลดความเค้นในผนังชิ้นส่วนอีกด้วย"
 
 msgid "Reverse only internal perimeters"
-msgstr "ย้อนกลับเฉพาะขอบเขตภายในเท่านั้น"
+msgstr "กลับด้านเฉพาะขอบเขตภายในเท่านั้น"
 
 msgid ""
 "Apply the reverse perimeters logic only on internal perimeters.\n"
@@ -11902,7 +11914,7 @@ msgid "Sacrificial layer"
 msgstr "ชั้นบูชายัญ"
 
 msgid "Reverse threshold"
-msgstr "เกณฑ์ย้อนกลับ"
+msgstr "เกณฑ์การกลับด้าน"
 
 msgid "Overhang reversal threshold"
 msgstr "เกณฑ์การกลับรายการส่วนเกิน"
@@ -14395,25 +14407,25 @@ msgid "Maximum acceleration for travel (M204 T), it only applies to Marlin 2."
 msgstr "อัตราเร่งสูงสุดสำหรับการเดินทาง (M204 T) ใช้กับ Marlin 2 เท่านั้น"
 
 msgid "Resonance avoidance"
-msgstr "การหลีกเลี่ยงเสียงสะท้อน"
+msgstr "การหลีกเลี่ยงการสั่นพ้อง"
 
 msgid ""
 "By reducing the speed of the outer wall to avoid the resonance zone of the "
 "printer, ringing on the surface of the model are avoided.\n"
 "Please turn this option off when testing ringing."
-msgstr "โดยการลดความเร็วของผนังด้านนอกเพื่อหลีกเลี่ยงโซนเสียงสะท้อนของเครื่องพิมพ์ หลีกเลี่ยงเสียงกริ่งบนพื้นผิวของแบบจำลอง\nโปรดปิดตัวเลือกนี้เมื่อทดสอบเสียงเรียกเข้า"
+msgstr "โดยการลดความเร็วของผนังด้านนอกเพื่อหลีกเลี่ยงโซนสั่นพ้องของเครื่องพิมพ์ หลีกเลี่ยงรอยคลื่นบนพื้นผิวของโมเดล\nโปรดปิดตัวเลือกนี้เมื่อทดสอบการสั่นพ้อง"
 
 msgid "Min"
 msgstr "นาที"
 
 msgid "Minimum speed of resonance avoidance."
-msgstr "ความเร็วขั้นต่ำของการหลีกเลี่ยงเสียงสะท้อน"
+msgstr "ความเร็วขั้นต่ำของการหลีกเลี่ยงเสียงการสั่นพ้อง"
 
 msgid "Max"
 msgstr "สูงสุด"
 
 msgid "Maximum speed of resonance avoidance."
-msgstr "ความเร็วสูงสุดของการหลีกเลี่ยงเสียงสะท้อน"
+msgstr "ความเร็วสูงสุดของการหลีกเลี่ยงการสั่นพ้อง"
 
 msgid "Emit input shaping"
 msgstr "ปล่อยรูปร่างอินพุต"

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PETG Rojo Carmesi",
+    "inherits": "FilAr PETG @base",
+    "from": "system",
+    "filament_id": "FILAR0060",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#8C1020"
+    ]
+}

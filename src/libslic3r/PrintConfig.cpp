@@ -148,7 +148,8 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "obico",          htObico },
     { "flashforge",     htFlashforge },
     { "simplyprint",    htSimplyPrint },
-    { "elegoolink",     htElegooLink }
+    { "elegoolink",     htElegooLink },
+    { "3dprinteros",    ht3DPrinterOS }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -4860,6 +4861,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("flashforge");
     def->enum_values.push_back("simplyprint");
     def->enum_values.push_back("elegoolink");
+    def->enum_values.push_back("3dprinteros");
     def->enum_labels.push_back("PrusaLink");
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
@@ -4874,6 +4876,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("Flashforge");
     def->enum_labels.push_back("SimplyPrint");
     def->enum_labels.push_back("Elegoo Link");
+    def->enum_labels.push_back("3DPrinterOS");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -9747,6 +9750,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: can not find opt define for %2%")%__LINE__%key;
                 continue;
             }
+
             switch (optdef->type) {
                 case coStrings:
                 {
@@ -10842,6 +10846,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->min = 0;
     def->cli_params = "level";
     def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("logfile", coInt);
+    def->label = L("Log file");
+    def->tooltip = L("Redirects debug logging to file.\n");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
 
     def = this->add("enable_timelapse", coBool);
     def->label = L("Enable timelapse for print");
