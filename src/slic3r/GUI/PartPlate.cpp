@@ -3762,7 +3762,11 @@ void PartPlate::on_filament_deleted(int filament_count, int filament_id)
 {
     if (m_config.has("filament_map")) {
         std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
-        filament_maps.erase(filament_maps.begin() + filament_id);
+        // Guard against an out-of-range index: the per-plate filament_map can be out of sync
+        // with the global filament count, and erasing at/past end() triggers an out-of-bounds
+        // memmove (crash on macOS, see PartPlate::on_filament_deleted in crash reports).
+        if (filament_id >= 0 && filament_id < (int) filament_maps.size())
+            filament_maps.erase(filament_maps.begin() + filament_id);
     }
     update_first_layer_print_sequence_when_delete_filament(filament_id);
 }
