@@ -2667,12 +2667,12 @@ void TabPrint::build()
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
-        optgroup->append_single_option_line("outer_wall_filament_id", "multimaterial_settings_filament_for_features#walls");
-        optgroup->append_single_option_line("inner_wall_filament_id", "multimaterial_settings_filament_for_features#walls");
-        optgroup->append_single_option_line("sparse_infill_filament_id", "multimaterial_settings_filament_for_features#infill");
-        optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#solid-infill");
-        optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#solid-infill");
-        optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#solid-infill");
+        optgroup->append_single_option_line("outer_wall_filament_id", "multimaterial_settings_filament_for_features#outer-walls");
+        optgroup->append_single_option_line("inner_wall_filament_id", "multimaterial_settings_filament_for_features#inner-walls");
+        optgroup->append_single_option_line("sparse_infill_filament_id", "multimaterial_settings_filament_for_features#sparse-infill");
+        optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#internal-solid-infill");
+        optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#top-surface");
+        optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#bottom-surface");
         optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
 
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
