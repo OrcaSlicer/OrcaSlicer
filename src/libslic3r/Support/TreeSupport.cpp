@@ -1687,13 +1687,6 @@ void TreeSupport::generate_toolpaths()
     );
 }
 
-void deleteDirectoryContents(const std::filesystem::path& dir)
-{
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
-        std::filesystem::remove_all(entry.path());
-}
-
-
 void TreeSupport::move_bounds_to_contact_nodes(std::vector<TreeSupport3D::SupportElements> &move_bounds,
                                   PrintObject                             &print_object,
                                   const TreeSupport3D::TreeSupportSettings    &config)
@@ -2146,13 +2139,9 @@ void TreeSupport::draw_circles()
                         if (!area.empty()) has_circle_node = true;
                         if (node.need_extra_wall) need_extra_wall = true;
 
-                        // Merge the overhang into the roof area so tree tips can still produce
-                        // a continuous support interface. Suppressing this for build-plate-only
-                        // support drops the roof polygons entirely in valid tree branches.
-                        // ORCA: Only keep top interface polygons that fully fit in the mm height cap.
-                        if (top_interface_layers > 0 && node.support_roof_layers_below > 0 &&
-                            (node.dist_mm_to_top - this->top_z_distance) < top_interface_height + EPSILON &&
-                            !node.is_sharp_tail) {
+                        // merge overhang to get a smoother interface surface
+                        // Do not merge when buildplate_only is on, because some underneath nodes may have been deleted.
+                        if (top_interface_layers > 0 && node.support_roof_layers_below > 0 && !on_buildplate_only && !node.is_sharp_tail) {
                             ExPolygons overhang_expanded;
                             if (node.overhang.contour.size() > 100 || node.overhang.holes.size()>1)
                                 overhang_expanded.emplace_back(node.overhang);
@@ -2197,16 +2186,6 @@ void TreeSupport::draw_circles()
                 // roof_1st_layer and roof_areas may intersect, so need to subtract roof_areas from roof_1st_layer
                 roof_1st_layer = diff_ex(roof_1st_layer, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roof_areas,get_extents(roof_1st_layer)));
                 roof_1st_layer = intersection_ex(roof_1st_layer, m_machine_border);
-
-                // Build-plate-only pruning can collapse the roof stack down to a single
-                // printable layer. In that case we still need to emit an interface layer
-                // instead of downgrading the last roof-adjacent layer to base support.
-                if (on_buildplate_only && top_interface_layers > 0 && roof_areas.empty() && !roof_1st_layer.empty()) {
-                    append(roof_areas, roof_1st_layer);
-                    roof_1st_layer.clear();
-                    max_layers_above_roof = std::max(max_layers_above_roof, max_layers_above_roof1);
-                    max_layers_above_roof1 = 0;
-                }
 
                 ExPolygons roofs; append(roofs, roof_1st_layer); append(roofs, roof_areas);append(roofs, roof_gap_areas);
                 base_areas = diff_ex(base_areas, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs, get_extents(base_areas)));
@@ -3567,7 +3546,14 @@ void TreeSupport::generate_contact_points()
                     }
 
                     // add supports along contours
-                    libnest2d::placers::EdgeCache<ExPolygon> edge_cache(overhang);
+                    ExPolygon closed_overhang = overhang; // make a copy to add closing point for edge cache
+                    if (closed_overhang.contour.points.size() > 1)
+                        closed_overhang.contour.points.emplace_back(closed_overhang.contour.points.front());
+                    for (Polygon &hole : closed_overhang.holes)
+                        if (hole.points.size() > 1)
+                            hole.points.emplace_back(hole.points.front());
+
+                    libnest2d::placers::EdgeCache<ExPolygon> edge_cache(closed_overhang);
                     for (size_t i = 0; i < edge_cache.holeCount() + 1; i++) {
                         double step     = point_spread / (i == 0 ? edge_cache.circumference() : edge_cache.circumference(i - 1));
                         double distance = 0;
