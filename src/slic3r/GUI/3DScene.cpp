@@ -998,10 +998,10 @@ float GLVolumeCollection::get_selection_support_normal_z() const
     } else { // For normal supports, if the angle is set to 0, calculate normal_z from overlap.
         const double layer_height        = full_cfg.opt_float("layer_height");
         const auto*  nozzle_diameter_opt = full_cfg.option<ConfigOptionFloats>("nozzle_diameter");
-        const int    wall_filament       = full_cfg.opt_int("wall_filament");
+        const int    wall_filament_id       = full_cfg.opt_int("outer_wall_filament_id");
         const size_t nozzle_count        = nozzle_diameter_opt->values.size();
-        const size_t wall_extruder_idx   = (wall_filament > 0 && wall_filament <= static_cast<int>(nozzle_count))
-            ? static_cast<size_t>(wall_filament - 1)
+        const size_t wall_extruder_idx   = (wall_filament_id > 0 && wall_filament_id <= static_cast<int>(nozzle_count))
+            ? static_cast<size_t>(wall_filament_id - 1)
             : 0; // Invalid extruder index falls back to extruder 1.
         
         // Use wall extruder's nozzle diameter for better estimation of external perimeter width,
