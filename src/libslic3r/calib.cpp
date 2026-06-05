@@ -22,11 +22,12 @@ float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &conf
     return std::floor(pa_speed);
 }
 
-std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::string comment, double z, double layer_height)
+std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::string comment, double z, double layer_height, bool should_retract)
 {
     std::stringstream gcode;
-
-    gcode << writer.retract(); // retract before z move or move
+    if (should_retract) {
+        gcode << writer.retract(); // retract before z move or move    
+    }
     if(z > EPSILON && layer_height >= 0){
         gcode << writer.travel_to_z(z, "z-hop"); // Perform z hop
         gcode << writer.travel_to_xy(pt, comment); // Travel with z move
@@ -34,8 +35,9 @@ std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::st
     }else {
         gcode << writer.travel_to_xy(pt, comment);
     }
-    gcode << writer.unretract(); // unretract after z move is complete
-
+    if (should_retract) {
+        gcode << writer.unretract(); // unretract after z move is complete
+    }
     m_last_pos = Vec3d(pt.x(), pt.y(), 0);
 
     return gcode.str();
