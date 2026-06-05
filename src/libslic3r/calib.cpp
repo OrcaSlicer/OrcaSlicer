@@ -338,7 +338,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
             if (i % 2 == 0) {
                 x += spacing_45;
                 y = y_min_bound;
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                 y += x - x_min_bound;
                 x                     = x_min_bound;
@@ -347,7 +347,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
             } else {
                 y += spacing_45;
                 x = x_min_bound;
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                 x += y - y_min_bound;
                 y                     = y_min_bound;
@@ -360,7 +360,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 if (i % 2 == 0) {
                     x += spacing_45;
                     y = y_min_bound;
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                     x -= y_max_bound - y_min_bound;
                     y                     = y_max_bound;
@@ -374,7 +374,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                         x += spacing_45;
                     }
                     y = y_max_bound;
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                     x += y_max_bound - y_min_bound;
                     y                     = y_min_bound;
@@ -391,7 +391,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     } else {
                         y += spacing_45;
                     }
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                     x = x_min_bound;
                     y += x_max_bound - x_min_bound;
@@ -400,7 +400,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 } else {
                     x = x_min_bound;
                     y += spacing_45;
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                     x = x_max_bound;
                     y -= x_max_bound - x_min_bound;
@@ -416,7 +416,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 } else {
                     y += spacing_45;
                 }
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                 x -= y_max_bound - y;
                 y                     = y_max_bound;
@@ -429,7 +429,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x += spacing_45;
                 }
                 y = y_max_bound;
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                 y -= x_max_bound - x;
                 x                     = x_max_bound;
@@ -604,6 +604,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     DrawBoxOptArgs draw_box_opt_args = default_box_opt_args;
     draw_box_opt_args.is_filled      = true;
     draw_box_opt_args.num_perimeters = wall_count();
+    draw_box_opt_args.should_retract = false; 
     gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
                       print_size_x(),
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);
