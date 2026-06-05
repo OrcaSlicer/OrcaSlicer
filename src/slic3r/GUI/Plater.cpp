@@ -1598,9 +1598,12 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("wall_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("sparse_infill_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("solid_infill_filament", &dynamic_filament_list);
+    Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -4871,7 +4874,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "extruder_colour", "filament_colour", "filament_type", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
         // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
         "layer_height", "initial_layer_print_height", "min_layer_height", "max_layer_height",
-        "wall_loops", "wall_filament", "sparse_infill_density", "sparse_infill_filament", "top_shell_layers",
+        "wall_loops", "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_density", "sparse_infill_filament_id", "top_shell_layers",
         "enable_support", "support_filament", "support_interface_filament",
         "support_top_z_distance", "support_bottom_z_distance", "raft_layers",
         "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
@@ -6153,22 +6156,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
                     }
 
-                    if (load_config && !config_loaded.empty() &&
-                        (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) &&
-                        file_version < Semver("2.4.0-dev")) {
-                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config_loaded);
-                        for (ModelObject *model_object : model.objects) {
-                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
-                            for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
-                        }
-
-                        if (converted_count > 0) {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " "
-                                                    << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)")
-                                                           % file_version.to_string() % converted_count;
-                        }
-                    }
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which also covers saved presets.
 
                     // plate data
                     if (plate_data.size() > 0) {
@@ -16669,8 +16659,10 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             update_scheduled = true;
         }
         // Orca: update when *_filament changed
-        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" || opt_key == "wall_filament" ||
-                 opt_key == "sparse_infill_filament" || opt_key == "solid_infill_filament") {
+        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
+                 opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
+                 opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
+                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
             update_scheduled = true;
         }
     }
