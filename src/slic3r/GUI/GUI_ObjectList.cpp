@@ -513,17 +513,17 @@ void ObjectList::create_objects_ctrl()
         dataview_remove_insets(this);
         for (int cn = colName; cn < colCount; cn++)
             GetColumn(cn)->SetWidth(m_columns_width[cn] * em);
-
-        // wx 3.3's native macOS wxDataViewCtrl uses a fixed row height (the font
-        // line height) and, unlike the generic Windows/Linux implementation, does
-        // NOT grow it to fit custom renderers' GetSize(). The filament colour badge
-        // is 2*em tall (see get_extruder_color_icons()), which is taller than the
-        // default row, so without an explicit height the badges overflow and merge
-        // into adjacent rows. Set the row height to the size the renderer reports
-        // (matching what the other platforms derive automatically) to restore the
-        // correct object-list spacing.
-        SetRowHeight(2 * em + FromDIP(4));
 #endif
+
+    // Force an explicit row height on all platforms so the object-list spacing is
+    // consistent and the filament colour badge (2*em tall, see
+    // get_extruder_color_icons()) always fits. This is required on macOS, where wx
+    // 3.3's native wxDataViewCtrl uses a fixed font-line-height row and does NOT
+    // grow it to fit custom renderers' GetSize() (badges would otherwise overflow
+    // and merge into adjacent rows); on Windows/Linux the generic control normally
+    // derives the height from the renderers, but we set it here too so all
+    // platforms match.
+    SetRowHeight(2 * em + FromDIP(4));
 }
 
 void ObjectList::get_selected_item_indexes(int& obj_idx, int& vol_idx, const wxDataViewItem& input_item/* = wxDataViewItem(nullptr)*/)
@@ -6347,12 +6347,10 @@ void ObjectList::msw_rescale()
     for (int cn = colName; cn < colCount; cn++)
         GetColumn(cn)->SetWidth(m_columns_width[cn] * em);
 
-#ifdef __WXOSX__
-    // Keep the explicit macOS row height (see create_objects_ctrl) in sync with
-    // the rescaled em so the filament colour badge keeps fitting after a DPI or
-    // theme change.
+    // Keep the explicit row height (see create_objects_ctrl) in sync with the
+    // rescaled em so the filament colour badge keeps fitting after a DPI or theme
+    // change.
     SetRowHeight(2 * em + FromDIP(4));
-#endif
 
     // rescale/update existing items with bitmaps
     m_objects_model->Rescale();
