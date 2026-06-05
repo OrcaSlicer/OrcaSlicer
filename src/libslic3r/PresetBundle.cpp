@@ -4103,7 +4103,10 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         opt->value = boost::algorithm::clamp<int>(opt->value, 0, int(num_filaments));
     }
 
-    static const char* keys_with_default[] = {"wall_filament", "sparse_infill_filament", "solid_infill_filament"};
+    static const char* keys_with_default[] = {
+        "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+    };
     for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
         std::string key = std::string(keys_with_default[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
