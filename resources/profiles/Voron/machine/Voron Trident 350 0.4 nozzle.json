@@ -22,5 +22,6 @@
 		"350x350",
 		"0x350"
 	],
-	"printable_height": "250"
+	"printable_height": "250",
+	"printer_variant": "0.4"
 }

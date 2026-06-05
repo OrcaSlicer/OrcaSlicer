@@ -815,9 +815,12 @@ bool verify_update_print_object_regions(
         for (const PrintObjectRegions::PaintedRegion &region : layer_range.painted_regions) {
             const PrintObjectRegions::VolumeRegion &parent_region   = layer_range.volume_regions[region.parent];
             PrintRegionConfig                       cfg             = parent_region.region->config();
-            cfg.wall_filament.value    = region.extruder_id;
-            cfg.solid_infill_filament.value = region.extruder_id;
-            cfg.sparse_infill_filament.value       = region.extruder_id;
+            cfg.outer_wall_filament_id.value = region.extruder_id;
+            cfg.inner_wall_filament_id.value = region.extruder_id;
+            cfg.internal_solid_filament_id.value = region.extruder_id;
+            cfg.top_surface_filament_id.value = region.extruder_id;
+            cfg.bottom_surface_filament_id.value = region.extruder_id;
+            cfg.sparse_infill_filament_id.value       = region.extruder_id;
             if (cfg != region.region->config()) {
                 // Region configuration changed.
                 if (print_region_ref_cnt(*region.region) == 0) {
@@ -1060,9 +1063,12 @@ static PrintObjectRegions* generate_print_object_regions(
                 if (const PrintObjectRegions::VolumeRegion &parent_region = layer_range.volume_regions[parent_region_id];
                     parent_region.model_volume->is_model_part() || parent_region.model_volume->is_modifier()) {
                     PrintRegionConfig cfg = parent_region.region->config();
-                    cfg.wall_filament.value    = painted_extruder_id;
-                    cfg.solid_infill_filament.value = painted_extruder_id;
-                    cfg.sparse_infill_filament.value       = painted_extruder_id;
+                    cfg.outer_wall_filament_id.value = painted_extruder_id;
+                    cfg.inner_wall_filament_id.value = painted_extruder_id;
+                    cfg.internal_solid_filament_id.value = painted_extruder_id;
+                    cfg.top_surface_filament_id.value = painted_extruder_id;
+                    cfg.bottom_surface_filament_id.value = painted_extruder_id;
+                    cfg.sparse_infill_filament_id.value       = painted_extruder_id;
                     layer_range.painted_regions.push_back({ painted_extruder_id, parent_region_id, get_create_region(std::move(cfg))});
                 }
         // Sort the regions by parent region::print_object_region_id() and extruder_id to help the slicing algorithm when applying MM segmentation.
