@@ -44,7 +44,7 @@ public:
                         const wxString       preset_name)
         : Slic3r::GUI::DPIDialog(parent,
                                  wxID_ANY,
-                                 "3DPrinterOS Cloud upload options",
+                                 _L("3DPrinterOS Cloud upload options"),
                                  wxDefaultPosition,
                                  wxSize(100 * Slic3r::GUI::wxGetApp().em_unit(), -1),
                                  wxDEFAULT_DIALOG_STYLE),
@@ -54,15 +54,15 @@ public:
         SetBackgroundColour(*wxWHITE);
         SetForegroundColour(*wxBLACK);
 
-        singleRadio                = new wxRadioButton(this, wxID_ANY, "Single file", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
-        projectRadio               = new wxRadioButton(this, wxID_ANY, "Project File");
-        projectsLabel              = new wxStaticText(this, wxID_ANY, "Project:");
-        wxStaticText* printerLabel = new wxStaticText(this, wxID_ANY, "Printer type:");
+        singleRadio                = new wxRadioButton(this, wxID_ANY, _L("Single file"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+        projectRadio               = new wxRadioButton(this, wxID_ANY, _L("Project File"));
+        projectsLabel              = new wxStaticText(this, wxID_ANY, _L("Project:"));
+        wxStaticText* printerLabel = new wxStaticText(this, wxID_ANY, _L("Printer type:"));
 
         projectsComboBox    = new wxComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, DD_NO_CHECK_ICON);
         printerTypeComboBox = new wxComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, DD_NO_CHECK_ICON | wxTE_READONLY);
 
-        printerWarningLabel = new wxStaticText(this, wxID_ANY, "Printer type not found, please select manually.");
+        printerWarningLabel = new wxStaticText(this, wxID_ANY, _L("Printer type not found, please select manually."));
         printerWarningLabel->SetForegroundColour(*wxRED);
         printerWarningLabel->Hide();
 
@@ -83,8 +83,8 @@ public:
             }
         }
 
-        okButton               = new wxButton(this, wxID_OK, "OK");
-        wxButton* cancelButton = new wxButton(this, wxID_CANCEL, "Cancel");
+        okButton               = new wxButton(this, wxID_OK, _L("OK"));
+        wxButton* cancelButton = new wxButton(this, wxID_CANCEL, _L("Cancel"));
 
         wxBoxSizer* radioSizer = new wxBoxSizer(wxHORIZONTAL);
         wxBoxSizer* btnSizer   = new wxBoxSizer(wxHORIZONTAL);
@@ -120,7 +120,7 @@ public:
         wxRadioButton* selectedRadio = dynamic_cast<wxRadioButton*>(event.GetEventObject());
         if (selectedRadio) {
             wxString label = selectedRadio->GetLabel();
-            if (label == wxString("Project File")) {
+            if (label == _L("Project File")) {
                 projectsComboBox->Show();
                 projectsLabel->Show();
             } else {
@@ -182,8 +182,8 @@ public:
         SetForegroundColour(*wxBLACK);
 
         auto* sizer = new wxBoxSizer(wxVERTICAL);
-        sizer->Add(new wxStaticText(this, wxID_ANY, "Authorizing..."), 1, wxALL | wxCENTER, 10);
-        auto* cancelBtn = new wxButton(this, wxID_CANCEL, "Cancel");
+        sizer->Add(new wxStaticText(this, wxID_ANY, _L("Authorizing...")), 1, wxALL | wxCENTER, 10);
+        auto* cancelBtn = new wxButton(this, wxID_CANCEL, _L("Cancel"));
         sizer->Add(cancelBtn, 0, wxALL | wxALIGN_CENTER, 10);
         SetSizerAndFit(sizer);
 
