@@ -586,10 +586,13 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     gcode << "; start pressure advance pattern for layer\n";
 
         refresh_setup(config, is_bbl_machine, object, origin);
-
+    
+    const int                      num_patterns = get_num_patterns(); // "cache" for use in loops
+    const double midpoint_pa_for_frame = m_params.start + (num_patterns - 1) * m_params.step / 2.0;
+    
     gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), m_writer, "Move to start XY position");
     gcode << m_writer.travel_to_z(height_first_layer() + height_z_offset(), "Move to start Z position");
-    gcode << m_writer.set_pressure_advance(m_params.start);
+    gcode << m_writer.set_pressure_advance(midpoint_pa_for_frame);
 
     const DrawBoxOptArgs default_box_opt_args(wall_count(), height_first_layer(), line_width_first_layer(),
                                               speed_adjust(speed_first_layer()));
@@ -606,7 +609,6 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);
 
     std::vector<CustomGCode::Item> gcode_items;
-    const int                      num_patterns = get_num_patterns(); // "cache" for use in loops
 
     const double zhop_config_value = m_config.option<ConfigOptionFloats>("z_hop")->get_at(0);
     const auto accel = accel_perimeter();
