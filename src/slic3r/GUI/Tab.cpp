@@ -490,21 +490,19 @@ void Tab::create_preset_tab()
 
     m_main_sizer->Add(m_tabctrl, 0, wxEXPAND | wxALL, 0 );
 
-    // Orca: don't show extruder switch for now
-#if 0
-    if (dynamic_cast<TabPrinter *>(this) || dynamic_cast<TabPrint *>(this)) {
+    // H2C: re-enable extruder switch for Process tab (dual-extruder BBL printers)
+    if (dynamic_cast<TabPrint *>(this)) {
         m_extruder_switch = new SwitchButton(panel);
         m_extruder_switch->SetMaxSize({em_unit(this) * 24, -1});
         m_extruder_switch->SetLabels(_L("Left"), _L("Right"));
         m_extruder_switch->Bind(wxEVT_TOGGLEBUTTON, [this] (auto & evt) {
             evt.Skip();
-            dynamic_cast<TabPrint *>(this)->switch_excluder(evt.GetInt());
+            switch_excluder(evt.GetInt());
             reload_config();
             update_changed_ui();
         });
         m_main_sizer->Add(m_extruder_switch, 0, wxALIGN_CENTER | wxTOP, m_em_unit);
     }
-#endif
 
     if (dynamic_cast<TabFilament *>(this)) {
         m_variant_combo = new MultiSwitchButton(panel);
