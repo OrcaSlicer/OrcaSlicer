@@ -742,8 +742,13 @@ void Preset::reload(Preset const &parent)
     ForwardCompatibilitySubstitutionRule substitution_rule    = ForwardCompatibilitySubstitutionRule::Disable;
     try {
         ConfigSubstitutions                config_substitutions = config.load_from_json(file, substitution_rule, key_values, reason);
+        // H2C: save variant overrides before std::move destroys source config
+        auto saved_overrides = config.variant_overrides();
         this->config = parent.config;
         this->config.apply(std::move(config));
+        // H2C: transfer variant overrides from loaded config
+        if (!saved_overrides.empty())
+            this->config.variant_overrides() = std::move(saved_overrides);
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << boost::format("Failed loading the user-config file: %1%. Reason: %2%") % file % err.what();
     }
@@ -1674,6 +1679,8 @@ void PresetCollection::load_presets(
                         ;
                     }
                     const Preset& default_preset = this->default_preset_for(config);
+                    // H2C: save variant overrides before config is consumed
+                    auto saved_overrides = config.variant_overrides();
                     if (inherit_preset) {
                         preset.config = inherit_preset->config;
                         preset.filament_id = inherit_preset->filament_id;
@@ -1692,6 +1699,12 @@ void PresetCollection::load_presets(
                         preset.config = default_preset.config;
                         preset.config.apply(std::move(config));
                         extend_default_config_length(preset.config, {}, true, default_preset.config);
+                    }
+                    // H2C: transfer variant overrides from loaded config
+                    if (!saved_overrides.empty()) {
+                        preset.config.variant_overrides() = std::move(saved_overrides);
+                        BOOST_LOG_TRIVIAL(info) << "H2C: transferred VariantOverrides for preset " << preset.name
+                            << " (" << preset.config.variant_overrides().floats.size() << " float keys)";
                     }
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " load preset: " << name << " and filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
 

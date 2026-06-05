@@ -2623,6 +2623,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->apply_print_config(print.config());
     m_config.apply(print.default_object_config());
     m_config.apply(print.default_region_config());
+    // H2C: Build per-extruder speed overlays from variant overrides.
+    // Must be called after m_config is fully initialized above.
+    precompute_extruder_speed_overrides(print);
 
     //m_volumetric_speed = DoExport::autospeed_volumetric_limit(print);
     print.throw_if_canceled();
@@ -2908,6 +2911,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     //could not find non support filmanet, use fisrt print filament
     if (initial_non_support_extruder_id == (unsigned int) -1)
         initial_non_support_extruder_id = initial_extruder_id;
+
+    // H2C: Set the active extruder for VariantAwareConfig so that every
+    // subsequent m_config.apply() automatically re-applies variant overrides.
+    {
+        unsigned int init_eid = get_extruder_id(initial_extruder_id);
+        m_config.set_active_extruder(init_eid);
+    }
 
     print.throw_if_canceled();
 
@@ -5519,6 +5529,16 @@ LayerResult GCode::process_layer(
         
         gcode += std::move(gcode_toolchange);
 
+        // H2C: Switch active extruder in VariantAwareConfig.
+        // extruder_id here is a filament slot, NOT a physical extruder.
+        // Map through get_extruder_id() to get the physical extruder (0=left, 1=right).
+        // The overlay map is keyed by physical extruder ID.
+        {
+            unsigned int phys_eid = (unsigned int)get_extruder_id(extruder_id);
+            m_config.set_active_extruder(phys_eid);
+        }
+
+
         // let analyzer tag generator aware of a role type change
         if (layer_tools.has_wipe_tower && m_wipe_tower)
             m_last_processor_extrusion_role = erWipeTower;
@@ -5992,6 +6012,164 @@ void GCode::update_layer_related_config(int layer_id)
     m_writer.config.filament_map.values        = extruder_map;
     m_writer.config.filament_volume_map.values = volume_map;
     m_writer.config.filament_nozzle_map.values = nozzle_map;
+}
+
+// H2C: Precompute per-extruder speed overlays from variant overrides.
+// Scalar speed options (coFloat, coFloatOrPercent, coBool) in print_options_with_variant
+// are NOT handled by update_values_to_printer_extruders (which only processes array types).
+// This method reads the per-variant values from VariantOverrides and builds a lightweight
+// DynamicPrintConfig overlay per extruder, applied at each toolchange in process_layer.
+void GCode::precompute_extruder_speed_overrides(const Print& print)
+{
+    m_config.extruder_overrides.clear();
+
+    const auto& vo = print.full_print_config().variant_overrides();
+
+    if (vo.empty())
+        return;
+
+    // Scalar keys from print_options_with_variant that need per-extruder resolution.
+    // Array-type keys (coInts, coFloats, coBools, coStrings, etc.) are already
+    // handled by update_values_to_printer_extruders in PrintApply.cpp.
+    static const std::vector<std::string> scalar_speed_keys = {
+        "initial_layer_speed",
+        "initial_layer_infill_speed",
+        "outer_wall_speed",
+        "inner_wall_speed",
+        "small_perimeter_speed",
+        "small_perimeter_threshold",
+        "sparse_infill_speed",
+        "internal_solid_infill_speed",
+        "top_surface_speed",
+        "enable_overhang_speed",     // coBool (NOT coBools despite variant comment)
+        "overhang_1_4_speed",
+        "overhang_2_4_speed",
+        "overhang_3_4_speed",
+        "overhang_4_4_speed",
+        "bridge_speed",
+        "gap_infill_speed",
+        "support_speed",
+        "support_interface_speed",
+        "travel_speed",
+        "travel_speed_z",
+        "default_acceleration",
+        "initial_layer_acceleration",
+        "outer_wall_acceleration",
+        "inner_wall_acceleration",
+        "sparse_infill_acceleration",
+        "top_surface_acceleration",
+    };
+
+    unsigned int num_extruders = (unsigned int)print.config().nozzle_diameter.size();
+
+    // Get extruder_type and nozzle_volume_type arrays from config
+    const auto& full_cfg = print.full_print_config();
+    const auto* opt_ext_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("extruder_type"));
+    const auto* opt_nvt      = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("nozzle_volume_type"));
+
+
+
+    for (unsigned int eid = 0; eid < num_extruders; ++eid) {
+        // Determine the correct variant_index for this extruder.
+        // variant_index is NOT just eid — it's a matrix (extruder × nozzle_type).
+        // E.g., Left/Standard=0, Left/HighFlow=1, Right/Standard=2, Right/HighFlow=3
+        ExtruderType et = opt_ext_type ? (ExtruderType)opt_ext_type->get_at(eid) : etDirectDrive;
+        NozzleVolumeType nvt = opt_nvt ? (NozzleVolumeType)opt_nvt->get_at(eid) : nvtStandard;
+
+        std::string search_variant = get_extruder_variant_string(et, nvt);
+
+        // Compute the correct VO (Variant-Overridden) array index.
+        // VO arrays are ordered by extruder_variant_list:
+        //   ext0_var0, ext0_var1, ext1_var0, ext1_var1, ...
+        // where var0,var1,... follow the comma-separated order in extruder_variant_list[extruder].
+        // We CANNOT use get_index_for_extruder here because it returns the position
+        // in print_extruder_variant, which has a DIFFERENT ordering than the VO arrays.
+        int variant_index = -1;
+        {
+            auto* evl = dynamic_cast<const ConfigOptionStrings*>(full_cfg.option("extruder_variant_list"));
+            if (evl) {
+                int vo_offset = 0;
+                for (unsigned int e = 0; e < evl->values.size(); ++e) {
+                    std::vector<std::string> variants_list;
+                    boost::split(variants_list, evl->get_at(e), boost::is_any_of(","), boost::token_compress_on);
+                    if (e == eid) {
+                        // Find the position of our variant within this extruder's variant list
+                        for (int v = 0; v < (int)variants_list.size(); ++v) {
+                            std::string trimmed = variants_list[v];
+                            boost::trim(trimmed);
+                            if (trimmed == search_variant) {
+                                variant_index = vo_offset + v;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    vo_offset += (int)variants_list.size();
+                }
+            }
+        }
+
+        if (variant_index < 0) {
+            BOOST_LOG_TRIVIAL(debug) << "H2C precompute: no variant_index for extruder " << eid << ", skipping";
+            continue;
+        }
+
+
+
+
+        DynamicPrintConfig overlay;
+        bool has_any = false;
+
+        for (const auto& key : scalar_speed_keys) {
+            if (!vo.has(key))
+                continue;
+
+            const ConfigOptionDef* optdef = print_config_def.get(key);
+            if (!optdef)
+                continue;
+
+            switch (optdef->type) {
+            case coFloat: {
+                double val = vo.get_float(key, variant_index);
+                overlay.set_key_value(key, new ConfigOptionFloat(val));
+                has_any = true;
+                break;
+            }
+            case coFloatOrPercent: {
+                // Use raw string to preserve percent values like "50%"
+                std::string raw = vo.get_string(key, variant_index);
+                if (!raw.empty()) {
+                    auto* fop = new ConfigOptionFloatOrPercent();
+                    if (raw.back() == '%') {
+                        fop->value   = std::stod(raw.substr(0, raw.size() - 1));
+                        fop->percent = true;
+                    } else {
+                        fop->value   = std::stod(raw);
+                        fop->percent = false;
+                    }
+                    overlay.set_key_value(key, fop);
+                    has_any = true;
+                }
+                break;
+            }
+            case coBool: {
+                double val = vo.get_float(key, variant_index);
+                overlay.set_key_value(key, new ConfigOptionBool(val != 0.0));
+                has_any = true;
+                break;
+            }
+            default:
+                break;
+            }
+        }
+
+        if (has_any) {
+            m_config.extruder_overrides[eid] = std::move(overlay);
+            BOOST_LOG_TRIVIAL(info) << "H2C precompute: built overlay for extruder " << eid
+                                   << " (variant_index=" << variant_index
+                                   << ") with " << m_config.extruder_overrides[eid].size() << " keys";
+        }
+    }
 }
 
 std::string GCode::preamble()
@@ -6736,6 +6914,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // compensate retraction
     gcode += this->unretract();
     m_config.apply(m_calib_config);
+
+
 
     // Orca: optimize for Klipper, set acceleration and jerk in one command
     unsigned int acceleration_i = 0;

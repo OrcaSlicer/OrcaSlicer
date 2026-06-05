@@ -972,6 +972,42 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                         }
                     }
 
+                    // H2C: For variant-aware options with scalar types, store the full
+                    // array in VariantOverrides and deserialize only the first element.
+                    if (optdef && it.value().size() > 1 &&
+                        (print_options_with_variant.count(opt_key) > 0 ||
+                         filament_options_with_variant.count(opt_key) > 0) &&
+                        (optdef->type == coFloat || optdef->type == coFloatOrPercent || optdef->type == coBool))
+                    {
+                        auto* dpc = dynamic_cast<DynamicPrintConfig*>(this);
+                        if (dpc) {
+                            auto& overrides = dpc->variant_overrides();
+                            std::vector<double> float_vals;
+                            std::vector<std::string> str_vals;
+                            for (auto& el : it.value()) {
+                                std::string s = el.get<std::string>();
+                                str_vals.push_back(s);
+                                try {
+                                    // Strip trailing '%' for numeric storage
+                                    std::string num_s = s;
+                                    if (!num_s.empty() && num_s.back() == '%')
+                                        num_s.pop_back();
+                                    float_vals.push_back(std::stod(num_s));
+                                } catch (...) {
+                                    float_vals.push_back(0.0);
+                                }
+                            }
+                            overrides.floats[opt_key] = std::move(float_vals);
+                            overrides.strings[opt_key] = std::move(str_vals);
+                            // Deserialize only the first element into the scalar config
+                            std::string first_val = it.value()[0].get<std::string>();
+                            this->set_deserialize(opt_key, first_val, substitution_context);
+                            BOOST_LOG_TRIVIAL(debug) << "H2C VariantOverrides: stored " << opt_key
+                                << " array[" << it.value().size() << "], scalar=" << first_val;
+                            continue;
+                        }
+                    }
+
                     char single_sep = ',';
                     char array_sep = '#';  // currenty not used
                     bool escape_string_type = false;

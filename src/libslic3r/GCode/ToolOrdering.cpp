@@ -1208,7 +1208,12 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
         nozzle_list.emplace_back(std::move(tmp));
     }
 
-    if (mode == FilamentMapMode::fmmManual && !has_multiple_nozzle){
+    // H2C FIX: For multi-extruder printers (H2C), manual mode should use the simple
+    // direct path even when has_multiple_nozzle is true (nozzle rack). The PAM
+    // clustering path (calc_filament_group_for_manual_multi_nozzle) is designed for
+    // single-extruder multi-nozzle printers (O1D) and can misassign nozzle indices
+    // for H2C, causing "Group error in manual mode" validation failure.
+    if (mode == FilamentMapMode::fmmManual && (!has_multiple_nozzle || extruder_nums > 1)){
         auto manual_filament_map = print_config.filament_map.values;
         std::transform(manual_filament_map.begin(), manual_filament_map.end(), manual_filament_map.begin(), [](int v) { return v - 1; });
         auto result = LayeredNozzleGroupResult::create(manual_filament_map, nozzle_list, used_filaments);

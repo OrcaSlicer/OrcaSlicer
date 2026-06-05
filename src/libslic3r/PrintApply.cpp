@@ -1278,6 +1278,18 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     //     m_config.filament_map_2.values[index] = new_full_config.get_index_for_extruder(filament_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
     // }
 
+    // H2C fix: capture and clear the auto-filament-map flag BEFORE any diff logic.
+    // If set, process() just finished and updated m_config/m_full_print_config with
+    // auto-computed filament maps + variant-resolved values.  The GUI-side config
+    // (new_full_config) hasn't caught up yet, so diffs are expected but spurious.
+    // We let ALL config updates proceed normally (so m_full_print_config syncs to
+    // the GUI values) but force UNCHANGED at the end to prevent a restart loop.
+    const bool suppress_restart_for_auto_filament_map = m_has_auto_filament_map_result;
+    if (suppress_restart_for_auto_filament_map) {
+        m_has_auto_filament_map_result = false;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto_filament_map flag captured — will suppress restart";
+    }
+
     // Do not use the ApplyStatus as we will use the max function when updating apply_status.
     unsigned int apply_status = APPLY_STATUS_UNCHANGED;
     auto update_apply_status = [&apply_status](bool invalidated)
@@ -1301,20 +1313,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     bool   num_extruders_changed  = false;
     if (! full_config_diff.empty()) {
         //BBS: add more logs
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: found full_config_diff changed, auto_filament_map=%2%")%__LINE__ %m_has_auto_filament_map_result;
-        // H2C fix: If the full_config_diff was caused by update_filament_maps_to_config()
-        // during auto filament map computation in Print::process(), suppress step invalidation.
-        // The auto map updates filament-variant config keys in m_full_print_config, which
-        // causes a spurious diff on the next apply() call from GUI. Without this guard the
-        // slice result is invalidated and the user must press Slice twice.
-        if (m_has_auto_filament_map_result) {
-            // Don't invalidate — just mark as CHANGED so parser/config are refreshed below.
-            update_apply_status(false);
-            m_has_auto_filament_map_result = false;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": suppressed full_config_diff invalidation (auto filament map)";
-        } else {
-            update_apply_status(this->invalidate_step(psGCodeExport));
-        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: found full_config_diff changed")%__LINE__;
+        update_apply_status(this->invalidate_step(psGCodeExport));
         m_placeholder_parser.clear_config();
         // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
         m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
@@ -1846,6 +1846,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	//BBS: add timestamp logic
 	if (apply_status != APPLY_STATUS_UNCHANGED)
 		m_modified_count++;
+
+	// H2C fix: If the auto-filament-map flag was set, all diffs were caused by
+	// process() modifying m_config/m_full_print_config (filament maps, variant
+	// speeds, etc.).  The configs above have been synced to new_full_config, so
+	// the NEXT apply() will see an empty diff.  Force UNCHANGED now to prevent
+	// Plater from restarting the background process in an infinite loop.
+	if (suppress_restart_for_auto_filament_map && apply_status != APPLY_STATUS_UNCHANGED) {
+		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: H2C forcing UNCHANGED (was %2%) — auto filament map suppression")%__LINE__ %apply_status;
+		apply_status = APPLY_STATUS_UNCHANGED;
+	}
+
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: finished,  this %2%, m_modified_count %3%, apply_status %4%, m_support_used %5%")%__LINE__ %this %m_modified_count %apply_status %m_support_used;
 	return static_cast<ApplyStatus>(apply_status);
 }

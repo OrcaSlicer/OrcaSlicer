@@ -9311,7 +9311,6 @@ int DynamicPrintConfig::get_index_for_extruder(int extruder_or_filament_id, std:
 
     if (variant_opt != nullptr) {
         int v_size = variant_opt->values.size();
-        //int i_size = id_opt->values.size();
         // nvtHybrid not supported in presets, switch to nvtStandard to match the preset values
         if (nozzle_volume_type == nvtHybrid)
             nozzle_volume_type = nvtStandard;
@@ -9332,12 +9331,12 @@ int DynamicPrintConfig::get_index_for_extruder(int extruder_or_filament_id, std:
                     ret = index * stride;
                     break;
                 }
-
             }
         }
     }
     return ret;
 }
+
 
 //only used for cli
 //update values in single extruder process config to values in multi-extruder process
@@ -9914,6 +9913,62 @@ DynamicPrintConfig::get_filament_type() const
     }
 
     return std::string();
+}
+
+void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::set<std::string>& keys)
+{
+    if (m_variant_overrides.empty())
+        return;
+
+    const ConfigDef* config_def = this->def();
+    if (!config_def)
+        return;
+
+    for (const auto& key : keys) {
+        if (!m_variant_overrides.has(key))
+            continue;
+
+        ConfigOption* opt = this->option(key, false);
+        if (!opt)
+            continue;
+
+        const ConfigOptionDef* optdef = config_def->get(key);
+        if (!optdef)
+            continue;
+
+        switch (optdef->type) {
+        case coFloat: {
+            double val = m_variant_overrides.get_float(key, variant_index);
+            static_cast<ConfigOptionFloat*>(opt)->value = val;
+            BOOST_LOG_TRIVIAL(info) << "H2C apply_variant_overrides: " << key << "[" << variant_index << "] = " << val;
+            break;
+        }
+        case coFloatOrPercent: {
+            // Use raw string to preserve percent values like "50%"
+            std::string raw = m_variant_overrides.get_string(key, variant_index);
+            if (!raw.empty()) {
+                auto* fop = static_cast<ConfigOptionFloatOrPercent*>(opt);
+                if (raw.back() == '%') {
+                    fop->value = std::stod(raw.substr(0, raw.size() - 1));
+                    fop->percent = true;
+                } else {
+                    fop->value = std::stod(raw);
+                    fop->percent = false;
+                }
+                BOOST_LOG_TRIVIAL(info) << "H2C apply_variant_overrides: " << key << "[" << variant_index << "] = " << raw;
+            }
+            break;
+        }
+        case coBool: {
+            double val = m_variant_overrides.get_float(key, variant_index);
+            static_cast<ConfigOptionBool*>(opt)->value = (val != 0.0);
+            BOOST_LOG_TRIVIAL(info) << "H2C apply_variant_overrides: " << key << "[" << variant_index << "] = " << (val != 0.0);
+            break;
+        }
+        default:
+            break;
+        }
+    }
 }
 
 int DynamicPrintConfig::get_extruder_nozzle_volume_count(int extruder_count, std::vector<std::vector<NozzleVolumeType>>& nozzle_volume_types) const

@@ -1903,6 +1903,17 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             tab->update_extruder_variants(extruder_idx);
             tab->reload_config();
         }
+
+        // H2C: VariantOverrides are now applied in switch_excluder()
+        // which is called via update_extruder_variants() above for each tab.
+        // This ensures each tab shows the correct variant for its currently
+        // displayed extruder (Left or Right), not the extruder that was changed.
+
+        // Reload all tabs to reflect updated scalar values
+        for (auto tab : wxGetApp().tabs_list) {
+            tab->reload_config();
+        }
+
         if (wxGetApp().app_config->get("auto_calculate_flush") == "all") {
             wxGetApp().plater()->sidebar().auto_calc_flushing_volumes(-1,extruder_idx);
         }
@@ -7445,8 +7456,9 @@ void Tab::switch_excluder(int extruder_id)
         int current_extruder = m_extruder_switch->GetValue() ? 1 : 0;
         if (extruder_id == -1)
             extruder_id = current_extruder;
-        else if (extruder_id != current_extruder)
+        else if (extruder_id != current_extruder) {
             return;
+        }
     } else if (m_variant_combo) {
         int current_variant = m_variant_combo->GetSelection();
         if (current_variant < 0)
@@ -7493,6 +7505,26 @@ void Tab::switch_excluder(int extruder_id)
                     const_cast<int &>(opt.second.second) = index;
                     page->m_opt_id_map.insert({opt.second.first + "#" + std::to_string(index), opt.first});
                 }
+                // H2C: promote variant-aware process options (added with idx=-1)
+                // so they participate in Left/Right nozzle switching
+                else if (m_extruder_switch && m_type == Preset::TYPE_PRINT &&
+                         print_options_with_variant.count(opt.second.first)) {
+                    const_cast<int &>(opt.second.second) = index;
+                    page->m_opt_id_map.insert({opt.second.first + "#" + std::to_string(index), opt.first});
+                }
+            }
+        }
+    }
+
+    // H2C: When switching between Left/Right nozzle tabs, apply the correct
+    // variant overrides so scalar values reflect this extruder's nozzle type.
+    if (m_extruder_switch && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
+        auto& config = m_presets->get_edited_preset().config;
+        if (!config.variant_overrides().empty()) {
+            if (m_type == Preset::TYPE_PRINT) {
+                config.apply_variant_overrides(index, print_options_with_variant);
+            } else if (m_type == Preset::TYPE_FILAMENT) {
+                config.apply_variant_overrides(index, filament_options_with_variant);
             }
         }
     }

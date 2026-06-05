@@ -612,6 +612,104 @@ class StaticPrintConfig;
 // Minimum object distance for arrangement, based on printer technology.
 double min_object_distance(const ConfigBase &cfg);
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// H2C VariantOverrides — Per-Variant Parameter Storage
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// BACKGROUND
+// ----------
+// BambuLab multi-extruder printers (H2C) support different nozzle variants per
+// physical extruder (e.g. Left=HighFlow, Right=Standard). Each variant can have
+// its own speed/acceleration profile. The Bambu preset system stores these as
+// JSON arrays in `print_options_with_variant`:
+//
+//   "inner_wall_speed": [300, 600, 300, 600]
+//                        ^^^  ^^^  ^^^  ^^^
+//                        L/S  L/HF R/S  R/HF
+//
+// OrcaSlicer's `update_values_to_printer_extruders()` correctly handles
+// ARRAY-typed options (ConfigOptionFloats, ConfigOptionInts, etc.) by
+// distributing values across variant indices. However, SCALAR-typed options
+// (ConfigOptionFloat: inner_wall_speed, outer_wall_speed, etc.) can only hold
+// ONE value at a time — the last-applied variant's value.
+//
+// SOLUTION ARCHITECTURE
+// ---------------------
+// VariantOverrides acts as a READ-ONLY LOOKUP TABLE that preserves the FULL
+// per-variant arrays from the JSON profile, separate from the scalar config.
+//
+// Data Flow:
+//
+//   Profile JSON
+//       │
+//       ▼
+//   PrintApply.cpp: DynamicPrintConfig::apply_variant_overrides()
+//       │
+//       ├─► Scalar config ← gets DEFAULT variant value (index 0)
+//       │
+//       └─► VariantOverrides ← stores ALL variant values as arrays
+//               │
+//               ▼
+//   GCode.cpp: precompute_extruder_speed_overrides()
+//       │
+//       ├─► Reads variant arrays from VariantOverrides
+//       ├─► Maps each physical extruder to its variant_index
+//       │   (via extruder_type + nozzle_volume_type → extruder_variant_list)
+//       └─► Builds per-extruder DynamicPrintConfig overlays
+//               │
+//               ▼
+//   GCode.hpp: VariantAwareConfig (wraps FullPrintConfig)
+//       │
+//       ├─► extruder_overrides[eid] = overlay for each physical extruder
+//       ├─► set_active_extruder(eid) — switches overlay at toolchange
+//       └─► apply() — re-applies overlay after EVERY config update
+//
+// WHY NOT JUST USE update_values_to_printer_extruders()?
+// ──────────────────────────────────────────────────────
+// That function only handles array-typed options. Scalar options (coFloat,
+// coFloatOrPercent, coBool) like inner_wall_speed, outer_wall_speed,
+// default_acceleration, etc. cannot be expanded into arrays — they are
+// fundamental scalar types in PrintRegionConfig. The two-layer approach
+// (VariantOverrides + VariantAwareConfig) solves this without modifying
+// the core config type system.
+//
+// STORAGE FORMAT
+// --------------
+// - floats: map<key, vector<double>> — numeric values indexed by variant
+// - strings: map<key, vector<string>> — raw string values (preserves "50%")
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+struct VariantOverrides {
+    // Numeric values: key → [variant0_val, variant1_val, variant2_val, ...]
+    std::map<std::string, std::vector<double>>          floats;
+    // Raw string values (preserves percent notation like "50%")
+    std::map<std::string, std::vector<std::string>>     strings;
+
+    bool has(const std::string& key) const { return floats.count(key) > 0; }
+    bool empty() const { return floats.empty(); }
+    void clear() { floats.clear(); strings.clear(); }
+
+    double get_float(const std::string& key, int index) const {
+        auto it = floats.find(key);
+        if (it == floats.end() || it->second.empty()) return 0.0;
+        int idx = (index >= 0 && index < (int)it->second.size()) ? index : 0;
+        return it->second[idx];
+    }
+
+    // Get the raw string value (preserves "50%" style percent notation)
+    std::string get_string(const std::string& key, int index) const {
+        auto it = strings.find(key);
+        if (it == strings.end() || it->second.empty()) return {};
+        int idx = (index >= 0 && index < (int)it->second.size()) ? index : 0;
+        return it->second[idx];
+    }
+
+    int variant_count(const std::string& key) const {
+        auto it = floats.find(key);
+        return it != floats.end() ? (int)it->second.size() : 0;
+    }
+};
+
 // Slic3r dynamic configuration, used to override the configuration
 // per object, per modification volume or per printing material.
 // The dynamic configuration is also used to store user modifications of the print global parameters,
@@ -621,13 +719,13 @@ class DynamicPrintConfig : public DynamicConfig
 {
 public:
     DynamicPrintConfig() {}
-    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs) {}
-    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)) {}
+    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs), m_variant_overrides(rhs.m_variant_overrides) {}
+    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)), m_variant_overrides(std::move(rhs.m_variant_overrides)) {}
     explicit DynamicPrintConfig(const StaticPrintConfig &rhs);
     explicit DynamicPrintConfig(const ConfigBase &rhs) : DynamicConfig(rhs) {}
 
-    DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); return *this; }
-    DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); return *this; }
+    DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); m_variant_overrides = rhs.m_variant_overrides; return *this; }
+    DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); m_variant_overrides = std::move(rhs.m_variant_overrides); return *this; }
 
     static DynamicPrintConfig  full_print_config();
     static DynamicPrintConfig* new_from_defaults_keys(const std::vector<std::string> &keys);
@@ -695,6 +793,18 @@ public:
     // query filament
     std::string get_filament_vendor() const;
     std::string get_filament_type() const;
+
+    // H2C: Variant overrides — read-only lookup table for nozzle variant arrays
+    const VariantOverrides& variant_overrides() const { return m_variant_overrides; }
+    VariantOverrides& variant_overrides() { return m_variant_overrides; }
+
+    // Apply variant values from the overlay into the scalar config.
+    // variant_index: index into the variant array (e.g. 0=Standard, 1=HighFlow for single-extruder)
+    // keys: set of option keys to apply (typically print_options_with_variant)
+    void apply_variant_overrides(int variant_index, const std::set<std::string>& keys);
+
+private:
+    VariantOverrides m_variant_overrides;
 };
 extern std::set<std::string> printer_extruder_options;
 extern std::set<std::string> print_options_with_variant;

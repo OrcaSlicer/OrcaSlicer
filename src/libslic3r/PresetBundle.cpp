@@ -4043,10 +4043,23 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     DynamicPrintConfig out;
     out.apply(FullPrintConfig::defaults());
     out.apply(this->prints.get_edited_preset().config);
+    // H2C: apply() copies config options but NOT variant_overrides.
+    // Transfer them from the process preset so the G-code generator can
+    // build per-extruder speed overlays for different nozzle variants.
+    {
+        const auto& vo = this->prints.get_edited_preset().config.variant_overrides();
+        if (!vo.empty()) {
+            out.variant_overrides() = vo;
+        }
+    }
+
+
+
     // Add the default filament preset to have the "filament_preset_id" defined.
 	out.apply(this->filaments.default_preset().config);
 	out.apply(this->printers.get_edited_preset().config);
     out.apply(this->project_config);
+
 
     // BBS
     size_t  num_filaments = this->filament_presets.size();
@@ -5159,6 +5172,12 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             }
             config = *default_config;
             config.apply(config_src);
+            // H2C: transfer variant overrides from loaded config_src
+            if (!config_src.variant_overrides().empty()) {
+                config.variant_overrides() = config_src.variant_overrides();
+                BOOST_LOG_TRIVIAL(info) << "H2C parse_subfile: transferred VariantOverrides for " << preset_name
+                    << " (" << config.variant_overrides().floats.size() << " float keys)";
+            }
             extend_default_config_length(config, {}, true, *default_config);
             if (instantiation == "false" && "Template" != vendor_name) {
                 // Report configuration fields, which are misplaced into a wrong group.

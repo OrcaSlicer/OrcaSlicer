@@ -386,6 +386,13 @@ private:
     // GCode.cpp:7136-7152. Called at print-start (layer_id=0) and at each layer transition.
     void update_layer_related_config(int layer_id);
 
+    // H2C: Precompute per-extruder speed overlays from variant overrides.
+    // Scalar speed options (coFloat, coFloatOrPercent) are not handled by
+    // update_values_to_printer_extruders (array-only). This fills
+    // m_config.extruder_overrides so that VariantAwareConfig::apply()
+    // automatically re-applies the correct speeds after every config reset.
+    void precompute_extruder_speed_overrides(const Print& print);
+
     //BBS
     void check_placeholder_parser_failed();
     size_t get_extruder_id(unsigned int filament_id) const;
@@ -511,7 +518,95 @@ private:
        This affects the input arguments supplied to the extrude*() and travel_to()
        methods. */
     Vec2d                               m_origin;
-    FullPrintConfig                     m_config;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // H2C VariantAwareConfig — Per-Extruder Speed Override Layer
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // PROBLEM
+    // -------
+    // OrcaSlicer's VariantOverrides system (update_values_to_printer_extruders)
+    // only handles *array-typed* config options (ConfigOptionFloats, etc.) by
+    // distributing values across extruder variant indices. Scalar speed options
+    // (inner_wall_speed, outer_wall_speed, sparse_infill_speed, etc.) are
+    // ConfigOptionFloat — single values shared by all extruders. When the H2C
+    // printer has two different nozzle variants (e.g. HighFlow on left,
+    // Standard on right), each variant defines its own speed profile, but only
+    // ONE scalar value can live in FullPrintConfig at a time. Additionally,
+    // GCode::process_layer() calls m_config.apply(region_config) and
+    // m_config.apply(object_config) for every object/instance, which resets
+    // scalar speeds back to the print-profile defaults — destroying any
+    // per-extruder speed that was set during toolchange.
+    //
+    // SOLUTION
+    // --------
+    // VariantAwareConfig wraps FullPrintConfig and shadows apply() so that
+    // per-extruder variant speed overrides are automatically re-applied after
+    // EVERY config update. This makes the overlay "sticky" — no matter how
+    // many times apply() is called with region/object configs, the correct
+    // extruder-specific speeds are always restored on top.
+    //
+    // DATA FLOW
+    // ---------
+    // 1. precompute_extruder_speed_overrides() (called once at print start):
+    //    - Reads print_extruder_variant / print_extruder_id to find which
+    //      variant index corresponds to each physical extruder.
+    //    - Extracts scalar speed values from the VariantOverrides array at
+    //      that variant index.
+    //    - Stores them in extruder_overrides[eid] as a DynamicPrintConfig.
+    //
+    // 2. set_active_extruder(eid) (called at each toolchange):
+    //    - Switches the active overlay to the given physical extruder ID.
+    //    - Immediately re-applies the overlay.
+    //
+    // 3. apply() (called many times per layer by process_layer):
+    //    - First applies the incoming config (region/object).
+    //    - Then re-applies the active extruder's overlay on top.
+    //    - This ensures scalar speeds always reflect the correct variant.
+    //
+    // AFFECTED OPTIONS (populated by precompute):
+    //    inner_wall_speed, outer_wall_speed, sparse_infill_speed,
+    //    internal_solid_infill_speed, gap_infill_speed, initial_layer_speed,
+    //    default_acceleration, travel_speed
+    //    (extensible — any scalar option that differs between variants)
+    //
+    // ═══════════════════════════════════════════════════════════════════════
+    struct VariantAwareConfig : public FullPrintConfig {
+        // Per-physical-extruder overlay: maps extruder_id → DynamicPrintConfig
+        // containing the scalar speed overrides for that extruder's variant.
+        std::map<unsigned int, DynamicPrintConfig> extruder_overrides;
+
+        // Currently active physical extruder (0=left, 1=right on H2C).
+        unsigned int active_extruder_id = 0;
+
+        // Shadow ConfigBase::apply() — apply incoming config first, then
+        // re-apply the active extruder's speed overlay on top. This ensures
+        // that per-object/region config resets never wipe out variant speeds.
+        void apply(const ConfigBase& other, bool ignore_nonexistent = false) {
+            FullPrintConfig::apply(other, ignore_nonexistent);
+            reapply_variant_overrides();
+        }
+
+        // Switch the active extruder and immediately apply its overlay.
+        // Called during toolchanges: filament_id → physical extruder_id.
+        void set_active_extruder(unsigned int eid) {
+            active_extruder_id = eid;
+            reapply_variant_overrides();
+        }
+
+    private:
+        // Re-apply the current extruder's overlay (if any) on top of the
+        // base config. Uses FullPrintConfig::apply() directly to avoid
+        // infinite recursion through our shadowed apply().
+        void reapply_variant_overrides() {
+            if (auto it = extruder_overrides.find(active_extruder_id);
+                it != extruder_overrides.end()) {
+                FullPrintConfig::apply(it->second, true);
+            }
+        }
+    };
+
+    VariantAwareConfig                  m_config;
     DynamicConfig                       m_calib_config;
     // scaled G-code resolution
     double                              m_scaled_resolution;
