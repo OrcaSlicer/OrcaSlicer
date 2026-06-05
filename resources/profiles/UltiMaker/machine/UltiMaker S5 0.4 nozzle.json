@@ -23,12 +23,12 @@
 	"auxiliary_fan": "0",
 	"use_relative_e_distances": "0",
 	"machine_max_acceleration_extruding": [
-		"1500",
-		"1500"
+		"3500",
+		"3500"
 	],
 	"machine_max_acceleration_retracting": [
-		"1500",
-		"1500"
+		"3500",
+		"3500"
 	],
 	"machine_max_acceleration_travel": [
 		"3500",
@@ -79,10 +79,10 @@
 		"0.4"
 	],
 	"max_layer_height": [
-		"0.3"
+		"0.4"
 	],
 	"min_layer_height": [
-		"0.08"
+		"0.06"
 	],
 	"printer_settings_id": "Qidi",
 	"retraction_minimum_travel": [
