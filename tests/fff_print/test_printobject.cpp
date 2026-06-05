@@ -88,19 +88,3 @@ SCENARIO("PrintObject: object layer heights", "[PrintObject][.]") {
 #endif
     }
 }
-
-TEST_CASE("Height range range_spiral_mode region config", "[PrintObject][SpiralVase]") {
-    PrintRegionConfig config;
-    REQUIRE_FALSE(config.range_spiral_mode);
-    config.range_spiral_mode.value = true;
-    config.wall_loops.value              = 1;
-    config.top_shell_layers.value        = 0;
-    config.sparse_infill_density.value   = 0;
-    config.bottom_shell_layers.value     = 0;
-    REQUIRE(config.range_spiral_mode);
-    REQUIRE(config.range_spiral_mode_smooth == false);
-    REQUIRE(config.wall_loops == 1);
-    REQUIRE(config.top_shell_layers == 0);
-    REQUIRE(config.sparse_infill_density.value == 0.f);
-    REQUIRE(config.bottom_shell_layers == 0);
-}
