@@ -270,6 +270,8 @@ void extend_default_config_length(DynamicPrintConfig& config, const DynamicPrint
 
     auto replace_nil_and_resize = [&](const std::string & key, int length){
         ConfigOption* raw_ptr = config.option(key);
+        if (!raw_ptr || !raw_ptr->is_vector())
+            return;  // H2C: skip scalar options (e.g. single-extruder presets)
         ConfigOptionVectorBase* opt_vec = static_cast<ConfigOptionVectorBase *>(raw_ptr);
         if(set_nil_to_default && raw_ptr->is_nil() && defaults.has(key) && std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(), key) == filament_extruder_override_keys.end()){
             opt_vec->clear();
