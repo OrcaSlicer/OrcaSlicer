@@ -243,12 +243,10 @@ void PrinterWebView::SendAPIKey()
                                        m_apikey);
     m_browser->RemoveAllUserScripts();
     
-#ifdef _WIN32
-    // RemoveAllUserScripts causes WebView2 to forget about our script message handler, 
+    // RemoveAllUserScripts causes WebView to forget about our script message handler, 
     // so re-add it here.
     m_browser->RemoveScriptMessageHandler("wx");
     m_browser->AddScriptMessageHandler("wx");
-#endif
 
 #ifdef __linux__
     // Re-inject the vue-resize/WebKitGTK workaround that RemoveAllUserScripts just cleared.

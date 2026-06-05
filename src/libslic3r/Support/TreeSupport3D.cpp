@@ -1603,6 +1603,7 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
     if (settings.increase_radius)
         current_elem.effective_radius_height += 1;
     coord_t radius = support_element_collision_radius(config, current_elem);
+
     const auto _tiny_area_threshold = tiny_area_threshold();
     if (settings.move) {
         increased = relevant_offset;
@@ -3468,6 +3469,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
             // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in draw_areas
             std::vector<SupportElements> move_bounds(num_support_layers);
+
             // ### Place tips of the support tree
             for (size_t mesh_idx : processing.second)
                 generate_initial_areas(*print.get_object(mesh_idx), volumes, config, overhangs, 
@@ -3778,6 +3780,7 @@ void organic_draw_branches(
 //            ++ ielement;
         }
     }
+
     const SlicingParameters &slicing_params = print_object.slicing_parameters();
     MeshSlicingParams mesh_slicing_params;
     mesh_slicing_params.mode = MeshSlicingParams::SlicingMode::Positive;
@@ -3959,19 +3962,7 @@ void organic_draw_branches(
                     }
                     // ORCA: bottom contacts provide the footprint; interface layers are built later.
 
-#if 0
-                    //FIXME branch.has_tip seems to not be reliable.
-                    if (branch.has_tip && interface_placer.support_parameters.has_top_contacts)
-                        // Add top slices to top contacts / interfaces / base interfaces.
-                        for (int i = int(branch.path.size()) - 1; i >= 0; -- i) {
-                            const SupportElement &el = *branch.path[i];
-                            if (el.state.missing_roof_layers == 0)
-                                break;
-                            //FIXME Move or not?
-                            interface_placer.add_roof(std::move(slices[int(slices.size()) - i - 1]), el.state.layer_idx,
-                                interface_placer.support_parameters.num_top_interface_layers + 1 - el.state.missing_roof_layers);
-                        }
-#endif
+                    recover_pending_branch_roofs(interface_placer, branch.path, layer_begin, slices);
 
                     while (! slices.empty() && slices.back().empty()) {
                         slices.pop_back();
