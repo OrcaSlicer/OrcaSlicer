@@ -1266,17 +1266,35 @@ static StringObjectException validate_spiral_vase_compatible_regions(const Print
 {
     const char *opt_key = global_spiral ? "spiral_mode" : "range_spiral_mode";
     for (const PrintObject *object : print.objects()) {
-        std::vector<const PrintRegion *> spiral_regions;
-        for (const PrintRegion &region : object->all_regions()) {
-            if (global_spiral || region.config().range_spiral_mode)
-                spiral_regions.push_back(&region);
-        }
-        if (spiral_regions.size() <= 1)
+        if (global_spiral) {
+            const PrintRegion *reference = nullptr;
+            for (const PrintRegion &region : object->all_regions()) {
+                if (reference == nullptr)
+                    reference = &region;
+                else if (!Layer::is_perimeter_compatible(*reference, region))
+                    return { L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, opt_key };
+            }
             continue;
-        const PrintRegion &reference = *spiral_regions.front();
-        for (size_t i = 1; i < spiral_regions.size(); ++i)
-            if (!Layer::is_perimeter_compatible(reference, *spiral_regions[i]))
-                return { L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, opt_key };
+        }
+
+        // Per-height-range spiral: only regions within the same modifier band can share a layer.
+        const PrintObjectRegions *shared_regions = object->shared_regions();
+        if (shared_regions == nullptr)
+            continue;
+        for (const PrintObjectRegions::LayerRangeRegions &layer_range : shared_regions->layer_ranges) {
+            if (!dynamic_config_range_spiral_mode(layer_range.config))
+                continue;
+            const PrintRegion *reference = nullptr;
+            for (const PrintObjectRegions::VolumeRegion &volume_region : layer_range.volume_regions) {
+                const PrintRegion *region = volume_region.region;
+                if (region == nullptr)
+                    continue;
+                if (reference == nullptr)
+                    reference = region;
+                else if (!Layer::is_perimeter_compatible(*reference, *region))
+                    return { L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, opt_key };
+            }
+        }
     }
     return {};
 }
