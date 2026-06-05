@@ -3515,8 +3515,24 @@ void TabPrintLayer::build()
 {
     TabPrintModel::build();
 
-    PageShp page = add_options_page(L("Spiral vase"), "custom-gcode_other");
-    auto optgroup = page->new_optgroup("", L"param_special");
+    const auto others_page_it = std::find_if(m_pages.begin(), m_pages.end(), [](const PageShp &p) {
+        return p->title() == L("Others");
+    });
+    if (others_page_it == m_pages.end())
+        return;
+
+    PageShp page = *others_page_it;
+    ConfigOptionsGroupShp optgroup = page->get_optgroup(L("Special mode"));
+    if (!optgroup) {
+        optgroup = page->new_optgroup(L("Special mode"), L"param_special");
+        const auto fuzzy_it = std::find_if(page->m_optgroups.begin(), page->m_optgroups.end(),
+            [](const ConfigOptionsGroupShp &og) { return og->title == L("Fuzzy Skin"); });
+        if (fuzzy_it != page->m_optgroups.end() && fuzzy_it + 1 != page->m_optgroups.end()) {
+            ConfigOptionsGroupShp special_mode = page->m_optgroups.back();
+            page->m_optgroups.pop_back();
+            page->m_optgroups.insert(fuzzy_it, special_mode);
+        }
+    }
     optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
     optgroup->append_single_option_line("range_spiral_mode", "others_settings_special_mode#spiral-vase");
     optgroup->append_single_option_line("range_spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
