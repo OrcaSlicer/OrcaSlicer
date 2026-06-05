@@ -183,7 +183,7 @@ struct DrawBoxOptArgs
     double height;
     double line_width;
     double speed;
-    bool should_retract = false;
+    bool should_retract = true; // retract by default, but when drawing the tab for the numbers we will disable unneccesary retractions
 };
 class CalibPressureAdvance
 {
