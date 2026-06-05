@@ -513,6 +513,16 @@ void ObjectList::create_objects_ctrl()
         dataview_remove_insets(this);
         for (int cn = colName; cn < colCount; cn++)
             GetColumn(cn)->SetWidth(m_columns_width[cn] * em);
+
+        // wx 3.3's native macOS wxDataViewCtrl uses a fixed row height (the font
+        // line height) and, unlike the generic Windows/Linux implementation, does
+        // NOT grow it to fit custom renderers' GetSize(). The filament colour badge
+        // is 2*em tall (see get_extruder_color_icons()), which is taller than the
+        // default row, so without an explicit height the badges overflow and merge
+        // into adjacent rows. Set the row height to the size the renderer reports
+        // (matching what the other platforms derive automatically) to restore the
+        // correct object-list spacing.
+        SetRowHeight(2 * em + FromDIP(4));
 #endif
 }
 
@@ -6336,6 +6346,13 @@ void ObjectList::msw_rescale()
 
     for (int cn = colName; cn < colCount; cn++)
         GetColumn(cn)->SetWidth(m_columns_width[cn] * em);
+
+#ifdef __WXOSX__
+    // Keep the explicit macOS row height (see create_objects_ctrl) in sync with
+    // the rescaled em so the filament colour badge keeps fitting after a DPI or
+    // theme change.
+    SetRowHeight(2 * em + FromDIP(4));
+#endif
 
     // rescale/update existing items with bitmaps
     m_objects_model->Rescale();
