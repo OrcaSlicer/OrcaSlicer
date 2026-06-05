@@ -916,6 +916,12 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.extrusion_role = erSolidInfill;
                     }
                 }
+                if (params.extrusion_role == erTopSolidInfill)
+                    params.extruder = region_config.top_surface_filament_id;
+                else if (params.extrusion_role == erBottomSurface)
+                    params.extruder = region_config.bottom_surface_filament_id;
+                else if (params.extrusion_role == erSolidInfill)
+                    params.extruder = region_config.internal_solid_filament_id;
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
 
@@ -1571,12 +1577,12 @@ void Layer::make_ironing()
 				    ((config.top_shell_layers > 0 || (this->object()->print()->config().spiral_mode && config.bottom_shell_layers > 1)) &&
 					    (config.ironing_type == IroningType::TopSurfaces ||
 					        (config.ironing_type == IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.wall_filament == config.solid_infill_filament || config.wall_loops == 0) {
+				if (config.outer_wall_filament_id == config.top_surface_filament_id || config.wall_loops == 0) {
 					// Iron the whole face.
-					ironing_params.extruder = config.solid_infill_filament;
+					ironing_params.extruder = config.top_surface_filament_id;
 				} else {
 					// Iron just the infill.
-					ironing_params.extruder = config.solid_infill_filament;
+					ironing_params.extruder = config.top_surface_filament_id;
 				}
 			}
 			if (ironing_params.extruder != -1) {
