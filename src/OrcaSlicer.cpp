@@ -1207,14 +1207,51 @@ int CLI::run(int argc, char **argv)
     }
 #endif
 
-    // WebKit2GTK compositing can fail under XWayland. Only disable it when
-    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
-    // On pure X11 or native Wayland, compositing is left enabled.
+    // Orca: WebKit2GTK has two distinct workarounds, depending on display server and GPU:
+    //   - XWayland (any GPU): WebKit's compositing mode fails silently, leaving
+    //     WebViews blank. Fix: WEBKIT_DISABLE_COMPOSITING_MODE=1.
+    //   - Native Wayland + NVIDIA proprietary driver: WebKit's DMABUF renderer
+    //     is broken (WebKit bug 262607, RESOLVED WONTFIX). Fix: WEBKIT_DISABLE_DMABUF_RENDERER=1.
+    //   - Native Wayland + AMD/Intel: leave WebKit defaults; hardware accel works fine.
+    // We detect GPU vendor via the PCI vendor ID exposed in /sys/class/drm.
+    // setenv() uses replace=false so user-set values win.
     {
-        const char* display_env_wk = ::getenv("DISPLAY");
-        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+        const char* gdk_backend = ::getenv("GDK_BACKEND");
+        const bool has_wayland    = wayland_env && *wayland_env;
+        // GTK uses X11 when GDK_BACKEND forces it, or when WAYLAND_DISPLAY is unset.
+        // Otherwise it prefers native Wayland (this matches the wxHAS_EGL fallback
+        // above, which sets GDK_BACKEND=x11 explicitly when EGL is unavailable).
+        const bool gdk_forces_x11 = gdk_backend && boost::starts_with(gdk_backend, "x11");
+        const bool xwayland       = gdk_forces_x11 && has_wayland;
+        const bool native_wayland = !gdk_forces_x11 && has_wayland;
+
+        auto has_nvidia_gpu = []() -> bool {
+#ifdef __linux__
+            namespace fs = boost::filesystem;
+            try {
+                for (const auto& entry : fs::directory_iterator("/sys/class/drm")) {
+                    const std::string name = entry.path().filename().string();
+                    // Match the card itself (e.g. "card0"), not connector subdirs ("card0-DP-1").
+                    if (!boost::starts_with(name, "card") || name.find('-') != std::string::npos)
+                        continue;
+                    boost::nowide::ifstream f((entry.path() / "device" / "vendor").string());
+                    std::string vendor_id;
+                    // 0x10de = NVIDIA. (0x1002 = AMD, 0x8086 = Intel.)
+                    if (std::getline(f, vendor_id) && vendor_id == "0x10de")
+                        return true;
+                }
+            } catch (...) {}
+#endif
+            return false;
+        };
+
+        if (xwayland) {
+            BOOST_LOG_TRIVIAL(info) << "XWayland detected; disabling WebKit compositing mode.";
             ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+        } else if (native_wayland && has_nvidia_gpu()) {
+            BOOST_LOG_TRIVIAL(info) << "Native Wayland with NVIDIA GPU detected; disabling WebKit DMABUF renderer.";
+            ::setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1", /* replace */ false);
         }
     }
 
