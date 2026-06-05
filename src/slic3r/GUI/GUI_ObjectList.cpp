@@ -523,7 +523,7 @@ void ObjectList::create_objects_ctrl()
     // and merge into adjacent rows); on Windows/Linux the generic control normally
     // derives the height from the renderers, but we set it here too so all
     // platforms match.
-    SetRowHeight(2 * em + FromDIP(4));
+    SetRowHeight(2 * em + FromDIP(2));
 }
 
 void ObjectList::get_selected_item_indexes(int& obj_idx, int& vol_idx, const wxDataViewItem& input_item/* = wxDataViewItem(nullptr)*/)
@@ -6350,7 +6350,7 @@ void ObjectList::msw_rescale()
     // Keep the explicit row height (see create_objects_ctrl) in sync with the
     // rescaled em so the filament colour badge keeps fitting after a DPI or theme
     // change.
-    SetRowHeight(2 * em + FromDIP(4));
+    SetRowHeight(2 * em + FromDIP(2));
 
     // rescale/update existing items with bitmaps
     m_objects_model->Rescale();
