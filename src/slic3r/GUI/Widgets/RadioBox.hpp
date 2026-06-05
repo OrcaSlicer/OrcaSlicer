@@ -5,7 +5,7 @@
 
 #include <wx/tglbtn.h>
 
-namespace Slic3r { 
+namespace Slic3r {
 namespace GUI {
 
 class RadioBox : public wxBitmapToggleButton
@@ -17,11 +17,11 @@ public:
     void SetValue(bool value) override;
 	bool GetValue();
     void Rescale();
-    bool Disable() { 
-        return wxBitmapToggleButton::Disable(); 
+    bool Disable() {
+        return wxBitmapToggleButton::Disable();
     }
-    bool Enable() { 
-        return wxBitmapToggleButton::Enable(); 
+    bool Enable() {
+        return wxBitmapToggleButton::Enable();
     }
 
 private:
@@ -30,6 +30,7 @@ private:
 private:
     ScalableBitmap m_on;
     ScalableBitmap m_off;
+    ScalableBitmap m_ban;
 };
 
 }}

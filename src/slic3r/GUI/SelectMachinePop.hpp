@@ -180,7 +180,7 @@ private:
     PinCodePanel*                     m_panel_ping_code{nullptr};
     PinCodePanel*                     m_panel_direct_connection{nullptr};
     wxWindow*                         m_placeholder_panel{nullptr};
-    wxHyperlinkCtrl*                  m_hyperlink{nullptr};
+    HyperLink*                        m_hyperlink{nullptr}; // ORCA
     Label*                            m_ping_code_text{nullptr};
     wxStaticBitmap*                   m_img_ping_code{nullptr};
     wxBoxSizer *                      m_sizer_body{nullptr};

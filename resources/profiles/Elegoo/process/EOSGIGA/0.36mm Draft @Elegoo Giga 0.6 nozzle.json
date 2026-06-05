@@ -1,0 +1,6 @@
+{
+	"inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
+	"layer_height": "0.36",
+	"instantiation": "true",
+	"name": "0.36mm Draft @Elegoo Giga 0.6 nozzle"
+}

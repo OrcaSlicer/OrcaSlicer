@@ -83,6 +83,7 @@ public:
         bool                    priming;
 
 		bool                    is_tool_change{false};
+        bool                    is_contact{false};
 		Vec2f                   tool_change_start_pos;
 
         // Pass a polyline so that normal G-code generator can do a wipe for us.
@@ -160,8 +161,9 @@ public:
                                    bool priming,
                                    size_t old_tool,
                                    bool is_finish,
-		                           bool is_tool_change,
-                                   float purge_volume) const;
+                                   bool is_tool_change,
+                                   float purge_volume,
+                                   bool is_contact = false) const;
 
     ToolChangeResult construct_block_tcr(WipeTowerWriter& writer,
                                    bool priming,
@@ -319,6 +321,7 @@ public:
         bool                is_support = false;
         int  			    nozzle_temperature = 0;
         int  			    nozzle_temperature_initial_layer = 0;
+        int                 interface_print_temperature = 0;
         float               loading_speed = 0.f;
         float               loading_speed_start = 0.f;
         float               unloading_speed = 0.f;
@@ -336,6 +339,10 @@ public:
         float               retract_length;
         float               retract_speed;
         float               wipe_dist;
+        float               tower_interface_pre_extrusion_dist = 0.f;
+        float               tower_interface_pre_extrusion_length = 0.f;
+        float               tower_ironing_area = 4.f;
+        float               tower_interface_purge_length = 0.f;
     };
 
 
@@ -492,6 +499,10 @@ private:
     std::map<float,Polylines> m_outer_wall;
     bool is_first_layer() const { return size_t(m_layer_info - m_plan.begin()) == m_first_layer_idx; }
     bool                       m_flat_ironing=false;
+    bool                       m_enable_tower_interface_features=false;
+    bool                       m_enable_tower_interface_cooldown_during_tower=false;
+    bool                       m_prev_layer_had_interface=false;
+    bool                       m_current_layer_has_interface=false;
 	// Calculates length of extrusion line to extrude given volume
 	float volume_to_length(float volume, float line_width, float layer_height) const {
 		return std::max(0.f, volume / (layer_height * (line_width - layer_height * (1.f - float(M_PI) / 4.f))));
@@ -503,7 +514,7 @@ private:
 	// Goes through m_plan and recalculates depths and width of the WT to make it exactly square - experimental
 	void make_wipe_tower_square();
 
-	Vec2f get_next_pos(const WipeTower::box_coordinates &cleaning_box, float wipe_length);
+	Vec2f get_next_pos(const WipeTower::box_coordinates &cleaning_box, float wipe_length, bool interface_layer, size_t interface_tool);
 
     // Goes through m_plan, calculates border and finish_layer extrusions and subtracts them from last wipe
     void save_on_last_wipe();

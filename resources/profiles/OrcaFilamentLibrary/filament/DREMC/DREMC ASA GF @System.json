@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "DREMC ASA GF @System",
+	"inherits": "DREMC ASA GF @base",
+	"from": "system",
+	"setting_id": "DREMC013_00",
+	"instantiation": "false",
+	"compatible_printers": []
+}

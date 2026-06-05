@@ -260,7 +260,12 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
     }
     preset_names = default_naming(preset_names);
 
-    for (auto& item : cali_result) {
+    std::vector<PACalibResult> sorted_cali_result = cali_result;
+    std::sort(sorted_cali_result.begin(), sorted_cali_result.end(), [this](const PACalibResult &left, const PACalibResult& right) {
+        return left.tray_id < right.tray_id;
+    });
+
+    for (auto &item : sorted_cali_result) {
         bool result_failed = false;
         if (item.confidence != 0) {
             result_failed = true;
@@ -339,7 +344,13 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
             n_value->GetTextCtrl()->SetValue(n_str);
 
             for (auto& name : preset_names) {
-                if (item.tray_id == name.first) {
+                int tray_id = item.tray_id;
+                /* upgrade single extruder printer tray_id from 254 to 255 */
+                if (!m_obj->is_multi_extruders() && tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                    tray_id = VIRTUAL_TRAY_MAIN_ID;
+                }
+
+                if (tray_id == name.first) {
                     comboBox_tray_name->SetValue(from_u8(name.second));
                 }
             }
@@ -865,7 +876,7 @@ void CaliPASaveManualPanel::set_pa_cali_method(ManualPaCaliMethod method)
         m_complete_text->SetLabel(_L("Please find the best line on your plate"));
         set_save_img();
     } else if (method == ManualPaCaliMethod::PA_PATTERN) {
-        m_complete_text->SetLabel(_L("Please find the corner with perfect degree of extrusion"));
+        m_complete_text->SetLabel(_L("Please find the corner with the perfect degree of extrusion"));
         if (wxGetApp().app_config->get_language_code() == "zh-cn") {
             m_picture_panel->set_bmp(ScalableBitmap(this, "fd_pattern_manual_result_CN", 350));
         } else {
@@ -1054,7 +1065,7 @@ void CaliPASaveP1PPanel::set_pa_cali_method(ManualPaCaliMethod method)
         set_save_img();
     }
     else if (method == ManualPaCaliMethod::PA_PATTERN) {
-        m_complete_text->SetLabel(_L("Please find the corner with perfect degree of extrusion"));
+        m_complete_text->SetLabel(_L("Please find the corner with the perfect degree of extrusion"));
         if (wxGetApp().app_config->get_language_code() == "zh-cn") {
             m_picture_panel->set_bmp(ScalableBitmap(this, "fd_pattern_manual_result_CN", 350));
         } else {

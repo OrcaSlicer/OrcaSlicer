@@ -1,5 +1,6 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
 
@@ -78,6 +79,12 @@ void break_to_debugger()
     #endif /* _WIN32 */
 }
 
+const std::string& shortkey_shift_prefix()
+{
+	static const std::string str = _u8L("Shift+");
+    return str;
+}
+
 const std::string& shortkey_ctrl_prefix()
 {
 	static const std::string str =
@@ -108,7 +115,12 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 	try{
 
         if (config.def()->get(opt_key)->type == coBools && config.def()->get(opt_key)->nullable) {
-            auto vec_new = std::make_unique<ConfigOptionBoolsNullable>(1, boost::any_cast<unsigned char>(value) );
+            const auto v = boost::any_cast<unsigned char>(value);
+            auto vec_new = std::make_unique<ConfigOptionBoolsNullable>(1, v);
+            if (v == ConfigOptionBoolsNullable::nil_value()) {
+                vec_new->set_at_to_nil(0);
+            }
+
             config.option<ConfigOptionBoolsNullable>(opt_key)->set_at(vec_new.get(), opt_index, 0);
             return;
         }
@@ -456,7 +468,7 @@ unsigned int combochecklist_get_flags(wxComboCtrl* comboCtrl)
 {
 	unsigned int flags = 0;
 
-	wxCheckListBoxComboPopup* popup = wxDynamicCast(comboCtrl->GetPopupControl(), wxCheckListBoxComboPopup);
+	wxCheckListBoxComboPopup* popup = dynamic_cast<wxCheckListBoxComboPopup*>(comboCtrl->GetPopupControl());
 	if (popup != nullptr) {
 		for (unsigned int i = 0; i < popup->GetCount(); ++i) {
 			if (popup->IsChecked(i))
@@ -469,7 +481,7 @@ unsigned int combochecklist_get_flags(wxComboCtrl* comboCtrl)
 
 void combochecklist_set_flags(wxComboCtrl* comboCtrl, unsigned int flags)
 {
-	wxCheckListBoxComboPopup* popup = wxDynamicCast(comboCtrl->GetPopupControl(), wxCheckListBoxComboPopup);
+	wxCheckListBoxComboPopup* popup = dynamic_cast<wxCheckListBoxComboPopup*>(comboCtrl->GetPopupControl());
 	if (popup != nullptr) {
 		for (unsigned int i = 0; i < popup->GetCount(); ++i) {
 			popup->Check(i, (flags & (1 << i)) != 0);
@@ -513,28 +525,17 @@ void about()
     dlg.ShowModal();
 }
 
-void login()
-{
-	//LoginDialog dlg;
-	//dlg.ShowModal();
-
-	ZUserLogin dlg;
-    dlg.run();
-}
-
 void desktop_open_datadir_folder()
 {
 	// Execute command to open a file explorer, platform dependent.
-	// FIXME: The const_casts aren't needed in wxWidgets 3.1, remove them when we upgrade.
-
 	const auto path = data_dir();
 #ifdef _WIN32
 		const wxString widepath = from_u8(path);
 		const wchar_t *argv[] = { L"explorer", widepath.GetData(), nullptr };
-		::wxExecute(const_cast<wchar_t**>(argv), wxEXEC_ASYNC, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #elif __APPLE__
 		const char *argv[] = { "open", path.data(), nullptr };
-		::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #else
 		const char *argv[] = { "xdg-open", path.data(), nullptr };
 
@@ -562,10 +563,10 @@ void desktop_open_datadir_folder()
 				exec_env.cwd = std::move(owd);
 			}
 
-			::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, &exec_env);
+			::wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env);
 		} else {
 			// Looks like we're NOT running from AppImage, we'll make no changes to the environment.
-			::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, nullptr);
+			::wxExecute(argv, wxEXEC_ASYNC, nullptr, nullptr);
 		}
 #endif
 }
@@ -573,7 +574,6 @@ void desktop_open_datadir_folder()
 void desktop_open_any_folder( const std::string& path )
 {
     // Execute command to open a file explorer, platform dependent.
-    // FIXME: The const_casts aren't needed in wxWidgets 3.1, remove them when we upgrade.
 
 #ifdef _WIN32
     const wxString widepath = from_u8(path);
@@ -614,10 +614,10 @@ void desktop_open_any_folder( const std::string& path )
             exec_env.cwd = std::move(owd);
         }
 
-        ::wxExecute(const_cast<char **>(argv), wxEXEC_ASYNC, nullptr, &exec_env);
+        ::wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env);
     } else {
         // Looks like we're NOT running from AppImage, we'll make no changes to the environment.
-        ::wxExecute(const_cast<char **>(argv), wxEXEC_ASYNC, nullptr, nullptr);
+        ::wxExecute(argv, wxEXEC_ASYNC, nullptr, nullptr);
     }
 #endif
 }

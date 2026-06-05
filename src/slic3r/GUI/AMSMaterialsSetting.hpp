@@ -14,8 +14,8 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/HyperLink.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
-#include <wx/hyperlink.h>
 
 #define AMS_MATERIALS_SETTING_DEF_COLOUR wxColour(255, 255, 255)
 #define AMS_MATERIALS_SETTING_GREY900 wxColour(38, 46, 48)
@@ -37,6 +37,7 @@ public:
     wxBitmap        m_bitmap_border;
     wxBitmap        m_bitmap_border_dark;
     wxBitmap        m_bitmap_transparent;
+    ScalableBitmap  m_bitmap_transparent_def; //default transparent material
 
     wxColour        m_colour;
     std::vector<wxColour>        m_cols;
@@ -173,7 +174,7 @@ protected:
 
     wxPanel *           m_panel_kn;
     wxStaticText*       m_ratio_text;
-    wxHyperlinkCtrl *   m_wiki_ctrl;
+    HyperLink *         m_wiki_ctrl;
     wxStaticText*       m_k_param;
     TextInput*          m_input_k_val;
     wxStaticText*       m_n_param;

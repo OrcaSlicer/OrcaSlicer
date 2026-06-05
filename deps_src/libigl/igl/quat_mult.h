@@ -11,14 +11,14 @@
 
 namespace igl
 {
-  // Computes out = q1 * q2 with quaternion multiplication
-  // A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
-  // such that q = x*i + y*j + z*k + w
-  // Inputs:
-  //   q1  left quaternion
-  //   q2  right quaternion
-  // Outputs:
-  //   out  result of multiplication
+  /// Computes out = q1 * q2 with quaternion multiplication
+  /// A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
+  /// such that q = x*i + y*j + z*k + w
+  ///
+  /// @param[in] q1  left quaternion
+  /// @param[in] q2  right quaternion
+  /// @param[out] out  result of multiplication
+  ///
   template <typename Q_type>
   IGL_INLINE void quat_mult(
     const Q_type *q1, 

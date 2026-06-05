@@ -1,0 +1,24 @@
+{
+	"type": "machine",
+	"setting_id": "EN2S04",
+	"name": "Elegoo Neptune 2S 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_elegoo_common",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 2S",
+	"default_print_profile": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"235x0",
+		"235x235",
+		"0x235"
+	],
+	"printable_height": "250",
+	"machine_start_gcode": ";;===== date: 20250227 =====================\n;M413 S0 ; disable Power Loss Recovery\n;[printer_model]\n;initial_filament:{filament_type[initial_extruder]}\n;curr_bed_type={curr_bed_type}\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140\nM190 S[bed_temperature_initial_layer_single]\nG90\nG28 ; home all axis\n;G29 ; run abl mesh\nM420 S1 ; load mesh\n;\nG1 Z10 F300\nG1 X{print_bed_max[0]*0.5-50} Y0.5 F6000\nG1 Z0.4 F300\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\nG1 X{print_bed_max[0]*0.5+50} E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X{print_bed_max[0]*0.5+47} F3000\nG92 E0 ;Reset Extruder\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0\n",
+	"machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < printable_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors",
+	"scan_first_layer": "0"
+}

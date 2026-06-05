@@ -33,8 +33,9 @@ struct ExtrusionLayer
 
 enum class ExtrusionLayersType { INFILL, PERIMETERS, SUPPORT, WIPE_TOWER };
 
-struct ExtrusionLayers : public std::vector<ExtrusionLayer>
+class ExtrusionLayers : public std::vector<ExtrusionLayer>
 {
+public:
     ExtrusionLayersType type;
 };
 
@@ -86,7 +87,7 @@ public:
         for (int i = b; i < e; ++i) {
             for (const ExtrusionPath &path : _piles[i].paths) {
                 if (path.is_force_no_extrusion() == false) {
-                    Polyline check_polyline = path.polyline;
+                    Polyline check_polyline = path.polyline.to_polyline();
                     check_polyline.translate(_offset);
                     Lines tmpLines = check_polyline.lines();
                     for (const Line &line : tmpLines) { lines.emplace_back(line, _id, path.role()); }

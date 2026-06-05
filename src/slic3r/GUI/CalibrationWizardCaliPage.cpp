@@ -109,22 +109,15 @@ void CalibrationCaliPage::set_cali_img()
         }
         else if (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO || m_cali_method == CalibrationMethod::CALI_METHOD_NEW_AUTO) {
             if (curr_obj) {
+                std::string image_name = curr_obj->get_auto_pa_cali_thumbnail_img_str();
                 if (curr_obj->is_multi_extruders()) {
                     if (m_cur_extruder_id == 0) {
-                        m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto_multi_extruders_right", 400));
+                        image_name += "_right";
                     } else {
-                        assert(m_cur_extruder_id == 1);
-                        m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto_multi_extruders_left", 400));
+                        image_name += "_left";
                     }
                 }
-                else if (curr_obj->get_printer_arch() == PrinterArch::ARCH_I3) {
-                    m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto_i3", 400));
-                } else if (curr_obj->is_series_o()) {
-                    m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto_single_o", 400));
-                }
-                else {
-                    m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto", 400));
-                }
+                m_picture_panel->set_bmp(ScalableBitmap(this, image_name, 400));
             }
             else {
                 m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto", 400));
@@ -277,7 +270,7 @@ void CalibrationCaliPage::update(MachineObject* obj)
                     enable_cali = false;
                 }
             } else {
-                assert(false);
+                //assert(false);
             }
             m_action_panel->enable_button(CaliPageActionType::CALI_ACTION_CALI_NEXT, enable_cali);
         } 

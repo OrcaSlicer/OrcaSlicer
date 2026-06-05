@@ -7,6 +7,7 @@
 #include "SliceInfoPanel.hpp"
 #include "CameraPopup.hpp"
 #include "GUI.hpp"
+#include "ThermalPreconditioningDialog.hpp"
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
@@ -19,6 +20,7 @@
 #include "Calibration.hpp"
 #include "CalibrationWizardPage.hpp"
 #include "PrintOptionsDialog.hpp"
+#include "SafetyOptionsDialog.hpp"
 #include "AMSMaterialsSetting.hpp"
 #include "ExtrusionCalibration.hpp"
 #include "ReleaseNote.hpp"
@@ -263,6 +265,7 @@ public:
 private:
     MachineObject*  m_obj{nullptr};
     ScalableBitmap  m_thumbnail_placeholder;
+    std::string     m_thumbnail_bmp_display_name;
     wxBitmap        m_thumbnail_bmp_display;
     ScalableBitmap  m_bitmap_use_time;
     ScalableBitmap  m_bitmap_use_weight;
@@ -278,6 +281,7 @@ private:
     wxStaticText*   m_staticText_consumption_of_time;
     wxStaticText*   m_staticText_consumption_of_weight;
     wxStaticText*   m_printing_stage_value;
+    ScalableButton* m_question_button;
     wxStaticText*   m_staticText_profile_value;
     wxStaticText*   m_staticText_progress_percent;
     wxStaticText*   m_staticText_progress_percent_icon;
@@ -300,6 +304,9 @@ private:
     wxPanel *                     m_score_subtask_info;
     wxPanel *                     m_score_staticline;
     wxPanel *                     m_request_failed_panel;
+    wxPanel                      *m_printing_stage_underline;
+    wxPanel                      *m_printing_stage_panel;
+
     // score page
     int                           m_star_count;
     std::vector<ScalableButton *> m_score_star;
@@ -328,6 +335,11 @@ public:
     void enable_abort_button(bool enable);
     void update_subtask_name(wxString name);
     void update_stage_value(wxString stage, int val);
+    void update_stage_value_with_machine(wxString stage, int val, MachineObject* obj = nullptr);
+    void on_stage_clicked(wxMouseEvent& event);
+
+    // Public interface to update remaining time text in the thermal dialog
+    void update_thermal_remaining_time(MachineObject* obj);
     void update_progress_percent(wxString percent, wxString icon);
     void update_left_time(wxString time);
     void update_left_time(int mc_left_time);
@@ -335,7 +347,7 @@ public:
     void update_layers_num(bool show, wxString num = wxEmptyString);
     void show_priting_use_info(bool show, wxString time = wxEmptyString, wxString weight = wxEmptyString);
     void show_profile_info(bool show, wxString profile = wxEmptyString);
-    void set_thumbnail_img(const wxBitmap& bmp);
+    void set_thumbnail_img(const wxBitmap& bmp, const std::string& bmp_name);
     void set_brightness_value(int value) { m_brightness_value = value; }
     void set_plate_index(int plate_idx = -1);
     void market_scoring_show();
@@ -505,6 +517,7 @@ protected:
     wxStaticText *  m_ams_debug;
     bool            m_show_ams_group{false};
     bool            m_show_filament_group{ false };
+
     AMSControl*     m_ams_control;
     StaticBox*      m_ams_control_box;
     wxStaticBitmap *m_ams_extruder_img;
@@ -524,6 +537,7 @@ protected:
     wxStaticText*   m_calibration_text;
     Button*         m_parts_btn;
     Button*         m_options_btn;
+    Button*         m_safety_btn;
     Button*         m_calibration_btn;
     StepIndicator*  m_calibration_flow;
 
@@ -613,6 +627,7 @@ protected:
     AMSSetting *m_ams_setting_dlg{nullptr};
     PrinterPartsDialog*  print_parts_dlg { nullptr };
     PrintOptionsDialog*  print_options_dlg { nullptr };
+    SafetyOptionsDialog* safety_options_dlg { nullptr };
     CalibrationDialog*   calibration_dlg {nullptr};
     AMSMaterialsSetting *m_filament_setting_dlg{nullptr};
 
@@ -732,6 +747,8 @@ protected:
     void on_show_parts_options(wxCommandEvent& event);
     /* print options */
     void on_show_print_options(wxCommandEvent &event);
+    /* safety options */
+    void on_show_safety_options(wxCommandEvent &event);
 
     /* calibration */
     void on_start_calibration(wxCommandEvent &event);
@@ -750,7 +767,8 @@ protected:
     void update_temp_ctrl(MachineObject *obj);
     void update_misc_ctrl(MachineObject *obj);
     void update_ams(MachineObject* obj);
-    void update_ams_insert_material(MachineObject* obj);
+    void update_filament_loading_panel(MachineObject* obj);
+
     void update_extruder_status(MachineObject* obj);
     void update_ams_control_state(std::string ams_id, std::string slot_id);
     void update_cali(MachineObject* obj);
@@ -766,6 +784,9 @@ protected:
 
     // partskip button
     void update_partskip_button(MachineObject* obj);
+
+    // printer parts options
+    void update_printer_parts_options(MachineObject* obj);
 
 public:
     void update_error_message();
@@ -796,7 +817,7 @@ public:
     long           last_read_done_bits{ -1 };
     long           last_reading_bits { -1 };
     long           last_ams_version { -1 };
-    int            last_cali_version{-1};
+    std::optional<int> last_cali_version;
 
     enum ThumbnailState task_thumbnail_state {ThumbnailState::PLACE_HOLDER};
     std::vector<int> last_stage_list_info;

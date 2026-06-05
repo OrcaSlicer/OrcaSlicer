@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
@@ -8,7 +8,7 @@
 using namespace Slic3r::Test;
 using namespace Slic3r;
 
-TEST_CASE("SupportMaterial: Three raft layers created", "[SupportMaterial]")
+TEST_CASE("SupportMaterial: Three raft layers created", "[SupportMaterial][.]")
 {
 	Slic3r::Print print;
 	Slic3r::Test::init_and_process_print({ TestMesh::cube_20x20x20 }, print, {
@@ -18,7 +18,7 @@ TEST_CASE("SupportMaterial: Three raft layers created", "[SupportMaterial]")
     REQUIRE(print.objects().front()->support_layers().size() == 3);
 }
 
-SCENARIO("SupportMaterial: support_layers_z and contact_distance", "[SupportMaterial]")
+SCENARIO("SupportMaterial: support_layers_z and contact_distance", "[SupportMaterial][.]")
 {
     // Box h = 20mm, hole bottom at 5mm, hole height 10mm (top edge at 15mm).
     TriangleMesh mesh = Slic3r::Test::mesh(Slic3r::Test::TestMesh::cube_with_hole);

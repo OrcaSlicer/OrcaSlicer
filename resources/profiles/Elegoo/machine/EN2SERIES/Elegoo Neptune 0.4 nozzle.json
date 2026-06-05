@@ -1,0 +1,21 @@
+{
+	"type": "machine",
+	"setting_id": "EN104",
+	"name": "Elegoo Neptune 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Elegoo Neptune 2 0.4 nozzle",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune",
+	"default_print_profile": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"210x0",
+		"210x210",
+		"0x210"
+	],
+	"printable_height": "200"
+}

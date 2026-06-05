@@ -29,6 +29,7 @@ protected:
         float pattern_shift;
     };
     bool fill_surface_by_multilines(const Surface *surface, FillParams params, const std::initializer_list<SweepParams> &sweep_params, Polylines &polylines_out);
+    bool fill_surface_trapezoidal(const Surface *surface, FillParams params, const std::initializer_list<SweepParams> &sweep_params, Polylines &polylines_out,int Pattern_type);
 
     // The extended bounding box of the whole object that covers any rotation of every layer.
     BoundingBox extended_object_bounding_box() const;

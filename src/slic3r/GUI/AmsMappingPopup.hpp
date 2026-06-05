@@ -39,6 +39,8 @@
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
 
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+
 #define MAPPING_ITEM_INVALID_REMAIN -1
 
 namespace Slic3r { namespace GUI {
@@ -225,7 +227,6 @@ public:
     std::vector<MappingItem*> m_mapping_item_list;
 
     bool        m_has_unmatch_filament {false};
-    bool        m_supporting_mix_print {false};     //For single extruder, can ams and ext print together?
     int         m_current_filament_id;
     ShowType    m_show_type{ShowType::RIGHT};
     std::string m_tag_material;
@@ -278,7 +279,7 @@ public:
     void         paintEvent(wxPaintEvent &evt);
     void         set_parent_item(MaterialItem* item) {m_parent_item = item;};
     void         set_show_type(ShowType type) { m_show_type = type; };
-    std::vector<TrayData> parse_ams_mapping(std::map<std::string, DevAms*> amsList);
+    std::vector<TrayData> parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList);
 
     using ResetCallback = std::function<void(const std::string&)>;
     void reset_ams_info();

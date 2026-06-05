@@ -2,6 +2,8 @@
 #include <nlohmann/json.hpp>
 #include "slic3r/Utils/json_diff.hpp"
 
+#include <map>
+
 namespace Slic3r {
 
 class MachineObject;
@@ -69,7 +71,7 @@ public:
 struct AirDuctData
 {
     int                              curren_mode{0};
-    std::unordered_map<int, AirMode> modes;
+    std::map<int, AirMode>           modes;
     std::vector<AirParts>            parts;
 
     int  m_sub_mode = -1;// the submode of airduct, for cooling: 0-filter, 1-cooling
@@ -106,6 +108,7 @@ public:
     };
 
      bool is_at_heating_mode() const { return m_air_duct_data.curren_mode == AIR_DUCT_HEATING_INTERNAL_FILT; };
+     bool is_at_cooling_mode() const { return m_air_duct_data.curren_mode == AIR_DUCT_COOLING_FILT; };
 
      void SetSupportCoolingFilter(bool enable) { m_air_duct_data.m_support_cooling_filter = enable; }
      AirDuctData GetAirDuctData() { return m_air_duct_data; };
@@ -121,6 +124,7 @@ public:
      void ParseV3_0(const json &print_json);
 
  public:
+     bool     GetSupportAirduct() { return is_support_airduct; };
      bool     GetSupportAuxFanData() { return is_support_aux_fan; };
      bool     GetSupportChamberFan() { return is_support_aux_fan; };
      int      GetHeatBreakFanSpeed() { return heatbreak_fan_speed; }
@@ -135,6 +139,7 @@ private:
 
       bool is_support_aux_fan{false};
       bool is_support_chamber_fan{false};
+      bool is_support_airduct{false};
 
       int      heatbreak_fan_speed = 0;
       int      cooling_fan_speed   = 0;

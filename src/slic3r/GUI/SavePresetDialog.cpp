@@ -36,7 +36,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {
@@ -111,6 +111,15 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
 
     sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
+    if (parent->m_mode == comDevelop) {
+        m_detach_checkbox = new wxCheckBox(parent, wxID_ANY, _L("Detach from parent"));
+        sizer->Add(m_detach_checkbox, 0, wxALIGN_LEFT | wxALL, BORDER_W);
+        // Set initial state (unchecked by default)
+        m_detach_checkbox->SetValue(m_detach);
+        // Bind the checkbox event to update the detach state for this item
+        m_detach_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { m_detach = m_detach_checkbox->GetValue(); });
+    }
+    
     m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {
         m_save_to_project = m_radio_group->GetSelection() == 1;
     });
@@ -147,13 +156,13 @@ void SavePresetDialog::Item::update()
     }
 
     if (m_valid_type == Valid &&
-        (m_preset_name == "Default Setting" || m_preset_name == "Default Filament" || m_preset_name == "Default Printer")) {
+        (m_preset_name == "Default Setting" || m_preset_name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || m_preset_name == "Default Printer")) {
         info_line    = _L("Name is unavailable.");
         m_valid_type = NoValid;
     }
 
     const Preset *existing = m_presets->find_preset(m_preset_name, false);
-    if (m_valid_type == Valid && existing && (existing->is_default || existing->is_system)) {
+    if (m_valid_type == Valid && existing && !existing->can_overwrite()) {
         info_line = _L("Overwriting a system profile is not allowed.");
         m_valid_type = NoValid;
     }
@@ -221,13 +230,11 @@ void SavePresetDialog::Item::update_valid_bmp()
 void SavePresetDialog::Item::accept()
 {
     if (m_valid_type == Warning) {
-        // BBS add sync info
         auto    it               = m_presets->find_preset(m_preset_name, false);
         Preset &current_preset   = *it;
-        current_preset.sync_info = "delete";
         if (!current_preset.setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << current_preset.name << ", setting_id = " << current_preset.setting_id;
-            wxGetApp().delete_preset_from_cloud(current_preset.setting_id);
+            wxGetApp().delete_preset_from_cloud(current_preset.setting_id, current_preset.file);
         }
         m_presets->delete_preset(m_preset_name);
     }
@@ -242,15 +249,15 @@ void SavePresetDialog::Item::DoSetSize(int x, int y, int width, int height, int 
 //          SavePresetDialog
 //-----------------------------------------------
 
-SavePresetDialog::SavePresetDialog(wxWindow *parent, Preset::Type type, std::string suffix)
-    : DPIDialog(parent, wxID_ANY, _L("Save preset"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+SavePresetDialog::SavePresetDialog(wxWindow* parent, Preset::Type type, int mode, std::string suffix)
+    : DPIDialog(parent, wxID_ANY, _L("Save preset"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX), m_mode(mode)
 {
     build(std::vector<Preset::Type>{type}, suffix);
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
-SavePresetDialog::SavePresetDialog(wxWindow *parent, std::vector<Preset::Type> types, std::string suffix)
-    : DPIDialog(parent, wxID_ANY, _L("Save preset"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+SavePresetDialog::SavePresetDialog(wxWindow* parent, std::vector<Preset::Type> types, int mode, std::string suffix)
+    : DPIDialog(parent, wxID_ANY, _L("Save preset"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX), m_mode(mode)
 {
     build(types, suffix);
     wxGetApp().UpdateDlgDarkUI(this);
@@ -325,6 +332,14 @@ bool SavePresetDialog::get_save_to_project_selection(Preset::Type type)
 {
     for (const Item *item : m_items)
         if (item->type() == type) return item->save_to_project();
+    return false;
+}
+
+bool SavePresetDialog::get_detach_value(Preset::Type type)
+{
+    for (const Item* item : m_items)
+        if (item->type() == type)
+            return item->is_detached();
     return false;
 }
 

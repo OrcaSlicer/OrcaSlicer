@@ -422,32 +422,23 @@ Points MultiPoint::concave_hull_2d(const Points& pts, const double tolerence)
     return min_distance;
 }
 
-
-void MultiPoint3::translate(double x, double y)
+void MultiPoint3::translate(const Point3& v)
 {
-    for (Vec3crd &p : points) {
-        p(0) += coord_t(x);
-        p(1) += coord_t(y);
-    }
-}
-
-void MultiPoint3::translate(const Point& vector)
-{
-    this->translate(vector(0), vector(1));
+    for (Point3& pt : points)
+        pt += v;
 }
 
 double MultiPoint3::length() const
 {
-    double len = 0.0;
-    for (const Line3& line : this->lines())
-        len += line.length();
+    const Lines3& lines = this->lines();
+    double        len   = 0;
+    for (auto it = lines.cbegin(); it != lines.cend(); ++it) {
+        len += it->length();
+    }
     return len;
 }
 
-BoundingBox3 MultiPoint3::bounding_box() const
-{
-    return BoundingBox3(points);
-}
+BoundingBox3 MultiPoint3::bounding_box() const { return BoundingBox3(this->points); }
 
 bool MultiPoint3::remove_duplicate_points()
 {
@@ -469,6 +460,75 @@ bool MultiPoint3::remove_duplicate_points()
     }
 
     return false;
+}
+
+// Douglas-Peucker simplification for 3D points
+Points3 MultiPoint3::_douglas_peucker(const Points3& pts, double tolerance)
+{
+    Points3 result_pts;
+    double  tolerance_sq = tolerance * tolerance;
+    if (!pts.empty()) {
+        const Point3* anchor      = &pts.front();
+        size_t        anchor_idx  = 0;
+        const Point3* floater     = &pts.back();
+        size_t        floater_idx = pts.size() - 1;
+        result_pts.reserve(pts.size());
+        result_pts.emplace_back(*anchor);
+        if (anchor_idx != floater_idx) {
+            assert(pts.size() > 1);
+            std::vector<size_t> dpStack;
+            dpStack.reserve(pts.size());
+            dpStack.emplace_back(floater_idx);
+            for (;;) {
+                double max_dist_sq  = 0.0;
+                size_t furthest_idx = anchor_idx;
+                // find point furthest from line seg created by (anchor, floater) and note it
+                for (size_t i = anchor_idx + 1; i < floater_idx; ++i) {
+                    double dist_sq = Line3::distance_to_squared(pts[i], *anchor, *floater);
+                    if (dist_sq > max_dist_sq) {
+                        max_dist_sq  = dist_sq;
+                        furthest_idx = i;
+                    }
+                }
+                // remove point if less than tolerance
+                if (max_dist_sq <= tolerance_sq) {
+                    result_pts.emplace_back(*floater);
+                    anchor_idx = floater_idx;
+                    anchor     = floater;
+                    assert(dpStack.back() == floater_idx);
+                    dpStack.pop_back();
+                    if (dpStack.empty())
+                        break;
+                    floater_idx = dpStack.back();
+                } else {
+                    floater_idx = furthest_idx;
+                    dpStack.emplace_back(floater_idx);
+                }
+                floater = &pts[floater_idx];
+            }
+        }
+        assert(result_pts.front() == pts.front());
+        assert(result_pts.back() == pts.back());
+
+#if 0
+        {
+            static int iRun = 0;
+			BoundingBox bbox(pts);
+			BoundingBox bbox2(result_pts);
+			bbox.merge(bbox2);
+            SVG svg(debug_out_path("douglas_peucker_%d.svg", iRun ++).c_str(), bbox);
+            if (pts.front() == pts.back())
+                svg.draw(Polygon(pts), "black");
+            else
+                svg.draw(Polyline(pts), "black");
+            if (result_pts.front() == result_pts.back())
+                svg.draw(Polygon(result_pts), "green", scale_(0.1));
+            else
+                svg.draw(Polyline(result_pts), "green", scale_(0.1));
+        }
+#endif
+    }
+    return result_pts;
 }
 
 BoundingBox get_extents(const MultiPoint &mp)
@@ -512,6 +572,80 @@ void MultiPoint::symmetric_y(const coord_t &x_axis)
     for (Point &pt : points) {
         pt(0) = 2 * x_axis - pt(0);
     }
+}
+
+// MultiPoint3 implementations
+void MultiPoint3::rotate(double cos_angle, double sin_angle)
+{
+    for (Point3 &pt : this->points) {
+        double cur_x = double(pt(0));
+        double cur_y = double(pt(1));
+        pt(0) = coord_t(round(cos_angle * cur_x - sin_angle * cur_y));
+        pt(1) = coord_t(round(cos_angle * cur_y + sin_angle * cur_x));
+        // Keep Z unchanged
+    }
+}
+
+void MultiPoint3::rotate(double angle, const Point3 &center)
+{
+    double s = sin(angle);
+    double c = cos(angle);
+    for (Point3 &pt : points) {
+        Vec3crd v(pt - center);
+        pt(0) = (coord_t)round(double(center(0)) + c * v[0] - s * v[1]);
+        pt(1) = (coord_t)round(double(center(1)) + c * v[1] + s * v[0]);
+        // Keep Z unchanged from original point
+    }
+}
+
+int MultiPoint3::find_point(const Point &point) const
+{
+    for (const Point3 &pt : this->points)
+        if (pt.to_point() == point)
+            return int(&pt - &this->points.front());
+    return -1;  // not found
+}
+
+int MultiPoint3::find_point(const Point &point, double scaled_epsilon) const
+{
+    if (scaled_epsilon == 0) return this->find_point(point);
+
+    auto dist2_min = std::numeric_limits<double>::max();
+    auto eps2      = scaled_epsilon * scaled_epsilon;
+    int  idx_min   = -1;
+    for (const Point3 &pt : this->points) {
+        double d2 = (pt.to_point() - point).cast<double>().squaredNorm();
+        if (d2 < dist2_min) {
+            idx_min   = int(&pt - &this->points.front());
+            dist2_min = d2;
+        }
+    }
+    return (dist2_min < eps2) ? idx_min : -1;
+}
+
+int MultiPoint3::find_point(const Point3 &point) const
+{
+    for (const Point3 &pt : this->points)
+        if (pt == point)
+            return int(&pt - &this->points.front());
+    return -1;  // not found
+}
+
+int MultiPoint3::find_point(const Point3 &point, double scaled_epsilon) const
+{
+    if (scaled_epsilon == 0) return this->find_point(point);
+
+    auto dist2_min = std::numeric_limits<double>::max();
+    auto eps2      = scaled_epsilon * scaled_epsilon;
+    int  idx_min   = -1;
+    for (const Point3 &pt : this->points) {
+        double d2 = (pt - point).cast<double>().squaredNorm();
+        if (d2 < dist2_min) {
+            idx_min   = int(&pt - &this->points.front());
+            dist2_min = d2;
+        }
+    }
+    return (dist2_min < eps2) ? idx_min : -1;
 }
 
 }

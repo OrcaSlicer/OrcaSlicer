@@ -29,6 +29,14 @@ ImageDPIFrame::ImageDPIFrame()
 #ifdef __APPLE__
     SetWindowStyleFlag(GetWindowStyleFlag() | wxSTAY_ON_TOP);
 #endif
+
+    // ORCA add border
+    Bind(wxEVT_PAINT, [this](wxPaintEvent& evt) {
+        wxPaintDC dc(this);
+        dc.SetPen(StateColor::darkModeColorFor(wxColour("#DBDBDB")));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
+    });
     
     m_sizer_main           = new wxBoxSizer(wxVERTICAL);
 
@@ -66,7 +74,9 @@ bool ImageDPIFrame::Show(bool show)
 }
 
 void ImageDPIFrame::set_bitmap(const wxBitmap &bit_map) {
-    m_bitmap->SetBitmap(bit_map);
+    if (&bit_map && bit_map.IsOk()) {
+        m_bitmap->SetBitmap(bit_map);
+    }
 }
 
 void ImageDPIFrame::set_title(const wxString& title) {
@@ -144,7 +154,6 @@ void ImageDPIFrame::on_hide()
             wxGetApp().mainframe->Raise();
         }
     }
-    set_title(""); // reset title on hide
 }
 
 } // namespace GUI

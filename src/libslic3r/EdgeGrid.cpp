@@ -64,8 +64,10 @@ void EdgeGrid::Grid::create(const std::vector<Points> &polygons, coord_t resolut
 					open = false;
 					-- end;
 				}
-			} else
-				assert(*begin != end[-1]);
+            } else {
+                //assert(*begin != end[-1]);
+            }
+
 			m_contours.emplace_back(begin, end, open);
 		}
 
@@ -142,8 +144,8 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 	assert(resolution > 0);
 	// 1) Measure the bounding box.
 	for (const Contour &contour : m_contours) {
-		assert(contour.num_segments() > 0);
-		assert(*contour.begin() != contour.end()[-1]);
+		//assert(contour.num_segments() > 0);
+		//assert(*contour.begin() != contour.end()[-1]);
 		for (const Slic3r::Point &pt : contour) 
 			m_bbox.merge(pt);
 	}

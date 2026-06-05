@@ -231,7 +231,7 @@ void MaterialItem::render(wxDC &dc)
 
 
 
-    dc.SetTextForeground(wxColour(0x26, 0x2E, 0x30));
+    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour(0x26, 0x2E, 0x30)));
     dc.SetFont(::Label::Head_12);
 
     auto mapping_txt_size = wxSize(0, 0);
@@ -717,7 +717,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_sizer_ams_right_horizonal->AddStretchSpacer();
      m_sizer_ams_right_horizonal->AddSpacer(FromDIP(5));
-     m_sizer_ams_right_horizonal->Add(m_reset_btn, 0, wxALIGN_TOP | wxEXPAND );
+     m_sizer_ams_right_horizonal->Add(m_reset_btn, 0, wxEXPAND );
      m_reset_btn->Hide();
      m_right_first_text_panel->SetSizer(m_sizer_ams_right_horizonal);
      const int same_height = 15;
@@ -813,7 +813,7 @@ void AmsMapingPopup::msw_rescale()
     m_split_left_line->SetMaxSize(wxSize(-1, 1));
     sizer_split_ams->Add(0, 0, 0, wxEXPAND, 0);
     sizer_split_ams->Add(ams_title_text, 0, wxALIGN_CENTER, 0);
-    sizer_split_ams->Add(m_split_left_line, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND, 0);
+    sizer_split_ams->Add(m_split_left_line, 1, wxEXPAND, 0);
     return sizer_split_ams;
  }
 
@@ -1257,12 +1257,10 @@ void AmsMapingPopup::update(MachineObject* obj, const std::vector<FilamentInfo>&
     Refresh();
 }
 
-std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(std::map<std::string, DevAms*> amsList)
+std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList)
 {
     std::vector<TrayData> m_tray_data;
-    std::map<std::string, DevAms *>::iterator ams_iter;
-
-    for (ams_iter = amsList.begin(); ams_iter != amsList.end(); ams_iter++) {
+    for (auto ams_iter = amsList.begin(); ams_iter != amsList.end(); ams_iter++) {
 
         BOOST_LOG_TRIVIAL(trace) << "ams_mapping ams id " << ams_iter->first.c_str();
 
@@ -2204,7 +2202,7 @@ void AmsReplaceMaterialDialog::create()
     label_txt->SetMaxSize(wxSize(FromDIP(380), -1));
     label_txt->Wrap(FromDIP(380));
 
-    identical_filament = new Label(this, _L("Identical filament: same brand, type and color"));
+    identical_filament = new Label(this, _L("Identical filament: same brand, type and color."));
     identical_filament->SetFont(Label::Body_13);
     identical_filament->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688")));
 

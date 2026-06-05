@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "re3D PC",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pc",
+	"filament_id": "GFG99",
+	"setting_id": "re3d_pc",
+	"filament_settings_id": [
+		"re3D PC"
+	],
+	"compatible_printers": [
+		"re3D Gigabot 4",
+		"re3D Gigabot 4 XLT",
+		"re3D Terabot 4"
+	],
+	"filament_vendor": [
+		"re3D"
+	]
+}

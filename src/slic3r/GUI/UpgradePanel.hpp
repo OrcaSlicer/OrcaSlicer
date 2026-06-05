@@ -19,6 +19,7 @@ class ExtensionPanel : public wxPanel
 {
 public:
     wxStaticText* m_staticText_ext;
+    wxStaticText* m_staticText_ext_val;
     wxStaticText* m_staticText_ext_ver;
     wxStaticText* m_staticText_ext_ver_val;
     wxStaticText* m_staticText_ext_sn_val;
@@ -38,6 +39,7 @@ public:
 class AmsPanel : public wxPanel
 {
 public:
+    wxStaticText *m_staticText_ams_model_id;
     wxStaticText *m_staticText_ams;
     wxStaticText *m_staticText_ams_sn_val;
     wxStaticText *m_staticText_ams_ver_val;

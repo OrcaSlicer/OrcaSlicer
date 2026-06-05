@@ -143,9 +143,6 @@ public:
     bool reset_zero_button(ImGuiWrapper *imgui_wrapper, float caption_max, float unit_size, float space_size, float end_text_size);
     bool bbl_checkbox(const wxString &label, bool &value);
 
-    void show_move_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y);
-    void show_rotate_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y);
-    void show_scale_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y);
     void set_init_rotation(const Geometry::Transformation &value);
 
 private:
@@ -171,9 +168,14 @@ private:
 
     GLCanvas3D& m_glcanvas;
     unsigned int m_last_active_item { 0 };
-    std::map<std::string, wxString> m_desc_move;
-    std::map<std::string, wxString> m_desc_rotate;
-    std::map<std::string, wxString> m_desc_scale;
+
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_move;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_rotate;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_scale;
+
     Vec3d                           m_init_rotation;
     Transform3d                     m_init_rotation_scale_tran;
 };

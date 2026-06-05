@@ -14,6 +14,7 @@
 #include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/HyperLink.hpp"
 #include "BBLStatusBar.hpp"
 #include "BBLStatusBarSend.hpp"
 #include "libslic3r/Semver.hpp"
@@ -70,7 +71,7 @@ struct MsgDialog : DPIDialog
 protected:
 	enum {
 		BORDER = 20,
-		LOGO_SPACING = 35,
+		LOGO_SPACING = 25,
 		LOGO_GAP = 20,
 		CONTENT_WIDTH = 242,
 		CONTENT_MAX_HEIGHT = 60,//TO
@@ -424,9 +425,9 @@ public:
 
 private:
     Label* m_text_basic;
-    wxHyperlinkCtrl* m_link_server_state;
+    HyperLink* m_link_server_state; // ORCA
     Label* m_text_proposal;
-    wxHyperlinkCtrl* m_text_wiki;
+    HyperLink* m_text_wiki; // ORCA
     Button *         m_button_confirm;
 
 public:

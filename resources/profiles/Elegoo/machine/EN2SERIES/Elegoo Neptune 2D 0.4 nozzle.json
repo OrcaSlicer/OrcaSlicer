@@ -1,0 +1,127 @@
+{
+	"type": "machine",
+	"setting_id": "EN2D04",
+	"name": "Elegoo Neptune 2D 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Elegoo Neptune 2 0.4 nozzle",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 2D",
+	"default_print_profile": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
+	"extruder_colour": [
+		"#FCE94F",
+		"#FCE94F"
+	],
+	"extruder_offset": [
+		"0x0",
+		"0x0"
+	],
+	"nozzle_diameter": [
+		"0.4",
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"235x0",
+		"235x235",
+		"0x235"
+	],
+	"printable_height": "250",
+	"auxiliary_fan": "0",
+	"machine_max_acceleration_extruding": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_retracting": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_x": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_y": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_z": [
+		"100",
+		"100"
+	],
+	"machine_max_speed_e": [
+		"70",
+		"70"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"machine_max_jerk_e": [
+		"5",
+		"5"
+	],
+	"machine_max_jerk_x": [
+		"8",
+		"8"
+	],
+	"machine_max_jerk_y": [
+		"8",
+		"8"
+	],
+	"machine_max_jerk_z": [
+		"0.4",
+		"0.4"
+	],
+	"max_layer_height": [
+		"0.28",
+		"0.28"
+	],
+	"min_layer_height": [
+		"0.08",
+		"0.08"
+	],
+	"retraction_minimum_travel": [
+		"2",
+		"2"
+	],
+	"retract_before_wipe": [
+		"70%",
+		"70%"
+	],
+	"retraction_length": [
+		"5",
+		"5"
+	],
+	"retraction_speed": [
+		"60",
+		"60"
+	],
+	"retract_length_toolchange": [
+		"1",
+		"1"
+	],
+	"deretraction_speed": [
+		"40",
+		"40"
+	],
+	"single_extruder_multi_material": "1",
+	"default_filament_profile": [
+		"Elegoo PLA @EN2 Series"
+	],
+	"machine_start_gcode": ";;===== date: 20240520 =====================\nT[initial_tool] ; set active extruder\n;M413 S0 ; disable Power Loss Recovery\n;[printer_model]\n;initial_filament:{filament_type[initial_extruder]}\n;curr_bed_type={curr_bed_type}\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140 ; set temporary nozzle temp to prevent oozing during homing and auto bed leveling\nM190 S[bed_temperature_initial_layer_single] ; wait for bed temp to stabilize\nG90 \nM83 ; extruder relative mode\nG28 ; home all axis\n;G29 ; auto bed levelling - remove ; at beginning of line to enable\nM420 S1 ; enable mesh - remove ; at beginning of line to enable\n;\nG1 Z10 F300\nG1 X{print_bed_max[0]*0.5-50} Y0.5 F6000\nG1 Z0.4 F300\n;\nG92 E0 ; reset extruder\nG1 E90 F600 ; load filament\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\n;\nG1 X{print_bed_max[0]*0.5+50} E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X{print_bed_max[0]*0.5+47} F3000\nG92 E0 ;Reset Extruder\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0\n;",
+	"machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n;If prime tower is not enabled, perform the following refuelling G-Code.\n{if enable_prime_tower != true}G1 E-80 F2000 ; unload filament {endif}\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < printable_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors",
+	"change_filament_gcode": ";If prime tower is not enabled, perform the following refuelling G-Code.\n{if enable_prime_tower != true} \nM83\nG92 E0\nG1 E-5 Z{layer_z+0.4} F1200\nG1 E-85 F1200\nT[next_extruder]\nG93 E0\nG1 E90 F1200\n;\n{endif}",
+	"scan_first_layer": "0"
+}

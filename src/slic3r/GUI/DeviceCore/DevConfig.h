@@ -21,6 +21,7 @@ public:
 
 public:
     // chamber
+    bool HasChamber() const { return m_has_chamber; }
     bool SupportChamberEdit() const { return m_support_chamber_edit; }
     int  GetChamberTempEditMin() const { return m_chamber_temp_edit_min; }
     int  GetChamberTempEditMax() const { return m_chamber_temp_edit_max; }
@@ -38,6 +39,7 @@ public:
     bool SupportCalibrationLidar() const { return m_support_calibration_lidar; }
     bool SupportCalibrationNozzleOffset() const { return m_support_calibration_nozzle_offset; }
     bool SupportCalibrationHighTempBed() const { return m_support_calibration_high_temp_bed; }
+    bool SupportCaliClumpPos() const { return m_support_calibration_clump_pos; }
 
     bool SupportCalibrationPA_FlowAuto() const { return m_support_calibration_pa_flow_auto; }
 
@@ -54,6 +56,7 @@ private:
 
     /*configure vals*/
     // chamber
+    bool m_has_chamber = false; // whether the machine has a chamber
     bool m_support_chamber_edit = false;
     int  m_chamber_temp_edit_min = 0;
     int  m_chamber_temp_edit_max = 60;
@@ -71,6 +74,7 @@ private:
     bool m_support_calibration_lidar = false;
     bool m_support_calibration_nozzle_offset = false;
     bool m_support_calibration_high_temp_bed = false; // High-temperature Heatbed Calibration
+    bool m_support_calibration_clump_pos     = false; // clump position calibration
 
     bool m_support_calibration_pa_flow_auto = false;// PA flow calibration. used in SendPrint
 };

@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @System",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "OEPETGPROS00",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.1"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"5"
+	],
+	"compatible_printers": [],
+	"renamed_from": "Elegoo PETG PRO"
+}

@@ -13,6 +13,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
+#include "MainFrame.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -198,6 +199,54 @@ std::string RammingPanel::get_parameters()
 static const float g_min_flush_multiplier = 0.f;
 static const float g_max_flush_multiplier = 3.f;
 
+bool is_flush_config_modified()
+{
+    const auto                &project_config    = wxGetApp().preset_bundle->project_config;
+    const std::vector<double> &config_matrix     = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
+    const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
+
+    bool has_modify = false;
+    for (int i = 0; i < config_multiplier.size(); i++) {
+        if (config_multiplier[i] != 1) {
+            has_modify = true;
+            break;
+        }
+        std::vector<std::vector<double>> default_matrix = WipingDialog::CalcFlushingVolumes(i);
+        int len = default_matrix.size();
+        for (int m = 0; m < len; m++) {
+            for (int n = 0; n < len; n++) {
+                int idx = i * len * len + m * len + n;
+                if (config_matrix[idx] != default_matrix[m][n] * config_multiplier[i]) {
+                    has_modify = true;
+                    break;
+                }
+            }
+            if (has_modify) break;
+        }
+        if (has_modify) break;
+    }
+    return has_modify;
+}
+
+void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
+{
+    auto                      &project_config = wxGetApp().preset_bundle->project_config;
+
+    WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
+    dlg.ShowModal();
+    if (dlg.GetSubmitFlag()) {
+        auto matrix = dlg.GetFlattenMatrix();
+        auto flush_multipliers = dlg.GetMultipliers();
+        (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
+        (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
+        bool flushing_volume_modify = is_flush_config_modified();
+        wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
+        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+        wxGetApp().plater()->update_project_dirty_from_presets();
+        wxPostEvent(parent, event);
+    }
+}
+
 static std::vector<float> MatrixFlatten(const WipingDialog::VolumeMatrix& matrix) {
     std::vector<float> vec;
     for (auto row_elems : matrix) {
@@ -222,6 +271,11 @@ wxString WipingDialog::BuildTableObjStr()
     }
     flush_multiplier.resize(nozzle_num, 1);
 
+    std::vector<std::vector<float>> default_matrixs;
+    for (int idx = 0; idx < nozzle_num; ++idx) {
+        default_matrixs.emplace_back(MatrixFlatten(CalcFlushingVolumes(idx)));
+    }
+
     m_raw_matrixs = flush_matrixs;
     m_flush_multipliers = flush_multiplier;
 
@@ -235,13 +289,18 @@ wxString WipingDialog::BuildTableObjStr()
     obj["min_flush_multiplier"] = g_min_flush_multiplier;
     obj["max_flush_multiplier"] = g_max_flush_multiplier;
     obj["is_dark_mode"] = wxGetApp().dark_mode();
+    obj["default_matrixs"]      = json::array();
 
     for (const auto& vec : flush_matrixs) {
         obj["flush_volume_matrixs"].push_back(vec);
     }
+    for (const auto &vec : default_matrixs) {
+        obj["default_matrixs"].push_back(vec);
+    }
 
     for (int idx = 0; idx < nozzle_num; ++idx) {
-        int min_flush_from_nozzle_volume = *min_element(m_extra_flush_volume[idx].begin(), m_extra_flush_volume[idx].end());
+        const std::vector<int> &min_flush_volumes = get_min_flush_volumes(full_config, idx);
+        int min_flush_from_nozzle_volume = *min_element(min_flush_volumes.begin(), min_flush_volumes.end());
         GenericFlushPredictor pd(nozzle_flush_dataset[idx]);
         int min_flush_from_flush_data = pd.get_min_flush_volume();
         obj["min_flush_volumes"].push_back(std::min(min_flush_from_flush_data,min_flush_from_nozzle_volume));
@@ -304,37 +363,40 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
     return text_obj;
 }
 
-WipingDialog::WipingDialog(wxWindow* parent, const std::vector<std::vector<int>>& extra_flush_volume,const int max_flush_volume) :
+WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxDialog(parent, wxID_ANY, _(L("Flushing volumes for filament change")),
     wxDefaultPosition, wxDefaultSize,
-    wxDEFAULT_DIALOG_STYLE ),
-    m_extra_flush_volume(extra_flush_volume),
+    wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
     m_max_flush_volume(max_flush_volume)
 {
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(main_sizer);
     this->SetBackgroundColour(*wxWHITE);
-    auto filament_count= wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
-    wxSize extra_size = { FromDIP(100),FromDIP(235) };
-    if (filament_count <= 2)
-        extra_size.y += FromDIP(16) * 3 + FromDIP(32);
-    else if (filament_count == 3)
-        extra_size.y += FromDIP(16) * 3;
-    else if (4 <= filament_count && filament_count <= 8)
-        extra_size.y += FromDIP(16) * 2;
-    else
-        extra_size.y += FromDIP(16);
+    auto filament_count = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
 
-    wxSize max_scroll_size = { FromDIP(1000),FromDIP(500) };
-    wxSize estimate_size = { (int)(filament_count + 1) * FromDIP(60),(int)(filament_count + 1) * FromDIP(30)+FromDIP(2)};
-    wxSize scroll_size ={ std::min(max_scroll_size.x,estimate_size.x),std::min(max_scroll_size.y,estimate_size.y) };
-    wxSize applied_size = scroll_size + extra_size;
+    // Estimate table scroll area size based on filament count
+    // Each table cell is ~60x25 DIP, plus headers and borders
+    wxSize max_scroll_size = { FromDIP(1000), FromDIP(500) };
+    wxSize table_size = { (int)(filament_count + 1) * FromDIP(60), (int)(filament_count + 1) * FromDIP(25) + FromDIP(2) };
+    wxSize scroll_size = { std::min(max_scroll_size.x, table_size.x), std::min(max_scroll_size.y, table_size.y) };
 
+    // Fixed overhead: padding (~30), tip panel (~70), controls row (~50),
+    // description/multiplier section (~130), button row (~45) = ~325 DIP
+    wxSize fixed_overhead = { FromDIP(100), FromDIP(325) };
+    wxSize applied_size = scroll_size + fixed_overhead;
+
+    // Clamp to screen size (leave some margin for window decorations)
     wxSize scaled_screen_size = wxGetDisplaySize();
     double scale_factor = wxDisplay().GetScaleFactor();
-    scaled_screen_size = { (int)(scaled_screen_size.x / scale_factor),(int)(scaled_screen_size.y / scale_factor) };
+    scaled_screen_size = { (int)(scaled_screen_size.x / scale_factor), (int)(scaled_screen_size.y / scale_factor) };
+    wxSize screen_margin = { FromDIP(40), FromDIP(60) };
+    scaled_screen_size -= screen_margin;
 
-    applied_size = { std::min(applied_size.x,scaled_screen_size.x),std::min(applied_size.y,scaled_screen_size.y) };
+    applied_size = { std::min(applied_size.x, scaled_screen_size.x), std::min(applied_size.y, scaled_screen_size.y) };
+
+    // Ensure a reasonable minimum size so the dialog is usable even when clamped
+    applied_size.x = std::max(applied_size.x, FromDIP(350));
+    applied_size.y = std::max(applied_size.y, FromDIP(450));
     m_webview = wxWebView::New(this, wxID_ANY,
         wxEmptyString,
         wxDefaultPosition,
@@ -346,7 +408,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const std::vector<std::vector<int>>
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";
-    wxString filepath_str = wxString::FromUTF8(filepath.string());
+    wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
         wxString url = wxFileSystem::FileNameToURL(fn);
@@ -438,6 +500,15 @@ WipingDialog::WipingDialog(wxWindow* parent, const std::vector<std::vector<int>>
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to parse json message: " << message;
         }
         });
+
+    m_webview->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+    if (e.GetKeyCode() == WXK_ESCAPE) {
+            if (IsModal()) EndModal(wxID_CANCEL);
+            else Close();
+            return;
+    }
+        e.Skip();
+    });
 }
 
 
@@ -478,6 +549,7 @@ WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
     }
 
     VolumeMatrix matrix;
+    const std::vector<int> min_flush_volumes = get_min_flush_volumes(full_config, extruder_id);
 
     for (int from_idx = 0; from_idx < multi_colors.size(); ++from_idx) {
         bool is_from_support = is_support_filament(from_idx);
@@ -499,7 +571,7 @@ WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
                     const wxColour& from = multi_colors[from_idx][i];
                     for (int j = 0; j < multi_colors[to_idx].size(); ++j) {
                         const wxColour& to = multi_colors[to_idx][j];
-                        int volume = CalcFlushingVolume(from, to, m_extra_flush_volume[extruder_id][from_idx], flush_dataset_value);
+                        int volume = CalcFlushingVolume(from, to, min_flush_volumes[from_idx], flush_dataset_value);
                         flushing_volume = std::max(flushing_volume, volume);
                     }
                 }

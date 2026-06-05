@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @Elegoo Giga",
+	"inherits": "Elegoo ASA @base",
+	"from": "system",
+	"setting_id": "EASAEOSG00",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"30"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"compatible_printers": [
+		"Elegoo OrangeStorm Giga 0.4 nozzle",
+		"Elegoo OrangeStorm Giga 0.6 nozzle",
+		"Elegoo OrangeStorm Giga 0.8 nozzle",
+		"Elegoo OrangeStorm Giga 1.0 nozzle"
+	],
+	"renamed_from": "Elegoo ASA @EOS Giga"
+}

@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign the user or unassign stale assignments
-        uses: takanome-dev/assign-issue-action@v2.3
+        # Note: v3.0.0 is broken (dist/index.mjs vs action.yml expects index.js)
+        # See: https://github.com/takanome-dev/assign-issue-action/issues/426
+        uses: takanome-dev/assign-issue-action@v2.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           maintainers: 'noisyfox,softfever'

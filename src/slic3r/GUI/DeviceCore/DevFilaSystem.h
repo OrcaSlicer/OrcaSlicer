@@ -4,8 +4,11 @@
 
 #include "DevDefs.h"
 #include "DevFilaAmsSetting.h"
+#include "DevUtil.h"
 
 #include <map>
+#include <optional>
+#include <memory>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -15,6 +18,28 @@ namespace Slic3r
 {
 class MachineObject;
 
+/**
+ * DevAmsTray - Represents a single filament tray/slot in an AMS unit or virtual tray.
+ *
+ * Data Population:
+ * ================
+ * This class is used in two contexts with different population paths:
+ *
+ * 1. AMS Trays (within DevFilaSystem):
+ *    NetworkAgent → MachineObject::parse_json() → DevFilaSystemParser::ParseV1_0()
+ *
+ * 2. Virtual Trays (MachineObject::vt_slot for external/manual filament):
+ *    NetworkAgent → MachineObject::parse_json() → MachineObject::parse_vt_tray()
+ *
+ * Key Fields Used by build_filament_ams_list():
+ * - setting_id: Filament preset identifier (tray_info_idx from printer)
+ * - tag_uid: RFID tag unique ID for identifying filament spools
+ * - m_fila_type: Filament material type (e.g., "PLA", "ABS", "PETG")
+ * - color: Hex color string without '#' prefix (e.g., "FF0000")
+ * - cols: Multi-color component list for gradient/multi-color filaments
+ * - ctype: Color type indicator
+ * - is_exists: Whether filament is currently loaded in the tray
+ */
 class DevAmsTray
 {
 public:
@@ -28,7 +53,7 @@ public:
     std::string              tag_uid;             // tag_uid
     std::string              setting_id;          // tray_info_idx
     std::string              filament_setting_id; // setting_id
-    std::string              type;
+    std::string              m_fila_type;
     std::string              sub_brands;
     std::string              color;
     std::vector<std::string> cols;
@@ -50,6 +75,7 @@ public:
     wxColour        wx_color;
     bool            is_bbl;
     bool            is_exists = false;
+    bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
 
@@ -57,7 +83,7 @@ public:
     // operators
     bool operator==(DevAmsTray const& o) const
     {
-        return id == o.id && type == o.type && filament_setting_id == o.filament_setting_id && color == o.color;
+        return id == o.id && m_fila_type == o.m_fila_type && filament_setting_id == o.filament_setting_id && color == o.color;
     }
     bool operator!=(DevAmsTray const& o) const { return !operator==(o); }
 
@@ -79,6 +105,27 @@ public:
     static wxColour decode_color(const std::string& color);
 };
 
+/**
+ * DevAms - Represents a single AMS (Automatic Material System) unit.
+ *
+ * An AMS unit is a physical hardware component that holds multiple filament trays.
+ * Different printer models support different AMS variants with varying slot counts
+ * and capabilities.
+ *
+ * Data Population:
+ * ================
+ * Populated by DevFilaSystemParser from printer JSON messages received via NetworkAgent.
+ *
+ * Key Properties:
+ * - m_ams_id: Unique identifier for this AMS unit (string, typically "0", "1", etc.)
+ * - m_ext_id: Which extruder this AMS is connected to (for multi-extruder setups)
+ * - m_trays: Map of tray IDs to DevAmsTray pointers containing filament data
+ *
+ * AMS Type Variants:
+ * - AMS (type 1): Standard 4-slot AMS with humidity control
+ * - AMS_LITE (type 2): Simplified version
+ * - N3F/N3S (types 3,4): Newer variants with different humidity/drying support
+ */
 class DevAms
 {
     friend class DevFilaSystemParser;
@@ -142,6 +189,36 @@ private:
     int    m_left_dry_time = 0;
 };
 
+/**
+ * DevFilaSystem - Central manager for all AMS-related data on a printer.
+ *
+ * This class owns and manages the hierarchy of AMS units (DevAms) and their trays (DevAmsTray).
+ * It provides the primary interface for querying filament/AMS state used by the GUI.
+ *
+ * Data Flow Architecture:
+ * =======================
+ *   Printer Device (sends status via MQTT/LAN)
+ *       ↓
+ *   NetworkAgent (receives JSON, invokes registered callbacks)
+ *       ↓
+ *   MachineObject::parse_json() (delegates to DevFilaSystemParser)
+ *       ↓
+ *   DevFilaSystemParser::ParseV1_0() (populates this DevFilaSystem instance)
+ *       ↓
+ *   GUI functions like build_filament_ams_list() read from here
+ *
+ * Key Methods:
+ * - GetAmsList(): Returns map of all AMS units (ams_id -> DevAms*)
+ * - GetAmsTray(): Retrieves specific tray by AMS ID and tray ID
+ * - HasAms(): Checks if any AMS units are connected
+ *
+ * Ownership:
+ * - Owned by MachineObject (m_fila_system member)
+ * - Owns all DevAms instances which in turn own DevAmsTray instances
+ *
+ * Note: This class does NOT directly communicate with NetworkAgent.
+ * It is a passive data store populated by the parsing layer.
+ */
 class DevFilaSystem
 {
     friend class DevFilaSystemParser;
@@ -150,12 +227,14 @@ public:
     ~DevFilaSystem();
 
 public:
+    MachineObject* GetOwner() const { return m_owner; }
+
     bool        HasAms() const { return !amsList.empty(); }
     bool        IsAmsSettingUp() const;
 
     /* ams */
     DevAms*                         GetAmsById(const std::string& ams_id) const;
-    std::map<std::string, DevAms*>& GetAmsList() { return amsList; }
+    std::map<std::string, DevAms*, NumericStrCompare>& GetAmsList() { return amsList; }
     int                             GetAmsCount() const { return amsList.size(); }
 
     /* tray*/
@@ -167,10 +246,16 @@ public:
 
     /* AMS settings*/
     DevAmsSystemSetting& GetAmsSystemSetting() { return m_ams_system_setting; }
-    bool                 IsDetectOnInsertEnabled() const { return m_ams_system_setting.IsDetectOnInsertEnabled(); };
+    std::optional<bool>  IsDetectOnInsertEnabled() const { return m_ams_system_setting.IsDetectOnInsertEnabled(); };
     bool                 IsDetectOnPowerupEnabled() const { return m_ams_system_setting.IsDetectOnPowerupEnabled(); }
     bool                 IsDetectRemainEnabled() const { return m_ams_system_setting.IsDetectRemainEnabled(); }
     bool                 IsAutoRefillEnabled() const { return m_ams_system_setting.IsAutoRefillEnabled(); }
+
+    std::weak_ptr<DevAmsSystemFirmwareSwitch> GetAmsFirmwareSwitch() const { return m_ams_firmware_switch;}
+
+public:
+    // ctrls
+    int  CtrlAmsReset() const;
      
 public:
     static bool IsBBL_Filament(std::string tag_uid);
@@ -181,12 +266,25 @@ private:
     /* ams properties */
     int  m_ams_cali_stat = 0;
 
-    std::map<std::string, DevAms*> amsList;    // key: ams[id], start with 0
+    std::map<std::string, DevAms*, NumericStrCompare> amsList;// key: ams[id], start with 0
 
     DevAmsSystemSetting m_ams_system_setting{ this };
+    std::shared_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch = DevAmsSystemFirmwareSwitch::Create(this);
 };// class DevFilaSystem
 
 
+/**
+ * DevFilaSystemParser - Parses printer JSON messages to populate DevFilaSystem.
+ *
+ * This is the bridge between NetworkAgent's raw JSON data and the structured
+ * DevFilaSystem/DevAms/DevAmsTray hierarchy.
+ *
+ * Called from MachineObject::parse_json() when AMS-related fields are present
+ * in printer status messages received via MQTT or LAN communication.
+ *
+ * @see MachineObject::parse_json() - Entry point for JSON parsing
+ * @see DevFilaSystem - Target data structure
+ */
 class DevFilaSystemParser
 {
 public:

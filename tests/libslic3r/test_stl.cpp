@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/STL.hpp"

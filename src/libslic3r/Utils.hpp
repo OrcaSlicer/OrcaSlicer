@@ -79,12 +79,14 @@ namespace boost { namespace filesystem { class directory_entry; }}
 namespace Slic3r {
 
 extern void set_logging_level(unsigned int level);
+extern void set_logging_file(const std::string &file);
 extern unsigned int level_string_to_boost(std::string level);
 extern std::string  get_string_logging_level(unsigned level);
 extern unsigned get_logging_level();
 extern void trace(unsigned int level, const char *message);
 // Format memory allocated, separate thousands by comma.
 extern std::string format_memsize_MB(size_t n);
+extern std::string format_memsize(size_t bytes, unsigned int decimals = 1);
 // Return string to be added to the boost::log output to inform about the current process memory allocation.
 // The string is non-empty if the loglevel >= info (3) or ignore_loglevel==true.
 // Latter is used to get the memory info from SysInfoDialog.
@@ -168,6 +170,9 @@ const std::string& sys_shapes_dir();
 
 // Return a full path to the custom shapes gallery directory.
 std::string custom_shapes_dir();
+
+// Return a full path to the handy models directory.
+std::string handy_models_dir();
 
 // Set a path with shapes gallery files.
 void set_custom_gcodes_dir(const std::string &path);
@@ -703,7 +708,19 @@ inline std::string filter_characters(const std::string& str, const std::string& 
     return filteredStr;
 }
 
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter = nullptr);
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter = nullptr,
+                                bool merge_mode                               = false);
+
+// Install vendor bundles from resources directory to data directory
+// bundle_names: vector of vendor bundle names (without .json extension)
+// resource_subdir: subdirectory under resources_dir() (default: "profiles")
+// data_subdir: subdirectory under data_dir() (default: "system")
+// Returns: true if all bundles installed successfully, false otherwise
+bool install_vendor_bundles_from_resources(const std::vector<std::string>& bundle_names,
+                                           const std::string& resource_subdir = "profiles",
+                                           const std::string& data_subdir     = "system");
 
 // Orca: Since 1.7.9 Boost deprecated save_string_file and load_string_file, copy and modified from boost 1.7.8
 void save_string_file(const boost::filesystem::path& p, const std::string& str);

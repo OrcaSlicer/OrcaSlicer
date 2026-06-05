@@ -9,9 +9,11 @@
 
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 #include <wx/stattext.h>
 
+#define MODEL_STR   L("Model:")
 #define SERIAL_STR  L("Serial:")
 #define VERSION_STR L("Version:")
 
@@ -64,45 +66,47 @@ void uiDeviceUpdateVersion::SetVersion(const wxString& cur_version, const wxStri
 
 void uiDeviceUpdateVersion::CreateWidgets()
 {
-    m_dev_name = new wxStaticText(this, wxID_ANY, "_");
-    m_dev_snl = new wxStaticText(this, wxID_ANY, "_");
-    m_dev_version = new wxStaticText(this, wxID_ANY, "_");
+    m_dev_name = new wxStaticText(this, wxID_ANY, "-");
+    m_dev_snl = new wxStaticText(this, wxID_ANY, "-");
+    m_dev_version = new wxStaticText(this, wxID_ANY, "-");
 
     wxStaticText* serial_text = new wxStaticText(this, wxID_ANY, _L(SERIAL_STR));
     wxStaticText* version_text = new wxStaticText(this, wxID_ANY, _L(VERSION_STR));
+    wxStaticText *model_text   = new wxStaticText(this, wxID_ANY, _L(MODEL_STR));
 
     // Use bold font
-    wxFont font = this->GetFont();
+    wxFont font = Label::Head_14;
     font.SetWeight(wxFONTWEIGHT_BOLD);
     m_dev_name->SetFont(font);
     serial_text->SetFont(font);
     version_text->SetFont(font);
+    model_text->SetFont(font);
 
     // The grid sizer
-    wxFlexGridSizer* grid_sizer = new wxFlexGridSizer(2, 3, 0, 0);
+    wxFlexGridSizer* grid_sizer = new wxFlexGridSizer(0, 2, 0, 0);
     //grid_sizer->AddGrowableCol(1);
     grid_sizer->SetFlexibleDirection(wxHORIZONTAL);
     grid_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
+    grid_sizer->Add(model_text, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+    grid_sizer->Add(m_dev_name, 0, wxALL | wxEXPAND, FromDIP(5));
     grid_sizer->Add(serial_text, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
-    grid_sizer->Add(m_dev_snl, 0, wxALIGN_LEFT | wxALL, FromDIP(5));
-    grid_sizer->Add(0, 0, wxALL, wxEXPAND);
+    grid_sizer->Add(m_dev_snl, 0, wxALL | wxEXPAND, FromDIP(5));
 
     m_dev_upgrade_indicator = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(5), FromDIP(5)));
     m_dev_upgrade_indicator->SetBitmap(ScalableBitmap(this, "monitor_upgrade_online", 5).bmp());
 
     wxBoxSizer* version_hsizer = new wxBoxSizer(wxHORIZONTAL);
-    version_hsizer->Add(m_dev_upgrade_indicator, 0,  wxALL, FromDIP(5));
-    version_hsizer->Add(version_text, 0, wxLEFT |  wxBOTTOM|wxALIGN_RIGHT, FromDIP(5));
+    version_hsizer->Add(0, 0, 1, wxEXPAND, 0);
+    version_hsizer->Add(m_dev_upgrade_indicator, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    version_hsizer->Add(version_text, 0, wxALL, FromDIP(5));
 
-    grid_sizer->Add(version_hsizer, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
-    grid_sizer->Add(m_dev_version, 0, wxALIGN_LEFT | wxALL, FromDIP(5));
-    grid_sizer->Add(0, 0, wxALL, wxEXPAND);
-
+    grid_sizer->Add(version_hsizer, 0, wxEXPAND, 0);
+    grid_sizer->Add(m_dev_version, 0, wxEXPAND | wxALL, FromDIP(5));
+   
     // Updating
     wxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
-    main_sizer->AddSpacer(FromDIP(20));
-    main_sizer->Add(m_dev_name, 0, wxALIGN_LEFT | wxALL, FromDIP(5));
+    main_sizer->AddSpacer(FromDIP(40));
     main_sizer->Add(grid_sizer, 0, wxALIGN_LEFT, FromDIP(5));
 
     SetSizer(main_sizer);

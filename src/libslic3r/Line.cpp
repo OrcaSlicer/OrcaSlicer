@@ -76,7 +76,20 @@ bool Line::parallel_to(const Line& line) const
     const Vec2d v2 = (line.b - line.a).cast<double>();
     return sqr(cross2(v1, v2)) < sqr(EPSILON) * v1.squaredNorm() * v2.squaredNorm();
 }
-
+bool Line::overlap(const Line &line, double &overlap_length) const
+{
+    if (!this->parallel_to(line)) return false;
+    Line line_(this->a, line.a);
+    if (line_.length() > scaled(EPSILON) && !this->parallel_to(line_)) return false;
+    coord_t a_min  = std::min(this->a.x(), this->b.x());
+    coord_t a_max  = std::max(this->a.x(), this->b.x());
+    coord_t b_min  = std::min(line.a.x(), line.b.x());
+    coord_t b_max  = std::max(line.a.x(), line.b.x());
+    if (a_min>b_max||a_max<b_min) return false;
+    overlap_length = std::max((coord_t)0, std::min(a_max, b_max) - std::max(a_min, b_min));
+    overlap_length /= ((double) a_max - a_min) / this->length();
+    return true;
+}
 bool Line::perpendicular_to(double angle) const
 {
     return Slic3r::Geometry::directions_perpendicular(this->direction(), angle);

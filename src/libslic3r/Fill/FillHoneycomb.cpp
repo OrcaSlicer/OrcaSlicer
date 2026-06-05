@@ -74,7 +74,7 @@ void FillHoneycomb::_fill_surface_single(
         }
     }
     // Apply multiline offset if needed
-    multiline_fill(all_polylines, params, 1.1 * spacing);
+    multiline_fill(all_polylines, params, spacing);
 
     all_polylines = intersection_pl(std::move(all_polylines), expolygon);
     chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);

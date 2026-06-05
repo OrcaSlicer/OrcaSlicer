@@ -145,7 +145,6 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
 
 
     m_ahb_panel = new AmsPanel(this, wxID_ANY);
-    m_ahb_panel->m_staticText_ams->SetLabel("AMS HUB");
     m_ams_content_sizer->Add(m_ahb_panel, 0, wxEXPAND, 0);
 
 
@@ -183,7 +182,6 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     wxBoxSizer* extra_ams_content_sizer = new wxBoxSizer(wxVERTICAL);
     extra_ams_content_sizer->Add(0, 40, 0, wxEXPAND, FromDIP(5));
     m_extra_ams_panel = new ExtraAmsPanel(this);
-    m_extra_ams_panel->m_staticText_ams->SetLabel("AMS Lite");
     extra_ams_content_sizer->Add(m_extra_ams_panel, 0, wxEXPAND, 0);
 
     m_extra_ams_sizer->Add(extra_ams_content_sizer, 1, wxEXPAND, 0);
@@ -228,17 +226,7 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     m_main_right_sizer->Add(0, FromDIP(50), 0, wxEXPAND, FromDIP(5));
 
     m_button_upgrade_firmware = new Button(this, _L("Update firmware"));
-    StateColor btn_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                      std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Enabled),
-                      std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    StateColor btn_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Enabled));
-    StateColor btn_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled));
-    m_button_upgrade_firmware->SetBackgroundColor(btn_bg);
-    m_button_upgrade_firmware->SetBorderColor(btn_bd);
-    m_button_upgrade_firmware->SetTextColor(btn_text);
-    m_button_upgrade_firmware->SetFont(Label::Body_10);
-    m_button_upgrade_firmware->SetMinSize(wxSize(FromDIP(-1), FromDIP(24)));
-    m_button_upgrade_firmware->SetCornerRadius(FromDIP(12));
+    m_button_upgrade_firmware->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_main_right_sizer->Add(m_button_upgrade_firmware, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(5));
 
     m_staticText_upgrading_info = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0);
@@ -433,9 +421,9 @@ void MachineInfoPanel::msw_rescale()
 void MachineInfoPanel::init_bitmaps()
 {
     try {
-        m_img_printer        = ScalableBitmap(this, "printer_thumbnail_png", 160);
-        m_img_monitor_ams    = ScalableBitmap(this, "monitor_upgrade_ams_png", 160);
-        m_img_ext            = ScalableBitmap(this, "monitor_upgrade_ext", 160);
+        m_img_printer     = ScalableBitmap(this, "printer_thumbnail_png", 160);
+        m_img_monitor_ams = ScalableBitmap(this, "monitor_upgrade_ams_png", 150);
+        m_img_ext         = ScalableBitmap(this, "monitor_upgrade_ext", 160);
 
         m_img_air_pump  = ScalableBitmap(this, "air_pump", 160);
         m_img_extra_ams = ScalableBitmap(this, "extra_icon_png", 160);
@@ -575,7 +563,6 @@ void MachineInfoPanel::update(MachineObject* obj)
 
 void MachineInfoPanel::update_version_text(MachineObject* obj)
 {
-
     if (obj->upgrade_display_state == DevFirmwareUpgradingState::UpgradingInProgress) {
         m_staticText_ver_val->SetLabelText("-");
         //m_staticText_ams_ver_val->SetLabelText("-");
@@ -686,7 +673,18 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
             amspanel->Hide();
         }
 
+
         m_ahb_panel->Show();
+        wxString hub_name = "-";
+        if (!obj->module_vers.find("ahb")->second.product_name.empty())
+        {
+            hub_name = obj->module_vers.find("ahb")->second.product_name;
+        }
+        else
+        {
+            hub_name = "AMS HUB";
+        }
+
 
         wxString hub_sn = "-";
         if (!obj->module_vers.find("ahb")->second.sn.empty()) {
@@ -743,14 +741,14 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
                 }
             }
         }
-
+        m_ahb_panel->m_staticText_ams->SetLabel(hub_name);
         m_ahb_panel->m_staticText_ams_sn_val->SetLabelText(hub_sn);
         m_ahb_panel->m_staticText_ams_ver_val->SetLabelText(hub_ver);
     }
 
     //ams
-    if (obj->ams_exist_bits != 0) {
-
+    if (obj->ams_exist_bits != 0)
+    {
         std::string extra_ams_str = (boost::format("ams_f1/%1%") % 0).str();
         auto extra_ams_it = obj->module_vers.find(extra_ams_str);
         if (extra_ams_it != obj->module_vers.end()) {
@@ -786,6 +784,13 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
                     m_extra_ams_panel->m_staticText_beta_version->Hide();
                 }
             }
+            wxString name_text = "-";
+            if (!extra_ams_it->second.product_name.empty())
+                name_text = extra_ams_it->second.product_name;
+            else
+                name_text = "AMS Lite";
+
+            m_extra_ams_panel->m_staticText_ams->SetLabel(name_text);
             m_extra_ams_panel->m_staticText_ams_sn_val->SetLabelText(sn_text);
             m_extra_ams_panel->m_staticText_ams_ver_val->SetLabelText(ver_text);
             show_ams(false);
@@ -838,19 +843,26 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
                 auto ams_id = std::stoi(iter->second->GetAmsId());
                 ams_id -= ams_id >= 128 ? 128 : 0;
 
-                size_t pos = it->second.name.find('/');
-                wxString ams_device_name = "AMS-%s";
-
-                if (pos != std::string::npos) {
-                    wxString result = it->second.name.substr(0, pos);
-                    result.MakeUpper();
-                    if (auto str_it = ACCESSORY_DISPLAY_STR.find(result); str_it != ACCESSORY_DISPLAY_STR.end())
-                        result = str_it->second;
-                    ams_device_name = result + "-%s";
+                if (!it->second.product_name.empty())
+                {
+                    ams_name = it->second.product_name;
                 }
+                else
+                {
+                     size_t pos = it->second.name.find('/');
+                     wxString ams_device_name = "AMS-%s";
 
-                wxString ams_text = wxString::Format(ams_device_name, std::to_string(ams_id + 1));
-                ams_name = ams_text;
+                     if (pos != std::string::npos) {
+                         wxString result = it->second.name.substr(0, pos);
+                         result.MakeUpper();
+                         if (auto str_it = ACCESSORY_DISPLAY_STR.find(result); str_it != ACCESSORY_DISPLAY_STR.end())
+                             result = str_it->second;
+                         ams_device_name = result + "-%s";
+                     }
+
+                     wxString ams_text = wxString::Format(ams_device_name, std::to_string(ams_id + 1));
+                     ams_name = ams_text;
+                }
 
                 if (it == ver_list.end()) {
                     // hide this ams
@@ -1025,7 +1037,7 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
 
     if (contain_four_slot) {
         if (m_img_monitor_ams.name() != "monitor_upgrade_ams") {
-            m_img_monitor_ams = ScalableBitmap(this, "monitor_upgrade_ams_png", 160);
+            m_img_monitor_ams = ScalableBitmap(this, "monitor_upgrade_ams_png", 150);
             m_ams_img->SetBitmap(m_img_monitor_ams.bmp());
         }
     } else if (contain_one_slot) {
@@ -1418,7 +1430,7 @@ void UpgradePanel::update(MachineObject *obj)
         if (m_obj->upgrade_force_upgrade) {
             m_show_forced_hint = false;   //lock hint
             if (force_dlg == nullptr) {
-                force_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Update firmware"), SecondaryCheckDialog::ButtonStyle::CONFIRM_AND_CANCEL, wxDefaultPosition, wxDefaultSize);
+                force_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Update firmware"), SecondaryCheckDialog::VisibleButtons::CONFIRM_AND_CANCEL, wxDefaultPosition, wxDefaultSize);  // ORCA VisibleButtons instead ButtonStyle 
                 force_dlg->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this](wxCommandEvent& e) {
                     if (m_obj) {
                         m_obj->command_upgrade_confirm();
@@ -1443,7 +1455,7 @@ void UpgradePanel::update(MachineObject *obj)
         if (m_obj->upgrade_consistency_request) {
             m_show_consistency_hint = false;
             if (consistency_dlg == nullptr) {
-                consistency_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Update firmware"), SecondaryCheckDialog::ButtonStyle::CONFIRM_AND_CANCEL, wxDefaultPosition, wxDefaultSize);
+                consistency_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Update firmware"), SecondaryCheckDialog::VisibleButtons::CONFIRM_AND_CANCEL, wxDefaultPosition, wxDefaultSize);  // ORCA VisibleButtons instead ButtonStyle 
                 consistency_dlg->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this](wxCommandEvent& e) {
                     if (m_obj) {
                         m_obj->command_consistency_upgrade_confirm();
@@ -1522,6 +1534,10 @@ bool UpgradePanel::Show(bool show)
      ams_sizer->SetFlexibleDirection(wxHORIZONTAL);
      ams_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
+     m_staticText_ams_model_id = new wxStaticText(this, wxID_ANY, _L("Model:"), wxDefaultPosition, wxDefaultSize, 0);
+     m_staticText_ams_model_id->Wrap(-1);
+     m_staticText_ams_model_id->SetFont(Label::Head_14);
+
      m_staticText_ams = new wxStaticText(this, wxID_ANY, "-", wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_ams->SetForegroundColour("#262E30");
      m_staticText_ams->SetFont(Label::Head_14);
@@ -1564,8 +1580,8 @@ bool UpgradePanel::Show(bool show)
      content_info->Add(m_staticText_ams_ver_val, 0, wxALL | wxEXPAND, FromDIP(5));
      content_info->Add(m_staticText_beta_version, 0, wxALL | wxEXPAND, FromDIP(5));
 
-     ams_sizer->Add(m_staticText_ams, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
-     ams_sizer->Add(0, 0, 1, wxEXPAND, 5);
+     ams_sizer->Add(m_staticText_ams_model_id, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+     ams_sizer->Add(m_staticText_ams, 0,  wxALL, FromDIP(5));
      ams_sizer->Add(m_staticText_ams_sn, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
      ams_sizer->Add(m_staticText_ams_sn_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ams_sizer->Add(m_ams_ver_sizer, 1, wxEXPAND, FromDIP(5));
@@ -1604,12 +1620,16 @@ bool UpgradePanel::Show(bool show)
      ext_sizer->SetFlexibleDirection(wxHORIZONTAL);
      ext_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-     auto title_sizer = new wxBoxSizer(wxHORIZONTAL);
-     m_staticText_ext = new wxStaticText(this, wxID_ANY, _L("Extension Board"), wxDefaultPosition, wxDefaultSize, 0);
+
+     m_staticText_ext = new wxStaticText(this, wxID_ANY, _L("Model:"), wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_ext->SetForegroundColour("#262E30");
-     m_staticText_ext->SetFont(Label::Head_14);
      m_staticText_ext->Wrap(-1);
-     title_sizer->Add(m_staticText_ext, 0, wxALL, FromDIP(5));
+     m_staticText_ext->SetFont(Label::Head_14);
+
+     m_staticText_ext_val = new wxStaticText(this, wxID_ANY, _L("Extension Board"), wxDefaultPosition, wxDefaultSize, 0);
+     m_staticText_ext_val->SetForegroundColour("#262E30");
+     m_staticText_ext_val->SetFont(Label::Head_14);
+     m_staticText_ext_val->Wrap(-1);
 
      auto m_staticText_ext_sn = new wxStaticText(this, wxID_ANY, _L("Serial:"), wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_ext_sn->SetForegroundColour("#262E30");
@@ -1637,13 +1657,14 @@ bool UpgradePanel::Show(bool show)
      m_staticText_ext_ver_val->SetForegroundColour("#262E30");
      m_staticText_ext_ver_val->Wrap(-1);
 
+     ext_sizer->Add(m_staticText_ext, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+     ext_sizer->Add(m_staticText_ext_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ext_sizer->Add(m_staticText_ext_sn, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
      ext_sizer->Add(m_staticText_ext_sn_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ext_sizer->Add(m_ext_ver_sizer, 1, wxEXPAND, FromDIP(5));
      ext_sizer->Add(m_staticText_ext_ver_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ext_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
-     top_sizer->Add(title_sizer);
      top_sizer->Add(ext_sizer);
      SetSizer(top_sizer);
      Layout();

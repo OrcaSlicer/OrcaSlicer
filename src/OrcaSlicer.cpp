@@ -6,6 +6,7 @@
     #define NOMINMAX
     #include <Windows.h>
     #include <wchar.h>
+    #include <commctrl.h>
     #ifdef SLIC3R_GUI
     extern "C"
     {
@@ -22,6 +23,7 @@
 #include <cstring>
 #include <iostream>
 #include <math.h>
+#include <csignal>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -87,7 +89,10 @@ using namespace nlohmann;
 #include <GLFW/glfw3.h>
 
 #ifdef __WXGTK__
+#if __has_include(<X11/Xlib.h>)
 #include <X11/Xlib.h>
+#endif
+#include <unistd.h>
 #endif
 
 #ifdef SLIC3R_GUI
@@ -168,6 +173,9 @@ typedef struct _sliced_info {
     std::vector<sliced_plate_info_t> sliced_plates;
     size_t prepare_time;
     size_t export_time;
+	float  layer_height{0.f};
+    float  sparse_infill_density{0.f};
+    int    wall_loops{0};
     std::vector<std::string> upward_machines;
     std::vector<std::string> downward_machines;
 }sliced_info_t;
@@ -254,7 +262,7 @@ typedef struct _cli_callback_mgr {
         while(1) {
             lck.lock();
             m_condition.wait(lck, [this](){ return m_data_ready || m_exit; });
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": wakup.";
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": wakeup.";
             if (m_data_ready) {
                 notify();
                 m_data_ready = false;
@@ -427,6 +435,9 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
         j["error_string"] = error_message;
         j["prepare_time"] = sliced_info.prepare_time;
         j["export_time"] = sliced_info.export_time;
+		j["layer_height"] = sliced_info.layer_height;
+		j["wall_loops"] = sliced_info.wall_loops;
+        j["sparse_infill_density"] = sliced_info.sparse_infill_density;
         for (size_t index = 0; index < sliced_info.sliced_plates.size(); index++)
         {
             json plate_json;
@@ -442,7 +453,7 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
-        c << std::setw(4) << j << std::endl;
+        c << j.dump(1, '\t') << std::endl;
         c.close();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%result_file;
@@ -1181,14 +1192,42 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // On Linux, wxGTK has no support for Wayland, and the app crashes on
-    // startup if gtk3 is used. This env var has to be set explicitly to
-    // instruct the window manager to fall back to X server mode.
-    ::setenv("GDK_BACKEND", "x11", /* replace */ true);
+    // Safety fallback: if wxWidgets was not built with EGL support, native
+    // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
+    // backend cannot access an X11 display. Force X11 mode in that case.
+    // NOTE: Do NOT remove this block even after enabling wxHAS_EGL
+    // in the build — it protects against builds where deps were not rebuilt.
+#if !defined(wxHAS_EGL) || !wxHAS_EGL
+    {
+        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+        if (wayland_env && *wayland_env) {
+            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
+            ::setenv("GDK_BACKEND", "x11", true);
+        }
+    }
+#endif
 
-    // Also on Linux, we need to tell Xlib that we will be using threads,
-    // lest we crash when we fire up GStreamer.
-    XInitThreads();
+    // WebKit2GTK compositing can fail under XWayland. Only disable it when
+    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
+    // On pure X11 or native Wayland, compositing is left enabled.
+    {
+        const char* display_env_wk = ::getenv("DISPLAY");
+        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
+        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+        }
+    }
+
+    // XInitThreads is needed before GStreamer may use Xlib. On native
+    // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
+    #if __has_include(<X11/Xlib.h>)
+    {
+        const char* display_env = ::getenv("DISPLAY");
+        if (display_env && *display_env) {
+            XInitThreads();
+        }
+    }
+    #endif
 #endif
 
 	// Switch boost::filesystem to utf8.
@@ -1221,7 +1260,7 @@ int CLI::run(int argc, char **argv)
 
     PrinterTechnology printer_technology = get_printer_technology(m_config);
 
-    //BBS: remove GCodeViewer as seperate APP logic
+    //BBS: remove GCodeViewer as separate APP logic
     /*bool 							start_as_gcodeviewer =
 #ifdef _WIN32
             false;
@@ -1262,19 +1301,17 @@ int CLI::run(int argc, char **argv)
     if (start_gui) {
         BOOST_LOG_TRIVIAL(info) << "no action, start gui directly" << std::endl;
 #ifdef SLIC3R_GUI
-    /*#if !defined(_WIN32) && !defined(__APPLE__)
+    #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux / unix system
         const char *display = boost::nowide::getenv("DISPLAY");
-        // const char *wayland_display = boost::nowide::getenv("WAYLAND_DISPLAY");
-        //if (! ((display && *display) || (wayland_display && *wayland_display))) {
-        if (! (display && *display)) {
-            // DISPLAY not set.
-            boost::nowide::cerr << "DISPLAY not set, GUI mode not available." << std::endl << std::endl;
+        const char *wayland_display = boost::nowide::getenv("WAYLAND_DISPLAY");
+        if (! ((display && *display) || (wayland_display && *wayland_display))) {
+            boost::nowide::cerr << "Neither DISPLAY nor WAYLAND_DISPLAY set, GUI mode not available." << std::endl << std::endl;
             this->print_help(false);
             // Indicate an error.
             return 1;
         }
-    #endif // some linux / unix system*/
+    #endif // some linux / unix system
         Slic3r::GUI::GUI_InitParams params;
         params.argc = argc;
         params.argv = argv;
@@ -1299,7 +1336,7 @@ int CLI::run(int argc, char **argv)
             params.input_files  = std::move(m_input_files);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", normal mode, input_files size = "<<params.input_files.size();
         }
-        //BBS: remove GCodeViewer as seperate APP logic
+        //BBS: remove GCodeViewer as separate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch OrcaSlicer GUI soon";
@@ -1311,14 +1348,18 @@ int CLI::run(int argc, char **argv)
         return (argc == 0) ? 0 : 1;
 #endif // SLIC3R_GUI
     }
+
+    // Setup logging for CLI
+    const ConfigOptionInt* opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
+    if (opt_loglevel) {
+        set_logging_level(opt_loglevel->value);
+    }
     else {
-        const ConfigOptionInt *opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
-        if (opt_loglevel) {
-            set_logging_level(opt_loglevel->value);
-        }
-        else {
-            set_logging_level(2);
-        }
+        set_logging_level(2);
+    }
+    const ConfigOptionString* opt_logfile = m_config.opt<ConfigOptionString>("logfile");
+    if (opt_logfile) {
+        set_logging_file(opt_logfile->value);
     }
 
     global_begin_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -1568,6 +1609,10 @@ int CLI::run(int argc, char **argv)
                         remove_wrapping_detect = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
                     }
+
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which covers presets too.
 
                     if (normative_check) {
                         ConfigOptionStrings* postprocess_scripts = config.option<ConfigOptionStrings>("post_process");
@@ -2636,7 +2681,7 @@ int CLI::run(int argc, char **argv)
         }
     };
 
-    //update seperate configs into full config
+    //update separate configs into full config
     auto update_full_config = [](DynamicPrintConfig& full_config, const DynamicPrintConfig& config, std::set<std::string>& diff_key_sets, bool variant_count_changed, std::set<std::string>& key_set_1, std::set<std::string>& key_set_2, std::vector<int> variant_index, bool update_all = false, bool skip_gcodes = false) {
         const t_config_option_keys& config_keys = config.keys();
         BOOST_LOG_TRIVIAL(info) << boost::format("update_full_config: config keys count %1%")%config_keys.size();
@@ -3182,7 +3227,7 @@ int CLI::run(int argc, char **argv)
                     if (filament_options_with_variant.find(opt_key) != filament_options_with_variant.end()) {
                         std::vector<int> temp_variant_indice;
                         temp_variant_indice.resize(new_variant_count, -1);
-                        opt_vec_dst->set_with_restore_2(opt_vec_src, temp_variant_indice, old_start_indice[filament_index - 1], old_variant_count);
+                        opt_vec_dst->set_with_restore_2(opt_vec_src, temp_variant_indice, old_start_indice[filament_index - 1], old_variant_count, true);
 
                         if (opt_key == "filament_extruder_variant")
                             new_variant_counts[filament_index - 1] = opt_vec_src->size();
@@ -3508,6 +3553,7 @@ int CLI::run(int argc, char **argv)
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 
+    bool has_wipe_tower_position = m_print_config.option<ConfigOptionFloats>("wipe_tower_x") && m_print_config.option<ConfigOptionFloats>("wipe_tower_y");
     // Initialize full print configs for both the FFF and SLA technologies.
     FullPrintConfig    fff_print_config;
     //SLAFullPrintConfig sla_print_config;
@@ -4419,7 +4465,7 @@ int CLI::run(int argc, char **argv)
                 size_t num_objects = model.objects.size();
                 for (size_t i = 0; i < num_objects; ++ i) {
                     ModelObjectPtrs new_objects;
-                    model.objects.front()->split(&new_objects);
+                    model.objects.front()->split(&new_objects, false); // TODO: add cli option to enable this?
                     model.delete_object(size_t(0));
                 }
             }
@@ -4615,7 +4661,7 @@ int CLI::run(int argc, char **argv)
                         y = tower_margin;
                     }
 
-                    //create the options using default if neccessary
+                    //create the options using default if necessary
                     ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
                     ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
                     ConfigOptionFloat* width_option = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true);
@@ -4737,7 +4783,7 @@ int CLI::run(int argc, char **argv)
                 bool is_seq_print = false;
                 get_print_sequence(cur_plate, m_print_config, is_seq_print);
 
-                if (!is_seq_print && assemble_plate.filaments_count > 1)
+                if (!is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
                 {
                     //prepare the wipe tower
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
@@ -4755,7 +4801,7 @@ int CLI::run(int argc, char **argv)
                         y = WIPE_TOWER_MARGIN;
                     }
 
-                    //create the options using default if neccessary
+                    //create the options using default if necessary
                     ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
                     ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
                     ConfigOptionFloat wt_x_opt(x);
@@ -4912,7 +4958,7 @@ int CLI::run(int argc, char **argv)
                         ConfigOptionFloat wt_x_opt(x);
                         ConfigOptionFloat wt_y_opt(y);
 
-                        //create the options using default if neccessary
+                        //create the options using default if necessary
                         ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
                         ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
                         ConfigOptionFloat* width_option = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true);
@@ -5211,7 +5257,7 @@ int CLI::run(int argc, char **argv)
                     }
 
                     // Move the unprintable items to the last virtual bed.
-                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the orignal bed_idx
+                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the original bed_idx
                     for (ArrangePolygon& ap : unprintable)
                     {
                         ap.bed_idx = bed_idx_max + 1;
@@ -5385,7 +5431,7 @@ int CLI::run(int argc, char **argv)
                     }
 
                     // Move the unprintable items to the last virtual bed.
-                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the orignal bed_idx
+                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the original bed_idx
                     for (ArrangePolygon& ap : unprintable)
                     {
                         ap.bed_idx = bed_idx_max + 1;
@@ -5741,6 +5787,7 @@ int CLI::run(int argc, char **argv)
                                     mode = m_extra_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value;
                                 else
                                     mode = part_plate->get_real_filament_map_mode(m_print_config);
+                                BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map mode is %2% ") % __LINE__ %(int)mode;
                                 if (mode < FilamentMapMode::fmmManual) {
                                     std::vector<int> conflict_filament_vector;
                                     for (int index = 0; index < new_extruder_count; index++)
@@ -5777,6 +5824,43 @@ int CLI::run(int argc, char **argv)
                                     std::vector<int> filament_maps;
                                     if (m_extra_config.option<ConfigOptionInts>("filament_map")) {
                                         filament_maps = m_extra_config.option<ConfigOptionInts>("filament_map")->values;
+                                        int default_value = -1;
+                                        bool has_invalid_value = false;
+                                        for (int f_index = 0; f_index < filament_maps.size(); f_index++)
+                                        {
+                                            if (filament_maps[f_index] != -1)
+                                            {
+                                                if (default_value == -1)
+                                                    default_value = filament_maps[f_index];
+                                                else
+                                                    continue;
+                                            }
+                                            else
+                                                has_invalid_value = true;
+
+                                            if (has_invalid_value && (default_value != -1))
+                                                break;
+                                        }
+                                        BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map default_value %2%, has_invalid_value %3% ") % __LINE__ %default_value %has_invalid_value;
+
+                                        if (has_invalid_value)
+                                        {
+                                            for (int f_index = 0; f_index < filament_maps.size(); f_index++)
+                                            {
+                                                if (filament_maps[f_index] == -1)
+                                                {
+                                                    if (default_value != -1) {
+                                                        filament_maps[f_index] = default_value;
+                                                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to first value %3%.")% (index + 1) %(f_index+1) %default_value;
+                                                    }
+                                                    else {
+                                                        filament_maps[f_index] = 1;
+                                                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to default value 1.")% (index + 1) %(f_index+1);
+                                                    }
+                                                }
+                                            }
+                                            m_extra_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
+                                        }
                                         part_plate->set_filament_maps(filament_maps);
                                     }
                                     else
@@ -5829,6 +5913,12 @@ int CLI::run(int argc, char **argv)
                         DynamicPrintConfig new_print_config = m_print_config;
                         new_print_config.apply(*part_plate->config());
                         new_print_config.apply(m_extra_config, true);
+						if (m_print_config.option<ConfigOptionFloat>("layer_height"))
+                            sliced_info.layer_height = m_print_config.option<ConfigOptionFloat>("layer_height")->value;
+						if (m_print_config.option<ConfigOptionInt>("wall_loops"))
+                            sliced_info.wall_loops = m_print_config.option<ConfigOptionInt>("wall_loops")->value;
+                        if (m_print_config.option<ConfigOptionPercent>("sparse_infill_density"))
+                            sliced_info.sparse_infill_density = m_print_config.option<ConfigOptionPercent>("sparse_infill_density")->value;
                         if (new_extruder_count > 1) {
                             FilamentMapMode map_mode = fmmAutoForFlush;
                             if (new_print_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode"))
@@ -6055,7 +6145,7 @@ int CLI::run(int argc, char **argv)
                                         outfile = outfile_dir + "/plate_" + std::to_string(index + 1) + ".gcode";
                                         part_plate->set_tmp_gcode_path(outfile);
                                     }
-                                    BOOST_LOG_TRIVIAL(info) << "process finished, will export gcode temporily to " << outfile << std::endl;
+                                    BOOST_LOG_TRIVIAL(info) << "process finished, will export gcode temporarily to " << outfile << std::endl;
                                     temp_time = (long long)Slic3r::Utils::get_current_time_utc();
                                     outfile = print_fff->export_gcode(outfile, gcode_result, nullptr);
                                     time_using_cache = time_using_cache + ((long long)Slic3r::Utils::get_current_time_utc() - temp_time);
@@ -6354,11 +6444,13 @@ int CLI::run(int argc, char **argv)
             glfwGetVersion(&gl_major, &gl_minor, &gl_verbos);
             BOOST_LOG_TRIVIAL(info) << boost::format("opengl version %1%.%2%.%3%")%gl_major %gl_minor %gl_verbos;
 
+            bool thumbnail_opengl_ready = false;
             glfwSetErrorCallback(glfw_callback);
             int ret = glfwInit();
             if (ret == GLFW_FALSE) {
-                int code = glfwGetError(NULL);
-                BOOST_LOG_TRIVIAL(error) << "glfwInit return error, code " <<code<< std::endl;
+                const char* error_msg;
+                int code = glfwGetError(&error_msg);
+                BOOST_LOG_TRIVIAL(error) << "glfwInit return error, Error code: " << code << ", Error: " << error_msg << std::endl;
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "glfwInit Success."<< std::endl;
@@ -6378,28 +6470,33 @@ int CLI::run(int argc, char **argv)
                 glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 #endif
 
-#ifdef __linux__
-                glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_OSMESA_CONTEXT_API);
-#endif
-
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
                 if (window == NULL)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window" << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window; skipping thumbnail rendering for CLI export" << std::endl;
                 }
-                else
+                else {
                     glfwMakeContextCurrent(window);
+                    thumbnail_opengl_ready = true;
+                }
             }
 
             //opengl manager related logic
+            if (!thumbnail_opengl_ready) {
+                BOOST_LOG_TRIVIAL(error) << "OpenGL context unavailable; skip thumbnail generating" << std::endl;
+                need_create_thumbnail_group = false;
+                need_create_no_light_group = false;
+                need_create_top_group = false;
+            }
+            else
             {
-                Slic3r::GUI::OpenGLManager opengl_mgr;
+                GUI::OpenGLManager opengl_mgr;
                 bool opengl_valid = opengl_mgr.init_gl(false);
                 if (!opengl_valid) {
                     BOOST_LOG_TRIVIAL(error) << "init opengl failed! skip thumbnail generating" << std::endl;
                 }
                 else {
-                    BOOST_LOG_TRIVIAL(info) << "glewInit Sucess." << std::endl;
+                    BOOST_LOG_TRIVIAL(info) << "gladLoadGL Success." << std::endl;
                     GLVolumeCollection glvolume_collection;
                     Model &model = m_models[0];
                     int obj_extruder_id = 1, volume_extruder_id = 1;
@@ -6474,7 +6571,7 @@ int CLI::run(int argc, char **argv)
                                     int dec_ret = decode_png_to_thumbnail(plate_data->thumbnail_file, plate_data->plate_thumbnail);
                                     if (!dec_ret)
                                     {
-                                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem sucess.");
+                                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem success.");
                                     }
                                     else {
                                         BOOST_LOG_TRIVIAL(warning) << boost::format("decode png to mem failed.");
@@ -6713,7 +6810,7 @@ int CLI::run(int argc, char **argv)
                     int dec_ret = decode_png_to_thumbnail(plate_data->thumbnail_file, plate_data->plate_thumbnail);
                     if (!dec_ret)
                     {
-                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem sucess.");
+                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem success.");
                         need_create_thumbnail_group = true;
                     }
                     else {
@@ -7112,7 +7209,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
 
     boost::nowide::cout
         << std::endl
-        << "Print settings priorites:" << std::endl
+        << "Print setting priorities:" << std::endl
         << "\t1) setting values from the command line (highest priority)"<< std::endl
         << "\t2) setting values loaded with --load_settings and --load_filaments" << std::endl
 	    << "\t3) setting values loaded from 3mf(lowest priority)" << std::endl;
@@ -7371,6 +7468,13 @@ extern "C" {
 #else /* _MSC_VER */
 int main(int argc, char **argv)
 {
+#ifndef _WIN32
+    // Ignore SIGPIPE so a write to a closed socket (e.g. a dropped printer
+    // network connection) returns EPIPE to the caller instead of terminating
+    // the whole process. Without this, losing the printer link kills
+    // OrcaSlicer with SIGPIPE (exit 141) and produces no crash report.
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
     return CLI().run(argc, argv);
 }
 #endif /* _MSC_VER */

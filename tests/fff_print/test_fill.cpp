@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <numeric>
 #include <sstream>
@@ -21,7 +21,7 @@ bool test_if_solid_surface_filled(const ExPolygon& expolygon, double flow_spacin
 TEST_CASE("Fill: adjusted solid distance") {
     int surface_width = 250;
     int distance = Slic3r::Flow::solid_spacing(surface_width, 47);
-    REQUIRE(distance == Approx(50));
+    REQUIRE(distance == Catch::Approx(50));
     REQUIRE(surface_width % distance == 0);
 }
 #endif
@@ -139,7 +139,7 @@ TEST_CASE("Fill: Pattern Path Length", "[Fill]") {
         }
     }
 
-    #if 0   // Disabled temporarily due to precission issues on the Mac VM
+    #if 0   // Disabled temporarily due to precision issues on the Mac VM
     SECTION("Solid surface fill") {
         Slic3r::Points points {
             Point::new_scale(6883102, 9598327.01296997),

@@ -1,0 +1,120 @@
+{
+	"type": "machine",
+	"setting_id": "EN3PRO04",
+	"name": "Elegoo Neptune 3 Pro 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_elegoo_common",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 3 Pro",
+	"default_print_profile": "0.20mm Standard @Elegoo N3Pro 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"230x0",
+		"230x230",
+		"0x230"
+	],
+	"printable_height": "280",
+	"retract_lift_below": [
+		"279"
+	],
+	"auxiliary_fan": "0",
+	"machine_max_acceleration_extruding": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_retracting": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_x": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_y": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_z": [
+		"100",
+		"100"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_z": [
+		"10",
+		"10"
+	],
+	"machine_max_jerk_e": [
+		"5",
+		"5"
+	],
+	"machine_max_jerk_x": [
+		"8",
+		"8"
+	],
+	"machine_max_jerk_y": [
+		"8",
+		"8"
+	],
+	"machine_max_jerk_z": [
+		"0.4",
+		"0.4"
+	],
+	"max_layer_height": [
+		"0.28"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"retraction_minimum_travel": [
+		"1"
+	],
+	"retract_before_wipe": [
+		"85%"
+	],
+	"retraction_length": [
+		"1.5"
+	],
+	"retraction_speed": [
+		"30"
+	],
+	"retract_length_toolchange": [
+		"2"
+	],
+	"deretraction_speed": [
+		"30"
+	],
+	"thumbnails": [
+		"200x200/COLPIC/#30394F",
+		"160x160/COLPIC/#30394F",
+		"160x160/PNG"
+	],
+	"thumbnails_format": "COLPIC",
+	"single_extruder_multi_material": "1",
+	"change_filament_gcode": "M600",
+	"machine_pause_gcode": "M600",
+	"default_filament_profile": [
+		"Elegoo PLA @EN3 Series"
+	],
+	"machine_start_gcode": ";;===== date: 20240520 =====================\nM400 ; wait for buffer to clear\n;[printer_model]\n;initial_filament:{filament_type[initial_extruder]}\n;curr_bed_type={curr_bed_type}\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140\nM190 S[bed_temperature_initial_layer_single]\nG90\nG28 ;home\n;G29 ; run abl mesh\nM420 S1 ; load mesh\nG1 Z10 F300\nG1 X{print_bed_max[0]*0.5-50} Y0.5 F6000\nG1 Z0.4 F300\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\nG1 X{print_bed_max[0]*0.5+50} E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X{print_bed_max[0]*0.5+47} F3000\nG92 E0 ;Reset Extruder\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0\n",
+	"machine_end_gcode": ";PRINT_END\nG90 ;Absolute positionning\nM83 ; extruder relative mode\nG1 X10 Y{print_bed_max[1]*0.8} Z{min(max_layer_z+50, printable_height)} E-5 F{travel_speed*60} ; Move print head up\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84 X Y E ;Disable all steppers but Z",
+	"scan_first_layer": "0"
+}

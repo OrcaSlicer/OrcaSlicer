@@ -1,0 +1,78 @@
+name: Generate Doxygen Documentation
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Every Monday at midnight UTC
+  workflow_dispatch:      # Manual trigger
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Only run on main branch of the main repository
+    if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - uses: thejerrybao/setup-swap-space@v1
+        with:
+          swap-space-path: /swapfile
+          swap-size-gb: 8
+          remove-existing-swap-files: true
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Doxygen and Graphviz
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Generate documentation
+        run: |
+          set -euo pipefail
+          # Override DOT_NUM_THREADS to avoid parallel dot race condition bug
+          sed -i 's/^DOT_NUM_THREADS.*/DOT_NUM_THREADS = 1/' .doxygen
+          doxygen .doxygen
+          # Verify documentation was generated
+          if [ ! -f "internal_docs/index.html" ]; then
+            echo "Error: Documentation generation failed - index.html not found"
+            exit 1
+          fi
+      - name: Install Rclone
+        run: |
+          set -euo pipefail
+          sudo -v
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+
+      - name: optimize
+        run: |
+          set -euo pipefail
+          rm -f internal_docs/Nodes.xml internal_docs/Tokens.xml
+          find internal_docs -name "*.map" -type f -delete || true
+          find internal_docs -name "*.md5" -type f -delete || true
+
+      - name: upload
+        # We configure rclone dynamically using environment variables
+        run: |
+          set -euo pipefail
+          # Remove existing config if it exists to avoid conflicts
+          rclone config delete cloudflare 2>/dev/null || true
+          rclone config create cloudflare s3 \
+          provider Cloudflare \
+          access_key_id ${{ secrets.R2_ACCESS_KEY_ID }} \
+          secret_access_key ${{ secrets.R2_SECRET_ACCESS_KEY }} \
+          endpoint ${{ secrets.R2_ENDPOINT }}
+
+          rclone sync internal_docs/ cloudflare:orcaslicer-internals \
+          --progress \
+          --transfers 512 \
+          --checkers 512 
+          
+          echo "Documentation upload completed successfully"

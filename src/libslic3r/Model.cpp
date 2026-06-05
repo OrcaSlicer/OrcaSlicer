@@ -14,6 +14,8 @@
 
 #include "Format/AMF.hpp"
 #include "Format/svg.hpp"
+#include "Format/bbs_3mf.hpp"
+#include "Format/DRC.hpp"
 // BBS
 #include "FaceDetector.hpp"
 
@@ -311,6 +313,8 @@ Model Model::read_from_file(const std::string&                                  
         result = load_svg(input_file.c_str(), &model, message);
     //BBS: remove the old .amf.xml files
     //else if (boost::algorithm::iends_with(input_file, ".amf") || boost::algorithm::iends_with(input_file, ".amf.xml"))
+    else if (boost::algorithm::iends_with(input_file, ".drc"))
+        result = load_drc(input_file.c_str(), &model);
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
@@ -319,7 +323,7 @@ Model Model::read_from_file(const std::string&                                  
         // BBS: backup & restore
         //FIXME options & LoadStrategy::CheckVersion ?
         //BBS: is_xxx is used for is_bbs_3mf when load 3mf
-        result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, file_version, proFn, options, project, plate_id);
+        result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, nullptr, file_version, proFn, options, project, plate_id);
 #ifdef __APPLE__
     else if (boost::algorithm::iends_with(input_file, ".usd") || boost::algorithm::iends_with(input_file, ".usda") ||
              boost::algorithm::iends_with(input_file, ".usdc") || boost::algorithm::iends_with(input_file, ".usdz") ||
@@ -378,7 +382,8 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
     Model model;
 
     bool result = false;
-    bool is_bbl_3mf;
+    bool is_bbl_3mf = false;
+    bool is_orca_3mf = false;
     if (boost::algorithm::iends_with(input_file, ".3mf")) {
         PrusaFileParser prusa_file_parser;
         if (prusa_file_parser.check_3mf_from_prusa(input_file)) {
@@ -388,7 +393,7 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
         } else {
             // BBS: add part plate related logic
             // BBS: backup & restore
-            result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, &is_bbl_3mf, file_version, proFn, options, project);
+            result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, &is_bbl_3mf, &is_orca_3mf, file_version, proFn, options, project);
         }
     }
     else if (boost::algorithm::iends_with(input_file, ".zip.amf"))
@@ -397,7 +402,10 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
         throw Slic3r::RuntimeError(_L("Unknown file format. Input file must have .3mf or .zip.amf extension."));
 
     if (out_file_type != En3mfType::From_Prusa) {
-        out_file_type = is_bbl_3mf ? En3mfType::From_BBS : En3mfType::From_Other;
+        if (is_orca_3mf)
+            out_file_type = En3mfType::From_Orca;
+        else
+            out_file_type = is_bbl_3mf ? En3mfType::From_BBS : En3mfType::From_Other;
     }
 
     if (!result)
@@ -647,7 +655,6 @@ ModelMaterial* Model::add_material(t_model_material_id material_id, const ModelM
     return material;
 }
 
-// makes sure all objects have at least one instance
 bool Model::add_default_instances()
 {
     // apply a default position to all objects not having one
@@ -1086,7 +1093,6 @@ bool Model::is_fuzzy_skin_painted() const
     return std::any_of(this->objects.cbegin(), this->objects.cend(), [](const ModelObject *mo) { return mo->is_fuzzy_skin_painted(); });
 }
 
-
 static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
 {
     if (mesh.empty())
@@ -1168,7 +1174,7 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
     this->sla_support_points          = std::move(rhs.sla_support_points);
     this->sla_points_status           = std::move(rhs.sla_points_status);
     this->sla_drain_holes             = std::move(rhs.sla_drain_holes);
-    this->brim_points                 = std::move(brim_points);
+    this->brim_points                 = std::move(rhs.brim_points);
     this->layer_config_ranges         = std::move(rhs.layer_config_ranges);
     this->layer_height_profile        = std::move(rhs.layer_height_profile);
     this->printable                   = std::move(rhs.printable);
@@ -1641,17 +1647,31 @@ Polygon ModelObject::convex_hull_2d(const Transform3d& trafo_instance) const
     Points pts;
 
     for (const ModelVolume* v : volumes) {
-        if (v->is_model_part())
+        if (v->is_model_part()) {
             //BBS: use convex hull vertex instead of all
             append(pts, its_convex_hull_2d_above(v->get_convex_hull().its, (trafo_instance * v->get_matrix()).cast<float>(), 0.0f).points);
+	    // The next commented line instead of the previous + the rest of this #if0 section is the same as PrusaSlicer until https://github.com/prusa3d/PrusaSlicer/commit/2f7f3578d531f2d34f7732a64449606d86bb4aaa where it was parallelised.
             //append(pts, its_convex_hull_2d_above(v->mesh().its, (trafo_instance * v->get_matrix()).cast<float>(), 0.0f).points);
+	    // its_convex_hull_2d_above calls its_collect_mesh_projection_points_above
+	    // The latter multiplies each vertex by the full matrix
+	    // For every vector which crosses the Z plane, the intersection is used instead of any point below. Consecutive points below the Z plane are ignored.
+	}
     }
     return Geometry::convex_hull(std::move(pts));
 #else
+    // This seems to differ from PrusaSlicer (and the old code above) in that
+    // points below the Z plane aren't treated specially.
     Points pts;
     for (const ModelVolume *v : this->volumes)
         if (v->is_model_part()) {
             const Polygon& volume_hull = v->get_convex_hull_2d(trafo_instance);
+	    // In comparison to the old code above, get_convex_hull_2d starts with:
+	    // new_matrix = trafo_instance * m_transformation.get_matrix();
+	    // which is the same matrix multiplication as above.
+	    // Then checks caches, maybe calling ModelVolume::calculate_convex_hull_2d(const Geometry::Transformation &) if no hit
+	    // That method accesses v->get_convex_hull().its (also used above).
+	    // It multiplies each point by the matrix w/o translate, then calls convex_hull(pts)
+	    // Then translates polygon in X & Y
 
             pts.insert(pts.end(), volume_hull.points.begin(), volume_hull.points.end());
         }
@@ -1718,8 +1738,14 @@ void ModelObject::ensure_on_bed(bool allow_negative_z)
     else
         z_offset = -this->min_z();
 
-    if (z_offset != 0.0)
-        translate_instances(z_offset * Vec3d::UnitZ());
+    if (z_offset != 0.0) {
+        for (size_t i = 0; i < instances.size(); ++i) {
+            if (!instances[i]->auto_drop)
+                continue;
+
+            translate_instance(i, z_offset * Vec3d::UnitZ());
+        }
+    }
 }
 
 void ModelObject::translate_instances(const Vec3d& vector)
@@ -1954,6 +1980,49 @@ void ModelVolume::reset_extra_facets()
     this->fuzzy_skin_facets.reset();
 }
 
+std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const
+{
+    if (is_any_painted() && is_model_part() && !mesh().empty()) {
+        TriangleSelector::SavedPainting sp;
+        sp.mesh      = mesh();
+        sp.supported = supported_facets.get_data();
+        sp.seam      = seam_facets.get_data();
+        sp.mmu       = mmu_segmentation_facets.get_data();
+        sp.fuzzy     = fuzzy_skin_facets.get_data();
+        return sp;
+    }
+
+    return {};
+}
+
+void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, const bool keep_existing_paint)
+{
+    if (!keep_existing_paint) {
+        reset_extra_facets();
+    }
+
+    if (!saved) {
+        return;
+    }
+
+    auto remap_one = [&](const TriangleSelector::TriangleSplittingData& src_data,
+                         FacetsAnnotation& target_facets) {
+        if (src_data.bitstream.empty())
+            return;
+        auto result =
+            TriangleSelector::remap_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()),
+                                             keep_existing_paint ?
+                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{std::ref(target_facets.get_data())} :
+                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{});
+        if (!result.bitstream.empty())
+            target_facets.set_data(std::move(result));
+    };
+    remap_one(saved->supported, supported_facets);
+    remap_one(saved->seam,      seam_facets);
+    remap_one(saved->mmu,       mmu_segmentation_facets);
+    remap_one(saved->fuzzy,     fuzzy_skin_facets);
+}
+
 static void invalidate_translations(ModelObject* object, const ModelInstance* src_instance)
 {
     if (!object->origin_translation.isApprox(Vec3d::Zero()) && src_instance->get_offset().isApprox(Vec3d::Zero())) {
@@ -1967,13 +2036,14 @@ static void invalidate_translations(ModelObject* object, const ModelInstance* sr
     }
 }
 
-void ModelObject::split(ModelObjectPtrs* new_objects)
+void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
 {
     std::vector<TriangleMesh> all_meshes;
     std::vector<Transform3d> all_transfos;
     std::vector<std::pair<int, int>> volume_mesh_counts;
     all_meshes.reserve(this->volumes.size() * 5);
     bool is_multi_volume_object = (this->volumes.size() > 1);
+    std::optional<TriangleSelector::SavedPainting> saved_painting;
 
     for (int volume_idx = 0; volume_idx < this->volumes.size(); volume_idx++) {
         ModelVolume* volume = this->volumes[volume_idx];
@@ -1985,6 +2055,10 @@ void ModelObject::split(ModelObjectPtrs* new_objects)
             volume->text_configuration.reset();
 
         if (!is_multi_volume_object) {
+            if (remap_paint) {
+                // Save painting so we could restore them after the mesh split
+                saved_painting = volume->save_painting();
+            }
             //BBS: not multi volume object, then split mesh.
             std::vector<TriangleMesh> volume_meshes = volume->mesh().split();
             int mesh_count = 0;
@@ -2052,10 +2126,19 @@ void ModelObject::split(ModelObjectPtrs* new_objects)
             ModelVolume* new_vol = new_object->add_volume(*volume, std::move(mesh));
 
             if (is_multi_volume_object) {
-                // BBS: volume geometry not changed, so we can keep the color paint facets
-                if (new_vol->mmu_segmentation_facets.timestamp() == volume->mmu_segmentation_facets.timestamp())
-                    new_vol->mmu_segmentation_facets.reset(); // BBS: let next assign take effect
-                new_vol->mmu_segmentation_facets.assign(volume->mmu_segmentation_facets);
+                // BBS: volume geometry not changed, so we can keep the paint facets
+#define COPY_FACETS(f) \
+                if (new_vol->f.timestamp() == volume->f.timestamp()) \
+                    new_vol->f.reset(); /* BBS: let next assign take effect */ \
+                new_vol->f.assign(volume->f)
+
+                COPY_FACETS(supported_facets);
+                COPY_FACETS(seam_facets);
+                COPY_FACETS(mmu_segmentation_facets);
+                COPY_FACETS(fuzzy_skin_facets);
+            } else if (saved_painting) {
+                // Geometry changed, attempt to remap them to the new mesh
+                new_vol->restore_painting(saved_painting);
             }
 
             // BBS: clear volume's config, as we already set them into object
@@ -2656,7 +2739,7 @@ std::string ModelVolume::type_to_string(const ModelVolumeType t)
 // Split this volume, append the result to the object owning this volume.
 // Return the number of volumes created from this one.
 // This is useful to assign different materials to different volumes of an object.
-size_t ModelVolume::split(unsigned int max_extruders)
+size_t ModelVolume::split(unsigned int max_extruders, bool remap_paint)
 {
     std::vector<TriangleMesh> meshes = this->mesh().split();
     if (meshes.size() <= 1)
@@ -2665,6 +2748,9 @@ size_t ModelVolume::split(unsigned int max_extruders)
     // splited volume should not be text object
     if (text_configuration.has_value())
         text_configuration.reset();
+
+    std::optional<TriangleSelector::SavedPainting> saved_painting = remap_paint ? save_painting() :
+                                                                                  std::optional<TriangleSelector::SavedPainting>{};
 
     size_t idx = 0;
     size_t ivolume = std::find(this->object->volumes.begin(), this->object->volumes.end(), this) - this->object->volumes.begin();
@@ -2688,11 +2774,7 @@ size_t ModelVolume::split(unsigned int max_extruders)
             this->source = ModelVolume::Source();
 
             // BBS: reset facet annotations
-            this->mmu_segmentation_facets.reset();
-            this->exterior_facets.reset();
-            this->supported_facets.reset();
-            this->seam_facets.reset();
-            this->fuzzy_skin_facets.reset();
+            this->reset_extra_facets();
         }
         else
             this->object->volumes.insert(this->object->volumes.begin() + (++ivolume), new ModelVolume(object, *this, std::move(mesh)));
@@ -2705,6 +2787,8 @@ size_t ModelVolume::split(unsigned int max_extruders)
         this->object->volumes[ivolume]->config.set("extruder", this->extruder_id());
         //this->object->volumes[ivolume]->config.set("extruder", auto_extruder_id(max_extruders, extruder_counter));
         this->object->volumes[ivolume]->m_is_splittable = 0;
+        this->object->volumes[ivolume]->restore_painting(saved_painting);
+
         ++ idx;
     }
 

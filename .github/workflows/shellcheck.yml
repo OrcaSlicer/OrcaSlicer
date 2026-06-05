@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Cache shellcheck download
         id: cache-shellcheck-v0_11
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/shellcheck
           key: ${{ runner.os }}-shellcheck-v0_11
@@ -36,7 +36,7 @@ jobs:
           tar -xvf ~/sc.tar.xz -C ~
           mv ~/shellcheck-"${INPUT_VERSION}"/shellcheck ~/shellcheck
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
 

@@ -35,7 +35,7 @@ void StateHandler::attach_child(wxWindow *child)
 
 void StateHandler::remove_child(wxWindow *child)
 {
-    children_.erase(std::remove_if(children_.begin(), children_.end(), 
+    children_.erase(std::remove_if(children_.begin(), children_.end(),
             [child](auto &c) { return c->owner_ == child; }), children_.end());
     states2_ = 0;
     for (auto & c : children_) states2_ |= c->states();

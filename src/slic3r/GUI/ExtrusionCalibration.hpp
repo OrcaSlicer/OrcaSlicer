@@ -91,9 +91,6 @@ protected:
     int get_bed_temp(DynamicPrintConfig* config);
 
 protected:
-    StateColor          m_btn_bg_green;
-    StateColor          m_btn_bg_gray;
-
     wxPanel*            m_step_1_panel;
     wxPanel*            m_step_2_panel;
 
