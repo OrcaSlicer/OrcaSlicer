@@ -117,7 +117,7 @@
 		"299"
 	],
 	"enable_filament_ramming": "0",
-	"purge_in_prime_tower": "0",
+	"purge_in_prime_tower": "1",
 	"cooling_tube_length": "0",
 	"cooling_tube_retraction": "0",
 	"parking_pos_retraction": "0",
