@@ -7518,13 +7518,19 @@ void Tab::switch_excluder(int extruder_id)
 
     // H2C: When switching between Left/Right nozzle tabs, apply the correct
     // variant overrides so scalar values reflect this extruder's nozzle type.
+    // Apply to BOTH edited AND selected presets — the dirty detection compares
+    // edited vs selected.  If only edited is variant-adjusted, the legitimate
+    // variant values appear as user modifications (false dirty flags).
     if (m_extruder_switch && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
-        auto& config = m_presets->get_edited_preset().config;
-        if (!config.variant_overrides().empty()) {
+        auto& edited_cfg   = m_presets->get_edited_preset().config;
+        auto& selected_cfg = m_presets->get_selected_preset().config;
+        if (!edited_cfg.variant_overrides().empty()) {
             if (m_type == Preset::TYPE_PRINT) {
-                config.apply_variant_overrides(index, print_options_with_variant);
+                edited_cfg.apply_variant_overrides(index, print_options_with_variant);
+                selected_cfg.apply_variant_overrides(index, print_options_with_variant);
             } else if (m_type == Preset::TYPE_FILAMENT) {
-                config.apply_variant_overrides(index, filament_options_with_variant);
+                edited_cfg.apply_variant_overrides(index, filament_options_with_variant);
+                selected_cfg.apply_variant_overrides(index, filament_options_with_variant);
             }
         }
     }
