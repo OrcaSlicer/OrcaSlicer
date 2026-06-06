@@ -79,6 +79,7 @@ namespace boost { namespace filesystem { class directory_entry; }}
 namespace Slic3r {
 
 extern void set_logging_level(unsigned int level);
+extern void set_logging_file(const std::string &file);
 extern unsigned int level_string_to_boost(std::string level);
 extern std::string  get_string_logging_level(unsigned level);
 extern unsigned get_logging_level();

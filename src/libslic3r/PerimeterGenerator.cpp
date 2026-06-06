@@ -620,7 +620,7 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExP
     // get the real top surface
     ExPolygons grown_lower_slices;
     ExPolygons bridge_checker;
-    auto nozzle_diameter = this->print_config->nozzle_diameter.get_at(this->config->wall_filament - 1);
+    auto nozzle_diameter = this->print_config->nozzle_diameter.get_at(this->config->outer_wall_filament_id - 1);
     // Check whether surface be bridge or not
     if (this->lower_slices != NULL) {
         // BBS: get the Polygons below the polygon this layer
@@ -1173,7 +1173,7 @@ void PerimeterGenerator::process_classic()
         // We consider overhang any part where the entire nozzle diameter is not supported by the
         // lower layer, so we take lower slices and offset them by half the nozzle diameter used
         // in the current layer
-        double nozzle_diameter = this->print_config->nozzle_diameter.get_at(this->config->wall_filament - 1);
+        double nozzle_diameter = this->print_config->nozzle_diameter.get_at(this->config->outer_wall_filament_id - 1);
         m_lower_slices_polygons = offset(*this->lower_slices, float(scale_(+nozzle_diameter / 2)));
     }
 
@@ -1760,8 +1760,14 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                             BridgeDetector detector{ unsupported,
                                                     lower_island.expolygons,
                                                     perimeter_spacing / 4}; // Use a finer BridgeDetector. This affects coverage resolution, not extrusion spacing.
-
-                            if (detector.detect_angle(Geometry::deg2rad(this->config->bridge_angle.value)))
+                            // ORCA: Relative/Align Bridge Angle
+                            const double custom_angle_deg = this->config->bridge_angle.value;
+                            const bool   relative_angle   = this->config->relative_bridge_angle.value;
+                            const double detect_angle_rad = (custom_angle_deg > 0.0 && !relative_angle)
+                                ? Geometry::deg2rad(custom_angle_deg) +
+                                      (this->config->align_infill_direction_to_model ? this->m_model_rotation_rad : 0.0)
+                                : 0.0;
+                            if (detector.detect_angle(detect_angle_rad))
                                 expolygons_append(bridgeable, union_ex(detector.coverage(-1, true)));
                         }
                         if (!bridgeable.empty() && !surface->expolygon.holes.empty()) { // keep out if cannot be bridged or no holes to bridge
@@ -2108,7 +2114,7 @@ void PerimeterGenerator::process_arachne()
         // We consider overhang any part where the entire nozzle diameter is not supported by the
         // lower layer, so we take lower slices and offset them by half the nozzle diameter used
         // in the current layer
-        double nozzle_diameter = this->print_config->nozzle_diameter.get_at(this->config->wall_filament - 1);
+        double nozzle_diameter = this->print_config->nozzle_diameter.get_at(this->config->outer_wall_filament_id - 1);
         m_lower_slices_polygons = offset(*this->lower_slices, float(scale_(+nozzle_diameter / 2)));
     }
 
@@ -2541,7 +2547,7 @@ bool PerimeterGeneratorLoop::is_internal_contour() const
 
 std::vector<Polygons> PerimeterGenerator::generate_lower_polygons_series(float width)
 {
-    float nozzle_diameter = print_config->nozzle_diameter.get_at(config->wall_filament - 1);
+    float nozzle_diameter = print_config->nozzle_diameter.get_at(config->outer_wall_filament_id - 1);
     float start_offset = -0.5 * width;
     float end_offset = 0.5 * nozzle_diameter;
 
