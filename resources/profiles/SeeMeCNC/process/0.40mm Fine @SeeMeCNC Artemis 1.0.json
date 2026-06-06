@@ -1,7 +1,7 @@
 {
 	"type": "process",
 	"name": "0.40mm Fine @SeeMeCNC Artemis 1.0",
-	"inherits": "SeeMeCNC process base",
+	"inherits": "SeeMeCNC process base 1.0mm",
 	"from": "System",
 	"instantiation": "true",
 	"print_settings_id": "0.40mm Fine @SeeMeCNC Artemis 1.0",
