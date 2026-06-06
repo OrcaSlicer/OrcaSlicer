@@ -572,6 +572,16 @@ namespace Slic3r
         }
 
         selected_machine = dev_id;
+
+        // Persist to AppConfig so we can restore on next launch
+        if (!dev_id.empty()) {
+            AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
+            if (config) {
+                config->set("last_selected_machine", dev_id);
+                config->save();
+            }
+        }
+
         return true;
     }
 
@@ -840,16 +850,35 @@ namespace Slic3r
         auto all_machines = get_my_machine_list();
         if (all_machines.empty())
             return;
-        
-        // Then connect to the machine we last selected if available
-        const std::string last_monitor_machine = m_agent ? m_agent->get_user_selected_machine() : "";
-        const auto        last_machine         = all_machines.find(last_monitor_machine);
-        if (last_machine != all_machines.end()) {
-            this->set_selected_machine(last_machine->second->get_dev_id());
-        } else {
-            // If not, then select the first available one
-            this->set_selected_machine(all_machines.begin()->second->get_dev_id());
+
+        // 1) Try locally persisted last_selected_machine (works for both LAN and cloud)
+        AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
+        if (config) {
+            std::string last_local = config->get("last_selected_machine");
+            if (!last_local.empty()) {
+                auto it = all_machines.find(last_local);
+                if (it != all_machines.end()) {
+                    BOOST_LOG_TRIVIAL(info) << "load_last_machine: restoring from AppConfig, dev_id=" << last_local;
+                    this->set_selected_machine(last_local);
+                    return;
+                }
+            }
         }
+
+        // 2) Fallback: try cloud agent's last selected machine
+        const std::string last_monitor_machine = m_agent ? m_agent->get_user_selected_machine() : "";
+        if (!last_monitor_machine.empty()) {
+            auto it = all_machines.find(last_monitor_machine);
+            if (it != all_machines.end()) {
+                BOOST_LOG_TRIVIAL(info) << "load_last_machine: restoring from cloud agent, dev_id=" << last_monitor_machine;
+                this->set_selected_machine(last_monitor_machine);
+                return;
+            }
+        }
+
+        // 3) Last resort: select the first available machine
+        BOOST_LOG_TRIVIAL(info) << "load_last_machine: no last machine found, selecting first available";
+        this->set_selected_machine(all_machines.begin()->second->get_dev_id());
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)
