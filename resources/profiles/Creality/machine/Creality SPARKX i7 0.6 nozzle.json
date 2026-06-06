@@ -70,7 +70,6 @@
 	"pellet_modded_printer": "0",
 	"preferred_orientation": "0",
 	"prime_tower_position_type": "Middle Upper",
-	"print_host": "http://10.10.1.39",
 	"printable_area": "0x0,260x0,260x260,0x260",
 	"printable_height": "255",
 	"printer_technology": "FFF",
