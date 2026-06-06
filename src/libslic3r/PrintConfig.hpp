@@ -1394,6 +1394,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
+    // Orca: when set, a multi-toolhead printer is also fed by a filament switcher (MMU),
+    // so it can carry more filaments than it has toolheads. Gates the hybrid SEMM/multi-tool workflow.
+    ((ConfigOptionBool,                multi_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))

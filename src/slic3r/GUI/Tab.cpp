@@ -1540,8 +1540,15 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
-    if (opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" )
+    if (opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" || opt_key == "multi_extruder_multi_material")
         update_wiping_button_visibility();
+
+    // Orca: toggling the hybrid MMU gate enables/disables the add-filament and flushing-volume
+    // buttons, mirroring how SEMM does. Refresh the sidebar and print tab so the UI updates live.
+    if (opt_key == "multi_extruder_multi_material") {
+        wxGetApp().sidebar().show_SEMM_buttons();
+        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    }
 
 
     if (opt_key == "pellet_flow_coefficient")
@@ -4940,7 +4947,7 @@ if (is_marlin_flavor)
     if (from_initial_build) {
         // create a page, but pretend it's an extruder page, so we can add it to m_pages ourselves
         auto page     = add_options_page(L("Multimaterial"), "custom-gcode_multi_material", true); // ORCA: icon only visible on placeholders
-        auto optgroup = page->new_optgroup(L("Single extruder multi-material setup"), "param_multi_material");
+        auto optgroup = page->new_optgroup(L("Multi-material setup"), "param_multi_material");
         optgroup->append_single_option_line("single_extruder_multi_material", "printer_multimaterial_setup#single-extruder-multi-material");
         ConfigOptionDef def;
         def.type    = coInt, def.set_default_value(new ConfigOptionInt((int) m_extruders_count));
@@ -5024,6 +5031,9 @@ if (is_marlin_flavor)
                 }
             });
         };
+        // Orca: gate for the hybrid multi-toolhead + filament switcher (MMU) workflow.
+        // Visibility is managed in toggle_options(): only shown when SEMM is off and extruders_count > 1.
+        optgroup->append_single_option_line("multi_extruder_multi_material", "printer_multimaterial_setup#multi-extruder-multi-material");
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
@@ -5491,6 +5501,16 @@ void TabPrinter::toggle_options()
         // so the option is irrelevant there.
         const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
+
+        // Orca: the hybrid multi-toolhead + filament switcher (MMU) gate only applies to a multi-extruder
+        // printer that is NOT in single-nozzle mode. Hide it otherwise to avoid contradictory setups.
+        const bool show_memm = !bSEMM && extruders_count > 1;
+        toggle_line("multi_extruder_multi_material", show_memm);
+        if (!show_memm && m_config->opt_bool("multi_extruder_multi_material")) {
+            DynamicPrintConfig new_conf = *m_config;
+            new_conf.set_key_value("multi_extruder_multi_material", new ConfigOptionBool(false));
+            load_config(new_conf);
+        }
     }
     wxString extruder_number;
     long val = 1;

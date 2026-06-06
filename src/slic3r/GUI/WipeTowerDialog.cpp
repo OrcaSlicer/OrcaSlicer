@@ -265,14 +265,24 @@ wxString WipingDialog::BuildTableObjStr()
     auto raw_matrix_data = full_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
     auto nozzle_flush_dataset = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset")->values;
 
+    // TODO(hybrid-mmu phase 2c): TEMPORARY. Replace this whole single-matrix collapse with the
+    // real per-toolhead flush matrices (one tab per toolhead, only toolheads with >=2 lanes).
+    // Orca: in hybrid MMU mode, present a single shared flushing matrix (no per-extruder
+    // selector) instead of the Bambu-style left/right per-nozzle view. The edited matrix is
+    // replicated to every physical toolhead on save (see GetFlattenMatrix/GetMultipliers).
+    m_single_matrix_mode = full_config.has("multi_extruder_multi_material")
+        && full_config.opt_bool("multi_extruder_multi_material") && nozzle_num > 1;
+    m_physical_nozzle_num = nozzle_num;
+    const int shown_matrix_count = m_single_matrix_mode ? 1 : nozzle_num;
+
     std::vector<std::vector<double>> flush_matrixs;
-    for (int idx = 0; idx < nozzle_num; ++idx) {
+    for (int idx = 0; idx < shown_matrix_count; ++idx) {
         flush_matrixs.emplace_back(get_flush_volumes_matrix(raw_matrix_data, idx, nozzle_num));
     }
-    flush_multiplier.resize(nozzle_num, 1);
+    flush_multiplier.resize(shown_matrix_count, 1);
 
     std::vector<std::vector<float>> default_matrixs;
-    for (int idx = 0; idx < nozzle_num; ++idx) {
+    for (int idx = 0; idx < shown_matrix_count; ++idx) {
         default_matrixs.emplace_back(MatrixFlatten(CalcFlushingVolumes(idx)));
     }
 
@@ -281,7 +291,7 @@ wxString WipingDialog::BuildTableObjStr()
 
     json obj;
     obj["flush_multiplier"] = flush_multiplier;
-    obj["extruder_num"] = nozzle_num;
+    obj["extruder_num"] = shown_matrix_count;
     obj["filament_colors"] = filament_colors;
     obj["flush_volume_matrixs"] = json::array();
     obj["min_flush_volumes"] = json::array();
@@ -298,7 +308,7 @@ wxString WipingDialog::BuildTableObjStr()
         obj["default_matrixs"].push_back(vec);
     }
 
-    for (int idx = 0; idx < nozzle_num; ++idx) {
+    for (int idx = 0; idx < shown_matrix_count; ++idx) {
         const std::vector<int> &min_flush_volumes = get_min_flush_volumes(full_config, idx);
         int min_flush_from_nozzle_volume = *min_element(min_flush_volumes.begin(), min_flush_volumes.end());
         GenericFlushPredictor pd(nozzle_flush_dataset[idx]);
@@ -594,15 +604,34 @@ void WipingDialog::StoreFlushData(int extruder_num, const std::vector<std::vecto
 
 std::vector<double> WipingDialog::GetFlattenMatrix()const
 {
-    std::vector<double> ret;
+    std::vector<double> single;
     for (auto& matrix : m_raw_matrixs) {
-        ret.insert(ret.end(), matrix.begin(), matrix.end());
+        single.insert(single.end(), matrix.begin(), matrix.end());
     }
+
+    if (!m_single_matrix_mode)
+        return single;
+
+    // TODO(hybrid-mmu phase 2c): TEMPORARY replication. Remove when per-toolhead matrices exist.
+    // Orca: the UI edited one shared matrix, but the engine and stored config expect one
+    // block per physical toolhead. Replicate the shared matrix across every toolhead so the
+    // purge values are identical regardless of which toolhead a filament is routed to.
+    std::vector<double> ret;
+    const int blocks = std::max(1, m_physical_nozzle_num);
+    ret.reserve(single.size() * blocks);
+    for (int i = 0; i < blocks; ++i)
+        ret.insert(ret.end(), single.begin(), single.end());
     return ret;
 }
 
 
 std::vector<double> WipingDialog::GetMultipliers()const
 {
-    return m_flush_multipliers;
+    if (!m_single_matrix_mode)
+        return m_flush_multipliers;
+
+    // TODO(hybrid-mmu phase 2c): TEMPORARY. Remove with the single-matrix collapse.
+    // Orca: mirror the single shared multiplier to every physical toolhead block.
+    const double m = m_flush_multipliers.empty() ? 1.0 : m_flush_multipliers.front();
+    return std::vector<double>(std::max(1, m_physical_nozzle_num), m);
 }

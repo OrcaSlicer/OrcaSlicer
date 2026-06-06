@@ -5954,6 +5954,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("multi_extruder_multi_material", coBool);
+    def->label = L("Multi-material per toolhead");
+    def->tooltip = L("Enable this if your multi-toolhead printer is also fed by a filament switcher (an MMU/AMS-style unit), "
+                     "so it can carry more filaments than it has toolheads. When enabled, you can add more filaments than "
+                     "the number of extruders and edit the flushing volume matrix, as a single nozzle multi-material printer would. "
+                     "Only relevant when Single Extruder Multi Material is disabled and the printer has more than one extruder.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("manual_filament_change", coBool);
     def->label = L("Manual Filament Change");
     def->tooltip = L("Enable this option to omit the custom Change filament G-code only at the beginning of the print. "

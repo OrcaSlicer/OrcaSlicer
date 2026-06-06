@@ -3687,7 +3687,12 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    // Orca: a multi-toolhead printer backed by a filament switcher (MMU) behaves like a SEMM printer
+    // for the purpose of adding filaments and editing the flushing-volume matrix. Treat the hybrid
+    // gate the same way so the add/delete-filament and flushing-volume buttons are available.
+    bool is_memm = cfg.has("multi_extruder_multi_material") && cfg.opt_bool("multi_extruder_multi_material");
+
+    return cfg.opt_bool("single_extruder_multi_material") || is_memm || is_bbl_vendor;
 }
 
 void Sidebar::show_SEMM_buttons()
