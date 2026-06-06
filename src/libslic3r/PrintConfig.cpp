@@ -5963,6 +5963,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("multi_extruder_multi_material_filament_count", coInt);
+    def->label = L("Number of filaments");
+    def->tooltip = L("Total number of filaments your filament switcher (MMU) can feed across all toolheads. "
+                     "This caps how many filaments you can add, and the filament list is restored to this count on restart. "
+                     "Only used when 'Multi-material per toolhead (MMU)' is enabled; should be at least the number of toolheads.");
+    def->min = 1;
+    def->max = 64; // MAXIMUM_EXTRUDER_NUMBER
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
+
     def = this->add("manual_filament_change", coBool);
     def->label = L("Manual Filament Change");
     def->tooltip = L("Enable this option to omit the custom Change filament G-code only at the beginning of the print. "
