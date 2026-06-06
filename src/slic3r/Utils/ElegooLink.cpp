@@ -405,7 +405,7 @@ namespace Slic3r {
         if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
             return fallback_webui;
 
-        std::string web_path = resources_dir() + "/plugins/elegoolink/web/lan_service_web/index.html";
+        std::string web_path = resources_dir() + "/web/elegoolink/lan_service_web/index.html";
         std::replace(web_path.begin(), web_path.end(), '\\', '/');
         web_path = "file://" + web_path;
 

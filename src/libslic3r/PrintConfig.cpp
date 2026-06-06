@@ -149,7 +149,8 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "flashforge",     htFlashforge },
     { "simplyprint",    htSimplyPrint },
     { "elegoolink",     htElegooLink },
-    { "3dprinteros",    ht3DPrinterOS }
+    { "3dprinteros",    ht3DPrinterOS },
+    { "moonraker",      htMoonraker }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -4116,7 +4117,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints());
 
-    def = this->add("sparse_infill_filament", coInt);
+    def = this->add("sparse_infill_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Infill");
     def->category = L("Extruders");
@@ -4862,6 +4863,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("simplyprint");
     def->enum_values.push_back("elegoolink");
     def->enum_values.push_back("3dprinteros");
+    def->enum_values.push_back("moonraker");
     def->enum_labels.push_back("PrusaLink");
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
@@ -4877,6 +4879,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("SimplyPrint");
     def->enum_labels.push_back("Elegoo Link");
     def->enum_labels.push_back("3DPrinterOS");
+    def->enum_labels.push_back("Moonraker (Klipper)");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -4998,11 +5001,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    def = this->add("wall_filament", coInt);
+    def = this->add("outer_wall_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
-    def->label = L("Walls");
+    def->label = L("Outer walls");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print walls.\n\"Default\" uses the active object/part filament.");
+    def->tooltip = L("Filament to print outer walls.\n\"Default\" uses the active object/part filament.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("inner_wall_filament_id", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label = L("Inner walls");
+    def->category = L("Extruders");
+    def->tooltip = L("Filament to print inner walls.\n\"Default\" uses the active object/part filament.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
@@ -5759,11 +5771,29 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(15));
 
-    def = this->add("solid_infill_filament", coInt);
+    def = this->add("internal_solid_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
-    def->label = L("Solid infill");
+    def->label = L("Internal solid infill");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print solid infill.\n\"Default\" uses the active object/part filament.");
+    def->tooltip = L("Filament to print internal solid infill.\n\"Default\" uses the active object/part filament.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("top_surface_filament_id", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label = L("Top surface");
+    def->category = L("Extruders");
+    def->tooltip = L("Filament to print top surface.\n\"Default\" uses the active object/part filament.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("bottom_surface_filament_id", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label = L("Bottom surface");
+    def->category = L("Extruders");
+    def->tooltip = L("Filament to print bottom surface.\n\"Default\" uses the active object/part filament.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
@@ -7995,12 +8025,34 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "change_filament_gcode";
     } else if (opt_key == "bridge_fan_speed") {
         opt_key = "overhang_fan_speed";
-    } else if (opt_key == "infill_extruder") {
-        opt_key = "sparse_infill_filament";
-    }else if (opt_key == "solid_infill_extruder") {
-        opt_key = "solid_infill_filament";
-    }else if (opt_key == "perimeter_extruder") {
-        opt_key = "wall_filament";
+    } else if (opt_key == "infill_extruder" || opt_key == "sparse_infill_filament") {
+        // ORCA: legacy feature-filament selector. Pre-2.4.0-dev these keys were 1-based and the
+        // default value "1" meant "the first/active filament". The current scheme uses a dedicated
+        // key where 0 = "Default" (inherit the object/part filament) and 1..N = explicit filament.
+        // Renaming to the new *_id key here means every config (process presets, 3mf project
+        // settings, imported gcode) is translated uniformly on load - not just the version-gated
+        // 3mf paths the old bespoke migration covered - and a brand-new key can never be misread as
+        // a legacy default. Map the legacy default "1" to "0" (inherit); keep explicit values >1.
+        opt_key = "sparse_infill_filament_id";
+        if (value == "1") value = "0";
+    } else if (opt_key == "solid_infill_extruder" || opt_key == "solid_infill_filament") {
+        opt_key = "internal_solid_filament_id";
+        if (value == "1") value = "0";
+    } else if (opt_key == "top_solid_infill_filament") {
+        opt_key = "top_surface_filament_id";
+        if (value == "1") value = "0";
+    } else if (opt_key == "bottom_solid_infill_filament") {
+        opt_key = "bottom_surface_filament_id";
+        if (value == "1") value = "0";
+    } else if (opt_key == "perimeter_extruder" || opt_key == "wall_filament" || opt_key == "wall_filament_id") {
+        opt_key = "outer_wall_filament_id";
+        if (value == "1") value = "0";
+    } else if (opt_key == "inner_wall_filament") {
+        opt_key = "inner_wall_filament_id";
+        if (value == "1") value = "0";
+    } else if (opt_key == "outer_wall_filament") {
+        opt_key = "outer_wall_filament_id";
+        if (value == "1") value = "0";
     }else if(opt_key == "wipe_tower_extruder") {
         opt_key = "wipe_tower_filament";
     }else if (opt_key == "support_material_extruder") {
@@ -8449,10 +8501,18 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");
         if (extruder != 0) {
-            if (!this->has("sparse_infill_filament") || this->option("sparse_infill_filament")->getInt() == 0)
-                this->option("sparse_infill_filament", true)->setInt(extruder);
-            if (!this->has("wall_filament") || this->option("wall_filament")->getInt() == 0)
-                this->option("wall_filament", true)->setInt(extruder);
+            if (!this->has("sparse_infill_filament_id") || this->option("sparse_infill_filament_id")->getInt() == 0)
+                this->option("sparse_infill_filament_id", true)->setInt(extruder);
+            if (!this->has("outer_wall_filament_id") || this->option("outer_wall_filament_id")->getInt() == 0)
+                this->option("outer_wall_filament_id", true)->setInt(extruder);
+            if (!this->has("inner_wall_filament_id") || this->option("inner_wall_filament_id")->getInt() == 0)
+                this->option("inner_wall_filament_id", true)->setInt(extruder);
+            if (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0)
+                this->option("internal_solid_filament_id", true)->setInt(extruder);
+            if (!this->has("top_surface_filament_id") || this->option("top_surface_filament_id")->getInt() == 0)
+                this->option("top_surface_filament_id", true)->setInt(extruder);
+            if (!this->has("bottom_surface_filament_id") || this->option("bottom_surface_filament_id")->getInt() == 0)
+                this->option("bottom_surface_filament_id", true)->setInt(extruder);
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
             // for soluble supports one certainly does not want to set the extruder to non-soluble.
@@ -8463,11 +8523,24 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
     }
 
-    if (this->has("sparse_infill_filament")) {
-        int sparse_infill_filament = this->option("sparse_infill_filament")->getInt();
-        if (sparse_infill_filament > 0 && (!this->has("solid_infill_filament") || this->option("solid_infill_filament")->getInt() == 0))
-            this->option("solid_infill_filament", true)->setInt(sparse_infill_filament);
+    if (this->has("sparse_infill_filament_id")) {
+        int sparse_infill_filament_id = this->option("sparse_infill_filament_id")->getInt();
+        if (sparse_infill_filament_id > 0 && (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0))
+            this->option("internal_solid_filament_id", true)->setInt(sparse_infill_filament_id);
     }
+
+    const int internal_solid = this->has("internal_solid_filament_id") ? this->option("internal_solid_filament_id")->getInt() : 0;
+    const int top_surface    = this->has("top_surface_filament_id") ? this->option("top_surface_filament_id")->getInt() : 0;
+    const int bottom_surface = this->has("bottom_surface_filament_id") ? this->option("bottom_surface_filament_id")->getInt() : 0;
+
+    if (internal_solid == 0 && top_surface > 0)
+        this->option("internal_solid_filament_id", true)->setInt(top_surface);
+    if (internal_solid == 0 && bottom_surface > 0)
+        this->option("internal_solid_filament_id", true)->setInt(bottom_surface);
+    if (top_surface == 0 && internal_solid > 0)
+        this->option("top_surface_filament_id", true)->setInt(internal_solid);
+    if (bottom_surface == 0 && internal_solid > 0)
+        this->option("bottom_surface_filament_id", true)->setInt(internal_solid);
 
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
@@ -8525,10 +8598,18 @@ void DynamicPrintConfig::normalize_fdm_1()
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");
         if (extruder != 0) {
-            if (!this->has("sparse_infill_filament") || this->option("sparse_infill_filament")->getInt() == 0)
-                this->option("sparse_infill_filament", true)->setInt(extruder);
-            if (!this->has("wall_filament") || this->option("wall_filament")->getInt() == 0)
-                this->option("wall_filament", true)->setInt(extruder);
+            if (!this->has("sparse_infill_filament_id") || this->option("sparse_infill_filament_id")->getInt() == 0)
+                this->option("sparse_infill_filament_id", true)->setInt(extruder);
+            if (!this->has("outer_wall_filament_id") || this->option("outer_wall_filament_id")->getInt() == 0)
+                this->option("outer_wall_filament_id", true)->setInt(extruder);
+            if (!this->has("inner_wall_filament_id") || this->option("inner_wall_filament_id")->getInt() == 0)
+                this->option("inner_wall_filament_id", true)->setInt(extruder);
+            if (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0)
+                this->option("internal_solid_filament_id", true)->setInt(extruder);
+            if (!this->has("top_surface_filament_id") || this->option("top_surface_filament_id")->getInt() == 0)
+                this->option("top_surface_filament_id", true)->setInt(extruder);
+            if (!this->has("bottom_surface_filament_id") || this->option("bottom_surface_filament_id")->getInt() == 0)
+                this->option("bottom_surface_filament_id", true)->setInt(extruder);
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
             // for soluble supports one certainly does not want to set the extruder to non-soluble.
@@ -8539,11 +8620,24 @@ void DynamicPrintConfig::normalize_fdm_1()
         }
     }
 
-    if (this->has("sparse_infill_filament")) {
-        int sparse_infill_filament = this->option("sparse_infill_filament")->getInt();
-        if (sparse_infill_filament > 0 && (!this->has("solid_infill_filament") || this->option("solid_infill_filament")->getInt() == 0))
-            this->option("solid_infill_filament", true)->setInt(sparse_infill_filament);
+    if (this->has("sparse_infill_filament_id")) {
+        int sparse_infill_filament_id = this->option("sparse_infill_filament_id")->getInt();
+        if (sparse_infill_filament_id > 0 && (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0))
+            this->option("internal_solid_filament_id", true)->setInt(sparse_infill_filament_id);
     }
+
+    const int internal_solid = this->has("internal_solid_filament_id") ? this->option("internal_solid_filament_id")->getInt() : 0;
+    const int top_surface    = this->has("top_surface_filament_id") ? this->option("top_surface_filament_id")->getInt() : 0;
+    const int bottom_surface = this->has("bottom_surface_filament_id") ? this->option("bottom_surface_filament_id")->getInt() : 0;
+
+    if (internal_solid == 0 && top_surface > 0)
+        this->option("internal_solid_filament_id", true)->setInt(top_surface);
+    if (internal_solid == 0 && bottom_surface > 0)
+        this->option("internal_solid_filament_id", true)->setInt(bottom_surface);
+    if (top_surface == 0 && internal_solid > 0)
+        this->option("top_surface_filament_id", true)->setInt(internal_solid);
+    if (bottom_surface == 0 && internal_solid > 0)
+        this->option("bottom_surface_filament_id", true)->setInt(internal_solid);
 
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {

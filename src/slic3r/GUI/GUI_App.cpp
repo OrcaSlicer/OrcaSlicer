@@ -6057,6 +6057,25 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to query OrcaCloud presets (error " << ret
                                        << "), skipping migration to avoid overwriting cloud data.";
+            // If this looks like a transient 401 from token propagation delay (within grace period),
+            // schedule one deferred retry so first-time users don't silently lose their preset migration.
+            if (std::chrono::steady_clock::now() - m_last_401_error_time < std::chrono::seconds(30)
+                && !m_migration_retry_pending.exchange(true)) {
+                BOOST_LOG_TRIVIAL(info) << "Scheduling migration retry after token propagation window.";
+                boost::thread([this]() {
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                    CallAfter([this]() {
+                        m_migration_retry_pending = false;
+                        if (is_closing() || !m_agent || !m_agent->is_user_login()) return;
+                        BOOST_LOG_TRIVIAL(info) << "Retrying preset migration after token propagation window.";
+                        if (maybe_migrate_user_presets_on_login()) {
+                            const std::string user_id = m_agent->get_user_id();
+                            preset_bundle->load_user_presets(user_id, ForwardCompatibilitySubstitutionRule::Enable);
+                            if (mainframe) mainframe->update_side_preset_ui();
+                        }
+                    });
+                }).detach();
+            }
             return false;
         }
         BOOST_LOG_TRIVIAL(info) << "OrcaCloud has no presets for user " << new_user_id << ", proceeding with migration check.";
