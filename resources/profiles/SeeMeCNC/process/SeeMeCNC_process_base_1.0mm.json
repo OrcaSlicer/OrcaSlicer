@@ -235,7 +235,7 @@
 	"support_interface_flow_ratio": "1",
 	"support_interface_loop_pattern": "0",
 	"support_interface_not_for_body": "1",
-	"support_interface_pattern": "default",
+	"support_interface_pattern": "auto",
 	"support_interface_spacing": "1.5",
 	"support_interface_top_layers": "3",
 	"support_ironing": "0",
