@@ -22,6 +22,8 @@
 	"fan_speedup_overhangs": "1",
 	"fan_speedup_time": "0",
 	"gcode_flavor": "klipper",
+	"host_type": "crealityprint",
+	"printer_agent": "crealityprint",
 	"high_current_on_filament_swap": "0",
 	"machine_end_gcode": "END_PRINT",
 	"machine_load_filament_time": "0",
