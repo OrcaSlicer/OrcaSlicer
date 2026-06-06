@@ -1517,9 +1517,16 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
 	int glb_support_extr = glb_config.opt_int("support_filament");
-	int glb_wall_extr = glb_config.opt_int("wall_filament");
-	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament");
-	int glb_solid_infill_extr = glb_config.opt_int("solid_infill_filament");
+	int glb_outer_wall_extr = glb_config.opt_int("outer_wall_filament_id");
+	int glb_inner_wall_extr = glb_config.opt_int("inner_wall_filament_id");
+	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
+	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
+	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament_id");
+	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
+	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
+	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
+	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -1573,17 +1580,30 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
                 plate_extruders.push_back(glb_support_extr);
         }
 
-        int obj_wall_extr = 0;
-		const ConfigOption* wall_opt = mo->config.option("wall_filament");
-		if (wall_opt != nullptr)
-			obj_wall_extr = wall_opt->getInt();
-		if (obj_wall_extr != 0)
-			plate_extruders.push_back(obj_wall_extr);
-		else if (glb_wall_extr != 0)
-			plate_extruders.push_back(glb_wall_extr);
+		int obj_outer_wall_extr = 0;
+		if (const ConfigOption* wall_opt = mo->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+			obj_outer_wall_extr = wall_opt->getInt();
+		if (obj_outer_wall_extr == 0)
+			if (const ConfigOption* wall_opt = mo->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+				obj_outer_wall_extr = wall_opt->getInt();
+		if (obj_outer_wall_extr != 0)
+			plate_extruders.push_back(obj_outer_wall_extr);
+		else if (glb_outer_wall_extr != 0)
+			plate_extruders.push_back(glb_outer_wall_extr);
+
+		int obj_inner_wall_extr = 0;
+		if (const ConfigOption* wall_opt = mo->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+			obj_inner_wall_extr = wall_opt->getInt();
+		if (obj_inner_wall_extr == 0)
+			if (const ConfigOption* wall_opt = mo->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+				obj_inner_wall_extr = wall_opt->getInt();
+		if (obj_inner_wall_extr != 0)
+			plate_extruders.push_back(obj_inner_wall_extr);
+		else if (glb_inner_wall_extr != 0)
+			plate_extruders.push_back(glb_inner_wall_extr);
 
 		int obj_sparse_infill_extr = 0;
-		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament");
+		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament_id");
 		if (sparse_infill_opt != nullptr)
 			obj_sparse_infill_extr = sparse_infill_opt->getInt();
 		if (obj_sparse_infill_extr != 0)
@@ -1591,14 +1611,33 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 		else if (glb_sparse_infill_extr != 0)
 			plate_extruders.push_back(glb_sparse_infill_extr);
 
-		int obj_solid_infill_extr = 0;
-		const ConfigOption* solid_infill_opt = mo->config.option("solid_infill_filament");
-		if (solid_infill_opt != nullptr)
-			obj_solid_infill_extr = solid_infill_opt->getInt();
-		if (obj_solid_infill_extr != 0)
-			plate_extruders.push_back(obj_solid_infill_extr);
-		else if (glb_solid_infill_extr != 0)
-			plate_extruders.push_back(glb_solid_infill_extr);
+		int obj_internal_solid_extr = 0;
+		if (const ConfigOption* solid_opt = mo->config.option("internal_solid_filament_id"); solid_opt != nullptr)
+			obj_internal_solid_extr = solid_opt->getInt();
+		if (obj_internal_solid_extr != 0)
+			plate_extruders.push_back(obj_internal_solid_extr);
+		else if (glb_internal_solid_extr != 0)
+			plate_extruders.push_back(glb_internal_solid_extr);
+
+		int obj_top_surface_extr = 0;
+		if (const ConfigOption* top_opt = mo->config.option("top_surface_filament_id"); top_opt != nullptr)
+			obj_top_surface_extr = top_opt->getInt();
+		if (obj_top_surface_extr == 0)
+			obj_top_surface_extr = obj_internal_solid_extr;
+		if (obj_top_surface_extr != 0)
+			plate_extruders.push_back(obj_top_surface_extr);
+		else if (glb_top_surface_extr != 0)
+			plate_extruders.push_back(glb_top_surface_extr);
+
+		int obj_bottom_surface_extr = 0;
+		if (const ConfigOption* bottom_opt = mo->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
+			obj_bottom_surface_extr = bottom_opt->getInt();
+		if (obj_bottom_surface_extr == 0)
+			obj_bottom_surface_extr = obj_internal_solid_extr;
+		if (obj_bottom_surface_extr != 0)
+			plate_extruders.push_back(obj_bottom_surface_extr);
+		else if (glb_bottom_surface_extr != 0)
+			plate_extruders.push_back(glb_bottom_surface_extr);
 
 	}
 
@@ -1629,9 +1668,16 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     // if 3mf file
     int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
     int glb_support_extr = full_config.opt_int("support_filament");
-	int glb_wall_extr = full_config.opt_int("wall_filament");
-	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament");
-	int glb_solid_infill_extr = full_config.opt_int("solid_infill_filament");
+	int glb_outer_wall_extr = full_config.opt_int("outer_wall_filament_id");
+	int glb_inner_wall_extr = full_config.opt_int("inner_wall_filament_id");
+	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
+	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
+	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament_id");
+	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
+	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
+	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
+	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -1695,17 +1741,30 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
             else if (glb_support_extr != 0)
                 plate_extruders.push_back(glb_support_extr);
 
-			int obj_wall_extr = 0;
-			const ConfigOption* wall_opt = object->config.option("wall_filament");
-			if (wall_opt != nullptr)
-				obj_wall_extr = wall_opt->getInt();
-			if (obj_wall_extr != 0)
-				plate_extruders.push_back(obj_wall_extr);
-			else if (glb_wall_extr != 0)
-				plate_extruders.push_back(glb_wall_extr);
+			int obj_outer_wall_extr = 0;
+			if (const ConfigOption* wall_opt = object->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+				obj_outer_wall_extr = wall_opt->getInt();
+			if (obj_outer_wall_extr == 0)
+				if (const ConfigOption* wall_opt = object->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+					obj_outer_wall_extr = wall_opt->getInt();
+			if (obj_outer_wall_extr != 0)
+				plate_extruders.push_back(obj_outer_wall_extr);
+			else if (glb_outer_wall_extr != 0)
+				plate_extruders.push_back(glb_outer_wall_extr);
+
+			int obj_inner_wall_extr = 0;
+			if (const ConfigOption* wall_opt = object->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+				obj_inner_wall_extr = wall_opt->getInt();
+			if (obj_inner_wall_extr == 0)
+				if (const ConfigOption* wall_opt = object->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+					obj_inner_wall_extr = wall_opt->getInt();
+			if (obj_inner_wall_extr != 0)
+				plate_extruders.push_back(obj_inner_wall_extr);
+			else if (glb_inner_wall_extr != 0)
+				plate_extruders.push_back(glb_inner_wall_extr);
 
 			int obj_sparse_infill_extr = 0;
-			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament");
+			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament_id");
 			if (sparse_infill_opt != nullptr)
 				obj_sparse_infill_extr = sparse_infill_opt->getInt();
 			if (obj_sparse_infill_extr != 0)
@@ -1713,14 +1772,33 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			else if (glb_sparse_infill_extr != 0)
 				plate_extruders.push_back(glb_sparse_infill_extr);
 
-			int obj_solid_infill_extr = 0;
-			const ConfigOption* solid_infill_opt = object->config.option("solid_infill_filament");
-			if (solid_infill_opt != nullptr)
-				obj_solid_infill_extr = solid_infill_opt->getInt();
-			if (obj_solid_infill_extr != 0)
-				plate_extruders.push_back(obj_solid_infill_extr);
-			else if (glb_solid_infill_extr != 0)
-				plate_extruders.push_back(glb_solid_infill_extr);
+			int obj_internal_solid_extr = 0;
+			if (const ConfigOption* solid_opt = object->config.option("internal_solid_filament_id"); solid_opt != nullptr)
+				obj_internal_solid_extr = solid_opt->getInt();
+			if (obj_internal_solid_extr != 0)
+				plate_extruders.push_back(obj_internal_solid_extr);
+			else if (glb_internal_solid_extr != 0)
+				plate_extruders.push_back(glb_internal_solid_extr);
+
+			int obj_top_surface_extr = 0;
+			if (const ConfigOption* top_opt = object->config.option("top_surface_filament_id"); top_opt != nullptr)
+				obj_top_surface_extr = top_opt->getInt();
+			if (obj_top_surface_extr == 0)
+				obj_top_surface_extr = obj_internal_solid_extr;
+			if (obj_top_surface_extr != 0)
+				plate_extruders.push_back(obj_top_surface_extr);
+			else if (glb_top_surface_extr != 0)
+				plate_extruders.push_back(glb_top_surface_extr);
+
+			int obj_bottom_surface_extr = 0;
+			if (const ConfigOption* bottom_opt = object->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
+				obj_bottom_surface_extr = bottom_opt->getInt();
+			if (obj_bottom_surface_extr == 0)
+				obj_bottom_surface_extr = obj_internal_solid_extr;
+			if (obj_bottom_surface_extr != 0)
+				plate_extruders.push_back(obj_bottom_surface_extr);
+			else if (glb_bottom_surface_extr != 0)
+				plate_extruders.push_back(glb_bottom_surface_extr);
         }
     }
 
@@ -3762,7 +3840,11 @@ void PartPlate::on_filament_deleted(int filament_count, int filament_id)
 {
     if (m_config.has("filament_map")) {
         std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
-        filament_maps.erase(filament_maps.begin() + filament_id);
+        // Guard against an out-of-range index: the per-plate filament_map can be out of sync
+        // with the global filament count, and erasing at/past end() triggers an out-of-bounds
+        // memmove (crash on macOS, see PartPlate::on_filament_deleted in crash reports).
+        if (filament_id >= 0 && filament_id < (int) filament_maps.size())
+            filament_maps.erase(filament_maps.begin() + filament_id);
     }
     update_first_layer_print_sequence_when_delete_filament(filament_id);
 }

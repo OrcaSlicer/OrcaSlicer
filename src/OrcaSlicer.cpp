@@ -1595,7 +1595,7 @@ int CLI::run(int argc, char **argv)
                         record_exit_reson(outfile_dir, CLI_FILE_VERSION_NOT_SUPPORTED, 0, cli_errors[CLI_FILE_VERSION_NOT_SUPPORTED], sliced_info);
                         flush_and_exit(CLI_FILE_VERSION_NOT_SUPPORTED);
                     }
-                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0), old_version5("2.4.0");
+                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0);
                     if ((file_version < old_version) && !config.empty()) {
                         translate_old = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to translate")%file_version.to_string();
@@ -1610,18 +1610,9 @@ int CLI::run(int argc, char **argv)
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
                     }
 
-                    if ((file_version < old_version5) && !config.empty()) {
-                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config);
-                        for (ModelObject *model_object : model.objects) {
-                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
-                            for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
-                        }
-
-                        if (converted_count > 0) {
-                            BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)") % file_version.to_string() % converted_count;
-                        }
-                    }
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which covers presets too.
 
                     if (normative_check) {
                         ConfigOptionStrings* postprocess_scripts = config.option<ConfigOptionStrings>("post_process");
