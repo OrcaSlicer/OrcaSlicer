@@ -194,6 +194,7 @@ std::string debug_out_path(const char *name, ...);
 // smaller level means less log. level=5 means saving all logs.
 void set_log_path_and_level(const std::string& file, unsigned int level);
 void flush_logs();
+boost::filesystem::path get_log_file_name();
 
 // A special type for strings encoded in the local Windows 8-bit code page.
 // This type is only needed for Perl bindings to relay to Perl that the string is raw, not UTF-8 encoded.
