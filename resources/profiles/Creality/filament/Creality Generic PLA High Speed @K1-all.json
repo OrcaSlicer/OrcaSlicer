@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "GFSL95_00",
 	"instantiation": "true",
-	"filament_vendor": [
-		"Creality"
-	],
 	"filament_max_volumetric_speed": [
 		"23"
 	],

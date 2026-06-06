@@ -5,9 +5,6 @@
 	"from": "system",
 	"filament_id": "GFC99",
 	"instantiation": "false",
-	"filament_vendor": [
-		"Creality"
-	],
 	"filament_max_volumetric_speed": [
 		"16"
 	],

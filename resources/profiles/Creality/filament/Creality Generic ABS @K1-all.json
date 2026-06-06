@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "GFSA04_CREALITY_00",
 	"instantiation": "true",
-	"filament_vendor": [
-		"Creality"
-	],
 	"filament_max_volumetric_speed": [
 		"14"
 	],

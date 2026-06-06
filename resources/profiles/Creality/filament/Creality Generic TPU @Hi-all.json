@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "GFU99_CREALITY_00",
 	"instantiation": "true",
-	"filament_vendor": [
-		"Creality"
-	],
 	"hot_plate_temp": [
 		"30"
 	],

@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "GFSN99_01",
 	"instantiation": "true",
-	"filament_vendor": [
-		"Creality"
-	],
 	"compatible_printers": [
 		"Creality K1 (0.4 nozzle)",
 		"Creality K1 (0.6 nozzle)",

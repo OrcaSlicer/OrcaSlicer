@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "GFSC99_06",
 	"instantiation": "true",
-	"filament_vendor": [
-		"Creality"
-	],
 	"chamber_temperatures": [
 		"60"
 	],

@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "GFSL99_00",
 	"instantiation": "true",
-	"filament_vendor": [
-		"Creality"
-	],
 	"filament_flow_ratio": [
 		"0.95"
 	],
