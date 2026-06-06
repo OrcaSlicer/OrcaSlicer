@@ -1192,43 +1192,108 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // Safety fallback: if wxWidgets was not built with EGL support, native
-    // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
-    // backend cannot access an X11 display. Force X11 mode in that case.
-    // NOTE: Do NOT remove this block even after enabling wxHAS_EGL
-    // in the build — it protects against builds where deps were not rebuilt.
-#if !defined(wxHAS_EGL) || !wxHAS_EGL
+    // ------------------------------------------------------------------
+    // Linux backend selection — runtime, based on GDK_BACKEND env var.
+    //
+    //   GDK_BACKEND unset (DEFAULT)    Wayland path.
+    //                                  GTK auto-picks Wayland on Wayland
+    //                                  sessions and X11 otherwise. WebKit
+    //                                  XWayland-compositing workaround
+    //                                  applied only when actually on
+    //                                  XWayland. XInitThreads gated on
+    //                                  DISPLAY presence.
+    //
+    //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
+    //                                  v2.3.2 workarounds that the X11
+    //                                  path benefits from: DRI_PRIME for
+    //                                  AMD/nouveau PRIME, NVIDIA PRIME
+    //                                  render offload (when nvidia.ko is
+    //                                  loaded), XInitThreads. 
+    //                                  Multi monitor is compromised
+    //
+    // WEBKIT_DISABLE_COMPOSITING_MODE is deliberately NOT set on the X11
+    // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
+    // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
+    // unset preserves WebKit hardware acceleration on Device / Setup
+    // Wizard / login / store. The default path still applies it on
+    // XWayland sessions as a conservative fallback for older WebKit.
+    // ------------------------------------------------------------------
     {
-        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-        if (wayland_env && *wayland_env) {
-            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
-            ::setenv("GDK_BACKEND", "x11", true);
-        }
-    }
-#endif
+        const char* gdk_backend = ::getenv("GDK_BACKEND");
+        // Match "x11" and comma-prefixed forms like "x11,wayland" (GTK
+        // honours the first backend in the comma-separated list).
+        const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
 
-    // WebKit2GTK compositing can fail under XWayland. Only disable it when
-    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
-    // On pure X11 or native Wayland, compositing is left enabled.
-    {
-        const char* display_env_wk = ::getenv("DISPLAY");
-        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
-            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
-        }
-    }
+        if (x11_opt_in) {
+            // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
+            BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 detected; applying v2.3.2 X11/XWayland workarounds.";
 
-    // XInitThreads is needed before GStreamer may use Xlib. On native
-    // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
-    #if __has_include(<X11/Xlib.h>)
-    {
-        const char* display_env = ::getenv("DISPLAY");
-        if (display_env && *display_env) {
+            // On Linux dual-GPU systems, request the high-performance
+            // discrete GPU. DRI_PRIME=1 handles AMD and nouveau PRIME
+            // setups; harmless on single-GPU systems (Mesa ignores it).
+            ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+            // For NVIDIA proprietary driver PRIME render offload, set
+            // additional variables. Only set if the NVIDIA kernel module
+            // is loaded to avoid breaking systems without NVIDIA.
+            if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+                ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+                ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+            }
+
+            // Tell Xlib we will be using threads, lest we crash when
+            // GStreamer fires up. Safe to call here since the user has
+            // explicitly opted into X11.
+            #if __has_include(<X11/Xlib.h>)
             XInitThreads();
+            #endif
+        } else {
+            // ===== Wayland default =====
+
+            // Safety fallback: if wxWidgets was not built with EGL
+            // support, native Wayland will crash in
+            // wxGLCanvas::IsDisplaySupported() because the GLX backend
+            // cannot access an X11 display. Force X11 mode in that case.
+            // NOTE: Do NOT remove this block even after enabling
+            // wxHAS_EGL in the build — it protects against builds where
+            // deps were not rebuilt.
+            #if !defined(wxHAS_EGL) || !wxHAS_EGL
+            {
+                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+                if (wayland_env && *wayland_env) {
+                    BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
+                    ::setenv("GDK_BACKEND", "x11", true);
+                }
+            }
+            #endif
+
+            // WebKit2GTK compositing can fail under XWayland on older
+            // WebKit releases. Disable it only when both DISPLAY and
+            // WAYLAND_DISPLAY are set (i.e. an XWayland session is in
+            // use). On pure X11 or native Wayland, compositing is left
+            // enabled so WebKit retains HW acceleration.
+            {
+                const char* display_env_wk = ::getenv("DISPLAY");
+                const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
+                if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+                    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+                }
+            }
+
+            // XInitThreads is needed before GStreamer may use Xlib. On
+            // native Wayland without DISPLAY, GStreamer uses waylandsink
+            // (no Xlib involved), so the call is skipped.
+            #if __has_include(<X11/Xlib.h>)
+            {
+                const char* display_env = ::getenv("DISPLAY");
+                if (display_env && *display_env) {
+                    XInitThreads();
+                }
+            }
+            #endif
         }
     }
-    #endif
-#endif
+#endif // __WXGTK__
 
 	// Switch boost::filesystem to utf8.
     try {
