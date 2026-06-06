@@ -51,7 +51,8 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusModeNotFDM,
     PrintStatusInSystemPrinting,
     PrintStatusInPrinting,
-    PrintStatusNozzleMatchInvalid,
+    // EXPERIMENTAL: skip-nozzle-type-sync - PrintStatusNozzleMatchInvalid moved to warning block (see PrintStatusPrinterWarningBegin section)
+    /* ORIGINAL: PrintStatusNozzleMatchInvalid, */
     PrintStatusNozzleDataInvalid,
     PrintStatusNozzleDiameterMismatch,
     PrintStatusNozzleTypeMismatch,
@@ -89,6 +90,8 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusTimelapseWarning,
     PrintStatusMixAmsAndVtSlotWarning,
     PrintStatusToolHeadCoolingFanWarning,
+    PrintStatusNozzleMatchInvalid,      // EXPERIMENTAL: skip-nozzle-type-sync - downgraded to warning (was in error block before PrintStatusNozzleDataInvalid)
+    /* ORIGINAL: PrintStatusNozzleMatchInvalid was between PrintStatusInPrinting and PrintStatusNozzleDataInvalid (error block, line ~54) */
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament

@@ -731,6 +731,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_scroll_area->SetSizer(m_scroll_sizer);
 
+
     wxBoxSizer *sizer_main = new wxBoxSizer(wxVERTICAL);
     sizer_main->Add(m_scroll_area, 1, wxEXPAND, 0);
     sizer_main->Add(m_simplebook, 0, wxALIGN_CENTER, 0);
@@ -1562,7 +1563,8 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Send_Button(false);
     } else if (status == PrintDialogStatus::PrintStatusNozzleMatchInvalid) {
         Enable_Refresh_Button(true);
-        Enable_Send_Button(false);
+        Enable_Send_Button(true);  // EXPERIMENTAL: skip-nozzle-type-sync - allow send despite flow type mismatch
+        /* ORIGINAL: Enable_Send_Button(false); */
     } else if (status == PrintStatusNozzleDiameterMismatch) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
@@ -1705,7 +1707,6 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     /*enter perpare mode*/
     prepare_mode(false);
     m_pre_print_checker.add(status, msg, tips, wiki_url);
-
 }
 
 void SelectMachineDialog::init_timer()
@@ -3386,7 +3387,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             std::vector<wxString> params{error_message};
             params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
             show_status(PrintDialogStatus::PrintStatusNozzleMatchInvalid, params);
-            return;
+            // EXPERIMENTAL: skip-nozzle-type-sync - no return, downgraded to warning
+            /* ORIGINAL: return; */
         }
     }
 
@@ -5197,9 +5199,27 @@ static wxString _get_tips(MachineObject* obj_)
     if (obj_->GetExtderSystem()->GetTotalExtderCount() == 1) {
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
     } else if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
+        // EXPERIMENTAL: skip-nozzle-type-sync - show flow type labels next to diameters
+        /* ORIGINAL:
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
         ext_diameter += "/";
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
+        */
+        // Left nozzle (extruder id 1 = DEPUTY)
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));
+        auto left_flow = obj_->GetExtderSystem()->GetNozzleFlowType(1);
+        if (left_flow != NozzleFlowType::NONE_FLOWTYPE) {
+            ext_diameter += " ";
+            ext_diameter += DevNozzle::ToNozzleVolumeShortString(DevNozzle::ToNozzleVolumeType(left_flow));
+        }
+        ext_diameter += "/";
+        // Right nozzle (extruder id 0 = MAIN)
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
+        auto right_flow = obj_->GetExtderSystem()->GetNozzleFlowType(0);
+        if (right_flow != NozzleFlowType::NONE_FLOWTYPE) {
+            ext_diameter += " ";
+            ext_diameter += DevNozzle::ToNozzleVolumeShortString(DevNozzle::ToNozzleVolumeType(right_flow));
+        }
     } else {
         assert(0);
     }

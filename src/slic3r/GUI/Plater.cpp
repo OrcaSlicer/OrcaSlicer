@@ -681,7 +681,8 @@ struct Sidebar::priv
     void jump_to_object(ObjectDataViewModelNode* item);
     void can_search();
 
-    bool sync_extruder_list(bool &only_external_material, bool is_manual = false);
+    bool sync_extruder_list(bool &only_external_material, bool is_manual = false, bool skip_nozzle_type = false); // EXPERIMENTAL: skip-nozzle-type-sync
+    /* ORIGINAL: bool sync_extruder_list(bool &only_external_material, bool is_manual = false); */
     std::optional<NozzleOption> get_nozzle_options(MachineObject *obj, int extruder_count, bool support_multi_nozzle, bool is_manual);
     bool switch_diameter(bool single);
     void update_sync_status(const MachineObject* obj);
@@ -1658,7 +1659,9 @@ static std::optional<NozzleOption> deserialize_nozzle_option(const std::string& 
     return option;
 }
 
-bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual)
+// EXPERIMENTAL: skip-nozzle-type-sync - added skip_nozzle_type parameter
+/* ORIGINAL: bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual) */
+bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual, bool skip_nozzle_type)
 {
     MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
     auto           printer_name = plater->get_selected_printer_name_in_combox();
@@ -1738,6 +1741,8 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             else
                 select_type = nozzle_option->extruder_nozzle_stats.at(index).begin()->first;
         }
+        // EXPERIMENTAL: skip-nozzle-type-sync - bypass NONE_FLOWTYPE error when user chose to keep nozzle type
+        /* ORIGINAL:
         if (obj->is_nozzle_flow_type_supported()) {
             if (obj->GetExtderSystem()->GetNozzleFlowType(index) == NozzleFlowType::NONE_FLOWTYPE) {
                 MessageDialog dlg(this->plater, _L("There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."),
@@ -1749,7 +1754,30 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             if (std::fabs(nozzle_diameters[extruder_id] - 0.2) > EPSILON && !is_skip_high_flow_printer(printer_model))
                 target_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id));
         }
-        if (select_type) target_type = *select_type;
+        if (select_type) {
+            target_type = *select_type;
+        }
+        */
+        if (!skip_nozzle_type && obj->is_nozzle_flow_type_supported()) {
+            if (obj->GetExtderSystem()->GetNozzleFlowType(index) == NozzleFlowType::NONE_FLOWTYPE) {
+                MessageDialog dlg(this->plater, _L("There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."),
+                                  _L("Sync extruder infomation"), wxICON_WARNING | wxOK);
+                dlg.ShowModal();
+                continue;
+            }
+            // hack code, only use standard flow for 0.2
+            if (std::fabs(nozzle_diameters[extruder_id] - 0.2) > EPSILON && !is_skip_high_flow_printer(printer_model))
+                target_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id));
+        }
+        // EXPERIMENTAL: skip-nozzle-type-sync - preserve user's nozzle volume type
+        if (skip_nozzle_type) {
+            auto* nvt_opt = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+            if (nvt_opt && index < nvt_opt->values.size()) {
+                target_type = NozzleVolumeType(nvt_opt->values[index]);
+            }
+        } else if (select_type) {
+            target_type = *select_type;
+        }
         target_types[index] = target_type;
     }
 
@@ -2064,6 +2092,9 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         }
     }
     else if (extruder_nums == 2) {
+        // EXPERIMENTAL: skip-nozzle-type-sync - decouple AMS display from nozzle type comparison
+        // AMS icons shown when diameter+AMS counts match; badge requires full equality incl. nozzle type
+        /* ORIGINAL:
         if (extruder_infos[0] == machine_extruder_infos[0]) {
             left_extruder->ShowBadge(true);
             left_extruder->sync_ams(obj, machine_extruder_infos[0].ams_v4, machine_extruder_infos[0].ams_v1);
@@ -2083,6 +2114,30 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
             right_extruder->ShowBadge(false);
             right_extruder->sync_ams(obj, {}, {});
         }
+        */
+        auto is_same_ams = [](const ExtruderInfo &a, const ExtruderInfo &b) {
+            return abs(a.diameter - b.diameter) < EPSILON
+                && a.ams_4 == b.ams_4
+                && a.ams_1 == b.ams_1;
+        };
+
+        bool left_fully_synced = (extruder_infos[0] == machine_extruder_infos[0]);
+        left_extruder->ShowBadge(left_fully_synced);
+        if (is_same_ams(extruder_infos[0], machine_extruder_infos[0])) {
+            left_extruder->sync_ams(obj, machine_extruder_infos[0].ams_v4, machine_extruder_infos[0].ams_v1);
+        } else {
+            left_extruder->sync_ams(obj, {}, {});
+        }
+        extruder_synced[0] = left_fully_synced;
+
+        bool right_fully_synced = (extruder_infos[1] == machine_extruder_infos[1]);
+        right_extruder->ShowBadge(right_fully_synced);
+        if (is_same_ams(extruder_infos[1], machine_extruder_infos[1])) {
+            right_extruder->sync_ams(obj, machine_extruder_infos[1].ams_v4, machine_extruder_infos[1].ams_v1);
+        } else {
+            right_extruder->sync_ams(obj, {}, {});
+        }
+        extruder_synced[1] = right_fully_synced;
     }
 
     StateColor synced_colour(std::pair<wxColour, int>(wxColour("#CECECE"), StateColor::Normal));
@@ -3918,10 +3973,18 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     return filament_ams_list;
 }
 
+// EXPERIMENTAL: skip-nozzle-type-sync - public API with skip_nozzle_type
+/* ORIGINAL:
 bool Sidebar::sync_extruder_list()
 {
     bool only_external_material;
     return p->sync_extruder_list(only_external_material);
+}
+*/
+bool Sidebar::sync_extruder_list(bool skip_nozzle_type)
+{
+    bool only_external_material;
+    return p->sync_extruder_list(only_external_material, /*is_manual=*/false, skip_nozzle_type);
 }
 
 bool Sidebar::need_auto_sync_extruder_list_after_connect_priner(const MachineObject *obj)
@@ -11630,6 +11693,30 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         if (!is_same_as_printer) {
             struct SyncInfoDialog : MessageDialog
             {
+                // EXPERIMENTAL: skip-nozzle-type-sync - checkbox UI in sync dialog
+                wxCheckBox* m_cb_skip_nozzle{nullptr};
+
+                SyncInfoDialog(wxWindow *parent)
+                    : MessageDialog(parent,
+                                    _L("The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
+                                       "After syncing, software can optimize printing time and filament usage when slicing.\n"
+                                       "Would you like to sync now?"),
+                                    _L("Warning"), 0)
+                {
+                    // EXPERIMENTAL: skip-nozzle-type-sync
+                    m_cb_skip_nozzle = new wxCheckBox(this, wxID_ANY, _L("Keep current nozzle type (don't sync from printer)"));
+                    m_cb_skip_nozzle->SetValue(false);
+                    content_sizer->Add(m_cb_skip_nozzle, 0, wxTOP, FromDIP(10));
+                    add_button(wxID_YES, true, _L("Sync now"));
+                    add_button(wxID_NO, true, _L("Later"));
+                    finalize();
+                }
+
+                bool skip_nozzle_type() const { return m_cb_skip_nozzle && m_cb_skip_nozzle->GetValue(); } // EXPERIMENTAL: skip-nozzle-type-sync
+            } dlg(q);
+            /* ORIGINAL:
+            struct SyncInfoDialog : MessageDialog
+            {
                 SyncInfoDialog(wxWindow *parent)
                     : MessageDialog(parent,
                                     _L("The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
@@ -11639,11 +11726,15 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
                 {
                     add_button(wxID_YES, true, _L("Sync now"));
                     add_button(wxID_NO, true, _L("Later"));
+                    finalize();
                 }
             } dlg(q);
+            */
             dlg.Fit();
             if (dlg.ShowModal() == wxID_YES) {
-                if (GUI::wxGetApp().sidebar().sync_extruder_list()) {
+                bool skip_nozzle = dlg.skip_nozzle_type(); // EXPERIMENTAL: skip-nozzle-type-sync
+                /* ORIGINAL: if (GUI::wxGetApp().sidebar().sync_extruder_list()) { */
+                if (GUI::wxGetApp().sidebar().sync_extruder_list(skip_nozzle)) {
                     if (is_slice_all)
                         wxPostEvent(q, SimpleEvent(EVT_GLTOOLBAR_SLICE_ALL));
                     else
