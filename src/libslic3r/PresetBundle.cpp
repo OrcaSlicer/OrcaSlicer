@@ -5172,11 +5172,24 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             }
             config = *default_config;
             config.apply(config_src);
-            // H2C: transfer variant overrides from loaded config_src
-            if (!config_src.variant_overrides().empty()) {
-                config.variant_overrides() = config_src.variant_overrides();
-                BOOST_LOG_TRIVIAL(info) << "H2C parse_subfile: transferred VariantOverrides for " << preset_name
-                    << " (" << config.variant_overrides().floats.size() << " float keys)";
+            // H2C: merge variant overrides — parent survives from default_config copy,
+            // child's overrides win on conflict.  The `config = *default_config` above
+            // already copied parent's variant_overrides.  We overlay child's on top.
+            {
+                const auto& child_vo = config_src.variant_overrides();
+                if (!child_vo.empty()) {
+                    auto& merged_vo = config.variant_overrides();
+                    for (auto& [key, vals] : child_vo.floats)
+                        merged_vo.floats[key] = vals;
+                    for (auto& [key, vals] : child_vo.strings)
+                        merged_vo.strings[key] = vals;
+                    BOOST_LOG_TRIVIAL(info) << "H2C parse_subfile: merged VariantOverrides for " << preset_name
+                        << " (child: " << child_vo.floats.size() << " float keys"
+                        << ", total: " << merged_vo.floats.size() << " float keys)";
+                } else if (!config.variant_overrides().empty()) {
+                    BOOST_LOG_TRIVIAL(info) << "H2C parse_subfile: inherited VariantOverrides for " << preset_name
+                        << " (" << config.variant_overrides().floats.size() << " float keys from parent)";
+                }
             }
             extend_default_config_length(config, {}, true, *default_config);
             if (instantiation == "false" && "Template" != vendor_name) {

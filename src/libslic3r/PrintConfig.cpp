@@ -8634,10 +8634,13 @@ void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
 
 const PrintConfigDef print_config_def;
 
-// H2C: re-enable speed/accel variant options — extend_default_config_length() handles resize
+// H2C: re-enable speed/accel/jerk variant options — extend_default_config_length() handles resize
 std::set<std::string> print_options_with_variant = {
+    // --- Speeds ---
     "initial_layer_speed",
     "initial_layer_infill_speed",
+    "initial_layer_travel_speed", // coFloatOrPercent — per-variant for dual-extruder
+    "slow_down_layers",           // coInt — per-variant for dual-extruder
     "outer_wall_speed",
     "inner_wall_speed",
     "small_perimeter_speed",  //coFloatsOrPercents
@@ -8646,22 +8649,43 @@ std::set<std::string> print_options_with_variant = {
     "internal_solid_infill_speed",
     "top_surface_speed",
     "enable_overhang_speed", //coBools
+    "slowdown_for_curled_perimeters", // coBool — per-variant
     "overhang_1_4_speed",
     "overhang_2_4_speed",
     "overhang_3_4_speed",
     "overhang_4_4_speed",
     "bridge_speed",
+    "internal_bridge_speed",     // coFloatOrPercent — per-variant
     "gap_infill_speed",
     "support_speed",
     "support_interface_speed",
     "travel_speed",
     "travel_speed_z",
+    // --- Acceleration ---
     "default_acceleration",
     "initial_layer_acceleration",
+    "initial_layer_travel_acceleration", // coFloatOrPercent — per-variant (array in JSON)
     "outer_wall_acceleration",
     "inner_wall_acceleration",
     "sparse_infill_acceleration", //coFloatsOrPercents
+    "internal_solid_infill_acceleration", // coFloatOrPercent — per-variant
+    "bridge_acceleration",        // coFloatOrPercent — per-variant
     "top_surface_acceleration",
+    "travel_acceleration",        // coFloat — per-variant (array in JSON)
+    // --- Jerk ---
+    "default_jerk",               // coFloat — per-variant
+    "outer_wall_jerk",            // coFloat — per-variant
+    "inner_wall_jerk",            // coFloat — per-variant
+    "top_surface_jerk",           // coFloat — per-variant
+    "infill_jerk",                // coFloat — per-variant
+    "initial_layer_jerk",         // coFloat — per-variant
+    "travel_jerk",                // coFloat — per-variant
+    "initial_layer_travel_jerk",  // coFloatOrPercent — per-variant
+    // --- Advanced ---
+    "max_volumetric_extrusion_rate_slope",                // coFloat — per-variant
+    "max_volumetric_extrusion_rate_slope_segment_length", // coFloat — per-variant
+    "extrusion_rate_smoothing_external_perimeter_only",   // coBool — per-variant
+    // --- Extruder identity ---
     "print_extruder_id", //coInts
     "print_extruder_variant" //coStrings
 };
@@ -9917,17 +9941,27 @@ DynamicPrintConfig::get_filament_type() const
 
 void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::set<std::string>& keys)
 {
-    if (m_variant_overrides.empty())
-        return;
-
     const ConfigDef* config_def = this->def();
     if (!config_def)
         return;
 
-    for (const auto& key : keys) {
-        if (!m_variant_overrides.has(key))
-            continue;
+    // Determine variant_count for auto-init of scalar keys (same logic as save).
+    int variant_count = 0;
+    for (const auto& [k, v] : m_variant_overrides.floats)
+        variant_count = std::max(variant_count, (int)v.size());
+    if (variant_count == 0) {
+        for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
+            const auto* opt = dynamic_cast<const ConfigOptionStrings*>(this->option(vkey, false));
+            if (opt && (int)opt->size() > 1) {
+                variant_count = (int)opt->size();
+                break;
+            }
+        }
+    }
+    if (variant_count <= 0)
+        return;
 
+    for (const auto& key : keys) {
         ConfigOption* opt = this->option(key, false);
         if (!opt)
             continue;
@@ -9936,15 +9970,43 @@ void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::s
         if (!optdef)
             continue;
 
+        // Auto-init: if this scalar key is missing from overrides,
+        // fill all variant slots with the current value.
+        if (!m_variant_overrides.has(key)) {
+            switch (optdef->type) {
+            case coFloat: {
+                double val = static_cast<const ConfigOptionFloat*>(opt)->value;
+                m_variant_overrides.floats[key].assign(variant_count, val);
+                break;
+            }
+            case coFloatOrPercent: {
+                auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
+                m_variant_overrides.floats[key].assign(variant_count, fop->value);
+                m_variant_overrides.strings[key].assign(variant_count, fop->serialize());
+                break;
+            }
+            case coBool: {
+                bool val = static_cast<const ConfigOptionBool*>(opt)->value;
+                m_variant_overrides.floats[key].assign(variant_count, val ? 1.0 : 0.0);
+                break;
+            }
+            case coInt: {
+                int val = static_cast<const ConfigOptionInt*>(opt)->value;
+                m_variant_overrides.floats[key].assign(variant_count, (double)val);
+                break;
+            }
+            default:
+                continue;  // unsupported type, skip
+            }
+        }
+
         switch (optdef->type) {
         case coFloat: {
             double val = m_variant_overrides.get_float(key, variant_index);
             static_cast<ConfigOptionFloat*>(opt)->value = val;
-            BOOST_LOG_TRIVIAL(info) << "H2C apply_variant_overrides: " << key << "[" << variant_index << "] = " << val;
             break;
         }
         case coFloatOrPercent: {
-            // Use raw string to preserve percent values like "50%"
             std::string raw = m_variant_overrides.get_string(key, variant_index);
             if (!raw.empty()) {
                 auto* fop = static_cast<ConfigOptionFloatOrPercent*>(opt);
@@ -9955,14 +10017,132 @@ void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::s
                     fop->value = std::stod(raw);
                     fop->percent = false;
                 }
-                BOOST_LOG_TRIVIAL(info) << "H2C apply_variant_overrides: " << key << "[" << variant_index << "] = " << raw;
             }
             break;
         }
         case coBool: {
             double val = m_variant_overrides.get_float(key, variant_index);
             static_cast<ConfigOptionBool*>(opt)->value = (val != 0.0);
-            BOOST_LOG_TRIVIAL(info) << "H2C apply_variant_overrides: " << key << "[" << variant_index << "] = " << (val != 0.0);
+            break;
+        }
+        case coInt: {
+            double val = m_variant_overrides.get_float(key, variant_index);
+            static_cast<ConfigOptionInt*>(opt)->value = (int)val;
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
+void DynamicPrintConfig::save_variant_overrides(int variant_index, const std::set<std::string>& keys)
+{
+    const ConfigDef* config_def = this->def();
+    if (!config_def)
+        return;
+
+    // Determine the expected variant count.
+    // 1) Try from existing overrides (most common — at least some fields were JSON arrays).
+    // 2) Fallback: read from the variant list config options themselves.
+    //    This handles the edge case where ALL variant-aware fields in a
+    //    preset are scalars, so m_variant_overrides starts completely empty.
+    int variant_count = 0;
+    for (const auto& [k, v] : m_variant_overrides.floats)
+        variant_count = std::max(variant_count, (int)v.size());
+
+    if (variant_count == 0) {
+        // No existing overrides — determine variant count from the variant list config options
+        for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
+            const auto* opt = dynamic_cast<const ConfigOptionStrings*>(this->option(vkey, false));
+            if (opt && (int)opt->size() > 1) {
+                variant_count = (int)opt->size();
+                BOOST_LOG_TRIVIAL(info) << "H2C save_variant_overrides: variant_count=" << variant_count
+                    << " from " << vkey;
+                break;
+            }
+        }
+    }
+
+    if (variant_count <= 0)
+        return;  // not a multi-variant config at all
+
+    for (const auto& key : keys) {
+        const ConfigOption* opt = this->option(key, false);
+        if (!opt)
+            continue;
+
+        const ConfigOptionDef* optdef = config_def->get(key);
+        if (!optdef)
+            continue;
+
+        // H2C: Auto-initialize override entry for scalar fields.
+        // When a preset JSON has a scalar value (not an array), no entry
+        // is created in variant_overrides.  On the first tab switch we
+        // replicate the current scalar across ALL variant slots so each
+        // variant can be edited independently from now on.
+        if (!m_variant_overrides.has(key) && variant_count > 0) {
+            switch (optdef->type) {
+            case coFloat: {
+                double val = static_cast<const ConfigOptionFloat*>(opt)->value;
+                m_variant_overrides.floats[key].assign(variant_count, val);
+                BOOST_LOG_TRIVIAL(info) << "H2C save_variant_overrides: auto-init " << key
+                    << " (coFloat) = " << val << " x" << variant_count;
+                break;
+            }
+            case coFloatOrPercent: {
+                auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
+                m_variant_overrides.floats[key].assign(variant_count, fop->value);
+                std::string raw = fop->serialize();
+                m_variant_overrides.strings[key].assign(variant_count, raw);
+                BOOST_LOG_TRIVIAL(info) << "H2C save_variant_overrides: auto-init " << key
+                    << " (coFloatOrPercent) = " << raw << " x" << variant_count;
+                break;
+            }
+            case coBool: {
+                bool val = static_cast<const ConfigOptionBool*>(opt)->value;
+                m_variant_overrides.floats[key].assign(variant_count, val ? 1.0 : 0.0);
+                BOOST_LOG_TRIVIAL(info) << "H2C save_variant_overrides: auto-init " << key
+                    << " (coBool) = " << val << " x" << variant_count;
+                break;
+            }
+            case coInt: {
+                int val = static_cast<const ConfigOptionInt*>(opt)->value;
+                m_variant_overrides.floats[key].assign(variant_count, (double)val);
+                BOOST_LOG_TRIVIAL(info) << "H2C save_variant_overrides: auto-init " << key
+                    << " (coInt) = " << val << " x" << variant_count;
+                break;
+            }
+            default:
+                continue;  // unsupported type, skip
+            }
+        }
+
+        if (!m_variant_overrides.has(key))
+            continue;
+
+        switch (optdef->type) {
+        case coFloat: {
+            double val = static_cast<const ConfigOptionFloat*>(opt)->value;
+            m_variant_overrides.set_float(key, variant_index, val);
+            break;
+        }
+        case coFloatOrPercent: {
+            auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
+            m_variant_overrides.set_float(key, variant_index, fop->value);
+            // Preserve percent notation in the string table
+            std::string raw = fop->serialize();
+            m_variant_overrides.set_string(key, variant_index, raw);
+            break;
+        }
+        case coBool: {
+            bool val = static_cast<const ConfigOptionBool*>(opt)->value;
+            m_variant_overrides.set_float(key, variant_index, val ? 1.0 : 0.0);
+            break;
+        }
+        case coInt: {
+            int val = static_cast<const ConfigOptionInt*>(opt)->value;
+            m_variant_overrides.set_float(key, variant_index, (double)val);
             break;
         }
         default:

@@ -708,6 +708,20 @@ struct VariantOverrides {
         auto it = floats.find(key);
         return it != floats.end() ? (int)it->second.size() : 0;
     }
+
+    // H2C: Write a value back into the variant array (preserves user edits
+    // when switching between Left/Right nozzle tabs).
+    void set_float(const std::string& key, int index, double value) {
+        auto it = floats.find(key);
+        if (it != floats.end() && index >= 0 && index < (int)it->second.size())
+            it->second[index] = value;
+    }
+
+    void set_string(const std::string& key, int index, const std::string& value) {
+        auto it = strings.find(key);
+        if (it != strings.end() && index >= 0 && index < (int)it->second.size())
+            it->second[index] = value;
+    }
 };
 
 // Slic3r dynamic configuration, used to override the configuration
@@ -802,6 +816,12 @@ public:
     // variant_index: index into the variant array (e.g. 0=Standard, 1=HighFlow for single-extruder)
     // keys: set of option keys to apply (typically print_options_with_variant)
     void apply_variant_overrides(int variant_index, const std::set<std::string>& keys);
+
+    // Save current scalar config values back into the variant overrides table.
+    // This is the inverse of apply_variant_overrides() — reads scalars from the
+    // live config and writes them to variant_overrides[variant_index], preserving
+    // user edits before switching to a different nozzle variant.
+    void save_variant_overrides(int variant_index, const std::set<std::string>& keys);
 
 private:
     VariantOverrides m_variant_overrides;

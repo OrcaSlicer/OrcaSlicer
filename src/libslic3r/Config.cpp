@@ -977,7 +977,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                     if (optdef && it.value().size() > 1 &&
                         (print_options_with_variant.count(opt_key) > 0 ||
                          filament_options_with_variant.count(opt_key) > 0) &&
-                        (optdef->type == coFloat || optdef->type == coFloatOrPercent || optdef->type == coBool))
+                        (optdef->type == coFloat || optdef->type == coFloatOrPercent || optdef->type == coBool || optdef->type == coInt))
                     {
                         auto* dpc = dynamic_cast<DynamicPrintConfig*>(this);
                         if (dpc) {

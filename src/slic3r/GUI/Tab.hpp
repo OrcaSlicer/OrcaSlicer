@@ -309,6 +309,10 @@ public:
 	ScalableButton* m_mode_icon = nullptr; // ORCA m_static_title replacement
     SwitchButton *m_extruder_switch = nullptr;
     MultiSwitchButton *m_variant_combo = nullptr;
+    // H2C: Tracks the variant index that was last applied by switch_excluder().
+    // Used by save_variant_overrides() to write user edits back to the correct
+    // slot before switching to a different nozzle variant.
+    int m_last_variant_index = -1;
 
 public:
 	// BBS

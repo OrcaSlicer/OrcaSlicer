@@ -6028,37 +6028,11 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
     if (vo.empty())
         return;
 
-    // Scalar keys from print_options_with_variant that need per-extruder resolution.
+    // Use the canonical list from PrintConfig.cpp — no duplication.
     // Array-type keys (coInts, coFloats, coBools, coStrings, etc.) are already
-    // handled by update_values_to_printer_extruders in PrintApply.cpp.
-    static const std::vector<std::string> scalar_speed_keys = {
-        "initial_layer_speed",
-        "initial_layer_infill_speed",
-        "outer_wall_speed",
-        "inner_wall_speed",
-        "small_perimeter_speed",
-        "small_perimeter_threshold",
-        "sparse_infill_speed",
-        "internal_solid_infill_speed",
-        "top_surface_speed",
-        "enable_overhang_speed",     // coBool (NOT coBools despite variant comment)
-        "overhang_1_4_speed",
-        "overhang_2_4_speed",
-        "overhang_3_4_speed",
-        "overhang_4_4_speed",
-        "bridge_speed",
-        "gap_infill_speed",
-        "support_speed",
-        "support_interface_speed",
-        "travel_speed",
-        "travel_speed_z",
-        "default_acceleration",
-        "initial_layer_acceleration",
-        "outer_wall_acceleration",
-        "inner_wall_acceleration",
-        "sparse_infill_acceleration",
-        "top_surface_acceleration",
-    };
+    // handled by update_values_to_printer_extruders in PrintApply.cpp;
+    // we filter them out in the loop below by checking optdef->type.
+    const auto& variant_keys = print_options_with_variant;
 
     unsigned int num_extruders = (unsigned int)print.config().nozzle_diameter.size();
 
@@ -6120,7 +6094,7 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
         DynamicPrintConfig overlay;
         bool has_any = false;
 
-        for (const auto& key : scalar_speed_keys) {
+        for (const auto& key : variant_keys) {
             if (!vo.has(key))
                 continue;
 
@@ -6155,6 +6129,12 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
             case coBool: {
                 double val = vo.get_float(key, variant_index);
                 overlay.set_key_value(key, new ConfigOptionBool(val != 0.0));
+                has_any = true;
+                break;
+            }
+            case coInt: {
+                double val = vo.get_float(key, variant_index);
+                overlay.set_key_value(key, new ConfigOptionInt((int)val));
                 has_any = true;
                 break;
             }

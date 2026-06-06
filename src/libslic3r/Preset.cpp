@@ -1700,11 +1700,22 @@ void PresetCollection::load_presets(
                         preset.config.apply(std::move(config));
                         extend_default_config_length(preset.config, {}, true, default_preset.config);
                     }
-                    // H2C: transfer variant overrides from loaded config
-                    if (!saved_overrides.empty()) {
-                        preset.config.variant_overrides() = std::move(saved_overrides);
-                        BOOST_LOG_TRIVIAL(info) << "H2C: transferred VariantOverrides for preset " << preset.name
-                            << " (" << preset.config.variant_overrides().floats.size() << " float keys)";
+                    // H2C: merge variant overrides — parent overrides survive, child overrides win
+                    {
+                        auto& parent_vo = preset.config.variant_overrides();
+                        if (!saved_overrides.empty()) {
+                            // Overlay child's overrides on top of parent's
+                            for (auto& [key, vals] : saved_overrides.floats)
+                                parent_vo.floats[key] = std::move(vals);
+                            for (auto& [key, vals] : saved_overrides.strings)
+                                parent_vo.strings[key] = std::move(vals);
+                            BOOST_LOG_TRIVIAL(info) << "H2C: merged VariantOverrides for preset " << preset.name
+                                << " (child: " << saved_overrides.floats.size()
+                                << " keys, total: " << parent_vo.floats.size() << " keys)";
+                        } else if (!parent_vo.empty()) {
+                            BOOST_LOG_TRIVIAL(info) << "H2C: inherited VariantOverrides for preset " << preset.name
+                                << " (" << parent_vo.floats.size() << " float keys from parent)";
+                        }
                     }
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " load preset: " << name << " and filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
 

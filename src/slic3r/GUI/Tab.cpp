@@ -5721,6 +5721,9 @@ void Tab::reactive_preset_combo_box()
 void Tab::load_current_preset()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": enter, m_type %1%")%Preset::get_type_string(m_type);
+    // H2C: Reset variant tracking — new preset = fresh VariantOverrides,
+    // don't let a stale index from the previous preset corrupt the new one.
+    m_last_variant_index = -1;
     const Preset& preset = m_presets->get_edited_preset();
     std::vector<std::string> prev_variant_list;
     int prev_extruder_count = 0;
@@ -7518,20 +7521,45 @@ void Tab::switch_excluder(int extruder_id)
 
     // H2C: When switching between Left/Right nozzle tabs, apply the correct
     // variant overrides so scalar values reflect this extruder's nozzle type.
-    // Apply to BOTH edited AND selected presets — the dirty detection compares
-    // edited vs selected.  If only edited is variant-adjusted, the legitimate
-    // variant values appear as user modifications (false dirty flags).
+    //
+    // CRITICAL: Before applying the new variant, SAVE current scalar values
+    // back into edited_cfg's VariantOverrides for the PREVIOUS variant index.
+    // This preserves user edits across Left↔Right tab switches.
+    //
+    // We save only to edited_cfg — selected_cfg always keeps the original
+    // system values, so dirty detection correctly flags user modifications.
     if (m_extruder_switch && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
         auto& edited_cfg   = m_presets->get_edited_preset().config;
         auto& selected_cfg = m_presets->get_selected_preset().config;
-        if (!edited_cfg.variant_overrides().empty()) {
-            if (m_type == Preset::TYPE_PRINT) {
-                edited_cfg.apply_variant_overrides(index, print_options_with_variant);
-                selected_cfg.apply_variant_overrides(index, print_options_with_variant);
-            } else if (m_type == Preset::TYPE_FILAMENT) {
-                edited_cfg.apply_variant_overrides(index, filament_options_with_variant);
-                selected_cfg.apply_variant_overrides(index, filament_options_with_variant);
+
+        // H2C: Determine if this is a multi-variant config.
+        // Check existing overrides first, then fallback to variant list options
+        // (handles edge case where ALL variant-aware fields are scalar).
+        bool is_multi_variant = !edited_cfg.variant_overrides().empty();
+        if (!is_multi_variant) {
+            for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
+                const auto* opt = dynamic_cast<const ConfigOptionStrings*>(edited_cfg.option(vkey, false));
+                if (opt && (int)opt->size() > 1) {
+                    is_multi_variant = true;
+                    break;
+                }
             }
+        }
+
+        if (is_multi_variant) {
+            const auto& keys = (m_type == Preset::TYPE_PRINT)
+                ? print_options_with_variant : filament_options_with_variant;
+
+            // Save current values to the PREVIOUS variant slot (edited only)
+            if (m_last_variant_index >= 0) {
+                edited_cfg.save_variant_overrides(m_last_variant_index, keys);
+            }
+
+            // Apply new variant's values
+            edited_cfg.apply_variant_overrides(index, keys);
+            selected_cfg.apply_variant_overrides(index, keys);
+
+            m_last_variant_index = index;
         }
     }
 }
