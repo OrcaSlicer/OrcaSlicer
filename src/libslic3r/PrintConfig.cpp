@@ -2697,6 +2697,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
 
+    // machine_prepare_compensation_time — time for G29 bed leveling.
+    // Already present in JSON profiles (fdm_machine_common=260, P2S=370) but was never
+    // registered in C++ config, so GCodeProcessor hardcoded 260s for all machines.
+    def = this->add("machine_prepare_compensation_time", coFloat);
+    def->label = L("Prepare compensation time");
+    def->tooltip = L("Time compensation for the machine preparation stage (e.g. G29 bed leveling). "
+                     "Used by the time estimator. Set to 0 to skip.");
+    def->sidetext = L("s");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(260.0));
 
     def = this->add("support_object_skip_flush", coBool);
     def->set_default_value(new ConfigOptionBool(false));

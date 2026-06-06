@@ -631,6 +631,8 @@ void GCodeProcessor::TimeProcessor::reset()
     filament_unload_times = 0.0f;
     machine_tool_change_time = 0.0f;
     hotend_change_times = 0.0f;
+    // Reset G29 bed-leveling compensation time to default
+    machine_prepare_compensation_time = 260.0f;
 
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
@@ -2155,6 +2157,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_time_processor.filament_load_times = static_cast<float>(config.machine_load_filament_time.value);
     m_time_processor.filament_unload_times = static_cast<float>(config.machine_unload_filament_time.value);
     m_time_processor.machine_tool_change_time = static_cast<float>(config.machine_tool_change_time.value);
+    // Read G29 bed-leveling time from machine profile (replaces hardcoded 260s)
+    m_time_processor.machine_prepare_compensation_time = static_cast<float>(config.machine_prepare_compensation_time.value);
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         float max_acceleration = get_option_value(m_time_processor.machine_limits.machine_max_acceleration_extruding, i);
@@ -2429,6 +2433,11 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     const ConfigOptionFloat* machine_hotend_change_time = config.option<ConfigOptionFloat>("machine_hotend_change_time");
     if(machine_hotend_change_time != nullptr)
         m_time_processor.hotend_change_times = static_cast<float>(machine_hotend_change_time->value);
+
+    // Read G29 bed-leveling time from machine profile (guard for missing key)
+    const ConfigOptionFloat* machine_prepare_compensation_time = config.option<ConfigOptionFloat>("machine_prepare_compensation_time");
+    if (machine_prepare_compensation_time != nullptr)
+        m_time_processor.machine_prepare_compensation_time = static_cast<float>(machine_prepare_compensation_time->value);
 
     if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfKlipper) {
         const ConfigOptionFloats* machine_max_acceleration_x = config.option<ConfigOptionFloats>("machine_max_acceleration_x");
@@ -4968,9 +4977,15 @@ void GCodeProcessor::process_G4(const GCodeReader::GCodeLine& line)
 //BBS
 void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
 {
+    // Use machine_prepare_compensation_time from config instead of hardcoded 260s.
+    // JSON profiles already carry per-machine values (fdm_machine_common=260, P2S=370).
+    // H2C can override with a lower value (~30-60s) for its faster bed leveling.
+    /* ORIGINAL:
     //BBS: hardcode 260 seconds for G29
     //Todo: use a machine related setting when we have second kind of BBL printer
     const float value_s = 260.0;
+    */
+    const float value_s = m_time_processor.machine_prepare_compensation_time;
     if (s_IsBBLPrinter){
         if(m_measure_g29_time)
             simulate_st_synchronize(value_s);

@@ -724,6 +724,8 @@ class Print;
             float hotend_change_times;
             //Orca:  time for tool change
             float machine_tool_change_time;
+            // G29 bed-leveling time from machine profile (replaces hardcoded 260s)
+            float machine_prepare_compensation_time{260.0f};
 
             std::array<TimeMachine, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> machines;
 

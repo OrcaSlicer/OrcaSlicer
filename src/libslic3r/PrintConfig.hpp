@@ -1618,6 +1618,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               extra_loading_move))
     ((ConfigOptionFloat,               machine_load_filament_time))
     ((ConfigOptionFloat,               machine_tool_change_time))
+    // Wire machine_prepare_compensation_time from JSON profiles into C++ config
+    // so GCodeProcessor can read the G29 bed-leveling duration per-machine instead of hardcoded 260s.
+    ((ConfigOptionFloat,               machine_prepare_compensation_time))
     ((ConfigOptionFloat,               machine_unload_filament_time))
     // H2C TODO
     ((ConfigOptionFloat,               machine_switch_extruder_time))
