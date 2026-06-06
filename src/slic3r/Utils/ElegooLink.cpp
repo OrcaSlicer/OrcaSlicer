@@ -1,6 +1,8 @@
 #include "ElegooLink.hpp"
 
 #include <algorithm>
+#include <map>
+#include <mutex>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -60,6 +62,52 @@ namespace Slic3r {
     namespace {
 
         constexpr const char* ELEGOO_CC2_DEFAULT_TOKEN = "123456";
+        // AppConfig section for CC2 serial numbers, keyed by normalized print_host (host/IP).
+        constexpr const char* ELEGOO_DEV_SN_SECTION    = "dev_sn";
+
+        static std::mutex                         s_sn_cache_mutex;
+        static std::map<std::string, std::string> s_sn_cache;
+
+        std::string sn_cache_key(const std::string& host_ip, const std::string& token)
+        {
+            return host_ip + ":" + token;
+        }
+
+        void cache_sn(const std::string& host_ip, const std::string& token, const std::string& sn)
+        {
+            if (host_ip.empty() || token.empty() || sn.empty())
+                return;
+            std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
+            s_sn_cache[sn_cache_key(host_ip, token)] = sn;
+        }
+
+        std::string lookup_sn(const std::string& host_ip, const std::string& token)
+        {
+            std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
+            auto it = s_sn_cache.find(sn_cache_key(host_ip, token));
+            return it != s_sn_cache.end() ? it->second : std::string{};
+        }
+
+        std::string load_sn_from_config(const std::string& host_ip)
+        {
+            if (host_ip.empty())
+                return {};
+            AppConfig* app_cfg = GUI::get_app_config();
+            if (app_cfg == nullptr)
+                return {};
+            return app_cfg->get(ELEGOO_DEV_SN_SECTION, host_ip);
+        }
+
+        void persist_sn(const std::string& host_ip, const std::string& token, const std::string& sn)
+        {
+            if (host_ip.empty() || sn.empty())
+                return;
+            cache_sn(host_ip, token, sn);
+            AppConfig* app_cfg = GUI::get_app_config();
+            if (app_cfg == nullptr)
+                return;
+            app_cfg->set_str(ELEGOO_DEV_SN_SECTION, host_ip, sn);
+        }
 
         enum class ElegooPrinterType {
             Other,
@@ -120,6 +168,36 @@ namespace Slic3r {
                 error_message = "Error parsing response";
                 return false;
             }
+        }
+
+        // NOTE (merge): host parsing was moved into Http::get_host_from_url /
+        // Http::get_host_header_value by the K2 discovery refactor on this branch, so the
+        // former ElegooLink-local get_host_from_url/get_host_from_url_no_port helpers are gone.
+        // main only added the CC2 serial-number lookup below; it is kept here and routed through
+        // Http::get_host_header_value, which has the same host:port semantics the SN cache key
+        // relies on.
+        std::string lookup_cc2_serial_impl(const std::string& printer_model,
+                                           const std::string& print_host,
+                                           const std::string& apikey)
+        {
+            if (classify_printer_model(printer_model) != ElegooPrinterType::CC2)
+                return {};
+
+            const std::string host_ip = Http::get_host_header_value(print_host);
+            const std::string token   = get_cc2_token(apikey);
+            std::string       sn      = lookup_sn(host_ip, token);
+            if (sn.empty())
+                sn = load_sn_from_config(host_ip);
+            return sn;
+        }
+
+        std::string lookup_cc2_serial(DynamicPrintConfig* config)
+        {
+            if (config == nullptr)
+                return {};
+            return lookup_cc2_serial_impl(config->opt_string("printer_model"),
+                                          config->opt_string("print_host"),
+                                          config->opt_string("printhost_apikey"));
         }
 
         #ifdef WIN32
@@ -262,11 +340,32 @@ namespace Slic3r {
         if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
             return fallback_webui;
 
-        std::string web_path = resources_dir() + "/plugins/elegoolink/web/lan_service_web/index.html";
+        std::string web_path = resources_dir() + "/web/elegoolink/lan_service_web/index.html";
         std::replace(web_path.begin(), web_path.end(), '\\', '/');
         web_path = "file://" + web_path;
-        web_path += "?access_code=" + get_cc2_token(config->opt_string("printhost_apikey"));
-        web_path += "&ip=" + Http::get_host_header_value(host) + "&id=elegoo_123456";
+        const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
+        const std::string host_ip = Http::get_host_header_value(host);
+
+        // Pass sn= so the panel can subscribe to the correct MQTT topics.
+        std::string sn = lookup_cc2_serial(config);
+        if (sn.empty()) {
+            std::string error_msg;
+            auto http = Http::get("http://" + host_ip + "/system/info?X-Token=" + escape_string(token));
+            http.timeout_connect(3).timeout_max(5);
+            http.header("X-Token", token);
+            http.header("Accept", "application/json");
+            http.on_complete([&](std::string body, unsigned /*status*/) {
+                parse_cc2_response(body, error_msg, &sn);
+            }).perform_sync();
+            if (!sn.empty())
+                persist_sn(host_ip, token, sn);
+        }
+
+        web_path += "?access_code=" + token;
+        web_path += "&ip=" + host_ip;
+        if (!sn.empty())
+            web_path += "&sn=" + sn;
+        web_path += "&id=elegoo_123456";
 
         const std::string lang = GUI::wxGetApp().current_language_code_safe().utf8_string();
         if (!lang.empty())
@@ -305,33 +404,9 @@ namespace Slic3r {
 
     std::string ElegooLink::get_sn() const
     {
-        if (classify_printer_model(m_printerModel) != ElegooPrinterType::CC2)
-            return "";
-
-        const char*      name  = get_name();
-        std::string      sn;
-        const auto       token = cc2_token();
-        auto             http  = Http::get(make_cc2_info_url());
-        http.timeout_connect(10)
-            .timeout_max(15);
-        http.header("X-Token", token);
-        http.header("Accept", "application/json");
-        http.on_error([&](std::string body, std::string error, unsigned status) {
-                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting CC2 device info for SN: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
-            })
-            .on_complete([&](std::string body, unsigned status) {
-                std::string error_message;
-                if (!parse_cc2_response(body, error_message, &sn)) {
-                    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse CC2 SN response, HTTP %2%, reason: %3%") % name % status % error_message;
-                    sn.clear();
-                }
-            })
-#ifdef WIN32
-            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
-#endif // WIN32
-            .perform_sync();
-
-        return sn;
+        // Panel IPC calls this on every load with a 10s timeout. Never block on HTTP
+        // here — URL sn= and dev_sn must be enough; HTTP is only for get_print_host_webui.
+        return lookup_cc2_serial_impl(m_printerModel, m_host, m_apikey);
     }
 
     bool ElegooLink::elegoo_test(wxString& msg) const{
@@ -410,6 +485,7 @@ namespace Slic3r {
                     msg = format_error(body, error_message.empty() ? "CC2 device not detected" : error_message, status);
                     return;
                 }
+                persist_sn(Http::get_host_header_value(m_host), token, serial_number);
                 res = true;
             })
 #ifdef WIN32

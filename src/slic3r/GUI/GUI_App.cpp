@@ -12,6 +12,7 @@
 #include <boost/chrono/duration.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
+#include <mutex>
 #include <wx/event.h>
 
 // Localization headers: include libslic3r version first so everything in this file
@@ -60,6 +61,7 @@
 #include <wx/dialog.h>
 #include <wx/textctrl.h>
 #include <wx/splash.h>
+#include <wx/weakref.h>
 #include <wx/fontutil.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
@@ -347,6 +349,17 @@ public:
 #endif
         }
     }
+
+    // Orca: keep the splash alive until it is explicitly destroyed.
+    // wxSplashScreen installs an application-wide event filter that calls
+    // Close() (which Destroy()s the window) on ANY key press or mouse-button
+    // down. Since startup keeps the splash up across the whole load_presets()
+    // and main-window-creation phase, a single stray click/keypress would
+    // destroy it while on_init_inner() still holds the pointer, causing an
+    // intermittent use-after-free crash. Override the filter to a no-op so the
+    // splash can only be removed via the explicit Destroy() once the main frame
+    // is shown.
+    int FilterEvent(wxEvent& /*event*/) override { return wxEventFilter::Event_Skip; }
 
     void scale_font(wxFont& font, float scale)
     {
@@ -2762,7 +2775,8 @@ bool GUI_App::on_init_inner()
         app_config->set("version", SLIC3R_VERSION);
     }
 
-    SplashScreen * scrn = nullptr;
+    // Orca: use wxWeakRef to provent wild pointer.
+    wxWeakRef<SplashScreen> scrn = nullptr;
     if (app_config->get("show_splash_screen") == "true") {
         // Detect position (display) to show the splash screen
         // Now this position is equal to the mainframe position
@@ -2981,7 +2995,11 @@ bool GUI_App::on_init_inner()
     }
 #endif
 
-    if (scrn) { scrn->SetText(_L("Creating main window") + dots); wxYield(); }
+    if (scrn) {
+        const auto scrn_txt = _L("Creating main window") + dots;
+        scrn->SetText(scrn_txt);
+        wxYield();
+    }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
     // hide settings tabs after first Layout
@@ -3349,6 +3367,8 @@ bool GUI_App::on_init_network(bool try_backup)
         std::string country_code = app_config->get_country_code();
         m_agent->set_country_code(country_code);
         m_agent->start();
+        // Orca: disable Bambu telemetry up-front (before any login) so it never starts.
+        check_track_enable();
     }
 
     // When using Orca cloud alongside the BBL network plugin, the BBL DLL agent still
@@ -3365,6 +3385,12 @@ bool GUI_App::on_init_network(bool try_backup)
             bbl.init_log();
             bbl.set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
             bbl.set_country_code(app_config->get_country_code());
+            // Orca: disable Bambu telemetry before start() so the DLL never spins up tracking
+            // workers. This covers the case where the BBL plugin is loaded for LAN discovery
+            // but the user has not registered BBL_CLOUD_PROVIDER (so m_agent->track_enable
+            // would not reach this DLL instance).
+            bbl.track_enable(false);
+            bbl.track_remove_files();
             bbl.start();
         }
     }
@@ -4496,18 +4522,43 @@ std::string GUI_App::handle_web_request(std::string cmd)
         boost::optional<std::string> command = root.get_optional<std::string>("command");
         if (command.has_value()) {
             std::string command_str = command.value();
-            static const std::unordered_set<std::string> stealth_blocked_commands = {
+            static const std::unordered_set<std::string> stealth_blocked_info_commands = {
                 "get_login_info",
                 "get_orca_login_info",
                 "get_bambu_login_info",
+            };
+            static const std::unordered_set<std::string> stealth_blocked_login_commands = {
                 "homepage_login_or_register",
                 "homepage_orca_login_or_register",
                 "homepage_bambu_login_or_register",
             };
-            if (app_config->get_stealth_mode() && stealth_blocked_commands.count(command_str)) {
+            if (app_config->get_stealth_mode() && stealth_blocked_info_commands.count(command_str)) {
                 CallAfter([this] {
                     if (mainframe && mainframe->m_webview)
                         mainframe->m_webview->SendCloudProvidersInfo();
+                });
+                return "";
+            }
+            if (app_config->get_stealth_mode() && stealth_blocked_login_commands.count(command_str)) {
+                CallAfter([this, command_str] {
+                    MessageDialog dlg(mainframe,
+                        _L("You are currently in Stealth Mode. To log into the Cloud, you need to disable Stealth Mode first."),
+                        _L("Stealth Mode"),
+                        wxOK | wxCANCEL | wxCENTRE);
+                    dlg.SetButtonLabel(wxID_OK, _L("Quit Stealth Mode"));
+                    if (dlg.ShowModal() == wxID_OK) {
+                        app_config->set_bool("stealth_mode", false);
+                        app_config->save();
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendCloudProvidersInfo();
+                        // Continue with login
+                        if (command_str == "homepage_login_or_register")
+                            this->request_login(true);
+                        else if (command_str == "homepage_orca_login_or_register")
+                            this->request_login(true, ORCA_CLOUD_PROVIDER);
+                        else if (command_str == "homepage_bambu_login_or_register")
+                            this->request_login(true, BBL_CLOUD_PROVIDER);
+                    }
                 });
                 return "";
             }
@@ -4800,6 +4851,8 @@ void GUI_App::handle_http_error(unsigned int status, std::string body, const std
     wxQueueEvent(this, evt);
 }
 
+static std::mutex conflict_ids_mutex;
+
 void GUI_App::on_http_error(wxCommandEvent &evt)
 {
     int status = evt.GetInt();
@@ -4875,32 +4928,62 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         return;
     }
 
-    static bool m_is_error_shown = false;
+    if (status == 409 && provider == ORCA_CLOUD_PROVIDER) {
+        BOOST_LOG_TRIVIAL(info) << "Http error 409.";
+        // Parse the conflict body to extract the error code and server profile id
+        int conflict_code = 0;
+        std::string conflict_setting_id;
+        try {
+            json conflict_body = json::parse(body_str);
+            if (conflict_body.contains("code"))
+                conflict_code = conflict_body["code"].get<int>();
+            if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")
+                && conflict_body["server_profile"]["id"].is_string())
+                conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
+        }
+        auto* plater = wxGetApp().plater();
+        if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
+            std::string text;
+            if (conflict_code == -1) {
+                text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+            } else {
+                text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+            }
+            plater->get_notification_manager()->push_orca_sync_conflict_notification(
+                text,
+                [this](wxEvtHandler*) {
+                    // Runs on the GUI thread (on_http_error is a queued wx event); restart_sync_user_preset()
+                    // already joins the old sync thread off the UI thread, so no extra thread is needed here.
+                    if (is_closing() || !m_agent || !preset_bundle)
+                        return false;
+                    BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
+                    restart_sync_user_preset();
+                    return true;
+                },
+                [this, conflict_setting_id](wxEvtHandler*) {
+                    if (mainframe == nullptr)
+                        return false;
+                    MessageDialog
+                        dlg(mainframe,
+                            _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
+                            _L("Resolve cloud sync conflict"), wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                    if (dlg.ShowModal() != wxID_YES)
+                        return false;
+
+                    force_push_conflicting_preset(conflict_setting_id);
+                    return true;
+                });
+        }
+        return;
+    }
+
     // Show general error notification for Orca Cloud API failures (not Bambu)
     if (provider == ORCA_CLOUD_PROVIDER && status >= 400 && code != HttpErrorVersionLimited) {
-        wxString msg;
-        if (!error.empty()) {
-            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u): %s"), status, wxString::FromUTF8(error));
-        } else {
-            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u)"), status);
-        }
-        
-        if (app_config->get_bool("developer_mode")) {
-            // Use notification manager if ImGui is ready; fall back to wxMessageBox on Linux
-            // where ImGui may not be initialized until the user switches to the Prepare tab.
-            if (wxGetApp().plater() != nullptr && wxGetApp().imgui()->display_initialized()) {
-                wxGetApp()
-                    .plater()
-                    ->get_notification_manager()
-                    ->push_notification(NotificationType::PlaterError, NotificationManager::NotificationLevel::WarningNotificationLevel,
-                                        msg.ToUTF8().data());
-            }
-        }
-
-        if (!m_is_error_shown) {
-            m_is_error_shown = true;
-            wxMessageBox(msg, _L("Cloud Error"), wxOK | wxICON_ERROR, wxGetApp().mainframe);
-        }
+        BOOST_LOG_TRIVIAL(warning) << "API call to OrcaCloud failed with status=" << status;
     }
 }
 
@@ -4970,7 +5053,7 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 
 void GUI_App::check_track_enable()
 {
-    // Orca: alaways disable track event
+    // Orca: telemetry only exists on the BBL cloud agent; always disable it.
     if (m_agent) {
         m_agent->track_enable(false);
         m_agent->track_remove_files();
@@ -5974,6 +6057,25 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to query OrcaCloud presets (error " << ret
                                        << "), skipping migration to avoid overwriting cloud data.";
+            // If this looks like a transient 401 from token propagation delay (within grace period),
+            // schedule one deferred retry so first-time users don't silently lose their preset migration.
+            if (std::chrono::steady_clock::now() - m_last_401_error_time < std::chrono::seconds(30)
+                && !m_migration_retry_pending.exchange(true)) {
+                BOOST_LOG_TRIVIAL(info) << "Scheduling migration retry after token propagation window.";
+                boost::thread([this]() {
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                    CallAfter([this]() {
+                        m_migration_retry_pending = false;
+                        if (is_closing() || !m_agent || !m_agent->is_user_login()) return;
+                        BOOST_LOG_TRIVIAL(info) << "Retrying preset migration after token propagation window.";
+                        if (maybe_migrate_user_presets_on_login()) {
+                            const std::string user_id = m_agent->get_user_id();
+                            preset_bundle->load_user_presets(user_id, ForwardCompatibilitySubstitutionRule::Enable);
+                            if (mainframe) mainframe->update_side_preset_ui();
+                        }
+                    });
+                }).detach();
+            }
             return false;
         }
         BOOST_LOG_TRIVIAL(info) << "OrcaCloud has no presets for user " << new_user_id << ", proceeding with migration check.";
@@ -6169,13 +6271,14 @@ void GUI_App::load_pending_vendors()
     need_add_filaments.clear();
 }
 
-void GUI_App::sync_preset(Preset* preset)
+void GUI_App::sync_preset(Preset* preset, bool force)
 {
     int result = -1;
     unsigned int http_code = 200;
     std::string updated_info;
     long long update_time = 0;
     // only sync user's preset
+    if (!m_agent) return;
     if (!preset->is_user()) return;
 
     auto setting_id = preset->setting_id;
@@ -6247,9 +6350,9 @@ void GUI_App::sync_preset(Preset* preset)
                     result = 0;
                 }
                 else {
-                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
+                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code, ORCA_CLOUD_PROVIDER, force);
                     if (http_code >= 400) {
-                        result = 0;
+                        result       = 0;
                         updated_info = "hold";
                         BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
                     } else {
@@ -6710,7 +6813,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             // Sync once immediately, then every 60 seconds.
             while (!t.expired()) {
                 ++tick_tock;
-                if (tick_tock % 120 == 0) {
+                // Sync once immediately, then every 60s, or right away when a force-push asked for it.
+                if (tick_tock % 120 == 0 || m_sync_user_presets_now.exchange(false, std::memory_order_acq_rel)) {
                     tick_tock = 0;
                     if (m_agent) {
                         if (!m_agent->is_user_login()) {
@@ -6721,9 +6825,24 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 
                         int total_count = 0;
                         sync_count = preset_bundle->prints.get_user_presets(preset_bundle, presets_to_sync);
+
+                        auto sync_with_lock = [this](Preset& preset) {
+                            bool force = false;
+                            {
+                                std::scoped_lock lock(conflict_ids_mutex);
+                                auto it = std::find_if(m_pending_conflict_setting_ids.begin(), m_pending_conflict_setting_ids.end(),
+                                                [&preset](const std::string& id) { return id == preset.setting_id; });
+                                if (it != m_pending_conflict_setting_ids.end()) {
+                                    force = true;
+                                    m_pending_conflict_setting_ids.erase(it);
+                                }
+                            }
+                            sync_preset(&preset, force);
+                        };
+
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6732,7 +6851,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         sync_count = preset_bundle->filaments.get_user_presets(preset_bundle, presets_to_sync);
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6741,7 +6860,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         sync_count = preset_bundle->printers.get_user_presets(preset_bundle, presets_to_sync);
                         if (sync_count > 0) {
                             for (Preset& preset : presets_to_sync) {
-                                sync_preset(&preset);
+                                sync_with_lock(preset);
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
                             }
                         }
@@ -6916,6 +7035,35 @@ void GUI_App::restart_sync_user_preset()
                     start_sync_user_preset(true);
             });
     }).detach();
+}
+
+void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
+{
+    if (setting_id.empty() || !preset_bundle)
+        return;
+
+    // Queue the id so the next push-sync re-uploads this preset with force=true.
+    {
+        std::scoped_lock lock(conflict_ids_mutex);
+        m_pending_conflict_setting_ids.push_back(setting_id);
+    }
+
+    // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
+    // "update" so the next push-sync re-includes it and consumes the queued force flag.
+    // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
+    // the local changes the user is trying to force-push.)
+    PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
+    for (PresetCollection* coll : collections) {
+        for (const Preset& preset : coll->get_presets()) {
+            if (preset.setting_id == setting_id && preset.sync_info == "hold") {
+                coll->set_sync_info_and_save(preset.name, preset.setting_id, "update", 0);
+                break;
+            }
+        }
+    }
+
+    // Nudge the sync loop to push on its next tick instead of waiting for the 60s cadence.
+    m_sync_user_presets_now.store(true, std::memory_order_release);
 }
 
 void GUI_App::on_stealth_mode_enter()
@@ -8543,6 +8691,7 @@ wxString GUI_App::current_language_code_safe() const
         { "pt", 	"pt_BR", },
         { "lt", 	"lt_LT", },
         { "vi", 	"vi_VN", },
+        { "th", 	"th_TH", },
 	};
 	wxString language_code = this->current_language_code().BeforeFirst('_');
 	auto it = mapping.find(language_code);

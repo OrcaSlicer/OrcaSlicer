@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PETG Cristal",
+    "inherits": "FilAr PETG @base",
+    "from": "system",
+    "filament_id": "FILAR0055",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#E8F0EC"
+    ]
+}

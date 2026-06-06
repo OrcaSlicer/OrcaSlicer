@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "FusRock S-PAHT @FF C5P",
+	"inherits": "Generic PA-CF @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -52,17 +57,12 @@
 	"filament_type": [
 		"S-PAHT"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"80"
 	],
 	"hot_plate_temp_initial_layer": [
 		"80"
 	],
-	"inherits": "Generic PA-CF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "FusRock S-PAHT @FF C5P",
 	"nozzle_temperature_range_high": [
 		"280"
 	],
@@ -80,6 +80,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"80"
-	],
-	"version": "2.3.0.3"
+	]
 }

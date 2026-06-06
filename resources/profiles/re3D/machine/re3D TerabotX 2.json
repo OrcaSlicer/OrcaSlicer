@@ -7,7 +7,7 @@
 	"machine_tech": "FGF",
 	"family": "re3D",
 	"bed_model": "",
-	"bed_texture": "re3D Terabot X2_buildplate_texture.svg",
+	"bed_texture": "re3D TerabotX 2_buildplate_texture.svg",
 	"hotend_model": "GBX-HOTEND.stl",
 	"default_materials": "re3D Greengate rPETG;re3D rPP;"
 }

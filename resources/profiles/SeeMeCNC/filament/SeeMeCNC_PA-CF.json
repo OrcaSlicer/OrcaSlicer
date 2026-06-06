@@ -1,0 +1,268 @@
+{
+	"type": "filament",
+	"name": "SeeMeCNC PA-CF",
+	"inherits": "SeeMeCNC filament base",
+	"from": "System",
+	"filament_id": "SMCFN001",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"SeeMeCNC PA-CF"
+	],
+	"compatible_printers": [
+		"SeeMeCNC Artemis 0.4 nozzle",
+		"SeeMeCNC Artemis 0.5 nozzle",
+		"SeeMeCNC Artemis 0.7 nozzle",
+		"SeeMeCNC Artemis 1.0 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.4 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 1.0 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.4 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 1.0 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.4 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 1.0 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.4 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 1.0 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.4 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.5 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
+		"SeeMeCNC RostockMAX v3.2 1.0 nozzle",
+		"SeeMeCNC RostockMAX v4 0.4 nozzle",
+		"SeeMeCNC RostockMAX v4 0.5 nozzle",
+		"SeeMeCNC RostockMAX v4 0.7 nozzle",
+		"SeeMeCNC RostockMAX v4 1.0 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"compatible_prints": [
+		"0.16mm Fine @SeeMeCNC Artemis 0.4",
+		"0.16mm Fine @SeeMeCNC BOSSdelta 300 0.4",
+		"0.16mm Fine @SeeMeCNC BOSSdelta 500 0505 0.4",
+		"0.16mm Fine @SeeMeCNC BOSSdelta 500 0510 0.4",
+		"0.16mm Fine @SeeMeCNC BOSSdelta 500 0521 0.4",
+		"0.16mm Fine @SeeMeCNC RostockMAX v3.2 0.4",
+		"0.16mm Fine @SeeMeCNC RostockMAX v4 0.4",
+		"0.20mm Fine @SeeMeCNC Artemis 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 300 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.20mm Fine @SeeMeCNC RostockMAX v4 0.5",
+		"0.20mm Standard @SeeMeCNC Artemis 0.4",
+		"0.20mm Standard @SeeMeCNC BOSSdelta 300 0.4",
+		"0.20mm Standard @SeeMeCNC BOSSdelta 500 0505 0.4",
+		"0.20mm Standard @SeeMeCNC BOSSdelta 500 0510 0.4",
+		"0.20mm Standard @SeeMeCNC BOSSdelta 500 0521 0.4",
+		"0.20mm Standard @SeeMeCNC RostockMAX v3.2 0.4",
+		"0.20mm Standard @SeeMeCNC RostockMAX v4 0.4",
+		"0.24mm Draft @SeeMeCNC Artemis 0.4",
+		"0.24mm Draft @SeeMeCNC BOSSdelta 300 0.4",
+		"0.24mm Draft @SeeMeCNC BOSSdelta 500 0505 0.4",
+		"0.24mm Draft @SeeMeCNC BOSSdelta 500 0510 0.4",
+		"0.24mm Draft @SeeMeCNC BOSSdelta 500 0521 0.4",
+		"0.24mm Draft @SeeMeCNC RostockMAX v3.2 0.4",
+		"0.24mm Draft @SeeMeCNC RostockMAX v4 0.4",
+		"0.25mm Standard @SeeMeCNC Artemis 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 300 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.25mm Standard @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.25mm Standard @SeeMeCNC RostockMAX v4 0.5",
+		"0.28mm Extra Draft @SeeMeCNC Artemis 0.4",
+		"0.28mm Extra Draft @SeeMeCNC BOSSdelta 300 0.4",
+		"0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.4",
+		"0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.4",
+		"0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.4",
+		"0.28mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.4",
+		"0.28mm Extra Draft @SeeMeCNC RostockMAX v4 0.4",
+		"0.28mm Fine @SeeMeCNC Artemis 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 300 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.28mm Fine @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.28mm Fine @SeeMeCNC RostockMAX v4 0.7",
+		"0.30mm Draft @SeeMeCNC Artemis 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 300 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.30mm Draft @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.30mm Draft @SeeMeCNC RostockMAX v4 0.5",
+		"0.35mm Extra Draft @SeeMeCNC Artemis 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 300 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.35mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.35mm Extra Draft @SeeMeCNC RostockMAX v4 0.5",
+		"0.35mm Standard @SeeMeCNC Artemis 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.35mm Standard @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.35mm Standard @SeeMeCNC RostockMAX v4 0.7",
+		"0.40mm Fine @SeeMeCNC Artemis 1.0",
+		"0.40mm Fine @SeeMeCNC BOSSdelta 300 1.0",
+		"0.40mm Fine @SeeMeCNC BOSSdelta 500 0505 1.0",
+		"0.40mm Fine @SeeMeCNC BOSSdelta 500 0510 1.0",
+		"0.40mm Fine @SeeMeCNC BOSSdelta 500 0521 1.0",
+		"0.40mm Fine @SeeMeCNC RostockMAX v3.2 1.0",
+		"0.40mm Fine @SeeMeCNC RostockMAX v4 1.0",
+		"0.42mm Draft @SeeMeCNC Artemis 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 300 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.42mm Draft @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.42mm Draft @SeeMeCNC RostockMAX v4 0.7",
+		"0.49mm Extra Draft @SeeMeCNC Artemis 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.49mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.49mm Extra Draft @SeeMeCNC RostockMAX v4 0.7",
+		"0.50mm Standard @SeeMeCNC Artemis 1.0",
+		"0.50mm Standard @SeeMeCNC BOSSdelta 300 1.0",
+		"0.50mm Standard @SeeMeCNC BOSSdelta 500 0505 1.0",
+		"0.50mm Standard @SeeMeCNC BOSSdelta 500 0510 1.0",
+		"0.50mm Standard @SeeMeCNC BOSSdelta 500 0521 1.0",
+		"0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0",
+		"0.50mm Standard @SeeMeCNC RostockMAX v4 1.0",
+		"0.60mm Draft @SeeMeCNC Artemis 1.0",
+		"0.60mm Draft @SeeMeCNC BOSSdelta 300 1.0",
+		"0.60mm Draft @SeeMeCNC BOSSdelta 500 0505 1.0",
+		"0.60mm Draft @SeeMeCNC BOSSdelta 500 0510 1.0",
+		"0.60mm Draft @SeeMeCNC BOSSdelta 500 0521 1.0",
+		"0.60mm Draft @SeeMeCNC RostockMAX v3.2 1.0",
+		"0.60mm Draft @SeeMeCNC RostockMAX v4 1.0",
+		"0.70mm Extra Draft @SeeMeCNC Artemis 1.0",
+		"0.70mm Extra Draft @SeeMeCNC BOSSdelta 300 1.0",
+		"0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 1.0",
+		"0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 1.0",
+		"0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 1.0",
+		"0.70mm Extra Draft @SeeMeCNC RostockMAX v3.2 1.0",
+		"0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0"
+	],
+	"compatible_prints_condition": "",
+	"close_fan_the_first_x_layers": [
+		"6"
+	],
+	"cool_plate_temp": [
+		"70"
+	],
+	"cool_plate_temp_initial_layer": [
+		"70"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"90"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
+	],
+	"fan_cooling_layer_time": [
+		"60"
+	],
+	"fan_max_speed": [
+		"35"
+	],
+	"fan_min_speed": [
+		"35"
+	],
+	"filament_cost": [
+		"30"
+	],
+	"filament_density": [
+		"1.15"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_notes": [
+		"Pressure Advance starting values by machine and nozzle size:\n\nArtemis / BOSSdelta 300:\n  0.4mm nozzle: 0.5500\n  0.5mm nozzle: 0.4400\n  0.7mm nozzle: 0.3143\n  1.0mm nozzle: 0.2200\n\nRostockMAX v3.2 / v4:\n  0.4mm nozzle: 0.6585\n  0.5mm nozzle: 0.5268\n  0.7mm nozzle: 0.3763\n  1.0mm nozzle: 0.2634\n\nBOSSdelta 0505:\n  0.4mm nozzle: 0.7359\n  0.5mm nozzle: 0.5887\n  0.7mm nozzle: 0.4205\n  1.0mm nozzle: 0.2944\n\nBOSSdelta 0510:\n  0.4mm nozzle: 1.0845\n  0.5mm nozzle: 0.8676\n  0.7mm nozzle: 0.6197\n  1.0mm nozzle: 0.4338\n\nBOSSdelta 0521:\n  0.4mm nozzle: 1.8204\n  0.5mm nozzle: 1.4563\n  0.7mm nozzle: 1.0402\n  1.0mm nozzle: 0.7282\n\nRun OrcaSlicer PA calibration to fine-tune for your setup."
+	],
+	"filament_type": [
+		"PA-CF"
+	],
+	"full_fan_speed_layer": [
+		"5"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"internal_bridge_fan_speed": [
+		"35"
+	],
+	"nozzle_temperature": [
+		"265"
+	],
+	"nozzle_temperature_initial_layer": [
+		"265"
+	],
+	"nozzle_temperature_range_high": [
+		"285"
+	],
+	"nozzle_temperature_range_low": [
+		"255"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"pressure_advance": [
+		"0.55"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"45"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"35"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"35"
+	],
+	"temperature_vitrification": [
+		"180"
+	],
+	"textured_cool_plate_temp": [
+		"80"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"overhang_fan_speed": [
+		"50"
+	],
+	"keep_fan_always_on": [
+		"0"
+	]
+}

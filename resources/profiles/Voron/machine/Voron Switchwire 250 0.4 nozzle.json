@@ -22,5 +22,6 @@
 		"250x210",
 		"0x210"
 	],
-	"printable_height": "240"
+	"printable_height": "240",
+	"printer_variant": "0.4"
 }

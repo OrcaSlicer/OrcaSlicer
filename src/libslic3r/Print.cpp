@@ -1254,10 +1254,6 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
     return ret;
 }
 
-// Orca: this g92e0 regex is used copied from PrusaSlicer
-// Matches "G92 E0" with various forms of writing the zero and with an optional comment.
-boost::regex regex_g92e0 { "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$" };
-
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic.....FIXME:StringObjectException *warning can only contain one warning, but there might be many warnings, need a vector<StringObjectException>
 StringObjectException Print::validate(StringObjectException *warning, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
@@ -1544,12 +1540,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         auto validate_extrusion_width = [min_nozzle_diameter, max_nozzle_diameter](const ConfigBase &config, const char *opt_key, double layer_height, std::string &err_msg) -> bool {
             double extrusion_width_min = config.get_abs_value(opt_key, min_nozzle_diameter);
             double extrusion_width_max = config.get_abs_value(opt_key, max_nozzle_diameter);
-        	if (extrusion_width_min == 0) {
-        		// Default "auto-generated" extrusion width is always valid.
-        	} else if (extrusion_width_min <= layer_height) {
-                err_msg = L("Too small line width");
-				return false;
-			} else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
+            if (extrusion_width_min == 0) {
+                // Default "auto-generated" extrusion width is always valid.
+            } else if (extrusion_width_min <= layer_height) {
+                    err_msg = L("Too small line width");
+                    return false;
+                } else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
                 err_msg = L("Too large line width");
 				return false;
 			}
@@ -1671,30 +1667,83 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 				for (const PrintRegion &region : object->all_regions())
                     if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
 		            	return  {err_msg, object, opt_key};
+
+            const bool allow_thin_bridge_width = object->config().thick_bridges && object->config().thick_internal_bridges;
+            for (const PrintRegion &region : object->all_regions()) {
+                const auto &bridge_width_opt = region.config().bridge_line_width;
+                for (FlowRole bridge_role : { frPerimeter, frInfill, frSolidInfill, frTopSolidInfill }) {
+                    const double nozzle_diameter = m_config.nozzle_diameter.get_at(region.extruder(bridge_role) - 1);
+                    const double bridge_width    = bridge_width_opt.get_abs_value(nozzle_diameter);
+                    if (bridge_width <= 0.)
+                        continue;
+                    if (bridge_width > nozzle_diameter) {
+                        err_msg = L("Bridge line width must not exceed nozzle diameter");
+                        return { err_msg, object, "bridge_line_width" };
+                    }
+                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                        err_msg = L("Too small line width");
+                        return { err_msg, object, "bridge_line_width" };
+                    }
+                }
+            }
         }
     }
 
     // Orca: G92 E0 is not supported when using absolute extruder addressing
-    // This check is copied from PrusaSlicer, the original author is Vojtech Bubnik
-    if(!is_BBL_printer()) {
-        bool before_layer_gcode_resets_extruder =
-            boost::regex_search(m_config.before_layer_change_gcode.value, regex_g92e0);
-        bool layer_gcode_resets_extruder = boost::regex_search(m_config.layer_change_gcode.value, regex_g92e0);
-        if (m_config.use_relative_e_distances) {
-            // See GH issues #6336 #5073
-            if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
-                !before_layer_gcode_resets_extruder && !layer_gcode_resets_extruder)
-                return {L("Relative extruder addressing requires resetting the extruder position at each layer to "
-                          "prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."),
-                        nullptr, "before_layer_change_gcode"};
-        } else if (before_layer_gcode_resets_extruder)
-            return {L("\"G92 E0\" was found in before_layer_gcode, which is incompatible with absolute extruder "
+    // This check is modified from PrusaSlicer, the original author is Vojtech Bubnik
+    // Orca: case‑sensitive match for exactly "G92 E0" (uppercase G and E only) 
+    // because gcode is case sensitive and G92 e0 satisfies the regex but causes a slicing error
+    // https://github.com/OrcaSlicer/OrcaSlicer/issues/13927
+
+	    // Matches any case of "G92 E0" (original pattern)
+    static const boost::regex regex_g92e0 {
+        "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+    };
+    // Matches only the exact uppercase "G92 E0"
+    static const boost::regex regex_g92e0_correct {
+        "^[ \\t]*G92[ \\t]*E(0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+    };
+
+    const bool before_has_g92_any = boost::regex_search(
+        m_config.before_layer_change_gcode.value, regex_g92e0);
+    const bool layer_has_g92_any  = boost::regex_search(
+        m_config.layer_change_gcode.value, regex_g92e0);
+
+    if (m_config.use_relative_e_distances) {
+        // Relative mode: "G92 E0" is required to reset extruder position.
+        const bool before_has_g92_exact = boost::regex_search(
+            m_config.before_layer_change_gcode.value, regex_g92e0_correct);
+        const bool layer_has_g92_exact  = boost::regex_search(
+            m_config.layer_change_gcode.value, regex_g92e0_correct);
+
+        // Wrong case found?
+        if (before_has_g92_any && !before_has_g92_exact)
+            return {L("\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not uppercase. "
+                      "Please change them to the exact uppercase \"G92 E0\"."),
+                    nullptr, "before_layer_change_gcode"};
+        if (layer_has_g92_any && !layer_has_g92_exact)
+            return {L("\"G92 E0\" was found in layer_change_gcode, but the G or E are not uppercase. "
+                      "Please change them to the exact uppercase \"G92 E0\"."),
+                    nullptr, "layer_change_gcode"};
+
+        // Only Marlin flavours need the reset; BBL printers do not.
+        if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
+            !is_BBL_printer() &&
+            !before_has_g92_exact && !layer_has_g92_exact)
+            return {L("Relative extruder addressing requires resetting the extruder position at each layer to "
+                      "prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."),
+                    nullptr, "before_layer_change_gcode"};
+    } else {
+        // Absolute mode: any occurrence of "G92 E0" is incompatible.
+        if (before_has_g92_any)
+            return {L("\"G92 E0\" was found in before_layer_change_gcode, which is incompatible with absolute extruder "
                       "addressing."),
                     nullptr, "before_layer_change_gcode"};
-        else if (layer_gcode_resets_extruder)
-            return {L("\"G92 E0\" was found in layer_gcode, which is incompatible with absolute extruder addressing."),
+        if (layer_has_g92_any)
+            return {L("\"G92 E0\" was found in layer_change_gcode, which is incompatible with absolute extruder "
+                      "addressing."),
                     nullptr, "layer_change_gcode"};
-    }
+	}
 
     const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
     assert(bed_type_def != nullptr);
@@ -1972,7 +2021,7 @@ Flow Print::brim_flow() const
         frPerimeter,
         // Flow::new_from_config_width takes care of the percent to value substitution
 		width,
-        (float)m_config.nozzle_diameter.get_at(m_print_regions.front()->config().wall_filament-1),
+        (float)m_config.nozzle_diameter.get_at(m_print_regions.front()->config().outer_wall_filament_id-1),
 		(float)this->skirt_first_layer_height());
 }
 
@@ -3609,9 +3658,12 @@ DynamicConfig PrintStatistics::config() const
     config.set_key_value("total_cost",                new ConfigOptionFloat(this->total_cost));
     config.set_key_value("total_toolchanges",         new ConfigOptionInt(this->total_toolchanges));
     config.set_key_value("total_weight",              new ConfigOptionFloat(this->total_weight));
+    config.set_key_value("extruded_weight_total",     new ConfigOptionFloat(this->total_weight));
+    config.set_key_value("extruded_volume_total",     new ConfigOptionFloat(this->total_extruded_volume));
     config.set_key_value("total_wipe_tower_cost",     new ConfigOptionFloat(this->total_wipe_tower_cost));
     config.set_key_value("total_wipe_tower_filament", new ConfigOptionFloat(this->total_wipe_tower_filament));
     config.set_key_value("initial_tool",              new ConfigOptionInt(static_cast<int>(this->initial_tool)));
+    config.set_key_value("initial_extruder",          new ConfigOptionInt(static_cast<int>(this->initial_tool)));
     return config;
 }
 
@@ -3620,8 +3672,8 @@ DynamicConfig PrintStatistics::placeholders()
     DynamicConfig config;
     for (const std::string key : {
         "print_time", "normal_print_time", "silent_print_time",
-        "used_filament", "extruded_volume", "total_cost", "total_weight",
-        "initial_tool", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
+        "used_filament", "extruded_volume", "extruded_volume_total", "total_cost", "total_weight", "extruded_weight_total",
+        "initial_tool", "initial_extruder", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
         config.set_key_value(key, new ConfigOptionString(std::string("{") + key + "}"));
     return config;
 }

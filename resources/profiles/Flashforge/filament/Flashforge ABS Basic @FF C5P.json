@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge ABS Basic @FF C5P",
+	"inherits": "Generic ABS @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -37,17 +42,12 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"110"
 	],
 	"hot_plate_temp_initial_layer": [
 		"110"
 	],
-	"inherits": "Generic ABS @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge ABS Basic @FF C5P",
 	"nozzle_temperature": [
 		"270"
 	],
@@ -71,6 +71,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
-	],
-	"version": "2.3.0.3"
+	]
 }

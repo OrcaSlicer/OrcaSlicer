@@ -1,11 +1,11 @@
 {
-	"name": "LHS PC CF",
 	"type": "filament",
-	"filament_id": "LHF_pccf",
-	"setting_id": "LHF_S_pccf",
-	"from": "system",
-	"instantiation": "true",
+	"name": "LHS PC CF",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "LHF_S_pccf",
+	"filament_id": "LHF_pccf",
+	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",
 		"LH Stinger MMU 0.4 nozzle"
@@ -88,7 +88,6 @@
 	"hot_plate_temp_initial_layer": [
 		"105"
 	],
-	"is_custom_defined": "0",
 	"nozzle_temperature": [
 		"300"
 	],

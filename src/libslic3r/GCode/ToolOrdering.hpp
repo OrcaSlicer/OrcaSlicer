@@ -139,9 +139,9 @@ public:
     bool has_extruder(unsigned int extruder) const { return std::find(this->extruders.begin(), this->extruders.end(), extruder) != this->extruders.end(); }
 
     // Return a zero based extruder from the region, or extruder_override if overriden.
-    unsigned int wall_filament(const PrintRegion &region) const;
-    unsigned int sparse_infill_filament(const PrintRegion &region) const;
-    unsigned int solid_infill_filament(const PrintRegion &region) const;
+    unsigned int wall_extruder_id(const PrintRegion &region) const;
+    unsigned int sparse_infill_filament_id(const PrintRegion &region) const;
+    unsigned int internal_solid_filament_id(const PrintRegion &region) const;
 	// Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 	unsigned int extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const;
 

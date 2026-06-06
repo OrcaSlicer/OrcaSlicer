@@ -526,7 +526,7 @@ void WebViewPanel::SendCloudProvidersInfo()
     json data;
     json provider_array = json::array();
 
-    if (!app_config->get_stealth_mode()) {
+    if (!app_config->get_hide_login_side_panel()) {
         auto providers = app_config->get_cloud_providers();
         for (const auto& p : providers) {
             provider_array.push_back(p);

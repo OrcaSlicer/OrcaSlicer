@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"name": "Panchroma PLA Satin @base",
-	"renamed_from": "Panchroma PLA Stain @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"filament_id": "GFPM005",

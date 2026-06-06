@@ -1357,6 +1357,10 @@ int CLI::run(int argc, char **argv)
     else {
         set_logging_level(2);
     }
+    const ConfigOptionString* opt_logfile = m_config.opt<ConfigOptionString>("logfile");
+    if (opt_logfile) {
+        set_logging_file(opt_logfile->value);
+    }
 
     global_begin_time = (long long)Slic3r::Utils::get_current_time_utc();
     BOOST_LOG_TRIVIAL(warning) << boost::format("cli mode, Current OrcaSlicer Version %1%")%SoftFever_VERSION;
@@ -1605,6 +1609,10 @@ int CLI::run(int argc, char **argv)
                         remove_wrapping_detect = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
                     }
+
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which covers presets too.
 
                     if (normative_check) {
                         ConfigOptionStrings* postprocess_scripts = config.option<ConfigOptionStrings>("post_process");

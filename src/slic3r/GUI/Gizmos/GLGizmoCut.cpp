@@ -793,6 +793,8 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
     indexed_triangle_set mesh;
 
     // handle multiple dovetails/grooves
+    m_groove_vertices.clear();
+    m_groove_vertices.reserve(8 * groove_count);
     for (int i = 0; i < groove_count; ++i) {
         bool is_first_groove = i == 0; // when a groove is not the last groove, then limit the extent of the right plane so that it doesnt overlap the next groove 
         bool is_last_groove  = i == groove_count - 1; // do the same in reverse if a groove is not the first groove
@@ -806,17 +808,14 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
 
         // Vertices of the groove used to detection if groove is valid (not used in mesh)
         {
-            m_groove_vertices.clear();
-            m_groove_vertices.reserve(8);
-
-            m_groove_vertices.emplace_back(Vec3f(-slot_neck_outer_x, -plane_half_height, slot_front_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(-slot_mouth_inner_x, plane_half_height, slot_front_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(-slot_mouth_outer_x, -plane_half_height, slot_back_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(-slot_neck_outer_x, plane_half_height, slot_back_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(slot_neck_outer_x, -plane_half_height, slot_front_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(slot_mouth_inner_x, plane_half_height, slot_front_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(slot_mouth_outer_x, -plane_half_height, slot_back_z).cast<double>());
-            m_groove_vertices.emplace_back(Vec3f(slot_neck_outer_x, plane_half_height, slot_back_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(-slot_neck_outer_x + offset_x, -plane_half_height, slot_front_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(-slot_mouth_inner_x + offset_x, plane_half_height, slot_front_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(-slot_mouth_outer_x + offset_x, -plane_half_height, slot_back_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(-slot_neck_outer_x + offset_x, plane_half_height, slot_back_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(slot_neck_outer_x + offset_x, -plane_half_height, slot_front_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(slot_mouth_inner_x + offset_x, plane_half_height, slot_front_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(slot_mouth_outer_x + offset_x, -plane_half_height, slot_back_z).cast<double>());
+            m_groove_vertices.emplace_back(Vec3f(slot_neck_outer_x + offset_x, plane_half_height, slot_back_z).cast<double>());
         }
 
         //                                     ___

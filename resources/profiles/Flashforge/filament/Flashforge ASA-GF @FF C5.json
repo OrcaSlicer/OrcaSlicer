@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge ASA-GF @FF C5",
+	"inherits": "Generic ABS @System",
+	"from": "system",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",
 		"Flashforge Creator 5 0.6 nozzle",
@@ -37,17 +42,12 @@
 	"filament_type": [
 		"ASA-GF"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"110"
 	],
 	"hot_plate_temp_initial_layer": [
 		"110"
 	],
-	"inherits": "Generic ABS @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge ASA-GF @FF C5",
 	"nozzle_temperature": [
 		"270"
 	],
@@ -71,6 +71,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
-	],
-	"version": "2.3.0.3"
+	]
 }

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Bordo",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "filament_id": "FILAR0034",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#6E1A2B"
+    ]
+}

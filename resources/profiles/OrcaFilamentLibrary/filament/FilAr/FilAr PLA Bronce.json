@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Bronce",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "filament_id": "FILAR0001",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#AD8428"
+    ]
+}

@@ -124,6 +124,9 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
 {
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
+    // Orca: Recompute static mesh-group state for this support generation pass.
+    TreeSupportSettings::zero_top_z_gap = false;
+
     //FIXME this is ugly, it does not belong here.
     for (size_t object_id : print_object_ids) {
         const PrintObject       &print_object  = *print.get_object(object_id);
@@ -1600,13 +1603,19 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
     if (settings.increase_radius)
         current_elem.effective_radius_height += 1;
     coord_t radius = support_element_collision_radius(config, current_elem);
+
     const auto _tiny_area_threshold = tiny_area_threshold();
     if (settings.move) {
         increased = relevant_offset;
         if (overspeed > 0) {
-            const coord_t safe_movement_distance =
+            coord_t safe_movement_distance =
                 (current_elem.use_min_xy_dist ? config.xy_min_distance : config.xy_distance) +
                 (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
+            // Orca:
+            // safe_movement_distance is used as the safe_offset_inc() step, so keep it non-zero
+            // to preserve branch movement with zero-clearance support settings.
+            if (safe_movement_distance == 0)
+                safe_movement_distance = scaled<coord_t>(0.1);
             // The difference to ensure that the result not only conforms to wall_restriction, but collision/avoidance is done later.
             // The higher last_safe_step_movement_distance comes exactly from the fact that the collision will be subtracted later.
             increased = safe_offset_inc(increased, overspeed, volumes.getWallRestriction(support_element_collision_radius(config, parent.state), layer_idx, parent.state.use_min_xy_dist),
@@ -1817,9 +1826,15 @@ static void increase_areas_one_layer(
              *  layer z-1:dddddxxxxxxxxxx
              *  For more detailed visualisation see calculateWallRestrictions
              */
-            const coord_t safe_movement_distance =
+            coord_t safe_movement_distance =
                 (elem.use_min_xy_dist ? config.xy_min_distance : config.xy_distance) +
                 (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
+
+            // safe_movement_distance is used as a divisor and as the safe_offset_inc() step,
+            // so keep it non-zero to avoid division by zero and preserve branch movement.
+            if (safe_movement_distance == 0)
+                safe_movement_distance = scaled<coord_t>(0.1);
+
             if (ceiled_parent_radius == volumes.ceilRadius(projected_radius_increased, parent.state.use_min_xy_dist) ||
                 projected_radius_increased < config.increase_radius_until_radius)
                 // If it is guaranteed possible to increase the radius, the maximum movement speed can be increased, as it is assumed that the maximum movement speed is the one of the slower moving wall
@@ -3454,6 +3469,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
             // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in draw_areas
             std::vector<SupportElements> move_bounds(num_support_layers);
+
             // ### Place tips of the support tree
             for (size_t mesh_idx : processing.second)
                 generate_initial_areas(*print.get_object(mesh_idx), volumes, config, overhangs, 
@@ -3764,6 +3780,7 @@ void organic_draw_branches(
 //            ++ ielement;
         }
     }
+
     const SlicingParameters &slicing_params = print_object.slicing_parameters();
     MeshSlicingParams mesh_slicing_params;
     mesh_slicing_params.mode = MeshSlicingParams::SlicingMode::Positive;
@@ -3945,19 +3962,7 @@ void organic_draw_branches(
                     }
                     // ORCA: bottom contacts provide the footprint; interface layers are built later.
 
-#if 0
-                    //FIXME branch.has_tip seems to not be reliable.
-                    if (branch.has_tip && interface_placer.support_parameters.has_top_contacts)
-                        // Add top slices to top contacts / interfaces / base interfaces.
-                        for (int i = int(branch.path.size()) - 1; i >= 0; -- i) {
-                            const SupportElement &el = *branch.path[i];
-                            if (el.state.missing_roof_layers == 0)
-                                break;
-                            //FIXME Move or not?
-                            interface_placer.add_roof(std::move(slices[int(slices.size()) - i - 1]), el.state.layer_idx,
-                                interface_placer.support_parameters.num_top_interface_layers + 1 - el.state.missing_roof_layers);
-                        }
-#endif
+                    recover_pending_branch_roofs(interface_placer, branch.path, layer_begin, slices);
 
                     while (! slices.empty() && slices.back().empty()) {
                         slices.pop_back();
