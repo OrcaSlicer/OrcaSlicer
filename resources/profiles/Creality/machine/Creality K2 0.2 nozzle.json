@@ -103,7 +103,7 @@
 	"printer_technology": "FFF",
 	"printer_variant": "0.2",
 	"printhost_authorization_type": "key",
-	"purge_in_prime_tower": "0",
+	"purge_in_prime_tower": "1",
 	"scan_first_layer": "0",
 	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
