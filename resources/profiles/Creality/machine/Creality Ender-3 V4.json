@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality Ender-3 V4",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_ender3v3_buildplate_model.stl",
+	"default_bed_type": "Textured PEI Plate",
+	"bed_texture": "creality_ender3v3_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Ender_3_V4",
+	"default_materials": "Creality Generic ABS @Ender-3 V4-all;Creality Generic ASA @Ender-3 V4-all;Creality Generic PETG @Ender-3 V4-all;Creality Generic PLA @Ender-3 V4-all;Creality Generic PLA Matte @Ender-3 V4-all;Creality Generic PLA Silk @Ender-3 V4-all;Creality Generic TPU @Ender-3 V4-all"
+}
