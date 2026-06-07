@@ -283,10 +283,76 @@ void* BBLNetworkPlugin::get_source_module()
     boost::filesystem::path data_dir_path(data_dir_str);
     auto plugin_folder = data_dir_path / "plugins";
 
-#if defined(_MSC_VER) || defined(_WIN32)
-    wchar_t lib_wstr[128];
+    // Systemic loader fix: H2C printer control stream requires a newer libBambuSource.dylib
+    // (from Bambu Studio, May 2025 version, which is larger: 9,279,504 bytes vs OrcaSlicer's
+    // older 9,218,928 bytes). Since OrcaSlicer's auto-updater pulls versioned plug-ins tied
+    // to OrcaSlicer's app version, it fetches the older library.
+    // We search across candidate plugin directories (OrcaSlicer, BambuStudio, and BambuStudioDev)
+    // and dynamically pick the largest (or newest) library file to resolve this issue.
+    boost::filesystem::path best_path;
+    uintmax_t max_size = 0;
 
-    library = plugin_folder.string() + "/" + std::string(BAMBU_SOURCE_LIBRARY) + ".dll";
+    boost::filesystem::path candidate_folders[3];
+    int candidate_count = 0;
+    candidate_folders[candidate_count++] = plugin_folder;
+
+    try {
+        candidate_folders[candidate_count++] = data_dir_path.parent_path() / "BambuStudio" / "plugins";
+    } catch (...) {}
+
+    try {
+        candidate_folders[candidate_count++] = data_dir_path.parent_path() / "BambuStudioDev" / "plugins";
+    } catch (...) {}
+
+    for (int i = 0; i < candidate_count; ++i) {
+        boost::filesystem::path file_path;
+#if defined(_MSC_VER) || defined(_WIN32)
+        file_path = candidate_folders[i] / (std::string(BAMBU_SOURCE_LIBRARY) + ".dll");
+#elif defined(__WXMAC__)
+        file_path = candidate_folders[i] / ("lib" + std::string(BAMBU_SOURCE_LIBRARY) + ".dylib");
+#else
+        file_path = candidate_folders[i] / ("lib" + std::string(BAMBU_SOURCE_LIBRARY) + ".so");
+#endif
+        if (boost::filesystem::exists(file_path)) {
+            boost::system::error_code ec;
+            uintmax_t sz = boost::filesystem::file_size(file_path, ec);
+            if (!ec) {
+                bool select = false;
+                if (best_path.empty()) {
+                    select = true;
+                } else if (sz > max_size) {
+                    select = true;
+                } else if (sz == max_size) {
+                    std::time_t t_best = boost::filesystem::last_write_time(best_path, ec);
+                    std::time_t t_curr = boost::filesystem::last_write_time(file_path, ec);
+                    if (!ec && t_curr > t_best) {
+                        select = true;
+                    }
+                }
+                if (select) {
+                    max_size = sz;
+                    best_path = file_path;
+                }
+            }
+        }
+    }
+
+    if (!best_path.empty()) {
+        library = best_path.string();
+        BOOST_LOG_TRIVIAL(info) << "BBLNetworkPlugin: Selected source library: " << library << " (size: " << max_size << ")";
+    } else {
+#if defined(_MSC_VER) || defined(_WIN32)
+        library = plugin_folder.string() + "/" + std::string(BAMBU_SOURCE_LIBRARY) + ".dll";
+#elif defined(__WXMAC__)
+        library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_SOURCE_LIBRARY) + ".dylib";
+#else
+        library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_SOURCE_LIBRARY) + ".so";
+#endif
+        BOOST_LOG_TRIVIAL(warning) << "BBLNetworkPlugin: No source library found in candidates, falling back to: " << library;
+    }
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    wchar_t lib_wstr[512];
     memset(lib_wstr, 0, sizeof(lib_wstr));
     ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
     m_source_module = LoadLibrary(lib_wstr);
@@ -300,11 +366,6 @@ void* BBLNetworkPlugin::get_source_module()
         m_source_module = LoadLibrary(lib_wstr);
     }
 #else
-#if defined(__WXMAC__)
-    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_SOURCE_LIBRARY) + ".dylib";
-#else
-    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_SOURCE_LIBRARY) + ".so";
-#endif
     m_source_module = dlopen(library.c_str(), RTLD_LAZY);
 #endif
 
