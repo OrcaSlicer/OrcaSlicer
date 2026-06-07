@@ -61,12 +61,10 @@ struct TreeSupportMeshGroupSettings {
         this->support_angle             = 0.5 * M_PI - std::clamp<double>((config.support_threshold_angle + 1) * M_PI / 180., 0., 0.5 * M_PI);
         this->support_line_width        = support_material_flow(&print_object, config.layer_height).scaled_width();
         this->support_roof_line_width   = support_material_interface_flow(&print_object, config.layer_height).scaled_width();
-        //FIXME add it to SlicingParameters and reuse in both tree and normal supports?
-        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && config.support_interface_bottom_layers.value != 0;
+        const int bottom_interface_layers = number_of_support_interface_bottom_layers(config);
+        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && bottom_interface_layers > 0;
         this->support_bottom_height     = this->support_bottom_enable ?
-            (config.support_interface_bottom_layers.value > 0 ?
-                config.support_interface_bottom_layers.value :
-                config.support_interface_top_layers.value) * this->layer_height :
+            bottom_interface_layers * this->layer_height :
             0;
         this->support_material_buildplate_only = config.support_on_build_plate_only;
         this->support_xy_distance       = scaled<coord_t>(config.support_object_xy_distance.value);
@@ -77,8 +75,8 @@ struct TreeSupportMeshGroupSettings {
         this->support_bottom_distance   = scaled<coord_t>(slicing_params.gap_object_support);
         this->support_roof_enable       = config.support_interface_top_layers.value > 0;
         this->support_roof_layers       = config.support_interface_top_layers.value;
-        this->support_floor_enable      = config.support_interface_bottom_layers.value > 0;
-        this->support_floor_layers      = config.support_interface_bottom_layers.value;
+        this->support_floor_enable      = bottom_interface_layers > 0;
+        this->support_floor_layers      = bottom_interface_layers;
         this->support_roof_pattern      = config.support_interface_pattern;
         this->support_pattern           = config.support_base_pattern;
         this->support_line_spacing      = scaled<coord_t>(config.support_base_pattern_spacing.value);
