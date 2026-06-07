@@ -14,6 +14,10 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#if defined(L)
+#undef L
+#endif
+
 #if ENABLE_SMOOTH_NORMALS
 #include <igl/per_face_normals.h>
 #include <igl/per_corner_normals.h>
