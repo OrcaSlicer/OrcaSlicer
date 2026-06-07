@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"name": "0.20mm Standard @Creality Hi 0.4 nozzle",
+	"name": "0.20mm Standard @Creality Hi",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
 	"setting_id": "GP004",

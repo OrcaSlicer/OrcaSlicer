@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"name": "0.12mm Fine @Creality K1 SE 0.4 nozzle",
+	"name": "0.12mm Fine @Creality K1 SE",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
 	"setting_id": "GP004",

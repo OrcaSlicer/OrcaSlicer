@@ -1,7 +1,7 @@
 {
 	"type": "process",
 	"setting_id": "GP004",
-	"name": "0.24mm Draft @Creality K1 SE 0.4 nozzle",
+	"name": "0.24mm Draft @Creality K1 SE",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_process_creality_common",
