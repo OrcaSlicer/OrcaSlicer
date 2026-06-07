@@ -460,7 +460,7 @@ void GLModel::init_from(const indexed_triangle_set& its)
     Eigen::MatrixXd vertices = MapMatrixXfUnaligned(its.vertices.front().data(), Eigen::Index(its.vertices.size()), 3).cast<double>();
     Eigen::MatrixXi indices = MapMatrixXiUnaligned(its.indices.front().data(), Eigen::Index(its.indices.size()), 3);
     Eigen::MatrixXd corner_normals;
-    igl::per_corner_normals(vertices, indices, 45.0, corner_normals);
+    igl::per_corner_normals(vertices, indices, 5.0, corner_normals);
 #endif
 
     Geometry& data = m_render_data.geometry;
