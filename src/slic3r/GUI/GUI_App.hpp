@@ -297,6 +297,7 @@ private:
     NetworkAgent* m_agent { nullptr };
     std::map<std::string, std::string> need_delete_presets;   // store setting ids of preset
     std::vector<bool> m_create_preset_blocked { false, false, false, false, false, false }; // excceed limit
+    std::vector<std::string> m_pending_conflict_setting_ids; // setting_id from the most recent 409 conflict
     bool m_networking_compatible { false };
     bool m_networking_need_update { false };
     bool m_networking_cancel_update { false };
@@ -322,6 +323,8 @@ private:
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
+    std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
+    std::atomic<bool>    m_migration_retry_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -464,6 +467,7 @@ public:
     void            recreate_GUI(const wxString& message);
     void            system_info();
     void            keyboard_shortcuts();
+    void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
     void            import_model(wxWindow *parent, wxArrayString& input_files) const;
     void            import_zip(wxWindow* parent, wxString& input_file) const;
@@ -529,10 +533,13 @@ public:
     void            add_pending_vendor_preset(const std::pair<std::string, std::map<std::string, std::string>>& preset_data);
     void            load_pending_vendors();
 
-    void            sync_preset(Preset* preset);
+    void            sync_preset(Preset* preset, bool force = false);
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            restart_sync_user_preset();
+    // Resolve a cloud sync 409 by force-pushing the conflicting preset: clears the "hold"
+    // state the conflict left behind and queues it to be re-uploaded with force=true.
+    void            force_push_conflicting_preset(const std::string& setting_id);
     void            on_stealth_mode_enter();
 
     // Bundle subscription sync

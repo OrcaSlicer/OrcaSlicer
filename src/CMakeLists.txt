@@ -158,7 +158,7 @@ target_link_libraries(OrcaSlicer libslic3r_gui)
     if (MSVC)
         # Generate debug symbols even in release mode.
         target_link_options(OrcaSlicer PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
-        target_link_libraries(OrcaSlicer user32.lib Setupapi.lib)
+        target_link_libraries(OrcaSlicer ws2_32.lib user32.lib Setupapi.lib)
     elseif (MINGW)
         target_link_libraries(OrcaSlicer ws2_32 uxtheme setupapi)
     elseif (APPLE)
