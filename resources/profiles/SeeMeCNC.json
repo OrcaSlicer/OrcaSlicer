@@ -1,694 +1,710 @@
 {
-	"name": "SeeMeCNC",
-	"version": "2.4.0.00",
-	"force_update": "1",
-	"description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers",
-	"machine_model_list": [
-		{
-			"name": "SeeMeCNC Artemis 300",
-			"sub_path": "machine/SeeMeCNC Artemis 300.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 300",
-			"sub_path": "machine/SeeMeCNC BOSSdelta 300.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0505",
-			"sub_path": "machine/SeeMeCNC BOSSdelta 500 0505.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0510",
-			"sub_path": "machine/SeeMeCNC BOSSdelta 500 0510.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0521",
-			"sub_path": "machine/SeeMeCNC BOSSdelta 500 0521.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v3.2",
-			"sub_path": "machine/SeeMeCNC RostockMAX v3.2.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v4",
-			"sub_path": "machine/SeeMeCNC RostockMAX v4.json"
-		}
-	],
-	"process_list": [
-		{
-			"name": "SeeMeCNC process base",
-			"sub_path": "process/SeeMeCNC_process_base.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC Artemis 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC Artemis 0.4.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC BOSSdelta 300 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 300 0.4.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC BOSSdelta 500 0505 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 500 0505 0.4.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC BOSSdelta 500 0510 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 500 0510 0.4.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC BOSSdelta 500 0521 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 500 0521 0.4.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC RostockMAX v3.2 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC RostockMAX v3.2 0.4.json"
-		},
-		{
-			"name": "0.16mm Fine @SeeMeCNC RostockMAX v4 0.4",
-			"sub_path": "process/0.16mm Fine @SeeMeCNC RostockMAX v4 0.4.json"
-		},
-		{
-			"name": "0.20mm Draft @SeeMeCNC RostockMAX v3.2 0.4",
-			"sub_path": "process/0.20mm Draft @SeeMeCNC RostockMAX v3.2 0.4.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC Artemis 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC Artemis 0.5.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC BOSSdelta 300 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 300 0.5.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0505 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 500 0505 0.5.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0521 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 500 0521 0.5.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5.json"
-		},
-		{
-			"name": "0.20mm Fine @SeeMeCNC RostockMAX v4 0.5",
-			"sub_path": "process/0.20mm Fine @SeeMeCNC RostockMAX v4 0.5.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC Artemis 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC Artemis 0.4.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC BOSSdelta 300 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 300 0.4.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC BOSSdelta 500 0505 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 500 0505 0.4.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC BOSSdelta 500 0510 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 500 0510 0.4.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC BOSSdelta 500 0521 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 500 0521 0.4.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC RostockMAX v3.2 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC RostockMAX v3.2 0.4.json"
-		},
-		{
-			"name": "0.20mm Standard @SeeMeCNC RostockMAX v4 0.4",
-			"sub_path": "process/0.20mm Standard @SeeMeCNC RostockMAX v4 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC Artemis 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC Artemis 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC BOSSdelta 300 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 300 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC BOSSdelta 500 0505 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 500 0505 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC BOSSdelta 500 0510 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 500 0510 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC BOSSdelta 500 0521 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 500 0521 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC RostockMAX v3.2 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC RostockMAX v3.2 0.4.json"
-		},
-		{
-			"name": "0.24mm Draft @SeeMeCNC RostockMAX v4 0.4",
-			"sub_path": "process/0.24mm Draft @SeeMeCNC RostockMAX v4 0.4.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC Artemis 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC Artemis 0.5.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC BOSSdelta 300 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 300 0.5.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC BOSSdelta 500 0505 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 500 0505 0.5.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC BOSSdelta 500 0510 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 500 0510 0.5.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC BOSSdelta 500 0521 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 500 0521 0.5.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC RostockMAX v3.2 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC RostockMAX v3.2 0.5.json"
-		},
-		{
-			"name": "0.25mm Standard @SeeMeCNC RostockMAX v4 0.5",
-			"sub_path": "process/0.25mm Standard @SeeMeCNC RostockMAX v4 0.5.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC Artemis 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC Artemis 0.4.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 300 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 300 0.4.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.4.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.4.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.4.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.4.json"
-		},
-		{
-			"name": "0.28mm Extra Draft @SeeMeCNC RostockMAX v4 0.4",
-			"sub_path": "process/0.28mm Extra Draft @SeeMeCNC RostockMAX v4 0.4.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC Artemis 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC Artemis 0.7.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC BOSSdelta 300 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 300 0.7.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC BOSSdelta 500 0505 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 500 0505 0.7.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC BOSSdelta 500 0510 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 500 0510 0.7.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC BOSSdelta 500 0521 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 500 0521 0.7.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC RostockMAX v3.2 0.7.json"
-		},
-		{
-			"name": "0.28mm Fine @SeeMeCNC RostockMAX v4 0.7",
-			"sub_path": "process/0.28mm Fine @SeeMeCNC RostockMAX v4 0.7.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC Artemis 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC Artemis 0.5.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC BOSSdelta 300 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 300 0.5.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 500 0505 0.5.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 500 0510 0.5.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 500 0521 0.5.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC RostockMAX v3.2 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC RostockMAX v3.2 0.5.json"
-		},
-		{
-			"name": "0.30mm Draft @SeeMeCNC RostockMAX v4 0.5",
-			"sub_path": "process/0.30mm Draft @SeeMeCNC RostockMAX v4 0.5.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC Artemis 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC Artemis 0.7.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 300 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 300 0.7.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.7.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.7.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.7.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7.json"
-		},
-		{
-			"name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC Artemis 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC Artemis 0.5.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 300 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 300 0.5.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.5.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.5.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.5.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.5.json"
-		},
-		{
-			"name": "0.35mm Extra Draft @SeeMeCNC RostockMAX v4 0.5",
-			"sub_path": "process/0.35mm Extra Draft @SeeMeCNC RostockMAX v4 0.5.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC Artemis 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC Artemis 0.7.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC BOSSdelta 500 0505 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 500 0505 0.7.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC BOSSdelta 500 0510 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 500 0510 0.7.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC BOSSdelta 500 0521 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 500 0521 0.7.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC RostockMAX v3.2 0.7.json"
-		},
-		{
-			"name": "0.35mm Standard @SeeMeCNC RostockMAX v4 0.7",
-			"sub_path": "process/0.35mm Standard @SeeMeCNC RostockMAX v4 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC Artemis 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC Artemis 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7.json"
-		},
-		{
-			"name": "0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC Artemis 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC Artemis 1.0.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC BOSSdelta 300 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 300 1.0.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC BOSSdelta 500 0505 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 500 0505 1.0.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC BOSSdelta 500 0510 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 500 0510 1.0.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC BOSSdelta 500 0521 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 500 0521 1.0.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC RostockMAX v3.2 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC RostockMAX v3.2 1.0.json"
-		},
-		{
-			"name": "0.40mm Fine @SeeMeCNC RostockMAX v4 1.0",
-			"sub_path": "process/0.40mm Fine @SeeMeCNC RostockMAX v4 1.0.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC Artemis 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC Artemis 0.7.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC BOSSdelta 300 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 300 0.7.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 500 0505 0.7.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 500 0521 0.7.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC RostockMAX v3.2 0.7.json"
-		},
-		{
-			"name": "0.42mm Draft @SeeMeCNC RostockMAX v4 0.7",
-			"sub_path": "process/0.42mm Draft @SeeMeCNC RostockMAX v4 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC Artemis 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC Artemis 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.7.json"
-		},
-		{
-			"name": "0.49mm Extra Draft @SeeMeCNC RostockMAX v4 0.7",
-			"sub_path": "process/0.49mm Extra Draft @SeeMeCNC RostockMAX v4 0.7.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC Artemis 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC Artemis 1.0.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC BOSSdelta 300 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 300 1.0.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC BOSSdelta 500 0505 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 500 0505 1.0.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC BOSSdelta 500 0510 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 500 0510 1.0.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC BOSSdelta 500 0521 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 500 0521 1.0.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0.json"
-		},
-		{
-			"name": "0.50mm Standard @SeeMeCNC RostockMAX v4 1.0",
-			"sub_path": "process/0.50mm Standard @SeeMeCNC RostockMAX v4 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC Artemis 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC Artemis 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC BOSSdelta 300 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 300 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC BOSSdelta 500 0505 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 500 0505 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC BOSSdelta 500 0510 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 500 0510 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC BOSSdelta 500 0521 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 500 0521 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC RostockMAX v3.2 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC RostockMAX v3.2 1.0.json"
-		},
-		{
-			"name": "0.60mm Draft @SeeMeCNC RostockMAX v4 1.0",
-			"sub_path": "process/0.60mm Draft @SeeMeCNC RostockMAX v4 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC Artemis 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC Artemis 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 300 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 300 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC RostockMAX v3.2 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC RostockMAX v3.2 1.0.json"
-		},
-		{
-			"name": "0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0",
-			"sub_path": "process/0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0.json"
-		}
-	],
-	"filament_list": [
-		{
-			"name": "SeeMeCNC filament base",
-			"sub_path": "filament/SeeMeCNC_filament_base.json"
-		},
-		{
-			"name": "SeeMeCNC ABS",
-			"sub_path": "filament/SeeMeCNC_ABS.json"
-		},
-		{
-			"name": "SeeMeCNC PA-CF",
-			"sub_path": "filament/SeeMeCNC_PA-CF.json"
-		},
-		{
-			"name": "SeeMeCNC PETG",
-			"sub_path": "filament/SeeMeCNC_PETG.json"
-		},
-		{
-			"name": "SeeMeCNC PETG-CF",
-			"sub_path": "filament/SeeMeCNC_PETG-CF.json"
-		},
-		{
-			"name": "SeeMeCNC TPU",
-			"sub_path": "filament/SeeMeCNC_TPU.json"
-		},
-		{
-			"name": "SeeMeCNC PLA",
-			"sub_path": "filament/SeeMeCNC_PLA.json"
-		}
-	],
-	"machine_list": [
-		{
-			"name": "SeeMeCNC Artemis 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_Artemis_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC Artemis 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_Artemis_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC Artemis 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_Artemis_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC Artemis 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_Artemis_1_0mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 300 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta_300_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 300 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta_300_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 300 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta_300_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 300 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta_300_1_0mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0505 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0505 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0505 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_1_0mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0510 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0510 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0510 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_1_0mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0521 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0521 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC BOSSdelta 500 0521 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_1_0mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v3.2 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v3.2 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v3.2 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v3.2 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_1_0mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v4 0.4 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v4_0_4mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v4 0.5 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v4_0_5mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v4 0.7 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v4_0_7mm.json"
-		},
-		{
-			"name": "SeeMeCNC RostockMAX v4 1.0 nozzle",
-			"sub_path": "machine/SeeMeCNC_RostockMAX_v4_1_0mm.json"
-		}
-	]
+  "name": "SeeMeCNC",
+  "version": "2.4.0.00",
+  "force_update": "1",
+  "description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers",
+  "machine_model_list": [
+    {
+      "name": "SeeMeCNC Artemis 300",
+      "sub_path": "machine/SeeMeCNC Artemis 300.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 300",
+      "sub_path": "machine/SeeMeCNC BOSSdelta 300.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0505",
+      "sub_path": "machine/SeeMeCNC BOSSdelta 500 0505.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0510",
+      "sub_path": "machine/SeeMeCNC BOSSdelta 500 0510.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0521",
+      "sub_path": "machine/SeeMeCNC BOSSdelta 500 0521.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v3.2",
+      "sub_path": "machine/SeeMeCNC RostockMAX v3.2.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v4",
+      "sub_path": "machine/SeeMeCNC RostockMAX v4.json"
+    }
+  ],
+  "process_list": [
+    {
+      "name": "SeeMeCNC process base 0.4mm",
+      "sub_path": "process/SeeMeCNC_process_base_0.4mm.json"
+    },
+    {
+      "name": "SeeMeCNC process base 0.5mm",
+      "sub_path": "process/SeeMeCNC_process_base_0.5mm.json"
+    },
+    {
+      "name": "SeeMeCNC process base 0.7mm",
+      "sub_path": "process/SeeMeCNC_process_base_0.7mm.json"
+    },
+    {
+      "name": "SeeMeCNC process base 1.0mm",
+      "sub_path": "process/SeeMeCNC_process_base_1.0mm.json"
+    },
+    {
+      "name": "SeeMeCNC process base",
+      "sub_path": "process/SeeMeCNC_process_base.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC Artemis 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC Artemis 0.4.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC BOSSdelta 300 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 300 0.4.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC BOSSdelta 500 0505 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 500 0505 0.4.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC BOSSdelta 500 0510 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 500 0510 0.4.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC BOSSdelta 500 0521 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC BOSSdelta 500 0521 0.4.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC RostockMAX v3.2 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC RostockMAX v3.2 0.4.json"
+    },
+    {
+      "name": "0.16mm Fine @SeeMeCNC RostockMAX v4 0.4",
+      "sub_path": "process/0.16mm Fine @SeeMeCNC RostockMAX v4 0.4.json"
+    },
+    {
+      "name": "0.20mm Draft @SeeMeCNC RostockMAX v3.2 0.4",
+      "sub_path": "process/0.20mm Draft @SeeMeCNC RostockMAX v3.2 0.4.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC Artemis 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC Artemis 0.5.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC BOSSdelta 300 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 300 0.5.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0505 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 500 0505 0.5.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0521 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC BOSSdelta 500 0521 0.5.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5.json"
+    },
+    {
+      "name": "0.20mm Fine @SeeMeCNC RostockMAX v4 0.5",
+      "sub_path": "process/0.20mm Fine @SeeMeCNC RostockMAX v4 0.5.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC Artemis 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC Artemis 0.4.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC BOSSdelta 300 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 300 0.4.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC BOSSdelta 500 0505 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 500 0505 0.4.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC BOSSdelta 500 0510 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 500 0510 0.4.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC BOSSdelta 500 0521 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC BOSSdelta 500 0521 0.4.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC RostockMAX v3.2 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC RostockMAX v3.2 0.4.json"
+    },
+    {
+      "name": "0.20mm Standard @SeeMeCNC RostockMAX v4 0.4",
+      "sub_path": "process/0.20mm Standard @SeeMeCNC RostockMAX v4 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC Artemis 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC Artemis 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC BOSSdelta 300 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 300 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC BOSSdelta 500 0505 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 500 0505 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC BOSSdelta 500 0510 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 500 0510 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC BOSSdelta 500 0521 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC BOSSdelta 500 0521 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC RostockMAX v3.2 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC RostockMAX v3.2 0.4.json"
+    },
+    {
+      "name": "0.24mm Draft @SeeMeCNC RostockMAX v4 0.4",
+      "sub_path": "process/0.24mm Draft @SeeMeCNC RostockMAX v4 0.4.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC Artemis 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC Artemis 0.5.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC BOSSdelta 300 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 300 0.5.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC BOSSdelta 500 0505 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 500 0505 0.5.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC BOSSdelta 500 0510 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 500 0510 0.5.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC BOSSdelta 500 0521 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC BOSSdelta 500 0521 0.5.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC RostockMAX v3.2 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC RostockMAX v3.2 0.5.json"
+    },
+    {
+      "name": "0.25mm Standard @SeeMeCNC RostockMAX v4 0.5",
+      "sub_path": "process/0.25mm Standard @SeeMeCNC RostockMAX v4 0.5.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC Artemis 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC Artemis 0.4.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 300 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 300 0.4.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.4.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.4.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.4.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.4.json"
+    },
+    {
+      "name": "0.28mm Extra Draft @SeeMeCNC RostockMAX v4 0.4",
+      "sub_path": "process/0.28mm Extra Draft @SeeMeCNC RostockMAX v4 0.4.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC Artemis 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC Artemis 0.7.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC BOSSdelta 300 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 300 0.7.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC BOSSdelta 500 0505 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 500 0505 0.7.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC BOSSdelta 500 0510 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 500 0510 0.7.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC BOSSdelta 500 0521 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC BOSSdelta 500 0521 0.7.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC RostockMAX v3.2 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC RostockMAX v3.2 0.7.json"
+    },
+    {
+      "name": "0.28mm Fine @SeeMeCNC RostockMAX v4 0.7",
+      "sub_path": "process/0.28mm Fine @SeeMeCNC RostockMAX v4 0.7.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC Artemis 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC Artemis 0.5.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC BOSSdelta 300 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 300 0.5.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 500 0505 0.5.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 500 0510 0.5.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC BOSSdelta 500 0521 0.5.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC RostockMAX v3.2 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC RostockMAX v3.2 0.5.json"
+    },
+    {
+      "name": "0.30mm Draft @SeeMeCNC RostockMAX v4 0.5",
+      "sub_path": "process/0.30mm Draft @SeeMeCNC RostockMAX v4 0.5.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC Artemis 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC Artemis 0.7.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 300 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 300 0.7.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.7.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.7.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.7.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7.json"
+    },
+    {
+      "name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7",
+      "sub_path": "process/0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC Artemis 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC Artemis 0.5.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 300 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 300 0.5.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.5.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.5.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.5.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.5.json"
+    },
+    {
+      "name": "0.35mm Extra Draft @SeeMeCNC RostockMAX v4 0.5",
+      "sub_path": "process/0.35mm Extra Draft @SeeMeCNC RostockMAX v4 0.5.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC Artemis 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC Artemis 0.7.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC BOSSdelta 500 0505 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 500 0505 0.7.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC BOSSdelta 500 0510 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 500 0510 0.7.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC BOSSdelta 500 0521 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC BOSSdelta 500 0521 0.7.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC RostockMAX v3.2 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC RostockMAX v3.2 0.7.json"
+    },
+    {
+      "name": "0.35mm Standard @SeeMeCNC RostockMAX v4 0.7",
+      "sub_path": "process/0.35mm Standard @SeeMeCNC RostockMAX v4 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC Artemis 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC Artemis 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7.json"
+    },
+    {
+      "name": "0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7",
+      "sub_path": "process/0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC Artemis 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC Artemis 1.0.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC BOSSdelta 300 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 300 1.0.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC BOSSdelta 500 0505 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 500 0505 1.0.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC BOSSdelta 500 0510 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 500 0510 1.0.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC BOSSdelta 500 0521 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC BOSSdelta 500 0521 1.0.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC RostockMAX v3.2 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC RostockMAX v3.2 1.0.json"
+    },
+    {
+      "name": "0.40mm Fine @SeeMeCNC RostockMAX v4 1.0",
+      "sub_path": "process/0.40mm Fine @SeeMeCNC RostockMAX v4 1.0.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC Artemis 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC Artemis 0.7.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC BOSSdelta 300 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 300 0.7.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 500 0505 0.7.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC BOSSdelta 500 0521 0.7.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC RostockMAX v3.2 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC RostockMAX v3.2 0.7.json"
+    },
+    {
+      "name": "0.42mm Draft @SeeMeCNC RostockMAX v4 0.7",
+      "sub_path": "process/0.42mm Draft @SeeMeCNC RostockMAX v4 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC Artemis 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC Artemis 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.7.json"
+    },
+    {
+      "name": "0.49mm Extra Draft @SeeMeCNC RostockMAX v4 0.7",
+      "sub_path": "process/0.49mm Extra Draft @SeeMeCNC RostockMAX v4 0.7.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC Artemis 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC Artemis 1.0.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC BOSSdelta 300 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 300 1.0.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC BOSSdelta 500 0505 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 500 0505 1.0.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC BOSSdelta 500 0510 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 500 0510 1.0.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC BOSSdelta 500 0521 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC BOSSdelta 500 0521 1.0.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0.json"
+    },
+    {
+      "name": "0.50mm Standard @SeeMeCNC RostockMAX v4 1.0",
+      "sub_path": "process/0.50mm Standard @SeeMeCNC RostockMAX v4 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC Artemis 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC Artemis 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC BOSSdelta 300 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 300 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC BOSSdelta 500 0505 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 500 0505 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC BOSSdelta 500 0510 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 500 0510 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC BOSSdelta 500 0521 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC BOSSdelta 500 0521 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC RostockMAX v3.2 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC RostockMAX v3.2 1.0.json"
+    },
+    {
+      "name": "0.60mm Draft @SeeMeCNC RostockMAX v4 1.0",
+      "sub_path": "process/0.60mm Draft @SeeMeCNC RostockMAX v4 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC Artemis 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC Artemis 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 300 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 300 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC RostockMAX v3.2 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC RostockMAX v3.2 1.0.json"
+    },
+    {
+      "name": "0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0",
+      "sub_path": "process/0.70mm Extra Draft @SeeMeCNC RostockMAX v4 1.0.json"
+    }
+  ],
+  "filament_list": [
+    {
+      "name": "SeeMeCNC filament base",
+      "sub_path": "filament/SeeMeCNC_filament_base.json"
+    },
+    {
+      "name": "SeeMeCNC ABS",
+      "sub_path": "filament/SeeMeCNC_ABS.json"
+    },
+    {
+      "name": "SeeMeCNC PA-CF",
+      "sub_path": "filament/SeeMeCNC_PA-CF.json"
+    },
+    {
+      "name": "SeeMeCNC PETG",
+      "sub_path": "filament/SeeMeCNC_PETG.json"
+    },
+    {
+      "name": "SeeMeCNC PETG-CF",
+      "sub_path": "filament/SeeMeCNC_PETG-CF.json"
+    },
+    {
+      "name": "SeeMeCNC TPU",
+      "sub_path": "filament/SeeMeCNC_TPU.json"
+    },
+    {
+      "name": "SeeMeCNC PLA",
+      "sub_path": "filament/SeeMeCNC_PLA.json"
+    }
+  ],
+  "machine_list": [
+    {
+      "name": "SeeMeCNC Artemis 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_Artemis_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC Artemis 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_Artemis_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC Artemis 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_Artemis_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC Artemis 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_Artemis_1_0mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 300 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta_300_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 300 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta_300_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 300 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta_300_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 300 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta_300_1_0mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0505 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0505 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0505 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0505_1_0mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0510 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0510 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0510 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0510_1_0mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0521 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0521 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC BOSSdelta 500 0521 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_BOSSdelta500_0521_1_0mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v3.2 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v3.2 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v3.2 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v3.2 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v3.2_1_0mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v4 0.4 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v4_0_4mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v4 0.5 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v4_0_5mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v4 0.7 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v4_0_7mm.json"
+    },
+    {
+      "name": "SeeMeCNC RostockMAX v4 1.0 nozzle",
+      "sub_path": "machine/SeeMeCNC_RostockMAX_v4_1_0mm.json"
+    }
+  ]
 }

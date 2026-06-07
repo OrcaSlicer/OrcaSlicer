@@ -1,22 +1,20 @@
 {
-	"type": "process",
-	"name": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
-	"inherits": "SeeMeCNC process base",
-	"from": "System",
-	"instantiation": "true",
-	"print_settings_id": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
-	"compatible_printers": [
-		"SeeMeCNC RostockMAX v3.2 0.5 nozzle"
-	],
-	"compatible_printers_condition": "",
-	"alternate_extra_wall": "0",
-	"counterbore_hole_bridging": "none",
-	"initial_layer_print_height": "0.25",
-	"layer_height": "0.2",
-	"precise_z_height": "0",
-	"skirt_distance": "2",
-	"skirt_loops": "0",
-	"spiral_mode": "0",
-	"outer_wall_acceleration": "1200",
-	"inner_wall_acceleration": "1200"
+    "type": "process",
+    "name": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
+    "inherits": "SeeMeCNC process base 0.5mm",
+    "from": "System",
+    "instantiation": "true",
+    "print_settings_id": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
+    "compatible_printers": [
+        "SeeMeCNC RostockMAX v3.2 0.5 nozzle"
+    ],
+    "compatible_printers_condition": "",
+    "alternate_extra_wall": "0",
+    "counterbore_hole_bridging": "none",
+    "initial_layer_print_height": "0.25",
+    "layer_height": "0.2",
+    "precise_z_height": "0",
+    "skirt_distance": "2",
+    "skirt_loops": "0",
+    "spiral_mode": "0"
 }
