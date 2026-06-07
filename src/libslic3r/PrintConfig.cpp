@@ -2400,6 +2400,187 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0.0 });
 
+    // Orca / CN3D: Volumetric Temperature Compensation (VTC).
+    // Concept & original idea: Nadir @ CN3D. Predictive nozzle temperature control
+    // that follows future volumetric flow to even out surface finish (gloss) across
+    // regions printed at different speeds. Implemented as a post-generation pass.
+    def = this->add("vtc_enabled", coBools);
+    def->label = L("Enable volumetric temperature compensation (beta)");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("When volumetric flow changes during a print (e.g. a vase whose circumference shrinks, "
+                     "or any region slowed down to satisfy minimum layer time), the filament dwells a different "
+                     "amount of time in the melt zone, so its effective melt temperature drifts even though the "
+                     "setpoint is fixed. The result is visible gloss and sheen variation, especially on silk and "
+                     "matte filaments.\n\n"
+                     "VTC makes nozzle temperature follow volumetric flow predictively: it looks ahead in the "
+                     "tool-path, maps flow to a target temperature, and injects non-blocking M104 commands early "
+                     "enough that the hotend reaches the target exactly when the new flow begins. Requires the "
+                     "thermal rates in the Printer settings to be calibrated for accurate timing.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBools{ false });
+
+    def = this->add("vtc_slope_k", coFloats);
+    def->label = L("Flow-temperature slope");
+    def->tooltip = L("Simple-mode mapping: target_temp = nozzle_temperature + slope * (flow - reference flow). "
+                     "How many degrees Celsius to change per mm3/s of deviation from the reference flow. "
+                     "Gloss-sensitive filaments (silk, matte) want a higher value; calibrate per filament. "
+                     "Ignored when a custom flow-temperature model is provided below.");
+    def->sidetext = L("°C per mm³/s");
+    def->min = 0;
+    def->max = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 0.5 });
+
+    def = this->add("vtc_ref_flow", coFloats);
+    def->label = L("Reference volumetric flow");
+    def->tooltip = L("The volumetric flow at which the nominal nozzle temperature is correct. "
+                     "At this flow VTC leaves the temperature unchanged; above it heats, below it cools.");
+    def->sidetext = L("mm³/s");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 12.0 });
+
+    def = this->add("vtc_max_delta", coFloats);
+    def->label = L("Maximum temperature deviation");
+    def->tooltip = L("Safety band: VTC never moves the nozzle temperature more than this many degrees away "
+                     "from the nominal filament temperature, in either direction.");
+    def->sidetext = L("°C");
+    def->min = 0;
+    def->max = 50;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 10.0 });
+
+    def = this->add("vtc_min_delta", coFloats);
+    def->label = L("Minimum temperature change to act");
+    def->tooltip = L("Ignore flow transitions that would change the target temperature by less than this. "
+                     "Prevents command spam from minor flow fluctuations.");
+    def->sidetext = L("°C");
+    def->min = 0;
+    def->max = 20;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 2.0 });
+
+    def = this->add("vtc_flow_mode", coStrings);
+    def->label = L("Flow-temperature mode");
+    def->tooltip = L("How VTC maps volumetric flow to a target temperature. \"Simple\" uses the linear "
+                     "slope/reference-flow mapping above. \"Curve\" uses the custom flow-temperature points "
+                     "below, interpolated with a smooth monotonic (PCHIP) curve. Set per filament.");
+    def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
+    def->gui_flags = "show_value";
+    def->enum_values.push_back("simple");
+    def->enum_values.push_back("curve");
+    def->enum_labels.push_back(L("Simple"));
+    def->enum_labels.push_back(L("Curve"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{ "simple" });
+
+    def = this->add("vtc_flow_curve", coStrings);
+    def->label = L("Custom flow-temperature curve");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Used when the mode above is set to \"Curve\". One \"volumetric_flow,temperature\" pair "
+                     "per line, for example\n"
+                     "2,213\n8,217\n12,220\n20,224\n25,226\n\n"
+                     "Values are interpolated with a smooth monotonic curve. At least two points are required; "
+                     "otherwise VTC falls back to the simple slope mapping. Calibrate per filament.");
+    def->mode = comAdvanced;
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 12;
+    def->set_default_value(new ConfigOptionStrings{ "" });
+
+    def = this->add("vtc_lookahead_s", coFloats);
+    def->label = L("Lookahead window");
+    def->tooltip = L("How far ahead in time VTC looks when scheduling temperature changes. Must be at least as "
+                     "long as the worst-case heating/cooling lead time. 45 s is a safe minimum.");
+    def->sidetext = L("s");
+    def->min = 5;
+    def->max = 300;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 45.0 });
+
+    def = this->add("vtc_smoothing_s", coFloats);
+    def->label = L("Flow smoothing window");
+    def->tooltip = L("Forward-looking averaging window applied to volumetric flow before mapping to temperature. "
+                     "Larger values suppress short flow spikes and reduce temperature oscillation.");
+    def->sidetext = L("s");
+    def->min = 0;
+    def->max = 120;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 12.0 });
+
+    def = this->add("vtc_min_cmd_interval_s", coFloats);
+    def->label = L("Minimum command interval");
+    def->tooltip = L("Minimum time between two temperature commands. Prevents PID destabilisation from commands "
+                     "issued too close together.");
+    def->sidetext = L("s");
+    def->min = 1;
+    def->max = 120;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 12.0 });
+
+    def = this->add("vtc_micro_adjust_interval_s", coFloats);
+    def->label = L("Micro-adjustment interval");
+    def->tooltip = L("Large transitions are split into 2 °C micro-steps issued this many seconds apart, so the "
+                     "firmware PID tracks a moving target smoothly instead of overshooting on one big jump.");
+    def->sidetext = L("s");
+    def->min = 1;
+    def->max = 60;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 8.0 });
+
+    // --- Per-hotend thermal model (calibrated per printer; shown in Printer settings) ---
+    def = this->add("vtc_heating_rate", coFloats);
+    def->label = L("VTC heating rate");
+    def->tooltip = L("Active heating rate of this hotend (resistive heater + PID), used by VTC to compute how "
+                     "early to issue a heat-up command. Calibrate per printer/hotend. Typical 1.5–3.0 °C/s.");
+    def->sidetext = L("°C/s");
+    def->min = 0.1;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 2.0 });
+
+    def = this->add("vtc_cooling_no_flow_rate", coFloats);
+    def->label = L("VTC cooling rate (no flow)");
+    def->tooltip = L("Passive cooling rate with the nozzle idle (no extrusion) — convection and conduction to the "
+                     "heatsink only. This is the worst case that sets the minimum lookahead. Typical 0.2–0.5 °C/s.");
+    def->sidetext = L("°C/s");
+    def->min = 0.01;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 0.30 });
+
+    def = this->add("vtc_cooling_flow_rate", coFloats);
+    def->label = L("VTC cooling rate (with flow)");
+    def->tooltip = L("Cooling rate while actively extruding: cold filament entering the melt zone acts as a heat "
+                     "sink and accelerates the temperature drop. This is the key value to calibrate; it is usually "
+                     "2–4× the no-flow rate and depends on filament, flow and hotend geometry. Typical 0.6–1.5 °C/s.");
+    def->sidetext = L("°C/s");
+    def->min = 0.01;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 0.85 });
+
+    def = this->add("vtc_pid_overshoot", coFloats);
+    def->label = L("VTC PID overshoot compensation");
+    def->tooltip = L("Expected PID overshoot when heating. VTC targets a setpoint this many degrees lower to "
+                     "compensate. Set to 0 to disable.");
+    def->sidetext = L("°C");
+    def->min = 0;
+    def->max = 20;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 3.0 });
+
+    def = this->add("vtc_settling_margin_s", coFloats);
+    def->label = L("VTC settling margin");
+    def->tooltip = L("Extra lead time added beyond the raw delta-T / rate calculation, to let the PID settle to "
+                     "within ~1 °C of target before the printer reaches the new flow region.");
+    def->sidetext = L("s");
+    def->min = 0;
+    def->max = 60;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{ 8.0 });
+
     def = this->add("line_width", coFloatOrPercent);
     def->label = L("Default");
     def->category = L("Quality");
@@ -7314,7 +7495,9 @@ void PrintConfigDef::init_extruder_option_keys()
         "retraction_length", "z_hop", "z_hop_types", "travel_slope", "retract_lift_above", "retract_lift_below", "retract_lift_enforce", "retraction_speed", "deretraction_speed",
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "extruder_colour",
-        "default_filament_profile","retraction_distances_when_cut","long_retractions_when_cut"
+        "default_filament_profile","retraction_distances_when_cut","long_retractions_when_cut",
+        // Orca / CN3D: Volumetric Temperature Compensation per-hotend thermal model
+        "vtc_heating_rate", "vtc_cooling_no_flow_rate", "vtc_cooling_flow_rate", "vtc_pid_overshoot", "vtc_settling_margin_s"
     };
 
     m_extruder_retract_keys = {
