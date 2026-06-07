@@ -156,7 +156,7 @@
 	"printer_settings_id": "Flashforge Guider4 Pro 0.4 HF nozzle",
 	"printer_structure": "undefine",
 	"printer_technology": "FFF",
-	"printer_variant": "0.4",
+	"printer_variant": "0.4HF",
 	"printhost_authorization_type": "key",
 	"printhost_ssl_ignore_revoke": "0",
 	"printing_by_object_gcode": "",
