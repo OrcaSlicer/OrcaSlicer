@@ -258,10 +258,9 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     wxStaticText *mesh_face_number_title = new wxStaticText(this, wxID_ANY, _L("Number of triangular facets") + ": ");
     mesh_face_number_title->SetFont(::Label::Body_14);
     mesh_face_number_title->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
-    mesh_face_number_text = new wxStaticText(this, wxID_ANY, "0");
+    mesh_face_number_text = new wxStaticText(this, wxID_ANY, _L("Calculating, please wait..."));
     mesh_face_number_text->SetFont(::Label::Body_14);
     mesh_face_number_text->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
-    mesh_face_number_text->SetMinSize(wxSize(FromDIP(150), -1));
     mesh_face_number_sizer->Add(mesh_face_number_title, 0, wxALIGN_LEFT);
     mesh_face_number_sizer->Add(mesh_face_number_text, 0, wxALIGN_LEFT);
     bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
