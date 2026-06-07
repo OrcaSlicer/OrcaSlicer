@@ -457,13 +457,9 @@ void GLModel::init_from(const indexed_triangle_set& its)
 #if ENABLE_SMOOTH_NORMALS
     using MapMatrixXfUnaligned = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
     using MapMatrixXiUnaligned = Eigen::Map<const Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
-
     Eigen::MatrixXd vertices = MapMatrixXfUnaligned(its.vertices.front().data(), Eigen::Index(its.vertices.size()), 3).cast<double>();
-
     Eigen::MatrixXi indices = MapMatrixXiUnaligned(its.indices.front().data(), Eigen::Index(its.indices.size()), 3);
-
     Eigen::MatrixXd corner_normals;
-
     igl::per_corner_normals(vertices, indices, 45.0, corner_normals);
 #endif
 
@@ -480,14 +476,11 @@ void GLModel::init_from(const indexed_triangle_set& its)
 #if ENABLE_SMOOTH_NORMALS
         for (size_t j = 0; j < 3; ++j) {
             const Vec3f normal = corner_normals.row(Eigen::Index(i * 3 + j)).cast<float>();
-
             data.add_vertex(its.vertices[face[j]], normal);
         }
 #else
         const stl_vertex vertex[3] = {its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]]};
-
-        const stl_vertex n = face_normal_normalized(vertex);
-
+        const stl_vertex n         = face_normal_normalized(vertex);
         for (size_t j = 0; j < 3; ++j)
             data.add_vertex(vertex[j], n);
 #endif
