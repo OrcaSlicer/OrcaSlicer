@@ -92,6 +92,10 @@ std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
         webui_url = ElegooLink::get_print_host_webui(config);
         break;
     }
+    case htCrealityPrint: {
+        webui_url = CrealityPrint::get_print_host_webui(config);
+        break;
+    }
     default: break;
     }
 
