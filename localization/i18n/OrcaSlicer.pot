@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -9408,6 +9408,9 @@ msgstr ""
 msgid "Precision"
 msgstr ""
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr ""
 
@@ -17353,9 +17356,6 @@ msgid "Generating infill regions"
 msgstr ""
 
 msgid "Generating infill toolpath"
-msgstr ""
-
-msgid "Z contouring"
 msgstr ""
 
 msgid "Detect overhangs for auto-lift"

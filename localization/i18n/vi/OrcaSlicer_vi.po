@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -10126,6 +10126,9 @@ msgstr "Độ rộng đường"
 msgid "Precision"
 msgstr "Độ chính xác"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Trình tạo thành"
 
@@ -19619,9 +19622,6 @@ msgstr "Đang tạo vùng infill"
 
 msgid "Generating infill toolpath"
 msgstr "Đang tạo đường dẫn công cụ infill"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Phát hiện phần nhô để tự động nâng"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10094,6 +10094,9 @@ msgstr "押出線幅"
 msgid "Precision"
 msgstr "精度"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "壁面生成器"
 
@@ -18573,9 +18576,6 @@ msgstr "インフィル領域を生成"
 msgid "Generating infill toolpath"
 msgstr "インフィルパスを生成"
 
-msgid "Z contouring"
-msgstr ""
-
 msgid "Detect overhangs for auto-lift"
 msgstr "オーバーハング自動検出"
 
@@ -20306,8 +20306,8 @@ msgid ""
 "The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr ""
-"%s押出機のノズル径は0.2mmのため、自動フローダイナミクスキャリブレーションに"
-"は対応していません。"
+"%s押出機のノズル径は0.2mmのため、自動フローダイナミクスキャリブレーションには"
+"対応していません。"
 
 #, c-format, boost-format
 msgid ""

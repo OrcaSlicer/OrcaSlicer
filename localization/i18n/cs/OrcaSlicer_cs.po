@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -10174,6 +10174,9 @@ msgstr "šířka čáry"
 msgid "Precision"
 msgstr "Přesnost"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Generátor stěn"
 
@@ -19732,9 +19735,6 @@ msgstr "Generování oblastí výplně"
 
 msgid "Generating infill toolpath"
 msgstr "Generování dráhy výplně"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Detekovat převisy pro automatické zvedání"

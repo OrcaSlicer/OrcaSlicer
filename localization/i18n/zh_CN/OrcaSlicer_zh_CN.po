@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2026-02-28 00:59\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -9768,6 +9768,9 @@ msgstr "线宽"
 msgid "Precision"
 msgstr "精度"
 
+msgid "Z contouring"
+msgstr "Z 层抗锯齿"
+
 msgid "Wall generator"
 msgstr "墙生成器"
 
@@ -15501,7 +15504,7 @@ msgid "Expand or contract the ironing area."
 msgstr "扩大或缩小熨烫区域。"
 
 msgid "Z contouring enabled"
-msgstr "启用 Z 轮廓"
+msgstr "启用 Z 层抗锯齿"
 
 msgid "Enable Z-layer contouring (aka Z-layer anti-aliasing)."
 msgstr "启用 Z 层轮廓（也称 Z 层抗锯齿）。"
@@ -15525,7 +15528,7 @@ msgid "Don't alternate fill direction"
 msgstr "不交替填充方向"
 
 msgid "Disable alternating fill direction when using Z contouring."
-msgstr "在使用 Z 轮廓时禁用交替填充方向。"
+msgstr "在使用 Z 层抗锯齿时禁用交替填充方向。"
 
 msgid "Minimum z height"
 msgstr "最小 Z 高度"
@@ -18777,9 +18780,6 @@ msgstr "正在生成填充区域"
 
 msgid "Generating infill toolpath"
 msgstr "正在生成填充路径"
-
-msgid "Z contouring"
-msgstr "Z 轮廓"
 
 msgid "Detect overhangs for auto-lift"
 msgstr "为自动抬升检测悬垂区域"

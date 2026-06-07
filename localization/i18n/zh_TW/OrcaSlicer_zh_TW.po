@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -9811,6 +9811,9 @@ msgstr "線寬"
 msgid "Precision"
 msgstr "精度"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "牆產生器"
 
@@ -18606,9 +18609,6 @@ msgstr "正在產生填充區域"
 
 msgid "Generating infill toolpath"
 msgstr "正在產生填充走線"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "偵測懸空區域為自動抬升做準備"
