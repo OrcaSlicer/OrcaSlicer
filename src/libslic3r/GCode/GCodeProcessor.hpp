@@ -318,6 +318,18 @@ class Print;
             filament_change_count_map = other.filament_change_count_map;
             filament_change_sequence = other.filament_change_sequence;
             initial_layer_time = other.initial_layer_time;
+            conflict_result = other.conflict_result;
+            nozzle_group_result = other.nozzle_group_result;
+            extruder_areas = other.extruder_areas;
+            extruder_heights = other.extruder_heights;
+            support_traditional_timelapse = other.support_traditional_timelapse;
+            z_offset = other.z_offset;
+            backtrace_enabled = other.backtrace_enabled;
+            required_nozzle_HRC = other.required_nozzle_HRC;
+            filament_vitrification_temperature = other.filament_vitrification_temperature;
+            filament_maps = other.filament_maps;
+            nozzle_hrc = other.nozzle_hrc;
+            nozzle_type = other.nozzle_type;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = other.time;
 #endif
@@ -1185,7 +1197,9 @@ class Print;
         std::vector<double> m_nozzle_diameter;
         bool m_has_filament_switcher{ false };
         float m_inject_time_threshold{ 30.f };
-        
+        // H2C Vortek: Printer model name for H2C-specific timing logic
+        std::string m_printer_model;
+
         float get_hotend_change_time();
 
         // Move

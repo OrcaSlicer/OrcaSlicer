@@ -1121,6 +1121,77 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
+
+    // H2C Vortek: Check if the printer is BBL and has a multi-extruder / multi-nozzle configuration (Vortek).
+    const bool is_bbl_printers = this->is_BBL_printer();
+    const bool is_h2c_multi_nozzle = is_bbl_printers &&
+        (m_config.nozzle_diameter.size() > 1) &&
+        (m_config.extruder_max_nozzle_count.values.size() > 1) &&
+        (m_config.extruder_max_nozzle_count.values[1] > 1);
+
+    // H2C Vortek: If it is a multi-nozzle H2C configuration, handle initialization and preservation
+    // of the nozzle map to avoid resetting it to all zeros.
+    if (is_h2c_multi_nozzle) {
+        auto opt_new_nozzle_map = new_full_config.option<ConfigOptionInts>("filament_nozzle_map");
+        auto opt_old_nozzle_map = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map");
+        if (opt_new_nozzle_map && opt_old_nozzle_map) {
+            auto is_all_zeros = [](const std::vector<int>& v) {
+                for (int val : v) {
+                    if (val != 0) return false;
+                }
+                return true;
+            };
+            // If the incoming nozzle map from the UI is empty or contains all zeros (e.g. when loading a new 3MF),
+            // we prevent using this zero mapping, which would cause all filaments to print from a single nozzle.
+            if (is_all_zeros(opt_new_nozzle_map->values)) {
+                // If we have a previously calculated non-zero nozzle map from a prior slicing, restore it.
+                if (!is_all_zeros(opt_old_nozzle_map->values) &&
+                    opt_new_nozzle_map->values.size() == opt_old_nozzle_map->values.size()) {
+                    {
+                        auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+                        BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Preserving calculated filament mappings in Print::apply: nozzle_map="
+                                                   << fmt(opt_old_nozzle_map->values);
+                    }
+                    opt_new_nozzle_map->values = opt_old_nozzle_map->values;
+
+                    auto opt_new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
+                    auto opt_old_filament_map = m_full_print_config.option<ConfigOptionInts>("filament_map");
+                    if (opt_new_filament_map && opt_old_filament_map &&
+                        opt_new_filament_map->values.size() == opt_old_filament_map->values.size()) {
+                        opt_new_filament_map->values = opt_old_filament_map->values;
+                    }
+
+                    auto opt_new_volume_map = new_full_config.option<ConfigOptionInts>("filament_volume_map");
+                    auto opt_old_volume_map = m_full_print_config.option<ConfigOptionInts>("filament_volume_map");
+                    if (opt_new_volume_map && opt_old_volume_map &&
+                        opt_new_volume_map->values.size() == opt_old_volume_map->values.size()) {
+                        opt_new_volume_map->values = opt_old_volume_map->values;
+                    }
+                } else {
+                    // Otherwise (clean start), initialize cyclic nozzle assignment on the Vortek carousel.
+                    // Assign filaments to available nozzles sequentially (e.g. 0,1,2,3,0,1...).
+                    int nozzle_count = 2;
+                    auto opt_max_nozzles = new_full_config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+                    if (opt_max_nozzles && !opt_max_nozzles->values.empty()) {
+                        for (int val : opt_max_nozzles->values) {
+                            if (val > 1) {
+                                nozzle_count = val;
+                                break;
+                            }
+                        }
+                    }
+                    for (size_t i = 0; i < opt_new_nozzle_map->values.size(); ++i) {
+                        opt_new_nozzle_map->values[i] = i % nozzle_count;
+                    }
+                    {
+                        auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+                        BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Initializing zero filament nozzle map with cyclic mapping: "
+                                                   << fmt(opt_new_nozzle_map->values) << " (nozzle_count=" << nozzle_count << ")";
+                    }
+                }
+            }
+        }
+    }
     // Normalize the config.
 	new_full_config.option("print_settings_id",            true);
 	new_full_config.option("filament_settings_id",         true);
@@ -1198,6 +1269,25 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //BBS: process the filament_map related logic
     std::unordered_set<std::string> print_diff_set(print_diff.begin(), print_diff.end());
+    if (is_h2c_multi_nozzle) {
+        if (print_diff_set.find("filament_map") != print_diff_set.end()) {
+            print_diff_set.erase("filament_map");
+            m_full_print_config.option<ConfigOptionInts>("filament_map", true)->set(new_full_config.option<ConfigOptionInts>("filament_map", true));
+            m_config.filament_map = *new_full_config.option<ConfigOptionInts>("filament_map", true);
+        }
+        if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
+            print_diff_set.erase("filament_volume_map");
+            m_full_print_config.option<ConfigOptionInts>("filament_volume_map", true)->set(new_full_config.option<ConfigOptionInts>("filament_volume_map", true));
+            m_config.filament_volume_map = *new_full_config.option<ConfigOptionInts>("filament_volume_map", true);
+        }
+        if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
+            print_diff_set.erase("filament_nozzle_map");
+            m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true)->set(new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true));
+            m_config.filament_nozzle_map = *new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C active: synced filament_nozzle_map to m_config: "
+                                       << new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true)->serialize();
+        }
+    }
     if (!print_diff_set.empty() && print_diff_set.find("filament_map_mode") == print_diff_set.end())
     {
         FilamentMapMode map_mode = new_full_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value;

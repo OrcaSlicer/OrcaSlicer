@@ -385,6 +385,8 @@ private:
     // m_config and m_writer.config from the LayeredNozzleGroupResult. Mirrors BambuStudio
     // GCode.cpp:7136-7152. Called at print-start (layer_id=0) and at each layer transition.
     void update_layer_related_config(int layer_id);
+    // H2C Vortek: Update parameters dependent on nozzle/filament variants in placeholder_parser
+    void update_placeholder_parser_with_variant_params();
 
     // H2C: Precompute per-extruder speed overlays from variant overrides.
     // Scalar speed options (coFloat, coFloatOrPercent) are not handled by

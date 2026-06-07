@@ -3287,6 +3287,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
     this->placeholder_parser().set("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
 
+    // H2C Vortek: Sync configuration parameters depending on filament/nozzle variants
+    // into placeholder_parser before processing the printer's start G-code.
+    update_placeholder_parser_with_variant_params();
+
     std::string machine_start_gcode = this->placeholder_parser_process("machine_start_gcode", print.config().machine_start_gcode.value, initial_extruder_id);
     if (print.config().gcode_flavor != gcfKlipper) {
         // Set bed temperature if the start G-code does not contain any bed temp control G-codes.
@@ -6172,9 +6176,10 @@ std::string GCode::change_layer(coordf_t print_z)
     if (m_layer_count > 0)
         // Increment a progress bar indicator.
         gcode += m_writer.update_progress(++ m_layer_index, m_layer_count);
-    // BBL: refresh per-layer maps so subsequent placeholder evaluation and toolchanges see
-    // the active layer's filament_nozzle_map. Mirrors BambuStudio GCode.cpp:4105.
+    // H2C Vortek: Update configurations and nozzle mapping per layer so subsequent
+    // placeholder evaluations and toolchanges see up-to-date data.
     update_layer_related_config(m_layer_index);
+    update_placeholder_parser_with_variant_params();
     //BBS
     coordf_t z = print_z + m_config.z_offset.value;  // in unscaled coordinates
     if (FILAMENT_CONFIG(retract_when_changing_layer) && m_writer.will_move_z(z)) {
@@ -8826,8 +8831,61 @@ void GCode::ObjectByExtruder::Island::Region::append(const Type type, const Extr
     }
 }
 
-// Index into std::vector<LayerToPrint>, which contains Object and Support layers for the current print_z, collected for
-// a single object, or for possibly multiple objects with multiple instances.
+// H2C Vortek: Method to update placeholder_parser with parameters depending on the selected nozzle/filament variant.
+// Remaps configuration option arrays based on filament indices for interpolation in custom G-code.
+void GCode::update_placeholder_parser_with_variant_params()
+{
+    if (!m_print)
+        return;
 
+    size_t num_filaments = m_config.filament_type.values.size();
+    if (num_filaments == 0)
+        return;
+
+    // Helper lambdas to remap option arrays to filament indices.
+    // In OrcaSlicer they usually correspond 1:1, so we extract values directly.
+    auto remap_floats_by_filament = [&](const auto &src) {
+        std::vector<double> dst(num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i)
+            dst[i] = src.get_at(i);
+        return dst;
+    };
+    auto remap_ints_by_filament = [&](const auto &src) {
+        std::vector<int> dst(num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i)
+            dst[i] = src.get_at(i);
+        return dst;
+    };
+
+    // Filament options with nozzle variant offsets
+    this->placeholder_parser().set("filament_max_volumetric_speed",       new ConfigOptionFloats(remap_floats_by_filament(m_config.filament_max_volumetric_speed)));
+    this->placeholder_parser().set("filament_pre_cooling_temperature_nc", new ConfigOptionInts(remap_ints_by_filament(m_config.filament_pre_cooling_temperature_nc)));
+    this->placeholder_parser().set("filament_cooling_before_tower",       new ConfigOptionFloats(remap_floats_by_filament(m_config.filament_cooling_before_tower)));
+    this->placeholder_parser().set("nozzle_temperature_initial_layer",    new ConfigOptionInts(remap_ints_by_filament(m_config.nozzle_temperature_initial_layer)));
+    this->placeholder_parser().set("nozzle_temperature",                  new ConfigOptionInts(remap_ints_by_filament(m_config.nozzle_temperature)));
+    // first_layer_temperature is a legacy alias of nozzle_temperature_initial_layer
+    this->placeholder_parser().set("first_layer_temperature",             new ConfigOptionInts(remap_ints_by_filament(m_config.nozzle_temperature_initial_layer)));
+
+    // Printer options: merged and indexed by filament in m_config
+    this->placeholder_parser().set("retraction_distances_when_cut",       new ConfigOptionFloats(remap_floats_by_filament(m_config.retraction_distances_when_cut)));
+
+    // filament_map: per-layer dynamic filament mapping
+    this->placeholder_parser().set("filament_map", new ConfigOptionInts(m_config.filament_map));
+
+    // Flush volumes and temperatures with fallback values
+    {
+        auto flush_v_speed  = remap_floats_by_filament(m_config.filament_flush_volumetric_speed);
+        auto filament_max_v = remap_floats_by_filament(m_config.filament_max_volumetric_speed);
+        auto flush_temps    = remap_ints_by_filament(m_config.filament_flush_temp);
+        for (size_t i = 0; i < num_filaments; ++i) {
+            if (flush_v_speed[i] == 0)
+                flush_v_speed[i] = filament_max_v[i];
+            if (flush_temps[i] == 0)
+                flush_temps[i] = m_config.nozzle_temperature_range_high.get_at(i);
+        }
+        this->placeholder_parser().set("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
+        this->placeholder_parser().set("flush_temperatures",      new ConfigOptionInts(flush_temps));
+    }
+}
 
 } // namespace Slic3r

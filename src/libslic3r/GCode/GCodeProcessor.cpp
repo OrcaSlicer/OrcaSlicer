@@ -2071,6 +2071,8 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
 
 void GCodeProcessor::apply_config(const PrintConfig& config)
 {
+    // H2C Vortek: Store printer model name for model-specific G-code processing
+    m_printer_model = config.printer_model.value;
     m_parser.apply_config(config);
 
     m_flavor = config.gcode_flavor;
@@ -2215,6 +2217,11 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
+    // H2C Vortek: Store printer model name from dynamic configuration
+    const ConfigOptionString* printer_model = config.option<ConfigOptionString>("printer_model");
+    if (printer_model != nullptr) {
+        m_printer_model = printer_model->value;
+    }
     m_parser.apply_config(config);
 
     //BBS
@@ -2575,6 +2582,8 @@ void GCodeProcessor::enable_stealth_time_estimator(bool enabled)
 
 void GCodeProcessor::reset()
 {
+    // H2C Vortek: Reset printer model name
+    m_printer_model.clear();
     m_units = EUnits::Millimeters;
     m_global_positioning_type = EPositioningType::Absolute;
     m_e_local_positioning_type = EPositioningType::Absolute;
@@ -5794,7 +5803,13 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         }
         // BBL parity: combined condition — ONE unload + ONE load
         // (not separate if-blocks, which would double-count when both are true)
-        if (nozzle_in_extruder_change || filament_in_nozzle_change) {
+        bool perform_static_time_calc = nozzle_in_extruder_change || filament_in_nozzle_change;
+        // H2C Vortek: H2C printer has independent nozzles on a single extruder, so nozzle switches
+        // within the same extruder do not require filament unloading/loading.
+        if (m_printer_model == "Bambu Lab H2C") {
+            perform_static_time_calc = filament_in_nozzle_change;
+        }
+        if (perform_static_time_calc) {
             if (old_filament_in_extruder >= 0)
                 extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
             m_time_processor.extruder_unloaded = false;

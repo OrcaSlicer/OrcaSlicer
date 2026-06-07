@@ -7105,6 +7105,18 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                         filament_map->values.resize(filament_count, 1);
                                     }
 
+                                    // H2C Vortek: Sync filament nozzle map
+                                    ConfigOptionInts* filament_nozzle_map = proj_cfg.opt<ConfigOptionInts>("filament_nozzle_map", true);
+                                    if (filament_nozzle_map->size() != filament_count) {
+                                        filament_nozzle_map->values.resize(filament_count, 0);
+                                    }
+
+                                    // H2C Vortek: Sync filament volume map
+                                    ConfigOptionInts* filament_volume_map = proj_cfg.opt<ConfigOptionInts>("filament_volume_map", true);
+                                    if (filament_volume_map->size() != filament_count) {
+                                        filament_volume_map->values.resize(filament_count, 0);
+                                    }
+
                                     // Sync filament multi colour
                                     ConfigOptionStrings* filament_multi_color = proj_cfg.opt<ConfigOptionStrings>("filament_multi_colour", true);
                                     if (filament_multi_color->size() != filament_count) {

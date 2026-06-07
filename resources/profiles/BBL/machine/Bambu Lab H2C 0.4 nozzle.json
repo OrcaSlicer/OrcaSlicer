@@ -51,7 +51,7 @@
         "1",
         "1"
     ],
-    "machine_load_filament_time": "15",
+    "machine_load_filament_time": "28",
     "machine_max_speed_x": [
         "1000",
         "1000",
@@ -82,7 +82,7 @@
         "30",
         "30"
     ],
-    "machine_unload_filament_time": "15",
+    "machine_unload_filament_time": "28",
     "machine_max_speed_e": [
         "50",
         "50",
