@@ -32,6 +32,7 @@
 #include <wx/secretstore.h>
 #include <wx/stdpaths.h>
 #include <wx/utils.h>
+#include <wx/app.h>
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -2202,6 +2203,15 @@ bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::s
 void OrcaCloudServiceAgent::compute_fallback_path()
 {
     if (!refresh_fallback_path.empty()) return;
+    if (wxApp::GetInstance() == nullptr) {
+        std::string d_dir = Slic3r::data_dir();
+        if (d_dir.empty()) {
+            d_dir = ".";
+        }
+        boost::filesystem::path fallback_path = boost::filesystem::path(d_dir) / "orca_refresh_token.sec";
+        refresh_fallback_path = fallback_path.string();
+        return;
+    }
     wxFileName fallback(wxStandardPaths::Get().GetUserDataDir(), "orca_refresh_token.sec");
     fallback.Normalize();
     refresh_fallback_path = fallback.GetFullPath().ToStdString();
