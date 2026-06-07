@@ -2415,7 +2415,12 @@ void PrintConfigDef::init_fff_params()
                      "VTC makes nozzle temperature follow volumetric flow predictively: it looks ahead in the "
                      "tool-path, maps flow to a target temperature, and injects non-blocking M104 commands early "
                      "enough that the hotend reaches the target exactly when the new flow begins. Requires the "
-                     "thermal rates in the Printer settings to be calibrated for accurate timing.");
+                     "thermal rates in the Printer settings to be calibrated for accurate timing.\n\n"
+                     "Note: do not enable VTC if the printer firmware controls the hotend with Model Predictive "
+                     "Control (MPC) - e.g. Marlin MPCTEMP, Klipper's 'mpc' control type, or RepRapFirmware's "
+                     "model-based heating. MPC already feeds the extrusion/flow rate forward into its own thermal "
+                     "model, so layering VTC's M104 setpoint changes on top of it double-compensates and fights "
+                     "the firmware model. Use VTC only with conventional PID hotend control.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools{ false });
 
