@@ -11648,7 +11648,11 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
             NozzleVolumeType left_nozzle_type = NozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(1) - 1);
             NozzleVolumeType preset_left_type  = NozzleVolumeType(nozzle_volumes_values[0]);
             NozzleVolumeType preset_right_type  = NozzleVolumeType(nozzle_volumes_values[1]);
-            is_same_as_printer = (left_nozzle_type == preset_left_type && right_nozzle_type == preset_right_type);
+            // EXPERIMENTAL: skip-nozzle-type-sync - do not block on nozzle volume type mismatch at slicing time
+            // Slicing generates valid G-code regardless of flow type. We decouple nozzle flow type comparison from
+            // is_same_as_printer (slicing pre-check blocker), and instead treat it as a non-blocking warning 
+            // inside the Print/Send dialogs (SelectMachine.cpp and SyncAmsInfoDialog.cpp) so users can proceed if desired.
+            is_same_as_printer = true;
         }
 
         std::vector<std::map<int, int>> ams_count_info;

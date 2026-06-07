@@ -1394,52 +1394,54 @@ bool SelectMachineDialog::is_nozzle_type_match(DevExtderSystem data, wxString& e
     for (auto i = 0; i < used_extruders.size(); i++) {
         if (nozzle_volume_type_opt) {
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType) (nozzle_volume_type_opt->get_at(used_extruders[i]));
-            if (nozzle_volume_type == NozzleVolumeType::nvtStandard) { used_extruders_flow[used_extruders[i]] = "Standard";}
-            else {used_extruders_flow[used_extruders[i]] = "High Flow";}
+            if (nozzle_volume_type == NozzleVolumeType::nvtStandard) { 
+                used_extruders_flow[used_extruders[i]] = "Standard";
+            } else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
+                used_extruders_flow[used_extruders[i]] = "TPU High Flow";
+            } else {
+                used_extruders_flow[used_extruders[i]] = "High Flow";
+            }
         }
     }
 
     vector<int> map_extruders = {1, 0};
 
-
-    // The default two extruders are left, right, but the order of the extruders on the machine is right, left.
-    std::vector<std::string> flow_type_of_machine;
-    for (const auto& it : data.GetExtruders())
-    {
-        if (it.GetNozzleFlowType() == NozzleFlowType::H_FLOW)
-        {
-            flow_type_of_machine.push_back(L("High Flow"));
-        }
-        else if (it.GetNozzleFlowType() == NozzleFlowType::S_FLOW)
-        {
-            flow_type_of_machine.push_back(L("Standard"));
-        }
-    }
-
+    // EXPERIMENTAL: skip-nozzle-type-sync
+    // Query nozzle flow type directly by target machine index to avoid index-shifting/sizing bugs.
+    // Compare non-localized English strings ("Standard" / "High Flow" / "TPU High Flow") to avoid false mismatches in localized UI.
     //Only when all preset nozzle types and machine nozzle types are exactly the same, return true.
     for (std::map<int, std::string>::iterator it = used_extruders_flow.begin(); it!= used_extruders_flow.end(); it++) {
         int target_machine_nozzle_id = map_extruders[it->first];
 
-        if (target_machine_nozzle_id < flow_type_of_machine.size()) {
-            if (flow_type_of_machine[target_machine_nozzle_id] != used_extruders_flow[it->first]) {
+        std::string machine_flow;
+        NozzleFlowType machine_flow_type = data.GetNozzleFlowType(target_machine_nozzle_id);
+        if (machine_flow_type == NozzleFlowType::S_FLOW) {
+            machine_flow = "Standard";
+        } else if (machine_flow_type == NozzleFlowType::U_FLOW) {
+            machine_flow = "TPU High Flow";
+        } else if (machine_flow_type == NozzleFlowType::H_FLOW) {
+            machine_flow = "High Flow";
+        } else {
+            machine_flow = "Unknown";
+        }
 
-                wxString pos;
-                if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID)
-                {
-                    pos = _L("left nozzle");
-                }
-                else if(target_machine_nozzle_id == MAIN_EXTRUDER_ID)
-                {
-                    pos = _L("right nozzle");
-                }
-
-                error_message = wxString::Format(_L("The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "
-                                                    "Please make sure the nozzle installed matches with settings in printer, "
-                                                    "then set the corresponding printer preset while slicing."), pos,
-                                                    _L(flow_type_of_machine[target_machine_nozzle_id]),
-                                                    _L(used_extruders_flow[it->first]));
-                return false;
+        if (machine_flow != it->second) {
+            wxString pos;
+            if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID)
+            {
+                pos = _L("left nozzle");
             }
+            else if(target_machine_nozzle_id == MAIN_EXTRUDER_ID)
+            {
+                pos = _L("right nozzle");
+            }
+
+            error_message = wxString::Format(_L("The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "
+                                                "Please make sure the nozzle installed matches with settings in printer, "
+                                                "then set the corresponding printer preset while slicing."), pos,
+                                                _L(machine_flow),
+                                                _L(it->second));
+            return false;
         }
     }
     return true;
