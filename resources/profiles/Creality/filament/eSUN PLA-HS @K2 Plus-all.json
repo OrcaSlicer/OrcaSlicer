@@ -1,0 +1,69 @@
+{
+    "type": "filament",
+    "name": "eSUN PLA-HS @K2 Plus-all",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "80"
+    ],
+    "cool_plate_temp": [
+        "50"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "50"
+    ],
+    "filament_cost": [
+        "25"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "filament_retract_before_wipe": [
+        "100"
+    ],
+    "filament_retraction_length": [
+        "1.2"
+    ],
+    "filament_vendor": [
+        "eSUN"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "textured_plate_temp": [
+        "50"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "50"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if (layer_z > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}"
+    ],
+    "customized_plate_temp": "50",
+    "customized_plate_temp_initial_layer": "50",
+    "epoxy_resin_plate_temp": "40",
+    "epoxy_resin_plate_temp_initial_layer": "40",
+    "pressure_advance": "0.04",
+    "default_filament_colour": "\"\"",
+    "compatible_printers": [
+        "Creality K2 Plus 0.4 nozzle"
+    ],
+    "filament_id": "E1006"
+}

@@ -24,5 +24,6 @@
 	],
 	"printable_height": "120",
 	"nozzle_type": "undefine",
-	"auxiliary_fan": "0"
+	"auxiliary_fan": "0",
+	"printer_variant": "0.4"
 }

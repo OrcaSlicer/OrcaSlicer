@@ -8,6 +8,7 @@
 	"printer_model": "Creality CR-10 V3",
 	"printer_structure": "i3",
 	"default_print_profile": "0.20mm Standard @Creality CR10V3 0.6",
+	"printer_variant": "0.6",
 	"nozzle_diameter": [
 		"0.6"
 	],

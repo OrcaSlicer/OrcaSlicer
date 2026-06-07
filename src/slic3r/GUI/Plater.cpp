@@ -65,6 +65,7 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 // For stl export
@@ -1598,9 +1599,12 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("wall_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("sparse_infill_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("solid_infill_filament", &dynamic_filament_list);
+    Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -1743,19 +1747,23 @@ Sidebar::Sidebar(Plater *parent)
             e.Skip();
         });
 
+        // hover state data for printer panel
+        auto printer_preset_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
+
         p->btn_edit_printer = new ScalableButton(p->panel_printer_preset, wxID_ANY, "edit");
         p->btn_edit_printer->SetToolTip(_L("Click to edit preset"));
         p->btn_edit_printer->Hide(); // hide for first launch
-        p->btn_edit_printer->Bind(wxEVT_BUTTON, [this, panel_color](wxCommandEvent){
+        p->btn_edit_printer->Bind(wxEVT_BUTTON, [this, panel_color, printer_preset_hovered](wxCommandEvent){
             p->editing_filament = -1;
             if (p->combo_printer->switch_to_tab())
                 p->editing_filament = 0;
             // ORCA: FIX crash on wxGTK, directly modifying UI (self->Hide() / parent->Layout()) inside a button event can crash because callbacks are not re-entrant, leaving widgets in an inconsistent state
-            wxGetApp().CallAfter([this, panel_color]() {
+            wxGetApp().CallAfter([this, panel_color, printer_preset_hovered]() {
                 // ORCA clicking edit button not triggers wxEVT_KILL_FOCUS wxEVT_LEAVE_WINDOW make changes manually to prevent stucked colors when opening printer settings
                 if (!p || !p->panel_printer_preset || !p->btn_edit_printer)
                     return;
 				p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
+                printer_preset_hovered->clear();
                 p->btn_edit_printer->Hide();
                 p->panel_printer_preset->Layout();
             });
@@ -1794,38 +1802,33 @@ Sidebar::Sidebar(Plater *parent)
         */
         // ORCA use Show/Hide to gain text area instead using blank icon. also manages hover effect for border
         for (wxWindow *w : std::initializer_list<wxWindow *>{p->panel_printer_preset, p->btn_edit_printer, p->image_printer, p->combo_printer}) {
-            w->Bind(wxEVT_ENTER_WINDOW, [this, panel_color](wxMouseEvent &e) {
+            w->Bind(wxEVT_ENTER_WINDOW, [this, w, panel_color, printer_preset_hovered](wxMouseEvent &e) {
+                printer_preset_hovered->insert(w);
                 if(!p->combo_printer->HasFocus())
                     p->panel_printer_preset->SetBorderColor(panel_color.bd_hover);
-                if(!p->btn_edit_printer->IsShown()){
-                    p->btn_edit_printer->Show();
-                    p->panel_printer_preset->Layout();
-                }
                 e.Skip();
             });
-            w->Bind(wxEVT_LEAVE_WINDOW, [this, panel_color](wxMouseEvent &e) {
-                // Orca: if the edit button is already hidden the handler has no
-                // state to change, so skip the expensive wxFindWindowAtPoint tree
-                // walk. Without this guard, when the parent window is on an
-                // inactive Hyprland/Wayland workspace, GTK keeps delivering
-                // synthetic leave events and the Hide()+Layout() below re-enters
-                // the same handler in a feedback loop that pegs a CPU core.
-                // (IsShownOnScreen() can't be used here — see Plater.cpp:9304.)
-                if (!p->btn_edit_printer->IsShown()) { e.Skip(); return; }
-                // Use event-relative coords instead of wxGetMousePosition() which
-                // returns (0,0) on Wayland for global screen coordinates.
-                wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
-                wxPoint screenPos = evtObj ? evtObj->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
-                wxWindow* next_w = wxFindWindowAtPoint(screenPos);
-                if (!next_w || !p->panel_printer_preset->IsDescendant(next_w)){
-                    if(!p->combo_printer->HasFocus())
-                        p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
-                    p->btn_edit_printer->Hide();
-                    p->panel_printer_preset->Layout();
-                }
+            w->Bind(wxEVT_LEAVE_WINDOW, [this, w, panel_color, printer_preset_hovered](wxMouseEvent &e) {
+                printer_preset_hovered->erase(w);
+                if (printer_preset_hovered->empty() && !p->combo_printer->HasFocus())
+                    p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
                 e.Skip();
             });
         }
+        // Perform show/hide in wxEVT_IDLE after enter/leave events have settled.
+        // This prevents the extraneous enter/leave events generated by the
+        // layout change itself from causing a feedback loop.
+        Bind(wxEVT_IDLE, [this, printer_preset_hovered](wxIdleEvent &e) {
+            auto hovered = !printer_preset_hovered->empty();
+            if (p->btn_edit_printer->IsShown() != hovered) {
+                if (hovered) {
+                    p->btn_edit_printer->Show();
+                } else {
+                    p->btn_edit_printer->Hide();
+                }
+                p->panel_printer_preset->Layout();
+            }
+        });
 
         // ORCA unified Nozzle diameter selection
         p->panel_nozzle_dia = new StaticBox(p->m_panel_printer_content);
@@ -1871,19 +1874,17 @@ Sidebar::Sidebar(Plater *parent)
         p->label_nozzle_type->SetMaxSize(FromDIP(wxSize(56, -1)));
 
         // highlight border on hover
+        auto nozzle_dia_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
         for (wxWindow *w : std::initializer_list<wxWindow *>{p->panel_nozzle_dia, p->label_nozzle_title, p->label_nozzle_type, p->combo_nozzle_dia}) {
-            w->Bind(wxEVT_ENTER_WINDOW, [this, panel_color](wxMouseEvent &e) {
+            w->Bind(wxEVT_ENTER_WINDOW, [this, w, panel_color, nozzle_dia_hovered](wxMouseEvent &e) {
+                nozzle_dia_hovered->insert(w);
                 if(!p->combo_nozzle_dia->HasFocus())
                     p->panel_nozzle_dia->SetBorderColor(panel_color.bd_hover);
                 e.Skip();
             });
-            w->Bind(wxEVT_LEAVE_WINDOW, [this, panel_color](wxMouseEvent &e) {
-                // Use event-relative coords instead of wxGetMousePosition() which
-                // returns (0,0) on Wayland for global screen coordinates.
-                wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
-                wxPoint screenPos = evtObj ? evtObj->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
-                wxWindow* next_w = wxFindWindowAtPoint(screenPos);
-                if (!p->combo_nozzle_dia->HasFocus() && (!next_w || !p->panel_nozzle_dia->IsDescendant(next_w)))
+            w->Bind(wxEVT_LEAVE_WINDOW, [this, w, panel_color, nozzle_dia_hovered](wxMouseEvent &e) {
+                nozzle_dia_hovered->erase(w);
+                if (nozzle_dia_hovered->empty() && !p->combo_nozzle_dia->HasFocus())
                     p->panel_nozzle_dia->SetBorderColor(panel_color.bd_normal);
                 e.Skip();
             });
@@ -1943,21 +1944,19 @@ Sidebar::Sidebar(Plater *parent)
         p->combo_printer_bed->Bind(wxEVT_KILL_FOCUS, [this, bed_focus_bg](auto& e) {bed_focus_bg(false); e.Skip();});
 
         // highlight border on hover
+        auto printer_bed_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
         for (wxWindow *w : std::initializer_list<wxWindow *>{p->panel_printer_bed, p->image_printer_bed, p->combo_printer_bed}) {
-            w->Bind(wxEVT_ENTER_WINDOW, [this, w, panel_color](wxMouseEvent &e) {
+            w->Bind(wxEVT_ENTER_WINDOW, [this, w, panel_color, printer_bed_hovered](wxMouseEvent &e) {
+                printer_bed_hovered->insert(w);
                 if(!p->combo_printer_bed->HasFocus())
                     p->panel_printer_bed->SetBorderColor(panel_color.bd_hover);
                 if(w == p->image_printer_bed && !p->combo_printer_bed->is_drop_down()) // dont trigger while combo open
                     on_enter_image_printer_bed(e);
                 e.Skip();
             });
-            w->Bind(wxEVT_LEAVE_WINDOW, [this, w, panel_color](wxMouseEvent &e) {
-                // Use event-relative coords instead of wxGetMousePosition() which
-                // returns (0,0) on Wayland for global screen coordinates.
-                wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
-                wxPoint screenPos = evtObj ? evtObj->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
-                wxWindow* next_w = wxFindWindowAtPoint(screenPos);
-                if (!p->combo_printer_bed->HasFocus() && (!next_w || !p->panel_printer_bed->IsDescendant(next_w)))
+            w->Bind(wxEVT_LEAVE_WINDOW, [this, w, panel_color, printer_bed_hovered](wxMouseEvent &e) {
+                printer_bed_hovered->erase(w);
+                if (printer_bed_hovered->empty() && !p->combo_printer_bed->HasFocus())
                     p->panel_printer_bed->SetBorderColor(panel_color.bd_normal);
                 if(w == p->image_printer_bed)
                     on_leave_image_printer_bed(e);
@@ -3678,6 +3677,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
 }
 
+
 bool Sidebar::should_show_SEMM_buttons()
 {
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
@@ -4871,7 +4871,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "extruder_colour", "filament_colour", "filament_type", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
         // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
         "layer_height", "initial_layer_print_height", "min_layer_height", "max_layer_height",
-        "wall_loops", "wall_filament", "sparse_infill_density", "sparse_infill_filament", "top_shell_layers",
+        "wall_loops", "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_density", "sparse_infill_filament_id", "top_shell_layers",
         "enable_support", "support_filament", "support_interface_filament",
         "support_top_z_distance", "support_bottom_z_distance", "raft_layers",
         "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
@@ -6153,22 +6153,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
                     }
 
-                    if (load_config && !config_loaded.empty() &&
-                        (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) &&
-                        file_version < Semver("2.4.0-dev")) {
-                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config_loaded);
-                        for (ModelObject *model_object : model.objects) {
-                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
-                            for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
-                        }
-
-                        if (converted_count > 0) {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " "
-                                                    << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)")
-                                                           % file_version.to_string() % converted_count;
-                        }
-                    }
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which also covers saved presets.
 
                     // plate data
                     if (plate_data.size() > 0) {
@@ -9558,6 +9545,12 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         wxWindowUpdateLocker noUpdates2(sidebar->filament_panel());
         wxGetApp().get_tab(preset_type)->select_preset(preset_name);
     }
+
+    // ORCA: Always refresh the selected filament combo so its color swatch (clr_picker)
+    // matches the chosen preset. update_ams_color() (in OnSelect) updates the project
+    // filament color when the preset defines one; this repaints the swatch to match.
+    if (preset_type == Preset::TYPE_FILAMENT)
+        combo->update();
 
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
@@ -13299,8 +13292,6 @@ void Plater::calib_VFA(const Calib_Params& params)
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
-    printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{true});
-    printer_config->set_key_value("input_shaping_type", new ConfigOptionEnum<InputShaperType>(InputShaperType::Disable));
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool { false });
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
@@ -16122,6 +16113,11 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
             pDlg = std::make_unique<ElegooPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                                storage_paths, storage_names,
                                                                config->get_bool("open_device_tab_post_upload"));
+        } else if (host_type == htCrealityPrint) {
+            pDlg = std::make_unique<CrealityPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+                                                                 storage_paths, storage_names,
+                                                                 config->get_bool("open_device_tab_post_upload"),
+                                                                 upload_job.printhost.get());
         } else if (flashforge_local_api) {
             auto* flashforge_host = dynamic_cast<Flashforge*>(upload_job.printhost.get());
             if (flashforge_host == nullptr) {
@@ -16669,8 +16665,10 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             update_scheduled = true;
         }
         // Orca: update when *_filament changed
-        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" || opt_key == "wall_filament" ||
-                 opt_key == "sparse_infill_filament" || opt_key == "solid_infill_filament") {
+        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
+                 opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
+                 opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
+                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
             update_scheduled = true;
         }
     }

@@ -39,7 +39,6 @@
 	"enable_support": "0",
 	"filename_format": "{input_filename_base}.gcode",
 	"fill_multiline": "1",
-	"first_x_layer_fan_speed": "0",
 	"gap_infill_speed": [
 		"50"
 	],

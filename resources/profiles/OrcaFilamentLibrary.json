@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.00",
+	"version": "02.04.00.01",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -67,6 +67,258 @@
 		{
 			"name": "fdm_filament_pla",
 			"sub_path": "filament/base/fdm_filament_pla.json"
+		},
+		{
+			"name": "FilAr PLA @base",
+			"sub_path": "filament/FilAr/FilAr PLA @base.json"
+		},
+		{
+			"name": "FilAr PLA Bronce",
+			"sub_path": "filament/FilAr/FilAr PLA Bronce.json"
+		},
+		{
+			"name": "FilAr PLA Gris Plata",
+			"sub_path": "filament/FilAr/FilAr PLA Gris Plata.json"
+		},
+		{
+			"name": "FilAr PLA Cobre",
+			"sub_path": "filament/FilAr/FilAr PLA Cobre.json"
+		},
+		{
+			"name": "FilAr PLA Titanio",
+			"sub_path": "filament/FilAr/FilAr PLA Titanio.json"
+		},
+		{
+			"name": "FilAr PLA Tabaco",
+			"sub_path": "filament/FilAr/FilAr PLA Tabaco.json"
+		},
+		{
+			"name": "FilAr PLA Cafe con Leche",
+			"sub_path": "filament/FilAr/FilAr PLA Cafe con Leche.json"
+		},
+		{
+			"name": "FilAr PLA Manteca",
+			"sub_path": "filament/FilAr/FilAr PLA Manteca.json"
+		},
+		{
+			"name": "FilAr PLA Marron Oxido",
+			"sub_path": "filament/FilAr/FilAr PLA Marron Oxido.json"
+		},
+		{
+			"name": "FilAr PLA Carpincho",
+			"sub_path": "filament/FilAr/FilAr PLA Carpincho.json"
+		},
+		{
+			"name": "FilAr PLA Rosa Amaranto",
+			"sub_path": "filament/FilAr/FilAr PLA Rosa Amaranto.json"
+		},
+		{
+			"name": "FilAr PLA Rosa Flamenco",
+			"sub_path": "filament/FilAr/FilAr PLA Rosa Flamenco.json"
+		},
+		{
+			"name": "FilAr PLA Piel",
+			"sub_path": "filament/FilAr/FilAr PLA Piel.json"
+		},
+		{
+			"name": "FilAr PLA Verde FilAr",
+			"sub_path": "filament/FilAr/FilAr PLA Verde FilAr.json"
+		},
+		{
+			"name": "FilAr PLA Verde Manzana",
+			"sub_path": "filament/FilAr/FilAr PLA Verde Manzana.json"
+		},
+		{
+			"name": "FilAr PLA Verde Pixel",
+			"sub_path": "filament/FilAr/FilAr PLA Verde Pixel.json"
+		},
+		{
+			"name": "FilAr PLA Verde Oliva",
+			"sub_path": "filament/FilAr/FilAr PLA Verde Oliva.json"
+		},
+		{
+			"name": "FilAr PLA Blanco Antartida",
+			"sub_path": "filament/FilAr/FilAr PLA Blanco Antartida.json"
+		},
+		{
+			"name": "FilAr PLA Blanco Calido",
+			"sub_path": "filament/FilAr/FilAr PLA Blanco Calido.json"
+		},
+		{
+			"name": "FilAr PLA Negro Azabache",
+			"sub_path": "filament/FilAr/FilAr PLA Negro Azabache.json"
+		},
+		{
+			"name": "FilAr PLA Naranja Tigre",
+			"sub_path": "filament/FilAr/FilAr PLA Naranja Tigre.json"
+		},
+		{
+			"name": "FilAr PLA Rojo de Carreras",
+			"sub_path": "filament/FilAr/FilAr PLA Rojo de Carreras.json"
+		},
+		{
+			"name": "FilAr PLA Amarillo Lirio",
+			"sub_path": "filament/FilAr/FilAr PLA Amarillo Lirio.json"
+		},
+		{
+			"name": "FilAr PLA Violeta Jacaranda",
+			"sub_path": "filament/FilAr/FilAr PLA Violeta Jacaranda.json"
+		},
+		{
+			"name": "FilAr PLA Gris Pizarra",
+			"sub_path": "filament/FilAr/FilAr PLA Gris Pizarra.json"
+		},
+		{
+			"name": "FilAr PLA Gris Ceniza",
+			"sub_path": "filament/FilAr/FilAr PLA Gris Ceniza.json"
+		},
+		{
+			"name": "FilAr PLA Azul Francia",
+			"sub_path": "filament/FilAr/FilAr PLA Azul Francia.json"
+		},
+		{
+			"name": "FilAr PLA Celeste Cielo",
+			"sub_path": "filament/FilAr/FilAr PLA Celeste Cielo.json"
+		},
+		{
+			"name": "FilAr PLA Oro",
+			"sub_path": "filament/FilAr/FilAr PLA Oro.json"
+		},
+		{
+			"name": "FilAr PLA Dorado",
+			"sub_path": "filament/FilAr/FilAr PLA Dorado.json"
+		},
+		{
+			"name": "FilAr PLA-mate @base",
+			"sub_path": "filament/FilAr/FilAr PLA-mate @base.json"
+		},
+		{
+			"name": "FilAr PLA-mate Amarillo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Amarillo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Azul",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Azul.json"
+		},
+		{
+			"name": "FilAr PLA-mate Beige",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Beige.json"
+		},
+		{
+			"name": "FilAr PLA-mate Blanco",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Blanco.json"
+		},
+		{
+			"name": "FilAr PLA-mate Bordo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Bordo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Celeste Cielo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Celeste Cielo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Chocolate",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Chocolate.json"
+		},
+		{
+			"name": "FilAr PLA-mate Gris",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Gris.json"
+		},
+		{
+			"name": "FilAr PLA-mate Marron",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Marron.json"
+		},
+		{
+			"name": "FilAr PLA-mate Naranja",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Naranja.json"
+		},
+		{
+			"name": "FilAr PLA-mate Negro",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Negro.json"
+		},
+		{
+			"name": "FilAr PLA-mate Piel",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Piel.json"
+		},
+		{
+			"name": "FilAr PLA-mate Rojo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Rojo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Rosa",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Rosa.json"
+		},
+		{
+			"name": "FilAr PLA-mate Uva",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Uva.json"
+		},
+		{
+			"name": "FilAr PLA-mate Verde",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Verde.json"
+		},
+		{
+			"name": "FilAr PLA-mate Violeta",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Violeta.json"
+		},
+		{
+			"name": "FilAr PETG @base",
+			"sub_path": "filament/FilAr/FilAr PETG @base.json"
+		},
+		{
+			"name": "FilAr PETG Amarillo Lima",
+			"sub_path": "filament/FilAr/FilAr PETG Amarillo Lima.json"
+		},
+		{
+			"name": "FilAr PETG Amarillo Radiante",
+			"sub_path": "filament/FilAr/FilAr PETG Amarillo Radiante.json"
+		},
+		{
+			"name": "FilAr PETG Azul Boreal",
+			"sub_path": "filament/FilAr/FilAr PETG Azul Boreal.json"
+		},
+		{
+			"name": "FilAr PETG Azul Francia",
+			"sub_path": "filament/FilAr/FilAr PETG Azul Francia.json"
+		},
+		{
+			"name": "FilAr PETG Azul Imperial",
+			"sub_path": "filament/FilAr/FilAr PETG Azul Imperial.json"
+		},
+		{
+			"name": "FilAr PETG Blanco Antartida",
+			"sub_path": "filament/FilAr/FilAr PETG Blanco Antartida.json"
+		},
+		{
+			"name": "FilAr PETG Cian",
+			"sub_path": "filament/FilAr/FilAr PETG Cian.json"
+		},
+		{
+			"name": "FilAr PETG Coral",
+			"sub_path": "filament/FilAr/FilAr PETG Coral.json"
+		},
+		{
+			"name": "FilAr PETG Cristal",
+			"sub_path": "filament/FilAr/FilAr PETG Cristal.json"
+		},
+		{
+			"name": "FilAr PETG Gris Ceniza",
+			"sub_path": "filament/FilAr/FilAr PETG Gris Ceniza.json"
+		},
+		{
+			"name": "FilAr PETG Gris Plata",
+			"sub_path": "filament/FilAr/FilAr PETG Gris Plata.json"
+		},
+		{
+			"name": "FilAr PETG Magenta",
+			"sub_path": "filament/FilAr/FilAr PETG Magenta.json"
+		},
+		{
+			"name": "FilAr PETG Negro Azabache",
+			"sub_path": "filament/FilAr/FilAr PETG Negro Azabache.json"
+		},
+		{
+			"name": "FilAr PETG Rojo Carmesi",
+			"sub_path": "filament/FilAr/FilAr PETG Rojo Carmesi.json"
 		},
 		{
 			"name": "fdm_filament_pp",

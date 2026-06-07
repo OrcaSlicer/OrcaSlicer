@@ -27,6 +27,8 @@
 #include "Flashforge.hpp"
 #include "SimplyPrint.hpp"
 #include "ElegooLink.hpp"
+#include "3DPrinterOS.hpp"
+#include "Moonraker.hpp"
 
 namespace fs = boost::filesystem;
 using boost::optional;
@@ -67,6 +69,8 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htFlashforge: return new Flashforge(config);
             case htSimplyPrint: return new SimplyPrint(config);
             case htElegooLink: return new ElegooLink(config);
+            case ht3DPrinterOS: return new C3DPrinterOS(config);
+            case htMoonraker: return new Moonraker(config);
             default:          return nullptr;
         }
     } else {
@@ -86,6 +90,10 @@ std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
     switch (host_type) {
     case htElegooLink: {
         webui_url = ElegooLink::get_print_host_webui(config);
+        break;
+    }
+    case htCrealityPrint: {
+        webui_url = CrealityPrint::get_print_host_webui(config);
         break;
     }
     default: break;

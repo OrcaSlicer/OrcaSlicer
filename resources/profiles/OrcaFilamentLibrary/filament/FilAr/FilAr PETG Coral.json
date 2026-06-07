@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PETG Coral",
+    "inherits": "FilAr PETG @base",
+    "from": "system",
+    "filament_id": "FILAR0054",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#FF6F5E"
+    ]
+}

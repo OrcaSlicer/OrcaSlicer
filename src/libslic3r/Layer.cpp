@@ -141,7 +141,8 @@ bool Layer::is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b)
     const PrintRegionConfig& config       = a.config();
     const PrintRegionConfig& other_config = b.config();
 
-    return config.wall_filament             == other_config.wall_filament
+        return config.outer_wall_filament_id       == other_config.outer_wall_filament_id
+		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id
 		&& config.wall_loops                  == other_config.wall_loops
 		&& config.wall_sequence               == other_config.wall_sequence
 		&& config.is_infill_first             == other_config.is_infill_first

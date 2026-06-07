@@ -6,6 +6,7 @@
 <title>引导_P21</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />
+<link rel="stylesheet" type="text/css" href="../21/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <link rel="stylesheet" type="text/css" href="24.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <!-- <script type="text/javascript" src="test.js"></script> -->
@@ -13,8 +14,9 @@
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../data/text.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
-<!-- <script type="text/javascript" src="../js/common.js"></script> -->
-<script type="text/javascript" src="24.js"></script>		
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../21/common.js"></script> <!-- ORCA use common sources for setup guide and standalone dialog -->
+<script type="text/javascript" src="24.js"></script>	
 </head>
 <body onLoad="OnInit()">
 <div id="Title">
@@ -49,65 +51,33 @@
 
 <div id="Content"  class="thin-scroll">
 
-<!--<div class="OneVendorBlock" Vendor="BBL">	
-<div class="BlockBanner">
-	<div class="BannerBtns">
-		<div class="ButtonStyleConfirm ButtonTypeWindow" onClick="SelectPrinterAll('BBL')">所有</div>
-		<div class="ButtonStyleRegular ButtonTypeWindow" onClick="SelectPrinterNone('BBL')">无</div>
+<!-- EXAMPLE GENERATED CODE BLOCK
+<div class="OneVendorBlock" Vendor="VendorName">
+	<div class="BlockBanner">
+		<a>VendorName</a>
+			<div class="BannerBtns" onClick="ChooseVendor('VendorName')" >
+				<div class="modelCount"></div>
+				<input type="checkbox" class="VendorCheckbox" />
+			</div>	
 	</div>
-	
-	<a>BBL-3DP</a>	
-</div>
-	
-<div class="PrinterArea">	
-	
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p2.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input id="ZZ" type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.4" vendor="BBL" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.1" vendor="BBL" />0.1mm nozzle</div>
-</div>
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p1.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.4" vendor="BBL" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.2" vendor="BBL" />0.2mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.1" vendor="BBL" />0.1mm nozzle</div>
-</div>
-	
-</div>		
-
-</div>
-	
-
-<div class="OneVendorBlock" Vendor="BAMBU">	
-<div class="BlockBanner">
-	<div class="BannerBtns">
-		<div class="Banner-Btn-green" onClick="SelectPrinterAll('BAMBU')">所有</div>
-		<div class="Banner-Btn" onClick="SelectPrinterNone('BAMBU')">无</div>
+	<div class="PrinterArea">
+		<div class="PrinterBlock" onClick="ChooseModel('VendorName','ModelName')" >
+			<div class="PImg" >
+			<img class="ModelThumbnail" src="CoverPath" />
+			</div>
+			<div class="PrinterInfoMark">?</div>
+			<div class="PrinterInfo">
+				<div class="title trans">Nozzle</div>
+				<div class="value">nozzleInfo</div>
+			</div>
+			<div style="display: flex;">
+				<div class="ModelCheckBox" vendor="' +vendor+ '" model="'+OneModel['model']+'"></div>
+				<div class="PName">modelName</div>
+			</div>
+		</div>
 	</div>
-	
-	<a>BBL-3DP</a>	
 </div>
-	
-<div class="PrinterArea">	
-	
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p2.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.4" vendor="BAMBU" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.1" vendor="BAMBU" />0.1mm nozzle</div>
-</div>
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p1.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.4" vendor="BAMBU" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.2" vendor="BAMBU" />0.2mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.1" vendor="BAMBU" />0.1mm nozzle</div>
-</div>		
-</div>		
-
-</div>-->
+-->
 	
 </div>
 <div id="AcceptArea">
@@ -126,215 +96,10 @@
 	</div>
 	</div>
 </div>	
-	
-	
+
 </body>
 <script>
-	const SearchBox = document.querySelector('.searchTerm');
-
-	document.onkeydown = function (event) {
-		var e = event || window.event || arguments.callee.caller.arguments[0];
-
-		if (e.keyCode == 27)
-			ClosePage();
-
-		// ORCA focus search bar on key input
-		// SearchBox not in focus && writable character && non modifier
-		if (document.activeElement != SearchBox && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-			SearchBox.focus();
-		}
-
-		// Close sidebar
-		document.getElementById('SidebarContainer').setAttribute('open', '0')
-
-		//if (window.event) {
-		//	try { e.keyCode = 0; } catch (e) { }
-		//	e.returnValue = true;
-		//}
-	};
-	let pModel = {};
-	let ModelNozzleSelected = {};
-	function textInput(obj) {
-		FilterModelList(obj.value);
-	}
-
-	const $content  = $('#Content');
-
-	// SNAPPY SCROLLING WITHOUT LAGS
-	const SNAP_DELAY			= 600;
-	const SNAP_DURATION			= 200;
-	const SNAP_CORR             = 8; // error correction / tolerance
-
-	let scrollTimer				= null;
-	let lastScrollTop			= 0;
-	let scrollDir				= 'down';
-	let isSnapping				= false;
-	let snapRafId				= null;
-	let lastSnapTarget			= null;
-	let waitingForUserScroll	= false;
-
-	function findSnap(cur, dir) {
-		if (lastSnapTarget !== null && Math.abs(cur - lastSnapTarget) < SNAP_CORR) return null;
-
-		const savedScroll = cur;
-
-		$content[0].scrollTop = 0; // Temporarily scroll to 0 so getBoundingClientRect can get absolute positions
-
-		let bcTop = el=>(el.getBoundingClientRect().top);
-
-		const contentTop = bcTop($content[0]);
-		const bannerH    = ($content.find('.BlockBanner')[0] || {}).offsetHeight || 0;
-
-		const firstCard  = $content.find('.PrinterBlock')[0];
-		const firstArea  = $content.find('.PrinterArea')[0];
-		const cardGap    = (firstCard && firstArea) ? (bcTop(firstCard) - bcTop(firstArea)) : 0;
-
-		const candidates = $content.find('.BlockBanner, .PrinterBlock').get();
-		if (dir === 'up') candidates.reverse();
-
-		let result = lastSeen = null;
-
-		for (const el of candidates) {
-			const snapTo = Math.round(
-				el.classList.contains('BlockBanner')
-					? (bcTop(el.closest('.OneVendorBlock')) - contentTop)
-					: Math.max(0, bcTop(el) - contentTop - bannerH - cardGap)
-			);
-			if (snapTo != lastSeen){
-				lastSeen = snapTo;
-				if (dir === 'down' && snapTo > cur + SNAP_CORR) { result = snapTo; break; }
-				if (dir === 'up'   && snapTo < cur - SNAP_CORR) { result = snapTo; break; }
-			}
-		}
-
-		$content[0].scrollTop = savedScroll; // Restore scroll position
-
-		return result;
-	}
-
-	function smoothScrollTo(target) {
-		if (snapRafId) {
-			cancelAnimationFrame(snapRafId);
-			snapRafId = null;
-		}
-
-		const el   = $content[0];
-		const from = el.scrollTop;
-		const dist = target - from;
-		const t0   = performance.now();
-		const ease = t => t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
-	
-		function onDone() {
-			el.scrollTop         = target;
-			lastScrollTop        = lastSnapTarget = target;
-			waitingForUserScroll = true;
-			clearTimeout(scrollTimer);
-			scrollTimer = null;
-			snapRafId   = null;
-			isSnapping  = false;
-		}
-
-		if (Math.abs(dist) < 2)
-			return onDone();
-
-		snapRafId = requestAnimationFrame(function step(now) {
-			const p = Math.min((now - t0) / SNAP_DURATION, 1);
-			el.scrollTop = from + dist * ease(p);
-			if (p < 1)
-				snapRafId = requestAnimationFrame(step);
-			else
-				onDone();
-		});
-	}
-
-	function armSnap() {
-		waitingForUserScroll = false;
-		lastSnapTarget       = null;
-	}
-
-	$content.on('scroll', function() {
-		if (isSnapping) return;
-
-		if      (this.scrollTop > lastScrollTop + 1) scrollDir = 'down';
-		else if (this.scrollTop < lastScrollTop - 1) scrollDir = 'up';
-		lastScrollTop = this.scrollTop;
-
-		if (waitingForUserScroll) return;
-
-		clearTimeout(scrollTimer);
-		scrollTimer = setTimeout(()=>{
-			if (isSnapping) return;
-
-			const target = findSnap($content[0].scrollTop, scrollDir);
-			if (target){
-				isSnapping = true;
-				smoothScrollTo(target);
-			}
-		}, SNAP_DELAY);
-	});
-
-	let touchY = 0;
-	$content[0].addEventListener('touchstart', e => {
-		touchY = e.touches[0].clientY;
-		armSnap();
-	}, { passive: true });
-
-	$content[0].addEventListener('touchmove', e => {
-		const dy = touchY - e.touches[0].clientY;
-		if (Math.abs(dy) > 3)
-			scrollDir = dy > 0 ? 'down' : 'up';
-	}, { passive: true });
-
-	// Re-arm snap system on user scroll
-	$content[0].addEventListener('wheel', armSnap, { passive: true });
-
-	// Re-arm on after scrollbar usage
-	$content[0].addEventListener('pointerdown', e => {
-		if (e.target === $content[0])
-			armSnap();
-	});
-
-	// Re-arm on keyboard scroll or focus changes
-	document.addEventListener('keydown', e => {
-		if (document.activeElement != SearchBox){
-			let scrollKeys = ['ArrowUp','ArrowDown','PageUp','PageDown',' '];
-			let hasFocus    = $content[0].contains(document.activeElement);
-			if(scrollKeys.includes(e.key) || (hasFocus && e.which == 9))
-				armSnap();
-		}
-	});
-
-	// ORCA unfocus search bar while scrolling and its content empty
-	$content[0].addEventListener("scroll", () => {
-		if (document.activeElement === SearchBox && SearchBox.value == "")
-			SearchBox.blur();
-	});
-
-	// LAYOUT SELECTOR
-	const LayoutSelector = document.querySelector('.LayoutSelector > .TabGroup');
-	const LayoutBtns     = Array.from(LayoutSelector.children);
-	const LayoutTypes    = ["compact-list","compact-cover","large-cover"];
-
-	function LayoutMode(value) {
-		if($content[0].getAttribute("layout") === value)
-			return;
-
-		// find current visible vendor and scroll to it after layout change
-		let target = null;
-		for (const el of $content.find('.OneVendorBlock')) {
-			if (el.getBoundingClientRect().bottom - $content[0].getBoundingClientRect().top >= -1) {
-				target = el.getAttribute("vendor");
-				break;
-			}
-		}
-
-		LayoutBtns.forEach(el => el.classList.remove('selected'));
-		LayoutBtns[LayoutTypes.indexOf(value)].classList.add('selected');
-		$content[0].setAttribute("layout", value);
-
-		if (target) scrollToVendor(target);
-	}
-
-	LayoutMode("large-cover");
+	initKeyEvents(true); // close on ESC
+	InitGlobalVariables();
 </script>
 </html>

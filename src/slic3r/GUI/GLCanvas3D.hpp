@@ -727,6 +727,11 @@ public:
     GLModel m_background;
     unsigned int m_fxaa_texture_id{ 0 };
     std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
+    unsigned int m_ssao_color_texture_id{ 0 };
+    unsigned int m_ssao_depth_texture_id{ 0 };
+    std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
+    GLModel m_plate_shadow_mask;
+    std::string m_plate_shadow_mask_key;
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -1238,12 +1243,15 @@ private:
     void _picking_pass();
     void _rectangular_selection_picking_pass();
     bool _is_fxaa_enabled() const;
+    bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
     void _render_fps_overlay(int fps) const;
     void _render_fxaa_pass(unsigned int width, unsigned int height);
+    void _render_ssao_pass(unsigned int width, unsigned int height);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
+    void _render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic

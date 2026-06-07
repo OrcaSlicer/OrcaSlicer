@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Dorado",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "filament_id": "FILAR0029",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#A67F00"
+    ]
+}

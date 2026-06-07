@@ -170,77 +170,12 @@ namespace Slic3r {
             }
         }
 
-        std::string get_host_from_url(const std::string& url_in)
-        {
-            std::string url = url_in;
-            // add http:// if there is no scheme
-            size_t double_slash = url.find("//");
-            if (double_slash == std::string::npos)
-                url = "http://" + url;
-            std::string out = url;
-            CURLU* hurl = curl_url();
-            if (hurl) {
-                // Parse the input URL.
-                CURLUcode rc = curl_url_set(hurl, CURLUPART_URL, url.c_str(), 0);
-                if (rc == CURLUE_OK) {
-                    // Replace the address.
-                    char* host;
-                    rc = curl_url_get(hurl, CURLUPART_HOST, &host, 0);
-                    if (rc == CURLUE_OK) {
-                        char* port;
-                        rc = curl_url_get(hurl, CURLUPART_PORT, &port, 0);
-                        if (rc == CURLUE_OK && port != nullptr) {
-                            out = std::string(host) + ":" + port;
-                            curl_free(port);
-                        } else {
-                            out = host;
-                            curl_free(host);
-                        }
-                    }
-                    else
-                        BOOST_LOG_TRIVIAL(error) << "ElegooLink get_host_from_url: failed to get host form URL " << url;
-                }
-                else
-                    BOOST_LOG_TRIVIAL(error) << "ElegooLink get_host_from_url: failed to parse URL " << url;
-                curl_url_cleanup(hurl);
-            }
-            else
-                BOOST_LOG_TRIVIAL(error) << "ElegooLink get_host_from_url: failed to allocate curl_url";
-            return out;
-        }
-    
-        std::string get_host_from_url_no_port(const std::string& url_in)
-        {
-            std::string url = url_in;
-            // add http:// if there is no scheme
-            size_t double_slash = url.find("//");
-            if (double_slash == std::string::npos)
-                url = "http://" + url;
-            std::string out = url;
-            CURLU* hurl = curl_url();
-            if (hurl) {
-                // Parse the input URL.
-                CURLUcode rc = curl_url_set(hurl, CURLUPART_URL, url.c_str(), 0);
-                if (rc == CURLUE_OK) {
-                    // Replace the address.
-                    char* host;
-                    rc = curl_url_get(hurl, CURLUPART_HOST, &host, 0);
-                    if (rc == CURLUE_OK) {
-                        out = host;
-                        curl_free(host);
-                    }
-                    else
-                        BOOST_LOG_TRIVIAL(error) << "ElegooLink get_host_from_url: failed to get host form URL " << url;
-                }
-                else
-                    BOOST_LOG_TRIVIAL(error) << "ElegooLink get_host_from_url: failed to parse URL " << url;
-                curl_url_cleanup(hurl);
-            }
-            else
-                BOOST_LOG_TRIVIAL(error) << "ElegooLink get_host_from_url: failed to allocate curl_url";
-            return out;
-        }
-
+        // NOTE (merge): host parsing was moved into Http::get_host_from_url /
+        // Http::get_host_header_value by the K2 discovery refactor on this branch, so the
+        // former ElegooLink-local get_host_from_url/get_host_from_url_no_port helpers are gone.
+        // main only added the CC2 serial-number lookup below; it is kept here and routed through
+        // Http::get_host_header_value, which has the same host:port semantics the SN cache key
+        // relies on.
         std::string lookup_cc2_serial_impl(const std::string& printer_model,
                                            const std::string& print_host,
                                            const std::string& apikey)
@@ -248,7 +183,7 @@ namespace Slic3r {
             if (classify_printer_model(printer_model) != ElegooPrinterType::CC2)
                 return {};
 
-            const std::string host_ip = get_host_from_url(print_host);
+            const std::string host_ip = Http::get_host_header_value(print_host);
             const std::string token   = get_cc2_token(apikey);
             std::string       sn      = lookup_sn(host_ip, token);
             if (sn.empty())
@@ -405,12 +340,11 @@ namespace Slic3r {
         if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
             return fallback_webui;
 
-        std::string web_path = resources_dir() + "/plugins/elegoolink/web/lan_service_web/index.html";
+        std::string web_path = resources_dir() + "/web/elegoolink/lan_service_web/index.html";
         std::replace(web_path.begin(), web_path.end(), '\\', '/');
         web_path = "file://" + web_path;
-
         const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
-        const std::string host_ip = get_host_from_url(host);
+        const std::string host_ip = Http::get_host_header_value(host);
 
         // Pass sn= so the panel can subscribe to the correct MQTT topics.
         std::string sn = lookup_cc2_serial(config);
@@ -551,7 +485,7 @@ namespace Slic3r {
                     msg = format_error(body, error_message.empty() ? "CC2 device not detected" : error_message, status);
                     return;
                 }
-                persist_sn(get_host_from_url(m_host), token, serial_number);
+                persist_sn(Http::get_host_header_value(m_host), token, serial_number);
                 res = true;
             })
 #ifdef WIN32
@@ -574,7 +508,6 @@ namespace Slic3r {
         // Msg contains ip string.
         auto url = substitute_host(make_url(""), GUI::into_u8(msg));
         msg.Clear();
-        std::string host = get_host_from_url(m_host);
         auto        http = Http::get(url); // std::move(url));
         // "Host" header is necessary here. We have resolved IP address and subsituted it into "url" variable.
         // And when creating Http object above, libcurl automatically includes "Host" header from address it got.
@@ -582,7 +515,7 @@ namespace Slic3r {
         // Not changing the host would work on the most cases (where there is 1 service on 1 hostname) but would break when f.e. reverse
         // proxy is used (issue #9734). Also when allow_ip_resolve = 0, this is not needed, but it should not break anything if it stays.
         // https://www.rfc-editor.org/rfc/rfc7230#section-5.4
-        http.header("Host", host);
+        http.header("Host", Http::get_host_header_value(m_host));
         set_auth(http);
         http.on_error([&](std::string body, std::string error, unsigned status) {
                 BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting version at %2% : %3%, HTTP %4%, body: `%5%`") % name % url %
@@ -626,11 +559,10 @@ namespace Slic3r {
         bool         res         = true;
         const auto   token       = cc2_token();
         auto         url         = substitute_host(make_cc2_info_url(), GUI::into_u8(msg));
-        std::string  host_header = get_host_from_url(m_host);
         auto         http        = Http::get(url);
         msg.Clear();
 
-        http.header("Host", host_header);
+        http.header("Host", Http::get_host_header_value(m_host));
         http.header("X-Token", token);
         http.header("Accept", "application/json");
         http.on_error([&](std::string body, std::string error, unsigned status) {
@@ -689,7 +621,7 @@ namespace Slic3r {
 
             std::string url = substitute_host(make_cc2_upload_url(), resolved_addr.to_string());
             info_fn(L"resolve", boost::nowide::widen(url));
-            return loopUploadCC2(url, get_host_from_url(m_host), std::move(upload_data), prorgess_fn, error_fn, info_fn);
+            return loopUploadCC2(url, Http::get_host_header_value(m_host), std::move(upload_data), prorgess_fn, error_fn, info_fn);
         }
 
         wxString legacy_msg = GUI::from_u8(resolved_addr.to_string());
@@ -735,7 +667,7 @@ namespace Slic3r {
             }
 #endif // _WIN32
 
-            return loopUploadCC2(url, get_host_from_url(m_host), std::move(upload_data), prorgess_fn, error_fn, info_fn);
+            return loopUploadCC2(url, Http::get_host_header_value(m_host), std::move(upload_data), prorgess_fn, error_fn, info_fn);
         }
 
         wxString legacy_msg;
@@ -874,8 +806,7 @@ namespace Slic3r {
         // on the most cases (where there is 1 service on 1 hostname) but would break when f.e. reverse proxy is used (issue #9734). Also
         // when allow_ip_resolve = 0, this is not needed, but it should not break anything if it stays.
         // https://www.rfc-editor.org/rfc/rfc7230#section-5.4
-        std::string host = get_host_from_url(m_host);
-        http.header("Host", host);
+        http.header("Host", Http::get_host_header_value(m_host));
         http.header("Accept", "application/json, text/plain, */*");
 #endif // _WIN32
         set_auth(http);
@@ -906,7 +837,7 @@ namespace Slic3r {
         if (res) {
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
                 // connect to websocket, since the upload is successful, the file will be printed
-                std::string     wsUrl = get_host_from_url_no_port(m_host);
+                std::string     wsUrl = Http::get_host_from_url(m_host);
                 WebSocketClient client;
                 try {
                     client.connect(wsUrl, "3030", "/websocket");
@@ -1087,7 +1018,7 @@ namespace Slic3r {
     #ifndef WIN32
         return upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
     #else
-        std::string host = get_host_from_url(m_host);
+        std::string host = Http::get_host_from_url(m_host);
 
         // decide what to do based on m_host - resolve hostname or upload to ip
         std::vector<boost::asio::ip::address> resolved_addr;

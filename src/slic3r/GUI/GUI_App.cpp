@@ -61,6 +61,7 @@
 #include <wx/dialog.h>
 #include <wx/textctrl.h>
 #include <wx/splash.h>
+#include <wx/weakref.h>
 #include <wx/fontutil.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
@@ -115,6 +116,7 @@
 #include "ParamsDialog.hpp"
 #include "KBShortcutsDialog.hpp"
 #include "DownloadProgressDialog.hpp"
+#include "TroubleshootDialog.hpp"
 
 #include "BitmapCache.hpp"
 #include "Notebook.hpp"
@@ -348,6 +350,17 @@ public:
 #endif
         }
     }
+
+    // Orca: keep the splash alive until it is explicitly destroyed.
+    // wxSplashScreen installs an application-wide event filter that calls
+    // Close() (which Destroy()s the window) on ANY key press or mouse-button
+    // down. Since startup keeps the splash up across the whole load_presets()
+    // and main-window-creation phase, a single stray click/keypress would
+    // destroy it while on_init_inner() still holds the pointer, causing an
+    // intermittent use-after-free crash. Override the filter to a no-op so the
+    // splash can only be removed via the explicit Destroy() once the main frame
+    // is shown.
+    int FilterEvent(wxEvent& /*event*/) override { return wxEventFilter::Event_Skip; }
 
     void scale_font(wxFont& font, float scale)
     {
@@ -2763,7 +2776,8 @@ bool GUI_App::on_init_inner()
         app_config->set("version", SLIC3R_VERSION);
     }
 
-    SplashScreen * scrn = nullptr;
+    // Orca: use wxWeakRef to provent wild pointer.
+    wxWeakRef<SplashScreen> scrn = nullptr;
     if (app_config->get("show_splash_screen") == "true") {
         // Detect position (display) to show the splash screen
         // Now this position is equal to the mainframe position
@@ -4103,6 +4117,12 @@ void GUI_App::keyboard_shortcuts()
     dlg.ShowModal();
 }
 
+void GUI_App::troubleshoot()
+{
+    TroubleshootDialog dlg;
+    if (dlg.ShowModal() == wxID_REMOVE)
+         wxGetApp().mainframe->Close(false);
+}
 
 void GUI_App::ShowUserGuide() {
     // BBS:Show NewUser Guide
@@ -6044,6 +6064,25 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to query OrcaCloud presets (error " << ret
                                        << "), skipping migration to avoid overwriting cloud data.";
+            // If this looks like a transient 401 from token propagation delay (within grace period),
+            // schedule one deferred retry so first-time users don't silently lose their preset migration.
+            if (std::chrono::steady_clock::now() - m_last_401_error_time < std::chrono::seconds(30)
+                && !m_migration_retry_pending.exchange(true)) {
+                BOOST_LOG_TRIVIAL(info) << "Scheduling migration retry after token propagation window.";
+                boost::thread([this]() {
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                    CallAfter([this]() {
+                        m_migration_retry_pending = false;
+                        if (is_closing() || !m_agent || !m_agent->is_user_login()) return;
+                        BOOST_LOG_TRIVIAL(info) << "Retrying preset migration after token propagation window.";
+                        if (maybe_migrate_user_presets_on_login()) {
+                            const std::string user_id = m_agent->get_user_id();
+                            preset_bundle->load_user_presets(user_id, ForwardCompatibilitySubstitutionRule::Enable);
+                            if (mainframe) mainframe->update_side_preset_ui();
+                        }
+                    });
+                }).detach();
+            }
             return false;
         }
         BOOST_LOG_TRIVIAL(info) << "OrcaCloud has no presets for user " << new_user_id << ", proceeding with migration check.";
@@ -6121,7 +6160,7 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
     wxString source_description;
     if (source_is_bbl) {
         source_description = wxString::Format(
-            _L("your Bambu Cloud profile (user ID: \"%s\")"),
+            _L("your Orca Cloud profile (user ID: \"%s\")"),
             from_u8(source_dir.filename().string()));
     } else if (source_is_default) {
         source_description = _L("your default profile");
@@ -8659,6 +8698,7 @@ wxString GUI_App::current_language_code_safe() const
         { "pt", 	"pt_BR", },
         { "lt", 	"lt_LT", },
         { "vi", 	"vi_VN", },
+        { "th", 	"th_TH", },
 	};
 	wxString language_code = this->current_language_code().BeforeFirst('_');
 	auto it = mapping.find(language_code);

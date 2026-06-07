@@ -18,6 +18,7 @@
 	"nozzle_diameter": [
 		"0.2"
 	],
+	"printer_variant": "0.2",
 	"retraction_length": [
 		"0.5"
 	]

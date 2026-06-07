@@ -128,9 +128,12 @@ std::string PresetHints::maximum_volumetric_flow_description(const PresetBundle 
     auto feature_extruder_active = [idx_extruder, num_extruders](int i) {
         return i <= 0 || i > num_extruders || idx_extruder == -1 || idx_extruder == i - 1;
     };
-    bool perimeter_extruder_active                  = feature_extruder_active(print_config.opt_int("wall_filament"));
-    bool infill_extruder_active                     = feature_extruder_active(print_config.opt_int("sparse_infill_filament"));
-    bool solid_infill_extruder_active               = feature_extruder_active(print_config.opt_int("solid_infill_filament"));
+    bool perimeter_extruder_active                  = feature_extruder_active(print_config.opt_int("outer_wall_filament_id"))
+                                                    && feature_extruder_active(print_config.opt_int("inner_wall_filament_id"));
+    bool infill_extruder_active                     = feature_extruder_active(print_config.opt_int("sparse_infill_filament_id"));
+    bool solid_infill_extruder_active               = feature_extruder_active(print_config.opt_int("internal_solid_filament_id"))
+                                                    && feature_extruder_active(print_config.opt_int("top_surface_filament_id"))
+                                                    && feature_extruder_active(print_config.opt_int("bottom_surface_filament_id"));
     bool support_material_extruder_active           = feature_extruder_active(print_config.opt_int("support_filament"));
     bool support_material_interface_extruder_active = feature_extruder_active(print_config.opt_int("support_interface_filament"));
 

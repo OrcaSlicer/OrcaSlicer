@@ -1,22 +1,20 @@
 {
-	"type": "process",
-	"name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
-	"inherits": "SeeMeCNC process base",
-	"from": "System",
-	"instantiation": "true",
-	"print_settings_id": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
-	"compatible_printers": [
-		"SeeMeCNC BOSSdelta 500 0510 0.7 nozzle"
-	],
-	"compatible_printers_condition": "",
-	"alternate_extra_wall": "0",
-	"counterbore_hole_bridging": "none",
-	"initial_layer_print_height": "0.35",
-	"layer_height": "0.49",
-	"precise_z_height": "0",
-	"skirt_distance": "2",
-	"skirt_loops": "0",
-	"spiral_mode": "0",
-	"outer_wall_acceleration": "800",
-	"inner_wall_acceleration": "800"
+    "type": "process",
+    "name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+    "inherits": "SeeMeCNC process base 0.7mm",
+    "from": "System",
+    "instantiation": "true",
+    "print_settings_id": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+    "compatible_printers": [
+        "SeeMeCNC BOSSdelta 500 0510 0.7 nozzle"
+    ],
+    "compatible_printers_condition": "",
+    "alternate_extra_wall": "0",
+    "counterbore_hole_bridging": "none",
+    "initial_layer_print_height": "0.35",
+    "layer_height": "0.49",
+    "precise_z_height": "0",
+    "skirt_distance": "2",
+    "skirt_loops": "0",
+    "spiral_mode": "0"
 }
