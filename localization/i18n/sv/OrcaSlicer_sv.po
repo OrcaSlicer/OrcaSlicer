@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10200,6 +10200,9 @@ msgstr "Linjebredd"
 msgid "Precision"
 msgstr "Precision"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Vägg generator"
 
@@ -19833,9 +19836,6 @@ msgstr "Skapa ifyllnads område"
 
 msgid "Generating infill toolpath"
 msgstr "Skapa ifyllnadens verktygsbana"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Identifiera överhäng för automatisk lyftning"

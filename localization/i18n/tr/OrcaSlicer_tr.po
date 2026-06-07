@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -10264,6 +10264,9 @@ msgstr "Katman Genişliği"
 msgid "Precision"
 msgstr "Hassasiyet"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Duvar Türü"
 
@@ -19952,9 +19955,6 @@ msgstr "Dolgu bölgeleri oluşturma"
 
 msgid "Generating infill toolpath"
 msgstr "Dolgu takım yolu oluşturma"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Otomatik kaldırma için çıkıntıları tespit edin"

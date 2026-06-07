@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -10194,6 +10194,9 @@ msgstr "Szerokość linii"
 msgid "Precision"
 msgstr "Precyzja"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Generator ścian"
 
@@ -19764,9 +19767,6 @@ msgstr "Generowanie regionów wypełnienia"
 
 msgid "Generating infill toolpath"
 msgstr "Generowanie ścieżki narzędzia wypełnienia"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Wykrywanie nawisów do automatycznego podnoszenia"

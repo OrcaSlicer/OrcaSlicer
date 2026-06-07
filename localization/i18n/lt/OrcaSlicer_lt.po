@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -10295,6 +10295,9 @@ msgstr "Linijos plotis"
 msgid "Precision"
 msgstr "Tikslumas"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Sienų generatorius"
 
@@ -20025,9 +20028,6 @@ msgstr "Užpildomų regionų kūrimas"
 
 msgid "Generating infill toolpath"
 msgstr "Užpildymo įrankių trajektorijų generavimas"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Aptikti iškyšas automatiniam pakėlimui"

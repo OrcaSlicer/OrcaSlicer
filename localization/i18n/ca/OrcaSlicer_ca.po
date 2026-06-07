@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10396,6 +10396,9 @@ msgstr "Amplada de línia"
 msgid "Precision"
 msgstr "Precisió"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Generador de perímetre"
 
@@ -20286,9 +20289,6 @@ msgstr "Generant zones de farciment"
 
 msgid "Generating infill toolpath"
 msgstr "Generant la trajectòria de l'eina de farciment"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Detectar voladissos per a l'elevació automàtica"

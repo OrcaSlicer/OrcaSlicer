@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -10000,6 +10000,9 @@ msgstr "Ширина лінії"
 msgid "Precision"
 msgstr "Точність"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Генерація стінок"
 
@@ -19423,9 +19426,6 @@ msgstr "Створення областей заповнення"
 
 msgid "Generating infill toolpath"
 msgstr "Створення траєкторії заповнення"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Виявлення виступів для автоматичного підйому"

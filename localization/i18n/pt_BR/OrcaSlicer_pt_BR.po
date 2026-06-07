@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2026-03-22 17:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -10441,6 +10441,9 @@ msgstr "Largura da linha"
 msgid "Precision"
 msgstr "Precisão"
 
+msgid "Z contouring"
+msgstr "Contorno em Z"
+
 msgid "Wall generator"
 msgstr "Gerador de paredes"
 
@@ -20447,9 +20450,6 @@ msgstr "Gerando regiões de preenchimento"
 
 msgid "Generating infill toolpath"
 msgstr "Gerando caminho da ferramenta de preenchimento"
-
-msgid "Z contouring"
-msgstr "Contorno em Z"
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Detectar saliências para levantamento automático"

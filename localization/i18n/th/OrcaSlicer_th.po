@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 23:09+0800\n"
+"POT-Creation-Date: 2026-06-08 00:18+0800\n"
 "PO-Revision-Date: 2026-06-04 12:39+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -9959,6 +9959,9 @@ msgstr "ความกว้างเส้น"
 msgid "Precision"
 msgstr "ความแม่นยำ"
 
+msgid "Z contouring"
+msgstr "รูปร่าง Z"
+
 msgid "Wall generator"
 msgstr "เครื่องกำเนิดไฟฟ้าติดผนัง"
 
@@ -19197,9 +19200,6 @@ msgstr "กำลังสร้างพื้นที่ไส้ใน"
 
 msgid "Generating infill toolpath"
 msgstr "กำลังสร้างเส้นทางไส้ใน"
-
-msgid "Z contouring"
-msgstr "รูปร่าง Z"
 
 msgid "Detect overhangs for auto-lift"
 msgstr "ตรวจจับระยะยื่นสำหรับการยกอัตโนมัติ"
