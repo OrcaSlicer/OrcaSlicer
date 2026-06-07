@@ -2,6 +2,7 @@
 #include "slic3r/Utils/CrealityHostDiscovery.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "Widgets/DialogButtons.hpp"
 
 #include <wx/sizer.h>
 #include <wx/button.h>
@@ -29,30 +30,25 @@ CrealityDiscoveryDialog::CrealityDiscoveryDialog(wxWindow* parent)
     m_list->AppendColumn(_L("Hostname"), wxLIST_FORMAT_LEFT, 14 * em);
     m_list->AppendColumn(_L("IP"),       wxLIST_FORMAT_LEFT, 14 * em);
 
-    auto* scan_btn   = new wxButton(this, wxID_ANY, _L("Scan"));
-    auto* ok_btn     = new wxButton(this, wxID_OK,     _L("Use Selected"));
-    auto* cancel_btn = new wxButton(this, wxID_CANCEL, _L("Cancel"));
+    auto* dlg_btns = new DialogButtons(this, {"Scan", "OK", "Cancel"}, "", 1 /*left_aligned*/);
+    auto* ok_btn   = dlg_btns->GetOK();
+    ok_btn->SetLabel(_L("Use Selected"));
     ok_btn->Disable();
-
-    auto* button_sizer = new wxBoxSizer(wxHORIZONTAL);
-    button_sizer->Add(scan_btn,   0, wxALL, em);
-    button_sizer->AddStretchSpacer(1);
-    button_sizer->Add(ok_btn,     0, wxALL, em);
-    button_sizer->Add(cancel_btn, 0, wxALL, em);
 
     auto* vsizer = new wxBoxSizer(wxVERTICAL);
     vsizer->Add(m_status, 0, wxEXPAND | wxALL, em);
     vsizer->Add(m_list,   1, wxEXPAND | wxALL, em);
-    vsizer->Add(button_sizer, 0, wxEXPAND);
+    vsizer->Add(dlg_btns, 0, wxEXPAND);
     SetSizerAndFit(vsizer);
 
-    scan_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { run_discovery(); });
+    dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { run_discovery(); });
 
     m_list->Bind(wxEVT_LIST_ITEM_SELECTED,   [ok_btn](wxListEvent&) { ok_btn->Enable(); });
     m_list->Bind(wxEVT_LIST_ITEM_DESELECTED, [ok_btn](wxListEvent&) { ok_btn->Disable(); });
     m_list->Bind(wxEVT_LIST_ITEM_ACTIVATED,  [this](wxListEvent&)   { on_ok(); EndModal(wxID_OK); });
 
     ok_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_ok(); EndModal(wxID_OK); });
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
     wxGetApp().UpdateDlgDarkUI(this);
 
