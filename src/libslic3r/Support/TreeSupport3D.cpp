@@ -3138,13 +3138,57 @@ static void organic_smooth_branches_avoid_collisions(
     static constexpr const double max_nudge_collision_avoidance = 0.5;
     static constexpr const double max_nudge_smoothing = 0.2;
     static constexpr const size_t num_iter = 100; // 1000;
+
+    // Orca: 
+    // Collision and Laplacian smoothing run iteratively; keep each candidate reachable from linked upper/lower layers to avoid accumulated drift.
+    auto limit_candidate_to_linked_layers = [&collision_spheres, &linear_data_layers, &config](const size_t collision_sphere_id, Vec2d candidate) {
+        auto constrain_to_anchor = [](Vec2d candidate, const Vec2d &anchor, const double allowed_shift) {
+            const Vec2d delta = candidate - anchor;
+            const double dist = delta.norm();
+            return dist > allowed_shift && dist > EPSILON ?
+                anchor + delta * (allowed_shift / dist) :
+                candidate;
+        };
+
+        const CollisionSphere &sphere = collision_spheres[collision_sphere_id];
+        const LayerIndex layer_idx = sphere.element.state.layer_idx;
+        const double current_radius = double(support_element_radius(config, sphere.element));
+        const double maximum_move_distance_slow = double(config.maximum_move_distance_slow);
+
+        if (sphere.element_below_id != -1 && layer_idx > 0) {
+            const size_t lower_id = linear_data_layers[layer_idx - 1] + size_t(sphere.element_below_id);
+            if (lower_id < collision_spheres.size()) {
+                const CollisionSphere &lower = collision_spheres[lower_id];
+                const double lower_radius = double(support_element_radius(config, lower.element));
+                const double allowed_shift = unscaled<double>(std::max(0., lower_radius - current_radius) + maximum_move_distance_slow);
+                candidate = constrain_to_anchor(candidate, to_2d(lower.prev_position).cast<double>(), allowed_shift);
+            }
+        }
+
+        const LayerIndex upper_layer_idx = layer_idx + 1;
+        if (!sphere.element.parents.empty() && upper_layer_idx < LayerIndex(linear_data_layers.size())) {
+            const size_t upper_offset = linear_data_layers[upper_layer_idx];
+            for (int32_t parent_idx : sphere.element.parents) {
+                const size_t upper_id = upper_offset + size_t(parent_idx);
+                if (upper_id >= collision_spheres.size())
+                    continue;
+                const CollisionSphere &upper = collision_spheres[upper_id];
+                const double upper_radius = double(support_element_radius(config, upper.element));
+                const double allowed_shift = unscaled<double>(std::max(0., current_radius - upper_radius) + maximum_move_distance_slow);
+                candidate = constrain_to_anchor(candidate, to_2d(upper.prev_position).cast<double>(), allowed_shift);
+            }
+        }
+
+        return candidate;
+    };
+
     for (size_t iter = 0; iter < num_iter; ++ iter) {
         // Back up prev position before Laplacian smoothing.
         for (CollisionSphere &collision_sphere : collision_spheres)
             collision_sphere.prev_position = collision_sphere.position;
         std::atomic<size_t> num_moved{ 0 };
         tbb::parallel_for(tbb::blocked_range<size_t>(0, collision_spheres.size()),
-            [&collision_spheres, &layer_collision_cache, &slicing_params, &config, &linear_data_layers, &num_moved, &throw_on_cancel](const tbb::blocked_range<size_t> range) {
+            [&collision_spheres, &layer_collision_cache, &slicing_params, &config, &linear_data_layers, &num_moved, &throw_on_cancel, &limit_candidate_to_linked_layers](const tbb::blocked_range<size_t> range) {
             for (size_t collision_sphere_id = range.begin(); collision_sphere_id < range.end(); ++ collision_sphere_id)
                 if (CollisionSphere &collision_sphere = collision_spheres[collision_sphere_id]; ! collision_sphere.locked) {
                     // Calculate collision of multiple 2D layers against a collision sphere.
@@ -3173,10 +3217,12 @@ static void organic_smooth_branches_avoid_collisions(
                         if (collision_sphere.last_collision_depth > EPSILON)
                             // a little bit of hysteresis to detect end of
                             ++ num_moved;
-                        // Shift by maximum 2mm.
+                        // Limit collision-avoidance nudge per iteration.
                         double nudge_dist = std::min(std::max(0., collision_sphere.last_collision_depth + collision_extra_gap), max_nudge_collision_avoidance);
                         Vec2d nudge_vector = (to_2d(collision_sphere.position) - to_2d(collision_sphere.last_collision)).cast<double>().normalized() * nudge_dist;
-                        collision_sphere.position.head<2>() += (nudge_vector * nudge_dist).cast<float>();
+                        Vec2d candidate = to_2d(collision_sphere.position).cast<double>() + nudge_vector * nudge_dist;
+                        candidate = limit_candidate_to_linked_layers(collision_sphere_id, candidate);
+                        collision_sphere.position.head<2>() = candidate.cast<float>();
                     }
                     // Laplacian smoothing
                     Vec2d avg{ 0, 0 };
@@ -3200,9 +3246,13 @@ static void organic_smooth_branches_avoid_collisions(
                     Vec2d new_pos = (1. - smoothing_factor) * old_pos + smoothing_factor * avg;
                     Vec2d shift   = new_pos - old_pos;
                     double nudge_dist_max = shift.norm();
-                    // Shift by maximum 1mm, less than the collision avoidance factor.
+                    // Limit Laplacian smoothing nudge per iteration.
                     double nudge_dist = std::min(std::max(0., nudge_dist_max), max_nudge_smoothing);
-                    collision_sphere.position.head<2>() += (shift.normalized() * nudge_dist).cast<float>();
+                    if (nudge_dist > 0.) {
+                        Vec2d candidate = old_pos + shift * (nudge_dist / nudge_dist_max);
+                        candidate = limit_candidate_to_linked_layers(collision_sphere_id, candidate);
+                        collision_sphere.position.head<2>() = candidate.cast<float>();
+                    }
 
                     throw_on_cancel();
                 }
