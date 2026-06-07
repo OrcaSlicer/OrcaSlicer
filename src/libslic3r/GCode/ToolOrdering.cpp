@@ -1077,9 +1077,11 @@ bool ToolOrdering::cal_non_support_filaments(const PrintConfig &config,
     bool has_non_support = has_non_support_filament(config);
     for (const LayerTools &layer_tool : m_layer_tools) {
         for (const unsigned int &filament : layer_tool.extruders) {
+            int e = (filament < (int)config.filament_map.values.size()) ? config.filament_map.values[filament] - 1 : -1;
+
             //check first filament
-            if (!config.filament_map.values.empty() && initial_filaments[config.filament_map.values[filament] - 1] == -1) {
-                initial_filaments[config.filament_map.values[filament] - 1] = filament;
+            if (e >= 0 && e < (int)initial_filaments.size() && initial_filaments[e] == -1) {
+                initial_filaments[e] = filament;
                 find_first_filaments_count++;
             }
 
@@ -1095,8 +1097,8 @@ bool ToolOrdering::cal_non_support_filaments(const PrintConfig &config,
                 if (config.filament_map.values.empty())
                     return true;
 
-                if (initial_non_support_filaments[config.filament_map.values[filament] - 1] == -1) {
-                    initial_non_support_filaments[config.filament_map.values[filament] - 1] = filament;
+                if (e >= 0 && e < (int)initial_non_support_filaments.size() && initial_non_support_filaments[e] == -1) {
+                    initial_non_support_filaments[e] = filament;
                     find_count++;
                 }
 
@@ -1368,8 +1370,16 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
             context.group_info.mode = fg_mode;
             context.group_info.ignore_ext_filament = ignore_ext_filament;
 
-            if(mode == FilamentMapMode::fmmManual)
+            if(mode == FilamentMapMode::fmmManual) {
                 context.group_info.filament_volume_map = print_config.filament_volume_map.values;
+                // Defensive: the config's volume map can be shorter than the filament count
+                // (e.g. manual mapping set before every filament got a volume type). It is later
+                // indexed by filament id in rebuild_nozzle_unprintables (filament_volume_map[
+                // used_filaments[fidx]]), so an undersized map causes an out-of-bounds abort.
+                // Pad missing entries with nvtHybrid (no volume constraint), matching the auto branch.
+                if (context.group_info.filament_volume_map.size() < (size_t)filament_nums)
+                    context.group_info.filament_volume_map.resize(filament_nums, (int)(NozzleVolumeType::nvtHybrid));
+            }
             else    // hrybid flow means no special request
                 context.group_info.filament_volume_map = std::vector<int>(filament_nums,(int)(NozzleVolumeType::nvtHybrid));
         }
