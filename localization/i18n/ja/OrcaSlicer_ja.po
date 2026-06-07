@@ -1930,7 +1930,7 @@ msgid "Privacy Policy Update"
 msgstr "プライバシーポリシーの更新"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"
@@ -20306,7 +20306,7 @@ msgid ""
 "The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr ""
-"%s押出機のノズル径は0.2mmのため、自動\bフローダイナミクスキャリブレーションに"
+"%s押出機のノズル径は0.2mmのため、自動フローダイナミクスキャリブレーションに"
 "は対応していません。"
 
 #, c-format, boost-format

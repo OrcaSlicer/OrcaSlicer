@@ -1961,8 +1961,8 @@ msgid "Privacy Policy Update"
 msgstr "Atualização da Política de Privacidade"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
-msgstr "seu perfil Bambu Cloud (ID de usuário: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
+msgstr "seu perfil Orca Cloud (ID de usuário: \"%s\")"
 
 msgid "your default profile"
 msgstr "seu perfil padrão"

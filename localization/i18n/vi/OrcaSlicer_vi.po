@@ -1922,7 +1922,7 @@ msgid "Privacy Policy Update"
 msgstr "Cập nhật chính sách bảo mật"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"

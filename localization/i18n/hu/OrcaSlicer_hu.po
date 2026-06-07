@@ -1948,8 +1948,8 @@ msgid "Privacy Policy Update"
 msgstr "Adatvédelmi szabályzat frissítése"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
-msgstr "a Bambu Cloud-profilod (felhasználói azonosító: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
+msgstr "a Orca Cloud-profilod (felhasználói azonosító: \"%s\")"
 
 msgid "your default profile"
 msgstr "az alapértelmezett profilod"

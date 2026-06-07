@@ -1853,7 +1853,7 @@ msgid "Privacy Policy Update"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"

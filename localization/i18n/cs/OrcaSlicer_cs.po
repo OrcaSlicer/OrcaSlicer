@@ -1929,7 +1929,7 @@ msgid "Privacy Policy Update"
 msgstr "Aktualizace zásad ochrany osobních údajů"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"
