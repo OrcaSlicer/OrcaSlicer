@@ -65,6 +65,7 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 // For stl export
@@ -2318,19 +2319,23 @@ Sidebar::Sidebar(Plater *parent)
             e.Skip();
         });
 
+        // hover state data for printer panel
+        auto printer_preset_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
+
         p->btn_edit_printer = new ScalableButton(p->panel_printer_preset, wxID_ANY, "edit");
         p->btn_edit_printer->SetToolTip(_L("Click to edit preset"));
         p->btn_edit_printer->Hide(); // hide for first launch
-        p->btn_edit_printer->Bind(wxEVT_BUTTON, [this, panel_color](wxCommandEvent){
+        p->btn_edit_printer->Bind(wxEVT_BUTTON, [this, panel_color, printer_preset_hovered](wxCommandEvent){
             p->editing_filament = -1;
             if (p->combo_printer->switch_to_tab())
                 p->editing_filament = 0;
             // ORCA: FIX crash on wxGTK, directly modifying UI (self->Hide() / parent->Layout()) inside a button event can crash because callbacks are not re-entrant, leaving widgets in an inconsistent state
-            wxGetApp().CallAfter([this, panel_color]() {
+            wxGetApp().CallAfter([this, panel_color, printer_preset_hovered]() {
                 // ORCA clicking edit button not triggers wxEVT_KILL_FOCUS wxEVT_LEAVE_WINDOW make changes manually to prevent stucked colors when opening printer settings
                 if (!p || !p->panel_printer_preset || !p->btn_edit_printer)
                     return;
 				p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
+                printer_preset_hovered->clear();
                 p->btn_edit_printer->Hide();
                 p->panel_printer_preset->Layout();
             });
@@ -2368,7 +2373,6 @@ Sidebar::Sidebar(Plater *parent)
             });
         */
         // ORCA use Show/Hide to gain text area instead using blank icon. also manages hover effect for border
-        auto printer_preset_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
         for (wxWindow *w : std::initializer_list<wxWindow *>{p->panel_printer_preset, p->btn_edit_printer, p->image_printer, p->combo_printer}) {
             w->Bind(wxEVT_ENTER_WINDOW, [this, w, panel_color, printer_preset_hovered](wxMouseEvent &e) {
                 printer_preset_hovered->insert(w);
@@ -4320,6 +4324,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     pop_finsish_sync_ams_dialog();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
 }
+
 
 bool Sidebar::should_show_SEMM_buttons()
 {
@@ -14002,8 +14007,6 @@ void Plater::calib_VFA(const Calib_Params& params)
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
-    printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{true});
-    printer_config->set_key_value("input_shaping_type", new ConfigOptionEnum<InputShaperType>(InputShaperType::Disable));
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool { false });
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
@@ -16830,6 +16833,11 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
             pDlg = std::make_unique<ElegooPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                                storage_paths, storage_names,
                                                                config->get_bool("open_device_tab_post_upload"));
+        } else if (host_type == htCrealityPrint) {
+            pDlg = std::make_unique<CrealityPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+                                                                 storage_paths, storage_names,
+                                                                 config->get_bool("open_device_tab_post_upload"),
+                                                                 upload_job.printhost.get());
         } else if (flashforge_local_api) {
             auto* flashforge_host = dynamic_cast<Flashforge*>(upload_job.printhost.get());
             if (flashforge_host == nullptr) {

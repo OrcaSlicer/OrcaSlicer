@@ -7,6 +7,8 @@
 	"instantiation": "true",
 	"printer_model": "Creality K2 Plus",
 	"gcode_flavor": "klipper",
+	"host_type": "crealityprint",
+	"printer_agent": "crealityprint",
 	"default_print_profile": "0.16mm Optimal @Creality K2 Plus 0.4 nozzle",
 	"nozzle_diameter": [
 		"0.4"
