@@ -1537,12 +1537,19 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     }
     case EViewType::Tool:
     {
-        assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
-        return m_tool_colors[v.extruder_id];
+        // A stale vertex set can reference an extruder_id past the current tool palette
+        // (e.g. reducing the filament count after slicing)
+        // Clamp the index to the last valid color
+        if (m_tool_colors.empty())
+            return DUMMY_COLOR;
+        const size_t tool_idx = std::min<size_t>(m_tool_colors.size() - 1, static_cast<size_t>(v.extruder_id));
+        return m_tool_colors[tool_idx];
     }
     case EViewType::Summary: // ORCA
     case EViewType::ColorPrint:
     {
+        if (m_color_print_colors.empty())
+            return DUMMY_COLOR;
         return m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)) ? DUMMY_COLOR :
             m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()];
     }
