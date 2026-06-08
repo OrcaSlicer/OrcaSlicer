@@ -86,17 +86,13 @@ void WipeTower::init_set_extruder(Slic3r::WipeTower& tower, float nozzle_diamete
 Slic3r::WipeTower::NozzleChangeResult WipeTower::nozzle_change(Slic3r::WipeTower& tower, int old_filament_id, int new_filament_id)
 {
     float wipe_depth             = 0.f;
-    float wipe_length            = 0.f;
-    float purge_volume           = 0.f;
     int nozzle_change_line_count = 0;
 
-    // Extract tool change metrics (required depth, wipe length, purge volume) from current layer info
+    // Extract tool change metrics (required depth) from current layer info
     if (new_filament_id != (unsigned int) (-1)) {
         for (const auto& b : tower.m_layer_info->tool_changes)
             if (b.new_tool == new_filament_id) {
-                wipe_length  = b.wipe_length;
                 wipe_depth   = b.required_depth;
-                purge_volume = b.purge_volume;
                 // TPU filaments require larger spacing/lower count to prevent jamming
                 if (tower.has_tpu_filament())
                     nozzle_change_line_count = ((b.nozzle_change_depth + tower.WT_EPSILON) / tower.m_nozzle_change_perimeter_width) / 2;
@@ -151,7 +147,6 @@ Slic3r::WipeTower::NozzleChangeResult WipeTower::nozzle_change(Slic3r::WipeTower
     if (tower.has_tpu_filament())
         dy = 2 * tower.m_perimeter_width;
 
-    float start_y = writer.y();
     tower.m_left_to_right = true;
 
     // Generate cleaning path lines (zig-zag pattern) inside the wipe tower area

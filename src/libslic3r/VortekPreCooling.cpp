@@ -70,8 +70,7 @@ PreCooling::PreCooling(
 
 void PreCooling::process_pre_cooling_and_heating(Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap& inserted_operation_lines)
 {
-    bool is_multiple_nozzle = std::any_of(extruder_max_nozzle_count.begin(), extruder_max_nozzle_count.end(), [](auto& elem) {return elem > 1; });
-    auto get_nozzle_temp = [this, is_multiple_nozzle](int filament_id, bool is_first_layer, bool from_or_to, bool consider_preheat_temperature_delta) {
+    auto get_nozzle_temp = [this](int filament_id, bool is_first_layer, bool from_or_to, bool consider_preheat_temperature_delta) {
         if (filament_id == -1)
             return from_or_to ? 140 : 0; // default temp
         double temp = (is_first_layer ? filament_nozzle_temps_initial_layer[filament_id] : filament_nozzle_temps[filament_id]);
@@ -80,6 +79,7 @@ void PreCooling::process_pre_cooling_and_heating(Slic3r::GCodeProcessor::TimePro
         else
             return (int)(temp);
     };
+
 
     bool has_mixed_extruder_types = extruder_types.size() > 1 &&
         std::adjacent_find(extruder_types.begin(), extruder_types.end(), std::not_equal_to<>()) != extruder_types.end();
@@ -92,7 +92,6 @@ void PreCooling::process_pre_cooling_and_heating(Slic3r::GCodeProcessor::TimePro
         per_extruder_free_blocks[block.extruder_id].emplace_back(block);
 
     for (auto& elem : per_extruder_free_blocks) {
-        int extruder_id = elem.first;
         auto& extruder_free_blcoks = elem.second;
         for (auto iter = extruder_free_blcoks.begin(); iter != extruder_free_blcoks.end(); ++iter) {
             bool is_end = std::next(iter) == extruder_free_blcoks.end();
@@ -247,8 +246,8 @@ void PreCooling::inject_cooling_heating_command(
     float ext_heating_rate = heating_rate[extruder_id];
     float ext_cooling_rate = cooling_rate[extruder_id];
 
-    std::vector<std::string> line_buf;
     auto add_M104_lines = [&](int gcode_id, int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType type, const std::string& comment = std::string()) {
+
 
         auto format_line_M104 = [&](int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, const std::string& comment = std::string()) -> std::vector<std::string> {
             std::vector<std::string> buffer;
@@ -500,7 +499,7 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
     unsigned int pre_scan_layer_id = 0;
 
     auto handle_nozzle_change_line = [&processor](const std::string& line, int& old_filament, int& next_filament,
-                                            int& extruder_id, int gcode_id, int& old_nozzle_id, int& new_nozzle_id) -> bool {
+                                            int& extruder_id, int& old_nozzle_id, int& new_nozzle_id) -> bool {
         std::regex re(R"(OF(\d+)\s+NF(\d+)\s+ON(\d+)\s+NN(\d+))");
         std::smatch match;
         if (!std::regex_search(line, match, re))
@@ -579,13 +578,13 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
                 }
                 else if (Slic3r::GCodeReader::GCodeLine::cmd_starts_with(scan_line, (std::string(";") + Slic3r::GCodeProcessor::reserved_tag(Slic3r::GCodeProcessor::ETags::NozzleChangeStart)).c_str())) {
                     int prev_filament{-1}, next_filament{-1}, ext_id{-1}, prev_nozzle{-1}, next_nozzle{-1};
-                    handle_nozzle_change_line(scan_line, prev_filament, next_filament, ext_id, scan_line_id, prev_nozzle, next_nozzle);
+                    handle_nozzle_change_line(scan_line, prev_filament, next_filament, ext_id, prev_nozzle, next_nozzle);
                     if (!extruder_blocks.empty())
                         extruder_blocks.back().initialize_step_2(scan_line_id);
                 }
                 else if (Slic3r::GCodeReader::GCodeLine::cmd_starts_with(scan_line, (std::string(";") + Slic3r::GCodeProcessor::reserved_tag(Slic3r::GCodeProcessor::ETags::NozzleChangeEnd)).c_str())) {
                     int prev_filament{-1}, next_filament{-1}, ext_id{-1}, prev_nozzle{-1}, next_nozzle{-1};
-                    handle_nozzle_change_line(scan_line, prev_filament, next_filament, ext_id, scan_line_id, prev_nozzle, next_nozzle);
+                    handle_nozzle_change_line(scan_line, prev_filament, next_filament, ext_id, prev_nozzle, next_nozzle);
                     if (!extruder_blocks.empty())
                         extruder_blocks.back().initialize_step_3(scan_line_id, prev_filament, scan_line_id, prev_nozzle);
                     temp_construct_block.initialize_step_1(ext_id, scan_line_id, next_filament, next_nozzle);
