@@ -141,13 +141,13 @@
 		"60"
 	],
 	"filament_retraction_length": [
-		"20"
+		"6"
 	],
 	"filament_retraction_speed": [
-		"120"
+		"30"
 	],
 	"filament_deretraction_speed": [
-		"120"
+		"25"
 	],
 	"filament_retraction_minimum_travel": [
 		"15"
@@ -162,7 +162,7 @@
 		"0"
 	],
 	"filament_z_hop": [
-		"0"
+		"0.3"
 	],
 	"filament_z_hop_types": [
 		"Normal Lift"

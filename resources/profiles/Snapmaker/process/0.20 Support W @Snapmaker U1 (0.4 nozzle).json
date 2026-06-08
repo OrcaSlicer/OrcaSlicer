@@ -19,6 +19,5 @@
 	],
 	"ooze_prevention": "1",
 	"slowdown_for_curled_perimeters": "0",
-	"standby_temperature_delta": "-150",
-	"wipe_tower_filament": "1"
+	"standby_temperature_delta": "-150"
 }

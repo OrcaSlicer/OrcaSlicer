@@ -1,0 +1,64 @@
+{
+	"type": "filament",
+	"name": "SeeMeCNC PETG-CF 0.7 nozzle",
+	"inherits": "SeeMeCNC PETG-CF",
+	"from": "System",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"SeeMeCNC PETG-CF 0.7 nozzle"
+	],
+	"compatible_printers": [
+		"SeeMeCNC Artemis 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
+		"SeeMeCNC RostockMAX v4 0.7 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"compatible_prints": [
+		"0.28mm Fine @SeeMeCNC Artemis 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 300 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.28mm Fine @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.28mm Fine @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.28mm Fine @SeeMeCNC RostockMAX v4 0.7",
+		"0.35mm Standard @SeeMeCNC Artemis 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.35mm Standard @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.35mm Standard @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.35mm Standard @SeeMeCNC RostockMAX v4 0.7",
+		"0.42mm Draft @SeeMeCNC Artemis 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 300 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.42mm Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.42mm Draft @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.42mm Draft @SeeMeCNC RostockMAX v4 0.7",
+		"0.49mm Extra Draft @SeeMeCNC Artemis 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.49mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.49mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.49mm Extra Draft @SeeMeCNC RostockMAX v4 0.7"
+	],
+	"compatible_prints_condition": "",
+	"filament_retraction_length": [
+		"6"
+	],
+	"filament_z_hop": [
+		"0.4"
+	],
+	"filament_retraction_speed": [
+		"40"
+	],
+	"filament_deretraction_speed": [
+		"30"
+	],
+	"filament_id": "SMCFG00207"
+}

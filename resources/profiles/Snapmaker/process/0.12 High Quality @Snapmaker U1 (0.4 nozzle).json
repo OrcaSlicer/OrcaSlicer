@@ -20,6 +20,5 @@
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
 	],
-	"slowdown_for_curled_perimeters": "0",
-	"wipe_tower_filament": "1"
+	"slowdown_for_curled_perimeters": "0"
 }
