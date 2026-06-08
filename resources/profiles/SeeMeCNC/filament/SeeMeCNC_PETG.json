@@ -261,5 +261,17 @@
 	],
 	"keep_fan_always_on": [
 		"1"
+	],
+	"filament_retraction_length": [
+		"6"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"40"
+	],
+	"filament_deretraction_speed": [
+		"30"
 	]
 }
