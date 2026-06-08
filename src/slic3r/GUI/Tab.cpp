@@ -2559,8 +2559,10 @@ void TabPrint::build()
         optgroup->append_single_option_line("accel_to_decel_enable", "speed_settings_acceleration");
         optgroup->append_single_option_line("accel_to_decel_factor", "speed_settings_acceleration");
 
-        optgroup = page->new_optgroup(L("Jerk(XY)"), L"param_jerk", 15);
+        optgroup = page->new_optgroup(L("Junction Deviation"), L"param_junction_deviation", 15);
         optgroup->append_single_option_line("default_junction_deviation", "speed_settings_jerk_xy#junction-deviation");
+
+        optgroup = page->new_optgroup(L("Jerk(XY)"), L"param_jerk", 15);
         optgroup->append_single_option_line("default_jerk", "speed_settings_jerk_xy#default");
         optgroup->append_single_option_line("outer_wall_jerk", "speed_settings_jerk_xy#outer-wall");
         optgroup->append_single_option_line("inner_wall_jerk", "speed_settings_jerk_xy#inner-wall");
@@ -5448,8 +5450,8 @@ void TabPrinter::toggle_options()
         for (auto el : {"use_firmware_retraction", "use_relative_e_distances", "support_multi_bed_types", "pellet_modded_printer", "bed_mesh_max", "bed_mesh_min", "bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "thumbnails"})
           toggle_line(el, !is_BBL_printer);
 
-        auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
+        bool gcf_is_marlin_firmware = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value == GCodeFlavor::gcfMarlinFirmware;
+        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf_is_marlin_firmware);
 
         const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
         toggle_line("parallel_printheads_count", support_parallel_printheads);
@@ -5581,18 +5583,25 @@ void TabPrinter::toggle_options()
     if (m_active_page->title() == L("Motion ability")) {
         auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
         update_input_shaper_menu(gcf);
+
+        // Orca: use booleans to avoid repeated comparisons with enum values
+        const bool gcf_is_marlin_legacy = gcf == GCodeFlavor::gcfMarlinLegacy;
+        const bool gcf_is_marlin_firmware = gcf == GCodeFlavor::gcfMarlinFirmware;
+        const bool gcf_is_klipper = gcf == GCodeFlavor::gcfKlipper;
+        const bool gcf_is_reprap_firmware = gcf == GCodeFlavor::gcfRepRapFirmware;
+
         bool silent_mode = m_config->opt_bool("silent_mode");
         int  max_field   = silent_mode ? 2 : 1;
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper, i);
-        toggle_line("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper);
+            toggle_option("machine_max_acceleration_travel", !gcf_is_marlin_legacy && !gcf_is_klipper, i);
+        toggle_line("machine_max_acceleration_travel", !gcf_is_marlin_legacy && !gcf_is_klipper);
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_junction_deviation", gcf == gcfMarlinFirmware, i);
-        toggle_line("machine_max_junction_deviation", gcf == gcfMarlinFirmware);
+            toggle_option("machine_max_junction_deviation", gcf_is_marlin_firmware, i);
+        toggle_line("machine_max_junction_deviation", gcf_is_marlin_firmware);
 
         // Check if junction deviation value is non-zero and firmware is Marlin
-        bool enable_jerk = gcf != gcfMarlinFirmware;
-        if (gcf == gcfMarlinFirmware) {
+        bool enable_jerk = !gcf_is_marlin_firmware;
+        if (gcf_is_marlin_firmware) {
             const auto *junction_deviation = m_config->option<ConfigOptionFloats>("machine_max_junction_deviation");
             if (junction_deviation != nullptr) {
                 const auto &values = junction_deviation->values;
@@ -5608,14 +5617,14 @@ void TabPrinter::toggle_options()
             toggle_option("machine_max_jerk_e", enable_jerk, i);
         }
 
-        bool emittable_limits = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfMarlinLegacy || m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfMarlinFirmware || m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
+        bool emittable_limits = gcf_is_marlin_legacy || gcf_is_marlin_firmware || gcf_is_reprap_firmware;
         toggle_option("emit_machine_limits_to_gcode", emittable_limits);
 
         bool resonance_avoidance = m_config->opt_bool("resonance_avoidance");
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
 
-        bool input_shaping_compatible = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfMarlinFirmware || m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
+        bool input_shaping_compatible = gcf_is_marlin_firmware || gcf_is_reprap_firmware;
 
         for (auto is : {"input_shaping_emit", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y",
                             "input_shaping_damp_x", "input_shaping_damp_y"})
@@ -5625,12 +5634,11 @@ void TabPrinter::toggle_options()
             bool emit_machine_limits_to_gcode = m_config->opt_bool("emit_machine_limits_to_gcode");
             toggle_option("input_shaping_emit", emit_machine_limits_to_gcode);
             bool input_shaping_emit = emit_machine_limits_to_gcode && m_config->opt_bool("input_shaping_emit");
-            bool reprap = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
             toggle_option("input_shaping_type", input_shaping_emit);
             toggle_option("input_shaping_freq_x", input_shaping_emit);
-            toggle_option("input_shaping_freq_y", input_shaping_emit && !reprap);
+            toggle_option("input_shaping_freq_y", input_shaping_emit && !gcf_is_reprap_firmware);
             toggle_option("input_shaping_damp_x", input_shaping_emit);
-            toggle_option("input_shaping_damp_y", input_shaping_emit && !reprap);
+            toggle_option("input_shaping_damp_y", input_shaping_emit && !gcf_is_reprap_firmware);
         }
 
     }
