@@ -1741,7 +1741,7 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
         };
         if (is_need_precooling(true)) {
             for (int i = 0; i < m_filpar[idx].precool_t.first.size(); i++) {
-                if (config.hotend_cooling_rate.is_nil(i) || i >= hotend_cooling_rates.size()) continue;
+                if (i >= hotend_cooling_rates.size() || config.hotend_cooling_rate.is_nil(i)) continue;
                 m_filpar[idx].precool_t.first[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature_nc.get_at(idx))) / float(hotend_cooling_rates[i]);
                 m_filpar[idx].precool_t_first_layer.first[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature_nc.get_at(idx))) /float(hotend_cooling_rates[i]);
             }
@@ -1750,7 +1750,7 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
 
         if (is_need_precooling(false)) {
             for (int i = 0; i < m_filpar[idx].precool_t.second.size(); i++) {
-                if (config.hotend_cooling_rate.is_nil(i) || i >= hotend_cooling_rates.size()) continue;
+                if (i >= hotend_cooling_rates.size() || config.hotend_cooling_rate.is_nil(i)) continue;
                 m_filpar[idx].precool_t.second[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature_nc.get_at(idx))) / float(hotend_cooling_rates[i]);
                 m_filpar[idx].precool_t_first_layer.second[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature_nc.get_at(idx))) /float(hotend_cooling_rates[i]);
             }
@@ -3116,6 +3116,7 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
     if (nozzle_change_line_count > 0 && !solid_infill) {
         float ramming_length    = nozzle_change_line_count * (xr - xl);
         int   extruder_id      = get_extruder_id(m_current_tool, m_cur_layer_id);
+        if (extruder_id < 0 || extruder_id >= (int)m_filpar[m_current_tool].precool_t.first.size()) extruder_id = 0;
         float precool_t         = extruder_change ? m_filpar[m_current_tool].precool_t.first[extruder_id] : m_filpar[m_current_tool].precool_t.second[extruder_id];
         float precool_t_first_layer = extruder_change ? m_filpar[m_current_tool].precool_t_first_layer.first[extruder_id] :
                                                         m_filpar[m_current_tool].precool_t_first_layer.second[extruder_id];
@@ -3705,6 +3706,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
     if (should_heating) {
         float estimate_time = estimate_wipe_time();
         int   extruder_id   = m_multi_nozzle_group_result ? get_extruder_id(m_current_tool, m_cur_layer_id) : (m_filament_map[m_current_tool] - 1);
+        if (extruder_id < 0 || extruder_id >= (int)m_hotend_heating_rate.size()) extruder_id = 0;
         float heat_time     = m_filpar[m_current_tool].filament_cooling_before_tower / m_hotend_heating_rate[extruder_id];
         speed_factor = estimate_time / (heat_time+estimate_time);
         wipe_speed *= speed_factor;

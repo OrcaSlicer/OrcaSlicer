@@ -1979,7 +1979,9 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
         int                                object_label_id = obj_iter->first;
         const std::map<int, GCodePosInfo> &path_pos        = obj_iter->second;
         for (auto iter = path_pos.begin(); iter != path_pos.end(); ++iter) {
+            if (iter->first < 0 || iter->first >= (int)filament_map.size()) continue;
             int extruder_id = filament_map[iter->first] - 1;
+            if (extruder_id < 0 || extruder_id >= extruder_size) continue;
             Points iter_points;//temp points
             iter_points.insert(iter_points.end(), iter->second.pos.begin(), iter->second.pos.end());// put object/wipetower extrude position in
             Polygon     path_poly(iter_points);
@@ -2042,7 +2044,8 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     filament_to_object_id.first  = iter->first;
                     filament_to_object_id.second = object_label_id;
                     m_result.gcode_check_result.print_height_error_infos[extruder_id].push_back(filament_to_object_id);
-                    m_result.limit_filament_maps[iter->first] |= (1 << extruder_id);
+                    if (iter->first >= 0 && iter->first < (int)m_result.limit_filament_maps.size())
+                        m_result.limit_filament_maps[iter->first] |= (1 << extruder_id);
                     valid = false;
                 }
 
@@ -2051,7 +2054,8 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                         poly.translate(plate_offset);
                         if (!poly.bounding_box().overlap(bbox)) continue;
 
-                        m_result.limit_filament_maps[iter->first] |= (1 << i);
+                        if (iter->first >= 0 && iter->first < (int)m_result.limit_filament_maps.size())
+                            m_result.limit_filament_maps[iter->first] |= (1 << i);
                     }
                 }
             }
@@ -2062,7 +2066,8 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     for (int extruder_id = 0; extruder_id < unprintable_filament_types.size(); ++extruder_id) {
         const std::set<int> &filament_ids = unprintable_filament_types[extruder_id];
         for (int filament_id : filament_ids) {
-            m_result.limit_filament_maps[filament_id] |= (1 << extruder_id);
+            if (filament_id >= 0 && filament_id < (int)m_result.limit_filament_maps.size())
+                m_result.limit_filament_maps[filament_id] |= (1 << extruder_id);
         }
     };
 
@@ -6346,8 +6351,13 @@ void GCodeProcessor::update_slice_warnings()
         if (used_filaments[idx] < m_result.required_nozzle_HRC.size())
             filament_hrc = m_result.required_nozzle_HRC[used_filaments[idx]];
 
-        int filament_extruder_id = m_filament_maps[used_filaments[idx]];
-        int extruder_hrc = nozzle_hrc_lists[filament_extruder_id];
+        int filament_extruder_id = 0;
+        int extruder_hrc = 0;
+        if (used_filaments[idx] >= 0 && used_filaments[idx] < (int)m_filament_maps.size()) {
+            filament_extruder_id = m_filament_maps[used_filaments[idx]];
+            if (filament_extruder_id >= 0 && filament_extruder_id < (int)nozzle_hrc_lists.size())
+                extruder_hrc = nozzle_hrc_lists[filament_extruder_id];
+        }
 
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": Check HRC: filament:%1%, hrc=%2%, extruder:%3%, hrc:%4%") % used_filaments[idx] % filament_hrc % filament_extruder_id % extruder_hrc;
 
