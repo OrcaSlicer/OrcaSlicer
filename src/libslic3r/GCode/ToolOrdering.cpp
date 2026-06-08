@@ -1,6 +1,7 @@
 #include "ExtrusionEntity.hpp"
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
+#include "libslic3r/VortekGroupReorder.hpp"
 #include "Layer.hpp"
 #include "ClipperUtils.hpp"
 #include "ParameterUtils.hpp"
@@ -1672,8 +1673,20 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
 
     bool support_multi_nozzle = std::any_of(print_config->extruder_max_nozzle_count.values.begin(), print_config->extruder_max_nozzle_count.values.end(), [](auto v) {return v > 1; });
 
-    // H2C: Dynamic GroupReorder + multi-nozzle reorder — EXTRACTED to VortekGroupReorderDynamic.inl
-#include "VortekGroupReorderDynamic.inl"
+    // H2C: Dynamic GroupReorder + multi-nozzle reorder using Vortek::GroupReorder::reorder_extruders
+    Vortek::GroupReorder::reorder_extruders(
+        *this,
+        filament_lists,
+        filament_maps,
+        maps_without_group,
+        layer_filaments,
+        nozzle_flush_mtx,
+        get_custom_seq,
+        filament_sequences,
+        nozzle_nums,
+        map_mode,
+        support_multi_nozzle
+    );
 
     auto curr_flush_info = calc_filament_change_info_by_toolorder(print_config, filament_maps, nozzle_flush_mtx, filament_sequences);
     if (nozzle_nums <= 1)

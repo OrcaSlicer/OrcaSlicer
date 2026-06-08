@@ -20,6 +20,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/format.hpp"
 #include "GCodeProcessor.hpp"
+#include "libslic3r/VortekPreCooling.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -1410,15 +1411,15 @@ void GCodeProcessor::run_post_process()
     };
 
     // =========================================================================
-    // H2C PreCooling: Pre-scan phase — EXTRACTED to VortekPreCoolingPreScan.inl
-    // Scans gcode to build filament/extruder usage blocks, creates PreCoolingInjector,
+    // H2C PreCooling: Pre-scan phase using Vortek::PreCooling
+    // Scans gcode to build filament/extruder usage blocks, creates PreCooling,
     // generates InsertedLinesMap (M104 commands to inject).
     // BBL parity: BambuStudio GCodeProcessor.cpp:948-1191 (commit 3f2570c)
     // =========================================================================
     TimeProcessor::InsertedLinesMap precooling_inserted_lines;
 
     if (m_enable_pre_heating && m_nozzle_group_result) {
-#include "VortekPreCoolingPreScan.inl"
+        precooling_inserted_lines = Vortek::PreCooling::run_pre_scan(*this, in.f);
     }
 
     auto precooling_iter = precooling_inserted_lines.begin();
@@ -1514,8 +1515,14 @@ void GCodeProcessor::run_post_process()
                     if (!gcode_line.empty())
                         export_line.append_line(gcode_line);
 
-                    // H2C PreCooling: inject M104 — EXTRACTED to VortekPreCoolingInject.inl
-#include "VortekPreCoolingInject.inl"
+                    // H2C PreCooling: inject M104 using Vortek::PreCooling::inject_lines
+                    Vortek::PreCooling::inject_lines(
+                        precooling_iter,
+                        precooling_inserted_lines,
+                        m_enable_pre_heating,
+                        line_id,
+                        [&export_line](const std::string& line) { export_line.append_line(line); }
+                    );
 
                     export_line.write(out, 1.1f * max_backtrace_time, m_result, out_path);
                     gcode_line.clear();
@@ -2105,8 +2112,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_extruder_max_nozzle_count = config.extruder_max_nozzle_count.values;
     m_filament_cooling_before_tower = config.filament_cooling_before_tower.values;
 
-    // H2C PreCooling config — EXTRACTED to VortekPreCoolingConfig.inl
-#include "VortekPreCoolingConfig.inl"
+    // H2C PreCooling config using Vortek::PreCooling::apply_config
+    Vortek::PreCooling::apply_config(config, filament_count, *this);
 
     m_extruder_offsets.resize(filament_count);
     m_extruder_colors.resize(filament_count);

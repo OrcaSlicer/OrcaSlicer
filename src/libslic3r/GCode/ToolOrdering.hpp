@@ -14,6 +14,10 @@
 #include "../ExtrusionEntity.hpp"
 #include "../PrintConfig.hpp"
 
+namespace Vortek {
+    class GroupReorder;
+}
+
 namespace Slic3r {
 
 class Print;
@@ -212,6 +216,7 @@ private:
 
 class ToolOrdering
 {
+    friend class Vortek::GroupReorder;
 public:
     enum FilamentChangeMode {
         SingleExt,

@@ -35,6 +35,10 @@
 #include <string>
 #include <cfloat>
 
+namespace Vortek {
+    class GCode;
+}
+
 namespace Slic3r {
 
 // Forward declarations.
@@ -787,6 +791,7 @@ private:
     friend class PressureEqualizer;
     friend class Print;
     friend class SmallAreaInfillFlowCompensator;
+    friend class Vortek::GCode;
 };
 
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order = false);

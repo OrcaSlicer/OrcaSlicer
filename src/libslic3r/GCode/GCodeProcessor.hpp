@@ -17,6 +17,10 @@
 #include <string_view>
 #include <optional>
 
+namespace Vortek {
+    class PreCooling;
+}
+
 namespace Slic3r {
 
 class Print;
@@ -411,6 +415,7 @@ class Print;
 
     class GCodeProcessor
     {
+        friend class Vortek::PreCooling;
         static const std::vector<std::string> Reserved_Tags;
         static const std::vector<std::string> Reserved_Tags_compatible;
         static const std::string Flush_Start_Tag;
@@ -742,112 +747,6 @@ class Print;
             std::array<TimeMachine, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> machines;
 
             void reset();
-        };
-
-        // BBL parity: PreCoolingInjector — pre-schedules M104 cooling/heating commands
-        // during post-processing to minimize wait time at nozzle/extruder switches.
-        // Ref: BambuStudio GCodeProcessor.hpp:876-976 (commit 3f2570c)
-        class PreCoolingInjector {
-        public:
-            struct ExtruderFreeBlock {
-                unsigned int free_lower_gcode_id;
-                unsigned int free_upper_gcode_id;
-                unsigned int partial_free_lower_id; // stores the range of extrusion in wipe tower
-                unsigned int partial_free_upper_id;
-                int last_filament_id;
-                int next_filament_id;
-                int last_nozzle_id;
-                int next_nozzle_id;
-                int extruder_id;
-                bool ignore_cooling_before_tower = false;
-            };
-
-            void process_pre_cooling_and_heating(TimeProcessor::InsertedLinesMap& inserted_operation_lines);
-            void build_extruder_free_blocks(const std::vector<ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks,
-                                            const std::vector<ExtruderPreHeating::ExtruderUsageBlcok>& extruder_usage_blocks);
-
-            PreCoolingInjector(
-                const std::vector<GCodeProcessorResult::MoveVertex>& moves_,
-                const std::vector<std::string>& filament_types_,
-                const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result_,
-                const std::vector<int>& filament_nozzle_temps_,
-                const std::vector<int>& filament_nozzle_temps_initial_layer_,
-                const std::vector<int>& physical_extruder_map_,
-                int valid_machine_id_,
-                float inject_time_threshold_,
-                bool handle_hotend_as_extruder_,
-                bool has_filament_switcher_,
-                const std::vector<int>& pre_cooling_temp_,
-                const std::vector<double>& cooling_rate_,
-                const std::vector<double>& heating_rate_,
-                const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks_,
-                const std::vector<int>& extruder_max_nozzle_count_,
-                const std::vector<double>& filament_preheat_temperature_delta_,
-                const std::vector<double>& filament_max_temperature_drop_when_ec_,
-                unsigned int machine_start_gcode_end_id_,
-                unsigned int machine_end_gcode_start_id_,
-                const std::vector<ExtruderType>& extruder_types_,
-                const std::vector<double>& nozzle_diameter_
-            ) :
-                moves(moves_),
-                filament_types(filament_types_),
-                nozzle_group_result(nozzle_group_result_),
-                filament_nozzle_temps(filament_nozzle_temps_),
-                filament_nozzle_temps_initial_layer(filament_nozzle_temps_initial_layer_),
-                physical_extruder_map(physical_extruder_map_),
-                valid_machine_id(valid_machine_id_),
-                inject_time_threshold(inject_time_threshold_),
-                handle_hotend_as_extruder(handle_hotend_as_extruder_),
-                has_filament_switcher(has_filament_switcher_),
-                filament_pre_cooling_temps(pre_cooling_temp_),
-                cooling_rate(cooling_rate_),
-                heating_rate(heating_rate_),
-                skippable_blocks(skippable_blocks_),
-                extruder_max_nozzle_count(extruder_max_nozzle_count_),
-                filament_preheat_temperature_delta(filament_preheat_temperature_delta_),
-                filament_max_temperature_drop_when_ec(filament_max_temperature_drop_when_ec_),
-                machine_start_gcode_end_id(machine_start_gcode_end_id_),
-                machine_end_gcode_start_id(machine_end_gcode_start_id_),
-                extruder_types(extruder_types_),
-                nozzle_diameter(nozzle_diameter_)
-            {
-            }
-
-        private:
-            std::vector<ExtruderFreeBlock> m_extruder_free_blocks;
-            const std::vector<GCodeProcessorResult::MoveVertex>& moves;
-            const std::vector<std::string>& filament_types;
-            const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result;
-            const std::vector<int>& filament_nozzle_temps;
-            const std::vector<int>& filament_nozzle_temps_initial_layer;
-            const std::vector<int>& physical_extruder_map;
-            const int valid_machine_id;
-            const float inject_time_threshold;
-            const bool handle_hotend_as_extruder;
-            const bool has_filament_switcher;
-            const std::vector<double>& cooling_rate;
-            const std::vector<double>& heating_rate;
-            const std::vector<int>& filament_pre_cooling_temps;
-            const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks;
-            const std::vector<int>& extruder_max_nozzle_count;
-            const std::vector<double>& filament_preheat_temperature_delta;
-            const std::vector<double>& filament_max_temperature_drop_when_ec;
-            const unsigned int machine_start_gcode_end_id;
-            const unsigned int machine_end_gcode_start_id;
-            const std::vector<ExtruderType>& extruder_types;
-            const std::vector<double>& nozzle_diameter;
-
-            void inject_cooling_heating_command(
-                TimeProcessor::InsertedLinesMap& inserted_operation_lines,
-                const ExtruderFreeBlock& free_block,
-                float curr_temp,
-                float target_temp,
-                bool pre_cooling,
-                bool pre_heating
-            );
-
-            void build_by_filament_blocks(const std::vector<ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks);
-            void build_by_extruder_blocks(const std::vector<ExtruderPreHeating::ExtruderUsageBlcok>& extruder_usage_blocks);
         };
 
         // BBL parity: Context for post-processing with temperature pre-scheduling.

@@ -6,6 +6,7 @@
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "GCode.hpp"
+#include "VortekGCode.hpp"
 #include "Exception.hpp"
 #include "ExtrusionEntity.hpp"
 #include "EdgeGrid.hpp"
@@ -2953,7 +2954,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // ─── H2C: use BBL placeholder parser setup (via group_result) ───
     if (is_h2c_multi_nozzle) {
-#include "VortekGCodeInit.inl"
+        Vortek::GCode::init(*this, initial_extruder_id, initial_non_support_extruder_id, first_filaments, first_non_support_filaments);
     } else {
     // ─── Standard Orca placeholder parser setup ───
     auto match_physical_extruder_for_each_filament = [](std::vector<int> &filaments, const FullPrintConfig &config) {
@@ -3322,7 +3323,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (is_bbl_printers) {
         if (is_h2c_multi_nozzle) {
             // ─── H2C: BBL filament_start_gcode + VT comment ───
-#include "VortekGCodeFilamentStart.inl"
+            Vortek::GCode::write_filament_start(*this, initial_extruder_id, initial_non_support_extruder_id, file, print);
         } else {
             m_writer.init_extruder(initial_non_support_extruder_id);
             {

@@ -477,7 +477,13 @@ set(lisbslic3r_sources
     # Vortek: H2C-specific logic extracted from core Orca files
     VortekGroupReorder.hpp
     VortekGroupReorder.cpp
+    VortekPreCooling.hpp
     VortekPreCooling.cpp
+    VortekWipeTower.hpp
+    VortekWipeTower.cpp
+    VortekGCode.hpp
+    VortekGCode.cpp
+    GCode/WipeTowerWriter.hpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp
 )

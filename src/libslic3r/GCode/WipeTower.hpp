@@ -13,6 +13,10 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include <unordered_set>
 #include "libslic3r/MultiNozzleUtils.hpp"
+namespace Vortek {
+    class WipeTower;
+}
+
 namespace Slic3r
 {
 
@@ -25,6 +29,7 @@ class WipeTower
 {
 public:
     friend class WipeTowerWriter;
+    friend class Vortek::WipeTower;
     static const std::string never_skip_tag() { return "_GCODE_WIPE_TOWER_NEVER_SKIP_TAG"; }
 
 	// WipeTower height to minimum depth map

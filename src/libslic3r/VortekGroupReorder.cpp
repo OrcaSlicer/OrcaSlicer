@@ -1,10 +1,11 @@
 // ============================================================================
 // VortekGroupReorder.cpp
 //
-// Extracted from ToolOrdering.cpp — H2C-specific GroupReorder logic.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp:1270-1789
+// Implements the Vortek::GroupReorder class to handle H2C combo-range
+// optimization and multi-nozzle tool ordering.
 // ============================================================================
 
+#include "VortekGroupReorder.hpp"
 #include "Print.hpp"
 #include "GCode/ToolOrdering.hpp"
 #include "GCode/ToolOrderUtils.hpp"
@@ -17,21 +18,23 @@
 #include <unordered_map>
 
 #include <libslic3r.h>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 
-//! macro used at localization, return same string
+//! Macro used for localization lookup
 #define _L(s) Slic3r::I18N::translate(s)
 
 // ============================================================================
 // GroupReorder namespace functions
-// Declarations stay in ToolOrdering.hpp — only bodies moved here.
 // ============================================================================
 
-// H2C port: Build a complete FilamentGroupContext from print data.
-// Assembles flush matrices, nozzle groups, unprintable limits, AMS info,
-// filament metadata, and speed info into a single context struct.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp:1270-1460
+/**
+ * @brief Builds a complete FilamentGroupContext descriptor from print data.
+ * 
+ * Assembles flush matrices, nozzle groups, unprintable limits, AMS details,
+ * filament metadata, and speed info into a single context structure passed to optimizer algorithms.
+ */
 FilamentGroupContext GroupReorder::build_filament_group_context(
     Print                                           *print,
     const std::vector<std::vector<unsigned int>>    &layer_filaments,
@@ -50,17 +53,17 @@ FilamentGroupContext GroupReorder::build_filament_group_context(
     const size_t filament_nums = print_config.filament_colour.values.size();
     const size_t extruder_nums = print_config.nozzle_diameter.values.size();
 
-    // Flush matrices
+    // 1. Prepare and multiply transition flush matrices
     auto nozzle_flush_mtx = GroupReorder::prepare_flush_matrices(print_config);
 
-    // Nozzle groups
+    // 2. Classify nozzle groups based on extruder stats
     auto nozzle_groups = GroupReorder::build_nozzle_groups(print_config, extruder_nums);
 
-    // Unprintable limits
+    // 3. Assemble physical and geometric filament printable limits
     std::vector<std::set<int>> ext_unprintable_filaments(2);
     collect_unprintable_limits(physical_unprintables, geometric_unprintables, ext_unprintable_filaments);
 
-    // AMS info
+    // 4. Calculate extruder AMS configuration groups
     bool ignore_ext_filament = false;
     std::vector<std::string> extruder_ams_count_str = print_config.extruder_ams_count.values;
     auto extruder_ams_counts = get_extruder_ams_count(extruder_ams_count_str);
@@ -69,6 +72,7 @@ FilamentGroupContext GroupReorder::build_filament_group_context(
     std::vector<bool> prefer_non_model_filament(extruder_nums, false);
     auto machine_filament_info = build_machine_filaments(print->get_extruder_filament_info(), extruder_ams_counts, ignore_ext_filament);
 
+    // 5. Gather filament metadata lists
     std::vector<std::string> filament_types = print_config.filament_type.values;
     std::vector<std::string> filament_colours = print_config.filament_colour.values;
     std::vector<unsigned char> filament_is_support = print_config.filament_is_support.values;
@@ -93,6 +97,7 @@ FilamentGroupContext GroupReorder::build_filament_group_context(
         context.model_info.filament_info.emplace_back(std::move(info));
     }
 
+    // 6. Gather printer speed variables
     context.speed_info.filament_print_time = print->get_filament_print_time();
     context.speed_info.group_with_time = print->config().group_algo_with_time;
     context.speed_info.filament_change_time = print->config().machine_load_filament_time + print->config().machine_unload_filament_time;
@@ -114,6 +119,7 @@ FilamentGroupContext GroupReorder::build_filament_group_context(
     else
         context.group_info.filament_volume_map = std::vector<int>(filament_nums, (int)(NozzleVolumeType::nvtHybrid));
 
+    // 7. Load nozzle list descriptions
     context.nozzle_info.nozzle_list = build_nozzle_list(nozzle_groups);
     context.nozzle_info.extruder_nozzle_list = build_extruder_nozzle_list(context.nozzle_info.nozzle_list);
 
@@ -126,8 +132,11 @@ FilamentGroupContext GroupReorder::build_filament_group_context(
     return context;
 }
 
-// H2C port: Extract per-extruder flush matrices from config and apply flush multipliers.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp:1467-1493
+/**
+ * @brief Extracts per-nozzle flush matrices from configurations and scales them with multipliers.
+ * @param print_config Global print configuration bundle.
+ * @return Vector of FlushMatrix objects containing transitions weights.
+ */
 std::vector<FlushMatrix> GroupReorder::prepare_flush_matrices(const PrintConfig& print_config)
 {
     size_t extruder_nums = print_config.nozzle_diameter.values.size();
@@ -152,9 +161,11 @@ std::vector<FlushMatrix> GroupReorder::prepare_flush_matrices(const PrintConfig&
     return nozzle_flush_mtx;
 }
 
-// H2C port: Build nozzle group descriptors from extruder_nozzle_stats.
-// Falls back to extruder_max_nozzle_count when stats are unavailable.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp (inline in build_filament_group_context)
+/**
+ * @brief Classifies extruder nozzle configurations into NozzleGroupInfo structures.
+ * 
+ * Falls back to extruder_max_nozzle_count when stats are unavailable.
+ */
 std::vector<MultiNozzleUtils::NozzleGroupInfo> GroupReorder::build_nozzle_groups(const PrintConfig &config, size_t extruder_nums)
 {
     using namespace MultiNozzleUtils;
@@ -193,25 +204,28 @@ std::vector<MultiNozzleUtils::NozzleGroupInfo> GroupReorder::build_nozzle_groups
     return nozzle_groups;
 }
 
-// H2C port: Convenience wrapper — build nozzle groups then flatten to NozzleInfo list.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.hpp:143
+/**
+ * @brief Helper utility to flat-map nozzle group lists.
+ */
 std::vector<MultiNozzleUtils::NozzleInfo> GroupReorder::build_default_nozzle_list(const PrintConfig &config, size_t extruder_nums)
 {
     auto groups = build_nozzle_groups(config, extruder_nums);
     return MultiNozzleUtils::build_nozzle_list(groups);
 }
 
+} // namespace Slic3r
 
-// ============================================================================
-// Formerly-static helper functions
-// Forward-declared in VortekGroupReorder.hpp
-// ============================================================================
 
-// H2C port: Refine filament-to-nozzle assignment using min-cost flow.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp:1495-1631
-MultiNozzleUtils::LayeredNozzleGroupResult refine_groups_by_Nozzle_State(
-    const FilamentGroupContext& ctx,
-    const MultiNozzleUtils::LayeredNozzleGroupResult& group,
+namespace Vortek {
+
+/**
+ * @brief Evaluates active nozzle assignments using bipartite matching to align filaments with nozzles.
+ * 
+ * Invokes MinFlushFlowSolver to calculate the lowest transition cost based on current loaded filament.
+ */
+Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult GroupReorder::refine_groups_by_Nozzle_State(
+    const Slic3r::FilamentGroupContext& ctx,
+    const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group,
     const std::unordered_map<int, int> &nozzles_state)
 {
     std::vector<std::vector<int>> nozzle_fils(ctx.nozzle_info.nozzle_list.size());
@@ -221,10 +235,10 @@ MultiNozzleUtils::LayeredNozzleGroupResult refine_groups_by_Nozzle_State(
     for (auto fil : fils)
         nozzle_fils[fil_noz_map[fil]].emplace_back(fil);
 
-    // 1. Collect unprintable nozzles for each filament
+    // Identify nozzles that cannot accept specific filaments due to unprintable limits or diameter mismatch
     std::map<int, std::set<int>> fil_unplaceable_nozs;
     for (auto fil : fils) {
-        std::set<NozzleVolumeType> unprintable_volumes;
+        std::set<Slic3r::NozzleVolumeType> unprintable_volumes;
         if (ctx.model_info.unprintable_volumes.count(fil))
             unprintable_volumes = ctx.model_info.unprintable_volumes.at(fil);
         auto expected_volume = ctx.group_info.filament_volume_map[fil];
@@ -234,16 +248,15 @@ MultiNozzleUtils::LayeredNozzleGroupResult refine_groups_by_Nozzle_State(
             int  ext_id               = noz_info.extruder_id;
             auto ext_unprintable_fils = ctx.model_info.unprintable_filaments[ext_id];
             if (ext_unprintable_fils.count(fil) > 0 ||
-                (expected_volume != nvtHybrid && expected_volume != (int)noz_info.volume_type) ||
+                (expected_volume != Slic3r::nvtHybrid && expected_volume != (int)noz_info.volume_type) ||
                 (unprintable_volumes.count(noz_info.volume_type) != 0))
                 fil_unplaceable_nozs[fil].insert(noz);
         }
     }
 
-    // 2. Store global nozzle match result
     std::unordered_map<int, int> global_uv_match;
 
-    // 3. Process per-extruder groups with min-cost flow
+    // Run bipartite matching (MCMF) per extruder unit to match logical filaments to physical nozzle ports
     for (const auto& [ext_id, ext_nozzles] : ctx.nozzle_info.extruder_nozzle_list) {
         if (ext_nozzles.empty()) continue;
 
@@ -284,7 +297,7 @@ MultiNozzleUtils::LayeredNozzleGroupResult refine_groups_by_Nozzle_State(
                 } else {
                     int v_fil = v_fil_opt.value();
                     if (std::find(u_fils.begin(), u_fils.end(), v_fil) != u_fils.end())
-                        cost = -1;
+                        cost = -1; // No transition cost if already matching
                     else {
                         for (auto u_fil : u_fils)
                             cost += ctx.model_info.flush_matrix[ext_id][u_fil][v_fil];
@@ -301,20 +314,20 @@ MultiNozzleUtils::LayeredNozzleGroupResult refine_groups_by_Nozzle_State(
         std::iota(local_u_nodes.begin(), local_u_nodes.end(), 0);
         std::iota(local_v_nodes.begin(), local_v_nodes.end(), 0);
 
-        MinFlushFlowSolver solver(cost_matrix, local_u_nodes, local_v_nodes, {}, uv_unlink_limits);
+        // Invoke MCMF solver
+        Slic3r::MinFlushFlowSolver solver(cost_matrix, local_u_nodes, local_v_nodes, {}, uv_unlink_limits);
         auto local_match = solver.solve();
 
         for (size_t local_u = 0; local_u < u_nodes.size(); ++local_u) {
             int global_u = u_nodes[local_u];
             int local_v  = local_match[static_cast<int>(local_u)];
-            if (local_v == MaxFlowGraph::INVALID_ID || local_v < 0 || local_v >= static_cast<int>(v_nodes.size()))
+            if (local_v == Slic3r::MaxFlowGraph::INVALID_ID || local_v < 0 || local_v >= static_cast<int>(v_nodes.size()))
                 continue;
             int global_v = v_nodes[local_v];
             global_uv_match[global_u] = global_v;
         }
     }
 
-    // 4. Build new group_result
     std::vector<int> new_default_filament_nozzle_maps = group.get_layer_filament_nozzle_map(-1);
     for (auto fil : fils) {
         int ori_noz = new_default_filament_nozzle_maps[fil];
@@ -322,14 +335,11 @@ MultiNozzleUtils::LayeredNozzleGroupResult refine_groups_by_Nozzle_State(
             new_default_filament_nozzle_maps[fil] = global_uv_match[ori_noz];
     }
 
-    auto new_group = MultiNozzleUtils::LayeredNozzleGroupResult::create(new_default_filament_nozzle_maps, ctx.nozzle_info.nozzle_list, fils);
+    auto new_group = Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult::create(new_default_filament_nozzle_maps, ctx.nozzle_info.nozzle_list, fils);
     if (!new_group.has_value()) new_group = group;
     return *new_group;
 }
 
-
-// H2C port: Hash functor for vector<unsigned int>, used as key in combo-range map.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp (inline helper)
 struct VectorHash {
     size_t operator()(const std::vector<unsigned int>& v) const {
         size_t seed = v.size();
@@ -339,26 +349,29 @@ struct VectorHash {
     }
 };
 
-
-// H2C port: Core dynamic GroupReorder — plan filament mapping per combo range.
-// BBL ref: BambuStudio/src/libslic3r/GCode/ToolOrdering.cpp:1633-1789
-std::vector<FilamentPlanRes> plan_filament_mapping_and_order_by_combo_ranges(
-    Print*                                             print,
-    const FilamentGroupContext&                        ctx,
-    const ToolOrdering::OrderingContext&               order_ctx,
-    const FilamentMapMode                              mode,
-    const std::vector<std::set<int>>&                  physical_unprintables,
-    const std::vector<std::set<int>>&                  geometric_unprintables,
-    const std::map<int, std::set<NozzleVolumeType>>&   unprintable_volumes,
-    MultiNozzleUtils::NozzleStatusRecorder*            io_nozzle_status)
+/**
+ * @brief Computes nozzle sequence orders dynamically by grouping layers into contiguous ranges based on identical active filament combos.
+ * 
+ * Breaks the model's layers down, matches them to the recommended groups, and executes sequential reordering
+ * on each combo sub-range. This minimizes rotation count for the carousel.
+ */
+std::vector<Slic3r::FilamentPlanRes> GroupReorder::plan_filament_mapping_and_order_by_combo_ranges(
+    Slic3r::Print*                                             print,
+    const Slic3r::FilamentGroupContext&                        ctx,
+    const Slic3r::ToolOrdering::OrderingContext&               order_ctx,
+    const Slic3r::FilamentMapMode                              mode,
+    const std::vector<std::set<int>>&                          physical_unprintables,
+    const std::vector<std::set<int>>&                          geometric_unprintables,
+    const std::map<int, std::set<Slic3r::NozzleVolumeType>>&   unprintable_volumes,
+    Slic3r::MultiNozzleUtils::NozzleStatusRecorder*            io_nozzle_status)
 {
-    std::vector<FilamentPlanRes> results;
+    std::vector<Slic3r::FilamentPlanRes> results;
     const auto& layer_fils = ctx.model_info.layer_filaments;
     if (layer_fils.empty()) return results;
 
     results.resize(layer_fils.size());
 
-    // Group layers by filament combo -> contiguous ranges
+    // 1. Group layers by active filament combo
     std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>, VectorHash> filament_combo_ranges;
     for (int layer_idx = 0; layer_idx < static_cast<int>(layer_fils.size()); ++layer_idx) {
         std::vector<unsigned int> cur_combo = layer_fils[layer_idx];
@@ -380,31 +393,32 @@ std::vector<FilamentPlanRes> plan_filament_mapping_and_order_by_combo_ranges(
     }
 
     std::set<int> used_filaments;
-    MultiNozzleUtils::NozzleStatusRecorder tool_status;
+    Slic3r::MultiNozzleUtils::NozzleStatusRecorder tool_status;
     if (io_nozzle_status) tool_status = *io_nozzle_status;
 
     std::vector<int> fil_noz_map(ctx.group_info.total_filament_num, -1);
     std::unordered_map<int, int> fil_first_nozzle_map;
 
+    // 2. Iterate through each range and solve optimization sequence
     for (auto &[range, combo] : range_filas_map) {
         auto [start_layer, end_layer] = range;
 
-        // 1. Build range layer_filaments
         std::vector<std::vector<unsigned int>> range_layer_fils;
         range_layer_fils.reserve(end_layer - start_layer + 1);
         for (int layer_idx = start_layer; layer_idx <= end_layer; ++layer_idx)
             range_layer_fils.push_back(layer_fils[layer_idx]);
         used_filaments.insert(combo.begin(), combo.end());
 
-        // 2. Get group result for this range
+        // Call base Orca mapping calculator
         auto nozzle_filament_map = tool_status.get_nozzle_filament_map();
-        auto group_result = ToolOrdering::get_recommended_filament_maps(
+        auto group_result = Slic3r::ToolOrdering::get_recommended_filament_maps(
             print, range_layer_fils, mode, physical_unprintables,
             geometric_unprintables, unprintable_volumes, nozzle_filament_map);
 
-        // 3. Refine by nozzle state
+        // Refine result with active nozzle statuses
         auto new_group_result = refine_groups_by_Nozzle_State(ctx, group_result, nozzle_filament_map);
 
+        // Setup sub-range sequencing lambda callback
         auto range_seq_function = [&order_ctx, start_layer_ = start_layer, end_layer_ = end_layer](int layer_idx, std::vector<int> &out_seq) -> bool {
             if (layer_idx <= end_layer_ - start_layer_) {
                 int global_idx = start_layer_ + layer_idx;
@@ -413,13 +427,13 @@ std::vector<FilamentPlanRes> plan_filament_mapping_and_order_by_combo_ranges(
             return false;
         };
 
-        // 4. Reorder filaments for this range
+        // Reorder filaments for this range
         std::vector<std::vector<unsigned int>> fils_sequences;
-        reorder_filaments_for_multi_nozzle_extruder(
+        Slic3r::reorder_filaments_for_multi_nozzle_extruder(
             range_layer_fils.front(), new_group_result, range_layer_fils,
             ctx.model_info.flush_matrix, range_seq_function, &fils_sequences, tool_status);
 
-        // 5. Store range results
+        // Update active nozzle statuses
         for (auto fil_id : fils_sequences.back()) {
             auto noz = new_group_result.get_nozzle_for_filament(fil_id);
             if (noz.has_value()) {
@@ -440,6 +454,7 @@ std::vector<FilamentPlanRes> plan_filament_mapping_and_order_by_combo_ranges(
         }
     }
 
+    // Fill unmapped fallback nozzles
     for (auto& res : results) {
         for (int fil_id = 0; fil_id < (int)res.fil_nozzle_match.size(); fil_id++) {
             auto& noz_id = res.fil_nozzle_match[fil_id];
@@ -452,4 +467,91 @@ std::vector<FilamentPlanRes> plan_filament_mapping_and_order_by_combo_ranges(
     return results;
 }
 
-} // namespace Slic3r
+/**
+ * @brief Coordinates reordering logic for multi-nozzle setups (called from ToolOrdering).
+ */
+void GroupReorder::reorder_extruders(
+    Slic3r::ToolOrdering& tool_ordering,
+    const std::vector<unsigned int>& filament_lists,
+    const std::vector<int>& filament_maps,
+    const std::vector<int>& maps_without_group,
+    const std::vector<std::vector<unsigned int>>& layer_filaments,
+    const std::vector<Slic3r::FlushMatrix>& nozzle_flush_mtx,
+    const std::function<bool(int, std::vector<int>&)>& get_custom_seq,
+    std::vector<std::vector<unsigned int>>& filament_sequences,
+    int nozzle_nums,
+    Slic3r::FilamentMapMode map_mode,
+    bool support_multi_nozzle
+)
+{
+    if (support_multi_nozzle && tool_ordering.m_print->get_layered_nozzle_group_result()) {
+        if (tool_ordering.m_print->is_dynamic_group_reorder()) {
+            BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Using dynamic GroupReorder (per combo range)";
+
+            auto layer_data = tool_ordering.collect_layer_and_unprintable_data();
+
+            auto grouping_context = Slic3r::GroupReorder::build_filament_group_context(
+                tool_ordering.m_print, layer_data.layer_filaments, layer_data.physical_unprintables,
+                layer_data.geometric_unprintables, layer_data.filament_unprintable_volumes,
+                map_mode, tool_ordering.m_initial_nozzle_status.get_nozzle_filament_map());
+
+            grouping_context.speed_info.group_with_time = false;
+
+            Slic3r::ToolOrdering::OrderingContext order_ctx;
+            order_ctx.filament_lists = filament_lists;
+            order_ctx.get_custom_seq = get_custom_seq;
+            order_ctx.support_multi_nozzle = support_multi_nozzle;
+            order_ctx.support_dynamic_map = true;
+
+            Slic3r::MultiNozzleUtils::NozzleStatusRecorder best_nozzle_status = tool_ordering.m_initial_nozzle_status;
+            auto dynamic_plan_res = plan_filament_mapping_and_order_by_combo_ranges(
+                tool_ordering.m_print, grouping_context, order_ctx, Slic3r::FilamentMapMode::fmmAutoForFlush,
+                layer_data.physical_unprintables, layer_data.geometric_unprintables,
+                layer_data.filament_unprintable_volumes, &best_nozzle_status);
+
+            if (!dynamic_plan_res.empty()) {
+                filament_sequences.resize(layer_filaments.size());
+                for (size_t layer_id = 0; layer_id < dynamic_plan_res.size(); ++layer_id) {
+                    auto& res = dynamic_plan_res[layer_id];
+                    filament_sequences[layer_id].resize(res.fil_order.size());
+                    std::transform(res.fil_order.begin(), res.fil_order.end(),
+                        filament_sequences[layer_id].begin(), [](int v){ return (unsigned int)v; });
+                }
+                tool_ordering.m_nozzle_status = best_nozzle_status;
+                BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Dynamic plan produced " << dynamic_plan_res.size() << " layer results";
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-GR] Dynamic plan empty, falling back to static reorder";
+                Slic3r::reorder_filaments_for_multi_nozzle_extruder(
+                    filament_lists,
+                    *tool_ordering.m_print->get_layered_nozzle_group_result(),
+                    layer_filaments,
+                    nozzle_flush_mtx,
+                    get_custom_seq,
+                    &filament_sequences
+                );
+            }
+        } else {
+            Slic3r::reorder_filaments_for_multi_nozzle_extruder(
+                filament_lists,
+                *tool_ordering.m_print->get_layered_nozzle_group_result(),
+                layer_filaments,
+                nozzle_flush_mtx,
+                get_custom_seq,
+                &filament_sequences
+            );
+        }
+    }
+    else {
+        // Fallback for single extruder configuration
+        Slic3r::reorder_filaments_for_minimum_flush_volume(
+            filament_lists,
+            tool_ordering.m_print->is_BBL_printer() ? filament_maps : maps_without_group,
+            layer_filaments,
+            nozzle_flush_mtx,
+            get_custom_seq,
+            &filament_sequences
+        );
+    }
+}
+
+} // namespace Vortek
