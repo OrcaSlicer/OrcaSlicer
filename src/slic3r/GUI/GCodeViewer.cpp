@@ -4000,7 +4000,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (uint8_t extruder_id : used_extruders_ids) {
             const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
             ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
-            append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
+            // used_extruders_ids can be stale (e.g. reducing the filament count after slicing without
+            // re-slicing) and reference an extruder id past the current tool palette. Clamp to the last
+            // valid color instead of indexing out of bounds.
+            const libvgcode::Palette& tool_colors = m_viewer.get_tool_colors();
+            const libvgcode::Color extruder_color = tool_colors.empty() ? libvgcode::Color{ 128, 128, 128 } :
+                tool_colors[std::min<size_t>(tool_colors.size() - 1, static_cast<size_t>(extruder_id))];
+            append_item(EItemType::Rect, libvgcode::convert(extruder_color), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
             i++;
@@ -4234,9 +4240,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             //BBS: replace model custom gcode with current plate custom gcode
             std::vector<CustomGCode::Item> custom_gcode_per_print_z = wxGetApp().is_editor() ? wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
             const size_t extruders_count = get_extruders_count();
+            // The tool palette can be smaller than the extruder count when the preview is stale
+            // (e.g. filament count reduced after slicing). Clamp instead of indexing out of bounds.
+            const libvgcode::Palette& tool_colors = m_viewer.get_tool_colors();
             std::vector<ColorRGBA> last_color(extruders_count);
             for (size_t i = 0; i < extruders_count; ++i) {
-                last_color[i] = libvgcode::convert(m_viewer.get_tool_colors()[i]);
+                last_color[i] = tool_colors.empty() ? libvgcode::convert(libvgcode::Color{ 128, 128, 128 }) :
+                    libvgcode::convert(tool_colors[std::min<size_t>(tool_colors.size() - 1, i)]);
             }
             int last_extruder_id = 1;
             int color_change_idx = 0;
