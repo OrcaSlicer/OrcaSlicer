@@ -1564,21 +1564,24 @@ bool OrcaCloudServiceAgent::decode_jwt_expiry(const std::string& token, std::chr
     return false;
 }
 
-bool OrcaCloudServiceAgent::refresh_now(const std::string& refresh_token, const std::string& reason, bool async)
+RefreshResult OrcaCloudServiceAgent::refresh_now(const std::string& refresh_token, const std::string& reason, bool async)
 {
-    if (refresh_token.empty()) return false;
+    if (refresh_token.empty()) return RefreshResult::AuthRejected;  // nothing to refresh
 
     bool expected = false;
     if (!refresh_running.compare_exchange_strong(expected, true)) {
         BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: refresh already running, skip (reason=" << reason << ")";
-        return false;
+        // Another refresh is already in flight. Treat as transient so we keep the session
+        // instead of logging out: that in-flight refresh surfaces its own Success/AuthRejected,
+        // so a genuine rejection is only deferred to the next request, never lost.
+        return RefreshResult::Transient;
     }
 
     auto worker = [this, refresh_token, reason]() {
         (void) reason;
-        bool ok = refresh_session_with_token(refresh_token);
+        RefreshResult r = refresh_session_with_token(refresh_token);
         refresh_running.store(false);
-        return ok;
+        return r;
     };
 
     if (async) {
@@ -1586,13 +1589,15 @@ bool OrcaCloudServiceAgent::refresh_now(const std::string& refresh_token, const 
             refresh_thread.join();
         }
         refresh_thread = std::thread([worker]() { worker(); });
-        return true;
+        // Fire-and-forget: the outcome isn't known yet and no current caller consumes it.
+        // Return Transient (indeterminate) rather than implying a completed, successful refresh.
+        return RefreshResult::Transient;
     }
 
     return worker();
 }
 
-bool OrcaCloudServiceAgent::refresh_from_storage(const std::string& reason, bool async)
+RefreshResult OrcaCloudServiceAgent::refresh_from_storage(const std::string& reason, bool async)
 {
     std::string refresh_token = get_refresh_token();
     if (refresh_token.empty()) {
@@ -1600,7 +1605,7 @@ bool OrcaCloudServiceAgent::refresh_from_storage(const std::string& reason, bool
     }
     if (refresh_token.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: no refresh token available for refresh (reason=" << reason << ")";
-        return false;
+        return RefreshResult::AuthRejected;  // no persisted token: nothing to preserve
     }
 
     return refresh_now(refresh_token, reason, async);
@@ -1616,37 +1621,55 @@ bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const
 
     if (!needs_refresh) return true;
 
-    if (refresh_from_storage(reason, false)) return true;
+    if (refresh_from_storage(reason, false) == RefreshResult::Success) return true;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
-    return refresh_from_storage(reason + "_retry", false);
+    return refresh_from_storage(reason + "_retry", false) == RefreshResult::Success;
 }
 
-bool OrcaCloudServiceAgent::refresh_session_with_token(const std::string& refresh_token)
+// Maps a token-refresh HTTP outcome to a RefreshResult. http_code == 0 means the
+// server could not be reached; session_established is only meaningful for a 2xx body.
+static RefreshResult classify_refresh_result(unsigned http_code, bool session_established)
+{
+    if (http_code == 0)
+        return RefreshResult::Transient;                  // no response: network/transport failure
+    if (http_code == 400 || http_code == 401 || http_code == 403)
+        return RefreshResult::AuthRejected;               // refresh token rejected
+    if (http_code >= 400)
+        return RefreshResult::Transient;                  // rate-limit (429), server error (5xx) or other 4xx: keep the session
+    return session_established ? RefreshResult::Success    // 2xx with a usable session
+                              : RefreshResult::Transient;  // 2xx but unusable body
+}
+
+RefreshResult OrcaCloudServiceAgent::refresh_session_with_token(const std::string& refresh_token)
 {
     std::string body = "{\"refresh_token\":\"" + refresh_token + "\"}";
     std::string url = auth_base_url + auth_constants::TOKEN_PATH + "?grant_type=refresh_token";
     std::string  response;
     unsigned int http_code = 0;
-    if (!http_post_token(body, &response, &http_code, url) || http_code >= 400) {
+    // http_post_token sets http_code to 0 when the server could not be reached.
+    http_post_token(body, &response, &http_code, url);
+
+    bool established = false;
+    if (http_code >= 200 && http_code < 300) {
+        if (session_handler) {
+            established = session_handler(response);
+        } else {
+            // No session handler set - parse the token response directly and establish the
+            // session, so OrcaCloudServiceAgent is self-contained without external setup.
+            try {
+                established = set_user_session(json::parse(response));
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: token refresh parse exception - " << e.what();
+            }
+        }
+    } else {
         std::string truncated_response = response.size() > 200 ? response.substr(0, 200) + "..." : response;
         BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: token refresh failed - http_code=" << http_code
                                    << ", response_body=" << truncated_response;
-        return false;
     }
 
-    if (session_handler) {
-        return session_handler(response);
-    }
-
-    // No session handler set - parse the token response directly and establish session
-    // This makes OrcaCloudServiceAgent self-contained without requiring external setup
-    try {
-        return set_user_session(json::parse(response));
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: token refresh parse exception - " << e.what();
-        return false;
-    }
+    return classify_refresh_result(http_code, established);
 }
 
 // ============================================================================
@@ -1759,15 +1782,20 @@ void OrcaCloudServiceAgent::clear_session()
 // HTTP Helpers
 // ============================================================================
 
-bool OrcaCloudServiceAgent::attempt_refresh_after_unauthorized(const std::string& reason)
+RefreshResult OrcaCloudServiceAgent::attempt_refresh_after_unauthorized(const std::string& reason)
 {
-    if (refresh_from_storage(reason, false)) return true;
+    RefreshResult r = refresh_from_storage(reason, false);
+    if (r != RefreshResult::Transient) return r;  // Success or AuthRejected: decided, no retry
 
+    // Only a transient (network/server) failure is worth retrying.
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    if (refresh_from_storage(reason + "_retry", false)) return true;
+    r = refresh_from_storage(reason + "_retry", false);
 
-    BOOST_LOG_TRIVIAL(warning) << "[auth] event=refresh result=failure source=" << reason << " action=logout";
-    return false;
+    if (r == RefreshResult::Transient)
+        BOOST_LOG_TRIVIAL(warning) << "[auth] event=refresh result=transient source=" << reason << " action=keep_session";
+    else if (r == RefreshResult::AuthRejected)
+        BOOST_LOG_TRIVIAL(warning) << "[auth] event=refresh result=rejected source=" << reason << " action=logout";
+    return r;
 }
 
 std::map<std::string, std::string> OrcaCloudServiceAgent::data_headers()
@@ -1780,6 +1808,24 @@ std::map<std::string, std::string> OrcaCloudServiceAgent::data_headers()
     return headers;
 }
 
+bool OrcaCloudServiceAgent::resolve_unauthorized(HttpResult& res,
+        const std::function<HttpResult()>& perform, const std::string& reason)
+{
+    if (res.status != 401)
+        return false;
+
+    RefreshResult rr = attempt_refresh_after_unauthorized(reason);
+    if (rr == RefreshResult::Success) {
+        res = perform();   // refreshed: retry the original request with the new token
+        return false;
+    }
+
+    // Transient (no connection / 5xx / 429 / ambiguous): keep the session and token,
+    // suppress the auth error so the GUI does not log the user out.
+    // AuthRejected (refresh token genuinely rejected): let the 401 surface -> logout.
+    return rr == RefreshResult::Transient;
+}
+
 int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* response_body, unsigned int* http_code)
 {
     std::string url = api_base_url + path;
@@ -1787,12 +1833,6 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
 
     if (!ensure_token_fresh("http_get_" + path))
         BOOST_LOG_TRIVIAL(warning) << "ensure_token_fresh returned false";
-
-    struct HttpResult {
-        bool success{false};
-        unsigned int status{0};
-        std::string body;
-    };
 
     auto perform = [&]() {
         HttpResult result;
@@ -1832,20 +1872,16 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
     };
 
     HttpResult res = perform();
-
-    // Single retry on 401 - no recursion
-    if (res.status == 401 && attempt_refresh_after_unauthorized("http_get_" + path)) {
-        res = perform();
-    }
+    bool suppress = resolve_unauthorized(res, perform, "http_get_" + path);
 
     if (response_body) *response_body = res.body;
     if (http_code) *http_code = res.status;
 
-    if (!res.success || res.status >= 400) {
+    if (!suppress && (!res.success || res.status >= 400)) {
         invoke_http_error_callback(res.status, res.body);
     }
 
-    return res.success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    return (res.success && !suppress) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
 int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code)
@@ -1854,12 +1890,6 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: POST " << url;
 
     ensure_token_fresh("http_post_" + path);
-
-    struct HttpResult {
-        bool success{false};
-        unsigned int status{0};
-        std::string body;
-    };
 
     auto perform = [&]() {
         HttpResult result;
@@ -1902,20 +1932,16 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
     };
 
     HttpResult res = perform();
-
-    // Single retry on 401 - no recursion
-    if (res.status == 401 && attempt_refresh_after_unauthorized("http_post_" + path)) {
-        res = perform();
-    }
+    bool suppress = resolve_unauthorized(res, perform, "http_post_" + path);
 
     if (response_body) *response_body = res.body;
     if (http_code) *http_code = res.status;
 
-    if (!res.success || res.status >= 400) {
+    if (!suppress && (!res.success || res.status >= 400)) {
         invoke_http_error_callback(res.status, res.body);
     }
 
-    return res.success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    return (res.success && !suppress) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
 int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code)
@@ -1924,12 +1950,6 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: PUT " << url;
 
     ensure_token_fresh("http_put_" + path);
-
-    struct HttpResult {
-        bool success{false};
-        unsigned int status{0};
-        std::string body;
-    };
 
     auto perform = [&]() {
         HttpResult result;
@@ -1959,7 +1979,7 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
                     result.status  = resp_status == 0 ? 404 : resp_status;
-                    result.body    = body;
+                    result.body    = resp_body;
                     BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
@@ -1972,20 +1992,16 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
     };
 
     HttpResult res = perform();
-
-    // Single retry on 401 - no recursion
-    if (res.status == 401 && attempt_refresh_after_unauthorized("http_put_" + path)) {
-        res = perform();
-    }
+    bool suppress = resolve_unauthorized(res, perform, "http_put_" + path);
 
     if (response_body) *response_body = res.body;
     if (http_code) *http_code = res.status;
 
-    if (!res.success || res.status >= 400) {
+    if (!suppress && (!res.success || res.status >= 400)) {
         invoke_http_error_callback(res.status, res.body);
     }
 
-    return res.success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    return (res.success && !suppress) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
 int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* response_body, unsigned int* http_code)
@@ -1994,12 +2010,6 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: DELETE " << url;
 
     ensure_token_fresh("http_delete_" + path);
-
-    struct HttpResult {
-        bool success{false};
-        unsigned int status{0};
-        std::string body;
-    };
 
     auto perform = [&]() {
         HttpResult result;
@@ -2039,20 +2049,16 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
     };
 
     HttpResult res = perform();
-
-    // Single retry on 401 - no recursion
-    if (res.status == 401 && attempt_refresh_after_unauthorized("http_delete_" + path)) {
-        res = perform();
-    }
+    bool suppress = resolve_unauthorized(res, perform, "http_delete_" + path);
 
     if (response_body) *response_body = res.body;
     if (http_code) *http_code = res.status;
 
-    if (!res.success || res.status >= 400) {
+    if (!suppress && (!res.success || res.status >= 400)) {
         invoke_http_error_callback(res.status, res.body);
     }
 
-    return res.success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    return (res.success && !suppress) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
 bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string* response_body, unsigned int* http_code, const std::string& custom_url)
@@ -2108,7 +2114,7 @@ bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string
             })
             .on_error([&](std::string body, std::string error, unsigned resp_status) {
                 success   = false;
-                status    = resp_status == 0 ? 404 : resp_status;
+                status    = resp_status;  // keep 0 for "no response" so the refresh classifier sees a transport failure
                 resp_body = body;
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
             })
