@@ -18,18 +18,16 @@
 #undef L
 #endif
 
-#if ENABLE_SMOOTH_NORMALS
 #include <igl/per_face_normals.h>
 #include <igl/per_corner_normals.h>
 #include <igl/per_vertex_normals.h>
-#endif // ENABLE_SMOOTH_NORMALS
+
 
 #include <glad/gl.h>
 
 namespace Slic3r {
 namespace GUI {
 
-#if ENABLE_SMOOTH_NORMALS
 static void smooth_normals_corner(const TriangleMesh& mesh, std::vector<stl_normal>& normals)
 {
     using MapMatrixXfUnaligned = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
@@ -54,7 +52,6 @@ static void smooth_normals_corner(const TriangleMesh& mesh, std::vector<stl_norm
         }
     }
 }
-#endif // ENABLE_SMOOTH_NORMALS
 
 void GLModel::Geometry::add_vertex(const Vec2f& position)
 {
