@@ -1644,7 +1644,16 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                     m_imex_last_mode = mode;
                 }
 
-                if (!mode.empty() && mode != kImexPrimaryMode) {
+                // Firmware-managed-zones centers the slice at bed origin, so prim_pos
+                // and the preview toolpaths sit in a shifted frame relative to the
+                // plate-local bed bounds the zone math uses. Computing secondaries here
+                // would place them off-bed. The firmware physically fans the centered
+                // toolpath out into the zones, so the centered preview with no
+                // secondaries is the honest representation.
+                auto* fw_opt = printer_cfg.opt<ConfigOptionBool>("imex_firmware_managed_zones");
+                const bool firmware_managed = fw_opt && fw_opt->value;
+
+                if (!firmware_managed && !mode.empty() && mode != kImexPrimaryMode) {
                     auto* mode_names_opt   = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
                     auto* active_tools_opt = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
 
