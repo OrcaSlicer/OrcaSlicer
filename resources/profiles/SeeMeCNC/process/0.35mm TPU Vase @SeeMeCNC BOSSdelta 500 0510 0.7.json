@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7",
+    "inherits": "SeeMeCNC process base 0.7mm",
+    "from": "System",
+    "instantiation": "true",
+    "print_settings_id": "0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7",
+    "compatible_printers": [
+        "SeeMeCNC BOSSdelta 500 0510 0.7 nozzle"
+    ],
+    "compatible_printers_condition": "",
+    "alternate_extra_wall": "0",
+    "counterbore_hole_bridging": "none",
+    "initial_layer_print_height": "0.3",
+    "layer_height": "0.35",
+    "precise_z_height": "0",
+    "skirt_distance": "1",
+    "skirt_loops": "2",
+    "spiral_mode": "1"
+}

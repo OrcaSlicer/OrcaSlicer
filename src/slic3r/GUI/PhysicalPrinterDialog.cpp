@@ -37,9 +37,11 @@
 #include "RemovableDriveManager.hpp"
 #include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
+#include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"
 #include "OAuthDialog.hpp"
 #include "SimplyPrint.hpp"
+#include "3DPrinterOS.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -202,11 +204,28 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         return sizer;
     };
 
-    auto printhost_browse = [=](wxWindow* parent) 
+    auto printhost_browse = [=](wxWindow* parent)
     {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_browse_btn, "printer_host_browser", _L("Browse") + " " + dots);
         m_printhost_browse_btn->Bind(wxEVT_BUTTON, [=](wxCommandEvent& e) {
             const auto host_type = m_config->opt_enum<PrintHostType>("host_type");
+
+            // Creality K-series printers announce themselves via DNS-SD under a
+            // per-device-unique service type _Creality-<MAC-hex>._udp, so the
+            // standard fixed-service-name Bonjour browser does not find them.
+            // Dispatch to the Creality-specific scanner instead.
+            if (host_type == htCrealityPrint) {
+                CrealityDiscoveryDialog dialog(this);
+                if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
+                    // set_value expects the value wrapped as wxString -- TextCtrl::set_value
+                    // any_casts to wxString, so a raw std::string throws bad_any_cast.
+                    wxString new_url = wxString::FromUTF8("http://" + dialog.selected_ip());
+                    m_optgroup->set_value("print_host", new_url, true);
+                    m_optgroup->get_field("print_host")->field_changed();
+                }
+                return;
+            }
+
             if (host_type == htFlashforge) {
                 wxBusyCursor                            wait;
                 std::vector<FlashforgeDiscoveredPrinter> printers;
@@ -231,12 +250,13 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                         update_printhost_buttons();
                     }
                 }
-            } else {
-                BonjourDialog dialog(this, Preset::printer_technology(*m_config));
-                if (dialog.show_and_lookup()) {
-                    m_optgroup->set_value("print_host", dialog.get_selected(), true);
-                    m_optgroup->get_field("print_host")->field_changed();
-                }
+                return;
+            }
+
+            BonjourDialog dialog(this, Preset::printer_technology(*m_config));
+            if (dialog.show_and_lookup()) {
+                m_optgroup->set_value("print_host", dialog.get_selected(), true);
+                m_optgroup->get_field("print_host")->field_changed();
             }
         });
 
@@ -272,6 +292,12 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                             h->save_oauth_credential(r);
                         } else {
                             msg = r.error_message;
+                        }
+                    } else if (const auto h = dynamic_cast<C3DPrinterOS*>(host.get()); h) {
+                        GUI::MessageDialog dlg(this, _L("Valid session not detected. Proceed with login to 3DPrinterOS?"), _L("Proceed"),
+                                               wxICON_INFORMATION | wxYES | wxNO);
+                        if (dlg.ShowModal() == wxID_YES) {
+                            result = h->login(msg);
                         }
                     } else {
                         PrinterCloudAuthDialog dlg(this->GetParent(), host.get());
@@ -644,7 +670,8 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 const auto current_host = temp->GetValue();
                 if (current_host == L"https://connect.prusa3d.com" ||
                     current_host == L"https://app.obico.io" ||
-                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel") {
+                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel" || 
+                    current_host == C3DPrinterOS::default_host()) {
                     temp->SetValue(wxString());
                     m_config->opt_string("print_host") = "";
                 }
@@ -677,7 +704,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                         m_config->opt_string("print_host") = "https://app.obico.io";
                     }
                 }
-            } else if (opt->value == htSimplyPrint) {
+            } else if (opt->value == htSimplyPrint)  {
                 // Set the host url
                 if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
                     printhost_field->disable();
@@ -714,7 +741,16 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->disable_field("printhost_ssl_ignore_revoke");
                 if (m_printhost_cafile_browse_btn)
                     m_printhost_cafile_browse_btn->Disable();
-            }
+            } else if (opt->value == ht3DPrinterOS) {
+                if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
+                    if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_field)->text_ctrl(); temp && temp->GetValue().IsEmpty()) {
+                        temp->SetValue(C3DPrinterOS::default_host());
+                        m_config->opt_string("print_host") = C3DPrinterOS::default_host();
+                    }
+                }
+                m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("printhost_apikey");
+            } 
         }
         
         if (opt->value == htFlashforge) {

@@ -247,7 +247,7 @@ public:
     /**
      * Update or create a preset with a known setting_id.
      */
-    virtual int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) = 0;
+    virtual int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) = 0;
 
     /**
      * Trigger bulk download of user presets.

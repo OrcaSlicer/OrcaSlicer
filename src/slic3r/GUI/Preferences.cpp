@@ -152,7 +152,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_CATALAN,
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
-        wxLANGUAGE_VIETNAMESE
+        wxLANGUAGE_VIETNAMESE,
+        wxLANGUAGE_THAI
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
@@ -258,6 +259,9 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_VIETNAMESE)) {
             language_name = wxString::FromUTF8("Tiếng Việt");
+        }
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_THAI)) {
+            language_name = wxString::FromUTF8("\xE0\xB9\x84\xE0\xB8\x97\xE0\xB8\xA2");
         }
 
         if (app_config->get(param) == vlist[i]->CanonicalName) {
@@ -968,6 +972,11 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
+        else if (param == "hide_login_side_panel") {
+            if (wxGetApp().mainframe && wxGetApp().mainframe->m_webview) {
+                wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
+            }
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -1029,6 +1038,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             } else {
                 Slic3r::GUI::wxGetApp().update_internal_development();
             }
+        }
+
+        if (param == "show_unsupported_presets") {
+            wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
         if (param == "enable_high_low_temp_mixed_printing") {
@@ -1541,6 +1554,30 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+    //// GRAPHICS > Realistic view
+    g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
+
+    auto item_realistic_phong = create_item_checkbox(
+        _L("Phong shading"),
+        _L("Uses Phong shading inside realistic view.")
+        , SETTING_OPENGL_REALISTIC_PHONG
+    );
+    g_sizer->Add(item_realistic_phong);
+
+    auto item_realistic_ssao = create_item_checkbox(
+        _L("SSAO ambient occlusion"),
+        _L("Applies SSAO in realistic view."),
+        SETTING_OPENGL_PHONG_SSAO
+    );
+    g_sizer->Add(item_realistic_ssao);
+
+    auto item_realistic_shadows = create_item_checkbox(
+        _L("Shadows"),
+        _L("Renders cast shadows on the plate in realistic view."),
+        SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
+    );
+    g_sizer->Add(item_realistic_shadows);
+
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
 
@@ -1605,8 +1642,11 @@ void PreferencesDialog::create_items()
     auto item_region           = create_item_region_combobox(_L("Login region"), "");
     g_sizer->Add(item_region);
  
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops the transmission of data to Bambu's cloud services too. Users who don't use BBL machines or use LAN mode only can safely turn on this function."), "stealth_mode");
+    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
     g_sizer->Add(item_stealth_mode);
+
+    auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");
+    g_sizer->Add(item_hide_login_side_panel);
 
     auto item_network_test     = create_item_button(_L("Network test"), _L("Test") + " " + dots, "", _L("Open Network Test"), []() {
         NetworkTestDialog dlg(wxGetApp().mainframe);
@@ -1861,6 +1901,9 @@ void PreferencesDialog::create_items()
 
     auto item_keep_painting    = create_item_checkbox(_L("(Experimental) Keep painted feature after mesh change"), _L("Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\nHighly experimental! Slow and may create artifact."), "keep_painting");
     g_sizer->Add(item_keep_painting);
+
+    auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
+    g_sizer->Add(item_show_unsupported);
 
     g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
     auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");
