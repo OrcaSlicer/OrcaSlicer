@@ -6,11 +6,15 @@
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
+#include "Tab.hpp"
 #include "format.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 
+#include <array>
+#include <algorithm>
 #include <regex>
+#include <cmath>
 #include <cstdint>
 #include <wx/numformatter.h>
 #include <wx/tooltip.h>
@@ -38,6 +42,76 @@
 #endif
 
 namespace Slic3r { namespace GUI {
+
+namespace
+{
+static constexpr std::array<const char*, 8> z_offset_option_keys = {
+    "z_offset",
+    "cool_plate_z_offset",
+    "eng_plate_z_offset",
+    "hot_plate_z_offset",
+    "textured_plate_z_offset",
+    "textured_cool_plate_z_offset",
+    "supertack_plate_z_offset",
+    "filament_z_offset"
+};
+
+static constexpr const char* z_offset_arc_fitting_warning =
+    "In order to use Z offset, \"Arc fitting\" has to be disabled.\n\nClicking OK will disable \"Arc fitting\".";
+
+bool is_z_offset_option_id(const std::string& opt_id)
+{
+    const std::string opt_key = opt_id.substr(0, opt_id.find('#'));
+    return std::find(z_offset_option_keys.begin(), z_offset_option_keys.end(), opt_key) != z_offset_option_keys.end();
+}
+
+wxString z_offset_value_to_string(const Field& field)
+{
+    const boost::any& stored_value = field.stored_value();
+    if (stored_value.empty())
+        return wxString();
+
+    const double value = boost::any_cast<double>(stored_value);
+    return field.m_opt.nullable && std::isnan(value) ? _(L("N/A")) : double_to_string(value);
+}
+
+bool maybe_disable_arc_fitting_for_z_offset(Field& field, double value)
+{
+    if (!is_z_offset_option_id(field.m_opt_id) || std::isnan(value) || is_approx(value, 0.0))
+        return true;
+
+    const boost::any& stored_value = field.stored_value();
+    if (!stored_value.empty()) {
+        const double previous_value = boost::any_cast<double>(stored_value);
+        if ((field.m_opt.nullable && std::isnan(previous_value) && std::isnan(value)) || is_approx(previous_value, value))
+            return true;
+    }
+
+    Tab* print_tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
+    if (print_tab == nullptr || print_tab->get_config() == nullptr)
+        return true;
+
+    const ConfigOptionBool* arc_fitting = print_tab->get_config()->option<ConfigOptionBool>("enable_arc_fitting");
+    if (arc_fitting == nullptr || !arc_fitting->value)
+        return true;
+
+    MessageDialog dialog(wxGetApp().plater(),
+                         _L(z_offset_arc_fitting_warning),
+                         _L("Warning"), wxICON_WARNING | wxOK | wxCANCEL);
+    dialog.SetButtonLabel(wxID_OK, _L("OK"));
+    dialog.SetButtonLabel(wxID_CANCEL, _L("Cancel"));
+    if (dialog.ShowModal() != wxID_OK) {
+        field.set_value(z_offset_value_to_string(field), false);
+        return false;
+    }
+
+    DynamicPrintConfig new_conf = *print_tab->get_config();
+    new_conf.set_key_value("enable_arc_fitting", new ConfigOptionBool(false));
+    print_tab->load_config(new_conf);
+    wxGetApp().plater()->update();
+    return true;
+}
+}
 
 wxString double_to_string(double const value, const int max_precision /*= 4*/)
 {
@@ -445,6 +519,9 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 }
             }
         }
+        if (!maybe_disable_arc_fitting_for_z_offset(*this, val))
+            return;
+
         m_value = val;
 		break; }
 	case coString:

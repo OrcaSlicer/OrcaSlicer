@@ -86,6 +86,26 @@ static ParsedName parse_preset_name(const std::string &raw_name)
     return out;
 }
 
+static bool should_persist_missing_option(const ConfigOption *opt)
+{
+    return opt != nullptr && (!opt->nullable() || !opt->is_nil());
+}
+
+// Keep explicit child values when the parent preset predates a newly added option.
+static std::vector<std::string> diff_with_missing_parent_options(const DynamicPrintConfig &config, const DynamicPrintConfig &parent_config)
+{
+    std::vector<std::string> dirty_options = config.diff(parent_config);
+    for (auto it = config.cbegin(); it != config.cend(); ++it) {
+        if (std::find(dirty_options.begin(), dirty_options.end(), it->first) != dirty_options.end())
+            continue;
+        if (parent_config.option(it->first) != nullptr)
+            continue;
+        if (should_persist_missing_option(it->second.get()))
+            dirty_options.emplace_back(it->first);
+    }
+    return dirty_options;
+}
+
 } // namespace
 
 std::string get_preset_canonical_name(const std::string &preset_bare_name, const PresetOrigin &origin)
@@ -656,7 +676,7 @@ void Preset::save(DynamicPrintConfig* parent_config)
     //BBS: only save difference if it has parent
     if (parent_config) {
         DynamicPrintConfig temp_config;
-        std::vector<std::string> dirty_options = config.diff(*parent_config);
+        std::vector<std::string> dirty_options = diff_with_missing_parent_options(config, *parent_config);
 
         std::string extruder_id_name, extruder_variant_name;
         std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
@@ -1301,6 +1321,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "ironing_fan_speed",
     // Filament ironing overrides
     "filament_ironing_flow", "filament_ironing_spacing", "filament_ironing_inset", "filament_ironing_speed",
+    "filament_z_offset",
     "filament_loading_speed", "filament_loading_speed_start",
     "filament_unloading_speed", "filament_unloading_speed_start", "filament_toolchange_delay", "filament_cooling_moves", "filament_stamping_loading_speed", "filament_stamping_distance",
     "filament_cooling_initial_speed", "filament_cooling_final_speed", "filament_ramming_parameters",
@@ -1345,7 +1366,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "grab_length", "support_object_skip_flush", "physical_extruder_map",
     "cooling_tube_retraction",
     "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower",
-    "z_offset",
+    "z_offset", "bed_type_specific_z_offset", "cool_plate_z_offset", "eng_plate_z_offset", "hot_plate_z_offset", "textured_plate_z_offset", "textured_cool_plate_z_offset", "supertack_plate_z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset"
     };
@@ -1754,7 +1775,7 @@ Preset* PresetCollection::get_preset_differed_for_save(Preset& preset)
         *new_preset = preset;
 
         DynamicPrintConfig temp_config;
-        std::vector<std::string> dirty_options = preset.config.diff(parent_preset->config);
+        std::vector<std::string> dirty_options = diff_with_missing_parent_options(preset.config, parent_preset->config);
 
         std::string extruder_id_name, extruder_variant_name;
         std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
@@ -1813,7 +1834,7 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
     }
     if (parent_preset) {
         DynamicPrintConfig temp_config;
-        std::vector<std::string> dirty_options = preset.config.diff(parent_preset->config);
+        std::vector<std::string> dirty_options = diff_with_missing_parent_options(preset.config, parent_preset->config);
 
         for (auto option: dirty_options)
         {

@@ -330,7 +330,7 @@ private:
     void _refresh_writer(bool is_bbl_machine, const ModelObject &object, const Vec3d &origin);
 
     double    height_first_layer() const { return m_config.option<ConfigOptionFloat>("initial_layer_print_height")->value; };
-    double    height_z_offset() const { return m_config.option<ConfigOptionFloat>("z_offset")->value; };
+    double    height_z_offset() const { return get_active_z_offset(m_config); };
     double    height_layer() const { return m_config.option<ConfigOptionFloat>("layer_height")->value; };
     const int get_num_patterns() const { return std::ceil((m_params.end - m_params.start) / m_params.step + 1); }
 

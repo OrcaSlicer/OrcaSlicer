@@ -19,7 +19,7 @@ public:
     };
     SpiralVase(const PrintConfig &config) : m_config(config)
     {
-        m_reader.z() = (float)m_config.z_offset;
+        m_reader.z() = static_cast<float>(get_active_z_offset(m_config));
         m_reader.apply_config(m_config);
         m_previous_layer = NULL;
         m_smooth_spiral = config.spiral_mode_smooth;

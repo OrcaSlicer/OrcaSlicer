@@ -363,6 +363,13 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "tool_change_on_wipe_tower"
             || opt_key == "purge_in_prime_tower"
             || opt_key == "z_offset"
+            || opt_key == "bed_type_specific_z_offset"
+            || opt_key == "cool_plate_z_offset"
+            || opt_key == "eng_plate_z_offset"
+            || opt_key == "hot_plate_z_offset"
+            || opt_key == "textured_plate_z_offset"
+            || opt_key == "textured_cool_plate_z_offset"
+            || opt_key == "supertack_plate_z_offset"
             || opt_key == "support_multi_bed_types"
             ) {
             steps.emplace_back(psWipeTower);

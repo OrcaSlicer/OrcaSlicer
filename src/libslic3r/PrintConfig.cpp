@@ -3530,6 +3530,14 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
 
+    def = this->add("filament_z_offset", coFloats);
+    def->label = L("Z offset");
+    def->tooltip = L("Additional filament-specific Z offset. This value is added to the active printer Z offset.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
     def = this->add("fuzzy_skin", coEnum);
     def->label = L("Fuzzy Skin");
     def->category = L("Others");
@@ -3721,6 +3729,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Arc fitting");
     def->tooltip = L("Enable this to get a G-code file which has G2 and G3 moves. "
                      "The fitting tolerance is same as the resolution.\n\n"
+                     "Note: Arc fitting cannot be used while an active Z offset is set.\n\n"
                      "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from "
                      "arc commands as these are split again into line segments by the firmware. This results in a reduction "
                      "in surface quality as line segments are converted to arcs by the slicer and then back to line segments "
@@ -3938,6 +3947,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_multi_bed_types", coBool);
     def->label = L("Support multi bed types");
     def->tooltip = L("Enable this option if you want to use multiple bed types.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("bed_type_specific_z_offset", coBool);
+    def->label = L("Bed type specific Z offset");
+    def->tooltip = L("Enable this option to override the global Z offset with bed type specific values.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6041,6 +6056,48 @@ void PrintConfigDef::init_fff_params()
                    "for example, if your endstop zero actually leaves the nozzle 0.3mm far "
                    "from the print bed, set this to -0.3 (or fix your endstop).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("cool_plate_z_offset", coFloat);
+    def->label = L("Smooth Cool Plate");
+    def->tooltip = L("This value will override the global Z offset when the Smooth Cool Plate bed type is active.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("eng_plate_z_offset", coFloat);
+    def->label = L("Engineering Plate");
+    def->tooltip = L("This value will override the global Z offset when the Engineering Plate bed type is active.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("hot_plate_z_offset", coFloat);
+    def->label = L("Smooth High Temp Plate");
+    def->tooltip = L("This value will override the global Z offset when the Smooth High Temp Plate bed type is active.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("textured_plate_z_offset", coFloat);
+    def->label = L("Textured PEI Plate");
+    def->tooltip = L("This value will override the global Z offset when the Textured PEI Plate bed type is active.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("textured_cool_plate_z_offset", coFloat);
+    def->label = L("Textured Cool Plate");
+    def->tooltip = L("This value will override the global Z offset when the Textured Cool Plate bed type is active.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("supertack_plate_z_offset", coFloat);
+    def->label = L("Cool Plate (SuperTack)");
+    def->tooltip = L("This value will override the global Z offset when the Cool Plate (SuperTack) bed type is active.");
+    def->sidetext = L("mm");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
     
@@ -8385,6 +8442,7 @@ std::set<std::string> filament_options_with_variant = {
     "filament_ironing_spacing",
     "filament_ironing_inset",
     "filament_ironing_speed",
+    "filament_z_offset",
     "activate_air_filtration",
     "activate_air_filtration_during_print",
     "activate_air_filtration_on_completion",

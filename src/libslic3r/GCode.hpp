@@ -98,7 +98,7 @@ public:
         m_enable_wrapping_detection(print_config.enable_wrapping_detection && (print_config.wrapping_exclude_area.values.size() > 2) && (slice_used_filaments.size() <= 1)),
         m_is_first_print(true),
         m_print_config(&print_config),
-        m_last_wipe_tower_print_z(print_config.z_offset.value)
+        m_last_wipe_tower_print_z(get_active_z_offset(print_config))
     {
         // initialize with the extruder offset of master extruder id
         m_extruder_offsets.resize(print_config.filament_map.size(), print_config.extruder_offset.get_at(print_config.master_extruder_id.value - 1));

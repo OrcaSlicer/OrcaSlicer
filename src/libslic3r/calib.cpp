@@ -478,7 +478,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
 
     const auto filament_diameter = config.filament_diameter.get_at(0);
     const auto print_flow_ratio  = config.print_flow_ratio;
-    const auto z_offset          = config.z_offset;
+    const double z_offset        = get_active_z_offset(config);
 
     const double e_per_mm        = CalibPressureAdvance::e_per_mm(m_line_width, m_height_layer, m_nozzle_diameter, filament_diameter,
                                                                   print_flow_ratio);

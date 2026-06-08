@@ -276,6 +276,7 @@ public:
 	static int def_width_thinner()	;
 
 	const bool				combine_side_text()		{ return m_combine_side_text; } // BBS: new param style
+    const boost::any&      stored_value() const { return m_value; }
 
 protected:
 	// current value

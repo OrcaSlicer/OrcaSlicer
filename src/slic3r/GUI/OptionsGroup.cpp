@@ -945,6 +945,29 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 	boost::any ret;
 	wxString text_value = wxString("");
 	const ConfigOptionDef* opt = config.def()->get(opt_key);
+    const ConfigOption* config_option = config.option(opt_key);
+
+    if (opt == nullptr)
+        return ret;
+
+    if (opt->nullable && config_option == nullptr)
+    {
+        switch (opt->type)
+        {
+        case coPercents:
+        case coFloats:
+        case coFloatsOrPercents:
+            return _(L("N/A"));
+        case coBools:
+            return ConfigOptionBoolsNullable::nil_value();
+        case coInts:
+            return ConfigOptionIntsNullable::nil_value();
+        case coEnums:
+            return ConfigOptionEnumsGenericNullable::nil_value();
+        default:
+            return ret;
+        }
+    }
 
     if (opt->nullable)
     {
@@ -952,7 +975,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
         {
         case coPercents:
         case coFloats: {
-            if (opt_index < 0 ? config.option(opt_key)->is_nil() : dynamic_cast<ConfigOptionVectorBase const*>(config.option(opt_key))->is_nil(opt_index))
+            if (opt_index < 0 ? config_option->is_nil() : dynamic_cast<ConfigOptionVectorBase const*>(config_option)->is_nil(opt_index))
                 ret = _(L("N/A"));
             else {
                 double val = opt->type == coFloats ?
@@ -963,7 +986,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             break;
         }
         case coFloatsOrPercents: {
-            if (opt_index < 0 ? config.option(opt_key)->is_nil() : dynamic_cast<ConfigOptionVectorBase const*>(config.option(opt_key))->is_nil(opt_index))
+            if (opt_index < 0 ? config_option->is_nil() : dynamic_cast<ConfigOptionVectorBase const*>(config_option)->is_nil(opt_index))
                 ret = _(L("N/A"));
             else {
                 const auto& value = config.option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx);

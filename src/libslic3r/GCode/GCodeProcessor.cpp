@@ -2081,9 +2081,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     if (manual_filament_change != nullptr)
         m_manual_filament_change = manual_filament_change->value;
 
-    const ConfigOptionFloat* z_offset = config.option<ConfigOptionFloat>("z_offset");
-    if (z_offset != nullptr)
-        m_z_offset = z_offset->value;
+    m_z_offset = static_cast<float>(get_active_z_offset(config));
 
 }
 
@@ -2412,9 +2410,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
         m_result.bed_type = (BedType)bed_type->value;
 
 
-    const ConfigOptionFloat* z_offset = config.option<ConfigOptionFloat>("z_offset");
-    if (z_offset != nullptr)
-        m_z_offset = z_offset->value;
+    m_z_offset = static_cast<float>(get_active_z_offset(config));
 }
 
 void GCodeProcessor::enable_stealth_time_estimator(bool enabled)
