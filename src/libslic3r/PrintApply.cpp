@@ -1154,18 +1154,24 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     }
                     opt_new_nozzle_map->values = opt_old_nozzle_map->values;
 
-                    auto opt_new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
-                    auto opt_old_filament_map = m_full_print_config.option<ConfigOptionInts>("filament_map");
-                    if (opt_new_filament_map && opt_old_filament_map &&
-                        opt_new_filament_map->values.size() == opt_old_filament_map->values.size()) {
-                        opt_new_filament_map->values = opt_old_filament_map->values;
-                    }
+                    auto map_mode_opt = new_full_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode");
+                    bool is_manual = map_mode_opt && (map_mode_opt->value == FilamentMapMode::fmmManual || map_mode_opt->value == FilamentMapMode::fmmNozzleManual);
+                    if (!is_manual) {
+                        auto opt_new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
+                        auto opt_old_filament_map = m_full_print_config.option<ConfigOptionInts>("filament_map");
+                        if (opt_new_filament_map && opt_old_filament_map &&
+                            opt_new_filament_map->values.size() == opt_old_filament_map->values.size()) {
+                            opt_new_filament_map->values = opt_old_filament_map->values;
+                        }
 
-                    auto opt_new_volume_map = new_full_config.option<ConfigOptionInts>("filament_volume_map");
-                    auto opt_old_volume_map = m_full_print_config.option<ConfigOptionInts>("filament_volume_map");
-                    if (opt_new_volume_map && opt_old_volume_map &&
-                        opt_new_volume_map->values.size() == opt_old_volume_map->values.size()) {
-                        opt_new_volume_map->values = opt_old_volume_map->values;
+                        auto opt_new_volume_map = new_full_config.option<ConfigOptionInts>("filament_volume_map");
+                        auto opt_old_volume_map = m_full_print_config.option<ConfigOptionInts>("filament_volume_map");
+                        if (opt_new_volume_map && opt_old_volume_map &&
+                            opt_new_volume_map->values.size() == opt_old_volume_map->values.size()) {
+                            opt_new_volume_map->values = opt_old_volume_map->values;
+                        }
+                    } else {
+                        BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Manual filament mapping active. Keeping user-specified filament_map and filament_volume_map.";
                     }
                 } else {
                     // Otherwise (clean start), initialize cyclic nozzle assignment on the Vortek carousel.
