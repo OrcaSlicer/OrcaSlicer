@@ -2375,7 +2375,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("ironing_angle", "quality_settings_ironing#angle-offset");
         optgroup->append_single_option_line("ironing_angle_fixed", "quality_settings_ironing#fixed-angle");
 
-        optgroup = page->new_optgroup("Z Contouring", L"param_advanced");
+        optgroup = page->new_optgroup(L("Z contouring"), L"param_advanced");
         optgroup->append_single_option_line("zaa_enabled", "quality_settings_z_contouring");
         optgroup->append_single_option_line("zaa_minimize_perimeter_height", "quality_settings_z_contouring#minimize-wall-height-angle");
         optgroup->append_single_option_line("zaa_min_z", "quality_settings_z_contouring#minimum-z-height");
