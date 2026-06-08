@@ -1936,26 +1936,17 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
         if (!filament_type_opt || !filament_printable_opt)
             return true;
 
-        const auto &filament_types = filament_type_opt->values;
-        const auto &filament_printable_values = filament_printable_opt->values;
-        std::vector<int> filament_map = get_real_filament_maps(config);
+        const std::vector<std::string>& filament_types = filament_type_opt->values;
+        const std::vector<int>&         filament_printables = filament_printable_opt->values;
+        const std::vector<int>&         filament_map        = get_real_filament_maps(config);
 
+        const int filament_count = std::min({(int) filament_types.size(), (int) filament_printables.size(), (int) filament_map.size()});
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
-            // Skip invalid / out-of-range filament ids: get_extruders may return 0 (1-based) or
-            // an index beyond what filament_printable was sized to (e.g. when the H2C dual-nozzle
-            // expansion left the per-extruder variant lists shorter than the used-filaments set,
-            // or when full_config(apply_extruder=true) compresses to per-extruder counts).
-            if (filament_id < 0 ||
-                static_cast<size_t>(filament_id) >= filament_types.size() ||
-                static_cast<size_t>(filament_id) >= filament_printable_values.size())
+            if (filament_id < 0 || filament_id >= filament_count)
                 continue;
-
             std::string filament_type = filament_types[filament_id];
-            int filament_printable_status = filament_printable_values[filament_id];
-
-            if (static_cast<size_t>(filament_id) >= filament_map.size())
-                continue;
+            int filament_printable_status = filament_printables[filament_id];
             int extruder_idx = filament_map[filament_id] - 1;
             if (extruder_idx < 0)
                 continue;

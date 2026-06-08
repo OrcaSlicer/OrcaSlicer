@@ -576,55 +576,47 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    for (auto &item : {L("Orca Cube"), L("OrcaSliced Combo"), L("Orca Tolerance Test"), L("3DBenchy"), L("Cali Cat"), L("Autodesk FDM Test"),
-                       L("Voron Cube"), L("Stanford Bunny"), L("Orca String Hell") }) {
-        append_menu_item(
-            sub_menu, wxID_ANY, _(item), "",
-            [type, item](wxCommandEvent&) {
-                std::vector<boost::filesystem::path> input_files;
-                bool                                 is_stringhell = false;
-                std::vector<std::string>             file_names;
-                bool                                 arrange_after_import = false;
-                if (item == L("Orca Cube")){
-                    file_names = { "OrcaCube_v2.drc", "OrcaPlug_v2.drc"};
-                    arrange_after_import = true;
-                }
-                else if (item == L("OrcaSliced Combo"))
-                {
-                    file_names = { "OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc" };
-                    arrange_after_import = true;
-                }
-                else if (item == L("Orca Tolerance Test"))
-                    file_names = { "OrcaToleranceTest.drc" };
-                else if (item == L("3DBenchy"))
-                    file_names = { "3DBenchy.drc" };
-                else if (item == L("Cali Cat"))
-                    file_names = { "calicat.drc" };
-                else if (item == L("Autodesk FDM Test"))
-                    file_names = { "ksr_fdmtest_v4.drc" };
-                else if (item == L("Voron Cube"))
-                    file_names = { "Voron_Design_Cube_v7.drc" };
-                else if (item == L("Stanford Bunny"))
-                    file_names = { "Stanford_Bunny.drc" };
-                else if (item == L("Orca String Hell")) {
-                    file_names   = { "Orca_stringhell.drc" };
-                    is_stringhell = true;
-                } else
-                    return;
+    // Orca: handy models shipped under <resources>/handy_models. Defining everything in one table
+    // keeps the menu label, the files to load and the per-model behavior in a single place and
+    // avoids repeating the label strings (and the value-vs-pointer comparison pitfalls that come
+    // with that). Labels are wrapped in L() so they are picked up for translation.
+    struct HandyModel
+    {
+        const char*              label;
+        std::vector<std::string> file_names;
+        bool                     arrange_after_import = false;
+        bool                     is_stringhell        = false;
+    };
+    static const std::vector<HandyModel> handy_models = {
+        {L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
+        {L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
+        {L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
+        {L("3DBenchy"),            {"3DBenchy.drc"}},
+        {L("Cali Cat"),            {"calicat.drc"}},
+        {L("Autodesk FDM Test"),   {"ksr_fdmtest_v4.drc"}},
+        {L("Voron Cube"),          {"Voron_Design_Cube_v7.drc"}},
+        {L("Stanford Bunny"),      {"Stanford_Bunny.drc"}},
+        {L("Orca String Hell"),    {"Orca_stringhell.drc"},                                   false, true},
+    };
 
-                input_files.reserve(file_names.size());
-                for (const auto& file_name : file_names)
+    for (const auto& model : handy_models) {
+        append_menu_item(
+            sub_menu, wxID_ANY, _(model.label), "",
+            [&model](wxCommandEvent&) {
+                std::vector<boost::filesystem::path> input_files;
+                input_files.reserve(model.file_names.size());
+                for (const auto& file_name : model.file_names)
                     input_files.push_back((boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / file_name));
 
                 plater()->load_files(input_files, LoadStrategy::LoadModel);
-                if (arrange_after_import) {
+                if (model.arrange_after_import) {
                     plater()->set_prepare_state(Job::PREPARE_STATE_MENU);
                     plater()->arrange();
                 }
 
                 // Suggest to change settings for stringhell
                 // This serves as mini tutorial for new users
-                if (is_stringhell) {
+                if (model.is_stringhell) {
                     wxGetApp().CallAfter([=] {
                         DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
 
