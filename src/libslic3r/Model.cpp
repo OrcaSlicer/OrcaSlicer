@@ -2573,6 +2573,12 @@ void ModelVolume::update_extruder_count(size_t extruder_count)
             break;
         }
     }
+    // Clear a stale per-volume filament assignment that no longer exists after the extruder count
+    // shrank (e.g. printer switch to one with fewer filaments), so downstream readers never index
+    // per-filament config vectors out of range. Ported from BambuStudio (STUDIO-15763).
+    if (extruder_id() > extruder_count) {
+        this->config.erase("extruder");
+    }
 }
 
 void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id)
@@ -2583,6 +2589,11 @@ void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_cou
             mmu_segmentation_facets.set_enforcer_block_type_limit(*this, (EnforcerBlockerType)(extruder_count), (EnforcerBlockerType)(filament_id), (EnforcerBlockerType)(replace_filament_id));
             break;
         }
+    }
+    // Same stale-assignment cleanup as update_extruder_count, for the filament-delete path.
+    // Ported from BambuStudio (STUDIO-15763).
+    if (extruder_id() > extruder_count) {
+        this->config.erase("extruder");
     }
 }
 
