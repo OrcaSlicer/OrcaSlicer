@@ -77,7 +77,8 @@ jobs:
             -p 'OrcaSlicer_Windows_*' \
             -p 'OrcaSlicer_Mac_universal_*' \
             -p 'OrcaSlicer_Linux_ubuntu_*' \
-            -p 'OrcaSlicer-Linux-flatpak_*'
+            -p 'OrcaSlicer-Linux-flatpak_*' \
+            -p 'PDB'
           echo "Downloaded artifact folders:"
           ls -1 artifacts
 
@@ -99,6 +100,8 @@ jobs:
           find artifacts -type f -name '*.AppImage' -exec cp -v {} upload/ \;
           # Flatpak bundles (x86_64 + aarch64).
           find artifacts -type f -name '*.flatpak' -exec cp -v {} upload/ \;
+          # Windows debug symbols (PDB archive, for developers).
+          find artifacts -type f -name 'Debug_PDB_*.7z' -exec cp -v {} upload/ \;
 
           # Portable Windows build is an unzipped folder artifact; re-zip it to the
           # released filename (this one stays a .zip on the release).
