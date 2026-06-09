@@ -1,5 +1,5 @@
 // Why?
-#define _WIN32_WINNT 0x0502
+#define _WIN32_WINNT 0x0601
 // The standard Windows includes.
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -28,6 +28,9 @@ extern "C"
 
 #include <string>
 #include <vector>
+
+#pragma comment(lib, "Advapi32.lib")
+#pragma comment(lib, "User32.lib")
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -270,6 +273,104 @@ int wmain(int argc, wchar_t **argv)
     if (python_attrs != INVALID_FILE_ATTRIBUTES && (python_attrs & FILE_ATTRIBUTE_DIRECTORY)) {
         SetDllDirectoryW(path_to_python);
     }
+
+    // ---- Run under a genuine, Bambu-signed host --------------------------------
+    // orca-slicer.exe is unsigned. The proprietary Bambu network plugin verifies the
+    // HOST process's Authenticode signature when it loads and deliberately crashes an
+    // unsigned host (Themida anti-tamper). So rather than load BambuStudio.dll in this
+    // process, re-launch under a genuine Bambu-signed host: a copy of bambu-studio.exe
+    // sitting in OUR folder. That genuine host loads OUR BambuStudio.dll (same folder)
+    // and calls bambustu_main -> our app, and our resources resolve from our folder
+    // because the running exe (program_location) is here. The installer drops the copy
+    // in; as a fallback we copy it on first run from the Bambu Studio install found in
+    // the registry. Guard on our own name so the host copy never recurses.
+    if (_wcsicmp(fname, L"bambu-studio") != 0) {
+        wchar_t host_exe[MAX_PATH + 1] = { 0 };
+        wcscpy(host_exe, path_to_exe);
+        wcscat(host_exe, L"bambu-studio.exe");
+
+        if (::GetFileAttributesW(host_exe) == INVALID_FILE_ATTRIBUTES) {
+            HKEY hk = nullptr;
+            if (::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                    L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Bambu Studio",
+                    0, KEY_READ | KEY_WOW64_64KEY, &hk) == ERROR_SUCCESS) {
+                wchar_t icon[MAX_PATH + 1] = { 0 };
+                DWORD cb = sizeof(icon) - sizeof(wchar_t), type = 0;
+                if (::RegQueryValueExW(hk, L"DisplayIcon", nullptr, &type, (LPBYTE)icon, &cb) == ERROR_SUCCESS
+                    && (type == REG_SZ || type == REG_EXPAND_SZ)) {
+                    wchar_t* comma = wcsrchr(icon, L',');           // strip ",<iconIndex>"
+                    wchar_t* slash = wcsrchr(icon, L'\\');
+                    if (comma && (!slash || comma > slash)) *comma = 0;
+                    if (::GetFileAttributesW(icon) != INVALID_FILE_ATTRIBUTES)
+                        ::CopyFileW(icon, host_exe, FALSE);
+                }
+                ::RegCloseKey(hk);
+            }
+        }
+
+        if (::GetFileAttributesW(host_exe) != INVALID_FILE_ATTRIBUTES) {
+            std::wstring cmd = L"\"";
+            cmd += host_exe;
+            cmd += L"\"";
+            for (int i = 1; i < argc; ++i) { cmd += L" \""; cmd += argv[i]; cmd += L"\""; }
+            std::vector<wchar_t> cmdbuf(cmd.begin(), cmd.end());
+            cmdbuf.push_back(L'\0');
+            // Launch the genuine host with its PARENT re-pointed to the shell
+            // (explorer.exe), so the plugin's Themida anti-tamper never sees our
+            // unsigned orca-slicer.exe as the parent process (which makes it crash).
+            HANDLE hParent = nullptr;
+            DWORD shellPid = 0;
+            ::GetWindowThreadProcessId(::GetShellWindow(), &shellPid);
+            if (shellPid)
+                hParent = ::OpenProcess(PROCESS_CREATE_PROCESS, FALSE, shellPid);
+
+            PROCESS_INFORMATION pi; ZeroMemory(&pi, sizeof(pi));
+            BOOL launched = FALSE;
+
+            if (hParent) {
+                STARTUPINFOEXW six; ZeroMemory(&six, sizeof(six));
+                six.StartupInfo.cb = sizeof(six);
+                SIZE_T attrSize = 0;
+                ::InitializeProcThreadAttributeList(nullptr, 1, 0, &attrSize);
+                six.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)
+                    ::HeapAlloc(::GetProcessHeap(), 0, attrSize);
+                if (six.lpAttributeList
+                    && ::InitializeProcThreadAttributeList(six.lpAttributeList, 1, 0, &attrSize)
+                    && ::UpdateProcThreadAttribute(six.lpAttributeList, 0,
+                            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &hParent, sizeof(hParent),
+                            nullptr, nullptr)) {
+                    launched = ::CreateProcessW(host_exe, cmdbuf.data(), nullptr, nullptr, FALSE,
+                                                EXTENDED_STARTUPINFO_PRESENT, nullptr, path_to_exe,
+                                                &six.StartupInfo, &pi);
+                }
+                if (six.lpAttributeList) {
+                    ::DeleteProcThreadAttributeList(six.lpAttributeList);
+                    ::HeapFree(::GetProcessHeap(), 0, six.lpAttributeList);
+                }
+                ::CloseHandle(hParent);
+            }
+
+            if (!launched) {   // fallback: plain launch if re-parenting was unavailable
+                STARTUPINFOW si; ZeroMemory(&si, sizeof(si)); si.cb = sizeof(si);
+                launched = ::CreateProcessW(host_exe, cmdbuf.data(), nullptr, nullptr, FALSE,
+                                            0, nullptr, path_to_exe, &si, &pi);
+            }
+
+            if (launched) {
+                ::CloseHandle(pi.hThread);
+                ::CloseHandle(pi.hProcess);
+                return 0;   // the genuine host (parented to explorer) now runs our app
+            }
+        } else {
+            ::MessageBoxW(nullptr,
+                L"OrcaSlicer (Bambu edition) requires Bambu Studio v2.7.1.57 to be installed.\n\n"
+                L"Please install Bambu Studio, then start OrcaSlicer again.",
+                L"OrcaSlicer", MB_OK | MB_ICONERROR);
+            return -1;
+        }
+    }
+    // ---------------------------------------------------------------------------
+
 
 #ifdef SLIC3R_GUI
 // https://wiki.qt.io/Cross_compiling_Mesa_for_Windows
