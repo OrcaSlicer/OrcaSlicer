@@ -4940,6 +4940,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         // Parse the conflict body to extract the error code and server profile id
         int conflict_code = 0;
         std::string conflict_setting_id;
+        std::string conflict_preset_name;
         try {
             json conflict_body = json::parse(body_str);
             if (conflict_body.contains("code"))
@@ -4947,9 +4948,15 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
             if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")
                 && conflict_body["server_profile"]["id"].is_string())
                 conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
+            // The local preset name is injected into the conflict body by the agent (sync_push),
+            // since the server response itself omits it for tombstone (-3) conflicts.
+            if (conflict_body.contains("name") && conflict_body["name"].is_string())
+                conflict_preset_name = conflict_body["name"].get<std::string>();
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
         }
+        // Capture the user id up front so the force-push closure does not have to touch m_agent.
+        std::string conflict_user_id = m_agent ? m_agent->get_user_id() : std::string();
         auto* plater = wxGetApp().plater();
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
@@ -4984,7 +4991,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     restart_sync_user_preset();
                     return true;
                 },
-                [this, conflict_setting_id](wxEvtHandler*) {
+                [this, conflict_setting_id, conflict_preset_name, conflict_user_id](wxEvtHandler*) {
                     if (mainframe == nullptr)
                         return false;
                     MessageDialog
@@ -4994,7 +5001,13 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
-                    force_push_conflicting_preset(conflict_setting_id);
+                    std::string setting_id = conflict_setting_id;
+                    if (setting_id.empty()) {
+                        setting_id = OrcaCloudServiceAgent::generate_uuid_for_setting_id(conflict_preset_name, conflict_user_id);
+                        BOOST_LOG_TRIVIAL(info) << "conflict setting id empty, generated one: " << setting_id;
+                    }
+
+                    force_push_conflicting_preset(setting_id);
                     return true;
                 });
         }
