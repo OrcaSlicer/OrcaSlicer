@@ -261,6 +261,7 @@ static bool is_k1_family(const std::string& model)
 {
     static const std::unordered_set<std::string> k1_models = {
         "K1 SE",
+        "K1C" ,
     };
     return k1_models.count(model) > 0;
 }
@@ -282,7 +283,8 @@ bool CrealityPrint::supports_multi_color_print() const
         || m_model == "F012"    // K2 Pro
         || m_model == "F021"    // K2
         || m_model == "F022"    // SPARKX i7
-        || m_model == "K1 SE";  // K1 SE
+        || m_model == "K1 SE"   // K1 SE
+        || m_model == "K1C";    // K1C
 }
 
 std::string CrealityPrint::model_name() const
@@ -293,6 +295,7 @@ std::string CrealityPrint::model_name() const
         {"F021", "K2"},
         {"F022", "SPARKX i7"},
         {"K1 SE", "K1 SE"},
+        {"K1C", "K1C"},
     };
     query_model();
     if (m_model.empty())
