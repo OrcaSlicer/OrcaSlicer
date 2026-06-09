@@ -1,0 +1,22 @@
+<<<<<<< HEAD
+
+        if (DevPrinterConfigUtil::support_print_check_firmware_for_tpu_left(printer_type)) {
+            m_firmware_support_print_tpu_left = get_flag_bits_no_border(fun2, 7) == 1;
+        }
+    }
+
+    /* Per-filament-index AMS slot mapping reported by the printer (task-level state) */
+    if (print.contains("mapping") && print["mapping"].is_array()) {
+        std::vector<uint16_t> new_mapping;
+        new_mapping.reserve(print["mapping"].size());
+        for (const auto& v : print["mapping"]) {
+            new_mapping.push_back(static_cast<uint16_t>(v.get<unsigned>()));
+        }
+        print_job_filament_mapping = std::move(new_mapping);
+=======
+        is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
+        is_support_model_internal_storage = (get_flag_bits_no_border(fun2, 17) == 1);
+>>>>>>> 924b889e9 (Enable full Bambu (BBL) printer handling in OrcaSlicer)
+    }
+
+    /*aux*/

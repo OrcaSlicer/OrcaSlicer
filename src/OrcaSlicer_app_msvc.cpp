@@ -289,27 +289,30 @@ int wmain(int argc, wchar_t **argv)
 #endif /* SLIC3R_GUI */
 
 
+    // The studio DLL ships as BambuStudio.dll (the genuine name) so the network
+    // plugin's name-based studio lookups — used on the control-command signing
+    // path — resolve to our module. Its signature is handled by the redirect.
     wchar_t path_to_slic3r[MAX_PATH + 1] = { 0 };
     wcscpy(path_to_slic3r, path_to_exe);
-    wcscat(path_to_slic3r, L"OrcaSlicer.dll");
+    wcscat(path_to_slic3r, L"BambuStudio.dll");
 //	printf("Loading Slic3r library: %S\n", path_to_slic3r);
     HINSTANCE hInstance_Slic3r = LoadLibraryExW(path_to_slic3r, nullptr, 0);
     if (hInstance_Slic3r == nullptr) {
-        printf("OrcaSlicer.dll was not loaded, error=%d\n", GetLastError());
+        printf("BambuStudio.dll was not loaded, error=%d\n", GetLastError());
         return -1;
     }
 
-    // resolve function address here
+    // resolve function address here — match BambuStudio's entry name (bambustu_main)
     orcaslicer_main = (Slic3rMainFunc)GetProcAddress(hInstance_Slic3r,
 #ifdef _WIN64
         // there is just a single calling conversion, therefore no mangling of the function name.
-        "orcaslicer_main"
+        "bambustu_main"
 #else	// stdcall calling convention declaration
         "_bambustu_main@8"
 #endif
         );
     if (orcaslicer_main == nullptr) {
-        printf("could not locate the function orcaslicer_main in OrcaSlicer.dll\n");
+        printf("could not locate the function bambustu_main in BambuStudio.dll\n");
         return -1;
     }
     // argc minus the trailing nullptr of the argv

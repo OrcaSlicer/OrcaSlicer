@@ -7650,6 +7650,16 @@ extern "C" {
         // Call the UTF8 main.
         return CLI().run(argc, argv_ptrs.data());
     }
+
+    // Bambu-plugin compat: a genuine, Bambu-signed bambu-studio.exe loads
+    // "BambuStudio.dll" and calls `bambustu_main`. To satisfy the network
+    // plugin's signed-host Authenticode gate we stage OUR dll (renamed
+    // BambuStudio.dll) under that genuine exe; expose `bambustu_main` as an
+    // alias forwarding to orcaslicer_main so the genuine launcher can call us.
+    __declspec(dllexport) int __stdcall bambustu_main(int argc, wchar_t **argv)
+    {
+        return orcaslicer_main(argc, argv);
+    }
 }
 #else /* _MSC_VER */
 int main(int argc, char **argv)

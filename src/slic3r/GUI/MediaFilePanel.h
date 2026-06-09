@@ -19,6 +19,7 @@ class Button;
 class SwitchButton;
 class Label;
 class StaticBox;
+class TabCtrl;
 class PrinterFileSystem;
 
 namespace Slic3r {
@@ -43,10 +44,11 @@ public:
 public:
     void Rescale();
 
-    void SetSelecting(bool selecting);
+    void SetSelecting(bool selecting, bool selectall);
 
 private:
     void modeChanged(wxCommandEvent & e);
+    void updateStorageTabVisibility();
 
     void fetchUrl(boost::weak_ptr<PrinterFileSystem> fs);
 
@@ -63,6 +65,8 @@ private:
     ::Button    *m_button_all = nullptr;
     ::Label     *m_switch_label = nullptr;
 
+    ::TabCtrl *     m_storage_tab = nullptr;
+
     ::StaticBox *   m_type_panel    = nullptr;
     ::Button *      m_button_video   = nullptr;
     ::Button *      m_button_timelapse = nullptr;
@@ -73,10 +77,13 @@ private:
     ::Button *m_button_download = nullptr;
     ::Button *m_button_refresh = nullptr;
     ::Button *m_button_management = nullptr;
+    ::Button *m_button_select_all = nullptr;
 
     ImageGrid * m_image_grid   = nullptr;
 
     bool m_external = true;
+    bool m_support_internal_storage = false;
+    bool m_support_internal_timelapse = false;
 
     std::string m_machine;
     std::string m_lan_ip;
