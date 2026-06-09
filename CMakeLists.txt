@@ -1185,10 +1185,14 @@ set(CPACK_GENERATOR NSIS)
 set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
   SetRegView 64
   ReadRegStr $0 HKLM 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Bambu Studio' 'DisplayIcon'
-  StrCmp $0 '' orca_skip_bambu_host 0
-  IfFileExists '$0' 0 orca_skip_bambu_host
+  StrCmp $0 '' orca_no_bambu 0
+  IfFileExists '$0' 0 orca_no_bambu
   CopyFiles /SILENT '$0' '$INSTDIR\\bambu-studio.exe'
-  orca_skip_bambu_host:
+  Goto orca_host_done
+  orca_no_bambu:
+  IfFileExists '$INSTDIR\\BambuStudio.dll' 0 orca_host_done
+  Rename '$INSTDIR\\BambuStudio.dll' '$INSTDIR\\OrcaSlicer.dll'
+  orca_host_done:
 ")
 
 include(CPack)

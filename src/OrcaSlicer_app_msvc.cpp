@@ -309,6 +309,18 @@ int wmain(int argc, wchar_t **argv)
         }
 
         if (::GetFileAttributesW(host_exe) != INVALID_FILE_ATTRIBUTES) {
+            // The genuine host loads its studio dll by the fixed name BambuStudio.dll;
+            // ensure it exists (a vanilla install may ship it as OrcaSlicer.dll).
+            {
+                wchar_t studio_dll[MAX_PATH + 1] = { 0 };
+                wcscpy(studio_dll, path_to_exe); wcscat(studio_dll, L"BambuStudio.dll");
+                if (::GetFileAttributesW(studio_dll) == INVALID_FILE_ATTRIBUTES) {
+                    wchar_t orca_dll[MAX_PATH + 1] = { 0 };
+                    wcscpy(orca_dll, path_to_exe); wcscat(orca_dll, L"OrcaSlicer.dll");
+                    if (::GetFileAttributesW(orca_dll) != INVALID_FILE_ATTRIBUTES)
+                        ::CopyFileW(orca_dll, studio_dll, FALSE);
+                }
+            }
             std::wstring cmd = L"\"";
             cmd += host_exe;
             cmd += L"\"";
@@ -361,13 +373,9 @@ int wmain(int argc, wchar_t **argv)
                 ::CloseHandle(pi.hProcess);
                 return 0;   // the genuine host (parented to explorer) now runs our app
             }
-        } else {
-            ::MessageBoxW(nullptr,
-                L"OrcaSlicer (Bambu edition) requires Bambu Studio v2.7.1.57 to be installed.\n\n"
-                L"Please install Bambu Studio, then start OrcaSlicer again.",
-                L"OrcaSlicer", MB_OK | MB_ICONERROR);
-            return -1;
         }
+        // No Bambu Studio host present (or fork failed): fall through and load the
+        // studio dll in-process -> plain OrcaSlicer ("vanilla mode", no Bambu network).
     }
     // ---------------------------------------------------------------------------
 
@@ -395,9 +403,14 @@ int wmain(int argc, wchar_t **argv)
     // path — resolve to our module. Its signature is handled by the redirect.
     wchar_t path_to_slic3r[MAX_PATH + 1] = { 0 };
     wcscpy(path_to_slic3r, path_to_exe);
-    wcscat(path_to_slic3r, L"BambuStudio.dll");
+    wcscat(path_to_slic3r, L"OrcaSlicer.dll");
 //	printf("Loading Slic3r library: %S\n", path_to_slic3r);
     HINSTANCE hInstance_Slic3r = LoadLibraryExW(path_to_slic3r, nullptr, 0);
+    if (hInstance_Slic3r == nullptr) {
+        // a Bambu install ships the studio dll as BambuStudio.dll -- try that name too.
+        wcscpy(path_to_slic3r, path_to_exe); wcscat(path_to_slic3r, L"BambuStudio.dll");
+        hInstance_Slic3r = LoadLibraryExW(path_to_slic3r, nullptr, 0);
+    }
     if (hInstance_Slic3r == nullptr) {
         printf("BambuStudio.dll was not loaded, error=%d\n", GetLastError());
         return -1;

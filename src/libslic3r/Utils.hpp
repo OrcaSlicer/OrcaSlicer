@@ -110,6 +110,9 @@ void set_resources_dir(const std::string &path);
 // Return a full path to the resources directory.
 const std::string& resources_dir();
 
+// See Utils.cpp: true in "Bambu mode" (genuine host), false in "vanilla mode".
+bool is_bambu_host_mode();
+
 //BBS: add temp dir
 void set_temporary_dir(const std::string &path);
 const std::string& temporary_dir();

@@ -250,6 +250,28 @@ const std::string& resources_dir()
     return g_resources_dir;
 }
 
+// True when running under a genuine Bambu-signed host (bambu-studio.exe), so the Bambu
+// network plugin + signing hooks + BBL device features are available ("Bambu mode").
+// False when launched directly via orca-slicer.exe with no Bambu Studio present
+// ("vanilla mode": plain OrcaSlicer). Decided once from the host exe name. Off-Windows
+// this is always true (unchanged behavior).
+bool is_bambu_host_mode()
+{
+#ifdef WIN32
+    static int cached = -1;
+    if (cached < 0) {
+        wchar_t exe[MAX_PATH] = { 0 };
+        ::GetModuleFileNameW(nullptr, exe, MAX_PATH);
+        const wchar_t* suffix = L"bambu-studio.exe";   // genuine host => Bambu mode
+        size_t exe_len = wcslen(exe), suf_len = wcslen(suffix);
+        cached = (exe_len >= suf_len && _wcsicmp(exe + exe_len - suf_len, suffix) == 0) ? 1 : 0;
+    }
+    return cached == 1;
+#else
+    return true;
+#endif
+}
+
 //BBS: add temporary dir
 static std::string g_temporary_dir;
 void set_temporary_dir(const std::string &dir)
