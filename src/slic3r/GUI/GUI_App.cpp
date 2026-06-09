@@ -4953,16 +4953,25 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         auto* plater = wxGetApp().plater();
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
-            if (conflict_code == -1) {
+
+            switch (conflict_code) {
+            case -1:
                 text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            } else {
+                break;
+            case -2:
                 text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            }
+                break;
+            case -3:
+                text = _u8L("Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+                            "Do you want to push this new copy to the cloud?");
+                break;
+            };
+
             plater->get_notification_manager()->push_orca_sync_conflict_notification(
                 text,
-                [this](wxEvtHandler*) {
+                conflict_code == -3 ? nullptr : std::function<bool(wxEvtHandler*)>{[this](wxEvtHandler*) {
                     // Runs on the GUI thread (on_http_error is a queued wx event); restart_sync_user_preset()
                     // already joins the old sync thread off the UI thread, so no extra thread is needed here.
                     if (is_closing() || !m_agent || !preset_bundle)
@@ -4970,7 +4979,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
                     restart_sync_user_preset();
                     return true;
-                },
+                }},
                 [this, conflict_setting_id](wxEvtHandler*) {
                     if (mainframe == nullptr)
                         return false;

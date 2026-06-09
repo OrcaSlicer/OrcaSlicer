@@ -2416,12 +2416,18 @@ void NotificationManager::OrcaSyncConflictNotification::render_text(ImGuiWrapper
 	}
 
 	const float action_y = starting_y + m_endlines.size() * shift_y;
-	const std::string pull_text = _u8L("Pull");
-	render_hyperlink_action(imgui, x_offset, action_y, pull_text, "##orca_sync_pull",
-		[this] { if (m_pull_callback && m_pull_callback(m_evt_handler)) close(); });
+	std::string pull_text = "";
+	float padding = 0.f;
+
+	if (m_pull_callback) {
+		pull_text = _u8L("Pull");
+		padding = ImGui::CalcTextSize((pull_text + "   ").c_str()).x;
+		render_hyperlink_action(imgui, x_offset, action_y, pull_text, "##orca_sync_pull",
+			[this] { if (m_pull_callback && m_pull_callback(m_evt_handler)) close(); });
+	}
 	if (m_force_push_callback) {
 		const std::string force_push_text = _u8L("Force push");
-		const float force_x = x_offset + ImGui::CalcTextSize((pull_text + "   ").c_str()).x;
+		const float force_x = x_offset + padding;
 		render_hyperlink_action(imgui, force_x, action_y, force_push_text, "##orca_sync_force_push",
 			[this] { if (m_force_push_callback && m_force_push_callback(m_evt_handler)) close(); });
 	}
