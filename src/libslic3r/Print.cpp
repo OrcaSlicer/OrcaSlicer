@@ -3435,6 +3435,10 @@ void Print::_make_wipe_tower()
         for (size_t i = 0; i < number_of_extruders; ++i)
             wipe_tower.set_extruder(i, m_config);
 
+        // Needed by WipeTower::finish_block to clamp the contact-layer pre-extrusion
+        // travel; without it the clamp collapses the start move to X0 (see WipeTower.cpp).
+        wipe_tower.set_shared_print_bed(this->get_extruder_shared_printable_polygon());
+
         // BBS: remove priming logic
         // m_wipe_tower_data.priming = Slic3r::make_unique<std::vector<WipeTower::ToolChangeResult>>(
         //    wipe_tower.prime((float)this->skirt_first_layer_height(), m_wipe_tower_data.tool_ordering.all_extruders(), false));
