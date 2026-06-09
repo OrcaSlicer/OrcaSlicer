@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-
+#include <string>
 
 /*
  * The utf8_check() function scans the '\0'-terminated string starting
@@ -68,63 +68,97 @@ unsigned char *utf8_check(unsigned char *s)
     return NULL;
 }
 
-
-static const char* target;
-
-void error_exit(const char* error, const char* filename)
-{
-    std::cerr << "\n\tError: " << error << ": " << filename << "\n"
-              << "\tTarget: " << target << "\n"
-              << std::endl;
-    std::exit(-2);
-}
-
-
-void utf8_check_file(const char* filename)
+// ORCA
+bool check_file(const char* target, const char* filename)
 {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    const auto size = file.tellg();
-
-    if (size == 0) {
-        return;
+    if (!file.is_open()) {
+        std::cerr << "\n\tError: Could not open file: " << filename
+                  << "\n\tTarget: " << target << "\n" << std::endl;
+        return false;
     }
+
+    const std::streampos pos = file.tellg();
+
+    // Fix: tellg() returns -1 (cast to streampos) on failure.
+    // Also guard against implausibly large files before casting to size_t.
+    if (pos < 0) {
+        std::cerr << "\n\tError: Could not determine file size: " << filename
+                  << "\n\tTarget: " << target << "\n" << std::endl;
+        return false;
+    }
+
+    const auto size = static_cast<std::size_t>(pos);
+
+    if (size == 0)
+        return true;
 
     file.seekg(0, std::ios::beg);
     std::vector<char> buffer(size);
 
-    if (file.read(buffer.data(), size)) {
-        buffer.push_back('\0');
-
-        // Check UTF-8 validity
-        if (utf8_check(reinterpret_cast<unsigned char*>(buffer.data())) != nullptr) {
-            error_exit("Source file does not contain (valid) UTF-8", filename);
-        }
-
-        // Check against a BOM mark
-        if (buffer.size() >= 3
-            && buffer[0] == '\xef'
-            && buffer[1] == '\xbb'
-            && buffer[2] == '\xbf') {
-            error_exit("Source file is valid UTF-8 but contains a BOM mark", filename);
-        }
-    } else {
-        error_exit("Could not read source file", filename);
+    // Fix: cast size to streamsize explicitly — streampos and streamsize are
+    // distinct types and passing streampos where streamsize is expected is
+    // implementation-defined behaviour on some platforms.
+    if (!file.read(buffer.data(), static_cast<std::streamsize>(size))) {
+        std::cerr << "\n\tError: Could not read source file: " << filename
+                  << "\n\tTarget: " << target << "\n" << std::endl;
+        return false;
     }
-}
 
+    buffer.push_back('\0');
+
+    if (utf8_check(reinterpret_cast<unsigned char*>(buffer.data())) != nullptr) {
+        std::cerr << "\n\tError: Source file does not contain (valid) UTF-8: " << filename
+                  << "\n\tTarget: " << target << "\n" << std::endl;
+        return false;
+    }
+
+    if (buffer.size() >= 3
+        && buffer[0] == '\xef'
+        && buffer[1] == '\xbb'
+        && buffer[2] == '\xbf') {
+        std::cerr << "\n\tError: Source file is valid UTF-8 but contains a BOM mark: " << filename
+                  << "\n\tTarget: " << target << "\n" << std::endl;
+        return false;
+    }
+
+    return true;
+}
 
 int main(int argc, char const *argv[])
 {
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <program/library> <file[s]>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <target> <file|@responsefile> [...]" << std::endl;
         return -1;
     }
 
-    target = argv[1];
+    const char* target = argv[1];
     
+    // Collect all files — support @responsefile syntax
+    std::vector<std::string> files;
     for (int i = 2; i < argc; i++) {
-        utf8_check_file(argv[i]);
+        if (argv[i][0] == '@') {
+            // Response file — read paths from it, one per line
+            std::ifstream rsp(argv[i] + 1);
+            if (!rsp.is_open()) {
+                std::cerr << "Could not open response file: " << (argv[i]+1) << std::endl;
+                return -1;
+            }
+            std::string line;
+            while (std::getline(rsp, line)) {
+                if (!line.empty())
+                    files.push_back(line);
+            }
+        } else {
+            files.push_back(argv[i]);
+        }
     }
 
-    return 0;
+    bool all_ok = true;
+    for (const auto& f : files) {
+        if (!check_file(target, f.c_str()))
+            all_ok = false;
+    }
+
+    return all_ok ? 0 : -2;
 }
