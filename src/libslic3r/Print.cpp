@@ -692,6 +692,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                             // single_object_exception.object = instance.model_instance->get_object();
                             //ORCA: Pass ModelInstance instead of ModelObject for better selection
                             single_object_exception.object = instance.model_instance;
+							single_object_exception.is_warning = true;  // 设置为警告
+                            single_object_exception.type = STRING_EXCEPT_OBJECT_COLLISION_IN_SEQ_PRINT;
                             has_exception                  = true;
                         }
                         else {
