@@ -5149,6 +5149,12 @@ LayerResult GCode::process_layer(
     bool has_insert_wrapping_detection_gcode = false;
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
+    for (unsigned int extruder_id : layer_tools.extruders)
+    {
+        if (print.config().skirt_type == stCombined && !print.skirt().empty())
+            gcode += generate_skirt(print, print.skirt(), Point(0, 0), layer.object()->config().skirt_start_angle, layer_tools, layer,
+                                    extruder_id);
+		
     // Orca: Print unified global brim before any object.
     // Only do this if `combine_brims` is enabled and we are printing by layer.
     if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
@@ -5182,11 +5188,6 @@ LayerResult GCode::process_layer(
         }
     }
 
-    for (unsigned int extruder_id : layer_tools.extruders)
-    {
-        if (print.config().skirt_type == stCombined && !print.skirt().empty())
-            gcode += generate_skirt(print, print.skirt(), Point(0, 0), layer.object()->config().skirt_start_angle, layer_tools, layer,
-                                    extruder_id);
 
         if (print.config().print_sequence == PrintSequence::ByLayer && m_enable_exclude_object && print.config().support_object_skip_flush.value) {
             std::vector<size_t> filament_instances_id;
