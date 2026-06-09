@@ -1580,8 +1580,9 @@ void PreferencesDialog::create_items()
 
    
     auto item_realistic_smooth_normals = create_item_checkbox(
-        _L("Smooth Normals"), 
-        _L("Applies smooth normals to the realistic view."),
+        _L("Smooth normals"),
+        _L("Applies smooth normals to the realistic view.\n\nRequires manual scene reload to take effect "
+                                "(right-click on 3D view → \"Reload All\")."),
         SETTING_OPENGL_PHONG_SMOOTH_NORMALS
     );
     g_sizer->Add(item_realistic_smooth_normals);
