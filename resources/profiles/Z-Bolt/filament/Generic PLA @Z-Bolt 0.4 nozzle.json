@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Z-Bolt 0.4 nozzle",
-	"inherits": "Generic PLA @Z-Bolt",
-	"renamed_from": "Z-Bolt PLA @0.4 nozzle",
+	"inherits": "Generic PLA @Z-Bolt Base",
+	"renamed_from": "Z-Bolt PLA;Generic PLA @Z-Bolt;Z-Bolt PLA @0.4 nozzle",
 	"from": "system",
 	"setting_id": "GFSL100",
 	"filament_id": "GFL100",

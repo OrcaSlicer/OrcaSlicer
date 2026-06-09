@@ -30,6 +30,15 @@ using namespace nlohmann;
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
 #define SETTING_CLOUD_PROVIDERS "cloud_providers"
+#define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
+#define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
+#define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
+#define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
+#define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
+#define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
+#define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
+#define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
+#define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
@@ -81,6 +90,7 @@ public:
 	std::string get_language_code();
 	std::string get_hms_host();
 	bool get_stealth_mode();
+	bool get_hide_login_side_panel();
 
 	// Clear and reset to defaults.
 	void 			   	reset();

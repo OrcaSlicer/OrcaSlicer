@@ -8,6 +8,7 @@
 #include "progressive_hulls.h"
 #include "progressive_hulls_cost_and_placement.h"
 #include "../decimate.h"
+#include "../decimate_trivial_callbacks.h"
 #include "../max_faces_stopping_condition.h"
 IGL_INLINE bool igl::copyleft::progressive_hulls(
   const Eigen::MatrixXd & V,
@@ -19,11 +20,16 @@ IGL_INLINE bool igl::copyleft::progressive_hulls(
 {
   int m = F.rows();
   Eigen::VectorXi I;
+  decimate_pre_collapse_callback always_try;
+  decimate_post_collapse_callback never_care;
+  decimate_trivial_callbacks(always_try,never_care);
   return decimate(
     V,
     F,
     progressive_hulls_cost_and_placement,
     max_faces_stopping_condition(m,(const int)m,max_m),
+    always_try,
+    never_care,
     U,
     G,
     J,

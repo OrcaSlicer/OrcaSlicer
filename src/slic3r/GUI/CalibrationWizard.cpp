@@ -761,6 +761,7 @@ void PressureAdvanceWizard::on_cali_start()
             calib_info.extruder_id       = preset_page->get_extruder_id(calib_info.ams_id);
             calib_info.extruder_type     = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
+            calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
             calib_info.select_ams         = std::to_string(selected_tray_id);
             Preset *preset               = selected_filaments.begin()->second;
             Preset * temp_filament_preset = new Preset(preset->type, preset->name + "_temp");
@@ -1293,6 +1294,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             calib_info.extruder_id = preset_page->get_extruder_id(calib_info.ams_id);
             calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
+            calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
             Preset* preset = selected_filaments.begin()->second;
             temp_filament_preset = new Preset(preset->type, preset->name + "_temp");
             temp_filament_preset->config = preset->config;
@@ -1708,6 +1710,7 @@ void MaxVolumetricSpeedWizard::on_cali_start()
         calib_info.extruder_id        = preset_page->get_extruder_id(calib_info.ams_id);
         calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
         calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
+        calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
         calib_info.filament_prest = selected_filaments.begin()->second;
         std::map<int, DynamicPrintConfig> filament_list = preset_page->get_filament_ams_list();
         calib_info.filament_color = filament_list[selected_filaments.begin()->first].opt_string("filament_colour", 0u);

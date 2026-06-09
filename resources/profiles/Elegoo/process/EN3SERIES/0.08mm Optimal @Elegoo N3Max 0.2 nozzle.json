@@ -1,0 +1,8 @@
+{
+	"type": "process",
+	"name": "0.08mm Optimal @Elegoo N3Max 0.2 nozzle",
+	"inherits": "0.10mm Standard @Elegoo N3Max 0.2 nozzle",
+	"layer_height": "0.08",
+	"settings_id": "PEN3Max02008",
+	"instantiation": "true"
+}

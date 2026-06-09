@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "FILL3D PPCF @System",
+	"from": "system",
+	"setting_id": "FILL3D005SYS",
+	"instantiation": "true",
+	"inherits": "FILL3D PPCF @base",
+	"compatible_printers": []
+}

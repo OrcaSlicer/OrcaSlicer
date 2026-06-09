@@ -8,6 +8,7 @@
 #ifndef IGL_XML_WRITE_TRIANGLE_MESH_H
 #define IGL_XML_WRITE_TRIANGLE_MESH_H
 #include "../igl_inline.h"
+#include "../FileEncoding.h"
 
 #include <Eigen/Core>
 #include <string>
@@ -16,24 +17,22 @@ namespace igl
 {
   namespace xml
   {
-    // write mesh to a file with automatic detection of file format.  supported:
-    // dae, or any of the formats supported by igl::write_triangle_mesh
-    // 
-    // Templates:
-    //   Scalar  type for positions and vectors (will be read as double and cast
-    //     to Scalar)
-    //   Index  type for indices (will be read as int and cast to Index)
-    // Inputs:
-    //   str  path to file
-    //   V  eigen double matrix #V by 3
-    //   F  eigen int matrix #F by 3
-    // Returns true iff success
+    /// write mesh to a file with automatic detection of file format.  supported:
+    /// dae, or any of the formats supported by igl::write_triangle_mesh
+    /// 
+    /// @tparam Scalar  type for positions and vectors (will be read as double and cast
+    ///     to Scalar)
+    /// @tparam Index  type for indices (will be read as int and cast to Index)
+    /// @param[in] str  path to file
+    /// @param[in] V  eigen double matrix #V by 3
+    /// @param[in] F  eigen int matrix #F by 3
+    /// @return true iff success
     template <typename DerivedV, typename DerivedF>
     IGL_INLINE bool write_triangle_mesh(
       const std::string str,
-      const Eigen::PlainObjectBase<DerivedV>& V,
-      const Eigen::PlainObjectBase<DerivedF>& F,
-      const bool ascii = true);
+      const Eigen::MatrixBase<DerivedV>& V,
+      const Eigen::MatrixBase<DerivedF>& F,
+      const FileEncoding fe = FileEncoding::Ascii);
   }
 }
 
