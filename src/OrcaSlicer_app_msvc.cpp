@@ -301,8 +301,22 @@ int wmain(int argc, wchar_t **argv)
                     wchar_t* comma = wcsrchr(icon, L',');           // strip ",<iconIndex>"
                     wchar_t* slash = wcsrchr(icon, L'\\');
                     if (comma && (!slash || comma > slash)) *comma = 0;
-                    if (::GetFileAttributesW(icon) != INVALID_FILE_ATTRIBUTES)
+                    if (::GetFileAttributesW(icon) != INVALID_FILE_ATTRIBUTES) {
                         ::CopyFileW(icon, host_exe, FALSE);
+                        // also stash the genuine BambuStudio.dll locally as
+                        // BambuStudioOriginal.dll, so the plugin's signature check stays
+                        // satisfiable even if Bambu Studio is later uninstalled/upgraded.
+                        if (slash) {
+                            slash[1] = 0;                       // icon -> genuine install dir
+                            wchar_t gdll[MAX_PATH + 1] = { 0 };
+                            wcscpy(gdll, icon); wcscat(gdll, L"BambuStudio.dll");
+                            wchar_t odll[MAX_PATH + 1] = { 0 };
+                            wcscpy(odll, path_to_exe); wcscat(odll, L"BambuStudioOriginal.dll");
+                            if (::GetFileAttributesW(gdll) != INVALID_FILE_ATTRIBUTES
+                                && ::GetFileAttributesW(odll) == INVALID_FILE_ATTRIBUTES)
+                                ::CopyFileW(gdll, odll, FALSE);
+                        }
+                    }
                 }
                 ::RegCloseKey(hk);
             }

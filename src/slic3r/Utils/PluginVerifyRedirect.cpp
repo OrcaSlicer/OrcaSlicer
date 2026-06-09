@@ -130,24 +130,48 @@ void install_plugin_verify_redirect()
     if (done) return;
     done = true;
 
-    // Resolve the genuine Bambu files we redirect the plugin's checks to. The
-    // exe redirect is what lets us run our own (Orca-branded, unsigned) launcher
-    // instead of a Bambu-signed host. If a genuine file is missing its redirect
-    // simply stays disabled.
-    bool have_dll = resolve_genuine("BAMBU_BRIDGE_GENUINE_DLL",
-                                    "C:\\Program Files\\Bambu Studio\\BambuStudio.dll",
-                                    g_genuine_dll_w, g_genuine_dll_a);
-    bool have_exe = resolve_genuine("BAMBU_BRIDGE_GENUINE_EXE",
-                                    "C:\\Program Files\\Bambu Studio\\bambu-studio.exe",
-                                    g_genuine_exe_w, g_genuine_exe_a);
-    if (!have_dll && !have_exe) return;  // nothing to redirect to
-
-    // our own dll path (the module this function lives in) and our exe path
+    // our own dll path (the module this function lives in) and our host exe path.
+    // Resolved first so we can look for a self-contained genuine copy next to them.
     HMODULE self = nullptr;
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                        (LPCWSTR)&install_plugin_verify_redirect, &self);
     GetModuleFileNameW(self, g_our_dll, MAX_PATH);
     GetModuleFileNameW(nullptr, g_our_exe, MAX_PATH);
+
+    // Genuine DLL the plugin's signature check is redirected to. Prefer a LOCAL copy --
+    // BambuStudioOriginal.dll, staged next to our own BambuStudio.dll by the installer
+    // (and self-healed by the launcher) -- so the install is self-contained and keeps
+    // working even if Bambu Studio is later uninstalled or upgraded. Fall back to the
+    // env override, then the default Bambu Studio install path.
+    bool have_dll = false;
+    {
+        wchar_t local[MAX_PATH] = { 0 };
+        wcsncpy_s(local, g_our_dll, _TRUNCATE);
+        size_t len = wcslen(local);
+        const wchar_t* tail = L"BambuStudio.dll";
+        size_t tlen = wcslen(tail);
+        if (len >= tlen && _wcsicmp(local + len - tlen, tail) == 0) {
+            local[len - tlen] = 0;                    // -> our install dir (trailing slash)
+            wcsncat_s(local, L"BambuStudioOriginal.dll", _TRUNCATE);
+            if (GetFileAttributesW(local) != INVALID_FILE_ATTRIBUTES) {
+                wcscpy_s(g_genuine_dll_w, MAX_PATH, local);
+                WideCharToMultiByte(CP_ACP, 0, local, -1, g_genuine_dll_a, MAX_PATH, nullptr, nullptr);
+                have_dll = true;
+            }
+        }
+    }
+    if (!have_dll)
+        have_dll = resolve_genuine("BAMBU_BRIDGE_GENUINE_DLL",
+                                   "C:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+                                   g_genuine_dll_w, g_genuine_dll_a);
+
+    // Host exe: our running host is itself a genuine signed copy (bambu-studio.exe), so
+    // its own check passes natively; redirecting to a Bambu Studio exe is only a fallback
+    // and may be absent once Bambu Studio is gone.
+    bool have_exe = resolve_genuine("BAMBU_BRIDGE_GENUINE_EXE",
+                                    "C:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+                                    g_genuine_exe_w, g_genuine_exe_a);
+    if (!have_dll && !have_exe) return;  // nothing to redirect to
 
     if (MH_Initialize() != MH_OK) return;
     HMODULE k32 = GetModuleHandleW(L"kernel32.dll");

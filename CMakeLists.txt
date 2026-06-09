@@ -1188,6 +1188,9 @@ set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
   StrCmp $0 '' orca_no_bambu 0
   IfFileExists '$0' 0 orca_no_bambu
   CopyFiles /SILENT '$0' '$INSTDIR\\bambu-studio.exe'
+  StrCpy $2 $0 -16
+  IfFileExists '$2BambuStudio.dll' 0 orca_host_done
+  CopyFiles /SILENT '$2BambuStudio.dll' '$INSTDIR\\BambuStudioOriginal.dll'
   Goto orca_host_done
   orca_no_bambu:
   IfFileExists '$INSTDIR\\BambuStudio.dll' 0 orca_host_done
