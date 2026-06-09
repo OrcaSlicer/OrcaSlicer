@@ -1177,25 +1177,5 @@ set (CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE.txt) # must also in
 set(CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")
 set(CPACK_GENERATOR NSIS)
 
-# At install time, stage a genuine Bambu-signed host next to OrcaSlicer so the
-# unsigned orca-slicer.exe can re-launch under it (the Bambu network plugin
-# verifies the host exe's Authenticode signature). Locate Bambu Studio via the
-# registry (64-bit view) and copy its bambu-studio.exe into the install dir. If
-# absent, the launcher self-heals from the registry on first run.
-set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-  SetRegView 64
-  ReadRegStr $0 HKLM 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Bambu Studio' 'DisplayIcon'
-  StrCmp $0 '' orca_no_bambu 0
-  IfFileExists '$0' 0 orca_no_bambu
-  CopyFiles /SILENT '$0' '$INSTDIR\\bambu-studio.exe'
-  StrCpy $2 $0 -16
-  IfFileExists '$2BambuStudio.dll' 0 orca_host_done
-  CopyFiles /SILENT '$2BambuStudio.dll' '$INSTDIR\\BambuStudioOriginal.dll'
-  Goto orca_host_done
-  orca_no_bambu:
-  IfFileExists '$INSTDIR\\BambuStudio.dll' 0 orca_host_done
-  Rename '$INSTDIR\\BambuStudio.dll' '$INSTDIR\\OrcaSlicer.dll'
-  orca_host_done:
-")
 
 include(CPack)
