@@ -11,13 +11,13 @@ namespace Slic3r {
 struct FilamentInfo;
 namespace MultiNozzleUtils {
 
-// 存储单个喷嘴的信息
+// Info for a single nozzle
 struct NozzleInfo
 {
     std::string      diameter;
     NozzleVolumeType volume_type;
-    int              extruder_id{-1}; // 逻辑挤出机id
-    int              group_id{-1};    // 对应逻辑喷嘴id
+    int              extruder_id{-1}; // logical extruder id
+    int              group_id{-1};    // corresponding logical nozzle id
 
     std::string serialize() const;
 
@@ -29,7 +29,7 @@ struct NozzleInfo
     }
 };
 
-// 喷嘴组信息，执行同步操作后前端传递给后端的数据
+// Nozzle group info passed from frontend to backend after a sync
 struct NozzleGroupInfo
 {
     std::string      diameter;
@@ -74,12 +74,12 @@ struct FilamentChangeTimeParams
 };
 
 /**
- * @brief 喷嘴分组结果的虚基类
+ * @brief Abstract base for nozzle grouping results
  */
 class NozzleGroupResultBase
 {
 protected:
-    bool support_dynamic_nozzle_map{false}; // 是否支持动态映射(选料器)
+    bool support_dynamic_nozzle_map{false}; // whether dynamic mapping (material selector) is supported
 
 public:
     NozzleGroupResultBase(bool support_dynamic_map = false) : support_dynamic_nozzle_map(support_dynamic_map) {}
@@ -100,8 +100,8 @@ public:
 };
 
 /**
- * @brief 有layer信息的喷嘴分组结果
- * 用于后端切片代码，支持逐层的喷嘴映射。
+ * @brief Nozzle grouping result WITH per-layer info
+ * Used by backend slicing code; supports per-layer nozzle mapping.
  */
 class LayeredNozzleGroupResult : public NozzleGroupResultBase
 {
@@ -167,8 +167,8 @@ public:
 };
 
 /**
- * @brief 无layer信息的喷嘴分组结果
- * 用于设备端，只有静态的喷嘴映射。
+ * @brief Nozzle grouping result WITHOUT layer info
+ * Used on the device side; static nozzle mapping only.
  */
 class StaticNozzleGroupResult : public NozzleGroupResultBase
 {
@@ -239,7 +239,7 @@ std::vector<int> find_optimal_physical_assignment(
     const FilamentChangeTimeParams&   time_params,
     int                               max_ms = 1000);
 
-// ==================== 工具函数 ====================
+// ==================== Utility functions ====================
 std::vector<NozzleInfo> build_nozzle_list(std::vector<NozzleGroupInfo> info);
 std::vector<NozzleInfo> build_nozzle_list(double diameter, const std::vector<int>& filament_nozzle_map,
                                           const std::vector<int>& filament_volume_map, const std::vector<int>& filament_map);

@@ -2410,8 +2410,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posDetectOverhangsForLift);
             }
             else {
-                // H2C TODO
-                // obj->set_auto_circle_compenstaion_params(auto_contour_holes_compensation_params);
                 obj->make_perimeters();
                 obj->infill();
                 obj->ironing();
@@ -2445,20 +2443,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
             this->set_geometric_unprintable_filaments(geometric_unprintables);
         }
-
-        // H2C TODO - VISUAL ONLY
-        // {
-        //     std::unordered_map<int,std::unordered_map<int,double>> filament_print_time;
-        //     for(PrintObject* obj : m_objects){
-        //         auto obj_filament_print_time = obj->calc_estimated_filament_print_time();
-        //         for(auto [filament_idx,extruder_time] : obj_filament_print_time) {
-        //             for (auto [extruder_idx, time] : extruder_time) {
-        //                 filament_print_time[filament_idx][extruder_idx] += time;
-        //             }
-        //         }
-        //     }
-        //     this->set_filament_print_time(filament_print_time);
-        // }
 
         m_nozzle_group_result.reset();
         m_wipe_tower_data.clear();
@@ -3310,11 +3294,6 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 
     if (! is_step_done(psWipeTower) && filaments_cnt !=0) {
         double wipe_volume  = *std::max_element(m_config.filament_prime_volume.values.begin(), m_config.filament_prime_volume.values.end());
-        // H2C TODO
-        // if (m_config.prime_volume_mode == pvmSaving) {
-        //     for (auto& v : filament_wipe_volume)
-        //         v = 15.f;
-        // }
         int filament_depth_count = m_config.nozzle_diameter.values.size() == 2 ? filaments_cnt : filaments_cnt - 1;
         if (filaments_cnt == 1 && enable_timelapse_print()) filament_depth_count = 1;
         double volume = wipe_volume * filament_depth_count;
