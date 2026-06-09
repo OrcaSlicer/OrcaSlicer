@@ -377,15 +377,22 @@ int UltiMaker::getPrintTime(std::string filepath) const {
 	std::ifstream file_in(filepath);
 	std::string line;
 	int ret = 0;
+	bool found = false;
 	int h = 0;
 	int m = 0;
 	int s = 0;
 
 	if (file_in.is_open()){
-		while (getline(file_in, line) && ret == 0) {
+		while (getline(file_in, line) && !found) {
 			if (boost::starts_with(line, "; estimated printing time (normal mode) =")) {
-				if (sscanf(line.c_str(), "; estimated printing time (normal mode) = %dh %dm %ds", &h, &m, &s) >= 1) {
+				if (sscanf(line.c_str(), "; estimated printing time (normal mode) = %dh %dm %ds", &h, &m, &s) == 3) {
 					ret = 3600*h + 60*m + s;
+					BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Hours=%1% Minutes=%2% Seconds=%3% Total Seconds=%4%") % h % m % s % ret;
+					found = true;
+				} else if (sscanf(line.c_str(), "; estimated printing time (normal mode) = %dm %ds", &m, &s) == 2) {
+					ret = 60*m + s;
+					BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: No Hours, Minutes=%1% Seconds=%2% Total Seconds=%3%") % m % s % ret;
+					found = true;
 				} else {
 					BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: sscanf error while getting total print time, no vars assigned.");
 				}
@@ -393,7 +400,11 @@ int UltiMaker::getPrintTime(std::string filepath) const {
 		}
     } else {
 		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
-		return false;
+		return 0;
+	}
+
+	if (not(found)) {
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Print time estimate not found!!");
 	}
 
 	file_in.close();

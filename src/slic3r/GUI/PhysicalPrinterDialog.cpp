@@ -579,9 +579,6 @@ void PhysicalPrinterDialog::update_printhost_buttons()
     std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
     if (host) {
         m_printhost_test_btn->Enable(!m_config->opt_string("print_host").empty() && host->can_test());
-        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && strcmp( host->get_name(), 'UltiMaker') == 0); // TODO: determine if needed
-        // m_printhost_generate_creds_btn->Show(strcmp( host->get_name(), 'UltiMaker') == 0);
-        // m_printhost_generate_creds_btn->SetLabel(host->is_cloud() ? _L("Generate API Key") : _L("Generate API Key"));
         m_printhost_browse_btn->Show(host->has_auto_discovery());
         m_printhost_logout_btn->Show(host->is_logged_in());
         m_printhost_test_btn->SetLabel(host->is_cloud() ? _L("Login/Test") : _L("Test"));
@@ -684,12 +681,6 @@ void PhysicalPrinterDialog::update(bool printer_change)
         m_optgroup->enable_field("printhost_cafile");
         m_optgroup->enable_field("printhost_ssl_ignore_revoke");
         if (m_printhost_cafile_browse_btn) { m_printhost_cafile_browse_btn->Enable(); }
-        
-        // m_optgroup->hide_field("ultimaker_generate_creds"); // TODO: determine if this is needed
-        // m_optgroup->hide_field("m_printhost_generate_creds_btn");
-        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && opt->value == htUltiMaker);
-        // m_printhost_generate_creds_btn->Show(opt->value == htUltiMaker);
-        // if (m_printhost_generate_creds_btn) { m_printhost_generate_creds_btn->Disable(); }
 
         // hide pre-configured address, in case user switched to a different host type
         if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
