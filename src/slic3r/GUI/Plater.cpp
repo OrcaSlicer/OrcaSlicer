@@ -648,7 +648,18 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
 
     // NEEDFIX requires AMS check or any type of ???
     // Single nozzle & non ams
-    panel_nozzle_dia->Show(!isDual && preset_bundle.get_printer_extruder_count() < 2);
+    // Non-BBL multi-extruder printers have no per-extruder nozzle UI (the dual
+    // cards above are BBL-only); when all extruders share one nozzle diameter the
+    // unified selector applies to them the same way it does to single-extruder
+    // printers. Mixed-diameter setups keep no unified selector.
+    bool uniform_nozzle = false;
+    if (const auto* nozzle_diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter");
+        nozzle_diameters != nullptr && !nozzle_diameters->values.empty()) {
+        uniform_nozzle = std::all_of(nozzle_diameters->values.begin(), nozzle_diameters->values.end(),
+                                     [&](double d) { return d == nozzle_diameters->values.front(); });
+    }
+    panel_nozzle_dia->Show(!isDual && (preset_bundle.get_printer_extruder_count() < 2 ||
+                                       (!preset_bundle.is_bbl_vendor() && uniform_nozzle)));
     extruder_single_sizer->Show(false);
 }
 
@@ -2617,8 +2628,11 @@ void Sidebar::update_presets(Preset::Type preset_type)
         // Update dual extrudes
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
 
-        bool is_dual_extruder = nozzle_diameter->size() == 2;
-        p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
+        // The left/right extruder cards (and their AMS sync) are BBL dual-nozzle UI;
+        // other multi-extruder printers use the unified nozzle selector below, which
+        // drives the same printer_variant switch as on single-extruder printers.
+        bool is_dual_extruder = isBBL && nozzle_diameter->size() == 2;
+        p->layout_printer(preset_bundle.use_bbl_network(), is_dual_extruder);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
