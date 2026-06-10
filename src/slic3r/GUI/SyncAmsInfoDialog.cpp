@@ -1557,7 +1557,6 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
 
     vector<int> map_extruders = {1, 0};
 
-    // EXPERIMENTAL: skip-nozzle-type-sync
     // Query nozzle flow type directly by target machine index to avoid index-shifting/sizing bugs.
     // Compare non-localized English strings ("Standard" / "High Flow" / "TPU High Flow") to avoid false mismatches in localized UI.
     // Only when all preset nozzle types and machine nozzle types are exactly the same, return true.
@@ -2363,10 +2362,7 @@ void SyncAmsInfoDialog::update_show_status()
             std::vector<wxString> params{error_message};
             params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
             show_status(PrintDialogStatus::PrintStatusNozzleMatchInvalid, params);
-            // EXPERIMENTAL: skip-nozzle-type-sync - no return, downgraded to warning.
-            // Commenting out early return permits printing/sending files with differing nozzle types (e.g. Standard vs High Flow).
-            // This aligns the AMS print dialog behavior with SelectMachineDialog.
-            /* ORIGINAL: return; */
+            // Orca: do not abort on flow-type mismatch; downgraded to a warning.
         }
     }
 

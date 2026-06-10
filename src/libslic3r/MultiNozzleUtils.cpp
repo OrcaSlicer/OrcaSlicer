@@ -571,7 +571,7 @@ std::vector<NozzleInfo> load_nozzle_infos_with_compatibility(
     return result;
 }
 
-// ==================== LayeredNozzleGroupResult 实现 ====================
+// ==================== LayeredNozzleGroupResult implementation ====================
 static bool has_filament_mapped_to_multiple_nozzles(const std::vector<std::vector<int>>& layer_filament_nozzle_maps,
                                                     const std::vector<unsigned int>&     used_filaments)
 {
@@ -951,7 +951,7 @@ int LayeredNozzleGroupResult::estimate_seq_flush_weight(const std::vector<std::v
     return get_weight_from_volume(total_flush_volume);
 }
 
-// ==================== StaticNozzleGroupResult 实现 ====================
+// ==================== StaticNozzleGroupResult implementation ====================
 
 std::optional<StaticNozzleGroupResult> StaticNozzleGroupResult::create(
     const std::vector<FilamentInfo>& filaments_info,

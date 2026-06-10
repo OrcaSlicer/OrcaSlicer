@@ -643,6 +643,11 @@ static ExPolygons outer_inner_brim_area(const Print& print,
     int  extruder_nums = print.config().nozzle_diameter.values.size();
     const float scaled_flow_width = print.brim_flow().scaled_spacing();
 
+    // The shared-printable-area clipping below is only correct for H2C multi-nozzle
+    // hardware; other multi-extruder printers use the original per-object clipping.
+    const auto& emnc = print.config().extruder_max_nozzle_count.values;
+    const bool is_h2c_multi_nozzle = std::any_of(emnc.begin(), emnc.end(), [](int e) { return e > 1; });
+
     if (print.has_wipe_tower() && !print.get_fake_wipe_tower().outer_wall.empty()) {
         ExPolygons expolyFromLines{};
         for (auto polyline : print.get_fake_wipe_tower().outer_wall.begin()->second) {
@@ -653,37 +658,69 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         expolygons_append(no_brim_area, expolyFromLines);
     }
 
-    // Determine which extruders are actually used via printExtruders.
-    // If multiple extruders are used, clip brim to the shared printable area;
-    // if only one extruder is used, clip brim to that extruder's printable area.
-    // This avoids depending on filament_map which varies per-layer under dynamic map mode.
-    if (extruder_nums > 1) {
-        Polygons clip_printable;
-        if (printExtruders.size() > 1) {
-            clip_printable = print.get_extruder_shared_printable_polygon();
-        } else if (printExtruders.size() == 1) {
-            auto extruder_printable_polys = print.get_extruder_printable_polygons();
-            int eid = static_cast<int>(printExtruders.front());
-            if (!extruder_printable_polys.empty() && eid >= 0 && eid < (int)extruder_printable_polys.size())
-                clip_printable = extruder_printable_polys[eid];
-        }
+    if (is_h2c_multi_nozzle) {
+        // H2C: clip to the shared printable area (filament_map varies per-layer in dynamic map mode).
+        if (extruder_nums > 1) {
+            Polygons clip_printable;
+            if (printExtruders.size() > 1) {
+                clip_printable = print.get_extruder_shared_printable_polygon();
+            } else if (printExtruders.size() == 1) {
+                auto extruder_printable_polys = print.get_extruder_printable_polygons();
+                int eid = static_cast<int>(printExtruders.front());
+                if (!extruder_printable_polys.empty() && eid >= 0 && eid < (int)extruder_printable_polys.size())
+                    clip_printable = extruder_printable_polys[eid];
+            }
 
-        if (!clip_printable.empty()) {
-            auto bedExPoly = diff_ex(offset(clip_printable, scale_(30.), jtRound, SCALED_RESOLUTION), {clip_printable});
-            if (!bedExPoly.empty()) {
-                no_brim_area.push_back(bedExPoly.front());
+            if (!clip_printable.empty()) {
+                auto bedExPoly = diff_ex(offset(clip_printable, scale_(30.), jtRound, SCALED_RESOLUTION), {clip_printable});
+                if (!bedExPoly.empty()) {
+                    no_brim_area.push_back(bedExPoly.front());
+                }
             }
         }
-    }
-    no_brim_area = offset2_ex(no_brim_area, scaled_flow_width, -scaled_flow_width);
+        no_brim_area = offset2_ex(no_brim_area, scaled_flow_width, -scaled_flow_width);
 
-    for (const PrintObject* object : print.objects()) {
-        if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
-            brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], no_brim_area);
+        for (const PrintObject* object : print.objects()) {
+            if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
+                brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], no_brim_area);
+            }
+
+            if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
+                supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], no_brim_area);
         }
+    } else {
+        // Non-H2C: clip each object against the no-print area of its filament_map extruder.
+        if (extruder_nums > 1) {
+            std::vector<Polygons> extruder_unprintable_area = print.get_extruder_printable_polygons();
+            // Orca: if per-extruder print area is not specified, use the whole bed as printable area for all extruders
+            if (extruder_unprintable_area.empty()) {
+                extruder_unprintable_area.resize(extruder_nums, Polygons{Model::getBedPolygon()});
+            }
+            std::vector<int> filament_map = print.get_filament_maps();
 
-        if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
-            supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], no_brim_area);
+            for (const PrintObject* object : print.objects()) {
+                ExPolygons extruder_no_brim_area = no_brim_area;
+                auto iter = std::find_if(objPrintVec.begin(), objPrintVec.end(), [object](const std::pair<ObjectID, unsigned int>& item) {
+                    return item.first == object->id();
+                });
+
+                if (iter != objPrintVec.end()) {
+                    int extruder_id = filament_map[iter->second - 1] - 1;
+                    auto bedPoly    = extruder_unprintable_area[extruder_id];
+                    auto bedExPoly  = diff_ex((offset(bedPoly, scale_(30.), jtRound, SCALED_RESOLUTION)), {bedPoly});
+                    if (!bedExPoly.empty()) {
+                        extruder_no_brim_area.push_back(bedExPoly.front());
+                    }
+                }
+
+                if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
+                    brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], extruder_no_brim_area);
+                }
+
+                if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
+                    supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], extruder_no_brim_area);
+            }
+        }
     }
 
     brim_area.clear();
