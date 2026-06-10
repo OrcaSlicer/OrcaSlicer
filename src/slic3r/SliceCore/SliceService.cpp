@@ -32,11 +32,14 @@
 
 #include "PresetResolver.hpp"
 #include "OutputTargetDeliver.hpp"
+#include "ModelTransforms.hpp"
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"   // CLI_* exit codes, set_resources_dir()
+#include "libslic3r/Format/STL.hpp"       // store_stl()
+#include "libslic3r/Format/bbs_3mf.hpp"   // store_bbs_3mf(), StoreParams, SaveStrategy
 
 #include "slic3r/GUI/PartPlate.hpp"
 
@@ -239,10 +242,27 @@ SliceResult SliceService::run(const SliceRequest &req)
             config.apply(fff_defaults, /*ignore_nonexistent=*/true);
         }
 
-        // TODO(WU-transforms): req.transforms (arrange / orient / rotate / scale /
-        // repetitions / convert_unit / ensure_on_bed / skip_objects) are NOT applied
-        // here. This is a later WU. We intentionally ignore them rather than error so
-        // a request carrying transform fields still slices the as-loaded geometry.
+        // Apply per-object transforms (scale, rotate, orient, convert_unit,
+        // ensure_on_bed) in CLI order. Must run BEFORE PartPlateList is built
+        // so the plate geometry reflects the transformed model.
+        {
+            std::string transforms_err;
+            if (!apply_model_transforms(model, req.transforms, transforms_err)) {
+                result.exit_code = CLI_INVALID_PARAMS;
+                result.error     = transforms_err;
+                return result;
+            }
+        }
+
+        // Apply arrange / duplicate (best-effort; non-fatal if bed shape is
+        // unavailable from the config). Must also run before PartPlateList so
+        // the instance positions are finalised before plate assignment.
+        {
+            std::string arrange_err;
+            apply_arrange_or_duplicate(model, req.transforms, config, arrange_err);
+            // arrange_err is informational only; the call never returns false for
+            // hard failures — bed-shape absence is treated as a no-op.
+        }
 
         if (req.progress) req.progress(10, "preparing plates");
 
@@ -406,49 +426,132 @@ SliceResult SliceService::run(const SliceRequest &req)
             if (req.progress)
                 req.progress(30, "slicing plate " + std::to_string(index + 1));
 
-            // ----- Pick the export destination path.
-            boost::filesystem::path gcode_path;
-            const std::string plate_file = "plate_" + std::to_string(index + 1) + ".gcode";
-            if (req.output.mode == OutputMode::File) {
-                gcode_path = out_dir / plate_file;
-            } else {
-                // Stdout / PrintHost: export to a temp file, then route via deliver().
-                gcode_path = temp_dir /
-                    boost::filesystem::unique_path("orca-%%%%-%%%%-" + plate_file);
-            }
-
-            // ----- Slice + export, wrapped per-plate so any thrown error names the
-            //       failing plate (OrcaSlicer.cpp:6286-6292 does the same). On failure
-            //       set CLI_SLICING_ERROR and return — never continue silently.
-            std::string written_path;
+            // ----- Slice (always required regardless of export kind).
             try {
                 // Slice. Pure compute, wx-free, TBB-parallel. OrcaSlicer.cpp:6161.
                 print->process();
+            } catch (const std::exception &ex) {
+                result.ok        = false;
+                result.exit_code = CLI_SLICING_ERROR;
+                result.error     = "plate " + std::to_string(index + 1) +
+                                   " slicing failed: " + ex.what();
+                return result;
+            }
+
+            // ----- Export: branch on req.export_kind.
+            //       STL and 3MF are only meaningful for OutputMode::File.
+            //       Stdout / PrintHost always fall through to Gcode (export_kind
+            //       is ignored for non-file modes).
+            std::string written_path;
+
+            if (req.export_kind == ExportKind::Gcode ||
+                req.output.mode != OutputMode::File) {
+                // ---- G-code path (default, or forced for non-file output modes).
+                boost::filesystem::path gcode_path;
+                const std::string plate_file =
+                    "plate_" + std::to_string(index + 1) + ".gcode";
+                if (req.output.mode == OutputMode::File) {
+                    gcode_path = out_dir / plate_file;
+                } else {
+                    gcode_path = temp_dir /
+                        boost::filesystem::unique_path("orca-%%%%-%%%%-" + plate_file);
+                }
 
                 if (req.progress)
                     req.progress(80, "exporting gcode for plate " + std::to_string(index + 1));
 
-                // Export gcode. Empty thumbnail callback (nullptr) — the GL/GLFW
-                // thumbnail block is intentionally skipped (headless). OrcaSlicer.cpp:6215.
-                written_path =
-                    print->export_gcode(gcode_path.string(), gcode_result,
-                                        /*thumbnail_cb=*/nullptr);
-            } catch (const std::exception &ex) {
-                result.ok        = false;
-                result.exit_code = CLI_SLICING_ERROR;
-                result.error     = "plate " + std::to_string(index + 1) + ": " + ex.what();
-                return result;
-            }
+                // Export gcode. Empty thumbnail callback (nullptr) — GL/GLFW skipped.
+                // OrcaSlicer.cpp:6215.
+                try {
+                    written_path =
+                        print->export_gcode(gcode_path.string(), gcode_result,
+                                            /*thumbnail_cb=*/nullptr);
+                } catch (const std::exception &ex) {
+                    result.ok        = false;
+                    result.exit_code = CLI_SLICING_ERROR;
+                    result.error     = "plate " + std::to_string(index + 1) +
+                                       " gcode export: " + ex.what();
+                    return result;
+                }
 
-            // export_gcode returns an empty path when the output template could not
-            // be resolved / nothing was written. Treat as a hard failure — do NOT
-            // substitute the intended path and report a file that does not exist.
-            if (written_path.empty()) {
-                result.ok        = false;
-                result.exit_code = CLI_SLICING_ERROR;
-                result.error     = "export_gcode produced no output for plate " +
-                                   std::to_string(index + 1);
-                return result;
+                if (written_path.empty()) {
+                    result.ok        = false;
+                    result.exit_code = CLI_SLICING_ERROR;
+                    result.error     = "export_gcode produced no output for plate " +
+                                       std::to_string(index + 1);
+                    return result;
+                }
+
+            } else if (req.export_kind == ExportKind::Stl) {
+                // ---- STL export: one file per model object.
+                //      store_stl(path, ModelObject*, bool binary)
+                //      Signature confirmed in libslic3r/Format/STL.hpp:16.
+                if (req.progress)
+                    req.progress(80, "exporting STL for plate " + std::to_string(index + 1));
+
+                // Export each object to its own .stl file; record the last path
+                // written in written_path for the stat record.
+                bool stl_ok = true;
+                for (size_t oi = 0; oi < model.objects.size(); ++oi) {
+                    const std::string stl_name =
+                        "object_" + std::to_string(oi) + ".stl";
+                    const boost::filesystem::path stl_path = out_dir / stl_name;
+                    if (!Slic3r::store_stl(stl_path.string().c_str(),
+                                           model.objects[oi], /*binary=*/true)) {
+                        result.ok        = false;
+                        result.exit_code = CLI_EXPORT_STL_ERROR;
+                        result.error     = "store_stl failed for object " +
+                                           std::to_string(oi) + " on plate " +
+                                           std::to_string(index + 1);
+                        stl_ok = false;
+                        break;
+                    }
+                    written_path = stl_path.string();
+                }
+                if (!stl_ok)
+                    return result;
+                if (written_path.empty()) {
+                    // No objects — treat as slicing error.
+                    result.ok        = false;
+                    result.exit_code = CLI_NO_SUITABLE_OBJECTS;
+                    result.error     = "no model objects to export as STL for plate " +
+                                       std::to_string(index + 1);
+                    return result;
+                }
+
+            } else {
+                // ---- 3MF export.
+                //      store_bbs_3mf(StoreParams&) -> bool
+                //      StoreParams fields confirmed in libslic3r/Format/bbs_3mf.hpp:227.
+                //      Modelled on CLI::export_project (OrcaSlicer.cpp:7448-7465).
+                if (req.progress)
+                    req.progress(80, "exporting 3MF for plate " + std::to_string(index + 1));
+
+                const std::string tmf_name =
+                    "plate_" + std::to_string(index + 1) + ".3mf";
+                const boost::filesystem::path tmf_path = out_dir / tmf_name;
+                // Keep the std::string alive for the duration of the StoreParams use.
+                const std::string tmf_path_str = tmf_path.string();
+
+                StoreParams store_params;
+                store_params.path             = tmf_path_str.c_str();
+                store_params.model            = &model;
+                store_params.export_plate_idx = index;
+                // No pre-sliced plate data / thumbnails available in headless mode;
+                // use a minimal save strategy (Silence suppresses progress output).
+                store_params.strategy =
+                    SaveStrategy::Zip64 | SaveStrategy::Silence;
+                // config pointer: point at the effective merged config.
+                store_params.config = const_cast<DynamicPrintConfig *>(&config);
+
+                if (!Slic3r::store_bbs_3mf(store_params)) {
+                    result.ok        = false;
+                    result.exit_code = CLI_EXPORT_3MF_ERROR;
+                    result.error     = "store_bbs_3mf failed for plate " +
+                                       std::to_string(index + 1);
+                    return result;
+                }
+                written_path = tmf_path_str;
             }
 
             const long long plate_t1 = now_ms();
@@ -462,12 +565,13 @@ SliceResult SliceService::run(const SliceRequest &req)
             stat.layer_count      = layer_count_of(print);    // max object layer count
 
             // ----- Deliver / record output path.
-            if (req.output.mode == OutputMode::File) {
+            //       For non-Gcode export kinds the output is already written to
+            //       out_dir; deliver() is only relevant for Gcode Stdout/PrintHost.
+            if (req.output.mode == OutputMode::File ||
+                req.export_kind != ExportKind::Gcode) {
                 stat.gcode_path = written_path;
             } else {
-                // Stdout / PrintHost — hand off to deliver() (implemented by the
-                // OutputTargetDeliver worker). Tolerate the not-implemented stub:
-                // surface its error but keep going / don't crash.
+                // Stdout / PrintHost Gcode — hand off to deliver().
                 std::string deliver_err;
                 const bool delivered = deliver(req.output, written_path, deliver_err);
                 if (!delivered) {
@@ -476,7 +580,6 @@ SliceResult SliceService::run(const SliceRequest &req)
                     result.error += "plate " + std::to_string(index + 1) +
                                     " deliver failed: " + deliver_err;
                 }
-                // Record the temp path so callers can still locate the artifact.
                 stat.gcode_path = written_path;
             }
 
@@ -510,9 +613,6 @@ SliceResult SliceService::run(const SliceRequest &req)
 
         return result;
 
-        // TODO(WU-export): ExportKind != Gcode (ThreeMF / Stl) is out of scope.
-        //   export_3mf / export_stl / slicedata export would plug in here, after
-        //   process(), selecting on req.export_kind. Currently only Gcode is honored.
         // TODO(WU-sla): SLA technology (ptSLA) — currently rejected above.
     }
     catch (const std::bad_alloc &) {

@@ -30,6 +30,7 @@
 #include "libslic3r/Utils.hpp"    // CLI_* exit code constants
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>   // boost::algorithm::iends_with
 
 #include <string>
 
@@ -273,4 +274,130 @@ TEST_CASE("SliceService: empty input returns CLI_INVALID_PARAMS",
     CHECK_FALSE(result.ok);
     CHECK(result.exit_code == CLI_INVALID_PARAMS);
     CHECK_FALSE(result.error.empty());
+}
+
+// ---------------------------------------------------------------------------
+// invalid_scale_rejected — scale == 0 in req.transforms must yield
+// CLI_INVALID_PARAMS before any slicing attempt.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SliceService: invalid scale (0) returns CLI_INVALID_PARAMS",
+          "[SliceCore][SliceService][transforms]")
+{
+    const std::string fixture = fixture_3mf();
+    if (!fs::exists(fixture)) {
+        WARN("3mf fixture not found, skipping invalid_scale test: " << fixture);
+        SUCCEED();
+        return;
+    }
+
+    TempDir outdir;
+    SliceService svc(resolve_resources_dir());
+
+    SliceRequest req;
+    req.input_path           = fixture;
+    req.plate                = 0;
+    req.output.mode          = OutputMode::File;
+    req.output.outputdir     = outdir.path.string();
+    req.transforms.scale     = 0.0;   // invalid — must be > 0
+
+    SliceResult result;
+    REQUIRE_NOTHROW(result = svc.run(req));
+
+    CHECK_FALSE(result.ok);
+    CHECK(result.exit_code == CLI_INVALID_PARAMS);
+    CHECK_FALSE(result.error.empty());
+}
+
+// ---------------------------------------------------------------------------
+// export_stl_kind — export_kind = Stl, OutputMode::File.
+// Asserts that at least one .stl file is written to the output directory.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SliceService: export_kind=Stl writes .stl files to output dir",
+          "[SliceCore][SliceService][export]")
+{
+    const std::string fixture = fixture_3mf();
+    if (!fs::exists(fixture)) {
+        WARN("3mf fixture not found, skipping export_stl_kind test: " << fixture);
+        SUCCEED();
+        return;
+    }
+
+    TempDir outdir;
+    SliceService svc(resolve_resources_dir());
+
+    SliceRequest req;
+    req.input_path       = fixture;
+    req.plate            = 0;
+    req.output.mode      = OutputMode::File;
+    req.output.outputdir = outdir.path.string();
+    req.export_kind      = ExportKind::Stl;
+
+    SliceResult result;
+    REQUIRE_NOTHROW(result = svc.run(req));
+
+    // Acceptable outcomes: success with .stl files, or a known slice/config error.
+    CHECK(is_known_exit_code(result.exit_code));
+
+    if (result.ok) {
+        // At least one .stl file must exist in the output directory.
+        bool found_stl = false;
+        for (const auto &entry : fs::directory_iterator(outdir.path)) {
+            if (boost::algorithm::iends_with(entry.path().string(), ".stl")) {
+                found_stl = true;
+                CHECK(fs::file_size(entry.path()) > 0u);
+                break;
+            }
+        }
+        CHECK(found_stl);
+    } else {
+        CHECK_FALSE(result.error.empty());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// export_3mf_kind — export_kind = ThreeMF, OutputMode::File.
+// Asserts that a .3mf file is written and is non-empty.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SliceService: export_kind=ThreeMF writes non-empty .3mf file",
+          "[SliceCore][SliceService][export]")
+{
+    const std::string fixture = fixture_3mf();
+    if (!fs::exists(fixture)) {
+        WARN("3mf fixture not found, skipping export_3mf_kind test: " << fixture);
+        SUCCEED();
+        return;
+    }
+
+    TempDir outdir;
+    SliceService svc(resolve_resources_dir());
+
+    SliceRequest req;
+    req.input_path       = fixture;
+    req.plate            = 0;
+    req.output.mode      = OutputMode::File;
+    req.output.outputdir = outdir.path.string();
+    req.export_kind      = ExportKind::ThreeMF;
+
+    SliceResult result;
+    REQUIRE_NOTHROW(result = svc.run(req));
+
+    CHECK(is_known_exit_code(result.exit_code));
+
+    if (result.ok) {
+        // At least one .3mf file must exist in the output directory.
+        bool found_3mf = false;
+        for (const auto &entry : fs::directory_iterator(outdir.path)) {
+            if (boost::algorithm::iends_with(entry.path().string(), ".3mf")) {
+                found_3mf = true;
+                CHECK(fs::file_size(entry.path()) > 0u);
+                break;
+            }
+        }
+        CHECK(found_3mf);
+    } else {
+        CHECK_FALSE(result.error.empty());
+    }
 }

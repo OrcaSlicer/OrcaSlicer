@@ -5,6 +5,7 @@ add_library(liborca_slice_core STATIC
     SliceService.cpp
     PresetResolver.cpp
     OutputTarget.cpp
+    ModelTransforms.cpp
 )
 
 # Expose the SliceCore directory so consumers can include headers

@@ -12,6 +12,7 @@ set(_CORE_SOURCES
     test_preset_resolver.cpp
     test_output_target.cpp
     test_slice_golden.cpp
+    test_model_transforms.cpp
 )
 
 if (SLIC3R_SERVER)
