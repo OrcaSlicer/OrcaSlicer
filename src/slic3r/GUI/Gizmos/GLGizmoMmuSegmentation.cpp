@@ -32,7 +32,10 @@ static inline void show_notification_extruders_limit_exceeded()
 
 void GLGizmoMmuSegmentation::on_opening()
 {
-    if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
+    const int total_filaments = wxGetApp().preset_bundle != nullptr ?
+        int(wxGetApp().preset_bundle->total_filament_count()) :
+        wxGetApp().filaments_cnt();
+    if (total_filaments > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
         show_notification_extruders_limit_exceeded();
 }
 
@@ -201,10 +204,12 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
 bool GLGizmoMmuSegmentation::on_number_key_down(int number)
 {
     int extruder_idx = number - 1;
-    if (extruder_idx < m_extruders_colors.size() && extruder_idx >= 0)
+    if (extruder_idx < int(std::min(m_extruders_colors.size(), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT)) && extruder_idx >= 0) {
         m_selected_extruder_idx = extruder_idx;
+        return true;
+    }
 
-    return true;
+    return false;
 }
 
 bool GLGizmoMmuSegmentation::on_key_down_select_tool_type(int keyCode) {

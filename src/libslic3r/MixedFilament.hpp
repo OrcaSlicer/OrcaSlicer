@@ -12,9 +12,9 @@ namespace Slic3r {
 
 // Represents a virtual "mixed" filament created from physical filaments
 // (layer cadence and/or same-layer interleaved stripe distribution). Display
-// colour blending uses FilamentMixer  so pair previews better
-//  match expected print mixing 
-// (for example Blue+Yellow -> Green, Red+Yellow -> Orange, Red+Blue -> Purple). 
+// colour blending uses FilamentMixer so pair previews better
+// match expected print mixing
+// (for example Blue+Yellow -> Green, Red+Yellow -> Orange, Red+Blue -> Purple).
 // Legacy RYB code is retained in source for reference only.
 struct MixedFilament
 {

@@ -32,6 +32,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
+#include <algorithm>
 #include <wx/glcanvas.h>
 
 namespace Slic3r {
@@ -55,6 +56,52 @@ GLGizmosManager::GLGizmosManager(GLCanvas3D& parent)
     , m_object_manipulation(parent)
 {
     m_timer_set_color.Bind(wxEVT_TIMER, &GLGizmosManager::on_set_color_timer, this);
+}
+
+MmuSegmentationColorShortcutResult resolve_mmu_segmentation_color_shortcut(int digit, int shortcut_max, int pending_tens)
+{
+    MmuSegmentationColorShortcutResult out;
+    if (digit < 0 || digit > 9)
+        return out;
+
+    out.processed = true;
+    shortcut_max = std::max(0, shortcut_max);
+
+    auto can_start_two_digit = [shortcut_max](int d) {
+        return d > 0 && d * 10 <= shortcut_max;
+    };
+    auto can_select_single_digit = [shortcut_max](int d) {
+        return d > 0 && d <= shortcut_max;
+    };
+
+    if (pending_tens > 0) {
+        out.stop_timer = true;
+        const int two_digit_shortcut = pending_tens * 10 + digit;
+        if (two_digit_shortcut <= shortcut_max) {
+            out.select_now = two_digit_shortcut;
+            return out;
+        }
+
+        if (can_start_two_digit(digit)) {
+            out.select_now = can_select_single_digit(pending_tens) ? pending_tens : 0;
+            out.pending_tens = digit;
+            out.start_timer = true;
+            return out;
+        }
+
+        out.select_now = can_select_single_digit(digit) ? digit :
+                         can_select_single_digit(pending_tens) ? pending_tens : 0;
+        return out;
+    }
+
+    if (can_start_two_digit(digit)) {
+        out.pending_tens = digit;
+        out.start_timer = true;
+    } else if (can_select_single_digit(digit)) {
+        out.select_now = digit;
+    }
+
+    return out;
 }
 
 std::vector<size_t> GLGizmosManager::get_selectable_idxs() const
@@ -942,7 +989,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
             }
         }
         // BBS
-        if (m_current == MmSegmentation && keyCode > '0' && keyCode <= '9') {
+        if (m_current == MmSegmentation && keyCode >= '0' && keyCode <= '9') {
             // capture number key
             processed = true;
         }
@@ -999,42 +1046,27 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                 }
                 if (keyCode >= '0' && keyCode <= '9') {
                     const int digit = keyCode - '0';
-                    const int shortcut_max = int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT);
-                    auto select_shortcut = [mmu_seg](int number) {
-                        return number > 0 && mmu_seg->on_number_key_down(number);
-                    };
+                    const int total_filaments = wxGetApp().preset_bundle != nullptr ?
+                        int(wxGetApp().preset_bundle->total_filament_count()) :
+                        wxGetApp().filaments_cnt();
+                    const int shortcut_max = std::min(total_filaments, int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT));
+                    const MmuSegmentationColorShortcutResult shortcut =
+                        resolve_mmu_segmentation_color_shortcut(
+                            digit,
+                            shortcut_max,
+                            m_timer_set_color.IsRunning() ? m_pending_color_shortcut_tens : 0);
 
-                    if (m_timer_set_color.IsRunning() && m_pending_color_shortcut_tens > 0) {
-                        const int two_digit_shortcut = m_pending_color_shortcut_tens * 10 + digit;
-                        if (two_digit_shortcut <= shortcut_max) {
-                            processed = select_shortcut(two_digit_shortcut);
-                            m_pending_color_shortcut_tens = 0;
-                            m_timer_set_color.Stop();
-                        } else {
-                            // Fall back to the pending single-digit shortcut and then process current digit as fresh input.
-                            processed = select_shortcut(m_pending_color_shortcut_tens);
-                            m_pending_color_shortcut_tens = 0;
-                            m_timer_set_color.Stop();
+                    if (shortcut.stop_timer)
+                        m_timer_set_color.Stop();
 
-                            const bool can_start_two_digit = digit > 0 && digit * 10 <= shortcut_max;
-                            if (can_start_two_digit) {
-                                m_pending_color_shortcut_tens = digit;
-                                m_timer_set_color.StartOnce(500);
-                                processed = true;
-                            } else {
-                                processed = select_shortcut(digit) || processed;
-                            }
-                        }
-                    } else {
-                        const bool can_start_two_digit = digit > 0 && digit * 10 <= shortcut_max;
-                        if (can_start_two_digit) {
-                            m_pending_color_shortcut_tens = digit;
-                            m_timer_set_color.StartOnce(500);
-                            processed = true;
-                        } else {
-                            processed = select_shortcut(digit);
-                        }
-                    }
+                    if (shortcut.select_now > 0)
+                        processed = mmu_seg->on_number_key_down(shortcut.select_now) || processed;
+
+                    m_pending_color_shortcut_tens = shortcut.pending_tens;
+                    if (shortcut.start_timer)
+                        m_timer_set_color.StartOnce(500);
+
+                    processed = shortcut.processed || processed;
                 }
                 else if (keyCode == 'F' || keyCode == 'T' || keyCode == 'S' || keyCode == 'C' || keyCode == 'H' || keyCode == 'G') {
                     processed = mmu_seg->on_key_down_select_tool_type(keyCode);

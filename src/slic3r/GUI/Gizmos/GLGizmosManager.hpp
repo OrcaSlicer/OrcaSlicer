@@ -30,6 +30,18 @@ enum class SLAGizmoEventType : unsigned char;
 class CommonGizmosDataPool;
 //BBS: GUI refactor: add object manipulation
 class GizmoObjectManipulation;
+
+struct MmuSegmentationColorShortcutResult
+{
+    int  select_now = 0;
+    int  pending_tens = 0;
+    bool start_timer = false;
+    bool stop_timer = false;
+    bool processed = false;
+};
+
+MmuSegmentationColorShortcutResult resolve_mmu_segmentation_color_shortcut(int digit, int shortcut_max, int pending_tens);
+
 class Rect
 {
     float m_left{ 0.0f };
