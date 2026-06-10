@@ -931,7 +931,9 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
-            this->check_new_version_sf();
+            // Store builds update through the Microsoft Store, never self-update.
+            if (!is_running_in_msix())
+                this->check_new_version_sf();
             const auto cloud_provider = get_printer_cloud_provider();
             if (is_user_login(cloud_provider) && !app_config->get_stealth_mode()) {
               // this->check_privacy_version(0);
