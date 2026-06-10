@@ -99,6 +99,10 @@ jobs:
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
     needs: build_linux
     if: ${{ !cancelled() && success() }}
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
