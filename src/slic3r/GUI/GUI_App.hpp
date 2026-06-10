@@ -539,7 +539,7 @@ public:
     void            restart_sync_user_preset();
     // Resolve a cloud sync 409 by force-pushing the conflicting preset: clears the "hold"
     // state the conflict left behind and queues it to be re-uploaded with force=true.
-    void            force_push_conflicting_preset(const std::string& setting_id, const std::string& preset_name);
+    void            force_push_conflicting_preset(const std::string& setting_id);
     void            on_stealth_mode_enter();
 
     // Bundle subscription sync

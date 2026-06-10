@@ -5007,7 +5007,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                         BOOST_LOG_TRIVIAL(info) << "conflict setting id empty, generated one: " << setting_id;
                     }
 
-                    force_push_conflicting_preset(setting_id, conflict_preset_name);
+                    force_push_conflicting_preset(setting_id);
                     return true;
                 });
         }
@@ -7070,7 +7070,7 @@ void GUI_App::restart_sync_user_preset()
     }).detach();
 }
 
-void GUI_App::force_push_conflicting_preset(const std::string& setting_id, const std::string& preset_name)
+void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
 {
     if (setting_id.empty() || !preset_bundle)
         return;
@@ -7081,20 +7081,25 @@ void GUI_App::force_push_conflicting_preset(const std::string& setting_id, const
         m_pending_conflict_setting_ids.push_back(setting_id);
     }
 
+    const std::string user_id = m_agent ? m_agent->get_user_id() : std::string();
+
     // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
     // "update" so the next push-sync re-includes it and consumes the queued force flag.
     // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
     // the local changes the user is trying to force-push.)
     // For a -3 tombstone on a newly created preset the on-disk setting_id is EMPTY (it only
-    // gets assigned after a successful first push), so match by name and stamp the generated
-    // setting_id onto the preset — otherwise sync_with_lock's `id == preset.setting_id` check
-    // never fires and the force-push silently no-ops.
+    // gets assigned after a successful first push), so derive it on the fly from the preset
+    // name and stamp it onto the preset — otherwise sync_with_lock's `id == preset.setting_id`
+    // check never fires and the force-push silently no-ops.
     PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
     for (PresetCollection* coll : collections) {
         for (const Preset& preset : coll->get_presets()) {
-            const bool id_match   = !preset.setting_id.empty() && preset.setting_id == setting_id;
-            const bool name_match = preset.setting_id.empty() && !preset_name.empty() && preset.name == preset_name;
-            if ((id_match || name_match) && preset.sync_info == "hold") {
+            if (preset.sync_info != "hold")
+                continue;
+            const std::string preset_id = preset.setting_id.empty()
+                ? OrcaCloudServiceAgent::generate_uuid_for_setting_id(preset.name, user_id)
+                : preset.setting_id;
+            if (preset_id == setting_id) {
                 coll->set_sync_info_and_save(preset.name, setting_id, "update", 0);
                 break;
             }
