@@ -210,6 +210,94 @@ extern "C" {
     Slic3rMainFunc orcaslicer_main = nullptr;
 }
 
+// ---- Genuine-host staging (defense-in-depth backup for the installer) --------------
+// The installer normally stages a genuine Bambu-signed bambu-studio.exe + BambuStudio.dll
+// next to OrcaSlicer at install time (elevated). As a backup, the launcher self-heals on
+// startup: if the host is missing but Bambu Studio is installed, copy the genuine files
+// in. That also lights up Bambu mode if Bambu Studio is installed AFTER OrcaSlicer.
+enum class StageResult { Ok, NoBambu, WriteFailed };
+
+// Locate an installed Bambu Studio via the registry. On success fills genuine_exe with
+// its bambu-studio.exe and genuine_dir with its install directory (trailing backslash).
+static bool find_bambu_studio(wchar_t* genuine_exe, wchar_t* genuine_dir)
+{
+    genuine_exe[0] = 0; genuine_dir[0] = 0;
+    HKEY hk = nullptr;
+    bool found = false;
+    if (::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+            L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Bambu Studio",
+            0, KEY_READ | KEY_WOW64_64KEY, &hk) == ERROR_SUCCESS) {
+        wchar_t icon[MAX_PATH + 1] = { 0 };
+        DWORD cb = sizeof(icon) - sizeof(wchar_t), type = 0;
+        if (::RegQueryValueExW(hk, L"DisplayIcon", nullptr, &type, (LPBYTE)icon, &cb) == ERROR_SUCCESS
+            && (type == REG_SZ || type == REG_EXPAND_SZ)) {
+            wchar_t* comma = wcsrchr(icon, L',');               // strip ",<iconIndex>"
+            wchar_t* slash = wcsrchr(icon, L'\\');
+            if (comma && (!slash || comma > slash)) *comma = 0;
+            if (slash && ::GetFileAttributesW(icon) != INVALID_FILE_ATTRIBUTES) {
+                wcscpy(genuine_exe, icon);                      // the genuine bambu-studio.exe
+                slash[1] = 0;                                   // truncate to the install dir
+                wcscpy(genuine_dir, icon);
+                found = true;
+            }
+        }
+        ::RegCloseKey(hk);
+    }
+    return found;
+}
+
+// Copy the genuine host + DLL into `dir`, and make sure dir\BambuStudio.dll exists (a
+// vanilla install may have shipped it renamed to OrcaSlicer.dll). Idempotent.
+static StageResult stage_genuine_files(const wchar_t* dir)
+{
+    wchar_t host_exe[MAX_PATH + 1] = { 0 };
+    wcscpy(host_exe, dir); wcscat(host_exe, L"bambu-studio.exe");
+
+    wchar_t genuine_exe[MAX_PATH + 1] = { 0 }, genuine_dir[MAX_PATH + 1] = { 0 };
+    bool bambu = find_bambu_studio(genuine_exe, genuine_dir);
+    if (bambu) {
+        ::CopyFileW(genuine_exe, host_exe, FALSE);
+        // Stash the genuine BambuStudio.dll as BambuStudioOriginal.dll so the plugin's
+        // signature check stays satisfiable even if Bambu Studio is later uninstalled.
+        wchar_t gdll[MAX_PATH + 1] = { 0 }; wcscpy(gdll, genuine_dir); wcscat(gdll, L"BambuStudio.dll");
+        wchar_t odll[MAX_PATH + 1] = { 0 }; wcscpy(odll, dir);         wcscat(odll, L"BambuStudioOriginal.dll");
+        if (::GetFileAttributesW(gdll) != INVALID_FILE_ATTRIBUTES
+            && ::GetFileAttributesW(odll) == INVALID_FILE_ATTRIBUTES)
+            ::CopyFileW(gdll, odll, FALSE);
+    }
+    // The genuine host loads its studio dll by the fixed name BambuStudio.dll.
+    if (::GetFileAttributesW(host_exe) != INVALID_FILE_ATTRIBUTES) {
+        wchar_t studio_dll[MAX_PATH + 1] = { 0 }; wcscpy(studio_dll, dir); wcscat(studio_dll, L"BambuStudio.dll");
+        if (::GetFileAttributesW(studio_dll) == INVALID_FILE_ATTRIBUTES) {
+            wchar_t orca_dll[MAX_PATH + 1] = { 0 }; wcscpy(orca_dll, dir); wcscat(orca_dll, L"OrcaSlicer.dll");
+            if (::GetFileAttributesW(orca_dll) != INVALID_FILE_ATTRIBUTES)
+                ::CopyFileW(orca_dll, studio_dll, FALSE);
+        }
+    }
+    if (::GetFileAttributesW(host_exe) != INVALID_FILE_ATTRIBUTES) return StageResult::Ok;
+    return bambu ? StageResult::WriteFailed : StageResult::NoBambu;
+}
+
+// Re-launch ourselves elevated (UAC consent) to run only the staging, so it can write a
+// protected install dir (Program Files). Returns true if the elevated pass ran.
+static bool elevate_and_stage(const wchar_t* self_exe)
+{
+    SHELLEXECUTEINFOW sei; ZeroMemory(&sei, sizeof(sei));
+    sei.cbSize = sizeof(sei);
+    sei.fMask  = SEE_MASK_NOCLOSEPROCESS;
+    sei.lpVerb = L"runas";                                       // triggers the UAC prompt
+    sei.lpFile = self_exe;
+    sei.lpParameters = L"--stage-genuine";
+    sei.nShow  = SW_HIDE;
+    if (::ShellExecuteExW(&sei) && sei.hProcess) {
+        ::WaitForSingleObject(sei.hProcess, 120000);
+        ::CloseHandle(sei.hProcess);
+        return true;
+    }
+    return false;                                                // user declined UAC, or failed
+}
+// ------------------------------------------------------------------------------------
+
 extern "C" {
 #ifdef SLIC3R_WRAPPER_NOCONSOLE
 int APIENTRY wWinMain(HINSTANCE /* hInstance */, HINSTANCE /* hPrevInstance */, PWSTR /* lpCmdLine */, int /* nCmdShow */)
@@ -237,7 +325,9 @@ int wmain(int argc, wchar_t **argv)
     // Here one may push some additional parameters based on the wrapper type.
     bool force_mesa = false;
 #endif /* SLIC3R_GUI */
+    bool stage_only = false;                 // internal: elevated genuine-host staging pass
     for (int i = 1; i < argc; ++ i) {
+        if (wcscmp(argv[i], L"--stage-genuine") == 0) { stage_only = true; continue; }  // not forwarded
 #ifdef SLIC3R_GUI
         if (wcscmp(argv[i], L"--sw-renderer") == 0)
             force_mesa = true;
@@ -250,15 +340,19 @@ int wmain(int argc, wchar_t **argv)
 
 #ifdef SLIC3R_GUI
     OpenGLVersionCheck opengl_version_check;
-    bool load_mesa =
-        // Forced from the command line.
-        force_mesa ||
-        // Try to load the default OpenGL driver and test its context version.
-        ! opengl_version_check.load_opengl_dll() || ! opengl_version_check.is_version_greater_or_equal_to(2, 0);
+    bool load_mesa = false;
+    if (!stage_only)                          // the staging pass does no GUI work
+        load_mesa =
+            // Forced from the command line.
+            force_mesa ||
+            // Try to load the default OpenGL driver and test its context version.
+            ! opengl_version_check.load_opengl_dll() || ! opengl_version_check.is_version_greater_or_equal_to(2, 0);
 #endif /* SLIC3R_GUI */
 
     wchar_t path_to_exe[MAX_PATH + 1] = { 0 };
     ::GetModuleFileNameW(nullptr, path_to_exe, MAX_PATH);
+    wchar_t self_exe[MAX_PATH + 1] = { 0 };
+    wcscpy(self_exe, path_to_exe);                  // full path to this exe, for re-launch
     wchar_t drive[_MAX_DRIVE];
     wchar_t dir[_MAX_DIR];
     wchar_t fname[_MAX_FNAME];
@@ -272,6 +366,14 @@ int wmain(int argc, wchar_t **argv)
     DWORD python_attrs = GetFileAttributesW(path_to_python);
     if (python_attrs != INVALID_FILE_ATTRIBUTES && (python_attrs & FILE_ATTRIBUTE_DIRECTORY)) {
         SetDllDirectoryW(path_to_python);
+    }
+
+    // Elevated entry point: a UAC-elevated copy of ourselves (launched by the self-heal
+    // below) runs ONLY the staging and exits, so it can write into a protected install
+    // dir (Program Files) on behalf of the normal-user launch.
+    if (stage_only) {
+        stage_genuine_files(path_to_exe);
+        return 0;
     }
 
     // ---- Run under a genuine, Bambu-signed host --------------------------------
@@ -290,36 +392,17 @@ int wmain(int argc, wchar_t **argv)
         wcscat(host_exe, L"bambu-studio.exe");
 
         if (::GetFileAttributesW(host_exe) == INVALID_FILE_ATTRIBUTES) {
-            HKEY hk = nullptr;
-            if (::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-                    L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Bambu Studio",
-                    0, KEY_READ | KEY_WOW64_64KEY, &hk) == ERROR_SUCCESS) {
-                wchar_t icon[MAX_PATH + 1] = { 0 };
-                DWORD cb = sizeof(icon) - sizeof(wchar_t), type = 0;
-                if (::RegQueryValueExW(hk, L"DisplayIcon", nullptr, &type, (LPBYTE)icon, &cb) == ERROR_SUCCESS
-                    && (type == REG_SZ || type == REG_EXPAND_SZ)) {
-                    wchar_t* comma = wcsrchr(icon, L',');           // strip ",<iconIndex>"
-                    wchar_t* slash = wcsrchr(icon, L'\\');
-                    if (comma && (!slash || comma > slash)) *comma = 0;
-                    if (::GetFileAttributesW(icon) != INVALID_FILE_ATTRIBUTES) {
-                        ::CopyFileW(icon, host_exe, FALSE);
-                        // also stash the genuine BambuStudio.dll locally as
-                        // BambuStudioOriginal.dll, so the plugin's signature check stays
-                        // satisfiable even if Bambu Studio is later uninstalled/upgraded.
-                        if (slash) {
-                            slash[1] = 0;                       // icon -> genuine install dir
-                            wchar_t gdll[MAX_PATH + 1] = { 0 };
-                            wcscpy(gdll, icon); wcscat(gdll, L"BambuStudio.dll");
-                            wchar_t odll[MAX_PATH + 1] = { 0 };
-                            wcscpy(odll, path_to_exe); wcscat(odll, L"BambuStudioOriginal.dll");
-                            if (::GetFileAttributesW(gdll) != INVALID_FILE_ATTRIBUTES
-                                && ::GetFileAttributesW(odll) == INVALID_FILE_ATTRIBUTES)
-                                ::CopyFileW(gdll, odll, FALSE);
-                        }
-                    }
-                }
-                ::RegCloseKey(hk);
+            // Self-heal: copy the genuine host + DLL out of an installed Bambu Studio.
+            // Works without elevation for a writable (e.g. portable) install.
+            StageResult r = stage_genuine_files(path_to_exe);
+            if (r == StageResult::WriteFailed) {
+                // Bambu Studio is installed but our dir (Program Files) isn't writable by
+                // a normal user -> ask for elevation once and stage as admin. This is also
+                // the path that lights up Bambu mode when Bambu Studio is installed AFTER
+                // OrcaSlicer. (If the user declines UAC, we fall through to vanilla.)
+                elevate_and_stage(self_exe);
             }
+            // StageResult::NoBambu -> no Bambu Studio installed; fall through to vanilla.
         }
 
         if (::GetFileAttributesW(host_exe) != INVALID_FILE_ATTRIBUTES) {
