@@ -53,4 +53,10 @@ add_subdirectory(slic3rutils)
 add_subdirectory(fff_print)
 add_subdirectory(sla_print)
 
+# slice_core tests require liborca_slice_core, which is only built when the GUI
+# is enabled (liborca_slice_core links libslic3r_gui transitively).
+if (SLIC3R_GUI)
+    add_subdirectory(slice_core)
+endif ()
+
 
