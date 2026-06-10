@@ -67,7 +67,7 @@ std::string resolve_resources_dir()
 std::string fixture_3mf()
 {
     return (fs::path(TEST_DATA_DIR) / "test_3mf" / "Ger\xC3\xA4te"
-                                    / "B\xC3\xBCchse.3mf").string();
+                                    / "B\xC3\xBC" "chse.3mf").string();
 }
 
 // RAII temporary directory.
