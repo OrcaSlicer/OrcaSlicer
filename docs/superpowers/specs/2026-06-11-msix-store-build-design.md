@@ -56,12 +56,16 @@ schema reference during implementation; `makeappx`/WACK validate):
   at `src/CMakeLists.txt:189`).
 - Extensions:
   - `windows.fileTypeAssociation` for `.3mf`, `.stl`, `.step`/`.stp`,
-    `.gcode`. Note: `.gcode` is opt-in in the classic build
-    (`associate_gcode`); manifest declarations are static, so it is
+    `.gcode`, `.drc`. Note: `.gcode` and `.drc` are opt-in in the
+    classic build; manifest declarations are static, so they are
     always declared. Declaring an FTA only adds OrcaSlicer to "Open
     with" — the user controls defaults via Windows Settings, so this is
     not a behavior regression.
-  - `windows.protocol` for `orcaslicer://`.
+  - `windows.protocol` for `orcaslicer://`. The classic build also
+    offers opt-in handlers for `prusaslicer://`, `bambustudio://` and
+    `cura://` (Preferences "Associate" tab); those are NOT declared in
+    the manifest for now (possible follow-up) and their toggles are
+    hidden in packaged context.
   - `rescap3:MigrationProgIds` declaring `Orca.Slicer.1`.
     KNOWN LIMITATION: the classic build writes its ProgID with a
     leading space (`L" Orca.Slicer.1"`, `GUI_App.cpp:9119`), which
@@ -114,23 +118,25 @@ non-Windows.
 - Skip the startup auto-check (`check_new_version_sf()` call at
   `GUI_App.cpp:934`) when packaged.
 - The manual "Check for updates" menu action (`MainFrame.cpp:2580`)
-  opens the Store listing (`ms-windows-store://pdp/?ProductId=...`,
-  ProductId from a build-time define fed by repo variable
-  `ORCA_MSIX_STORE_PRODUCT_ID`) instead of the download flow. If the
-  ProductId is not configured (pre-reservation builds), the menu action
-  shows a message that updates are delivered through the Microsoft
-  Store — it never falls back to the classic download flow.
+  opens the Store listing via `ms-windows-store://pdp/?PFN=<family>`,
+  where the package family name comes from
+  `GetCurrentPackageFamilyName` at runtime — no build-time ProductId
+  define or extra repo variable needed, and it works identically in
+  pre- and post-reservation builds. It never falls back to the classic
+  download flow.
 
 **Association suppression (R3)** — the manifest owns shell integration;
 runtime registry writes are virtualized and invisible:
 
 - Early-return in `associate_files`, `disassociate_files`,
   `associate_url`, `disassociate_url` when packaged.
-- Hide the file-association checkboxes in Preferences
-  (`Preferences.cpp:982+`) in packaged context.
-- Suppress any prompt/check that offers to (re)register associations
-  (e.g. `check_url_association` consumers) in packaged context —
-  implementation enumerates call sites.
+- Hide the whole "Associate" tab in Preferences
+  (`Preferences.cpp:1848-1883`) in packaged context — the
+  file-association checkboxes and the `prusaslicer://` /
+  `bambustudio://` / `cura://` URL-handler rows all rely on runtime
+  registry writes that are virtualized. The `check_url_association`
+  consumers live exclusively in that tab, so no other prompt suppression
+  is needed.
 
 ## What does NOT change
 
@@ -167,8 +173,8 @@ the PR documents manual verification per repo review guidelines:
 The PR lands before Partner Center account approval — placeholder
 identity builds a valid artifact. Once the account clears and the app
 name is reserved, set the three repo variables (identity name, publisher
-`CN=<GUID>`, ProductId); the next CI run produces the uploadable
-package. First Store submission is manual (listing, IARC,
+`CN=<GUID>`, publisher display name); the next CI run produces the
+uploadable package. First Store submission is manual (listing, IARC,
 `runFullTrust` + `unvirtualizedResources` justifications) per the
 handoff doc's "Submission process" section.
 
