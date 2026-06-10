@@ -73,6 +73,11 @@ using namespace nlohmann;
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 
+// SliceCore headless helpers — by-name preset resolution and output routing
+#include "slic3r/SliceCore/SliceTypes.hpp"
+#include "slic3r/SliceCore/PresetResolver.hpp"
+#include "slic3r/SliceCore/OutputTargetDeliver.hpp"
+
 #include "OrcaSlicer.hpp"
 //BBS: add exception handler for win32
 #include <wx/stdpaths.h>
@@ -3610,6 +3615,48 @@ int CLI::run(int argc, char **argv)
         }
     }
 
+    // --- By-name preset resolution (--printer / --process / --filament) ---
+    // Must run AFTER 3MF/load_settings load but BEFORE m_extra_config (CLI key=value) is
+    // applied, so that explicit key=value overrides still have the highest precedence.
+    {
+        const std::string preset_printer  = m_config.opt_string("printer",  true);
+        const std::string preset_process  = m_config.opt_string("process",  true);
+        const std::vector<std::string> &preset_filaments =
+            m_config.option<ConfigOptionStrings>("filament", true)->values;
+
+        const bool have_preset_flags = !preset_printer.empty()
+                                    || !preset_process.empty()
+                                    || !preset_filaments.empty();
+
+        if (have_preset_flags) {
+            Slic3r::SliceCore::PresetSelection sel;
+            if (!preset_printer.empty())
+                sel.printer_name = preset_printer;
+            if (!preset_process.empty())
+                sel.process_name = preset_process;
+            sel.filament_names = preset_filaments;
+            // Pass through existing raw-JSON load lists so resolve() uses the same path.
+            sel.load_settings  = load_configs;
+            sel.load_filaments = load_filaments;
+
+            std::string resolve_err;
+            DynamicPrintConfig resolved = Slic3r::SliceCore::resolve(sel, Slic3r::data_dir(), resolve_err);
+            if (!resolve_err.empty()) {
+                boost::nowide::cerr << "Preset resolution error: " << resolve_err << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0, cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+            // Merge resolved preset config at the same precedence as --load_settings:
+            // below explicit CLI key=value overrides (m_extra_config), above the 3MF base.
+            m_print_config.apply(resolved, true);
+            BOOST_LOG_TRIVIAL(info) << "By-name preset resolution applied"
+                << (sel.printer_name  ? (std::string(" printer=")  + *sel.printer_name)  : "")
+                << (sel.process_name  ? (std::string(" process=")  + *sel.process_name)  : "")
+                << (!preset_filaments.empty() ? " filament(s) provided" : "");
+        }
+    }
+    // --- end by-name preset resolution ---
+
     // Apply command line options to a more specific DynamicPrintConfig which provides normalize()
     // (command line options override --load files)
     m_print_config.apply(m_extra_config, true);
@@ -6247,6 +6294,59 @@ int CLI::run(int argc, char **argv)
                                 // Run the post-processing scripts if defined.
                                 //run_post_process_scripts(outfile, print->full_print_config());
                                 BOOST_LOG_TRIVIAL(info) << "Slicing result exported to " << outfile << std::endl;
+
+                                // --- Output routing (--output_target) ---
+                                {
+                                    const std::string output_target_str = m_config.opt_string("output_target", true);
+                                    // Validate value when explicitly provided.
+                                    if (!output_target_str.empty()
+                                        && output_target_str != "file"
+                                        && output_target_str != "stdout"
+                                        && output_target_str != "printhost")
+                                    {
+                                        boost::nowide::cerr << "Invalid --output_target value '"
+                                            << output_target_str << "': must be file|stdout|printhost" << std::endl;
+                                        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                        flush_and_exit(CLI_INVALID_PARAMS);
+                                    }
+
+                                    if (output_target_str == "stdout") {
+                                        Slic3r::SliceCore::OutputTarget out_target;
+                                        out_target.mode      = Slic3r::SliceCore::OutputMode::Stdout;
+                                        out_target.outputdir = outfile_dir;
+                                        std::string deliver_err;
+                                        if (!Slic3r::SliceCore::deliver(out_target, outfile, deliver_err)) {
+                                            boost::nowide::cerr << "stdout delivery failed: " << deliver_err << std::endl;
+                                            record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                            flush_and_exit(CLI_SLICING_ERROR);
+                                        }
+                                    } else if (output_target_str == "printhost") {
+                                        Slic3r::SliceCore::OutputTarget out_target;
+                                        out_target.mode = Slic3r::SliceCore::OutputMode::PrintHost;
+                                        out_target.outputdir = outfile_dir;
+                                        // Map CLI host flags to the DynamicPrintConfig keys PrintHost expects.
+                                        const std::string host_url    = m_config.opt_string("host_url",    true);
+                                        const std::string host_type   = m_config.opt_string("host_type",   true);
+                                        const std::string host_apikey = m_config.opt_string("host_apikey", true);
+                                        if (!host_url.empty())
+                                            out_target.host_config.set("print_host",       host_url,    true);
+                                        if (!host_type.empty())
+                                            out_target.host_config.set("host_type",         host_type,   true);
+                                        if (!host_apikey.empty())
+                                            out_target.host_config.set("printhost_apikey",  host_apikey, true);
+                                        out_target.start_print = m_config.opt_bool("start_print");
+                                        std::string deliver_err;
+                                        if (!Slic3r::SliceCore::deliver(out_target, outfile, deliver_err)) {
+                                            boost::nowide::cerr << "PrintHost upload failed: " << deliver_err << std::endl;
+                                            record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                            flush_and_exit(CLI_SLICING_ERROR);
+                                        }
+                                    }
+                                    // output_target=="file" or empty: existing file-writing behavior is
+                                    // already complete at this point — no action needed.
+                                }
+                                // --- end output routing ---
+
                                 part_plate->update_slice_result_valid_state(true);
 #if defined(__linux__) || defined(__LINUX__)
                                 if (g_cli_callback_mgr.is_started()) {

@@ -11040,6 +11040,53 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
+
+    def = this->add("printer", coString);
+    def->label = L("Printer preset");
+    def->tooltip = L("Name of the printer/machine preset to select by name.");
+    def->cli_params = "preset_name";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("process", coString);
+    def->label = L("Process preset");
+    def->tooltip = L("Name of the process/print preset to select by name.");
+    def->cli_params = "preset_name";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("filament", coStrings);
+    def->label = L("Filament preset(s)");
+    def->tooltip = L("Name(s) of filament preset(s) to select by name (repeatable / semicolon-separated).");
+    def->cli_params = "\"filament1;filament2;...\"";
+    def->set_default_value(new ConfigOptionStrings());
+
+    def = this->add("output_target", coString);
+    def->label = L("Output target");
+    def->tooltip = L("Where to send sliced output: file|stdout|printhost");
+    def->cli_params = "target";
+    def->set_default_value(new ConfigOptionString("file"));
+
+    def = this->add("host_url", coString);
+    def->label = L("Print host URL");
+    def->tooltip = L("Print host URL for output_target=printhost.");
+    def->cli_params = "url";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("host_type", coString);
+    def->label = L("Print host type");
+    def->tooltip = L("Print host type (octoprint, moonraker, etc.) for output_target=printhost.");
+    def->cli_params = "type";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("host_apikey", coString);
+    def->label = L("Print host API key");
+    def->tooltip = L("Print host API key/token.");
+    def->cli_params = "key";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("start_print", coBool);
+    def->label = L("Start print after upload");
+    def->tooltip = L("Start the print after upload (printhost).");
+    def->set_default_value(new ConfigOptionBool(false));
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;
