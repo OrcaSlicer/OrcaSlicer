@@ -381,6 +381,11 @@ jobs:
       - name: Build slicer and tests
         if: runner.os == 'Linux'
         shell: bash
+        # ORCA_EXTRA_BUILD_ARGS is forwarded by build_linux.sh to the cmake
+        # configure step.  SLIC3R_SERVER=ON builds orca-server and enables the
+        # server e2e tests in tests/slice_core.
+        env:
+          ORCA_EXTRA_BUILD_ARGS: "-DSLIC3R_SERVER=ON"
         run: |
           ./build_linux.sh -istrlL
           ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-slicer
