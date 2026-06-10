@@ -51,7 +51,7 @@ Set-Content -Path (Join-Path $StagingDir 'AppxManifest.xml') -Value $manifest -E
 
 if ($StageOnly) {
     Write-Output "Staged loose layout at: $StagingDir"
-    exit 0
+    return
 }
 
 $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64\makeappx.exe" -ErrorAction SilentlyContinue |
