@@ -9,6 +9,7 @@
 
 #ifdef _WIN32
     #include <Windows.h>
+    #include <appmodel.h>
     #include "libslic3r/AppConfig.hpp"
     #include <wx/msw/registry.h>
 #endif // _WIN32
@@ -24,6 +25,7 @@
 #include <wx/font.h>
 #include <wx/fontutil.h>
 #include <wx/display.h>
+#include <wx/utils.h>
 
 #include "libslic3r/Config.hpp"
 
@@ -44,6 +46,35 @@ wxString format_nozzle_diameter(float diameter)
     }
 
     return wxString::Format("%smm", wxString::FromDouble(diameter));
+}
+
+bool is_running_in_msix()
+{
+#ifdef _WIN32
+    // Null-buffer probe: returns ERROR_INSUFFICIENT_BUFFER when packaged,
+    // APPMODEL_ERROR_NO_PACKAGE when running unpackaged.
+    static const bool packaged = []() {
+        UINT32 length = 0;
+        return ::GetCurrentPackageFullName(&length, nullptr) != APPMODEL_ERROR_NO_PACKAGE;
+    }();
+    return packaged;
+#else
+    return false;
+#endif
+}
+
+void open_ms_store_product_page()
+{
+#ifdef _WIN32
+    UINT32 length = 0;
+    if (::GetCurrentPackageFamilyName(&length, nullptr) != ERROR_INSUFFICIENT_BUFFER)
+        return;
+    std::wstring family_name(length, L'\0');
+    if (::GetCurrentPackageFamilyName(&length, family_name.data()) != ERROR_SUCCESS)
+        return;
+    family_name.resize(length > 0 ? length - 1 : 0); // drop the terminating null
+    wxLaunchDefaultBrowser(wxString(L"ms-windows-store://pdp/?PFN=") + family_name.c_str());
+#endif
 }
 
 CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std::string& error_message, const bool with_check)
