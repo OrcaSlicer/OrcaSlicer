@@ -5007,7 +5007,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                         BOOST_LOG_TRIVIAL(info) << "conflict setting id empty, generated one: " << setting_id;
                     }
 
-                    force_push_conflicting_preset(setting_id);
+                    force_push_conflicting_preset(setting_id, conflict_preset_name);
                     return true;
                 });
         }
@@ -7070,7 +7070,7 @@ void GUI_App::restart_sync_user_preset()
     }).detach();
 }
 
-void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
+void GUI_App::force_push_conflicting_preset(const std::string& setting_id, const std::string& preset_name)
 {
     if (setting_id.empty() || !preset_bundle)
         return;
@@ -7085,11 +7085,17 @@ void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
     // "update" so the next push-sync re-includes it and consumes the queued force flag.
     // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
     // the local changes the user is trying to force-push.)
+    // For a -3 tombstone on a newly created preset the on-disk setting_id is EMPTY (it only
+    // gets assigned after a successful first push), so match by name and stamp the generated
+    // setting_id onto the preset — otherwise sync_with_lock's `id == preset.setting_id` check
+    // never fires and the force-push silently no-ops.
     PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
     for (PresetCollection* coll : collections) {
         for (const Preset& preset : coll->get_presets()) {
-            if (preset.setting_id == setting_id && preset.sync_info == "hold") {
-                coll->set_sync_info_and_save(preset.name, preset.setting_id, "update", 0);
+            const bool id_match   = !preset.setting_id.empty() && preset.setting_id == setting_id;
+            const bool name_match = preset.setting_id.empty() && !preset_name.empty() && preset.name == preset_name;
+            if ((id_match || name_match) && preset.sync_info == "hold") {
+                coll->set_sync_info_and_save(preset.name, setting_id, "update", 0);
                 break;
             }
         }
