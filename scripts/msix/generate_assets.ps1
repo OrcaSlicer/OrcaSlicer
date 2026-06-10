@@ -9,7 +9,7 @@ $source   = Join-Path $repoRoot 'resources\images\OrcaSlicer_192px.png'
 $outDir   = Join-Path $PSScriptRoot 'assets'
 New-Item -ItemType Directory -Force $outDir | Out-Null
 
-$sizes = @{
+$sizes = [ordered]@{
     'Square150x150Logo.png'                              = 150
     'Square44x44Logo.png'                                = 44
     'Square44x44Logo.targetsize-44_altform-unplated.png' = 44
@@ -22,6 +22,7 @@ foreach ($name in $sizes.Keys) {
     $bmp = New-Object System.Drawing.Bitmap($px, $px)
     $gfx = [System.Drawing.Graphics]::FromImage($bmp)
     $gfx.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $gfx.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
     $gfx.DrawImage($src, 0, 0, $px, $px)
     $gfx.Dispose()
     $bmp.Save((Join-Path $outDir $name), [System.Drawing.Imaging.ImageFormat]::Png)
