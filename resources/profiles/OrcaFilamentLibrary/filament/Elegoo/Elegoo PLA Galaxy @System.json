@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OEPLAGALAXYS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PLA Galaxy",
 	"fan_min_speed": [
 		"80"
 	],

@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "PEOSG08040",
 	"instantiation": "true",
+	"renamed_from": "0.40mm Standard @EOS Giga 0.8 nozzle",
 	"default_acceleration": "3000",
 	"filename_format": "EOGiga1_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"initial_layer_acceleration": "1000",
