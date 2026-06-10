@@ -1178,4 +1178,26 @@ set(CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")
 set(CPACK_GENERATOR NSIS)
 
 
+# At install time, stage a genuine Bambu-signed host + DLL next to OrcaSlicer so the
+# unsigned orca-slicer.exe can re-launch under it (the network plugin verifies the host
+# exe's Authenticode signature). The installer runs elevated, so it can write Program
+# Files; the launcher's non-elevated self-heal cannot. $R registers + quadruple-backslash
+# escaping keep cpack's CPackConfig re-parse clean under CMP0010/CMP0053 (same convention
+# as CPACK_NSIS_INSTALLED_ICON_NAME above). No Bambu Studio -> rename to OrcaSlicer.dll.
+set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+  SetRegView 64
+  ReadRegStr $R0 HKLM 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Bambu Studio' 'DisplayIcon'
+  StrCmp $R0 '' orca_no_bambu 0
+  IfFileExists '$R0' 0 orca_no_bambu
+  CopyFiles /SILENT '$R0' '$INSTDIR\\\\bambu-studio.exe'
+  StrCpy $R1 $R0 -16
+  IfFileExists '$R1BambuStudio.dll' 0 orca_host_done
+  CopyFiles /SILENT '$R1BambuStudio.dll' '$INSTDIR\\\\BambuStudioOriginal.dll'
+  Goto orca_host_done
+  orca_no_bambu:
+  IfFileExists '$INSTDIR\\\\BambuStudio.dll' 0 orca_host_done
+  Rename '$INSTDIR\\\\BambuStudio.dll' '$INSTDIR\\\\OrcaSlicer.dll'
+  orca_host_done:
+")
+
 include(CPack)
