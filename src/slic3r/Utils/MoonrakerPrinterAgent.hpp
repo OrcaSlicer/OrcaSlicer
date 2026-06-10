@@ -120,6 +120,9 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
+    // Map Creality CFS numeric material ID to readable material name
+    static std::string map_creality_material_id(const std::string& material_id);
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
@@ -163,6 +166,7 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);

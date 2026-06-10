@@ -591,8 +591,17 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         return true;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
+    // Attempt Creality CFS detection via box printer object
+    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
+                                << (max_lane_index + 1) << " lanes";
+        int ams_count = (max_lane_index + 4) / 4;
+        build_ams_payload(ams_count, max_lane_index, trays);
+        return true;
+    }
+
+    // No MMU/CFS detected - this is normal for printers without multi-material, not an error
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU/CFS system detected (neither Moonraker, HH, nor Creality CFS)";
     return false;
 }
 
@@ -654,6 +663,21 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     if (upper == "SBS")           return "OFLSBS99";
 
     // Unknown material
+    return UNKNOWN_FILAMENT_ID;
+}
+
+std::string MoonrakerPrinterAgent::map_creality_material_id(const std::string& material_id)
+{
+    if (material_id == "000001") return "PLA";
+    if (material_id == "000002") return "ABS";
+    if (material_id == "000003") return "PETG";
+    if (material_id == "000004") return "TPU";
+    if (material_id == "000005") return "ASA";
+    if (material_id == "000006") return "PA";
+    if (material_id == "000007") return "PC";
+    if (material_id == "000008") return "PLA-CF";
+    if (material_id == "000009") return "PETG-CF";
+    if (material_id == "000010") return "PA-CF";
     return UNKNOWN_FILAMENT_ID;
 }
 
@@ -946,6 +970,120 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         return false;
     }
 
+    return true;
+}
+
+bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    std::string url = join_url(device_info.base_url, "/printer/objects/query?box");
+
+    std::string response_body;
+    bool success = false;
+    std::string http_error;
+
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty()) {
+        http.header("X-Api-Key", device_info.api_key);
+    }
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) {
+                response_body = body;
+                success = true;
+            } else {
+                http_error = "HTTP error: " + std::to_string(status);
+            }
+        })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            http_error = err;
+            if (status > 0) {
+                http_error += " (HTTP " + std::to_string(status) + ")";
+            }
+        })
+        .perform_sync();
+
+    if (!success) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: Failed to fetch box data: " << http_error;
+        return false;
+    }
+
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: Invalid JSON response";
+        return false;
+    }
+
+    if (!json.contains("result") || !json["result"].contains("status") ||
+        !json["result"]["status"].contains("box") || !json["result"]["status"]["box"].is_object()) {
+        BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: No box object in response";
+        return false;
+    }
+
+    const auto& box = json["result"]["status"]["box"];
+
+    trays.clear();
+    max_lane_index = 0;
+
+    for (int tray_idx = 1; tray_idx <= 4; ++tray_idx) {
+        std::string tray_key = "T" + std::to_string(tray_idx);
+        if (!box.contains(tray_key) || !box[tray_key].is_object()) {
+            continue;
+        }
+
+        const auto& tray = box[tray_key];
+
+        std::string state = safe_json_string(tray, "state");
+        if (state != "connect") {
+            continue;
+        }
+
+        const auto& color_value = tray.contains("color_value") && tray["color_value"].is_array()
+            ? tray["color_value"] : nlohmann::json::array();
+        const auto& material_type = tray.contains("material_type") && tray["material_type"].is_array()
+            ? tray["material_type"] : nlohmann::json::array();
+
+        int tray_base_slot = (tray_idx - 1) * 4;
+
+        for (int slot_i = 0; slot_i < 4; ++slot_i) {
+            std::string mat_id = safe_array_string(material_type, slot_i);
+            if (mat_id.empty() || mat_id == "-1") {
+                continue;
+            }
+
+            std::string material_name = map_creality_material_id(mat_id);
+
+            std::string color = safe_array_string(color_value, slot_i);
+            // Strip leading "0" from Creality color format (e.g., "0FF1E1E" -> "FF1E1E")
+            if (color.size() >= 2 && color[0] == '0') {
+                color = color.substr(1);
+            }
+
+            AmsTrayData data;
+            data.slot_index = tray_base_slot + slot_i;
+            data.tray_color = color;
+            data.tray_type = material_name;
+            data.bed_temp = 0;
+            data.nozzle_temp = 0;
+            data.has_filament = true;
+
+            auto* bundle = GUI::wxGetApp().preset_bundle;
+            data.tray_info_idx = bundle
+                ? bundle->filaments.filament_id_by_type(data.tray_type)
+                : map_filament_type_to_generic_id(data.tray_type);
+
+            max_lane_index = std::max(max_lane_index, data.slot_index);
+            trays.push_back(data);
+        }
+    }
+
+    if (trays.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: No CFS lanes detected";
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: Detected " << trays.size()
+                            << " CFS lanes across trays";
     return true;
 }
 
