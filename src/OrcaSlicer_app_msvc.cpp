@@ -5,6 +5,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <shellapi.h>
+#include <commctrl.h>
 #include <wchar.h>
 
 
@@ -31,6 +32,7 @@ extern "C"
 
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "User32.lib")
+#pragma comment(lib, "comctl32.lib")
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -296,6 +298,66 @@ static bool elevate_and_stage(const wchar_t* self_exe)
     }
     return false;                                                // user declined UAC, or failed
 }
+
+// Per-user "don't offer the bridge again" flag (HKCU\Software\OrcaSlicer\SkipBambuBridge).
+static bool bridge_skip_forever()
+{
+    DWORD val = 0, cb = sizeof(val), type = 0;
+    HKEY hk = nullptr;
+    if (::RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\OrcaSlicer", 0, KEY_READ, &hk) == ERROR_SUCCESS) {
+        ::RegQueryValueExW(hk, L"SkipBambuBridge", nullptr, &type, (LPBYTE)&val, &cb);
+        ::RegCloseKey(hk);
+    }
+    return type == REG_DWORD && val != 0;
+}
+static void set_bridge_skip_forever()
+{
+    HKEY hk = nullptr;
+    if (::RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\OrcaSlicer", 0, nullptr, 0,
+            KEY_WRITE, nullptr, &hk, nullptr) == ERROR_SUCCESS) {
+        DWORD val = 1;
+        ::RegSetValueExW(hk, L"SkipBambuBridge", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
+        ::RegCloseKey(hk);
+    }
+}
+
+// Consent dialog shown BEFORE the UAC prompt. 1 = Yes (stage), 2 = Skip for now,
+// 3 = Skip forever.
+static int ask_stage_bridge()
+{
+    TASKDIALOGCONFIG cfg; ZeroMemory(&cfg, sizeof(cfg));
+    cfg.cbSize  = sizeof(cfg);
+    cfg.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+    cfg.pszWindowTitle     = L"OrcaSlicer";
+    cfg.pszMainIcon        = TD_INFORMATION_ICON;
+    cfg.pszMainInstruction = L"Add / Heal Full Bambu Network Bridge";
+    cfg.pszContent =
+        L"Bambu Studio is installed on this PC. OrcaSlicer can copy its genuine network "
+        L"component so you can connect to Bambu Lab printers (cloud and LAN) directly. "
+        L"Windows will ask for administrator approval.";
+    static const TASKDIALOG_BUTTON buttons[] = {
+        { 100, L"Yes\nAdd the Bambu network bridge (requires administrator)" },
+        { 101, L"Skip For Now\nContinue without it; ask again next time" },
+        { 102, L"Skip Forever\nContinue without it; don't ask again" },
+    };
+    cfg.pButtons = buttons;
+    cfg.cButtons = ARRAYSIZE(buttons);
+    int pressed = 0;
+    if (SUCCEEDED(::TaskDialogIndirect(&cfg, &pressed, nullptr, nullptr))) {
+        if (pressed == 100) return 1;
+        if (pressed == 102) return 3;
+        return 2;                          // Skip For Now, or closed via X / Esc
+    }
+    // Fallback if the rich dialog is unavailable.
+    int m = ::MessageBoxW(nullptr,
+        L"Add the full Bambu network bridge so you can use Bambu Lab printers?\n"
+        L"This needs administrator approval.\n\n"
+        L"Yes = Add now\nNo = Skip for now\nCancel = Skip forever (don't ask again)",
+        L"OrcaSlicer", MB_YESNOCANCEL | MB_ICONQUESTION);
+    if (m == IDYES)    return 1;
+    if (m == IDCANCEL) return 3;
+    return 2;
+}
 // ------------------------------------------------------------------------------------
 
 extern "C" {
@@ -391,16 +453,20 @@ int wmain(int argc, wchar_t **argv)
         wcscpy(host_exe, path_to_exe);
         wcscat(host_exe, L"bambu-studio.exe");
 
-        if (::GetFileAttributesW(host_exe) == INVALID_FILE_ATTRIBUTES) {
+        if (::GetFileAttributesW(host_exe) == INVALID_FILE_ATTRIBUTES && !bridge_skip_forever()) {
             // Self-heal: copy the genuine host + DLL out of an installed Bambu Studio.
             // Works without elevation for a writable (e.g. portable) install.
             StageResult r = stage_genuine_files(path_to_exe);
             if (r == StageResult::WriteFailed) {
-                // Bambu Studio is installed but our dir (Program Files) isn't writable by
-                // a normal user -> ask for elevation once and stage as admin. This is also
-                // the path that lights up Bambu mode when Bambu Studio is installed AFTER
-                // OrcaSlicer. (If the user declines UAC, we fall through to vanilla.)
-                elevate_and_stage(self_exe);
+                // Bambu Studio is installed but our dir (Program Files) isn't writable by a
+                // normal user. Ask the user BEFORE prompting for UAC. This is also the path
+                // that lights up Bambu mode when Bambu Studio is installed AFTER OrcaSlicer.
+                int choice = ask_stage_bridge();        // 1=Yes  2=skip now  3=skip forever
+                if (choice == 1)
+                    elevate_and_stage(self_exe);        // UAC consent -> elevated staging
+                else if (choice == 3)
+                    set_bridge_skip_forever();          // remember "don't ask again"
+                // choice == 2 (skip for now) -> ask again on the next launch
             }
             // StageResult::NoBambu -> no Bambu Studio installed; fall through to vanilla.
         }
