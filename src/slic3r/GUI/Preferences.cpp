@@ -1846,6 +1846,9 @@ void PreferencesDialog::create_items()
     //// ASSOCIATE TAB 
     /////////////////////////////////////
 #ifdef _WIN32
+    // MSIX: associations are declared in the package manifest and defaults are
+    // managed by Windows Settings; the runtime registry toggles below cannot work.
+    if (!is_running_in_msix()) {
     m_pref_tabs->AppendItem(_L("Associate"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
@@ -1880,6 +1883,7 @@ void PreferencesDialog::create_items()
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
+    }
 #endif // _WIN32
 
     //////////////////////////
