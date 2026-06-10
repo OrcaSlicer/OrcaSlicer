@@ -298,6 +298,18 @@ jobs:
         run: |
           cpack -G NSIS
 
+      - name: Build MSIX Store package Win
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          ./scripts/msix/build_msix.ps1 `
+            -InstallDir "${{ github.workspace }}/build/OrcaSlicer" `
+            -OutputPath "${{ github.workspace }}/build/OrcaSlicer_Windows_MSIX_${{ env.ver }}.msix" `
+            -IdentityName "${{ vars.ORCA_MSIX_IDENTITY_NAME || 'OrcaSlicer.Dev' }}" `
+            -Publisher "${{ vars.ORCA_MSIX_PUBLISHER || 'CN=00000000-0000-0000-0000-000000000000' }}" `
+            -PublisherDisplayName "${{ vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME || 'OrcaSlicer (dev)' }}"
+
       - name: Pack app
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}/build
@@ -323,6 +335,13 @@ jobs:
         with:
           name: OrcaSlicer_Windows_${{ env.ver }}
           path: ${{ github.workspace }}/build/OrcaSlicer*.exe
+
+      - name: Upload artifacts Win MSIX
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        uses: actions/upload-artifact@v7
+        with:
+          name: OrcaSlicer_Windows_MSIX_${{ env.ver }}
+          path: ${{ github.workspace }}/build/OrcaSlicer_Windows_MSIX_${{ env.ver }}.msix
 
       - name: Upload artifacts Win PDB
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
