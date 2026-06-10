@@ -10256,7 +10256,19 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
                 int stride = 1;
                 if (key_set2.find(opt) != key_set2.end())
                     stride = 2;
-                opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
+                // set_only_diff() requires the base vector length to equal variant_index.size()*stride, where
+                // variant_index is sized from the parent's printer_extruder_variant list (or 1 when it has none).
+                // Legacy / multi-extruder / multi-variant presets can violate this in either direction when a key's
+                // stored length and the variant-list length were sized inconsistently - e.g. a Snapmaker U1 base
+                // (4 nozzles) whose stride-2 machine limits were length-extended to nozzles*2 while its
+                // printer_extruder_variant list is empty (variant_index == 1), so base length != variant_index*stride.
+                // Rather than throw (which is caught upstream and DELETES the user preset file), fall back to the
+                // child's explicit value, which is authoritative for its own extruder/variant layout.
+                if (opt_vec_src->size() != variant_index.size() * size_t(stride)) {
+                    opt_src->set(opt_target);
+                }
+                else
+                    opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
             }
         }
     }
