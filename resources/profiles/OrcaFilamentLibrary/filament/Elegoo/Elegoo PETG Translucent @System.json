@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OEPETGTRANSS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PETG Translucent",
 	"pressure_advance": [
 		"0.052"
 	],

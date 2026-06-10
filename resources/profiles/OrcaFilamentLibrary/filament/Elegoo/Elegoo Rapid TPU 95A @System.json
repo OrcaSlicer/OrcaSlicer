@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OERTPU95AS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo Rapid TPU 95A",
 	"pressure_advance": [
 		"0.1"
 	],
