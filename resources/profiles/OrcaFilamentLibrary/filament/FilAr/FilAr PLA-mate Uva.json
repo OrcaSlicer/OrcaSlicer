@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Uva",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "filament_id": "FILAR0044",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#5B2A6B"
+    ]
+}

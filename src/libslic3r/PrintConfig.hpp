@@ -77,7 +77,7 @@ enum class WipeTowerType {
 };
 
 enum PrintHostType {
-    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink
+    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
 
 enum AuthorizationType {
@@ -1080,7 +1080,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                bottom_shell_thickness))
     ((ConfigOptionFloat,                bridge_angle))
     ((ConfigOptionFloat,                internal_bridge_angle)) // ORCA: Internal bridge angle override
+    ((ConfigOptionBool,                 relative_bridge_angle)) // ORCA: Relative bridge angle flag
     ((ConfigOptionFloat,                bridge_flow))
+    ((ConfigOptionFloatOrPercent,       bridge_line_width))
     ((ConfigOptionFloat,                internal_bridge_flow))
     ((ConfigOptionFloat,                bridge_speed))
     ((ConfigOptionFloatOrPercent,       internal_bridge_speed))
@@ -1103,6 +1105,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))
     ((ConfigOptionFloat,                infill_overhang_angle))
+    ((ConfigOptionFloat,                lightning_overhang_angle))
+    ((ConfigOptionFloat,                lightning_prune_angle))
+    ((ConfigOptionFloat,                lightning_straightening_angle))
     ((ConfigOptionBool,                 align_infill_direction_to_model))
     ((ConfigOptionString,               extra_solid_infills))
     ((ConfigOptionEnum<FuzzySkinType>,  fuzzy_skin))
@@ -1118,7 +1123,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,              fuzzy_skin_ripple_offset))
     ((ConfigOptionInt,                  fuzzy_skin_layers_between_ripple_offset))
     ((ConfigOptionFloat,                gap_infill_speed))
-    ((ConfigOptionInt,                  sparse_infill_filament))
+    ((ConfigOptionInt,                  sparse_infill_filament_id))
     ((ConfigOptionFloatOrPercent,       sparse_infill_line_width))
     ((ConfigOptionPercent,              infill_wall_overlap))
     ((ConfigOptionPercent,              top_bottom_infill_wall_overlap))
@@ -1151,14 +1156,17 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
-    ((ConfigOptionInt, wall_filament))
+    ((ConfigOptionInt, outer_wall_filament_id))
+    ((ConfigOptionInt, inner_wall_filament_id))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))
     // Total number of perimeters.
     ((ConfigOptionInt, wall_loops))
     ((ConfigOptionBool, alternate_extra_wall))
     ((ConfigOptionFloat, minimum_sparse_infill_area))
-    ((ConfigOptionInt, solid_infill_filament))
+    ((ConfigOptionInt, internal_solid_filament_id))
+    ((ConfigOptionInt, top_surface_filament_id))
+    ((ConfigOptionInt, bottom_surface_filament_id))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloat, internal_solid_infill_speed))
     // Detect thin walls.
@@ -1480,6 +1488,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))
     ((ConfigOptionPointsGroups,       extruder_printable_area))
+    ((ConfigOptionBool,               support_parallel_printheads))
+    ((ConfigOptionInt,                parallel_printheads_count))
+    ((ConfigOptionStrings,            parallel_printheads_bed_exclude_areas))
     //BBS: add bed_exclude_area
     ((ConfigOptionPoints,             bed_exclude_area))
     ((ConfigOptionPoints,             head_wrap_detect_zone))
