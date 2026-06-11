@@ -14,7 +14,7 @@
 
 #include "RequestMapping.hpp"
 
-#include "SliceCore/ObjectPlacementJson.hpp"  // Slic3r::SliceCore::parse_objects
+#include "ObjectPlacementJson.hpp"  // Slic3r::SliceCore::parse_objects
 
 #include "libslic3r/Config.hpp"   // DynamicPrintConfig, ConfigSubstitutionContext,
                                    // ForwardCompatibilitySubstitutionRule

@@ -12,7 +12,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "SliceCore/ObjectPlacementJson.hpp"  // re-export Slic3r::SliceCore::parse_objects
+#include "ObjectPlacementJson.hpp"  // re-export Slic3r::SliceCore::parse_objects
 #include "SliceTypes.hpp"
 
 namespace Slic3r {
