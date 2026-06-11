@@ -1,0 +1,39 @@
+{
+	"type": "machine",
+	"setting_id": "GM003",
+	"name": "UltiMaker S5 0.4 nozzle - Single Extruder",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "UltiMaker S5 0.4 nozzle",
+	"printer_model": "UltiMaker S5",
+	"default_print_profile": "0.18mm Standard @UltiMaker 2",
+    "default_nozzle_volume_type": [
+        "Standard"
+    ],
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "extruder_type": [
+        "Direct Drive"
+    ],
+    "machine_start_gcode": "; NOTE: Do NOT remove the following header. It is necessary for the UM printer to not crash.\n;START_OF_HEADER\n;HEADER_VERSION:0.1\n;FLAVOR:Griffin\n;GENERATOR.NAME:OrcaSlicer\n;GENERATOR.VERSION:5.11.0\n;GENERATOR.BUILD_DATE:2016-06-23\n;TARGET_MACHINE.NAME:[printer_model]\n;EXTRUDER_TRAIN.0.INITIAL_TEMPERATURE:{first_layer_temperature[0]}\n;EXTRUDER_TRAIN.0.MATERIAL.VOLUME_USED:{extruded_volume[0]}\n;EXTRUDER_TRAIN.0.MATERIAL.GUID:506c9f0d-e3aa-4bd4-b2d2-23e2425b1aa9\n;EXTRUDER_TRAIN.0.NOZZLE.DIAMETER:{nozzle_diameter[0]}\n;EXTRUDER_TRAIN.0.NOZZLE.NAME:AA {nozzle_diameter[0]}\n;BUILD_PLATE.INITIAL_TEMPERATURE:[bed_temperature_initial_layer_single]\n;BUILD_VOLUME.TEMPERATURE:28\n;PRINT.TIME:2\n;PRINT.SIZE.MIN.X:{first_layer_print_min[0]}\n;PRINT.SIZE.MIN.Y:{first_layer_print_min[1]}\n;PRINT.SIZE.MIN.Z:{first_layer_height}\n;PRINT.SIZE.MAX.X:{first_layer_print_max[0]}\n;PRINT.SIZE.MAX.Y:{first_layer_print_max[1]}\n;PRINT.SIZE.MAX.Z:{int(total_layer_count * first_layer_height)}\n;END_OF_HEADER\nT[initial_extruder]\n\nM82 ;absolute extrusion mode\nG92 E0\nM190 S[bed_temperature_initial_layer_single] ; Wait for bed temp\nM104 T[initial_extruder] S[first_layer_temperature[initial_extruder]] ; Heat extruder\nM109 T[initial_extruder] S[first_layer_temperature[initial_extruder]] ; Wait for extruder temp\n\n; Set the settings we removed in the post-processing (orcaslicer generated header).\nM73 P0 R0 ;TODO change the R value into the total minutes of print\nM201 X[machine_max_acceleration_x] Y[machine_max_acceleration_y] Z[machine_max_acceleration_z] E[machine_max_acceleration_e] ; accel\nM203 X[machine_max_speed_x] Y[machine_max_speed_y] Z[machine_max_speed_z] E[machine_max_speed_e] ; max speed\nM204 S[machine_max_acceleration_extruding] ; starting accel\nM204 P[machine_max_acceleration_extruding] R[machine_max_acceleration_retracting] T[machine_max_acceleration_travel]\nM205 X[machine_max_jerk_x] Y[machine_max_jerk_y] Z[machine_max_jerk_z] E[machine_max_jerk_e] ; jerk limits\n\nM107; start with the fan off\n\n; Prime blob for left extruder\nG0 F9000 X4 Y6 Z2\nG280 ; g280 is UM-specific\nG1 F2700 E-6.5 ;retract\n\nM82; set extruder to absolute mode\n\n; End of the start gcode sequence.\n;LAYER_COUNT:[total_layer_count]",
+    "max_layer_height": [
+        "0.4"
+    ],
+    "min_layer_height": [
+        "0.06"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "print_host": "10.125.203.43",
+    "printer_extruder_id": [
+        "1"
+    ],
+    "printer_extruder_variant": [
+        "Direct Drive Standard"
+    ]
+}
