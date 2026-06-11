@@ -1603,6 +1603,7 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
     if (settings.increase_radius)
         current_elem.effective_radius_height += 1;
     coord_t radius = support_element_collision_radius(config, current_elem);
+
     const auto _tiny_area_threshold = tiny_area_threshold();
     if (settings.move) {
         increased = relevant_offset;
@@ -2916,6 +2917,7 @@ static std::pair<float, float> extrude_branch(
     const TreeSupportSettings               &config,
     const SlicingParameters                 &slicing_params,
     const std::vector<SupportElements>      &move_bounds,
+    bool                                     has_root,
     indexed_triangle_set                    &result)
 {
     Vec3d p1, p2, p3;
@@ -2937,24 +2939,38 @@ static std::pair<float, float> extrude_branch(
         v1 = (p2 - p1).normalized();
         if (ipath == 1) {
             nprev = v1;
-            // Extrude the bottom half sphere.
             float radius     = unscaled<float>(support_element_radius(config, prev));
-            float angle_step = 2. * acos(1. - eps / radius);
-            auto  nsteps     = int(ceil(M_PI / (2. * angle_step)));
-            angle_step       = M_PI / (2. * nsteps);
-            int   ifan       = int(result.vertices.size());
-            result.vertices.emplace_back((p1 - nprev * radius).cast<float>());
-            zmin = result.vertices.back().z();
-            float angle = angle_step;
-            for (int i = 1; i < nsteps; ++ i, angle += angle_step) {
-                std::pair<int, int> strip = discretize_circle((p1 - nprev * radius * cos(angle)).cast<float>(), nprev.cast<float>(), radius * sin(angle), eps, result.vertices);
-                if (i == 1)
-                    triangulate_fan<false>(result, ifan, strip.first, strip.second);
-                else
-                    triangulate_strip(result, prev_strip.first, prev_strip.second, strip.first, strip.second);
-//                sprintf(fname, "d:\\temp\\meshes\\tree-partial-%d.obj", ++ irun);
-//                its_write_obj(result, fname);
-                prev_strip = strip;
+            if (has_root && prev.state.layer_idx == 0) {
+                // Orca: Buildplate roots need a flat foot. A rounded cap can extend far
+                // below the bed and make the first layer slice cut unrelated trunk geometry.
+                const Vec3f normal(0.f, 0.f, 1.f);
+                const Vec3f bottom_center(float(p1.x()), float(p1.y()), 0.f);
+                const Vec3f top_center(float(p1.x()), float(p1.y()), float(p1.z()));
+                int ifan = int(result.vertices.size());
+                result.vertices.emplace_back(bottom_center);
+                std::pair<int, int> bottom_strip = discretize_circle(bottom_center, normal, radius, eps, result.vertices);
+                triangulate_fan<false>(result, ifan, bottom_strip.first, bottom_strip.second);
+                prev_strip = discretize_circle(top_center, normal, radius, eps, result.vertices);
+                triangulate_strip(result, bottom_strip.first, bottom_strip.second, prev_strip.first, prev_strip.second);
+                zmin = 0.f;
+            } else {
+                // Extrude the bottom half sphere.
+                float angle_step = 2. * acos(1. - eps / radius);
+                auto  nsteps     = int(ceil(M_PI / (2. * angle_step)));
+                angle_step       = M_PI / (2. * nsteps);
+                int   ifan       = int(result.vertices.size());
+                result.vertices.emplace_back((p1 - nprev * radius).cast<float>());
+                zmin = result.vertices.back().z();
+                float angle = angle_step;
+                for (int i = 1; i < nsteps; ++ i, angle += angle_step) {
+                    std::pair<int, int> strip = discretize_circle((p1 - nprev * radius * cos(angle)).cast<float>(), nprev.cast<float>(), radius * sin(angle), eps, result.vertices);
+                    if (i == 1)
+                        triangulate_fan<false>(result, ifan, strip.first, strip.second);
+                    else
+                        triangulate_strip(result, prev_strip.first, prev_strip.second, strip.first, strip.second);
+
+                    prev_strip = strip;
+                }
             }
         }
         if (ipath + 1 == path.size()) {
@@ -3137,13 +3153,60 @@ static void organic_smooth_branches_avoid_collisions(
     static constexpr const double max_nudge_collision_avoidance = 0.5;
     static constexpr const double max_nudge_smoothing = 0.2;
     static constexpr const size_t num_iter = 100; // 1000;
+
+    // Orca: 
+    // Collision and Laplacian smoothing run iteratively; keep each candidate reachable from linked upper/lower layers to avoid accumulated drift.
+    auto limit_candidate_to_linked_layers = [&collision_spheres, &linear_data_layers, &config](const size_t collision_sphere_id, Vec2d candidate) {
+        auto constrain_to_anchor = [](Vec2d candidate, const Vec2d &current_pos, const Vec2d &anchor, double allowed_shift) {
+            const Vec2d delta = candidate - anchor;
+            const double candidate_dist = delta.norm();
+            const double current_dist   = (current_pos - anchor).norm();
+            allowed_shift = std::max(allowed_shift, current_dist);
+            return candidate_dist > allowed_shift && candidate_dist > EPSILON ?
+                anchor + delta * (allowed_shift / candidate_dist) :
+                candidate;
+        };
+
+        const CollisionSphere &sphere = collision_spheres[collision_sphere_id];
+        const LayerIndex layer_idx = sphere.element.state.layer_idx;
+        const Vec2d current_pos = to_2d(sphere.position).cast<double>();
+        const double current_radius = double(support_element_radius(config, sphere.element));
+        const double maximum_move_distance_slow = double(config.maximum_move_distance_slow);
+
+        if (sphere.element_below_id != -1 && layer_idx > 0) {
+            const size_t lower_id = linear_data_layers[layer_idx - 1] + size_t(sphere.element_below_id);
+            if (lower_id < collision_spheres.size()) {
+                const CollisionSphere &lower = collision_spheres[lower_id];
+                const double lower_radius = double(support_element_radius(config, lower.element));
+                const double allowed_shift = unscaled<double>(std::max(0., lower_radius - current_radius) + maximum_move_distance_slow);
+                candidate = constrain_to_anchor(candidate, current_pos, to_2d(lower.prev_position).cast<double>(), allowed_shift);
+            }
+        }
+
+        const LayerIndex upper_layer_idx = layer_idx + 1;
+        if (!sphere.element.parents.empty() && upper_layer_idx < LayerIndex(linear_data_layers.size())) {
+            const size_t upper_offset = linear_data_layers[upper_layer_idx];
+            for (int32_t parent_idx : sphere.element.parents) {
+                const size_t upper_id = upper_offset + size_t(parent_idx);
+                if (upper_id >= collision_spheres.size())
+                    continue;
+                const CollisionSphere &upper = collision_spheres[upper_id];
+                const double upper_radius = double(support_element_radius(config, upper.element));
+                const double allowed_shift = unscaled<double>(std::max(0., current_radius - upper_radius) + maximum_move_distance_slow);
+                candidate = constrain_to_anchor(candidate, current_pos, to_2d(upper.prev_position).cast<double>(), allowed_shift);
+            }
+        }
+
+        return candidate;
+    };
+
     for (size_t iter = 0; iter < num_iter; ++ iter) {
         // Back up prev position before Laplacian smoothing.
         for (CollisionSphere &collision_sphere : collision_spheres)
             collision_sphere.prev_position = collision_sphere.position;
         std::atomic<size_t> num_moved{ 0 };
         tbb::parallel_for(tbb::blocked_range<size_t>(0, collision_spheres.size()),
-            [&collision_spheres, &layer_collision_cache, &slicing_params, &config, &linear_data_layers, &num_moved, &throw_on_cancel](const tbb::blocked_range<size_t> range) {
+            [&collision_spheres, &layer_collision_cache, &slicing_params, &config, &linear_data_layers, &num_moved, &throw_on_cancel, &limit_candidate_to_linked_layers](const tbb::blocked_range<size_t> range) {
             for (size_t collision_sphere_id = range.begin(); collision_sphere_id < range.end(); ++ collision_sphere_id)
                 if (CollisionSphere &collision_sphere = collision_spheres[collision_sphere_id]; ! collision_sphere.locked) {
                     // Calculate collision of multiple 2D layers against a collision sphere.
@@ -3172,10 +3235,12 @@ static void organic_smooth_branches_avoid_collisions(
                         if (collision_sphere.last_collision_depth > EPSILON)
                             // a little bit of hysteresis to detect end of
                             ++ num_moved;
-                        // Shift by maximum 2mm.
+                        // Limit collision-avoidance nudge per iteration.
                         double nudge_dist = std::min(std::max(0., collision_sphere.last_collision_depth + collision_extra_gap), max_nudge_collision_avoidance);
                         Vec2d nudge_vector = (to_2d(collision_sphere.position) - to_2d(collision_sphere.last_collision)).cast<double>().normalized() * nudge_dist;
-                        collision_sphere.position.head<2>() += (nudge_vector * nudge_dist).cast<float>();
+                        Vec2d candidate = to_2d(collision_sphere.position).cast<double>() + nudge_vector * nudge_dist;
+                        candidate = limit_candidate_to_linked_layers(collision_sphere_id, candidate);
+                        collision_sphere.position.head<2>() = candidate.cast<float>();
                     }
                     // Laplacian smoothing
                     Vec2d avg{ 0, 0 };
@@ -3199,9 +3264,13 @@ static void organic_smooth_branches_avoid_collisions(
                     Vec2d new_pos = (1. - smoothing_factor) * old_pos + smoothing_factor * avg;
                     Vec2d shift   = new_pos - old_pos;
                     double nudge_dist_max = shift.norm();
-                    // Shift by maximum 1mm, less than the collision avoidance factor.
+                    // Limit Laplacian smoothing nudge per iteration.
                     double nudge_dist = std::min(std::max(0., nudge_dist_max), max_nudge_smoothing);
-                    collision_sphere.position.head<2>() += (shift.normalized() * nudge_dist).cast<float>();
+                    if (nudge_dist > 0.) {
+                        Vec2d candidate = old_pos + shift * (nudge_dist / nudge_dist_max);
+                        candidate = limit_candidate_to_linked_layers(collision_sphere_id, candidate);
+                        collision_sphere.position.head<2>() = candidate.cast<float>();
+                    }
 
                     throw_on_cancel();
                 }
@@ -3468,6 +3537,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
             // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in draw_areas
             std::vector<SupportElements> move_bounds(num_support_layers);
+
             // ### Place tips of the support tree
             for (size_t mesh_idx : processing.second)
                 generate_initial_areas(*print.get_object(mesh_idx), volumes, config, overhangs, 
@@ -3778,6 +3848,7 @@ void organic_draw_branches(
 //            ++ ielement;
         }
     }
+
     const SlicingParameters &slicing_params = print_object.slicing_parameters();
     MeshSlicingParams mesh_slicing_params;
     mesh_slicing_params.mode = MeshSlicingParams::SlicingMode::Positive;
@@ -3792,7 +3863,7 @@ void organic_draw_branches(
                 for (const Branch &branch : tree.branches) {
                     // Triangulate the tube.
                     partial_mesh.clear();
-                    std::pair<float, float> zspan = extrude_branch(branch.path, config, slicing_params, move_bounds, partial_mesh);
+                    std::pair<float, float> zspan = extrude_branch(branch.path, config, slicing_params, move_bounds, branch.has_root, partial_mesh);
                     LayerIndex layer_begin = branch.has_root ?
                         branch.path.front()->state.layer_idx : 
                         std::min(branch.path.front()->state.layer_idx, layer_idx_ceil(slicing_params, config, zspan.first));
@@ -3959,19 +4030,7 @@ void organic_draw_branches(
                     }
                     // ORCA: bottom contacts provide the footprint; interface layers are built later.
 
-#if 0
-                    //FIXME branch.has_tip seems to not be reliable.
-                    if (branch.has_tip && interface_placer.support_parameters.has_top_contacts)
-                        // Add top slices to top contacts / interfaces / base interfaces.
-                        for (int i = int(branch.path.size()) - 1; i >= 0; -- i) {
-                            const SupportElement &el = *branch.path[i];
-                            if (el.state.missing_roof_layers == 0)
-                                break;
-                            //FIXME Move or not?
-                            interface_placer.add_roof(std::move(slices[int(slices.size()) - i - 1]), el.state.layer_idx,
-                                interface_placer.support_parameters.num_top_interface_layers + 1 - el.state.missing_roof_layers);
-                        }
-#endif
+                    recover_pending_branch_roofs(interface_placer, branch.path, layer_begin, slices);
 
                     while (! slices.empty() && slices.back().empty()) {
                         slices.pop_back();

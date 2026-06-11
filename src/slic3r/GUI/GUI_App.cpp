@@ -61,6 +61,7 @@
 #include <wx/dialog.h>
 #include <wx/textctrl.h>
 #include <wx/splash.h>
+#include <wx/weakref.h>
 #include <wx/fontutil.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
@@ -115,6 +116,7 @@
 #include "ParamsDialog.hpp"
 #include "KBShortcutsDialog.hpp"
 #include "DownloadProgressDialog.hpp"
+#include "TroubleshootDialog.hpp"
 
 #include "BitmapCache.hpp"
 #include "Notebook.hpp"
@@ -348,6 +350,17 @@ public:
 #endif
         }
     }
+
+    // Orca: keep the splash alive until it is explicitly destroyed.
+    // wxSplashScreen installs an application-wide event filter that calls
+    // Close() (which Destroy()s the window) on ANY key press or mouse-button
+    // down. Since startup keeps the splash up across the whole load_presets()
+    // and main-window-creation phase, a single stray click/keypress would
+    // destroy it while on_init_inner() still holds the pointer, causing an
+    // intermittent use-after-free crash. Override the filter to a no-op so the
+    // splash can only be removed via the explicit Destroy() once the main frame
+    // is shown.
+    int FilterEvent(wxEvent& /*event*/) override { return wxEventFilter::Event_Skip; }
 
     void scale_font(wxFont& font, float scale)
     {
@@ -2763,7 +2776,8 @@ bool GUI_App::on_init_inner()
         app_config->set("version", SLIC3R_VERSION);
     }
 
-    SplashScreen * scrn = nullptr;
+    // Orca: use wxWeakRef to provent wild pointer.
+    wxWeakRef<SplashScreen> scrn = nullptr;
     if (app_config->get("show_splash_screen") == "true") {
         // Detect position (display) to show the splash screen
         // Now this position is equal to the mainframe position
@@ -4103,6 +4117,12 @@ void GUI_App::keyboard_shortcuts()
     dlg.ShowModal();
 }
 
+void GUI_App::troubleshoot()
+{
+    TroubleshootDialog dlg;
+    if (dlg.ShowModal() == wxID_REMOVE)
+         wxGetApp().mainframe->Close(false);
+}
 
 void GUI_App::ShowUserGuide() {
     // BBS:Show NewUser Guide
@@ -4920,6 +4940,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         // Parse the conflict body to extract the error code and server profile id
         int conflict_code = 0;
         std::string conflict_setting_id;
+        std::string conflict_preset_name;
         try {
             json conflict_body = json::parse(body_str);
             if (conflict_body.contains("code"))
@@ -4927,21 +4948,40 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
             if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")
                 && conflict_body["server_profile"]["id"].is_string())
                 conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
+            // The local preset name is injected into the conflict body by the agent (sync_push),
+            // since the server response itself omits it for tombstone (-3) conflicts.
+            if (conflict_body.contains("name") && conflict_body["name"].is_string())
+                conflict_preset_name = conflict_body["name"].get<std::string>();
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
         }
+        // Capture the user id up front so the force-push closure does not have to touch m_agent.
+        std::string conflict_user_id = m_agent ? m_agent->get_user_id() : std::string();
         auto* plater = wxGetApp().plater();
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
-            if (conflict_code == -1) {
+
+            switch (conflict_code) {
+            case -1:
                 text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            } else {
+                break;
+            case -2:
                 text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            }
+                break;
+            case -3:
+                text = _u8L("Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+                            "Delete will delete your local preset. Force push overwrites it with your local preset.");
+                break;
+            default:
+                text = _u8L("Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+                break;
+            };
+
             plater->get_notification_manager()->push_orca_sync_conflict_notification(
-                text,
+                text, conflict_code,
                 [this](wxEvtHandler*) {
                     // Runs on the GUI thread (on_http_error is a queued wx event); restart_sync_user_preset()
                     // already joins the old sync thread off the UI thread, so no extra thread is needed here.
@@ -4951,7 +4991,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     restart_sync_user_preset();
                     return true;
                 },
-                [this, conflict_setting_id](wxEvtHandler*) {
+                [this, conflict_setting_id, conflict_preset_name, conflict_user_id](wxEvtHandler*) {
                     if (mainframe == nullptr)
                         return false;
                     MessageDialog
@@ -4961,7 +5001,13 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
-                    force_push_conflicting_preset(conflict_setting_id);
+                    std::string setting_id = conflict_setting_id;
+                    if (setting_id.empty()) {
+                        setting_id = OrcaCloudServiceAgent::generate_uuid_for_setting_id(conflict_preset_name, conflict_user_id);
+                        BOOST_LOG_TRIVIAL(info) << "conflict setting id empty, generated one: " << setting_id;
+                    }
+
+                    force_push_conflicting_preset(setting_id);
                     return true;
                 });
         }
@@ -6044,6 +6090,25 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to query OrcaCloud presets (error " << ret
                                        << "), skipping migration to avoid overwriting cloud data.";
+            // If this looks like a transient 401 from token propagation delay (within grace period),
+            // schedule one deferred retry so first-time users don't silently lose their preset migration.
+            if (std::chrono::steady_clock::now() - m_last_401_error_time < std::chrono::seconds(30)
+                && !m_migration_retry_pending.exchange(true)) {
+                BOOST_LOG_TRIVIAL(info) << "Scheduling migration retry after token propagation window.";
+                boost::thread([this]() {
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                    CallAfter([this]() {
+                        m_migration_retry_pending = false;
+                        if (is_closing() || !m_agent || !m_agent->is_user_login()) return;
+                        BOOST_LOG_TRIVIAL(info) << "Retrying preset migration after token propagation window.";
+                        if (maybe_migrate_user_presets_on_login()) {
+                            const std::string user_id = m_agent->get_user_id();
+                            preset_bundle->load_user_presets(user_id, ForwardCompatibilitySubstitutionRule::Enable);
+                            if (mainframe) mainframe->update_side_preset_ui();
+                        }
+                    });
+                }).detach();
+            }
             return false;
         }
         BOOST_LOG_TRIVIAL(info) << "OrcaCloud has no presets for user " << new_user_id << ", proceeding with migration check.";
@@ -6121,7 +6186,7 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
     wxString source_description;
     if (source_is_bbl) {
         source_description = wxString::Format(
-            _L("your Bambu Cloud profile (user ID: \"%s\")"),
+            _L("your Orca Cloud profile (user ID: \"%s\")"),
             from_u8(source_dir.filename().string()));
     } else if (source_is_default) {
         source_description = _L("your default profile");
@@ -7016,15 +7081,26 @@ void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
         m_pending_conflict_setting_ids.push_back(setting_id);
     }
 
+    const std::string user_id = m_agent ? m_agent->get_user_id() : std::string();
+
     // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
     // "update" so the next push-sync re-includes it and consumes the queued force flag.
     // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
     // the local changes the user is trying to force-push.)
+    // For a -3 tombstone on a newly created preset the on-disk setting_id is EMPTY (it only
+    // gets assigned after a successful first push), so derive it on the fly from the preset
+    // name and stamp it onto the preset — otherwise sync_with_lock's `id == preset.setting_id`
+    // check never fires and the force-push silently no-ops.
     PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
     for (PresetCollection* coll : collections) {
         for (const Preset& preset : coll->get_presets()) {
-            if (preset.setting_id == setting_id && preset.sync_info == "hold") {
-                coll->set_sync_info_and_save(preset.name, preset.setting_id, "update", 0);
+            if (preset.sync_info != "hold")
+                continue;
+            const std::string preset_id = preset.setting_id.empty()
+                ? OrcaCloudServiceAgent::generate_uuid_for_setting_id(preset.name, user_id)
+                : preset.setting_id;
+            if (preset_id == setting_id) {
+                coll->set_sync_info_and_save(preset.name, setting_id, "update", 0);
                 break;
             }
         }
