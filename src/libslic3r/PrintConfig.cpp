@@ -11087,6 +11087,14 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->label = L("Start print after upload");
     def->tooltip = L("Start the print after upload (printhost).");
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("list_presets", coString);
+    def->label = L("List presets");
+    def->tooltip = L("Print available preset names to stdout and exit. "
+                     "Pass a category to filter: printer, process, or filament. "
+                     "Omit the value (or pass 'all') to list all categories.");
+    def->cli_params = "printer|process|filament|all";
+    def->set_default_value(new ConfigOptionString(""));
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;

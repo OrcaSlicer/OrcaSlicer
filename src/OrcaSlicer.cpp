@@ -1325,6 +1325,45 @@ int CLI::run(int argc, char **argv)
     std::string temp_path = wxFileName::GetTempDir().utf8_str().data();
     set_temporary_dir(temp_path);
 
+    // --list-presets: enumerate available printer/process/filament preset names
+    // and exit.  This is a pure read-only query that short-circuits before any
+    // model loading or slicing, so it is handled here, immediately after the
+    // data_dir is established by setup().
+    {
+        const ConfigOptionString *list_presets_opt =
+            m_config.opt<ConfigOptionString>("list_presets");
+        if (list_presets_opt && !list_presets_opt->value.empty()) {
+            attach_console_on_demand();
+            const std::string category = list_presets_opt->value; // printer|process|filament|all
+            Slic3r::SliceCore::PresetNames names;
+            std::string enum_err;
+            if (!Slic3r::SliceCore::enumerate_preset_names(data_dir(), names, enum_err)) {
+                boost::nowide::cerr << "list-presets error: " << enum_err << std::endl;
+                return CLI_CONFIG_FILE_ERROR;
+            }
+            auto print_list = [](const std::string &header,
+                                 const std::vector<std::string> &list) {
+                boost::nowide::cout << header << ":\n";
+                for (const auto &n : list)
+                    boost::nowide::cout << "  " << n << "\n";
+            };
+            if (category == "printer") {
+                print_list("printer", names.printers);
+            } else if (category == "process") {
+                print_list("process", names.processes);
+            } else if (category == "filament") {
+                print_list("filament", names.filaments);
+            } else {
+                // "all" or any unrecognised value — print everything with headers
+                print_list("printer",  names.printers);
+                print_list("process",  names.processes);
+                print_list("filament", names.filaments);
+            }
+            boost::nowide::cout.flush();
+            return CLI_SUCCESS;
+        }
+    }
+
     m_extra_config.apply(m_config, true);
     m_extra_config.normalize_fdm();
 

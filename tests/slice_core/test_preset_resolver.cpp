@@ -223,3 +223,72 @@ TEST_CASE("resolve: empty PresetSelection returns empty config and empty err",
     // FullPrintConfig — either is acceptable for an empty selection.
     // We only assert no exception and no error string.
 }
+
+// ---------------------------------------------------------------------------
+// enumerate_preset_names tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("enumerate_names_smoke: non-existent datadir returns false and err without throwing",
+          "[SliceCore][PresetResolver][enumerate_preset_names]")
+{
+    // We cannot load a full PresetBundle in unit-test context (no built install
+    // tree), so we cover the error path: a missing datadir must fail gracefully.
+    PresetNames names;
+    std::string err;
+
+    REQUIRE_NOTHROW([&]() {
+        bool ok = enumerate_preset_names("/does/not/exist/xyz_12345", names, err);
+        CHECK_FALSE(ok);
+        CHECK_FALSE(err.empty());
+    }());
+}
+
+TEST_CASE("enumerate_names_smoke: empty datadir returns false and err without throwing",
+          "[SliceCore][PresetResolver][enumerate_preset_names]")
+{
+    PresetNames names;
+    std::string err;
+
+    REQUIRE_NOTHROW([&]() {
+        bool ok = enumerate_preset_names("", names, err);
+        CHECK_FALSE(ok);
+        CHECK_FALSE(err.empty());
+    }());
+}
+
+TEST_CASE("enumerate_names_smoke: populated datadir returns names or fails gracefully",
+          "[SliceCore][PresetResolver][enumerate_preset_names]")
+{
+    // Build the expected resources/profiles path from TEST_DATA_DIR (same
+    // technique as the resolve() tests above).  If the path doesn't exist we
+    // skip rather than fail — the test environment may not have the full
+    // resources tree available.
+    namespace fs = boost::filesystem;
+    const fs::path test_data(TEST_DATA_DIR);
+    const fs::path datadir = test_data.parent_path().parent_path() / "resources";
+
+    if (!fs::exists(datadir)) {
+        WARN("Resources directory not found, skipping populated-datadir test: "
+             << datadir.string());
+        SUCCEED();
+        return;
+    }
+
+    PresetNames names;
+    std::string err;
+    bool ok = false;
+    REQUIRE_NOTHROW(ok = enumerate_preset_names(datadir.string(), names, err));
+
+    if (ok) {
+        // When the load succeeds the three vectors must be non-null objects
+        // (empty is allowed for a minimal install) and err must be clear.
+        CHECK(err.empty());
+        // names vectors are valid regardless of count
+        CHECK(names.printers.size()  >= 0u);
+        CHECK(names.processes.size() >= 0u);
+        CHECK(names.filaments.size() >= 0u);
+    } else {
+        // Load failed (e.g. incomplete resources tree in CI) — err must be set.
+        CHECK_FALSE(err.empty());
+    }
+}

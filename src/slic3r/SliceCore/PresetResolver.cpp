@@ -39,6 +39,9 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"    // set_data_dir / data_dir
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/system/error_code.hpp>
+
 #include <map>
 #include <string>
 
@@ -206,6 +209,73 @@ DynamicPrintConfig resolve(const PresetSelection &sel,
     }
 
     return result;
+}
+
+// ---------------------------------------------------------------------------
+// enumerate_preset_names
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// Collect the names of visible, non-default presets from a PresetCollection.
+// PresetCollection::begin()/end() already skip the leading default presets
+// (Preset.hpp:480), so we only filter out invisible / explicitly-default
+// entries here.
+template <typename CollectionT>
+std::vector<std::string> collect_preset_names(const CollectionT &coll)
+{
+    std::vector<std::string> names;
+    for (auto it = coll.begin(); it != coll.end(); ++it) {
+        const Preset &preset = *it;
+        if (!preset.is_visible || preset.is_default)
+            continue;
+        names.push_back(preset.name);
+    }
+    return names;
+}
+
+} // anonymous namespace
+
+bool enumerate_preset_names(const std::string &datadir,
+                             PresetNames       &out,
+                             std::string       &err)
+{
+    if (datadir.empty()) {
+        err = "datadir is not configured";
+        return false;
+    }
+    {
+        boost::system::error_code ec;
+        namespace fs = boost::filesystem;
+        if (!fs::exists(datadir, ec) || !fs::is_directory(datadir, ec)) {
+            err = "datadir does not exist or is not a directory: " + datadir;
+            return false;
+        }
+    }
+    try {
+        // Mirror the PresetBundle loading pattern used by resolve() Path A
+        // and by ProfileCache::load_locked() — set the global data_dir, build
+        // a minimal AppConfig (no on-disk selections), then load all presets.
+        set_data_dir(datadir);
+
+        AppConfig app_config;
+        app_config.reset_selections();
+
+        PresetBundle bundle;
+        bundle.load_presets(app_config,
+                            ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+        out.printers  = collect_preset_names(bundle.printers);
+        out.processes = collect_preset_names(bundle.prints);
+        out.filaments = collect_preset_names(bundle.filaments);
+        return true;
+    } catch (const std::exception &ex) {
+        err = std::string("failed to load preset bundle: ") + ex.what();
+        return false;
+    } catch (...) {
+        err = "failed to load preset bundle: unknown exception";
+        return false;
+    }
 }
 
 } // namespace SliceCore
