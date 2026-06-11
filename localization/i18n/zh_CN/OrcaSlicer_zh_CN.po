@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 12:29-0300\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -186,6 +186,15 @@ msgstr "完成"
 msgid "Support Generated"
 msgstr "已生成支撑"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "选择底面"
 
@@ -272,6 +281,15 @@ msgstr "绘制使用：耗材丝%1%"
 msgid "To:"
 msgstr "到："
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "手绘绒毛表面"
 
@@ -290,6 +308,15 @@ msgstr "警告：绒毛表面已禁用，手绘的绒毛表面将不会生效！
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "为此对象启用手绘绒毛表面"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "移动"
@@ -675,6 +702,15 @@ msgstr "按线切割"
 
 msgid "Delete connector"
 msgstr "删除连接器"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "网格名称"
@@ -1529,6 +1565,12 @@ msgstr "平行距离："
 msgid "Flip by Face 2"
 msgstr "通过面2翻转"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "组合"
 
@@ -1564,6 +1606,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "面对面装配"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -3095,6 +3143,45 @@ msgstr "最高温度不可超过 "
 msgid "The minmum temperature should not be less than "
 msgstr "最低温度不可低于 "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "所有"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "全部取消选中"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "高级设置"
+
+msgid "Expert settings"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3342,6 +3429,9 @@ msgstr "字体没有给定文本对应的形状。"
 
 msgid "There is no valid surface for text projection."
 msgstr "没有有效的表面用于文字投影。"
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "用于第一层优化的热预处理"
@@ -8246,9 +8336,6 @@ msgstr "组用户耗材丝预设"
 msgid "Group user filament presets based on selection"
 msgstr "根据选择对用户耗材丝预设进行分组"
 
-msgid "All"
-msgstr "所有"
-
 msgid "By type"
 msgstr "按类型"
 
@@ -8614,6 +8701,14 @@ msgstr "下载网络插件"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "逆戟鲸切片器文件关联"
+
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
 
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "将 3MF 文件关联到 OrcaSlicer"
@@ -9410,6 +9505,9 @@ msgid ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 msgstr "文件上传超时。请检查固件版本是否支持此操作或验证打印机是否正常工作。"
+
+msgid "Sending failed, please try again!"
+msgstr ""
 
 msgid "Slice ok."
 msgstr "切片完成."
@@ -10677,9 +10775,6 @@ msgid ""
 msgstr ""
 "根据打印机耗材顺序替换项目耗材列表。未使用的打印机耗材将自动添加到列表末尾。"
 
-msgid "Advanced settings"
-msgstr "高级设置"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "将未使用的 AMS 耗材丝添加到耗材丝列表中。"
 
@@ -11162,11 +11257,22 @@ msgstr "新的网络插件(%s) 可用，您是否需要安装它？"
 msgid "New version of Orca Slicer"
 msgstr "新版本的Orca Slicer"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
 msgstr "在 Github 上查看"
 
+msgid "Open Microsoft Store"
+msgstr ""
+
 msgid "Skip this Version"
 msgstr "跳过本版本"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "确认并更新喷嘴"
@@ -11272,6 +11378,9 @@ msgstr "切割模块"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "自动灭火系统"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "更新固件"
@@ -20172,9 +20281,6 @@ msgstr "打印机预设"
 msgid "Filament Preset Template"
 msgstr "耗材预设模板"
 
-msgid "Deselect All"
-msgstr "全部取消选中"
-
 msgid "Process Preset Template"
 msgstr "工艺预设模板"
 
@@ -20635,8 +20741,20 @@ msgstr "未找到打印机类型，请手动选择。"
 msgid "Authorizing..."
 msgstr "正在授权..."
 
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
 msgid "Error session check"
 msgstr "会话检查出错"
+
+msgid "Error during file upload"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -21364,6 +21482,105 @@ msgstr "无法通过串口连接Flashforge"
 msgid "Flashforge local API requires both serial number and access code."
 msgstr "Flashforge 本地 API 同时需要序列号和访问码。"
 
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
+
 msgid "The provided state is not correct."
 msgstr "提供的状态不正确。"
 
@@ -21414,6 +21631,12 @@ msgstr "耳状帽檐"
 msgid "Please select single object."
 msgstr "请选中单个对象。"
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "缩小"
 
@@ -21422,6 +21645,9 @@ msgstr "放大"
 
 msgid "Load skipping objects information failed. Please try again."
 msgstr "加载跳过对象信息失败。请再试一次。"
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -21567,6 +21793,100 @@ msgstr "三角面片数量"
 
 msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "

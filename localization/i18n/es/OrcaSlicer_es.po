@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 12:29-0300\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -197,6 +197,15 @@ msgstr "Hecho"
 msgid "Support Generated"
 msgstr "Soportes generados"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "Herramienta de selección de faceta como base"
 
@@ -285,6 +294,15 @@ msgstr "Pintado con: Filamento %1%"
 msgid "To:"
 msgstr "A:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "Pintar piel difusa"
 
@@ -305,6 +323,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Habilitar piel difusa pintada para este objeto"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "Mover"
@@ -697,6 +724,15 @@ msgstr "Corte por Línea"
 
 msgid "Delete connector"
 msgstr "Borrar conector"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Nombre de la malla"
@@ -1581,6 +1617,12 @@ msgstr "Distancia paralela:"
 msgid "Flip by Face 2"
 msgstr "Voltear por la cara 2"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Agrupar"
 
@@ -1619,6 +1661,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "Montaje de cara y cara"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -3253,6 +3301,45 @@ msgstr "La temperatura máxima no puede superar "
 msgid "The minmum temperature should not be less than "
 msgstr "La temperatura mínima no debe ser inferior a "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Todas"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Deseleccionar Todo"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "Ajustes avanzados"
+
+msgid "Expert settings"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3542,6 +3629,9 @@ msgstr "La fuente no tiene ninguna forma para el texto dado."
 
 msgid "There is no valid surface for text projection."
 msgstr "No hay ninguna superficie válida para la proyección de texto."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Preacondicionamiento térmico para la optimización de la primera capa"
@@ -8849,9 +8939,6 @@ msgstr "Agrupar perfiles de filamento del usuario"
 msgid "Group user filament presets based on selection"
 msgstr "Agrupar perfiles de filamento del usuario según la selección"
 
-msgid "All"
-msgstr "Todas"
-
 msgid "By type"
 msgstr "Por tipo"
 
@@ -9267,6 +9354,14 @@ msgstr "Descargar plugin de red"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Asociar archivos a OrcaSlicer"
+
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
 
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Asociar archivos 3MF a OrcaSlicer"
@@ -10162,6 +10257,9 @@ msgstr ""
 "Tiempo de espera de la carga de archivo agotado. Por favor, compruebe si la "
 "versión del firmware admite esta operación o verifique si la impresora "
 "funciona correctamente."
+
+msgid "Sending failed, please try again!"
+msgstr ""
 
 msgid "Slice ok."
 msgstr "Laminado correcto."
@@ -11545,9 +11643,6 @@ msgstr ""
 "filamentos de la impresora. Los filamentos de impresora no utilizados se "
 "añadirán automáticamente al final de la lista."
 
-msgid "Advanced settings"
-msgstr "Ajustes avanzados"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Añadir filamentos AMS sin usar a la lista de filamentos."
 
@@ -12057,11 +12152,22 @@ msgstr "Un nuevo plug-in de red (%s) está disponible. ¿Desea instalarlo?"
 msgid "New version of Orca Slicer"
 msgstr "Nueva versión de Orca Slicer"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
 msgstr "Ver en Github"
 
+msgid "Open Microsoft Store"
+msgstr ""
+
 msgid "Skip this Version"
 msgstr "Saltar esta Versión"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Confirmar y Actualizar la Boquilla"
@@ -12177,6 +12283,9 @@ msgstr "Módulo de corte"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Sistema de extinción automática de incendios"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "Actualizar firmware"
@@ -22396,9 +22505,6 @@ msgstr "Perfil de Impresora"
 msgid "Filament Preset Template"
 msgstr "Plantilla de Perfil de Filamento"
 
-msgid "Deselect All"
-msgstr "Deseleccionar Todo"
-
 msgid "Process Preset Template"
 msgstr "Plantilla de Perfil de Proceso"
 
@@ -22927,8 +23033,20 @@ msgstr "No se ha encontrado el tipo de impresora; selecciónelo manualmente."
 msgid "Authorizing..."
 msgstr "Autorizando..."
 
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
 msgid "Error session check"
 msgstr "Error al verificar la sesión"
+
+msgid "Error during file upload"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -23757,6 +23875,105 @@ msgstr ""
 "La API local de Flashforge requiere tanto el número de serie como el código "
 "de acceso."
 
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
+
 msgid "The provided state is not correct."
 msgstr "El estado proporcionado no es correcto."
 
@@ -23812,6 +24029,12 @@ msgstr "Orejas de borde"
 msgid "Please select single object."
 msgstr "Por favor, seleccione un solo objeto."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "Alejar"
 
@@ -23822,6 +24045,9 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 "Error al cargar información de objetos omitidos. Por favor, inténtelo de "
 "nuevo."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -23975,6 +24201,100 @@ msgstr "Número de caras triangulares"
 
 msgid "Calculating, please wait..."
 msgstr "Calculando, por favor espere..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "

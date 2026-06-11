@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 12:29-0300\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -198,6 +198,15 @@ msgstr "완료"
 msgid "Support Generated"
 msgstr "서포트 생성됨"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "변형도구 - 면에 배치"
 
@@ -285,6 +294,15 @@ msgstr "칠하기에 사용한 필라멘트 %1%"
 msgid "To:"
 msgstr "대상:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "퍼지 스킨 칠하기"
 
@@ -304,6 +322,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "이 객체의 칠한 퍼지 스킨 활성화"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "이동"
@@ -690,6 +717,15 @@ msgstr "라인별로 자르기"
 
 msgid "Delete connector"
 msgstr "커넥터 삭제"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "메시 이름"
@@ -1555,6 +1591,12 @@ msgstr "평행 거리:"
 msgid "Flip by Face 2"
 msgstr "면 2로 뒤집기"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "병합"
 
@@ -1590,6 +1632,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "면과 면 조립"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -3144,6 +3192,45 @@ msgstr "최대 온도는 다음 값을 초과할 수 없습니다 "
 msgid "The minmum temperature should not be less than "
 msgstr "최소 온도는 다음 값보다 낮아서는 안 됩니다 "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "모두"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "모두 선택 해제"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "고급 설정"
+
+msgid "Expert settings"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3412,6 +3499,9 @@ msgstr "글꼴에 지정된 텍스트의 형태가 없습니다."
 
 msgid "There is no valid surface for text projection."
 msgstr "텍스트 프로젝션에 유효한 표면이 없습니다."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "첫 번째 레이어 최적화를 위한 열 사전 조건"
@@ -8442,9 +8532,6 @@ msgstr ""
 msgid "Group user filament presets based on selection"
 msgstr ""
 
-msgid "All"
-msgstr "모두"
-
 msgid "By type"
 msgstr ""
 
@@ -8790,6 +8877,14 @@ msgstr ""
 
 msgid "Associate files to OrcaSlicer"
 msgstr "파일을 OrcaSlicer에 연결"
+
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
 
 #, fuzzy
 msgid "Associate 3MF files to OrcaSlicer"
@@ -9613,6 +9708,9 @@ msgid ""
 msgstr ""
 "파일 업로드 시간이 초과되었습니다. 펌웨어 버전이 이 작업을 지원하는지 확인하"
 "거나 프린터가 제대로 작동하는지 확인하세요."
+
+msgid "Sending failed, please try again!"
+msgstr ""
 
 msgid "Slice ok."
 msgstr "슬라이스 완료."
@@ -10891,9 +10989,6 @@ msgstr ""
 "프린터 필라멘트를 기준으로 프로젝트 필라멘트 목록을 순차적으로 교체합니다. 사"
 "용하지 않는 프린터 필라멘트는 자동으로 목록 끝에 추가됩니다."
 
-msgid "Advanced settings"
-msgstr "고급 설정"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "미사용 AMS 필라멘트를 필라멘트 목록에 추가하기."
 
@@ -11381,11 +11476,22 @@ msgstr "새 네트워크 플러그인(%s)을 사용할 수 있습니다. 설치�
 msgid "New version of Orca Slicer"
 msgstr "Orca Slicer의 새 버전"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "이 버전 건너뛰기"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "노즐 확인 및 업데이트"
@@ -11498,6 +11604,9 @@ msgstr "커팅 모듈"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "자동 화재 진압 시스템"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "펌웨어 업데이트"
@@ -20486,9 +20595,6 @@ msgstr "프린터 사전 설정"
 msgid "Filament Preset Template"
 msgstr "필라멘트 사전 설정 템플릿"
 
-msgid "Deselect All"
-msgstr "모두 선택 해제"
-
 msgid "Process Preset Template"
 msgstr "프로세스 사전 설정 템플릿"
 
@@ -20972,7 +21078,19 @@ msgstr ""
 msgid "Authorizing..."
 msgstr ""
 
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
 msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
 msgstr ""
 
 #, c-format, boost-format
@@ -21718,6 +21836,105 @@ msgstr ""
 msgid "Flashforge local API requires both serial number and access code."
 msgstr ""
 
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
+
 msgid "The provided state is not correct."
 msgstr "제공된 상태가 올바르지 않습니다."
 
@@ -21771,6 +21988,12 @@ msgstr "브림 귀"
 msgid "Please select single object."
 msgstr "단일 객체를 선택하세요."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "축소"
 
@@ -21779,6 +22002,9 @@ msgstr "확대"
 
 msgid "Load skipping objects information failed. Please try again."
 msgstr "건너뛰는 개체 정보를 로드하지 못했습니다. 다시 시도해 주세요."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -21925,6 +22151,100 @@ msgstr "삼각형 패싯 수"
 
 msgid "Calculating, please wait..."
 msgstr "계산 중, 잠시만 기다려주세요..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
