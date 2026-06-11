@@ -115,7 +115,7 @@ jobs:
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+          ./build_release_macos.sh -s -n -T -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -129,6 +129,22 @@ jobs:
         with:
           name: OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}
           path: ${{ github.workspace }}/OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}.tar.gz
+
+      - name: Pack macOS Test Artifact ${{ inputs.arch }}
+        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        working-directory: ${{ github.workspace }}
+        run: |
+          tar -cvpf build_tests_macos_${{ inputs.arch }}.tar build/${{ inputs.arch }}/tests
+
+      - name: Upload macOS Test Artifact ${{ inputs.arch }}
+        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-macos-${{ inputs.arch }}
+          overwrite: true
+          path: build_tests_macos_${{ inputs.arch }}.tar
+          retention-days: 5
+          if-no-files-found: error
 
       - name: Download macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only
@@ -291,6 +307,32 @@ jobs:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
         run: .\build_release_vs.bat slicer
+
+      - name: Build tests Win
+        if: runner.os == 'Windows'
+        working-directory: ${{ github.workspace }}
+        # build_release_vs.bat tests configures with -DBUILD_TESTS=ON -DSLIC3R_SERVER=ON
+        # and builds ALL_BUILD (which includes the test executables).
+        # We reuse the deps and build dir from the slicer step above; only the
+        # slicer cmake-configure is re-run with the extra flags and cmake then
+        # only rebuilds targets that changed (i.e. the test executables).
+        run: .\build_release_vs.bat tests
+
+      - name: Pack Windows Test Artifact
+        if: runner.os == 'Windows'
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: tar -cvpf build_tests_windows.tar build/tests
+
+      - name: Upload Windows Test Artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-windows
+          overwrite: true
+          path: build_tests_windows.tar
+          retention-days: 5
+          if-no-files-found: error
 
       - name: Create installer Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED

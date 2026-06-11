@@ -38,4 +38,4 @@ set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 orcaslicer_copy_test_dlls()
 
-catch_discover_tests(${_TEST_NAME}_tests)
+catch_discover_tests(${_TEST_NAME}_tests ADD_TAGS_AS_LABELS)

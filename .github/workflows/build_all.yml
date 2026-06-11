@@ -145,6 +145,115 @@ jobs:
         uses: geekyeggo/delete-artifact@v6
         with:
           name: ${{ github.sha }}-tests
+  unit_tests_windows:
+    name: Unit Tests (Windows)
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            scripts
+            tests
+      - name: Restore Test Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ github.sha }}-tests-windows
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
+          useLocalCache: true
+          useCloudCache: true
+      - name: Unpackage and Run Unit Tests
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          tar -xvf build_tests_windows.tar
+          scripts/run_unit_tests.sh
+      - name: Upload Test Logs
+        uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: unit-test-logs-windows
+          path: build/tests/**/*.log
+      - name: Publish Test Results
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        with:
+          files: "ctest_results.xml"
+      - name: Delete Test Artifact
+        if: success()
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: ${{ github.sha }}-tests-windows
+
+  unit_tests_macos:
+    name: Unit Tests (macOS ${{ matrix.arch }})
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+    needs: build_macos_arch
+    if: ${{ !cancelled() && success() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm64
+          - x86_64
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            scripts
+            tests
+      - name: Restore Test Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ github.sha }}-tests-macos-${{ matrix.arch }}
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
+          useLocalCache: true
+          useCloudCache: true
+      - name: Unpackage and Run Unit Tests
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          tar -xvf build_tests_macos_${{ matrix.arch }}.tar
+          # run_unit_tests.sh hard-codes build/tests; macOS outputs build/<arch>/tests.
+          # Create a symlink so the script resolves the correct directory.
+          ln -sf build/${{ matrix.arch }}/tests build/tests
+          scripts/run_unit_tests.sh
+      - name: Upload Test Logs
+        uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: unit-test-logs-macos-${{ matrix.arch }}
+          path: build/tests/**/*.log
+      - name: Publish Test Results
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "ctest_results.xml"
+      - name: Delete Test Artifact
+        if: success()
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: ${{ github.sha }}-tests-macos-${{ matrix.arch }}
+
   flatpak:
     name: "Flatpak"
     container:

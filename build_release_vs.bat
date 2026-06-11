@@ -79,10 +79,13 @@ if "%1"=="pack" (
 
 set debug=OFF
 set debuginfo=OFF
+set build_tests=OFF
 if "%1"=="debug" set debug=ON
 if "%2"=="debug" set debug=ON
 if "%1"=="debuginfo" set debuginfo=ON
 if "%2"=="debuginfo" set debuginfo=ON
+if "%1"=="tests" set build_tests=ON
+if "%2"=="tests" set build_tests=ON
 if "%debug%"=="ON" (
     set build_type=Debug
     set build_dir=build-dbg
@@ -105,6 +108,9 @@ set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
 
 if "%1"=="slicer" (
+    GOTO :slicer
+)
+if "%1"=="tests" (
     GOTO :slicer
 )
 echo "building deps.."
@@ -131,11 +137,13 @@ cd %build_dir%
 
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
+set "TESTS_FLAGS="
+if "%build_tests%"=="ON" set "TESTS_FLAGS=-DBUILD_TESTS=ON -DSLIC3R_SERVER=ON"
 if "%USE_NINJA%"=="1" (
-    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% %TESTS_FLAGS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD
 ) else (
-    cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% %TESTS_FLAGS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD -- -m
 )
 @echo off
