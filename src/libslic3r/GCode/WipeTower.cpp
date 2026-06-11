@@ -1,4 +1,6 @@
 #include "WipeTower.hpp"
+#include "WipeTowerWriter.hpp"
+#include "libslic3r/VortekWipeTower.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -1586,11 +1588,8 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
     m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
 {
-    // H2C patches: change-length tables, max speed, multi-nozzle detection
-    // — EXTRACTED to VortekWipeTowerInit.inl
-#define H2C_WIPE_TOWER_INIT_CTOR
-#include "VortekWipeTowerInit.inl"
-#undef H2C_WIPE_TOWER_INIT_CTOR
+    // H2C patches: change-length tables, max speed, multi-nozzle detection using Vortek::WipeTower::init_ctor
+    Vortek::WipeTower::init_ctor(*this, config);
     m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
     // Read absolute value of first layer speed, if given as percentage,
     // it is taken over following default. Speeds from config are not
@@ -1686,12 +1685,8 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
         m_filpar[idx].max_e_speed = (max_vol_speed / filament_area());
 
     m_perimeter_width = nozzle_diameter * Width_To_Nozzle_Ratio; // all extruders are now assumed to have the same diameter
-    {
-        // H2C FIX: Nozzle-change perimeter width — EXTRACTED to VortekWipeTowerInit.inl
-#define H2C_WIPE_TOWER_INIT_SET_EXTRUDER
-#include "VortekWipeTowerInit.inl"
-#undef H2C_WIPE_TOWER_INIT_SET_EXTRUDER
-    }
+    // H2C FIX: Nozzle-change perimeter width using Vortek::WipeTower::init_set_extruder
+    Vortek::WipeTower::init_set_extruder(*this, nozzle_diameter);
     // BBS: remove useless config
 #if 0
     if (m_semm) {
@@ -1977,11 +1972,27 @@ WipeTower::ToolChangeResult WipeTower::tool_change(size_t tool, bool extrude_per
 }
 
 // ============================================================================
-// H2C WipeTower methods — EXTRACTED to VortekWipeTowerNozzle.inl
-// Contains: nozzle_change(), is_need_ramming(), is_same_extruder(), is_same_nozzle()
-// Included here because WipeTowerWriter is defined in this TU (not in .hpp).
+// H2C WipeTower methods - Delegating to Vortek::WipeTower
 // ============================================================================
-#include "VortekWipeTowerNozzle.inl"
+WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int new_filament_id)
+{
+    return Vortek::WipeTower::nozzle_change(*this, old_filament_id, new_filament_id);
+}
+
+bool WipeTower::is_need_ramming(int filament_id_1, int filament_id_2, int layer_id)
+{
+    return Vortek::WipeTower::is_need_ramming(*this, filament_id_1, filament_id_2, layer_id);
+}
+
+bool WipeTower::is_same_extruder(int filament_id_1, int filament_id_2, int layer_id)
+{
+    return Vortek::WipeTower::is_same_extruder(*this, filament_id_1, filament_id_2, layer_id);
+}
+
+bool WipeTower::is_same_nozzle(int filament_id_1, int filament_id_2, int layer_id)
+{
+    return Vortek::WipeTower::is_same_nozzle(*this, filament_id_1, filament_id_2, layer_id);
+}
 
 // Ram the hot material out of the melt zone, retract the filament into the cooling tubes and let it cool.
 void WipeTower::toolchange_Unload(
