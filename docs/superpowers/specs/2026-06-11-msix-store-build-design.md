@@ -65,7 +65,7 @@ schema reference during implementation; `makeappx`/WACK validate):
     offers opt-in handlers for `prusaslicer://`, `bambustudio://` and
     `cura://` (Preferences "Associate" tab); those are NOT declared in
     the manifest for now (possible follow-up) and their toggles are
-    hidden in packaged context.
+    replaced by the Default Apps settings link in packaged context.
   - `rescap3:MigrationProgIds` declaring `Orca.Slicer.1`.
     KNOWN LIMITATION: the classic build writes its ProgID with a
     leading space (`L" Orca.Slicer.1"`, `GUI_App.cpp:9119`), which
@@ -74,10 +74,11 @@ schema reference during implementation; `makeappx`/WACK validate):
     "Open with" and the user picks once. The legacy ProgID is NOT fixed
     in this change (separate change with its own migration risk).
 
-**`assets/`** — committed PNGs generated once from
-`resources/images/OrcaSlicer.svg`: Square44x44Logo, Square150x150Logo,
-StoreLogo (50x50), plus standard scale variants. Committed rather than
-generated in CI so the pack step has no extra tool dependencies.
+**`assets/`** — committed PNGs rasterized per-size from
+`resources/images/OrcaSlicer_gradient_circle.svg` (full-bleed circular
+logo, transparent corners — design review asked for no plate/padding):
+Square44x44Logo, Square150x150Logo, StoreLogo (50x50). Committed rather
+than generated in CI so the pack step has no extra tool dependencies.
 
 **`build_msix.ps1`** — single script, runnable in CI and locally (needs
 Windows SDK for `makeappx`):
@@ -122,10 +123,10 @@ auto-downloads), so the check itself stays enabled when packaged:
 - The startup auto-check (`check_new_version_sf()`) and the manual
   "Check for updates" menu action run unchanged.
 - The new-version dialog (`UpdateVersionDialog`) changes when packaged:
-  the Download button is hidden, the info text tells the user to update
-  OrcaSlicer from the Microsoft Store, and the "Check on Github"
-  hyperlink becomes "Open Microsoft Store", which opens the Store
-  listing via `ms-windows-store://pdp/?PFN=<family>`. The package
+  the Download button becomes "Open Microsoft Store", the info text
+  tells the user to update OrcaSlicer from the Microsoft Store, and the
+  "Check on Github" hyperlink becomes "Check on Microsoft Store"; both
+  open the Store listing via `ms-windows-store://pdp/?PFN=<family>`. The package
   family name comes from `GetCurrentPackageFamilyName` at runtime — no
   build-time ProductId define or extra repo variable needed, and it
   works identically in pre- and post-reservation builds. The packaged
@@ -136,11 +137,12 @@ runtime registry writes are virtualized and invisible:
 
 - Early-return in `associate_files`, `disassociate_files`,
   `associate_url`, `disassociate_url` when packaged.
-- Hide the whole "Associate" tab in Preferences
-  (`Preferences.cpp:1848-1883`) in packaged context — the
-  file-association checkboxes and the `prusaslicer://` /
-  `bambustudio://` / `cura://` URL-handler rows all rely on runtime
-  registry writes that are virtualized. The `check_url_association`
+- The "Associate" tab in Preferences (`Preferences.cpp:1848`) swaps its
+  registry-backed UI in packaged context — the file-association
+  checkboxes and the `prusaslicer://` / `bambustudio://` / `cura://`
+  URL-handler rows all rely on runtime registry writes that are
+  virtualized — for a note plus an "Open Windows Default Apps Settings"
+  button (`ms-settings:defaultapps`). The `check_url_association`
   consumers live exclusively in that tab, so no other prompt suppression
   is needed.
 
@@ -165,9 +167,9 @@ the PR documents manual verification per repo review guidelines:
    the packaged app and vice versa (Win11 machine); profiles survive
    packaged-app uninstall.
 3. Updater: version check runs as in the classic build (startup +
-   menu); the new-version dialog hides the Download button, asks the
-   user to update from the Microsoft Store, and its "Open Microsoft
-   Store" link opens the Store listing.
+   menu); the new-version dialog asks the user to update from the
+   Microsoft Store, and its "Open Microsoft Store" button and "Check on
+   Microsoft Store" link both open the Store listing.
 4. Network plugin: download + load succeeds in packaged context.
 5. WACK run against the CI artifact passes (or failures triaged).
 6. CI: Windows job produces the `.msix` artifact with correct version;
