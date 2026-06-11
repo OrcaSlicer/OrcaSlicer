@@ -156,7 +156,9 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			config.set_key_value(opt_key, new ConfigOptionPercent(boost::any_cast<double>(value)));
 			break;
 		case coFloat:{
-			config.set_key_value(opt_key, new ConfigOptionFloat(boost::any_cast<double>(value)));
+			double val = boost::any_cast<double>(value);
+			BOOST_LOG_TRIVIAL(debug) << "change_opt_value coFloat: opt_key=" << opt_key << " value=" << val;
+			config.set_key_value(opt_key, new ConfigOptionFloat(val));
 			break;
 		}
 		case coPercents:{

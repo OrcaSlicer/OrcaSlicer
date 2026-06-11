@@ -4888,6 +4888,27 @@ msgstr ""
 msgid "Cost"
 msgstr ""
 
+msgid "Electricity"
+msgstr ""
+
+msgid "Machine wear"
+msgstr ""
+
+msgid "Maintenance"
+msgstr ""
+
+msgid "Fixed costs"
+msgstr ""
+
+msgid "Failure buffer"
+msgstr ""
+
+msgid "Subtotal"
+msgstr ""
+
+msgid "Margin"
+msgstr ""
+
 msgid "Filament change times"
 msgstr ""
 

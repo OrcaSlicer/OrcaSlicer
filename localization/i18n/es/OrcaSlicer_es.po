@@ -5387,6 +5387,27 @@ msgstr "Extrusor"
 msgid "Cost"
 msgstr "Coste"
 
+msgid "Electricity"
+msgstr "Electricidad"
+
+msgid "Machine wear"
+msgstr "Desgaste de máquina"
+
+msgid "Maintenance"
+msgstr "Mantenimiento"
+
+msgid "Fixed costs"
+msgstr "Costos fijos"
+
+msgid "Failure buffer"
+msgstr "Buffer de fallos"
+
+msgid "Subtotal"
+msgstr "Subtotal"
+
+msgid "Margin"
+msgstr "Margen"
+
 msgid "Filament change times"
 msgstr "Tiempos de cambio de filamento"
 
