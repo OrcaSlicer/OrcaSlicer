@@ -9,6 +9,10 @@ get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 # server is disabled the server-side unit tests are simply omitted.
 
 set(_CORE_SOURCES
+    # Global process setup: initialises temporary_dir() before any model load
+    # so the BBS backup path resolves to a writable OS temp location on all
+    # platforms (avoids "Read-only file system" at /orcaslicer_model on macOS/Linux).
+    test_setup.cpp
     test_preset_resolver.cpp
     test_output_target.cpp
     test_slice_golden.cpp

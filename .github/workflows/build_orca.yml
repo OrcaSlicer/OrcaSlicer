@@ -134,7 +134,15 @@ jobs:
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          tar -cvpf build_tests_macos_${{ inputs.arch }}.tar build/${{ inputs.arch }}/tests
+          # On a cross-compile arch (x86_64 built on arm64 runner) catch_discover_tests
+          # cannot enumerate tests, so build/<arch>/tests/ may not be created.
+          # Produce the tar only when the directory exists; the upload step uses
+          # if-no-files-found: warn so missing x86_64 tests never fail the build job.
+          if [ -d "build/${{ inputs.arch }}/tests" ]; then
+            tar -cvpf build_tests_macos_${{ inputs.arch }}.tar build/${{ inputs.arch }}/tests
+          else
+            echo "build/${{ inputs.arch }}/tests not found — skipping test artifact pack"
+          fi
 
       - name: Upload macOS Test Artifact ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -144,7 +152,7 @@ jobs:
           overwrite: true
           path: build_tests_macos_${{ inputs.arch }}.tar
           retention-days: 5
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Download macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only

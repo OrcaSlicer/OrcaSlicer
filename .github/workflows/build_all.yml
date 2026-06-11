@@ -204,8 +204,9 @@ jobs:
       fail-fast: false
       matrix:
         arch:
+          # x86_64 test binaries are cross-compiled on the arm64 runner and
+          # cannot execute natively; only arm64 tests can run on macos-14.
           - arm64
-          - x86_64
     permissions:
       checks: write
       pull-requests: write
