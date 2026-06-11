@@ -109,6 +109,9 @@ using namespace nlohmann;
 
 using namespace Slic3r;
 
+// Forward declaration for early use in --list-presets handler
+void attach_console_on_demand();
+
 /*typedef struct _error_message{
     int code;
     std::string message;
