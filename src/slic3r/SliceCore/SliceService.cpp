@@ -33,6 +33,7 @@
 #include "PresetResolver.hpp"
 #include "OutputTargetDeliver.hpp"
 #include "ModelTransforms.hpp"
+#include "ThumbnailRenderer.hpp"
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
@@ -598,6 +599,57 @@ SliceResult SliceService::run(const SliceRequest &req)
 
             const long long plate_t1 = now_ms();
 
+            // ----- Tier-2 thumbnail generation (optional, non-fatal).
+            // Only attempted when:
+            //   • req.generate_thumbnail is true
+            //   • output mode is File (we need a directory to write the PNG)
+            //   • we just exported G-code (gcode_result is populated)
+            //
+            // v1 design note: one thumbnail is rendered for the whole model
+            // (plate_id=0), not per-plate.  The PNG is written to out_dir as
+            // plate_<id>_thumbnail.png.  Failure is non-fatal — a warning is
+            // pushed into result.warnings and slicing continues.
+            std::string thumbnail_out_path;
+            if (req.generate_thumbnail &&
+                req.output.mode == OutputMode::File)
+            {
+                std::vector<unsigned char> png_bytes;
+                std::string               terr;
+                if (render_model_thumbnail(model, config,
+                                           req.thumbnail_width,
+                                           req.thumbnail_height,
+                                           png_bytes, terr))
+                {
+                    const boost::filesystem::path thumb_path =
+                        out_dir / ("plate_" + std::to_string(index + 1) +
+                                   "_thumbnail.png");
+                    boost::system::error_code write_ec;
+                    boost::filesystem::ofstream ofs(thumb_path,
+                                                    std::ios::binary |
+                                                    std::ios::trunc);
+                    if (ofs) {
+                        ofs.write(
+                            reinterpret_cast<const char *>(png_bytes.data()),
+                            static_cast<std::streamsize>(png_bytes.size()));
+                        ofs.close();
+                        thumbnail_out_path = thumb_path.string();
+                        BOOST_LOG_TRIVIAL(info)
+                            << "[SliceCore] thumbnail written to "
+                            << thumbnail_out_path;
+                    } else {
+                        const std::string we =
+                            "thumbnail: failed to write PNG to " +
+                            thumb_path.string();
+                        result.warnings.push_back(we);
+                        BOOST_LOG_TRIVIAL(warning) << "[SliceCore] " << we;
+                    }
+                } else {
+                    const std::string we = "thumbnail rendering skipped: " + terr;
+                    result.warnings.push_back(we);
+                    BOOST_LOG_TRIVIAL(warning) << "[SliceCore] " << we;
+                }
+            }
+
             // ----- Collect stats.
             PlateStat stat;
             stat.plate_id  = index + 1;                       // 1-based, like the CLI
@@ -633,7 +685,13 @@ SliceResult SliceService::run(const SliceRequest &req)
                 for (const auto &kv : ps.model_volumes_per_extruder)
                     stat.filament_volume_per_extruder[static_cast<int>(kv.first)] =
                         kv.second;
-                // thumbnail_generated stays false — thumbnail work is a separate task.
+                // thumbnail_generated is set below if a PNG was written.
+            }
+
+            // Record thumbnail outcome (set whether or not gcode_result exists).
+            if (!thumbnail_out_path.empty()) {
+                stat.thumbnail_generated = true;
+                stat.thumbnail_path      = thumbnail_out_path;
             }
 
             // ----- Deliver / record output path.
