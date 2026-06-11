@@ -19,6 +19,7 @@ add_executable(orca-server
     HttpServer.cpp
     Router.cpp
     Handlers.cpp
+    RequestMapping.cpp
     JobQueue.cpp
     Authenticator.cpp
     ServerContext.cpp

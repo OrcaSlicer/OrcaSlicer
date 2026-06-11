@@ -22,8 +22,10 @@ if (SLIC3R_SERVER)
         # #include "JobQueue.hpp" etc. resolve without a path prefix.
         ${CMAKE_SOURCE_DIR}/src/slic3r/Server/JobQueue.cpp
         ${CMAKE_SOURCE_DIR}/src/slic3r/Server/Authenticator.cpp
-        # test file
+        ${CMAKE_SOURCE_DIR}/src/slic3r/Server/RequestMapping.cpp
+        # test files
         test_server_e2e.cpp
+        test_json_request.cpp
     )
 endif ()
 
