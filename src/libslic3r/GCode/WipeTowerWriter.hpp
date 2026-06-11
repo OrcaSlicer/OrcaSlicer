@@ -511,7 +511,8 @@ public:
         if (wait_for_moves)
             buffer += "M400\n";
         buffer += "M104";
-        if (target_extruder != -1)
+        // Skip T param if extruder index is out of map range.
+        if (target_extruder >= 0 && target_extruder < (int)m_physical_extruder_map.size())
             buffer += (" T" + std::to_string(m_physical_extruder_map[target_extruder]));
         buffer += " S" + std::to_string(target_temp) + " N0";
         if (!comment.empty()) buffer += " ;" + comment;
@@ -524,7 +525,8 @@ public:
     WipeTowerWriter &format_line_M109(int target_temp, int target_extruder, const std::string &comment = std::string())
     {
         std::string buffer = "M109";
-        if (target_extruder != -1)
+        // Skip T param if extruder index is out of map range.
+        if (target_extruder >= 0 && target_extruder < (int)m_physical_extruder_map.size())
             buffer += (" T" + std::to_string(m_physical_extruder_map[target_extruder]));
         buffer += " S" + std::to_string(target_temp) + " N0";
         if (!comment.empty()) buffer += " ;" + comment;
