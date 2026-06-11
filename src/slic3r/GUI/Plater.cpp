@@ -649,17 +649,11 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     // NEEDFIX requires AMS check or any type of ???
     // Single nozzle & non ams
     // Non-BBL multi-extruder printers have no per-extruder nozzle UI (the dual
-    // cards above are BBL-only); when all extruders share one nozzle diameter the
-    // unified selector applies to them the same way it does to single-extruder
-    // printers. Mixed-diameter setups keep no unified selector.
-    bool uniform_nozzle = false;
-    if (const auto* nozzle_diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter");
-        nozzle_diameters != nullptr && !nozzle_diameters->values.empty()) {
-        uniform_nozzle = std::all_of(nozzle_diameters->values.begin(), nozzle_diameters->values.end(),
-                                     [&](double d) { return d == nozzle_diameters->values.front(); });
-    }
+    // cards above are BBL-only); the unified selector applies to them the same
+    // way it does to single-extruder printers. It lists printer variants, so a
+    // mixed-diameter variant (e.g. "0.4+0.6") is shown and selectable as-is.
     panel_nozzle_dia->Show(!isDual && (preset_bundle.get_printer_extruder_count() < 2 ||
-                                       (!preset_bundle.is_bbl_vendor() && uniform_nozzle)));
+                                       !preset_bundle.is_bbl_vendor()));
     extruder_single_sizer->Show(false);
 }
 
@@ -1277,8 +1271,14 @@ bool Sidebar::priv::switch_diameter(bool single)
     auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
     if (nozzle_diameter && nozzle_diameter->size() > 0) {
         auto current_nozzle_dia = get_diameter_string(nozzle_diameter->values[0]);
-        // If the selected diameter is the same as current nozzle, don't switch profiles
-        if (current_nozzle_dia == diameter.ToStdString()) {
+        // If the selection already matches the current preset, don't switch profiles.
+        // The selection is a printer_variant string: when the preset carries a
+        // variant, compare that (on a mixed-diameter variant like "0.4+0.6" the
+        // first nozzle value alone matches the wrong entry in both directions);
+        // variant-less presets keep the nozzle-value comparison.
+        auto current_variant = printer_preset.config.opt_string("printer_variant");
+        if (current_variant.empty() ? current_nozzle_dia == diameter.ToStdString()
+                                    : current_variant == diameter.ToStdString()) {
             return true;
         }
     }
@@ -2675,9 +2675,17 @@ void Sidebar::update_presets(Preset::Type preset_type)
 
             // ORCA sync unified nozzle combo box
             p->combo_nozzle_dia->Clear();
-            for (size_t i = 0; i < diameters.size(); ++i)
+            // The list holds printer_variant strings; match the current variant
+            // first so mixed-diameter variants (e.g. "0.4+0.6", where the first
+            // nozzle value alone would match the wrong entry) display correctly.
+            // Presets without a variant fall back to the nozzle-value match.
+            int variant_select = -1;
+            for (size_t i = 0; i < diameters.size(); ++i) {
+                if (!diameter.empty() && diameters[i] == diameter)
+                    variant_select = int(i);
                 p->combo_nozzle_dia->Append(diameters[i], {});
-            p->combo_nozzle_dia->SetSelection((*p->single_extruder).combo_diameter->GetSelection());
+            }
+            p->combo_nozzle_dia->SetSelection(variant_select >= 0 ? variant_select : (*p->single_extruder).combo_diameter->GetSelection());
             
             // ORCA update nozzle type
             const auto& full_config = wxGetApp().preset_bundle->full_config();
