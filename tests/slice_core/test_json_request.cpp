@@ -66,6 +66,34 @@ TEST_CASE("parse_overrides_basic", "[RequestMapping][Server]")
 }
 
 // ---------------------------------------------------------------------------
+// TEST: parse_overrides_array
+//
+// Verifies that a JSON array value for a vector config option (nozzle_diameter
+// is coFloats — confirmed in PrintConfig.cpp) is deserialised correctly.
+// The array [0.4, 0.4] must produce two floats, not a parse failure caused by
+// the JSON-array-syntax "[0.4,0.4]" that json::dump() would have returned.
+// ---------------------------------------------------------------------------
+TEST_CASE("parse_overrides_array", "[RequestMapping][Server]")
+{
+    json j = json::parse(R"({
+        "presets": {
+            "overrides": {
+                "nozzle_diameter": [0.4, 0.4]
+            }
+        }
+    })");
+
+    SliceRequest req = json_to_slice_request(j);
+
+    REQUIRE(req.presets.overrides.has("nozzle_diameter"));
+    const auto *nd = req.presets.overrides.opt<ConfigOptionFloats>("nozzle_diameter");
+    REQUIRE(nd != nullptr);
+    REQUIRE(nd->values.size() == 2);
+    REQUIRE_THAT(nd->values[0], Catch::Matchers::WithinAbs(0.4, 1e-6));
+    REQUIRE_THAT(nd->values[1], Catch::Matchers::WithinAbs(0.4, 1e-6));
+}
+
+// ---------------------------------------------------------------------------
 // TEST: parse_overrides_unknown_key_tolerant
 //
 // An unrecognised override key must NOT throw.  The lenient

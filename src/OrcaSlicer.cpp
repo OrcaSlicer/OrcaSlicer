@@ -73,10 +73,13 @@ using namespace nlohmann;
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 
-// SliceCore headless helpers — by-name preset resolution and output routing
+#ifdef SLIC3R_GUI
+// SliceCore headless helpers — by-name preset resolution and output routing.
+// liborca_slice_core is only linked when SLIC3R_GUI=ON (see src/CMakeLists.txt).
 #include "slic3r/SliceCore/SliceTypes.hpp"
 #include "slic3r/SliceCore/PresetResolver.hpp"
 #include "slic3r/SliceCore/OutputTargetDeliver.hpp"
+#endif /* SLIC3R_GUI */
 
 #include "OrcaSlicer.hpp"
 //BBS: add exception handler for win32
@@ -1329,10 +1332,13 @@ int CLI::run(int argc, char **argv)
     // and exit.  This is a pure read-only query that short-circuits before any
     // model loading or slicing, so it is handled here, immediately after the
     // data_dir is established by setup().
+    // liborca_slice_core (which provides enumerate_preset_names) is only linked
+    // when SLIC3R_GUI=ON; guard accordingly.
     {
         const ConfigOptionString *list_presets_opt =
             m_config.opt<ConfigOptionString>("list_presets");
         if (list_presets_opt && !list_presets_opt->value.empty()) {
+#ifdef SLIC3R_GUI
             attach_console_on_demand();
             const std::string category = list_presets_opt->value; // printer|process|filament|all
             Slic3r::SliceCore::PresetNames names;
@@ -1361,6 +1367,11 @@ int CLI::run(int argc, char **argv)
             }
             boost::nowide::cout.flush();
             return CLI_SUCCESS;
+#else
+            boost::nowide::cerr << "--list-presets is not supported in this build "
+                                   "(requires SLIC3R_GUI=ON)." << std::endl;
+            return CLI_UNSUPPORTED_OPERATION;
+#endif /* SLIC3R_GUI */
         }
     }
 
@@ -3657,6 +3668,9 @@ int CLI::run(int argc, char **argv)
     // --- By-name preset resolution (--printer / --process / --filament) ---
     // Must run AFTER 3MF/load_settings load but BEFORE m_extra_config (CLI key=value) is
     // applied, so that explicit key=value overrides still have the highest precedence.
+    // liborca_slice_core (which provides SliceCore::resolve) is only linked when
+    // SLIC3R_GUI=ON; guard accordingly.
+#ifdef SLIC3R_GUI
     {
         const std::string preset_printer  = m_config.opt_string("printer",  true);
         const std::string preset_process  = m_config.opt_string("process",  true);
@@ -3694,6 +3708,7 @@ int CLI::run(int argc, char **argv)
                 << (!preset_filaments.empty() ? " filament(s) provided" : "");
         }
     }
+#endif /* SLIC3R_GUI */
     // --- end by-name preset resolution ---
 
     // Apply command line options to a more specific DynamicPrintConfig which provides normalize()

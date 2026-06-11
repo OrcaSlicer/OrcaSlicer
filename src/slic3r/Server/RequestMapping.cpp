@@ -40,9 +40,31 @@ SliceCore::SliceRequest json_to_slice_request(const json &j)
         if (p.contains("overrides") && p["overrides"].is_object()) {
             ConfigSubstitutionContext subs(ForwardCompatibilitySubstitutionRule::Enable);
             for (auto it = p["overrides"].begin(); it != p["overrides"].end(); ++it) {
-                std::string val = it.value().is_string()
-                                    ? it.value().get<std::string>()
-                                    : it.value().dump();
+                std::string val;
+                if (it.value().is_string()) {
+                    // String values are passed through verbatim.
+                    val = it.value().get<std::string>();
+                } else if (it.value().is_array()) {
+                    // Vector config options (e.g. nozzle_diameter: [0.4, 0.4]) must be
+                    // serialised as comma-separated scalars — the format that
+                    // ConfigOptionVector::deserialize() expects (confirmed via
+                    // ConfigOptionFloatsTempl::deserialize in Config.hpp which splits on
+                    // ',' via std::getline).  Using json::dump() here would produce
+                    // "[0.4,0.4]" (JSON-array syntax) which the deserializer cannot parse.
+                    bool first = true;
+                    for (const auto &elem : it.value()) {
+                        if (!first) val += ',';
+                        first = false;
+                        if (elem.is_string())
+                            val += elem.get<std::string>();
+                        else
+                            val += elem.dump(); // scalar number / bool → text representation
+                    }
+                } else {
+                    // Scalar number or boolean: dump() yields the plain text value (e.g.
+                    // "2", "true", "0.2") which set_deserialize handles correctly.
+                    val = it.value().dump();
+                }
                 req.presets.overrides.set_deserialize(it.key(), val, subs);
             }
         }
