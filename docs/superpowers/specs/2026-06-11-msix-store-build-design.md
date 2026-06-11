@@ -162,7 +162,10 @@ the PR documents manual verification per repo review guidelines:
 2. Config interop: profiles created by a classic install are visible in
    the packaged app and vice versa (Win11 machine); profiles survive
    packaged-app uninstall.
-3. Updater: no startup check; menu action opens Store listing.
+3. Updater: version check runs as in the classic build (startup +
+   menu); the new-version dialog hides the Download button, asks the
+   user to update from the Microsoft Store, and its "Open Microsoft
+   Store" link opens the Store listing.
 4. Network plugin: download + load succeeds in packaged context.
 5. WACK run against the CI artifact passes (or failures triaged).
 6. CI: Windows job produces the `.msix` artifact with correct version;
