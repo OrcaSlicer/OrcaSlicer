@@ -275,21 +275,11 @@ void CrealityPrint::query_model() const
     test(msg);
 }
 
-bool CrealityPrint::supports_multi_color_print() const
+// CFS-capable models. One table for capability checks, display names and
+// LAN-discovery labelling -- keep additions here only.
+static const std::map<std::string, std::string>& cfs_capable_models()
 {
-    query_model();
-    // K2-platform printers with CFS support
-    return m_model == "F008"    // K2 Plus
-        || m_model == "F012"    // K2 Pro
-        || m_model == "F021"    // K2
-        || m_model == "F022"    // SPARKX i7
-        || m_model == "K1 SE"   // K1 SE
-        || m_model == "K1C";    // K1C
-}
-
-std::string CrealityPrint::model_name() const
-{
-    static const std::map<std::string, std::string> names = {
+    static const std::map<std::string, std::string> models = {
         {"F008", "K2 Plus"},
         {"F012", "K2 Pro"},
         {"F021", "K2"},
@@ -297,11 +287,34 @@ std::string CrealityPrint::model_name() const
         {"K1 SE", "K1 SE"},
         {"K1C", "K1C"},
     };
+    return models;
+}
+
+bool CrealityPrint::model_supports_multi_color(const std::string& model)
+{
+    return cfs_capable_models().count(model) > 0;
+}
+
+std::string CrealityPrint::model_display_name(const std::string& model)
+{
+    auto& names = cfs_capable_models();
+    auto it = names.find(model);
+    return it != names.end() ? it->second : std::string{};
+}
+
+bool CrealityPrint::supports_multi_color_print() const
+{
+    query_model();
+    return model_supports_multi_color(m_model);
+}
+
+std::string CrealityPrint::model_name() const
+{
     query_model();
     if (m_model.empty())
         return "unreachable";
-    auto it = names.find(m_model);
-    return it != names.end() ? it->second : "unknown (" + m_model + ")";
+    std::string name = model_display_name(m_model);
+    return !name.empty() ? name : "unknown (" + m_model + ")";
 }
 
 std::string CrealityPrint::query_boxes_info() const
