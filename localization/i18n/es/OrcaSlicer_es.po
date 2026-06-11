@@ -15711,7 +15711,7 @@ msgstr ""
 "relleno baja para acortar la longitud efectiva de la columna vertical y "
 "mejorar la resistencia al pandeo por compresión en el eje Z. Se mantiene el "
 "consumo de filamento. No tiene efecto con una densidad de relleno escasa de "
-"aproximadamente el ~30% o superior. Solo se aplica cuando el patrón de "
+"aproximadamente el ~30%% o superior. Solo se aplica cuando el patrón de "
 "relleno escaso está configurado en «Giroide»."
 
 msgid "Sparse infill pattern"
