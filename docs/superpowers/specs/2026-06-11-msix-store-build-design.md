@@ -90,7 +90,9 @@ Windows SDK for `makeappx`):
 3. `makeappx pack` → `OrcaSlicer_Windows_MSIX_<version>.msix`.
 
 Parameters: `-InstallDir`, `-OutputPath`, `-IdentityName`, `-Publisher`,
-`-PublisherDisplayName` (identity defaults are obvious placeholders). NO signing — the Store
+`-PublisherDisplayName` (identity defaults are the reserved Partner
+Center identity — `OrcaSlicer.OrcaSlicer` /
+`CN=38F7EA55-C73B-4072-B3B2-C8E0EA15BB82` / `OrcaSlicer`). NO signing — the Store
 strips and re-signs; local testing uses Developer Mode loose-layout
 registration instead.
 
@@ -98,12 +100,12 @@ registration instead.
 
 One new step in the Windows job, after the install tree exists (adjacent
 to the portable-zip step): run `build_msix.ps1`, upload the `.msix` as a
-workflow artifact. Identity comes from repo variables
+workflow artifact. Repo variables
 (`vars.ORCA_MSIX_IDENTITY_NAME`, `vars.ORCA_MSIX_PUBLISHER`,
-`vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME`); when unset,
-placeholder defaults still produce a valid artifact (not Store-uploadable,
-which is fine pre-approval). The step must not fail the job when repo
-variables are absent (forks).
+`vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME`) can override the identity but
+are optional; when unset, the in-repo defaults carry the reserved
+Partner Center identity, so the artifact is Store-uploadable as-is.
+The step must not fail the job when repo variables are absent (forks).
 
 ### 3. Runtime changes (Windows-only, packaged-context-gated)
 
@@ -177,11 +179,11 @@ the PR documents manual verification per repo review guidelines:
 
 ## Sequencing / rollout
 
-The PR lands before Partner Center account approval — placeholder
-identity builds a valid artifact. Once the account clears and the app
-name is reserved, set the three repo variables (identity name, publisher
-`CN=<GUID>`, publisher display name); the next CI run produces the
-uploadable package. First Store submission is manual (listing, IARC,
+The Partner Center app name reservation is complete and the reserved
+identity (identity name, publisher `CN=<GUID>`, publisher display name)
+is now the in-repo default, so CI produces the uploadable package
+without further configuration; the three repo variables remain as an
+optional override. First Store submission is manual (listing, IARC,
 `runFullTrust` + `unvirtualizedResources` justifications) per the
 handoff doc's "Submission process" section.
 

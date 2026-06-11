@@ -12,9 +12,9 @@ param(
     [string]$OutputPath = "build/OrcaSlicer_Windows_MSIX.msix",
     [string]$StagingDir = "",
     [switch]$StageOnly,
-    [string]$IdentityName = "OrcaSlicer.Dev",
-    [string]$Publisher = "CN=00000000-0000-0000-0000-000000000000",
-    [string]$PublisherDisplayName = "OrcaSlicer (dev)"
+    [string]$IdentityName = "OrcaSlicer.OrcaSlicer",
+    [string]$Publisher = "CN=38F7EA55-C73B-4072-B3B2-C8E0EA15BB82",
+    [string]$PublisherDisplayName = "OrcaSlicer"
 )
 $ErrorActionPreference = 'Stop'
 
