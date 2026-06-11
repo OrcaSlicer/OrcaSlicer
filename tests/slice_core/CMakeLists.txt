@@ -13,6 +13,8 @@ set(_CORE_SOURCES
     test_output_target.cpp
     test_slice_golden.cpp
     test_model_transforms.cpp
+    test_placement.cpp
+    test_preview.cpp
 )
 
 if (SLIC3R_SERVER)
@@ -26,6 +28,10 @@ if (SLIC3R_SERVER)
         # test files
         test_server_e2e.cpp
         test_json_request.cpp
+        # test_placement.cpp parse_objects half requires RequestMapping.cpp
+        # (the apply_object_placements half in test_placement.cpp is already
+        # compiled via _CORE_SOURCES above; the SLIC3R_SERVER guard inside the
+        # file gates the parse_objects section at compile time).
     )
 endif ()
 
