@@ -135,7 +135,8 @@ jobs:
           name: unit-test-logs
           path: build/tests/**/*.log
       - name: Publish Test Results
-        if: always()
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: "ctest_results.xml"
