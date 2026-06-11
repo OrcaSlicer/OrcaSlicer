@@ -4,6 +4,7 @@
 #include "Exception.hpp"
 #include "Preset.hpp"
 #include "PresetBundle.hpp"
+#include "PresetBundleCache.hpp"
 #include "AppConfig.hpp"
 
 #ifdef _MSC_VER
@@ -744,6 +745,9 @@ void Preset::save(DynamicPrintConfig* parent_config)
         idx_file.replace_extension(".info");
         this->save_info(idx_file.string());
     }
+
+    // Update the per-file binary cache so the next startup skips JSON parsing.
+    PresetBundleCache::write_file_cache(*this);
 }
 
 void Preset::reload(Preset const &parent)

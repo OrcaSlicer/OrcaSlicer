@@ -1,7 +1,9 @@
 #include <cassert>
+#include <chrono>
 #include <ctime>
 
 #include "PresetBundle.hpp"
+#include "PresetBundleCache.hpp"
 #include "PrintConfig.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
@@ -564,6 +566,8 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
 
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, substitution_rule %1%, preferred printer_model_id %2%")%substitution_rule%preferred_selection.printer_model_id;
+    const auto startup_t0 = std::chrono::steady_clock::now();
+
     //BBS: change system config to json
     std::tie(substitutions, errors_cummulative) = this->load_system_presets_from_json(substitution_rule);
 
@@ -588,6 +592,12 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
     this->load_selections(config, preferred_selection);
 
     set_calibrate_printer("");
+
+    {
+        const auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startup_t0).count();
+        BOOST_LOG_TRIVIAL(info) << "PresetBundle: all presets loaded in " << total_ms << " ms";
+    }
 
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" finished, returned substitutions %1%")%substitutions.size();
@@ -1001,6 +1011,18 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
     bundles.m_bundles.clear();
     bundles.WriteUnlock();
 
+    const auto user_load_t0 = std::chrono::steady_clock::now();
+
+    // Helper: collect canonical names of presets in a collection that belong to a bundle.
+    auto collect_bundle_preset_names = [](const PresetCollection& coll,
+                                          const std::string& bundle_id,
+                                          std::vector<std::string>& out) {
+        for (const Preset& p : coll()) {
+            if (p.bundle_id == bundle_id)
+                out.push_back(p.name);
+        }
+    };
+
     // Load bundle metadata from _local directory first
     fs::path local_dir(folder / PRESET_LOCAL_DIR);
     if (fs::exists(local_dir)) {
@@ -1019,16 +1041,34 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             metadata.filament_presets.clear();
             metadata.printer_presets.clear();
 
-            // Add the profiles
+            const PresetOrigin origin(PresetOrigin::Kind::LocalBundle, metadata.id);
+
+            // Pre-load from per-file caches; load_presets will skip these.
+            PresetBundleCache::preload_file_caches(prints,    (fs::path(bundle_dir) / PRESET_PRINT_NAME).string(),    origin);
+            PresetBundleCache::preload_file_caches(filaments, (fs::path(bundle_dir) / PRESET_FILAMENT_NAME).string(), origin);
+            PresetBundleCache::preload_file_caches(printers,  (fs::path(bundle_dir) / PRESET_PRINTER_NAME).string(),  origin);
+
+            // Record names of preloaded presets in metadata.
+            collect_bundle_preset_names(prints,    metadata.id, metadata.print_presets);
+            collect_bundle_preset_names(filaments, metadata.id, metadata.filament_presets);
+            collect_bundle_preset_names(printers,  metadata.id, metadata.printer_presets);
+
+            // Load any presets not covered by the cache (callback adds to metadata).
             this->prints.load_presets(bundle_dir, PRESET_PRINT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
                 metadata.print_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id));
+            }, origin);
             this->filaments.load_presets(bundle_dir, PRESET_FILAMENT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
                 metadata.filament_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id));
+            }, origin);
             this->printers.load_presets(bundle_dir, PRESET_PRINTER_NAME, substitutions, substitution_rule, [&](Preset& preset) {
                 metadata.printer_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id));
+            }, origin);
+
+            // Persist any newly-loaded presets back to per-file caches.
+            PresetBundleCache::update_file_caches(prints,    (fs::path(bundle_dir) / PRESET_PRINT_NAME).string());
+            PresetBundleCache::update_file_caches(filaments, (fs::path(bundle_dir) / PRESET_FILAMENT_NAME).string());
+            PresetBundleCache::update_file_caches(printers,  (fs::path(bundle_dir) / PRESET_PRINTER_NAME).string());
+
             metadata.bundle_type = BundleType::Local;
             metadata.path = metadata_file.string();
 
@@ -1056,16 +1096,33 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             metadata.printer_presets.clear();
             metadata.is_subscribed = true;
 
-            // Load presets from bundle (same logic as __local__)
+            const PresetOrigin origin(PresetOrigin::Kind::SubscribedBundle, metadata.id);
+
+            // Pre-load from per-file caches; load_presets will skip these.
+            PresetBundleCache::preload_file_caches(prints,    (fs::path(bundle_dir) / PRESET_PRINT_NAME).string(),    origin);
+            PresetBundleCache::preload_file_caches(filaments, (fs::path(bundle_dir) / PRESET_FILAMENT_NAME).string(), origin);
+            PresetBundleCache::preload_file_caches(printers,  (fs::path(bundle_dir) / PRESET_PRINTER_NAME).string(),  origin);
+
+            // Record names of preloaded presets in metadata.
+            collect_bundle_preset_names(prints,    metadata.id, metadata.print_presets);
+            collect_bundle_preset_names(filaments, metadata.id, metadata.filament_presets);
+            collect_bundle_preset_names(printers,  metadata.id, metadata.printer_presets);
+
+            // Load any presets not covered by the cache (callback adds to metadata).
             this->prints.load_presets(bundle_dir, PRESET_PRINT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
                 metadata.print_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id));
+            }, origin);
             this->filaments.load_presets(bundle_dir, PRESET_FILAMENT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
                 metadata.filament_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id));
+            }, origin);
             this->printers.load_presets(bundle_dir, PRESET_PRINTER_NAME, substitutions, substitution_rule, [&](Preset& preset) {
                 metadata.printer_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id));
+            }, origin);
+
+            // Persist any newly-loaded presets back to per-file caches.
+            PresetBundleCache::update_file_caches(prints,    (fs::path(bundle_dir) / PRESET_PRINT_NAME).string());
+            PresetBundleCache::update_file_caches(filaments, (fs::path(bundle_dir) / PRESET_FILAMENT_NAME).string());
+            PresetBundleCache::update_file_caches(printers,  (fs::path(bundle_dir) / PRESET_PRINTER_NAME).string());
 
             metadata.bundle_type = BundleType::Subscribed;
             metadata.path = metadata_file.string();
@@ -1077,34 +1134,59 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
         }
     }
 
-
     // BBS do not load sla_print
-    // BBS: change directoties by design
-    try {
-        std::string print_selected_preset_name = prints.get_selected_preset().name;
-        this->prints.load_presets(dir_user_presets, PRESET_PRINT_NAME, substitutions, substitution_rule);
-        prints.select_preset_by_name(print_selected_preset_name, false);
-    } catch (const std::runtime_error &err) {
-        errors_cummulative += err.what();
+    // BBS: change directories by design
+
+    // Regular user presets (process/filament/machine) — per-file cache approach.
+    {
+        const PresetOrigin user_origin; // Kind::Auto → resolved to User by detect_origin_from_path
+
+        // Pre-load from per-file .cache siblings; load_presets will skip pre-loaded names.
+        int cached_prints    = PresetBundleCache::preload_file_caches(prints,    (fs::path(dir_user_presets) / PRESET_PRINT_NAME).string(),    user_origin);
+        int cached_filaments = PresetBundleCache::preload_file_caches(filaments, (fs::path(dir_user_presets) / PRESET_FILAMENT_NAME).string(), user_origin);
+        int cached_printers  = PresetBundleCache::preload_file_caches(printers,  (fs::path(dir_user_presets) / PRESET_PRINTER_NAME).string(),  user_origin);
+        BOOST_LOG_TRIVIAL(info) << "PresetBundle: user presets from cache: "
+                                << cached_prints << " process, "
+                                << cached_filaments << " filament, "
+                                << cached_printers << " machine";
+
+        try {
+            std::string print_selected_preset_name = prints.get_selected_preset().name;
+            this->prints.load_presets(dir_user_presets, PRESET_PRINT_NAME, substitutions, substitution_rule);
+            prints.select_preset_by_name(print_selected_preset_name, false);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+        }
+        try {
+            std::string filament_selected_preset_name = filaments.get_selected_preset().name;
+            this->filaments.load_presets(dir_user_presets, PRESET_FILAMENT_NAME, substitutions, substitution_rule);
+            filaments.select_preset_by_name(filament_selected_preset_name, false);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+        }
+        try {
+            std::string printer_selected_preset_name = printers.get_selected_preset().name;
+            this->printers.load_presets(dir_user_presets, PRESET_PRINTER_NAME, substitutions, substitution_rule);
+            printers.select_preset_by_name(printer_selected_preset_name, false);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+        }
+        if (!errors_cummulative.empty()) throw Slic3r::RuntimeError(errors_cummulative);
+
+        // Persist any newly-loaded presets back to per-file caches.
+        PresetBundleCache::update_file_caches(prints,    (fs::path(dir_user_presets) / PRESET_PRINT_NAME).string());
+        PresetBundleCache::update_file_caches(filaments, (fs::path(dir_user_presets) / PRESET_FILAMENT_NAME).string());
+        PresetBundleCache::update_file_caches(printers,  (fs::path(dir_user_presets) / PRESET_PRINTER_NAME).string());
     }
-    try {
-        std::string filament_selected_preset_name = filaments.get_selected_preset().name;
-        this->filaments.load_presets(dir_user_presets, PRESET_FILAMENT_NAME, substitutions, substitution_rule);
-        filaments.select_preset_by_name(filament_selected_preset_name, false);
-    } catch (const std::runtime_error &err) {
-        errors_cummulative += err.what();
+
+    {
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - user_load_t0).count();
+        BOOST_LOG_TRIVIAL(info) << "PresetBundle: user + bundle presets loaded in " << ms << " ms";
     }
-    try {
-        std::string printer_selected_preset_name = printers.get_selected_preset().name;
-        this->printers.load_presets(dir_user_presets, PRESET_PRINTER_NAME, substitutions, substitution_rule);
-        printers.select_preset_by_name(printer_selected_preset_name, false);
-    } catch (const std::runtime_error &err) {
-        errors_cummulative += err.what();
-    }
-    if (!errors_cummulative.empty()) throw Slic3r::RuntimeError(errors_cummulative);
+
     this->update_multi_material_filament_presets();
     this->update_compatible(PresetSelectCompatibleType::Never);
-
     set_calibrate_printer("");
 
     return PresetsConfigSubstitutions();
@@ -2243,6 +2325,23 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     if (validation_mode)
         dir = (boost::filesystem::path(data_dir())).make_preferred();
 
+    // Try loading from binary cache first (skips JSON parsing on cache hit).
+    if (!validation_mode) {
+        const auto t0 = std::chrono::steady_clock::now();
+        PresetBundleCache::SystemPresetsCache cache;
+        const std::string cache_file = PresetBundleCache::SystemPresetsCache::cache_path();
+        if (cache.load(cache_file) && cache.is_valid(dir.string())) {
+            cache.apply(*this);
+            update_system_maps();
+            const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - t0).count();
+            BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from cache in " << ms << " ms";
+            return {PresetsConfigSubstitutions{}, ""};
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cache miss, falling back to JSON load";
+    }
+
+    const auto json_load_t0 = std::chrono::steady_clock::now();
     PresetsConfigSubstitutions  substitutions;
     std::string                 errors_cummulative;
     bool                        first = true;
@@ -2346,6 +2445,24 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
 	}
 
 	this->update_system_maps();
+
+    {
+        const auto json_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - json_load_t0).count();
+        BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from JSON in " << json_ms << " ms";
+    }
+
+    // Persist a binary cache so the next startup can skip JSON parsing.
+    if (!validation_mode && errors_cummulative.empty()) {
+        const auto save_t0 = std::chrono::steady_clock::now();
+        PresetBundleCache::SystemPresetsCache cache;
+        cache.capture(*this, dir.string());
+        cache.save(PresetBundleCache::SystemPresetsCache::cache_path());
+        const auto save_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - save_t0).count();
+        BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets cache saved in " << save_ms << " ms";
+    }
+
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%")%errors_cummulative;
     return std::make_pair(std::move(substitutions), errors_cummulative);
