@@ -107,7 +107,7 @@ public:
                      double linear_defletion = 0.003,
                      double angle_defletion = 0.5);
 
-    std::atomic<bool> m_stop_mesh;
+    std::atomic<bool> m_stop_mesh{false};
     void update_process(int load_stage, int current, int total, bool& cancel);
 private:
     std::string m_path;

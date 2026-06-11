@@ -150,7 +150,8 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "flashforge",     htFlashforge },
     { "simplyprint",    htSimplyPrint },
     { "elegoolink",     htElegooLink },
-    { "3dprinteros",    ht3DPrinterOS }
+    { "3dprinteros",    ht3DPrinterOS },
+    { "moonraker",      htMoonraker }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -4864,6 +4865,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("simplyprint");
     def->enum_values.push_back("elegoolink");
     def->enum_values.push_back("3dprinteros");
+    def->enum_values.push_back("moonraker");
     def->enum_labels.push_back("PrusaLink");
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
@@ -4880,6 +4882,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("SimplyPrint");
     def->enum_labels.push_back("Elegoo Link");
     def->enum_labels.push_back("3DPrinterOS");
+    def->enum_labels.push_back("Moonraker (Klipper)");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -10256,7 +10259,19 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
                 int stride = 1;
                 if (key_set2.find(opt) != key_set2.end())
                     stride = 2;
-                opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
+                // set_only_diff() requires the base vector length to equal variant_index.size()*stride, where
+                // variant_index is sized from the parent's printer_extruder_variant list (or 1 when it has none).
+                // Legacy / multi-extruder / multi-variant presets can violate this in either direction when a key's
+                // stored length and the variant-list length were sized inconsistently - e.g. a Snapmaker U1 base
+                // (4 nozzles) whose stride-2 machine limits were length-extended to nozzles*2 while its
+                // printer_extruder_variant list is empty (variant_index == 1), so base length != variant_index*stride.
+                // Rather than throw (which is caught upstream and DELETES the user preset file), fall back to the
+                // child's explicit value, which is authoritative for its own extruder/variant layout.
+                if (opt_vec_src->size() != variant_index.size() * size_t(stride)) {
+                    opt_src->set(opt_target);
+                }
+                else
+                    opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
             }
         }
     }
