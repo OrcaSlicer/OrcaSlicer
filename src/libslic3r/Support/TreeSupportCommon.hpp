@@ -264,7 +264,9 @@ struct TreeSupportSettings
 {
 public:
     TreeSupportSettings() = default; // required for the definition of the config variable in the TreeSupportGenerator class.
-    explicit TreeSupportSettings(const TreeSupportMeshGroupSettings &mesh_group_settings, const SlicingParameters &slicing_params)
+    explicit TreeSupportSettings(const TreeSupportMeshGroupSettings& mesh_group_settings,
+                                 const SlicingParameters&            slicing_params,
+                                 const PrintObject*                  print_object = nullptr)
         : support_line_width(mesh_group_settings.support_line_width),
           layer_height(mesh_group_settings.layer_height),
           branch_radius(mesh_group_settings.support_tree_branch_diameter / 2),
@@ -311,6 +313,13 @@ public:
             // This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.
             xy_min_distance = std::max(xy_min_distance, scaled<coord_t>(0.1));
             xy_distance     = std::max(xy_distance, xy_min_distance);
+        }
+
+        // few modification, populate vector of known_z
+        if (print_object) {
+            known_z.reserve(print_object->layer_count());
+            for (size_t i = 0; i < print_object->layer_count(); i++)
+                known_z.push_back(print_object->get_layer(i)->print_z);
         }
     
     //            const std::unordered_map<std::string, InterfacePreference> interface_map = { { "support_area_overwrite_interface_area", InterfacePreference::SupportAreaOverwritesInterface }, { "interface_area_overwrite_support_area", InterfacePreference::InterfaceAreaOverwritesSupport }, { "support_lines_overwrite_interface_area", InterfacePreference::SupportLinesOverwriteInterface }, { "interface_lines_overwrite_support_area", InterfacePreference::InterfaceLinesOverwriteSupport }, { "nothing", InterfacePreference::Nothing } };
@@ -499,6 +508,12 @@ public:
     // Extra raft layers below the object.
     std::vector<coordf_t> raft_layers;
 
+
+    //VHLS need, for correct layer_z problem with TreeSupport, it's populated with the actual z value 
+    std::vector<coordf_t> known_z;
+
+
+
 public:
     bool operator==(const TreeSupportSettings& other) const
     {
@@ -609,9 +624,24 @@ inline void tree_supports_show_error(std::string_view message, bool critical)
 
 inline double layer_z(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const size_t layer_idx)
 {
+    //few modification 
+    /*
     return layer_idx >= config.raft_layers.size() ? 
         slicing_params.object_print_z_min + slicing_params.first_object_layer_height + (layer_idx - config.raft_layers.size()) * slicing_params.layer_height :
         config.raft_layers[layer_idx];
+    */
+    // Layer raft: usa tabella precompilata
+    if (layer_idx < config.raft_layers.size())
+        return config.raft_layers[layer_idx];
+
+    size_t obj_idx = layer_idx - config.raft_layers.size();
+
+    // VHLS: usa altezze reali se disponibili
+    if (!config.known_z.empty() && obj_idx < config.known_z.size())
+        return config.known_z[obj_idx];
+
+    // Fallback lineare (comportamento originale)
+    return slicing_params.object_print_z_min + slicing_params.first_object_layer_height + obj_idx * slicing_params.layer_height;
 }
 
 inline double first_object_support_layer_z(const SlicingParameters &slicing_params)
@@ -624,24 +654,28 @@ inline double first_object_support_layer_z(const SlicingParameters &slicing_para
 // Lowest collision layer
 inline LayerIndex layer_idx_ceil(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
-    const double first_object_z = first_object_support_layer_z(slicing_params);
-    if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
-        auto it = std::lower_bound(config.raft_layers.begin(), config.raft_layers.end(), z - EPSILON);
-        return LayerIndex(it == config.raft_layers.end() ? config.raft_layers.size() : std::distance(config.raft_layers.begin(), it));
+    if (!config.known_z.empty()) {
+        auto it = std::lower_bound(config.known_z.begin(), config.known_z.end(), z);
+        return LayerIndex(config.raft_layers.size()) + std::max<LayerIndex>(0, LayerIndex(it - config.known_z.begin()));
     }
-    return LayerIndex(config.raft_layers.size()) +
-        std::max<LayerIndex>(0, LayerIndex(std::ceil((z - first_object_z) / slicing_params.layer_height)));
+
+    return 
+        LayerIndex(config.raft_layers.size()) +
+        std::max<LayerIndex>(0, ceil((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
 }
 // Highest collision layer
 inline LayerIndex layer_idx_floor(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
-    const double first_object_z = first_object_support_layer_z(slicing_params);
-    if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
-        auto it = std::upper_bound(config.raft_layers.begin(), config.raft_layers.end(), z + EPSILON);
-        return LayerIndex(it == config.raft_layers.begin() ? 0 : std::distance(config.raft_layers.begin(), it) - 1);
+    if (!config.known_z.empty()) {
+        auto it = std::upper_bound(config.known_z.begin(), config.known_z.end(), z);
+        if (it != config.known_z.begin())
+            --it;
+        return LayerIndex(config.raft_layers.size()) + std::max<LayerIndex>(0, LayerIndex(it - config.known_z.begin()));
     }
-    return LayerIndex(config.raft_layers.size()) +
-        std::max<LayerIndex>(0, LayerIndex(std::floor((z - first_object_z) / slicing_params.layer_height)));
+
+    return 
+        LayerIndex(config.raft_layers.size()) + 
+        std::max<LayerIndex>(0, floor((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
 }
 
 inline SupportGeneratorLayer& layer_initialize(
