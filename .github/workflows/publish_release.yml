@@ -73,8 +73,9 @@ jobs:
 
       - name: Download release artifacts from build run
         run: |
+          # Windows_V* (not Windows_*) keeps the MSIX Store artifact out: it goes to Partner Center, not GitHub releases.
           gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --dir artifacts \
-            -p 'OrcaSlicer_Windows_*' \
+            -p 'OrcaSlicer_Windows_V*' \
             -p 'OrcaSlicer_Mac_universal_*' \
             -p 'OrcaSlicer_Linux_ubuntu_*' \
             -p 'OrcaSlicer-Linux-flatpak_*' \
