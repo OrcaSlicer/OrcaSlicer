@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"setting_id": "GFSA04_CREALITY_00",
-	"filament_id": "11001",
+	"filament_id": "07001",
 	"instantiation": "true",
 	"activate_air_filtration": "0",
 	"activate_chamber_temp_control": "0",
