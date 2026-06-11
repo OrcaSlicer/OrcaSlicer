@@ -300,6 +300,8 @@ public:
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
 
+    static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
+
 private:
     // Sync protocol helpers
     int sync_pull(

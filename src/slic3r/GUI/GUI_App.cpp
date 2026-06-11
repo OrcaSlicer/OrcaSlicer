@@ -4940,6 +4940,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         // Parse the conflict body to extract the error code and server profile id
         int conflict_code = 0;
         std::string conflict_setting_id;
+        std::string conflict_preset_name;
         try {
             json conflict_body = json::parse(body_str);
             if (conflict_body.contains("code"))
@@ -4947,21 +4948,40 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
             if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")
                 && conflict_body["server_profile"]["id"].is_string())
                 conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
+            // The local preset name is injected into the conflict body by the agent (sync_push),
+            // since the server response itself omits it for tombstone (-3) conflicts.
+            if (conflict_body.contains("name") && conflict_body["name"].is_string())
+                conflict_preset_name = conflict_body["name"].get<std::string>();
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
         }
+        // Capture the user id up front so the force-push closure does not have to touch m_agent.
+        std::string conflict_user_id = m_agent ? m_agent->get_user_id() : std::string();
         auto* plater = wxGetApp().plater();
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
-            if (conflict_code == -1) {
+
+            switch (conflict_code) {
+            case -1:
                 text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            } else {
+                break;
+            case -2:
                 text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
-            }
+                break;
+            case -3:
+                text = _u8L("Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+                            "Delete will delete your local preset. Force push overwrites it with your local preset.");
+                break;
+            default:
+                text = _u8L("Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+                break;
+            };
+
             plater->get_notification_manager()->push_orca_sync_conflict_notification(
-                text,
+                text, conflict_code,
                 [this](wxEvtHandler*) {
                     // Runs on the GUI thread (on_http_error is a queued wx event); restart_sync_user_preset()
                     // already joins the old sync thread off the UI thread, so no extra thread is needed here.
@@ -4971,7 +4991,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     restart_sync_user_preset();
                     return true;
                 },
-                [this, conflict_setting_id](wxEvtHandler*) {
+                [this, conflict_setting_id, conflict_preset_name, conflict_user_id](wxEvtHandler*) {
                     if (mainframe == nullptr)
                         return false;
                     MessageDialog
@@ -4981,7 +5001,13 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
-                    force_push_conflicting_preset(conflict_setting_id);
+                    std::string setting_id = conflict_setting_id;
+                    if (setting_id.empty()) {
+                        setting_id = OrcaCloudServiceAgent::generate_uuid_for_setting_id(conflict_preset_name, conflict_user_id);
+                        BOOST_LOG_TRIVIAL(info) << "conflict setting id empty, generated one: " << setting_id;
+                    }
+
+                    force_push_conflicting_preset(setting_id);
                     return true;
                 });
         }
@@ -7055,15 +7081,26 @@ void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
         m_pending_conflict_setting_ids.push_back(setting_id);
     }
 
+    const std::string user_id = m_agent ? m_agent->get_user_id() : std::string();
+
     // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
     // "update" so the next push-sync re-includes it and consumes the queued force flag.
     // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
     // the local changes the user is trying to force-push.)
+    // For a -3 tombstone on a newly created preset the on-disk setting_id is EMPTY (it only
+    // gets assigned after a successful first push), so derive it on the fly from the preset
+    // name and stamp it onto the preset — otherwise sync_with_lock's `id == preset.setting_id`
+    // check never fires and the force-push silently no-ops.
     PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
     for (PresetCollection* coll : collections) {
         for (const Preset& preset : coll->get_presets()) {
-            if (preset.setting_id == setting_id && preset.sync_info == "hold") {
-                coll->set_sync_info_and_save(preset.name, preset.setting_id, "update", 0);
+            if (preset.sync_info != "hold")
+                continue;
+            const std::string preset_id = preset.setting_id.empty()
+                ? OrcaCloudServiceAgent::generate_uuid_for_setting_id(preset.name, user_id)
+                : preset.setting_id;
+            if (preset_id == setting_id) {
+                coll->set_sync_info_and_save(preset.name, setting_id, "update", 0);
                 break;
             }
         }
