@@ -234,7 +234,10 @@ jobs:
           tar -xvf build_tests_macos_${{ matrix.arch }}.tar
           # run_unit_tests.sh hard-codes build/tests; macOS outputs build/<arch>/tests.
           # Create a symlink so the script resolves the correct directory.
-          ln -sf build/${{ matrix.arch }}/tests build/tests
+          # The target must be relative to the symlink's own directory (build/),
+          # so omit the leading "build/" prefix — otherwise it would resolve to
+          # the nonexistent path build/build/<arch>/tests.
+          ln -sf ${{ matrix.arch }}/tests build/tests
           scripts/run_unit_tests.sh
       - name: Upload Test Logs
         uses: actions/upload-artifact@v7

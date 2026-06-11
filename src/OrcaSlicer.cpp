@@ -80,8 +80,8 @@ using namespace nlohmann;
 #include "slic3r/SliceCore/PresetResolver.hpp"
 #include "slic3r/SliceCore/OutputTargetDeliver.hpp"
 #include "slic3r/SliceCore/ModelTransforms.hpp"
-// parse_objects shared parser (lives in Server but is header-declared for reuse).
-#include "slic3r/Server/RequestMapping.hpp"
+// parse_objects shared parser (lives in SliceCore/ObjectPlacementJson).
+#include "slic3r/SliceCore/ObjectPlacementJson.hpp"
 #endif /* SLIC3R_GUI */
 
 #include "OrcaSlicer.hpp"
@@ -4725,7 +4725,7 @@ int CLI::run(int argc, char **argv)
 
             std::vector<Slic3r::SliceCore::ObjectPlacement> placements;
             try {
-                Slic3r::Server::parse_objects(pj_root["objects"], placements);
+                Slic3r::SliceCore::parse_objects(pj_root["objects"], placements);
             } catch (const std::exception &ex) {
                 boost::nowide::cerr << "--placement-json: placement parse error: "
                                     << ex.what() << std::endl;

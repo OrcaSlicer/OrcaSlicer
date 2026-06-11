@@ -156,10 +156,13 @@ bool render_model_thumbnail(const Model              &model,
         return false;
     }
 
-    // Request an OpenGL context matching the GLFW library version.
+    // Request an OpenGL 3.3 context — the minimum that supports the 'thumbnail'
+    // shader and framebuffer extensions.  We do NOT pass the GLFW *library*
+    // version here: glfwGetVersion() returns e.g. 3.4, which is not a valid
+    // OpenGL version and causes glfwCreateWindow to fail on all drivers.
     // GLFW_VISIBLE=false → offscreen/invisible window (no desktop window pops up).
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, glfw_major);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, glfw_minor);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_RED_BITS,   8);
     glfwWindowHint(GLFW_GREEN_BITS, 8);
     glfwWindowHint(GLFW_BLUE_BITS,  8);
@@ -310,7 +313,7 @@ bool render_model_thumbnail(const Model              &model,
     // We need a non-const model for PartPlateList; take a local copy.
     // The copy is cheap relative to GL setup — the mesh data is shared via
     // TriangleMesh's reference-counted internal storage.
-    Model model_copy = const_cast<Model &>(model);
+    Model model_copy = model;
     Slic3r::GUI::PartPlateList partplate_list(
         /*plater=*/nullptr, &model_copy, printer_tech);
 

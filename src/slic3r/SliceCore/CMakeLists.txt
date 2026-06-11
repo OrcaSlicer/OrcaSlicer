@@ -7,6 +7,7 @@ add_library(liborca_slice_core STATIC
     OutputTarget.cpp
     ModelTransforms.cpp
     ThumbnailRenderer.cpp
+    ObjectPlacementJson.cpp
 )
 
 # Expose the SliceCore directory so consumers can include headers
@@ -23,6 +24,10 @@ target_link_libraries(liborca_slice_core
     PUBLIC
         libslic3r
         libslic3r_gui
+        nlohmann_json   # ObjectPlacementJson.cpp needs <nlohmann/json.hpp>;
+                        # PUBLIC so that consumers (OrcaSlicer app, orca-server,
+                        # tests) that include ObjectPlacementJson.hpp also get
+                        # the include directory without listing it explicitly.
 )
 
 # On Windows, sources include GUI/wx headers which require <windows.h> to appear

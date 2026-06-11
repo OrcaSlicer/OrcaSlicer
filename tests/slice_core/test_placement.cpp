@@ -1,8 +1,10 @@
 // test_placement.cpp
 //
 // Tests for:
-//   A) Slic3r::Server::parse_objects()  — JSON -> ObjectPlacement parsing
-//      (SLIC3R_SERVER-gated, mirrors test_json_request.cpp pattern)
+//   A) Slic3r::SliceCore::parse_objects()  — JSON -> ObjectPlacement parsing
+//      (always compiled; parse_objects now lives in liborca_slice_core via
+//       SliceCore/ObjectPlacementJson.cpp, gated by SLIC3R_SERVER below only
+//       to preserve the existing skip-message behaviour when server is off)
 //   B) Slic3r::SliceCore::apply_object_placements() — placement application
 //      (uses the 3mf fixture from test_model_transforms.cpp; skips gracefully
 //       when the fixture is absent)
@@ -12,7 +14,7 @@
 #include <catch2/catch_all.hpp>
 
 #ifdef SLIC3R_SERVER
-#include "RequestMapping.hpp"    // Slic3r::Server::parse_objects
+#include "ObjectPlacementJson.hpp"   // Slic3r::SliceCore::parse_objects
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 #endif
@@ -87,7 +89,7 @@ DynamicPrintConfig empty_cfg()
 
 #ifdef SLIC3R_SERVER
 
-using namespace Slic3r::Server;
+using namespace Slic3r::SliceCore;
 
 TEST_CASE("parse_objects: index and name fields",
           "[Placement][RequestMapping][Server]")
