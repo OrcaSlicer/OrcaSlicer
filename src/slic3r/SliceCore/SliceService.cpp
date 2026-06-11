@@ -110,6 +110,17 @@ SliceResult SliceService::run(const SliceRequest &req)
         if (!m_resources_dir.empty())
             set_resources_dir(m_resources_dir);
 
+        // Ensure temporary_dir() is initialised before any Model I/O.
+        // Model::get_backup_path() computes the BBS model-backup directory as
+        //   temporary_dir() + "/orcaslicer_model/..."
+        // When g_temporary_dir is empty (never set by the headless process) the
+        // path collapses to "/orcaslicer_model/..." — an absolute path that is
+        // not writable on CI or in production containers.  Setting it here to
+        // the OS temp dir is the correct headless default; subsequent calls are
+        // idempotent because set_temporary_dir() just writes the global string.
+        if (temporary_dir().empty())
+            set_temporary_dir(boost::filesystem::temp_directory_path().string());
+
         // ------------------------------------------------------------------
         // 1) Resolve the input file path. The request may carry either an
         //    on-disk path or raw bytes (server path). For raw bytes we spill

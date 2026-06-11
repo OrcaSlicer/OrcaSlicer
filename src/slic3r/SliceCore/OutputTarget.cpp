@@ -215,6 +215,22 @@ bool deliver_printhost(const OutputTarget &out,
     }
 #endif
 
+    // Guard: reject early if no print_host URL is configured.
+    // PrintHost::get_print_host() defaults to OctoPrint even with an empty
+    // config (htOctoPrint is the enum zero-value), so it never returns null
+    // for an unconfigured host.  Calling upload() on an OctoPrint with an
+    // empty m_host passes an empty URL to libcurl which causes a SIGSEGV.
+    // Fail fast here with a clear message before constructing any PrintHost.
+    {
+        const auto *host_opt = cfg.opt<ConfigOptionString>("print_host");
+        const std::string host_str = host_opt ? host_opt->value : std::string();
+        if (host_str.empty()) {
+            err = "PrintHost mode: host_config does not specify a print host URL "
+                  "(print_host is empty or missing)";
+            return false;
+        }
+    }
+
     std::unique_ptr<PrintHost> host(PrintHost::get_print_host(&cfg));
     if (!host) {
         err = "PrintHost mode: host_config does not specify a valid print host "
