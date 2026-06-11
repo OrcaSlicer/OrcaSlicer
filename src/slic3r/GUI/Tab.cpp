@@ -1230,7 +1230,6 @@ void Tab::update_dirty()
         m_presets->update_dirty();
     }
     update_changed_ui();
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " called, is_dirty=" << (m_presets ? m_presets->current_is_dirty() : false);
 }
 
 void Tab::update_tab_ui(bool update_plater_presets)
@@ -4489,7 +4488,6 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line(option, "printer_basic_information_advanced#g-code-thumbnails");
         // optgroup->append_single_option_line("thumbnails_format");
         optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
-            BOOST_LOG_TRIVIAL(debug) << "m_on_change fired for opt_key=" << opt_key;
             wxTheApp->CallAfter([this, opt_key, value]() {
                 if (opt_key == "thumbnails" && m_config->has("thumbnails_format")) {
                     // to backward compatibility we need to update "thumbnails_format" from new "thumbnails"
