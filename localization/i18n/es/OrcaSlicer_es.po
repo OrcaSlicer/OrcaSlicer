@@ -198,13 +198,13 @@ msgid "Support Generated"
 msgstr "Soportes generados"
 
 msgid "Entering Paint-on supports"
-msgstr ""
+msgstr "Entrando al mecanismo de pintar soportes"
 
 msgid "Leaving Paint-on supports"
-msgstr ""
+msgstr "Saliendo del mecanismo de pintar soportes"
 
 msgid "Paint-on supports editing"
-msgstr ""
+msgstr "Pintar soportes"
 
 msgid "Gizmo-Place on Face"
 msgstr "Herramienta de selección de faceta como base"
@@ -295,13 +295,13 @@ msgid "To:"
 msgstr "A:"
 
 msgid "Entering color painting"
-msgstr ""
+msgstr "Entrando al mecanismo de pintar color"
 
 msgid "Leaving color painting"
-msgstr ""
+msgstr "Saliendo del mecanismo de pintar color"
 
 msgid "Color painting editing"
-msgstr ""
+msgstr "Edición de pintura de colores"
 
 msgid "Paint-on fuzzy skin"
 msgstr "Pintar piel difusa"
@@ -325,13 +325,13 @@ msgid "Enable painted fuzzy skin for this object"
 msgstr "Habilitar piel difusa pintada para este objeto"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr ""
+msgstr "Entrando al mecanismo de pintar piel difusa"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr ""
+msgstr "Saliendo del mecanismo de pintar piel difusa"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr ""
+msgstr "Pintar piel difusa"
 
 msgid "Move"
 msgstr "Mover"
@@ -726,13 +726,13 @@ msgid "Delete connector"
 msgstr "Borrar conector"
 
 msgid "Entering Cut gizmo"
-msgstr ""
+msgstr "Entrando al mecanismo de corte"
 
 msgid "Leaving Cut gizmo"
-msgstr ""
+msgstr "Saliendo del mecanismo de corte"
 
 msgid "Cut gizmo editing"
-msgstr ""
+msgstr "Edición de objetos recortados"
 
 msgid "Mesh name"
 msgstr "Nombre de la malla"
@@ -1618,10 +1618,10 @@ msgid "Flip by Face 2"
 msgstr "Voltear por la cara 2"
 
 msgid "Entering Measure gizmo"
-msgstr ""
+msgstr "Entrando al mecanismo de medición"
 
 msgid "Leaving Measure gizmo"
-msgstr ""
+msgstr "Saliendo del mecanismo de medición"
 
 msgid "Assemble"
 msgstr "Agrupar"
@@ -1663,10 +1663,10 @@ msgid "Face and face assembly"
 msgstr "Montaje de cara y cara"
 
 msgid "Entering Assembly gizmo"
-msgstr ""
+msgstr "Entrando al mecanismo de ensamblaje"
 
 msgid "Leaving Assembly gizmo"
-msgstr ""
+msgstr "Saliendo del mecanismo de ensamblaje"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -3302,43 +3302,43 @@ msgid "The minmum temperature should not be less than "
 msgstr "La temperatura mínima no debe ser inferior a "
 
 msgid "Type to filter..."
-msgstr ""
+msgstr "Escribe para filtrar..."
 
 msgid "All"
 msgstr "Todas"
 
 msgid "No selected items..."
-msgstr ""
+msgstr "No hay artículos seleccionados..."
 
 msgid "All items selected..."
-msgstr ""
+msgstr "Todos los elementos seleccionados..."
 
 msgid "No matching items..."
-msgstr ""
+msgstr "No se han encontrado resultados..."
 
 msgid "Deselect All"
 msgstr "Deseleccionar Todo"
 
 msgid "Select visible"
-msgstr ""
+msgstr "Seleccionar elementos visibles"
 
 msgid "Deselect visible"
-msgstr ""
+msgstr "Desmarcar los elementos visibles"
 
 msgid "Filter selected"
-msgstr ""
+msgstr "Filtrar seleccionados"
 
 msgid "Filter nonSelected"
-msgstr ""
+msgstr "Filtrar no seleccionados"
 
 msgid "Simple settings"
-msgstr ""
+msgstr "Ajustes básicos"
 
 msgid "Advanced settings"
 msgstr "Ajustes avanzados"
 
 msgid "Expert settings"
-msgstr ""
+msgstr "Configuración para expertos"
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3631,7 +3631,7 @@ msgid "There is no valid surface for text projection."
 msgstr "No hay ninguna superficie válida para la proyección de texto."
 
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "Se ha producido un error inesperado"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Preacondicionamiento térmico para la optimización de la primera capa"
@@ -9359,9 +9359,11 @@ msgid ""
 "File associations for the Microsoft Store version are managed by Windows "
 "Settings."
 msgstr ""
+"Las asociaciones de archivos para la versión de Microsoft Store se gestionan "
+"desde la configuración de Windows."
 
 msgid "Open Windows Default Apps Settings"
-msgstr ""
+msgstr "Abrir la configuración de aplicaciones predeterminadas de Windows"
 
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Asociar archivos 3MF a OrcaSlicer"
@@ -10259,7 +10261,7 @@ msgstr ""
 "funciona correctamente."
 
 msgid "Sending failed, please try again!"
-msgstr ""
+msgstr "El envío ha fallado, ¡inténtalo de nuevo!"
 
 msgid "Slice ok."
 msgstr "Laminado correcto."
@@ -12153,13 +12155,13 @@ msgid "New version of Orca Slicer"
 msgstr "Nueva versión de Orca Slicer"
 
 msgid "Check on Microsoft Store"
-msgstr ""
+msgstr "Echa un vistazo en Microsoft Store"
 
 msgid "Check on Github"
 msgstr "Ver en Github"
 
 msgid "Open Microsoft Store"
-msgstr ""
+msgstr "Abrir Microsoft Store"
 
 msgid "Skip this Version"
 msgstr "Saltar esta Versión"
@@ -12168,6 +12170,8 @@ msgstr "Saltar esta Versión"
 msgid ""
 "New version available: %s. Please update OrcaSlicer from the Microsoft Store."
 msgstr ""
+"Hay una nueva versión disponible: %s. Actualiza OrcaSlicer desde la Tienda "
+"Microsoft."
 
 msgid "Confirm and Update Nozzle"
 msgstr "Confirmar y Actualizar la Boquilla"
@@ -12285,7 +12289,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Sistema de extinción automática de incendios"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Actualizar firmware"
@@ -15808,7 +15812,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Optimización del desplazamiento por deformación en Z (experimental)"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "Tightens the gyroid wave along the Z (vertical) axis at low infill density "
 "to shorten the effective vertical column length and improve Z-axis "
@@ -15820,7 +15824,7 @@ msgstr ""
 "relleno baja para acortar la longitud efectiva de la columna vertical y "
 "mejorar la resistencia al pandeo por compresión en el eje Z. Se mantiene el "
 "consumo de filamento. No tiene efecto con una densidad de relleno escasa de "
-"aproximadamente el ~30%% o superior. Solo se aplica cuando el patrón de "
+"aproximadamente el 30% o superior. Solo se aplica cuando el patrón de "
 "relleno escaso está configurado en «Giroide»."
 
 msgid "Sparse infill pattern"
@@ -23034,19 +23038,19 @@ msgid "Authorizing..."
 msgstr "Autorizando..."
 
 msgid "Error. Can't get api token for authorization"
-msgstr ""
+msgstr "Error. No se puede obtener el token de la API para la autorización"
 
 msgid "Could not parse server response."
-msgstr ""
+msgstr "No se ha podido analizar la respuesta del servidor."
 
 msgid "Error saving session to file"
-msgstr ""
+msgstr "Error al guardar la sesión en un archivo"
 
 msgid "Error session check"
 msgstr "Error al verificar la sesión"
 
 msgid "Error during file upload"
-msgstr ""
+msgstr "Error al subir el archivo"
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -23876,103 +23880,119 @@ msgstr ""
 "de acceso."
 
 msgid "Printer returned an error"
-msgstr ""
+msgstr "La impresora ha devuelto un error"
 
 msgid "Missing system_info in response"
-msgstr ""
+msgstr "Falta «system_info» en la respuesta"
 
 msgid "Missing printer serial number in response"
-msgstr ""
+msgstr "Falta el número de serie de la impresora en la respuesta"
 
 msgid "Error parsing response"
-msgstr ""
+msgstr "Error al procesar la respuesta"
 
 msgid "ElegooLink not detected"
-msgstr ""
+msgstr "No se ha detectado ElegooLink"
 
 msgid "Invalid access code"
-msgstr ""
+msgstr "Código de acceso no válido"
 
 msgid "CC2 device not detected"
-msgstr ""
+msgstr "No se ha detectado el dispositivo CC2"
 
 msgid "Connection to ElegooLink is working correctly."
-msgstr ""
+msgstr "La conexión con ElegooLink funciona correctamente."
 
 msgid "Could not connect to ElegooLink"
-msgstr ""
+msgstr "No se ha podido conectar a ElegooLink"
 
 #, boost-format
 msgid "Error code: %1%"
-msgstr ""
+msgstr "Código de error: %1%"
 
 msgid "Upload failed"
-msgstr ""
+msgstr "Error al subir el archivo"
 
 msgid ""
 "The file has been transferred, but some unknown errors occurred. Please "
 "check the device page for the file and try to start printing again."
 msgstr ""
+"El archivo se ha transferido, pero se han producido algunos errores "
+"desconocidos. Comprueba la página del dispositivo donde se encuentra el "
+"archivo e intenta iniciar la impresión de nuevo."
 
 msgid "Failed to open file for upload."
-msgstr ""
+msgstr "No se ha podido abrir el archivo para su carga."
 
 msgid "Failed to read file chunk for upload."
-msgstr ""
+msgstr "No se ha podido leer el fragmento de archivo para la subida."
 
 msgid "CC2 upload failed"
-msgstr ""
+msgstr "Error al subir el archivo CC2"
 
 msgid "The file is empty or could not be read."
-msgstr ""
+msgstr "El archivo está vacío o no se ha podido leer."
 
 msgid "Failed to calculate file checksum."
-msgstr ""
+msgstr "No se ha podido calcular la suma de comprobación del archivo."
 
 msgid "Error code not found"
-msgstr ""
+msgstr "Código de error no encontrado"
 
 msgid ""
 "The printer is busy, Please check the device page for the file and try to "
 "start printing again."
 msgstr ""
+"La impresora está ocupada. Comprueba la página del dispositivo para ver el "
+"archivo e intenta volver a iniciar la impresión."
 
 msgid "The file is lost, please check and try again."
-msgstr ""
+msgstr "El archivo se ha perdido; compruébalo e inténtalo de nuevo."
 
 msgid "The file is corrupted, please check and try again."
-msgstr ""
+msgstr "El archivo está dañado; compruébalo e inténtalo de nuevo."
 
 msgid "Transmission abnormality, please check and try again."
 msgstr ""
+"Se ha producido un error en la transmisión. Por favor, compruébalo e "
+"inténtalo de nuevo."
 
 msgid "The file does not match the printer, please check and try again."
 msgstr ""
+"El archivo no es compatible con la impresora. Compruébalo e inténtalo de "
+"nuevo."
 
 msgid "Start print timeout"
-msgstr ""
+msgstr "Tiempo de espera de inicio de impresión"
 
 msgid "Start print failed"
-msgstr ""
+msgstr "Error al iniciar la impresión"
 
 msgid "Connected to CrealityPrint successfully!"
-msgstr ""
+msgstr "¡Conectado a CrealityPrint correctamente!"
 
 msgid "Could not connect to CrealityPrint"
-msgstr ""
+msgstr "No se ha podido conectar a CrealityPrint"
 
 msgid ""
 "Connection timed out. Please check if the printer and computer network are "
 "functioning properly, and confirm that they are on the same network."
 msgstr ""
+"Se ha agotado el tiempo de espera de la conexión. Comprueba si la impresora "
+"y la red del ordenador funcionan correctamente y asegúrate de que estén "
+"conectadas a la misma red."
 
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
 msgstr ""
+"No se ha podido analizar el nombre de host, la dirección IP o la URL. "
+"Compruébalo e inténtalo de nuevo."
 
 msgid ""
 "File/data transfer interrupted. Please check the printer and network, then "
 "try it again."
 msgstr ""
+"Se ha interrumpido la transferencia de archivos o datos. Comprueba la "
+"impresora y la red y vuelve a intentarlo."
 
 msgid "The provided state is not correct."
 msgstr "El estado proporcionado no es correcto."
@@ -24030,10 +24050,10 @@ msgid "Please select single object."
 msgstr "Por favor, seleccione un solo objeto."
 
 msgid "Entering Brim Ears"
-msgstr ""
+msgstr "Entrando al mecanismo de orejas de borde"
 
 msgid "Leaving Brim Ears"
-msgstr ""
+msgstr "Saliendo del mecanismo de orejas de borde"
 
 msgid "Zoom Out"
 msgstr "Alejar"
@@ -24047,7 +24067,7 @@ msgstr ""
 "nuevo."
 
 msgid "Failed to create the temporary folder."
-msgstr ""
+msgstr "No se ha podido crear la carpeta temporal."
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -24203,98 +24223,119 @@ msgid "Calculating, please wait..."
 msgstr "Calculando, por favor espere..."
 
 msgid "PresetBundle"
-msgstr ""
+msgstr "PaqueteDePerfiles"
 
 msgid "Bundle folder does not exist."
-msgstr ""
+msgstr "La carpeta «Bundle» no existe."
 
 msgid "Failed to open folder."
-msgstr ""
+msgstr "No se ha podido abrir la carpeta."
 
 msgid "Delete selected bundle from folder and all presets loaded from it?"
 msgstr ""
+"¿Eliminar el paquete seleccionado de la carpeta y todos los ajustes "
+"preestablecidos cargados desde él?"
 
 msgid "Delete Bundle"
-msgstr ""
+msgstr "Eliminar paquete"
 
 msgid "Failed to remove bundle."
-msgstr ""
+msgstr "No se ha podido eliminar el paquete."
 
 msgid "Remove Bundle"
-msgstr ""
+msgstr "Eliminar paquete"
 
 msgid "Unsubscribe bundle?"
-msgstr ""
+msgstr "¿Desuscribirse del paquete?"
 
 msgid "UnsubscribeBundle"
-msgstr ""
+msgstr "DesubscribirPaquete"
 
 msgid "Failed to unsubscribe bundle."
-msgstr ""
+msgstr "No se pudo suspender la suscripción al paquete."
 
 msgid "Unsubscribe Bundle"
-msgstr ""
+msgstr "Desuscribirse del paquete"
 
 msgid "ExportPresetBundle"
-msgstr ""
+msgstr "ExportarPaqueteDePerfiles"
 
 msgid "Save preset bundle"
-msgstr ""
+msgstr "Guardar paquete de perfiles"
 
 msgid ""
 "Performing desktop integration failed - boost::filesystem::canonical did not "
 "return appimage path."
 msgstr ""
+"Se ha producido un error al realizar la integración en el escritorio: boost::"
+"filesystem::canonical no ha devuelto la ruta de AppImage."
 
 msgid "Performing desktop integration failed - Could not find executable."
 msgstr ""
+"Error al realizar la integración en el escritorio: no se ha encontrado el "
+"archivo ejecutable."
 
 msgid ""
 "Performing desktop integration failed because the application directory was "
 "not found."
 msgstr ""
+"No se ha podido realizar la integración en el escritorio porque no se ha "
+"encontrado el directorio de la aplicación."
 
 msgid ""
 "Performing desktop integration failed - could not create Gcodeviewer desktop "
 "file. OrcaSlicer desktop file was probably created successfully."
 msgstr ""
+"Se ha producido un error al realizar la integración en el escritorio: no se "
+"ha podido crear el archivo de escritorio de Gcodeviewer. Es probable que el "
+"archivo de escritorio de OrcaSlicer se haya creado correctamente."
 
 msgid ""
 "Performing downloader desktop integration failed - boost::filesystem::"
 "canonical did not return appimage path."
 msgstr ""
+"Se ha producido un error al integrar el programa de descarga en el "
+"escritorio: boost::filesystem::canonical no ha devuelto la ruta de AppImage."
 
 msgid ""
 "Performing downloader desktop integration failed - Could not find executable."
 msgstr ""
+"Error al realizar la integración en el escritorio: no se ha encontrado el "
+"archivo ejecutable."
 
 msgid ""
 "Performing downloader desktop integration failed because the application "
 "directory was not found."
 msgstr ""
+"No se ha podido realizar la integración en el escritorio porque no se ha "
+"encontrado el directorio de la aplicación."
 
 msgid "Desktop Integration"
-msgstr ""
+msgstr "Integración con el escritorio"
 
 msgid ""
 "Desktop Integration sets this binary to be searchable by the system.\n"
 "\n"
 "Press \"Perform\" to proceed."
 msgstr ""
+"La integración en el escritorio hace que el sistema pueda buscar este "
+"archivo binario.\n"
+"\n"
+"Pulsa «Realizar» para continuar."
 
 msgid "The download has failed"
-msgstr ""
+msgstr "La descarga ha fallado"
 
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
-msgstr ""
+msgstr "No se puede crear el archivo en %1%"
 
 msgid "Archive preview"
-msgstr ""
+msgstr "Vista previa del archivo"
 
 msgid "Open File"
-msgstr ""
+msgstr "Abrir archivo"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
