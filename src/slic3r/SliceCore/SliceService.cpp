@@ -46,6 +46,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/log/trivial.hpp>
 
 #include <chrono>
 #include <fstream>
@@ -254,14 +255,55 @@ SliceResult SliceService::run(const SliceRequest &req)
             }
         }
 
+        // Apply per-object placement overrides (position, rotation, scale,
+        // mirror, explicit instances, orient, ensure_on_bed, skip_objects).
+        // Runs after apply_model_transforms so global transforms are already
+        // in place; runs before PartPlateList so instance positions are
+        // finalised before plate assignment.
+        if (!req.objects.empty() || !req.transforms.skip_objects.empty()) {
+            std::string placement_err;
+            if (!apply_object_placements(model, req.objects,
+                                         req.transforms.skip_objects,
+                                         req.transforms.assemble,
+                                         config,
+                                         result.warnings,
+                                         placement_err)) {
+                result.exit_code = CLI_INVALID_PARAMS;
+                result.error     = placement_err;
+                return result;
+            }
+        }
+
+        // Determine whether any ObjectPlacement carries explicit per-instance
+        // positions.  When such explicit instances exist the global arrange /
+        // repetitions step must be skipped for those objects; because
+        // arrange_objects / duplicate operate on ALL objects simultaneously
+        // (not object-by-object) the safest policy is to skip the entire
+        // arrange step when ANY object has explicit instances.  Callers that
+        // need both explicit per-object instances AND global arrangement should
+        // run two separate slice jobs.
+        const bool has_explicit_instances = [&req]() {
+            for (const ObjectPlacement &op : req.objects)
+                if (!op.instances.empty())
+                    return true;
+            return false;
+        }();
+
         // Apply arrange / duplicate (best-effort; non-fatal if bed shape is
         // unavailable from the config). Must also run before PartPlateList so
         // the instance positions are finalised before plate assignment.
-        {
+        // Skipped when any ObjectPlacement carries explicit instances (see above).
+        if (!has_explicit_instances) {
             std::string arrange_err;
             apply_arrange_or_duplicate(model, req.transforms, config, arrange_err);
             // arrange_err is informational only; the call never returns false for
             // hard failures — bed-shape absence is treated as a no-op.
+        } else {
+            result.warnings.push_back(
+                "global arrange/duplicate skipped because one or more objects "
+                "have explicit per-instance placements");
+            BOOST_LOG_TRIVIAL(info)
+                << "[SliceCore] arrange skipped — explicit instances present";
         }
 
         if (req.progress) req.progress(10, "preparing plates");
@@ -563,6 +605,36 @@ SliceResult SliceService::run(const SliceRequest &req)
             // total_used_filament is in mm (PrintStatistics). OrcaSlicer convention.
             stat.filament_used_mm = print->print_statistics().total_used_filament;
             stat.layer_count      = layer_count_of(print);    // max object layer count
+
+            // ----- Tier-1 structured preview stats from GCodeProcessorResult.
+            // gcode_result is non-null only after export_gcode for the Gcode path;
+            // the Stl/3MF export paths don't produce gcode, so guard carefully.
+            // GCodeResult is typedef'd to GCodeProcessorResult (PartPlate.hpp:75).
+            //
+            // Confirmed fields (GCodeProcessor.hpp:46-260):
+            //   print_statistics.modes[0].time     — float, seconds, Normal mode
+            //   initial_layer_time                 — float, seconds
+            //   custom_gcode_per_print_z           — std::vector<CustomGCode::Item>
+            //   print_statistics.model_volumes_per_extruder — std::map<size_t,double>
+            if (gcode_result != nullptr &&
+                (req.export_kind == ExportKind::Gcode ||
+                 req.output.mode != OutputMode::File)) {
+                const auto &ps = gcode_result->print_statistics;
+                // modes is std::array<Mode, 2>; [0]=Normal, [1]=Stealth
+                // (GCodeProcessor.hpp:48 — ETimeMode::Normal=0).
+                stat.estimated_print_time_s =
+                    static_cast<double>(ps.modes[0].time);
+                stat.initial_layer_time_s =
+                    static_cast<double>(gcode_result->initial_layer_time);
+                stat.color_change_count =
+                    static_cast<int>(gcode_result->custom_gcode_per_print_z.size());
+                // model_volumes_per_extruder: map<size_t, double>.
+                // Cast size_t key to int for the public PlateStat API.
+                for (const auto &kv : ps.model_volumes_per_extruder)
+                    stat.filament_volume_per_extruder[static_cast<int>(kv.first)] =
+                        kv.second;
+                // thumbnail_generated stays false — thumbnail work is a separate task.
+            }
 
             // ----- Deliver / record output path.
             //       For non-Gcode export kinds the output is already written to
