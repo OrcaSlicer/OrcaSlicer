@@ -42,7 +42,7 @@ namespace {
 // Set before signal() is installed; never modified after that.
 Slic3r::Server::HttpServer *g_server = nullptr;
 
-extern "C" void signal_handler(int /*sig*/)
+static void signal_handler(int /*sig*/)
 {
     if (g_server)
         g_server->stop();
