@@ -323,7 +323,7 @@ bool C3DPrinterOS::login(wxString& msg) const
     msg.clear();
     std::string token = get_api_auth_token(msg);
     if (token.empty()) {
-        msg = "Error. Can't get api token for authorization";
+        msg = _L("Error. Can't get api token for authorization");
         return false;
     }
 
@@ -341,12 +341,12 @@ bool C3DPrinterOS::login(wxString& msg) const
             return false;
         }
     } catch (const std::exception&) {
-        msg = "Could not parse server response";
+        msg = _L("Could not parse server response.");
         return false;
     }
     bool res = save_api_session(session, email);
     if (!res) {
-        msg = "Error saving session to file";
+        msg = _L("Error saving session to file");
     }
     return res;
 }
@@ -395,7 +395,7 @@ bool C3DPrinterOS::upload(
             }
         }
     } catch (const std::exception &) {
-        error_fn("Could not parse server response");
+        error_fn(_L("Could not parse server response."));
         return false;
     }
     
@@ -404,7 +404,7 @@ bool C3DPrinterOS::upload(
     UploadOptionsDialog dlg(GUI::wxGetApp().GetTopWindow(), cloud_projects_list, cloud_printer_types_list, m_preset_name);
 
     if (dlg.ShowModal() != wxID_OK) {
-        error_fn("Canceled");
+        error_fn(_L("Canceled"));
         return false;
     }
     
@@ -483,7 +483,7 @@ bool C3DPrinterOS::upload(
         }
     } catch (const std::exception &) { 
         res = false;
-        error_fn("Error during file upload");
+        error_fn(_L("Error during file upload"));
     }
     // set printer type for uploaded gcode
     if (res) {
@@ -542,7 +542,7 @@ std::string C3DPrinterOS::get_api_auth_token(wxString &err) const
             err = wxString(resp.get<std::string>("message").c_str());
         }
     } catch (const std::exception &) {
-        err = "Could not parse server response";
+        err = _L("Could not parse server response.");
     }
     return result;
 }
@@ -566,7 +566,7 @@ bool C3DPrinterOS::check_session(wxString &msg) const {
         }
 
     } catch (const std::exception &) {
-        msg = wxString("Could not parse server response");
+        msg = _L("Could not parse server response.");
         return false;
     }
     return false;

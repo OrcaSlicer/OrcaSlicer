@@ -109,7 +109,7 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     m_staticText_ver_val->Wrap(-1);
 
 
-    m_staticText_beta_version = new wxStaticText(this, wxID_ANY, "Beta", wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_beta_version = new wxStaticText(this, wxID_ANY, _L("Beta"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_beta_version->SetForegroundColour("#778899");
     m_staticText_beta_version->Wrap(-1);
     m_staticText_beta_version->Hide();
@@ -1571,7 +1571,7 @@ bool UpgradePanel::Show(bool show)
      m_staticText_ams_ver_val->SetForegroundColour("#262E30");
      m_staticText_ams_ver_val->Wrap(-1);
 
-     m_staticText_beta_version = new wxStaticText(this, wxID_ANY, "Beta", wxDefaultPosition, wxDefaultSize, 0);
+     m_staticText_beta_version = new wxStaticText(this, wxID_ANY, _L("Beta"), wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_beta_version->SetForegroundColour("#778899");
      m_staticText_beta_version->Wrap(-1);
      m_staticText_beta_version->Hide();
