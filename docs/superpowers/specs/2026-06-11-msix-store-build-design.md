@@ -113,17 +113,21 @@ variables are absent (forks).
 packaged, `APPMODEL_ERROR_NO_PACKAGE` ⇒ not); constant `false` on
 non-Windows.
 
-**Updater suppression (R4)** — Store apps must not self-update:
+**Updater redirection (R4)** — Store apps must not self-update, but
+OrcaSlicer's version check is notification-only (it never
+auto-downloads), so the check itself stays enabled when packaged:
 
-- Skip the startup auto-check (`check_new_version_sf()` call at
-  `GUI_App.cpp:934`) when packaged.
-- The manual "Check for updates" menu action (`MainFrame.cpp:2580`)
-  opens the Store listing via `ms-windows-store://pdp/?PFN=<family>`,
-  where the package family name comes from
-  `GetCurrentPackageFamilyName` at runtime — no build-time ProductId
-  define or extra repo variable needed, and it works identically in
-  pre- and post-reservation builds. It never falls back to the classic
-  download flow.
+- The startup auto-check (`check_new_version_sf()`) and the manual
+  "Check for updates" menu action run unchanged.
+- The new-version dialog (`UpdateVersionDialog`) changes when packaged:
+  the Download button is hidden, the info text tells the user to update
+  OrcaSlicer from the Microsoft Store, and the "Check on Github"
+  hyperlink becomes "Open Microsoft Store", which opens the Store
+  listing via `ms-windows-store://pdp/?PFN=<family>`. The package
+  family name comes from `GetCurrentPackageFamilyName` at runtime — no
+  build-time ProductId define or extra repo variable needed, and it
+  works identically in pre- and post-reservation builds. The packaged
+  build never opens the GitHub release page.
 
 **Association suppression (R3)** — the manifest owns shell integration;
 runtime registry writes are virtualized and invisible:

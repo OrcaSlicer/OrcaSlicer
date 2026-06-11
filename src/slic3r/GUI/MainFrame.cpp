@@ -2577,10 +2577,7 @@ static wxMenu* generate_help_menu()
     // Check New Version
     append_menu_item(helpMenu, wxID_ANY, _L("Check for Updates"), _L("Check for Updates"),
         [](wxCommandEvent&) {
-            if (is_running_in_msix())
-                open_ms_store_product_page();
-            else
-                wxGetApp().check_new_version_sf(true, 1);
+            wxGetApp().check_new_version_sf(true, 1);
         }, "", nullptr, []() {
             return true;
         });

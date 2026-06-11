@@ -931,9 +931,7 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
-            // Store builds update through the Microsoft Store, never self-update.
-            if (!is_running_in_msix())
-                this->check_new_version_sf();
+            this->check_new_version_sf();
             const auto cloud_provider = get_printer_cloud_provider();
             if (is_user_login(cloud_provider) && !app_config->get_stealth_mode()) {
               // this->check_privacy_version(0);
@@ -2861,7 +2859,11 @@ bool GUI_App::on_init_inner()
                     switch (dialog.ShowModal())
                     {
                     case wxID_YES:
-                        wxLaunchDefaultBrowser(version_info.url);
+                        // Store builds get updates from the Microsoft Store, not the GitHub release page.
+                        if (is_running_in_msix())
+                            open_ms_store_product_page();
+                        else
+                            wxLaunchDefaultBrowser(version_info.url);
                         break;
                     case wxID_NO:
                         break;
