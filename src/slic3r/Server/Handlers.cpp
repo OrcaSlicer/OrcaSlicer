@@ -452,14 +452,31 @@ Response handle_job_status(const Request & /*req*/, const std::string &job_id,
     json plates_arr = json::array();
     if (info->state == JobState::Done) {
         for (const auto &ps : info->result.plates) {
+            // filament_volume_per_extruder: map<int,double> → JSON object
+            json fvpe = json::object();
+            for (const auto &kv : ps.filament_volume_per_extruder)
+                fvpe[std::to_string(kv.first)] = kv.second;
+
             plates_arr.push_back({
-                {"plate_id",        ps.plate_id},
-                {"sliced_ms",       ps.sliced_ms},
-                {"filament_used_mm", ps.filament_used_mm},
-                {"layer_count",     ps.layer_count},
-                {"gcode_path",      ps.gcode_path}
+                {"plate_id",                  ps.plate_id},
+                {"sliced_ms",                 ps.sliced_ms},
+                {"filament_used_mm",          ps.filament_used_mm},
+                {"layer_count",               ps.layer_count},
+                {"gcode_path",                ps.gcode_path},
+                {"estimated_print_time_s",    ps.estimated_print_time_s},
+                {"initial_layer_time_s",      ps.initial_layer_time_s},
+                {"color_change_count",        ps.color_change_count},
+                {"filament_volume_per_extruder", fvpe},
+                {"thumbnail_available",       ps.thumbnail_generated}
             });
         }
+    }
+
+    // Warnings accumulated during placement/slicing (non-fatal diagnostics).
+    json warnings_arr = json::array();
+    if (info->state == JobState::Done) {
+        for (const auto &w : info->result.warnings)
+            warnings_arr.push_back(w);
     }
 
     json body = {
@@ -467,7 +484,8 @@ Response handle_job_status(const Request & /*req*/, const std::string &job_id,
         {"state",    state_str(info->state)},
         {"progress", info->progress},
         {"message",  info->message},
-        {"plates",   plates_arr}
+        {"plates",   plates_arr},
+        {"warnings", warnings_arr}
     };
 
     // Dedicated, machine-readable failure reason. `message` carries progress
@@ -602,6 +620,112 @@ Response handle_job_cancel(const Request & /*req*/, const std::string &job_id,
     // 204 No Content — empty body.
     Response res{http::status::no_content, 11};
     res.keep_alive(keep_alive);
+    res.prepare_payload();
+    return res;
+}
+
+// GET /v1/jobs/{id}/preview[?plate=N]
+//
+// Serves the thumbnail PNG for a finished job plate.
+//
+// Multi-plate handling mirrors handle_job_result:
+//   - No ?plate=N → returns the thumbnail for plates[0].
+//   - ?plate=N (1-based) → returns that plate's thumbnail; 400 if out of range.
+//
+// 404 — job unknown, plate has no thumbnail_path, or PNG file missing on disk
+// 409 — job exists but is not Done, or produced no plates, or thumbnail not
+//        generated for the requested plate
+// 400 — ?plate=N malformed / out of range
+// 200 — PNG bytes with Content-Type: image/png
+Response handle_job_preview(const Request &req, const std::string &job_id,
+                             JobQueue &queue, bool keep_alive)
+{
+    auto info = queue.status(job_id);
+    if (!info)
+        return make_error(404, "Job not found: " + job_id, keep_alive);
+
+    if (info->state != JobState::Done)
+        return make_error(409,
+            "Job preview not available: state is " + std::string(state_str(info->state)),
+            keep_alive);
+
+    const auto &plates = info->result.plates;
+    if (plates.empty())
+        return make_error(409, "Job produced no plates", keep_alive);
+
+    // Parse optional ?plate=N (1-based) from the request target.
+    int plate_sel = 0; // 0 → default to first plate
+    {
+        const std::string target(req.target());
+        const auto qpos = target.find('?');
+        if (qpos != std::string::npos) {
+            const std::string query = target.substr(qpos + 1);
+            std::size_t pos = 0;
+            while (pos < query.size()) {
+                const auto amp = query.find('&', pos);
+                const std::string pair = query.substr(
+                    pos, amp == std::string::npos ? std::string::npos : amp - pos);
+                const auto eq = pair.find('=');
+                if (eq != std::string::npos && pair.substr(0, eq) == "plate") {
+                    const std::string val = pair.substr(eq + 1);
+                    try {
+                        plate_sel = std::stoi(val);
+                    } catch (const std::exception &) {
+                        return make_error(400,
+                            "Invalid 'plate' query value: '" + val + "'", keep_alive);
+                    }
+                    break;
+                }
+                if (amp == std::string::npos) break;
+                pos = amp + 1;
+            }
+        }
+    }
+
+    // Resolve the plate index (default first when plate_sel == 0).
+    std::size_t idx = 0;
+    if (plate_sel != 0) {
+        if (plate_sel < 1 || static_cast<std::size_t>(plate_sel) > plates.size())
+            return make_error(400,
+                "Plate out of range: " + std::to_string(plate_sel) +
+                " (job has " + std::to_string(plates.size()) + " plate(s))",
+                keep_alive);
+        idx = static_cast<std::size_t>(plate_sel - 1);
+    }
+
+    const auto &ps = plates[idx];
+    if (!ps.thumbnail_generated)
+        return make_error(409,
+            "Thumbnail not available for plate " + std::to_string(idx + 1),
+            keep_alive);
+
+    if (ps.thumbnail_path.empty())
+        return make_error(404,
+            "Thumbnail path not set for plate " + std::to_string(idx + 1),
+            keep_alive);
+
+    // Verify the PNG exists on disk.
+    boost::system::error_code ec;
+    if (!boost::filesystem::exists(ps.thumbnail_path, ec))
+        return make_error(404,
+            "Thumbnail file not found on disk: " + ps.thumbnail_path, keep_alive);
+
+    // Read PNG bytes.
+    std::ifstream ifs(ps.thumbnail_path, std::ios::binary);
+    if (!ifs)
+        return make_error(500,
+            "Failed to open thumbnail file: " + ps.thumbnail_path, keep_alive);
+
+    std::ostringstream ss;
+    ss << ifs.rdbuf();
+    if (ifs.bad())
+        return make_error(500,
+            "Failed to read thumbnail file: " + ps.thumbnail_path, keep_alive);
+
+    Response res{http::status::ok, 11};
+    res.set(http::field::content_type, "image/png");
+    res.keep_alive(keep_alive);
+    res.body() = ss.str();
     res.prepare_payload();
     return res;
 }

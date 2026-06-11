@@ -11095,6 +11095,27 @@ CLIMiscConfigDef::CLIMiscConfigDef()
                      "Omit the value (or pass 'all') to list all categories.");
     def->cli_params = "printer|process|filament|all";
     def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("thumbnail", coBool);
+    def->label = L("Generate thumbnail");
+    def->tooltip = L("Generate a thumbnail image of the sliced model. "
+                     "Use --thumbnail-size to control the resolution (default 512x512).");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("thumbnail_size", coString);
+    def->label = L("Thumbnail size");
+    def->tooltip = L("Resolution of the generated thumbnail as WxH (e.g. 512x512). "
+                     "Only used when --thumbnail is set.");
+    def->cli_params = "WxH";
+    def->set_default_value(new ConfigOptionString("512x512"));
+
+    def = this->add("placement_json", coString);
+    def->label = L("Placement JSON file");
+    def->tooltip = L("Path to a JSON file whose top-level \"objects\" array contains "
+                     "per-object placement descriptors (position, rotation, scale, "
+                     "mirror, instances, etc.).  Applied after global transforms.");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString(""));
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;

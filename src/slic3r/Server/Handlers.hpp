@@ -43,6 +43,12 @@ Response handle_job_status(const Request &req, const std::string &job_id,
 Response handle_job_result(const Request &req, const std::string &job_id,
                             JobQueue &queue, bool keep_alive);
 
+// GET /v1/jobs/{id}/preview[?plate=N]
+// Serves the thumbnail PNG for a finished job plate.
+// Returns 200 image/png on success; 404/409/400 on failure.
+Response handle_job_preview(const Request &req, const std::string &job_id,
+                             JobQueue &queue, bool keep_alive);
+
 // DELETE /v1/jobs/{id}
 // Cancels a job.  Returns 204 on success; 404 if not found.
 Response handle_job_cancel(const Request &req, const std::string &job_id,

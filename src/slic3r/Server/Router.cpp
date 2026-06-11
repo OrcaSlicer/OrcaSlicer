@@ -70,19 +70,34 @@ Response Router::dispatch(const Request &req) const
         return handle_job_submit(req, m_ctx, m_queue, keep_alive);
     }
 
-    // Routes that require a job id: /v1/jobs/{id}[/result]
+    // Routes that require a job id: /v1/jobs/{id}[/result|/preview]
     // We check the prefix then extract the id segment.
     const std::string jobs_prefix = "/v1/jobs/";
     if (target.substr(0, jobs_prefix.size()) == jobs_prefix) {
-        const std::string rest = target.substr(jobs_prefix.size()); // id[/result]
+        // Strip query string for suffix matching; the full target (with query)
+        // is forwarded to handlers so they can read ?plate=N themselves.
+        const std::string rest_with_query = target.substr(jobs_prefix.size()); // id[/result|/preview][?...]
+        const auto qmark = rest_with_query.find('?');
+        const std::string rest = (qmark == std::string::npos)
+                                     ? rest_with_query
+                                     : rest_with_query.substr(0, qmark);
 
-        const std::string result_suffix = "/result";
-        bool is_result = (rest.size() > result_suffix.size() &&
-                          rest.substr(rest.size() - result_suffix.size()) == result_suffix);
+        const std::string result_suffix  = "/result";
+        const std::string preview_suffix = "/preview";
 
-        std::string job_id = is_result
-                                 ? rest.substr(0, rest.size() - result_suffix.size())
-                                 : rest;
+        bool is_result  = (rest.size() > result_suffix.size() &&
+                           rest.substr(rest.size() - result_suffix.size()) == result_suffix);
+        bool is_preview = (!is_result &&
+                           rest.size() > preview_suffix.size() &&
+                           rest.substr(rest.size() - preview_suffix.size()) == preview_suffix);
+
+        std::string job_id;
+        if (is_result)
+            job_id = rest.substr(0, rest.size() - result_suffix.size());
+        else if (is_preview)
+            job_id = rest.substr(0, rest.size() - preview_suffix.size());
+        else
+            job_id = rest;
 
         // Reject empty or obviously-invalid ids (no slashes allowed in the id).
         if (job_id.empty() || job_id.find('/') != std::string::npos)
@@ -91,7 +106,10 @@ Response Router::dispatch(const Request &req) const
         if (is_result && req.method() == http::verb::get)
             return handle_job_result(req, job_id, m_queue, keep_alive);
 
-        if (!is_result) {
+        if (is_preview && req.method() == http::verb::get)
+            return handle_job_preview(req, job_id, m_queue, keep_alive);
+
+        if (!is_result && !is_preview) {
             if (req.method() == http::verb::get)
                 return handle_job_status(req, job_id, m_queue, keep_alive);
             if (req.method() == http::verb::delete_)

@@ -79,6 +79,9 @@ using namespace nlohmann;
 #include "slic3r/SliceCore/SliceTypes.hpp"
 #include "slic3r/SliceCore/PresetResolver.hpp"
 #include "slic3r/SliceCore/OutputTargetDeliver.hpp"
+#include "slic3r/SliceCore/ModelTransforms.hpp"
+// parse_objects shared parser (lives in Server but is header-declared for reuse).
+#include "slic3r/Server/RequestMapping.hpp"
 #endif /* SLIC3R_GUI */
 
 #include "OrcaSlicer.hpp"
@@ -4670,6 +4673,103 @@ int CLI::run(int argc, char **argv)
     }
     //BBS: clear the orient objects lists
     orients_requirement.clear();
+
+    // --- Per-object placement overrides (--placement-json) ---
+    // Applied after global transforms so that explicit instance positions take
+    // effect before the plate-assignment / arrange step.
+    // liborca_slice_core (which provides apply_object_placements) is only linked
+    // when SLIC3R_GUI=ON; guard consistently with the rest of the SliceCore CLI code.
+#ifdef SLIC3R_GUI
+    {
+        const std::string placement_json_path = m_config.opt_string("placement_json", true);
+        if (!placement_json_path.empty()) {
+            // Read the file (boost::nowide for UTF-8 path support on Windows).
+            boost::nowide::ifstream pj_ifs(placement_json_path);
+            if (!pj_ifs) {
+                boost::nowide::cerr << "--placement-json: cannot open file: "
+                                    << placement_json_path << std::endl;
+                record_exit_reson(outfile_dir, CLI_FILE_NOTFOUND, 0,
+                                  cli_errors[CLI_FILE_NOTFOUND], sliced_info);
+                flush_and_exit(CLI_FILE_NOTFOUND);
+            }
+            std::ostringstream pj_ss;
+            pj_ss << pj_ifs.rdbuf();
+            std::string pj_text = pj_ss.str();
+            if (pj_ifs.bad()) {
+                boost::nowide::cerr << "--placement-json: read error: "
+                                    << placement_json_path << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            // Parse JSON and extract the top-level "objects" array.
+            nlohmann::json pj_root;
+            try {
+                pj_root = nlohmann::json::parse(pj_text);
+            } catch (const nlohmann::json::exception &ex) {
+                boost::nowide::cerr << "--placement-json: JSON parse error in "
+                                    << placement_json_path << ": " << ex.what() << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            if (!pj_root.contains("objects") || !pj_root["objects"].is_array()) {
+                boost::nowide::cerr << "--placement-json: file must have a top-level "
+                                       "\"objects\" array: " << placement_json_path << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            std::vector<Slic3r::SliceCore::ObjectPlacement> placements;
+            try {
+                Slic3r::Server::parse_objects(pj_root["objects"], placements);
+            } catch (const std::exception &ex) {
+                boost::nowide::cerr << "--placement-json: placement parse error: "
+                                    << ex.what() << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            // Apply placements to every loaded model.
+            for (auto &model : m_models) {
+                std::vector<std::string> placement_warnings;
+                std::string placement_err;
+                if (!Slic3r::SliceCore::apply_object_placements(
+                        model, placements, skip_objects,
+                        /*assemble=*/false, m_print_config,
+                        placement_warnings, placement_err)) {
+                    boost::nowide::cerr << "--placement-json: placement error: "
+                                        << placement_err << std::endl;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0,
+                                      cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+                for (const auto &w : placement_warnings)
+                    BOOST_LOG_TRIVIAL(warning) << "[placement-json] " << w;
+            }
+            BOOST_LOG_TRIVIAL(info) << "--placement-json applied: "
+                                    << placements.size() << " descriptor(s) from "
+                                    << placement_json_path;
+        }
+    }
+    // --- end per-object placement overrides ---
+
+    // --- Thumbnail flags (--thumbnail / --thumbnail-size) ---
+    // Stored in m_config for future use; the actual rendering task is wired
+    // separately.  Log them here so the intent is visible in verbose output.
+    {
+        const bool do_thumbnail = m_config.opt_bool("thumbnail");
+        if (do_thumbnail) {
+            const std::string sz_str = m_config.opt_string("thumbnail_size", true);
+            BOOST_LOG_TRIVIAL(info) << "--thumbnail requested, size=" << sz_str;
+        }
+    }
+    // --- end thumbnail flags ---
+#endif /* SLIC3R_GUI */
 
     bool is_seq_print_for_curr_plate = false;
     if ((plate_to_slice < 0) || (plate_to_slice > partplate_list.get_plate_count()))
