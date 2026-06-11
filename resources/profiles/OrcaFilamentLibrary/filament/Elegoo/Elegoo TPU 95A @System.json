@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OETPU95AS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo TPU 95A",
 	"filament_max_volumetric_speed": [
 		"3.2"
 	],

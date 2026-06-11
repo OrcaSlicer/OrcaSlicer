@@ -101,24 +101,6 @@ std::string resolve_display_name(
     return username;
 }
 
-std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "")
-{
-    if (name.empty()) {
-        return "";
-    }
-
-    // Mix user_id into the hashed input so two different users generating a setting_id
-    // for an identically-named preset get distinct UUIDs. Without this, the cloud's ID
-    // space collides across accounts and the second user's create gets HTTP 409 with
-    // server_profile=null on every sync (the foreign owner's record is not exposed).
-    static const boost::uuids::uuid orca_namespace =
-        boost::uuids::string_generator()("f47ac10b-58cc-4372-a567-0e02b2c3d479");
-
-    boost::uuids::name_generator_sha1 gen(orca_namespace);
-    boost::uuids::uuid id = user_id.empty() ? gen(name) : gen(user_id + "/" + name);
-    return boost::uuids::to_string(id);
-}
-
 std::string base64url_encode(const std::vector<unsigned char>& data)
 {
     std::string out;
@@ -410,6 +392,24 @@ OrcaCloudServiceAgent::~OrcaCloudServiceAgent()
     if (refresh_thread.joinable()) {
         refresh_thread.join();
     }
+}
+
+std::string OrcaCloudServiceAgent::generate_uuid_for_setting_id(const std::string& name, const std::string& user_id)
+{
+    if (name.empty()) {
+        return "";
+    }
+
+    // Mix user_id into the hashed input so two different users generating a setting_id
+    // for an identically-named preset get distinct UUIDs. Without this, the cloud's ID
+    // space collides across accounts and the second user's create gets HTTP 409 with
+    // server_profile=null on every sync (the foreign owner's record is not exposed).
+    static const boost::uuids::uuid orca_namespace =
+        boost::uuids::string_generator()("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+
+    boost::uuids::name_generator_sha1 gen(orca_namespace);
+    boost::uuids::uuid id = user_id.empty() ? gen(name) : gen(user_id + "/" + name);
+    return boost::uuids::to_string(id);
 }
 
 void OrcaCloudServiceAgent::configure_urls(AppConfig* app_config)
@@ -1250,8 +1250,10 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(const std::string& profile_id,
 
     if (http_code == 409) {
         // Conflict - parse server version
+        nlohmann::json err_body;
         try {
             auto json = nlohmann::json::parse(response);
+            err_body = json;
             if (json.is_null()) {
                 result.server_deleted = true;
             } else {
@@ -1261,6 +1263,13 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(const std::string& profile_id,
                 result.server_version.updated_time = profile_data.value(ORCA_JSON_KEY_UPDATE_TIME, 0);
             }
         } catch (...) {}
+        // Surface the conflict via the http-error callback with the local preset name injected.
+        // The raw server body omits the name for tombstone (-3) conflicts (server_profile is null),
+        // but the GUI needs it to regenerate the deterministic setting_id for a force push.
+        if (!err_body.is_object())
+            err_body = nlohmann::json::object();
+        err_body["name"] = name;
+        invoke_http_error_callback(409, err_body.dump());
         result.error_message = response;
         return result;
     }
@@ -1937,7 +1946,10 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
     if (response_body) *response_body = res.body;
     if (http_code) *http_code = res.status;
 
-    if (!suppress && (!res.success || res.status >= 400)) {
+    // 409 is a push-only domain conflict; sync_push re-fires the error callback with the
+    // local preset name injected (the raw server body omits it for tombstone conflicts),
+    // so skip the generic nameless auto-fire here to avoid a duplicate, nameless event.
+    if (!suppress && (!res.success || res.status >= 400) && res.status != 409) {
         invoke_http_error_callback(res.status, res.body);
     }
 

@@ -279,6 +279,7 @@ public:
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
 	void push_orca_sync_conflict_notification(const std::string& text,
+		int conflict_code,
 		std::function<bool(wxEvtHandler*)> pull_callback,
 		std::function<bool(wxEvtHandler*)> force_push_callback);
 
@@ -905,10 +906,12 @@ private:
 	public:
 		OrcaSyncConflictNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
 			std::function<bool(wxEvtHandler*)> pull_callback,
-			std::function<bool(wxEvtHandler*)> force_push_callback)
+			std::function<bool(wxEvtHandler*)> force_push_callback,
+			int conflict_code)
 			: PopNotification(n, id_provider, evt_handler)
 			, m_pull_callback(std::move(pull_callback))
 			, m_force_push_callback(std::move(force_push_callback))
+			, conflict_code(conflict_code)
 		{
 			m_multiline = true;
 		}
@@ -920,6 +923,7 @@ private:
 
 		std::function<bool(wxEvtHandler*)> m_pull_callback;
 		std::function<bool(wxEvtHandler*)> m_force_push_callback;
+		int conflict_code;
 	};
 	class SlicingProgressNotification;
 

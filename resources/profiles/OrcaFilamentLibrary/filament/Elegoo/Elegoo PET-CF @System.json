@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OEPETCFS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PET-CF",
 	"pressure_advance": [
 		"0.05"
 	],

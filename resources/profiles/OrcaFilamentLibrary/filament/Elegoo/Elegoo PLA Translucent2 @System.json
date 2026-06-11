@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OEPLATRA2S00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PLA Translucent2",
 	"pressure_advance": [
 		"0.04"
 	],

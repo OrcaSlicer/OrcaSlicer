@@ -2416,7 +2416,7 @@ void NotificationManager::OrcaSyncConflictNotification::render_text(ImGuiWrapper
 	}
 
 	const float action_y = starting_y + m_endlines.size() * shift_y;
-	const std::string pull_text = _u8L("Pull");
+	const std::string pull_text = conflict_code == -3 ? _u8L("Delete") : _u8L("Pull");
 	render_hyperlink_action(imgui, x_offset, action_y, pull_text, "##orca_sync_pull",
 		[this] { if (m_pull_callback && m_pull_callback(m_evt_handler)) close(); });
 	if (m_force_push_callback) {
@@ -2437,13 +2437,14 @@ void NotificationManager::push_shared_profiles_notification(const std::string& e
 }
 
 void NotificationManager::push_orca_sync_conflict_notification(const std::string& text,
+	int conflict_code,
 	std::function<bool(wxEvtHandler*)> pull_callback,
 	std::function<bool(wxEvtHandler*)> force_push_callback)
 {
 	close_notification_of_type(NotificationType::OrcaSyncConflict);
 	NotificationData data{ NotificationType::OrcaSyncConflict, NotificationLevel::WarningNotificationLevel, 0, text };
 	push_notification_data(std::make_unique<NotificationManager::OrcaSyncConflictNotification>(
-		data, m_id_provider, m_evt_handler, std::move(pull_callback), std::move(force_push_callback)), 0);
+		data, m_id_provider, m_evt_handler, std::move(pull_callback), std::move(force_push_callback), conflict_code), 0);
 }
 
 void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)

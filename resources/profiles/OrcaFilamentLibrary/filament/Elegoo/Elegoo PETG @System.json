@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OEPETGS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PETG",
 	"pressure_advance": [
 		"0.05"
 	],

@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OERPETGHFS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PETG HF",
 	"pressure_advance": [
 		"0.052"
 	],
