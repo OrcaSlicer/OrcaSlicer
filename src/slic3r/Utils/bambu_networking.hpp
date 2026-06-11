@@ -273,14 +273,17 @@ struct PrintParams_0203 {
     bool            task_vibration_cali;    /* vibration calibration of task */
     bool            task_layer_inspect;     /* first layer inspection of task */
     bool            task_record_timelapse;  /* record timelapse of task */
+    bool            task_timelapse_use_internal;
     bool            task_use_ams;
     std::string     task_bed_type;
     std::string     extra_options;
     int             auto_bed_leveling{ 0 };
     int             auto_flow_cali{ 0 };
     int             auto_offset_cali{ 0 };
+    int             extruder_cali_manual_mode{ -1 };
     bool            task_ext_change_assist;
     bool            try_emmc_print;
+    std::string     svc_context;
 };
 
 /* print job*/
@@ -432,6 +435,7 @@ static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
      "An older plug-in series. Features that need newer plug-in support, such as print-failure "
      "snapshots in the device error dialog, are unavailable.", NetworkAbi::V0203},
     {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, nullptr, NetworkAbi::Legacy},
+>>>>>>> 3e634b2dd (Enable printing to Bambu cloud printers (Windows))
 };
 
 static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);
