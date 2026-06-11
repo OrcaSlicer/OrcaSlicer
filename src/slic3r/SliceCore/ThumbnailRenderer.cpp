@@ -22,6 +22,7 @@
 #include "libslic3r/GCode/ThumbnailData.hpp"
 
 #include "slic3r/GUI/3DScene.hpp"          // GLVolumeCollection
+#include "slic3r/GUI/GLShader.hpp"         // GLShaderProgram (defined in namespace Slic3r)
 #include "slic3r/GUI/OpenGLManager.hpp"    // OpenGLManager, EFramebufferType
 #include "slic3r/GUI/GLCanvas3D.hpp"       // GLCanvas3D::render_thumbnail_framebuffer[_ext]
 #include "slic3r/GUI/Camera.hpp"           // Camera::EType, Camera::ViewAngleType
@@ -289,7 +290,7 @@ bool render_model_thumbnail(const Model              &model,
     // 5) Obtain the "thumbnail" shader.
     //    Mirrors OrcaSlicer.cpp:6768-6771.
     // ------------------------------------------------------------------
-    Slic3r::GUI::GLShaderProgram *shader = opengl_mgr.get_shader("thumbnail");
+    GLShaderProgram *shader = opengl_mgr.get_shader("thumbnail");
     if (shader == nullptr) {
         err = "failed to obtain 'thumbnail' shader from OpenGLManager";
         BOOST_LOG_TRIVIAL(warning) << "[ThumbnailRenderer] " << err;
