@@ -578,7 +578,7 @@ void BedShapePanel::load_stl()
 		return;
 	}
 	if (expolygons.size() > 1) {
-		show_error(this, _L("The selected file contains several disjoint areas. This is not supported."));
+		show_error(this, _L("The selected file contains several disjointed areas. This is not supported."));
 		return;
 	}
 

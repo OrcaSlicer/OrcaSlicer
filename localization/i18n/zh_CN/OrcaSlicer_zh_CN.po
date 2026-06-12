@@ -3922,7 +3922,7 @@ msgstr "错误！无效模型"
 msgid "The selected file contains no geometry."
 msgstr "所选文件不包含任何几何数据。"
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "所选文件包含多个未连接的区域。不支持这种类型。"
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -8847,7 +8847,7 @@ msgstr "所选打印机与选择的打印机预设不兼容。"
 msgid "Storage needs to be inserted before send to printer."
 msgstr "在发送到打印机之前需要插入存储。"
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "打印机需要与Orca Slicer在同一个局域网内。"
 
 msgid "The printer does not support sending to printer storage."
@@ -10866,7 +10866,7 @@ msgstr "线宽太大"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "使用不同喷嘴直径的多个挤出机进行打印。如果要使用当前耗材打印支撑（support_filament == 0 或 support_interface_filament == 0），则所有喷嘴必须具有相同的直径。"
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "擦拭塔要求支撑和对象采用同样的层高。"
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -17380,7 +17380,7 @@ msgstr "未找到打印机型号，请重新选择。"
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "未找到喷嘴直径，请重新选择。"
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "打印机预设未找到，请重新选择。"
 
 msgid "Printer Preset"
@@ -17401,8 +17401,8 @@ msgstr "您在第一页的可打印区域输入不正确。请检查后再创建
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "\"已有一个预设与您创建的打印机预设同名，您想要覆盖它吗？\n"
 "- 是：覆盖同名的打印机预设，具有相同预设名称的材料和工艺预设将被重新创建，没有相同预设名称的耗材和工艺预设将被保留。\n"

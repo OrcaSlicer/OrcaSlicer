@@ -3942,7 +3942,7 @@ msgstr "Erreur ! Modèle invalide"
 msgid "The selected file contains no geometry."
 msgstr "Le fichier sélectionné ne contient aucune géométrie."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Le fichier sélectionné contient plusieurs zones disjointes. Cela n'est pas utilisable."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -8898,7 +8898,7 @@ msgstr "L’imprimante sélectionnée est incompatible avec les préréglages d�
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Un stockage doit être inséré avant d'envoyer à l'imprimante."
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "L'imprimante doit être sur le même réseau local que OrcaSlicer."
 
 msgid "The printer does not support sending to printer storage."
@@ -10920,7 +10920,7 @@ msgstr "Largeur de ligne trop grande"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Impression avec plusieurs extrudeuses ayant des diamètres de buse différents. Si le support doit être imprimé avec le filament actuel (support_filament == 0 ou support_interface_filament == 0), toutes les buses doivent avoir le même diamètre."
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "La tour d’amorçage nécessite que le support ait la même hauteur de couche avec l'objet."
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -17478,7 +17478,7 @@ msgstr "Le modèle d’imprimante n’a pas été trouvé, veuillez resélection
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "Le diamètre de la buse n’est pas bon, resélectionner l’emplacement."
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "Le préréglage de l’imprimante n’est pas bon, placez le préréglage."
 
 msgid "Printer Preset"
@@ -17499,8 +17499,8 @@ msgstr "Vous avez introduit une donnée illégale dans la section « zone imprim
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Le préréglage d’imprimante que vous avez créé possède déjà un préréglage portant le même nom. Voulez-vous l’écraser ?\n"
 "\tOui : écraser le préréglage d’imprimante portant le même nom, et les préréglages de filament et de traitement portant le même nom de préréglage seront recréés.\n"

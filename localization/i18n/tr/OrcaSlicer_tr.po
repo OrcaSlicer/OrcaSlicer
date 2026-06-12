@@ -3929,7 +3929,7 @@ msgstr "Hata! Geçersiz model"
 msgid "The selected file contains no geometry."
 msgstr "Seçilen dosya geometri içermiyor."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Seçilen dosya birkaç ayrık alan içeriyor. Bu desteklenmiyor."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -8863,7 +8863,7 @@ msgstr "Seçilen yazıcı, seçilen yazıcı ön ayarlarıyla uyumlu değil."
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Yazıcıya gönderilmeden önce depolama biriminin eklenmesi gerekir."
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Yazıcının Orca Slicer ile aynı LAN'da olması gerekir."
 
 msgid "The printer does not support sending to printer storage."
@@ -10859,7 +10859,7 @@ msgstr "Çok büyük çizgi genişliği"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Farklı nozul çaplarına sahip birden fazla ekstruderle baskı. Destek mevcut filamentle (support_filament == 0 veya support_interface_filament == 0) basılacaksa, tüm nozulların aynı çapta olması gerekir."
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "Prime kulesi için, destek, nesne ile aynı katman yüksekliğine sahip olmalıdır."
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -17259,7 +17259,7 @@ msgstr "Yazıcı modeli bulunamadı, lütfen yeniden seçin."
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "Nozul çapı bulunamadı, lütfen yeniden seçin."
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "Yazıcı ön ayarı bulunamadı, lütfen yeniden seçin."
 
 msgid "Printer Preset"
@@ -17280,8 +17280,8 @@ msgstr "İlk sayfadaki yazdırılabilir alan kısmına geçersiz bir giriş yapt
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Oluşturduğunuz yazıcı ön ayarının zaten aynı ada sahip bir ön ayarı var. Üzerine yazmak istiyor musunuz?\n"
 "\tEvet: Aynı adı taşıyan yazıcı ön ayarının üzerine yazın; aynı ön ayar adı taşıyan filaman ve proses ön ayarları yeniden oluşturulacak ve aynı ön ayar \n"

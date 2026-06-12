@@ -4045,7 +4045,7 @@ msgstr "Ошибка: недопустимая модель"
 msgid "The selected file contains no geometry."
 msgstr "Выбранный файл не содержит геометрии."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Выбранный файл содержит несколько непересекающихся областей. Такие файлы не поддерживаются."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -9154,7 +9154,7 @@ msgstr "Выбранный принтер несовместим с выбран
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Перед отправкой необходимо вставить хранилище данных"
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Принтер должен находиться в одной локальной сети с Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
@@ -11205,7 +11205,7 @@ msgstr "Слишком большая ширина линии"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Печать несколькими экструдерами с разными диаметрами сопел. Если поддержка должна быть напечатана текущим материалом (Материал поддержек → Базовая поддержка/подложка = 0 или Связующий слой поддержки/подложки = 0), все сопла должны быть одинакового диаметра."
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "Для черновой башни требуется, чтобы поддержка и модель имели одинаковую высоту слоя."
 
 # избегаем "поддержек поддерживает"
@@ -18169,7 +18169,7 @@ msgstr "Модель принтера не найдена, пожалуйста,
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "Диаметр сопла не задан, пожалуйста, выберите заново."
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "Профиль принтера не найдена, выберите заново."
 
 msgid "Printer Preset"
@@ -18190,8 +18190,8 @@ msgstr "В разделе «Область печати» на первой ст
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Профиль принтера с таким именем уже существует. Хотите перезаписать его?\n"
 "\tДа: перезаписать профиль принтера. Профили материала и настроек печати с теми же именами будут созданы заново, а профили без имени будут зарезервированы.\n"

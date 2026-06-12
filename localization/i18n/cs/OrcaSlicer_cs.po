@@ -3930,7 +3930,7 @@ msgstr "Chyba! Neplatný model"
 msgid "The selected file contains no geometry."
 msgstr "Zvolený soubor neobsahuje žádnou geometrii."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Zvolený soubor obsahuje několik oddělených oblastí. Toto není podporováno."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -8868,7 +8868,7 @@ msgstr "Zvolená tiskárna není kompatibilní s vybranými předvolbami tiskár
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Storage needs to be inserted before send to printer."
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Tiskárna musí být ve stejné síti LAN jako Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
@@ -10864,7 +10864,7 @@ msgstr "Příliš velká šířka čáry"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Tisk s více extrudery s různými průměry trysek. Pokud má být podpora tištěna aktuálním filamentem (support_filament == 0 nebo support_interface_filament == 0), musí mít všechny trysky stejný průměr."
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "Základní věž vyžaduje, aby podpora měla stejnou výšku vrstvy jako objekt."
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -17271,7 +17271,7 @@ msgstr "Model tiskárny nebyl nalezen, prosím zvolte znovu."
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "Průměr trysky nebyl nalezen, vyberte prosím znovu."
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "Předvolba tiskárny nebyla nalezena, prosím zvolte znovu."
 
 msgid "Printer Preset"
@@ -17292,8 +17292,8 @@ msgstr "V části tisknutelné oblasti na první stránce jste zadali neplatný 
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr "Předvolba tiskárny, kterou jste vytvořili, již má stejný název. Chcete to přepsat? \tAno: Přepíše se předvolba tiskárny se stejným názvem, předvolby filamentu a procesu se stejným názvem budou znovu vytvořeny a předvolby filamentu a procesu s odlišným názvem budou zachovány. \tZrušit: Předvolba nebude vytvořena; návrat do rozhraní tvorby."
 
 msgid "You need to select at least one filament preset."

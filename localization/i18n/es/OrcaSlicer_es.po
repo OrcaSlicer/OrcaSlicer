@@ -3945,7 +3945,7 @@ msgstr "Error! Modelo inválido"
 msgid "The selected file contains no geometry."
 msgstr "El archivo seleccionado no contiene geometría."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "El archivo seleccionado contiene varias áreas disjuntas. Esto no es compatible."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -8905,7 +8905,7 @@ msgstr "La impresora seleccionada es incompatible con los perfiles seleccionados
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Es necesario insertar el almacenamiento antes de enviarlo a la impresora."
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Es necesaria que la impresora esté en la misma red local que Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
@@ -10922,7 +10922,7 @@ msgstr "Ancho de línea demasiado grande"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Impresión con múltiples extrusores de diámetros de boquilla diferentes. Si el soporte se va a imprimir con el filamento actual (support_filament == 0 o support_interface_filament == 0), todas las boquillas deben tener el mismo diámetro."
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "La torre de purga requiere que el soporte tenga la misma altura de capa que el objeto."
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -17474,7 +17474,7 @@ msgstr "No se ha encontrado el modelo de impresora, vuelva a seleccionarlo."
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "El diámetro de la boquilla no se ha encontrado, vuelva a seleccionarlo."
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "El perfil de impresora no se ha encontrado, por favor, vuelva a seleccionarlo."
 
 msgid "Printer Preset"
@@ -17495,8 +17495,8 @@ msgstr "Ha introducido una entrada ilegal en la sección de área imprimible de 
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "El perfil de impresora que ha creado ya tiene un perfil con el mismo nombre. ¿Desea sobrescribirlo?\n"
 "\tSí: sobrescribe el perfil de impresora con el mismo nombre, y los perfiles de filamento y proceso con el mismo nombre de perfil se volverán a crear \n"

@@ -3925,7 +3925,7 @@ msgstr "Fel! Ogiltlig model"
 msgid "The selected file contains no geometry."
 msgstr "Den valda filen saknar geometri."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Den valda filen innehåller flera osammanhängande område. Denna fil stöds inte."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -8868,7 +8868,7 @@ msgstr "Den valda skrivaren är inte kompatibel med de valda skrivar inställnin
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Storage needs to be inserted before send to printer."
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Skrivaren måste finnas på samma LAN som Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
@@ -10865,7 +10865,7 @@ msgstr "För stor linjebredd"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 
-msgid "The prime tower requires that support has the same layer height with object."
+msgid "The prime tower requires that support has the same layer height as the object."
 msgstr "Ett Prime Torn kräver att  support har samma lagerhöjd som objektet."
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -17278,7 +17278,7 @@ msgstr "Printer modellen hittades inte, välj igen."
 msgid "The nozzle diameter was not found, please reselect."
 msgstr "The nozzle diameter was not found; please reselect."
 
-msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "The printer preset was not found; please reselect."
 
 msgid "Printer Preset"
@@ -17299,8 +17299,8 @@ msgstr "Du har angett ett otillåtet tecken i det utskrivbara området på förs
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
