@@ -9638,9 +9638,6 @@ msgstr "Натисніть, щоб скасувати поточну зміну 
 msgid "Process Settings"
 msgstr "Налаштування процесу"
 
-msgid "Undef"
-msgstr "Невизначено"
-
 msgid "unsaved changes."
 msgstr "Незбережені зміни"
 

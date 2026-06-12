@@ -9666,9 +9666,6 @@ msgstr "Cliquez pour supprimer la modification actuelle et réinitialiser la val
 msgid "Process Settings"
 msgstr "Paramètres de traitement"
 
-msgid "Undef"
-msgstr "Undef"
-
 msgid "unsaved changes."
 msgstr "Modifications non enregistrées"
 

@@ -9630,9 +9630,6 @@ msgstr "คลิกเพื่อยกเลิกการแก้ไขป
 msgid "Process Settings"
 msgstr "การตั้งค่ากระบวนการ"
 
-msgid "Undef"
-msgstr "ไม่กำหนด"
-
 msgid "unsaved changes."
 msgstr "การเปลี่ยนแปลงที่ไม่ได้บันทึก"
 

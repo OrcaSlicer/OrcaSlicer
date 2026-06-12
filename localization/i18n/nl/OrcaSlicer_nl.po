@@ -9630,9 +9630,6 @@ msgstr "Klik om de huidige aanpassingen te verwerpen en terug te gaan naar de st
 msgid "Process Settings"
 msgstr "Procesinstellingen"
 
-msgid "Undef"
-msgstr "Niet gedefinieerd"
-
 msgid "unsaved changes."
 msgstr "niet-opgeslagen wijzigingen"
 

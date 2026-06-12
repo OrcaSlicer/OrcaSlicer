@@ -9624,9 +9624,6 @@ msgstr "Kliknij, aby odrzucić bieżące zmiany i przywrócić zapisaną wartoś
 msgid "Process Settings"
 msgstr "Ustawienia procesu"
 
-msgid "Undef"
-msgstr "Niezdefiniowany"
-
 msgid "unsaved changes."
 msgstr "Niezapisane zmiany"
 

@@ -9618,9 +9618,6 @@ msgstr "Geçerli değişikliği bırakmak ve kaydedilen değere sıfırlamak iç
 msgid "Process Settings"
 msgstr "İşlem Ayarları"
 
-msgid "Undef"
-msgstr "Tanımsız"
-
 msgid "unsaved changes."
 msgstr "Kaydedilmemiş Değişiklikler"
 

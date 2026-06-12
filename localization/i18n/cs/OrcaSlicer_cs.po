@@ -9623,9 +9623,6 @@ msgstr "Kliknutím zrušíte aktuální úpravu a obnovíte uloženou hodnotu."
 msgid "Process Settings"
 msgstr "Nastavení procesu"
 
-msgid "Undef"
-msgstr "Nedef"
-
 msgid "unsaved changes."
 msgstr "Neuložené změny"
 

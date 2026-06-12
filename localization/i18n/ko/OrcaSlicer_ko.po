@@ -9606,9 +9606,6 @@ msgstr "현재 수정 내용을 삭제하고 저장된 값으로 재설정하려
 msgid "Process Settings"
 msgstr "프로세스 설정"
 
-msgid "Undef"
-msgstr "정의되지 않음"
-
 msgid "unsaved changes."
 msgstr "저장되지 않은 변경 사항"
 

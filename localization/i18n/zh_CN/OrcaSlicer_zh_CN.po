@@ -9610,9 +9610,6 @@ msgstr "点击该图标，丢弃当前的修改，恢复到上次保存的数值
 msgid "Process Settings"
 msgstr "工艺设置"
 
-msgid "Undef"
-msgstr "未定义"
-
 msgid "unsaved changes."
 msgstr "未保存的更改"
 

@@ -9671,9 +9671,6 @@ msgstr "Haga clic para dejar la modificación actual y restablecer el valor guar
 msgid "Process Settings"
 msgstr "Ajustes del proceso"
 
-msgid "Undef"
-msgstr "No definido"
-
 msgid "unsaved changes."
 msgstr "Cambios No guardados"
 

@@ -9423,9 +9423,6 @@ msgstr "Click to drop current modifications and reset to saved value."
 msgid "Process Settings"
 msgstr ""
 
-msgid "Undef"
-msgstr "Undefined"
-
 msgid "unsaved changes."
 msgstr "unsaved changes"
 

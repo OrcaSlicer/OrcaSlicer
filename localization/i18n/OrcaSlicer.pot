@@ -9388,9 +9388,6 @@ msgstr ""
 msgid "Process Settings"
 msgstr ""
 
-msgid "Undef"
-msgstr ""
-
 msgid "unsaved changes."
 msgstr ""
 

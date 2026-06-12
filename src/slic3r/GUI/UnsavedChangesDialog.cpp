@@ -152,7 +152,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
     // check if old/new_value is color
     if (m_old_color.IsEmpty()) {
         if (!m_new_color.IsEmpty())
-            m_old_value = _L("Undef");
+            m_old_value = _L("Undefined");
     }
     else {
         m_old_color_bmp = get_bitmap(m_old_color);
@@ -161,7 +161,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
 
     if (m_new_color.IsEmpty()) {
         if (!m_old_color.IsEmpty())
-            m_new_value = _L("Undef");
+            m_new_value = _L("Undefined");
     }
     else {
         m_new_color_bmp = get_bitmap(m_new_color);
@@ -1202,7 +1202,7 @@ wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConf
                     return "";
                 return from_u8(_utf8(names[it - def.enum_values.begin()]));
             }
-        return _L("Undef");
+        return _L("Undefined");
     }
     return from_u8(_utf8(names[val]));
 }
@@ -1283,7 +1283,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
                 return from_u8(value_str);
             }
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coBool:
         return config.opt_bool(opt_key) ? "true" : "false";
@@ -1298,7 +1298,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (opt_idx < values->size())
                 return values->get_at(opt_idx) ? "true" : "false";
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coPercent:
         return from_u8((boost::format("%1%%%") % int(config.optptr(opt_key)->getFloat())).str());
@@ -1313,7 +1313,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (opt_idx < values->size())
                 return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coFloat:
         return double_to_string(config.opt_float(opt_key));
@@ -1328,7 +1328,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (values && opt_idx < values->size())
                 return double_to_string(values->get_at(opt_idx));
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coString:
         return from_u8(config.opt_string(opt_key));

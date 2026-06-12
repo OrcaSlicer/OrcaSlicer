@@ -9615,9 +9615,6 @@ msgstr "Nhấp để bỏ thay đổi hiện tại và đặt lại về giá tr
 msgid "Process Settings"
 msgstr "Cài đặt quy trình"
 
-msgid "Undef"
-msgstr "Không xác định"
-
 msgid "unsaved changes."
 msgstr "Thay đổi chưa lưu"
 

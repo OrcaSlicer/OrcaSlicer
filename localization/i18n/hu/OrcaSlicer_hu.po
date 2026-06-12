@@ -9653,9 +9653,6 @@ msgstr "Kattints a gombra az aktuális módosítás elvetéséhez és a mentett 
 msgid "Process Settings"
 msgstr "Folyamatbeállítások"
 
-msgid "Undef"
-msgstr "Nincs meghatározva"
-
 msgid "unsaved changes."
 msgstr "Mentetlen változások"
 

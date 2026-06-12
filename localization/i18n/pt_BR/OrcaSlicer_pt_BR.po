@@ -9658,9 +9658,6 @@ msgstr "Clique para descartar a modificação atual e redefinir para o valor sal
 msgid "Process Settings"
 msgstr "Configurações do Processo"
 
-msgid "Undef"
-msgstr "Indefinido"
-
 msgid "unsaved changes."
 msgstr "Alterações não salvas"
 

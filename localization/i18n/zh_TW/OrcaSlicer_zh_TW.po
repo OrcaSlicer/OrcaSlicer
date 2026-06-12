@@ -9629,9 +9629,6 @@ msgstr "放棄目前的修改，恢復到上次儲存的數值。"
 msgid "Process Settings"
 msgstr "列印參數設定"
 
-msgid "Undef"
-msgstr "未定義"
-
 msgid "unsaved changes."
 msgstr "未儲存的更改"
 

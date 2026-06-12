@@ -9672,9 +9672,6 @@ msgstr "Klicken Sie hier, um die aktuellen Änderungen zu verwerfen und auf den 
 msgid "Process Settings"
 msgstr "Prozesseinstellungen"
 
-msgid "Undef"
-msgstr "Undefiniert"
-
 msgid "unsaved changes."
 msgstr "Nicht gespeicherte Änderungen"
 

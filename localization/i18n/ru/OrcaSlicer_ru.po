@@ -9949,9 +9949,6 @@ msgstr "Сбросить изменение к сохранённому знач
 msgid "Process Settings"
 msgstr "Настройки"
 
-msgid "Undef"
-msgstr "Не задано"
-
 msgid "unsaved changes."
 msgstr "Несохранённые изменения"
 

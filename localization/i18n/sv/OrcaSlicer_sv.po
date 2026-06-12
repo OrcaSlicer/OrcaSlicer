@@ -9624,9 +9624,6 @@ msgstr "Klicka för att släppa aktuell modifiering och återställa till sparat
 msgid "Process Settings"
 msgstr "Processinställningar"
 
-msgid "Undef"
-msgstr "Oidentifierad"
-
 msgid "unsaved changes."
 msgstr "Ej sparade ändringar"
 

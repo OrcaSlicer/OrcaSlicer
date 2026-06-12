@@ -9578,9 +9578,6 @@ msgstr "クリックして値をリセットします"
 msgid "Process Settings"
 msgstr "プロセス設定"
 
-msgid "Undef"
-msgstr "未定義"
-
 msgid "unsaved changes."
 msgstr "未保存の変更"
 

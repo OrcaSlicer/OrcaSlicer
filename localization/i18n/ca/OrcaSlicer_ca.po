@@ -9640,9 +9640,6 @@ msgstr "Feu clic per ignorar la modificació actual i restablir el valor desat."
 msgid "Process Settings"
 msgstr "Configuració del procés"
 
-msgid "Undef"
-msgstr "No definit"
-
 msgid "unsaved changes."
 msgstr "Canvis no desats"
 

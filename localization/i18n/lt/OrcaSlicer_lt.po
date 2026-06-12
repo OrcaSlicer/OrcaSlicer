@@ -9662,9 +9662,6 @@ msgstr "Spustelėkite , jei norite atsisakyti dabartinio pakeitimo ir atstatyti 
 msgid "Process Settings"
 msgstr "Proceso nustatymai"
 
-msgid "Undef"
-msgstr "Neapib"
-
 msgid "unsaved changes."
 msgstr "Neišsaugoti pakeitimai"
 

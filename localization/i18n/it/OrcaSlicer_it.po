@@ -9637,9 +9637,6 @@ msgstr "Fai clic per eliminare le modifiche correnti e ripristinare il valore sa
 msgid "Process Settings"
 msgstr "Impostazioni processo"
 
-msgid "Undef"
-msgstr "Indefinito"
-
 msgid "unsaved changes."
 msgstr "Modifiche non salvate"
 
