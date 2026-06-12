@@ -17266,7 +17266,7 @@ msgstr "O tipo de filamento não está selecionado, por favor reselecione o tipo
 msgid "Filament serial is not entered, please enter serial."
 msgstr "O serial do filamento não foi inserido, por favor insira o serial."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Pode haver caracteres de escape na entrada de fornecedor ou serial do filamento. Por favor, exclua e insira novamente."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

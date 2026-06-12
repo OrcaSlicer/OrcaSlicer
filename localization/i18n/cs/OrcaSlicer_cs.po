@@ -17164,7 +17164,7 @@ msgstr "Typ filamentu není vybrán, prosím zvolte typ znovu."
 msgid "Filament serial is not entered, please enter serial."
 msgstr "Sériové číslo filamentu není zadáno, zadejte prosím sériové číslo."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "V dodavateli nebo sériovém čísle filamentu mohou být únikové znaky. Smažte a zadejte znovu."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

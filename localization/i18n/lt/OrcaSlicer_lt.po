@@ -17206,7 +17206,7 @@ msgstr "Nepasirinktas gijos tipas, pasirinkite tipą iš naujo."
 msgid "Filament serial is not entered, please enter serial."
 msgstr "Gijos serijinis numeris neįvestas, įveskite serijinį numerį."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Gijų pardavėjo arba serijos numerio įvesties laukelyje gali būti praleidžiamųjų simbolių. Ištrinkite ir įveskite iš naujo."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

@@ -17106,7 +17106,7 @@ msgstr "線材類型尚未選擇，請重新選擇類型。"
 msgid "Filament serial is not entered, please enter serial."
 msgstr "線材序號尚未輸入，請輸入序號。"
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "線材的廠牌或序號輸入中可能包含跳脫字元，請刪除並重新輸入。"
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

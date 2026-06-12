@@ -17166,7 +17166,7 @@ msgstr "Loại filament không được chọn, vui lòng chọn lại loại."
 msgid "Filament serial is not entered, please enter serial."
 msgstr "Serial filament không được nhập, vui lòng nhập serial."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Có thể có ký tự thoát trong đầu vào nhà cung cấp hoặc serial của filament. Vui lòng xóa và nhập lại."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

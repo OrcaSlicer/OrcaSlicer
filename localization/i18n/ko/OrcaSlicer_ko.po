@@ -17079,7 +17079,7 @@ msgstr "필라멘트 유형이 선택되지 않았습니다. 유형을 다시 �
 msgid "Filament serial is not entered, please enter serial."
 msgstr "필라멘트 시리얼이 입력되지 않았습니다. 시리얼을 입력해 주세요."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "공급업체나 필라멘트의 직렬 입력에 이스케이프 문자가 있을 수 있습니다. 삭제하고 다시 입력해주세요."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

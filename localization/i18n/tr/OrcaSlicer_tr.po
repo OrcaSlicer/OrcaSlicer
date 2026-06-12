@@ -17152,7 +17152,7 @@ msgstr "Filament türü seçilmedi, lütfen türünü seçin."
 msgid "Filament serial is not entered, please enter serial."
 msgstr "Filamentin serisi girilmedi, lütfen seri numarasını girin."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Filamentin satıcı veya seri numarası girişinde kaçış karakterleri olabilir. Lütfen silip tekrar giriniz."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

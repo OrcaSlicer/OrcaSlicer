@@ -17236,7 +17236,7 @@ msgstr "ไม่ได้เลือกประเภทเส้นพลา
 msgid "Filament serial is not entered, please enter serial."
 msgstr "ไม่ได้ป้อนซีเรียลของฟิลาเมนต์ โปรดป้อนซีเรียล"
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "อาจมีอักขระหลีกในผู้ขายหรืออินพุตแบบอนุกรมของเส้นพลาสติก กรุณาลบและป้อนใหม่"
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

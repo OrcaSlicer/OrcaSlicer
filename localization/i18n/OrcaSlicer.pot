@@ -16518,7 +16518,7 @@ msgstr ""
 msgid "Filament serial is not entered, please enter serial."
 msgstr ""
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr ""
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."

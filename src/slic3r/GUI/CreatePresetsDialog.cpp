@@ -1098,7 +1098,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         serial_name = remove_special_key(serial_name);
 
         if (vendor_name.empty() || serial_name.empty()) {
-            MessageDialog dlg(this, _L("There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return;

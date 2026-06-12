@@ -17273,7 +17273,7 @@ msgstr "未选择耗材类型，请重新选择。"
 msgid "Filament serial is not entered, please enter serial."
 msgstr "未输入耗材系列，请输入耗材系列。"
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "检测到输入的耗材供应商或系列中可能包含转义字符。请删除转义字符并重新输入。"
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
