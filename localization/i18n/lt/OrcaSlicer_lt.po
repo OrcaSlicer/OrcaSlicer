@@ -2675,7 +2675,7 @@ msgstr "Jei pirmasis pasirinktas elementas yra objektas, tuomet ir antrasis priv
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Jei pirmasis pasirinktas elementas ira dalis, tuomet antrasis taip pat privalo būti to paties objekto dalis."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Paskutinės vientiso objekto dalies tipas negali būti keičiamas."
 
 msgid "Type:"

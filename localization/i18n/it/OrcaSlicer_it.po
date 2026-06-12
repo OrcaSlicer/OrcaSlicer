@@ -2667,7 +2667,7 @@ msgstr "Se il primo elemento selezionato è un oggetto, anche il secondo deve es
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Se il primo elemento selezionato è una parte, il secondo deve far parte dello stesso oggetto."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Il tipo dell'ultima parte dell'oggetto solido non può essere modificato."
 
 msgid "Type:"

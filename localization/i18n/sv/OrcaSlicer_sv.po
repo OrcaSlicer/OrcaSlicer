@@ -2658,7 +2658,7 @@ msgstr "Om den första valda delen är ett objekt, så bör även den andra vara
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Om den första valda delen är en del, så bör den andra delen tillhöra samma objekt."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Den sista fasta objekts delen ska inte ändras."
 
 msgid "Type:"

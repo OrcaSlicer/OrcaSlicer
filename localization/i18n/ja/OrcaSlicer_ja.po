@@ -2658,7 +2658,7 @@ msgstr "最初に選択したのがオブジェクトの場合、次に選択で
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "最初に選択したがパーツの場合、次に選択できるのが同じオブジェクトのパーツ"
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "オブジェクトの最後のパーツはタイプを変更できません。"
 
 msgid "Type:"

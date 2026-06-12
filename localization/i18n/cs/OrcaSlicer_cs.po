@@ -2664,7 +2664,7 @@ msgstr "Pokud je první vybraná položka objekt, druhá by měla být také obj
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Pokud je první vybraná položka část, druhá by měla být částí ve stejném objektu."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Typ poslední pevné části objektu nelze měnit."
 
 msgid "Type:"

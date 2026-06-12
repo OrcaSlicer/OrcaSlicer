@@ -2666,7 +2666,7 @@ msgstr "หากรายการแรกที่เลือกเป็น
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "หากรายการแรกที่เลือกเป็นส่วนหนึ่ง รายการที่สองควรเป็นส่วนในวัตถุเดียวกัน"
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "ประเภทของชิ้นส่วนวัตถุทึบชิ้นสุดท้ายจะไม่ถูกเปลี่ยนแปลง"
 
 msgid "Type:"

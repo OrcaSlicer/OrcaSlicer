@@ -2662,7 +2662,7 @@ msgstr "Als het eerste geselecteerde item een object is, dient het tweede item o
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Als het eerst geselecteerde item een onderdeel is, moet het tweede een onderdeel van hetzelfde object zijn."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Het type van het laatste solide object onderdeel kan niet worden veranderd."
 
 msgid "Type:"

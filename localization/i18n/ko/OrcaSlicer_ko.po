@@ -2665,7 +2665,7 @@ msgstr "첫 번째로 선택한 항목이 객체이면 두 번째 항목도 객�
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "첫 번째로 선택한 항목이 부품이면 두 번째 항목은 동일한 객체의 부품이어야 합니다."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "마지막 꽉찬 객체 부품의 유형은 변경되지 않습니다."
 
 msgid "Type:"

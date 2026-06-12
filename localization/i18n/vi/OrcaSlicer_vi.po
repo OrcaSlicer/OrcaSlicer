@@ -2661,7 +2661,7 @@ msgstr "Nếu mục đầu tiên được chọn là vật thể, mục thứ ha
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Nếu mục đầu tiên được chọn là phần, mục thứ hai phải là phần trong cùng vật thể."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Loại của phần vật thể rắn cuối cùng không được thay đổi."
 
 msgid "Type:"

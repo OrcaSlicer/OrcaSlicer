@@ -2661,7 +2661,7 @@ msgstr "如果第一個選擇的是物件，那麼第二個選擇的也必須是
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "如果第一個選擇的是零件，那麼第二個選擇的也必須是同一個物件中的零件。"
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "不允許修改物件中最後一個實體零件的類型。"
 
 msgid "Type:"

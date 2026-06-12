@@ -2744,7 +2744,7 @@ msgstr "Если первый выбранный элемент является
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Если первый выбранный элемент является частью модели, то второй должен быть частью той же модели."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Вы не можете изменить тип последнего твердотельного элемента модели."
 
 msgid "Type:"

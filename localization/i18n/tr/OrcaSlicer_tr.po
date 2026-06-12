@@ -2663,7 +2663,7 @@ msgstr "İlk seçilen öğe bir nesne ise ikincisi de nesne olmalıdır."
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "İlk seçilen öğe bir parça ise ikincisi aynı nesnenin parçası olmalıdır."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Son katı nesne parçasının tipi değiştirilNozullidir."
 
 msgid "Type:"

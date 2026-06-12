@@ -2670,7 +2670,7 @@ msgstr ""
 "Якщо перший обраний елемент є частиною, другий має бути частиноютого ж\n"
 "об'єкту."
 
-msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "Тип останньої твердотільної частини об'єкта не можна змінювати."
 
 msgid "Type:"
