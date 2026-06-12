@@ -2784,13 +2784,13 @@ msgstr "1x1 Izgara: %d mm"
 msgid "More"
 msgstr "Daha"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Tercihler'i açın."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Sonraki ipucunu açın."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Belgeleri web tarayıcısında açın."
 
 msgid "Color"
@@ -3651,7 +3651,7 @@ msgstr "AMS yuvasını manuel olarak seçmek için tıklayın"
 msgid "Do not Enable AMS"
 msgstr "AMS'yi Etkinleştirme"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Kasanın arkasına monte edilen malzemeleri kullanarak yazdırma"
 
 msgid "Print with filaments in AMS"
@@ -6587,7 +6587,7 @@ msgstr "Entegrasyon geri alınamadı."
 msgid "Exporting"
 msgstr "Dışa Aktarılıyor."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Yazılımın Yeni sürümü var."
 
 msgid "Goto download page."
@@ -8881,7 +8881,7 @@ msgstr "Dosya yükleme zaman aşımına uğradı. Lütfen ürün yazılımı sü
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Dilimleme tamam."
 
 msgid "View all Daily tips"
@@ -9333,13 +9333,13 @@ msgstr "Parça Soğutma Fanı"
 msgid "Min fan speed threshold"
 msgstr "Minimum fan hızı"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Tahmini katman süresi ayardaki katman süresinden uzun olmadığında parça soğutma fanı hızı minimum hızda çalışmaya başlayacaktır. Katman süresi eşikten kısa olduğunda fan hızı, katman yazdırma süresine göre minimum ve maksimum fan hızı arasında enterpole edilir"
 
 msgid "Max fan speed threshold"
 msgstr "Maksimum fan hızı"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Tahmini katman süresi ayar değerinden kısa olduğunda parça soğutma fanı hızı maksimum olacaktır"
 
 msgid "Auxiliary part cooling fan"
@@ -10596,7 +10596,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Hiçbir nesne yazdırılamaz. Belki çok küçük"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12541,7 +12541,7 @@ msgstr "Filament yoğunluğu. Yalnızca istatistikler için."
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Filament malzeme türü."
 
 msgid "Soluble material"
@@ -14588,7 +14588,7 @@ msgstr "Başlangıç G Kodu"
 msgid "Start G-code when starting the entire print."
 msgstr "Baskı başladığında çalışacak G Kodu."
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Bu filament ile baskı başladığında çalıştırılacak G-Kod."
 
 msgid "Single Extruder Multi Material"
@@ -16067,7 +16067,7 @@ msgstr "Model dosyasının yüklenmesi başarısız oldu."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Bir model dosyasının meshlenmesi başarısız oldu veya geçerli bir şekil yok."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Sağlanan dosya boş olduğundan okunamadı"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

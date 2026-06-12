@@ -225,7 +225,7 @@ _finished:
     }
 
     if (model.objects.empty())
-        throw Slic3r::RuntimeError(_L("The supplied file couldn't be read because it's empty"));
+        throw Slic3r::RuntimeError(_L("The supplied file couldn't be read because it's empty."));
 
     for (ModelObject *o : model.objects)
         o->input_file = input_file;
@@ -352,7 +352,7 @@ Model Model::read_from_file(const std::string&                                  
     }
 
     if (model.objects.empty())
-        throw Slic3r::RuntimeError(_L("The supplied file couldn't be read because it's empty"));
+        throw Slic3r::RuntimeError(_L("The supplied file couldn't be read because it's empty."));
 
     for (ModelObject *o : model.objects)
         o->input_file = input_file;

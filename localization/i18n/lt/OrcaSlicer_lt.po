@@ -2799,13 +2799,13 @@ msgstr "1x1 Grid: %d mm"
 msgid "More"
 msgstr "Daugiau"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Atidaryti nuostatas."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Kitas patarimas."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Atidaryti dokumentaciją žiniatinklio naršyklėje."
 
 msgid "Color"
@@ -3666,7 +3666,7 @@ msgstr "Paspauskite, norėdami rankiniu būdu pasirinkti AMS lizdą"
 msgid "Do not Enable AMS"
 msgstr "Nejungti AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Spausdinkite naudodami išorinėje ritėje esančią giją"
 
 msgid "Print with filaments in AMS"
@@ -6611,7 +6611,7 @@ msgstr "Integracijos atšaukimas nepavyko."
 msgid "Exporting"
 msgstr "Eksportuojama."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Yra atnaujinimas!"
 
 msgid "Goto download page."
@@ -8917,7 +8917,7 @@ msgstr "File upload timed out. Please check if the firmware version supports thi
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Sluoksniavimas baigtas."
 
 msgid "View all Daily tips"
@@ -9375,13 +9375,13 @@ msgstr "Dalies aušinimo ventiliatorius"
 msgid "Min fan speed threshold"
 msgstr "Min. ventiliatoriaus greičio riba"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Detalių aušinimo ventiliatorius veiks mažiausiu ventiliatoriaus greičiu, kai numatoma sluoksnio trukmė bus ilgesnė už ribinę vertę. Kai sluoksnio trukmė trumpesnė už ribinę vertę, ventiliatoriaus greitis bus apskaičiuojamas tarp mažiausio ir didžiausio ventiliatoriaus greičio, atsižvelgiant į sluoksnio spausdinimo trukmę"
 
 msgid "Max fan speed threshold"
 msgstr "Maks ventiliatoriaus greičio riba"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Detalių aušinimo ventiliatorius veiks didžiausiu greičiu, kai numatoma sluoksnio trukmė bus trumpesnė už ribinę vertę"
 
 msgid "Auxiliary part cooling fan"
@@ -10640,7 +10640,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Negalima spausdinti jokio objekto. Jis gali būti per mažas"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12586,7 +12586,7 @@ msgstr "Gijų tankis, tik statistikai."
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Gijos medžiagos tipas."
 
 msgid "Soluble material"
@@ -14636,7 +14636,7 @@ msgstr "Pradžios G-kodas"
 msgid "Start G-code when starting the entire print."
 msgstr "G kodo paleidimas, kai pradedamas visas spausdinimas."
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Paleisti G-kodą, kai pradedama spausdinti šia gija."
 
 msgid "Single Extruder Multi Material"
@@ -16122,7 +16122,7 @@ msgstr "Nepavyko įkelti modelio failo."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Meshing of a model file failed or no valid shape."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

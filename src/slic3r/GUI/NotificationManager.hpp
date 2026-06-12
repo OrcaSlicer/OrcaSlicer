@@ -1057,7 +1057,7 @@ private:
         NotificationData{NotificationType::UndoDesktopIntegrationFail, NotificationLevel::WarningNotificationLevel, 10,
 		_u8L("Undo integration failed.") },
         NotificationData{NotificationType::ExportOngoing, NotificationLevel::RegularNotificationLevel, 0, _u8L("Exporting")},
-        NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("Software has New version."), _u8L("Goto download page."),
+        NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("An update is available!"), _u8L("Goto download page."),
                          [](wxEvtHandler *evnthndlr) {
 				//BBS set feishu release page by default
 				wxGetApp().open_browser_with_warning_dialog("https://www.thingiverse.com/"); return true;

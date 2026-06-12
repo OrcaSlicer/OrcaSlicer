@@ -2863,7 +2863,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_type", coStrings);
     def->label = L("Type");
-    def->tooltip = L("The material type of filament.");
+    def->tooltip = L("Filament material type.");
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->gui_flags = "show_value";
 
@@ -5940,7 +5940,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_start_gcode", coStrings);
     def->label = L("Start G-code");
-    def->tooltip = L("Start G-code when starting the printing of this filament.");
+    def->tooltip = L("G-code added when the printer starts using this filament.");
     def->multiline = true;
     def->full_width = true;
     def->height = 12;

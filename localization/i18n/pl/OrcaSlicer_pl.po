@@ -2788,13 +2788,13 @@ msgstr ""
 msgid "More"
 msgstr "Więcej"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Otwórz preferencje."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Otwórz następną wskazówkę."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Otwórz dokumentację w przeglądarce internetowej."
 
 msgid "Color"
@@ -3657,7 +3657,7 @@ msgstr "Kliknij, aby ręcznie wybrać inny slot AMS"
 msgid "Do not Enable AMS"
 msgstr "Nie włączaj AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Drukowanie przy użyciu materiałów zamontowanych na tylnej części obudowy"
 
 msgid "Print with filaments in AMS"
@@ -6596,7 +6596,7 @@ msgstr "Cofnij nieudaną integrację."
 msgid "Exporting"
 msgstr "Eksportuj."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Dostępna jest nowa wersja aplikacji."
 
 msgid "Goto download page."
@@ -8886,7 +8886,7 @@ msgstr "Przekroczono limit czasu wgrywania pliku. Sprawdź czy Twoja wersja opro
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Zakończono cięcie modelu."
 
 msgid "View all Daily tips"
@@ -9337,13 +9337,13 @@ msgstr "Wentylator chłodzący części"
 msgid "Min fan speed threshold"
 msgstr "Minimalny próg prędkości wentylatora"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Prędkość wentylatora chłodzącego części zacznie pracować z minimalną prędkością, gdy szacowany czas warstwy nie będzie dłuższy niż czas warstwy w ustawieniach. Gdy czas warstwy jest krótszy niż próg, prędkość wentylatora jest interpolowana między minimalną a maksymalną prędkością wentylatora zgodnie z czasem druku warstwy"
 
 msgid "Max fan speed threshold"
 msgstr "Maksymalny próg prędkości wentylatora"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Prędkość wentylatora chłodzącego części będzie maksymalna, gdy szacowany czas warstwy będzie krótszy niż wartość ustawiona"
 
 msgid "Auxiliary part cooling fan"
@@ -10602,7 +10602,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Żaden obiekt nie może być wydrukowany. Może jest za mały"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12515,7 +12515,7 @@ msgstr "Gęstość filamentu. Tylko do celów statystycznych"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Typ filamentu"
 
 msgid "Soluble material"
@@ -14561,7 +14561,7 @@ msgstr "Początkowy G-code"
 msgid "Start G-code when starting the entire print."
 msgstr "Początkowy G-code przy rozpoczynaniu całego drukowania"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Początkowy G-code przy rozpoczynaniu drukowania tym filamentem"
 
 msgid "Single Extruder Multi Material"
@@ -16035,7 +16035,7 @@ msgstr "Nie udało się wczytać pliku modelu."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Siatkowanie pliku modelu nie powiodło się lub nie ma prawidłowego kształtu."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Dostarczony plik nie mógł być odczytany, ponieważ jest pusty"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

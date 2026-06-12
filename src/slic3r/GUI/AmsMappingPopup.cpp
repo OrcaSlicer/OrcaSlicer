@@ -2021,7 +2021,7 @@ AmsIntroducePopup::AmsIntroducePopup(wxWindow* parent)
     m_staticText_top->Wrap(-1);
     bSizer4->Add(m_staticText_top, 0, wxALL, 5);
 
-    m_staticText_bottom =  new Label(this, _L("Print using materials mounted on the back of the case"));
+    m_staticText_bottom =  new Label(this, _L("Print using filament on external spool."));
     m_staticText_bottom->Wrap(-1);
     m_staticText_bottom->SetFont(::Label::Body_13);
     m_staticText_bottom->SetForegroundColour(wxColour("#6B6B6B"));

@@ -2743,13 +2743,13 @@ msgstr ""
 msgid "More"
 msgstr ""
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Open Preferences"
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Open next tip"
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Open documentation in web browser"
 
 msgid "Color"
@@ -3587,7 +3587,7 @@ msgstr ""
 msgid "Do not Enable AMS"
 msgstr ""
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Print using filament on external spool."
 
 msgid "Print with filaments in AMS"
@@ -6458,7 +6458,7 @@ msgstr ""
 msgid "Exporting"
 msgstr "Exporting"
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "An update is available!"
 
 msgid "Goto download page."
@@ -8715,7 +8715,7 @@ msgstr ""
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Slice complete"
 
 msgid "View all Daily tips"
@@ -9152,13 +9152,13 @@ msgstr ""
 msgid "Min fan speed threshold"
 msgstr ""
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 
 msgid "Max fan speed threshold"
 msgstr ""
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 
 msgid "Auxiliary part cooling fan"
@@ -10383,7 +10383,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "No object can be printed. It may be too small."
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12170,7 +12170,7 @@ msgstr "Filament density, for statistical purposes only."
 msgid "g/cm³"
 msgstr ""
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Filament material type"
 
 msgid "Soluble material"
@@ -14131,7 +14131,7 @@ msgstr ""
 msgid "Start G-code when starting the entire print."
 msgstr "G-code added when starting a print."
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "G-code added when the printer starts using this filament"
 
 msgid "Single Extruder Multi Material"
@@ -15560,8 +15560,8 @@ msgstr ""
 msgid "Meshing of a model file failed or no valid shape."
 msgstr ""
 
-msgid "The supplied file couldn't be read because it's empty"
-msgstr "The supplied file couldn't be read because it's empty."
+msgid "The supplied file couldn't be read because it's empty."
+msgstr "The supplied file couldn't be read because it's empty.."
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."

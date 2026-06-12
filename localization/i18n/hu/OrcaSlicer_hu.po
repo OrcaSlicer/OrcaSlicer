@@ -2787,13 +2787,13 @@ msgstr "1x1 rács: %d mm"
 msgid "More"
 msgstr "Több"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Beállítások megnyitása"
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Következő tipp megnyitása"
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Dokumentáció megnyitása webböngészőben"
 
 msgid "Color"
@@ -3654,7 +3654,7 @@ msgstr "Kattints az AMS-férőhely kézi kiválasztásához"
 msgid "Do not Enable AMS"
 msgstr "Ne engedélyezd az AMS-t"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Nyomtatás külső tartón lévő filamenttel."
 
 msgid "Print with filaments in AMS"
@@ -6597,7 +6597,7 @@ msgstr "Az integráció visszavonása nem sikerült."
 msgid "Exporting"
 msgstr "Exportálás."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Új szoftververzió érhető el."
 
 msgid "Goto download page."
@@ -8908,7 +8908,7 @@ msgstr "Fájlfeltöltés időtúllépés. Ellenőrizd, hogy a firmware verzió t
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Szeletelés kész."
 
 msgid "View all Daily tips"
@@ -9358,13 +9358,13 @@ msgstr "Tárgyhűtő ventilátor"
 msgid "Min fan speed threshold"
 msgstr "Min. ventilátor fordulatszám"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "A tárgyhűtő ventilátor akkor kezd el min. fordulatszámon működni, amikor a becsült rétegidő nem hosszabb, mint a rétegidő a beállítoskban. Ha a rétegidő rövidebb a küszöbértéknél, a ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
 msgid "Max fan speed threshold"
 msgstr "Max. ventilátor fordulatszám"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "A tárgyhűtő ventilátor fordulatszáma a maximális lesz, ha a becsült rétegidő rövidebb, mint a beállított érték"
 
 msgid "Auxiliary part cooling fan"
@@ -10642,7 +10642,7 @@ msgstr "Folyamat módosítása extrudálási szerepkör G-kódja"
 msgid "Filament change extrusion role G-code"
 msgstr "Filament változás extrudálási szerepkör G-kódja"
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Objektum nem nyomtatható ki. Lehet, hogy túl kicsi."
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12604,7 +12604,7 @@ msgstr "Filament sűrűsége. Csak statisztikákhoz kerül felhasználásra"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Filament anyagának típusa"
 
 msgid "Soluble material"
@@ -14710,7 +14710,7 @@ msgstr "Kezdő G-kód"
 msgid "Start G-code when starting the entire print."
 msgstr "Kezdő G-kód az egész nyomtatás megkezdésekor"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Kezdő G-kód a filament nyomtatásának megkezdésekor"
 
 msgid "Single Extruder Multi Material"
@@ -16199,7 +16199,7 @@ msgstr "A modellfájl betöltése sikertelen."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "A modellfájl hálósítása sikertelen volt, vagy nincs érvényes alakzat."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "A megadott fájl nem olvasható be, mert üres"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

@@ -2797,13 +2797,13 @@ msgstr "Grille 1x1 : %d mm"
 msgid "More"
 msgstr "Plus"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Ouvrir les Préférences."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Ouvrir le conseil suivant."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Ouvrir la documentation dans un navigateur Web."
 
 msgid "Color"
@@ -3664,7 +3664,7 @@ msgstr "Cliquez pour sélectionner manuellement l'emplacement AMS"
 msgid "Do not Enable AMS"
 msgstr "Ne pas activer l'AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Imprimez en utilisant le filament de la bobine externe"
 
 msgid "Print with filaments in AMS"
@@ -6607,7 +6607,7 @@ msgstr "L'annulation de l'intégration a échoué."
 msgid "Exporting"
 msgstr "Exportation."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Le logiciel a une nouvelle version."
 
 msgid "Goto download page."
@@ -8916,7 +8916,7 @@ msgstr "Le téléversement du fichier a expiré. Veuillez vérifier si la versio
 msgid "Sending failed, please try again!"
 msgstr "L’envoi a échoué, veuillez réessayer !"
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Découpe terminée."
 
 msgid "View all Daily tips"
@@ -9368,13 +9368,13 @@ msgstr "Ventilateur de refroidissement des pièces"
 msgid "Min fan speed threshold"
 msgstr "Seuil de vitesse mini du ventilateur"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "La vitesse du ventilateur de refroidissement des pièces commencera à fonctionner à la vitesse minimale lorsque le temps de couche estimé n'est pas supérieur au temps de couche dans le réglage. Lorsque le temps de couche est inférieur au seuil, la vitesse du ventilateur est interpolée entre la vitesse minimale et maximale du ventilateur en fonction du temps d'impression de la couche"
 
 msgid "Max fan speed threshold"
 msgstr "Seuil de vitesse maximale du ventilateur"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "La vitesse du ventilateur de refroidissement des pièces sera maximale lorsque le temps de couche estimé est plus court que la valeur de réglage"
 
 msgid "Auxiliary part cooling fan"
@@ -10655,7 +10655,7 @@ msgstr "G-code de changement du rôle de l’extrusion (traitement)"
 msgid "Filament change extrusion role G-code"
 msgstr "G-code de changement du rôle de l’extrusion (filament)"
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Aucun objet ne peut être imprimé. Peut-être trop petit"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12691,7 +12691,7 @@ msgstr "Densité des filaments. Pour les statistiques uniquement"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Le type de matériau du filament"
 
 msgid "Soluble material"
@@ -14803,7 +14803,7 @@ msgstr "G-code de démarrage"
 msgid "Start G-code when starting the entire print."
 msgstr "G-code de démarrage lors du démarrage de l'ensemble de l'impression"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "G-code de démarrage au démarrage de l'impression de ce filament"
 
 msgid "Single Extruder Multi Material"
@@ -16288,7 +16288,7 @@ msgstr "Le chargement du fichier modèle a échoué."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Le maillage d'un fichier modèle a échoué ou la forme n'est pas valide."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Le fichier fourni n'a pas pu être lu car il est vide"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

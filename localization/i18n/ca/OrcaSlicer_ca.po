@@ -2791,13 +2791,13 @@ msgstr "Graella 1x1: %d mm"
 msgid "More"
 msgstr "Més"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Obrir Preferències."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Obre el següent consell."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Obre la Documentació al navegador web."
 
 msgid "Color"
@@ -3658,7 +3658,7 @@ msgstr "Feu clic per seleccionar la ranura AMS manualment"
 msgid "Do not Enable AMS"
 msgstr "No habilitis AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Imprimir amb materials muntats a la part posterior de la carcassa"
 
 msgid "Print with filaments in AMS"
@@ -6597,7 +6597,7 @@ msgstr "L'operació de desfer ha fallat."
 msgid "Exporting"
 msgstr "Exportant."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "El programari té una nova versió."
 
 msgid "Goto download page."
@@ -8902,7 +8902,7 @@ msgstr "Temps d'espera de càrrega del fitxer esgotat. Comproveu si la versió d
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Laminat ok."
 
 msgid "View all Daily tips"
@@ -9355,13 +9355,13 @@ msgstr "Ventilador de refrigeració de peces"
 msgid "Min fan speed threshold"
 msgstr "Llindar de velocitat mínima del ventilador"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "La velocitat del ventilador de refrigeració de la peça començarà a funcionar a la velocitat mínima quan el temps estimat de la capa no sigui superior al temps de la capa configurat. Quan el temps de capa és inferior al llindar, la velocitat del ventilador s'interpola entre la velocitat mínima i màxima del ventilador segons el temps d'impressió de la capa"
 
 msgid "Max fan speed threshold"
 msgstr "Llindar de velocitat màxima del ventilador"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "La velocitat del ventilador de refrigeració de la peça serà màxima quan el temps estimat de capa sigui inferior al valor configurat"
 
 msgid "Auxiliary part cooling fan"
@@ -10618,7 +10618,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "No es pot imprimir cap objecte. Potser que sigui massa petit"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12572,7 +12572,7 @@ msgstr "Densitat del filament. Només per a estadístiques"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "El tipus de material del filament"
 
 msgid "Soluble material"
@@ -14623,7 +14623,7 @@ msgstr "Codi-G inicial"
 msgid "Start G-code when starting the entire print."
 msgstr "Codi-G inicial quan comença tota la impressió"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Codi-G inicial quan comença la impressió d'aquest filament"
 
 msgid "Single Extruder Multi Material"
@@ -16110,7 +16110,7 @@ msgstr "La càrrega d'un fitxer de model ha fallat."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "La generació de malla del fitxer del model ha fallat o la forma no és vàlida."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "El fitxer subministrat no s'ha pogut llegir perquè està buit"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

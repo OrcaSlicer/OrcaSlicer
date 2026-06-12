@@ -2872,13 +2872,13 @@ msgstr "Размер ячейки: %d мм"
 msgid "More"
 msgstr "Подробнее"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Открыть настройки приложения."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Следующий совет."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Открыть документацию в браузере."
 
 msgid "Color"
@@ -3759,7 +3759,7 @@ msgstr "Нажмите, чтобы выбрать слот AMS вручную"
 msgid "Do not Enable AMS"
 msgstr "Не включать AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Печать с использованием материала, установленного на задней части корпуса"
 
 msgid "Print with filaments in AMS"
@@ -6810,7 +6810,7 @@ msgstr "Не удалось отменить интеграцию."
 msgid "Exporting"
 msgstr "Экспорт..."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Доступна новая версия приложения."
 
 msgid "Goto download page."
@@ -9172,7 +9172,7 @@ msgstr "Превышено время ожидания отправки файл
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Нарезка завершена."
 
 msgid "View all Daily tips"
@@ -9637,7 +9637,7 @@ msgstr "Вентилятор обдува модели"
 msgid "Min fan speed threshold"
 msgstr "Минимальный обдув слоя"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr ""
 "Настройка зависимости охлаждения от времени печати слоя.\n"
 "\n"
@@ -9648,7 +9648,7 @@ msgstr ""
 msgid "Max fan speed threshold"
 msgstr "Максимальный обдув слоя"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr ""
 "Настройка зависимости охлаждения от времени печати слоя.\n"
 "\n"
@@ -10938,7 +10938,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Печать моделей невозможна. Возможно, они слишком маленькие."
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -13026,7 +13026,7 @@ msgstr "Плотность материала. Используется при �
 msgid "g/cm³"
 msgstr "г/см³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Обозначение состава материала."
 
 msgid "Soluble material"
@@ -15310,7 +15310,7 @@ msgstr "Стартовый G-код"
 msgid "Start G-code when starting the entire print."
 msgstr "Команды в G-коде, которые выполняются в самом начале печати."
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Команды в G-коде, которые выполняются при запуске печати этим материалом."
 
 # было Одиночный мультиматериальный экструдер
@@ -16958,7 +16958,7 @@ msgstr "Не удалось загрузить файл модели."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Не удалось обнаружить форму или создать по ней полигональную сетку."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Невозможно прочитать файл, так как он пуст"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

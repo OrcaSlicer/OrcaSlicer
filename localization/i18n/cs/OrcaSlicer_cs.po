@@ -2787,13 +2787,13 @@ msgstr "1x1 Grid: %d mm"
 msgid "More"
 msgstr "Více"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Otevřít předvolby."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Otevřít další tip."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Otevřít dokumentaci ve webovém prohlížeči."
 
 msgid "Color"
@@ -3652,7 +3652,7 @@ msgstr "Klikněte pro ruční výběr slotu AMS"
 msgid "Do not Enable AMS"
 msgstr "Nepovolovat AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Tisk z materiálů umístěných na zadní straně krytu"
 
 msgid "Print with filaments in AMS"
@@ -6591,7 +6591,7 @@ msgstr "Integrace zpět selhala."
 msgid "Exporting"
 msgstr "Exportuji."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Software má novou verzi."
 
 msgid "Goto download page."
@@ -8886,7 +8886,7 @@ msgstr "File upload timed out. Please check if the firmware version supports thi
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Řezání proběhlo v pořádku."
 
 msgid "View all Daily tips"
@@ -9336,13 +9336,13 @@ msgstr "Ventilátor chlazení části"
 msgid "Min fan speed threshold"
 msgstr "Minimální práh otáček ventilátoru"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Rychlost ventilátoru chlazení části začne běžet na minimální rychlost, pokud odhadovaný čas vrstvy není delší než čas vrstvy v nastavení. Pokud je čas vrstvy kratší než práh, rychlost ventilátoru je interpolována mezi minimální a maximální podle času tisku vrstvy."
 
 msgid "Max fan speed threshold"
 msgstr "Prahová hodnota maximální rychlosti ventilátoru"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Rychlost ventilátoru chlazení části bude maximální, pokud je odhadovaný čas vrstvy kratší než nastavená hodnota."
 
 msgid "Auxiliary part cooling fan"
@@ -10601,7 +10601,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Nelze vytisknout žádný objekt. Možná je příliš malý."
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12547,7 +12547,7 @@ msgstr "Hustota filamentu. Pouze pro statistiku."
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Typ materiálu filamentu."
 
 msgid "Soluble material"
@@ -14597,7 +14597,7 @@ msgstr "Start G-code"
 msgid "Start G-code when starting the entire print."
 msgstr "Start G-code při spuštění celého tisku."
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Start G-code při spuštění tisku tohoto filamentu."
 
 msgid "Single Extruder Multi Material"
@@ -16080,7 +16080,7 @@ msgstr "Načítání souboru modelu selhalo."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Meshing of a model file failed or no valid shape."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Zadaný soubor nelze načíst, protože je prázdný."
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

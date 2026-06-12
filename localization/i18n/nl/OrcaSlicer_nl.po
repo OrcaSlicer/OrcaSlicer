@@ -2784,13 +2784,13 @@ msgstr "1x1 raster: %d mm"
 msgid "More"
 msgstr "Meer"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Voorkeuren openen."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Volgende tip openen."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Documentatie openen in een webbrowser."
 
 msgid "Color"
@@ -3651,7 +3651,7 @@ msgstr "Klik om AMS-slot handmatig te selecteren"
 msgid "Do not Enable AMS"
 msgstr "AMS niet inschakelen"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Print met filament op een externe spoel."
 
 msgid "Print with filaments in AMS"
@@ -6590,7 +6590,7 @@ msgstr "Het ongedaan maken van de integratie is mislukt."
 msgid "Exporting"
 msgstr "Exporteren."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Er is een update beschikbaar."
 
 msgid "Goto download page."
@@ -8893,7 +8893,7 @@ msgstr "File upload timed out. Please check if the firmware version supports thi
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Slice gelukt."
 
 msgid "View all Daily tips"
@@ -9345,13 +9345,13 @@ msgstr "Prinkop ventilator"
 msgid "Min fan speed threshold"
 msgstr "Minimale snelheidsdrempel ventilator snelheid"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "De snelheid van de printkop ventilator begint op minimale snelheid te draaien wanneer de geschatte printtijd voor de laag niet langer is dan de printtijd in de instelling. Wanneer de printtijd korter is dan de drempelwaarde, wordt de ventilatorsnelheid geïnterpoleerd tussen de minimale en maximale ventilatorsnelheid volgens de printtijd van de laag"
 
 msgid "Max fan speed threshold"
 msgstr "Snelheidsdrempel ventilatorsnelheid"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "De snelheid van de printkop ventilator zal maximaal zijn als de inschatte tijd voor het printen van de laag lager is dan de ingestelde waarde"
 
 msgid "Auxiliary part cooling fan"
@@ -10608,7 +10608,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Er kunnen geen objecten geprint worden. Het kan zijn dat ze te klein zijn."
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12554,7 +12554,7 @@ msgstr "Filamentdichtheid, alleen voor statistische doeleinden."
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Filament materiaal."
 
 msgid "Soluble material"
@@ -14604,7 +14604,7 @@ msgstr "Start G-code"
 msgid "Start G-code when starting the entire print."
 msgstr "Start G-code bij het starten van een print"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Start G-code wanneer het printen van dit filament begint"
 
 msgid "Single Extruder Multi Material"
@@ -16091,8 +16091,8 @@ msgstr "Loading of a model file failed."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Meshing of a model file failed or no valid shape."
 
-msgid "The supplied file couldn't be read because it's empty"
-msgstr "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
+msgstr "The supplied file couldn't be read because it's empty."
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

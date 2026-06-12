@@ -2780,13 +2780,13 @@ msgstr "1x1 網格：%d mm"
 msgid "More"
 msgstr "詳情"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "偏好設定。"
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "打開下一條提示。"
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "在網頁瀏覽器中打開檔案。"
 
 msgid "Color"
@@ -3647,7 +3647,7 @@ msgstr "滑鼠左鍵點擊以手動選擇 AMS 槽位"
 msgid "Do not Enable AMS"
 msgstr "不使用 AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "使用安裝在機箱背面的線材進行列印"
 
 msgid "Print with filaments in AMS"
@@ -6610,7 +6610,7 @@ msgstr "整合取消失敗。"
 msgid "Exporting"
 msgstr "正在匯出。"
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "發現新的軟體版本。"
 
 msgid "Goto download page."
@@ -8897,7 +8897,7 @@ msgstr "檔案上傳逾時。請檢查韌體版本是否支援此操作，或確
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "切片完成。"
 
 msgid "View all Daily tips"
@@ -9346,13 +9346,13 @@ msgstr "物件冷卻風扇"
 msgid "Min fan speed threshold"
 msgstr "最小風扇速度臨界值"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "當預計的層時間小於設定的層時間時，物件冷卻風扇速度將開始以最小速度運轉。當層時間小於設定值時，風扇速度將根據該層列印時間在最小和最大風扇速度之間自動調整"
 
 msgid "Max fan speed threshold"
 msgstr "最大風扇速度臨界值"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "當預計的層列印時間比設定值要小時，物件冷卻風扇轉速將達到最大值"
 
 msgid "Auxiliary part cooling fan"
@@ -10608,7 +10608,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "沒有可列印的物件。可能是因為尺寸過小"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12515,7 +12515,7 @@ msgstr "線材的密度。只用於統計資訊"
 msgid "g/cm³"
 msgstr "克/立方厘米"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "線材的材料類型"
 
 msgid "Soluble material"
@@ -14550,7 +14550,7 @@ msgstr "起始 G-code"
 msgid "Start G-code when starting the entire print."
 msgstr "整個列印開始前的起始 G-code"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "開始使用這個線材列印的起始 G-code"
 
 msgid "Single Extruder Multi Material"
@@ -16024,7 +16024,7 @@ msgstr "載入模型檔案失敗。"
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "模型檔案網格化失敗或沒有有效形狀"
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "無法讀取提供的檔案，因為該檔案為空"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

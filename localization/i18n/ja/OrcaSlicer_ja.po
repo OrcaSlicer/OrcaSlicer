@@ -2778,13 +2778,13 @@ msgstr "1x1 グリッド: %d mm"
 msgid "More"
 msgstr "詳細"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "環境設定を開く"
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "次のヒント"
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "ブラウザで開く"
 
 msgid "Color"
@@ -3637,7 +3637,7 @@ msgstr "AMS スロットを手動で選択"
 msgid "Do not Enable AMS"
 msgstr "AMSを有効にしない"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "外部スプールホルダーのフィラメントで造形します"
 
 msgid "Print with filaments in AMS"
@@ -6553,7 +6553,7 @@ msgstr "統合の取り消しに失敗しました。"
 msgid "Exporting"
 msgstr "エクスポート中"
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "アップデートが利用可能です"
 
 msgid "Goto download page."
@@ -8853,7 +8853,7 @@ msgstr "ファイルアップロードがタイムアウトしました。ファ
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "スライス完了"
 
 msgid "View all Daily tips"
@@ -9298,13 +9298,13 @@ msgstr "パーツ冷却ファン"
 msgid "Min fan speed threshold"
 msgstr "ファン最低回転速度"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "パーツ冷却ファンは、積層造形時間がこの値より長い時に最小回転速度で作動します。"
 
 msgid "Max fan speed threshold"
 msgstr "ファン最大回転速度"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "パーツ冷却ファンは、積層造形時間がこの値より短い時に最大回転速度で作動します。"
 
 msgid "Auxiliary part cooling fan"
@@ -10550,7 +10550,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "造形できるオブジェクトがありません。"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12345,7 +12345,7 @@ msgstr "フィラメント密度"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "フィラメント素材タイプ"
 
 msgid "Soluble material"
@@ -14310,7 +14310,7 @@ msgstr "スタートG-code"
 msgid "Start G-code when starting the entire print."
 msgstr "造形開始時のG-code"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "このフィラメントを使用開始時のG-code"
 
 msgid "Single Extruder Multi Material"
@@ -15750,7 +15750,7 @@ msgstr "モデルファイルの読み込みに失敗しました。"
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "モデルファイルのメッシュ処理に失敗したか、有効な形状が見つかりませんでした。"
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "提供されたファイルは空であるため読み込めませんでした。"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

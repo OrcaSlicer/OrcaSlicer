@@ -2743,13 +2743,13 @@ msgstr ""
 msgid "More"
 msgstr ""
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr ""
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr ""
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr ""
 
 msgid "Color"
@@ -3587,7 +3587,7 @@ msgstr ""
 msgid "Do not Enable AMS"
 msgstr ""
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr ""
 
 msgid "Print with filaments in AMS"
@@ -6435,7 +6435,7 @@ msgstr ""
 msgid "Exporting"
 msgstr ""
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr ""
 
 msgid "Goto download page."
@@ -8678,7 +8678,7 @@ msgstr ""
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr ""
 
 msgid "View all Daily tips"
@@ -9108,13 +9108,13 @@ msgstr ""
 msgid "Min fan speed threshold"
 msgstr ""
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr ""
 
 msgid "Max fan speed threshold"
 msgstr ""
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr ""
 
 msgid "Auxiliary part cooling fan"
@@ -10339,7 +10339,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr ""
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12122,7 +12122,7 @@ msgstr ""
 msgid "g/cm³"
 msgstr ""
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr ""
 
 msgid "Soluble material"
@@ -14081,7 +14081,7 @@ msgstr ""
 msgid "Start G-code when starting the entire print."
 msgstr ""
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr ""
 
 msgid "Single Extruder Multi Material"
@@ -15508,7 +15508,7 @@ msgstr ""
 msgid "Meshing of a model file failed or no valid shape."
 msgstr ""
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr ""
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

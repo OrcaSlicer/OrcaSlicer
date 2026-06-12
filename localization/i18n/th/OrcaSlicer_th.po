@@ -2785,13 +2785,13 @@ msgstr "1x1 ตาราง: %d มม"
 msgid "More"
 msgstr "เพิ่มเติม"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "เปิดการตั้งค่า"
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "เปิดเคล็ดลับถัดไป"
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "เปิดเอกสารในเว็บเบราว์เซอร์"
 
 msgid "Color"
@@ -3652,7 +3652,7 @@ msgstr "คลิกเพื่อเลือกช่อง AMS ด้วย�
 msgid "Do not Enable AMS"
 msgstr "อย่าเปิดใช้งาน AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "พิมพ์โดยใช้วัสดุที่ติดตั้งอยู่ที่ด้านหลังของเคส"
 
 msgid "Print with filaments in AMS"
@@ -6588,7 +6588,7 @@ msgstr "เลิกทำการผสานรวมล้มเหลว"
 msgid "Exporting"
 msgstr "กำลังส่งออก"
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "ซอฟต์แวร์มีเวอร์ชันใหม่"
 
 msgid "Goto download page."
@@ -8891,7 +8891,7 @@ msgstr "การอัปโหลดไฟล์หมดเวลา โป�
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "ชิ้นตกลง"
 
 msgid "View all Daily tips"
@@ -9338,13 +9338,13 @@ msgstr "พัดลมระบายความร้อนบางส่ว
 msgid "Min fan speed threshold"
 msgstr "เกณฑ์ความเร็วพัดลมขั้นต่ำ"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "ความเร็วพัดลมระบายความร้อนชิ้นส่วนจะเริ่มทำงานที่ความเร็วต่ำสุด เมื่อเวลาของเลเยอร์โดยประมาณไม่นานกว่าเวลาของเลเยอร์ในการตั้งค่า เมื่อเวลาของเลเยอร์สั้นกว่าเกณฑ์ ความเร็วพัดลมจะถูกประมาณค่าระหว่างความเร็วพัดลมต่ำสุดและสูงสุดตามเวลาการพิมพ์ของเลเยอร์"
 
 msgid "Max fan speed threshold"
 msgstr "เกณฑ์ความเร็วพัดลมสูงสุด"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "ความเร็วพัดลมระบายความร้อนของชิ้นส่วนจะสูงสุดเมื่อเวลาเลเยอร์โดยประมาณสั้นกว่าค่าที่ตั้งไว้"
 
 msgid "Auxiliary part cooling fan"
@@ -10619,7 +10619,7 @@ msgstr "กระบวนการเปลี่ยนบทบาทการ
 msgid "Filament change extrusion role G-code"
 msgstr "เส้นพลาสติกเปลี่ยนบทบาทการอัดขึ้นรูป G-code"
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "ไม่สามารถพิมพ์วัตถุได้ อาจจะเล็กเกินไป"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12576,7 +12576,7 @@ msgstr "ความหนาแน่นของเส้นพลาสติ
 msgid "g/cm³"
 msgstr "กรัม/ซม.³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "ประเภทวัสดุของเส้นพลาสติก"
 
 msgid "Soluble material"
@@ -14672,7 +14672,7 @@ msgstr "เริ่ม G-code"
 msgid "Start G-code when starting the entire print."
 msgstr "เริ่ม G-code เมื่อเริ่มพิมพ์ทั้งหมด"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "เริ่ม G-code เมื่อเริ่มพิมพ์เส้นพลาสติกนี้"
 
 msgid "Single Extruder Multi Material"
@@ -16153,7 +16153,7 @@ msgstr "การโหลดไฟล์โมเดลล้มเหลว"
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "การประสานไฟล์โมเดลล้มเหลวหรือไม่มีรูปร่างที่ถูกต้อง"
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "ไม่สามารถอ่านไฟล์ที่ให้มาได้เนื่องจากไฟล์ว่างเปล่า"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

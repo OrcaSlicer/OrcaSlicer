@@ -2781,13 +2781,13 @@ msgstr "1x1 Grid: %d mm"
 msgid "More"
 msgstr "Thêm"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Mở tùy chọn."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Mở mẹo tiếp theo."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Mở tài liệu trong trình duyệt web."
 
 msgid "Color"
@@ -3648,7 +3648,7 @@ msgstr "Nhấn để chọn khe AMS thủ công"
 msgid "Do not Enable AMS"
 msgstr "Không bật AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "In bằng vật liệu gắn ở mặt sau của vỏ"
 
 msgid "Print with filaments in AMS"
@@ -6588,7 +6588,7 @@ msgstr "Hoàn tác tích hợp thất bại."
 msgid "Exporting"
 msgstr "Đang xuất."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "Phần mềm có phiên bản mới."
 
 msgid "Goto download page."
@@ -8883,7 +8883,7 @@ msgstr "File upload timed out. Please check if the firmware version supports thi
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Slice hoàn tất."
 
 msgid "View all Daily tips"
@@ -9332,13 +9332,13 @@ msgstr "Quạt làm mát phần"
 msgid "Min fan speed threshold"
 msgstr "Ngưỡng tốc độ quạt tối thiểu"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Tốc độ quạt làm mát phần sẽ bắt đầu chạy ở tốc độ tối thiểu khi thời gian lớp ước tính không dài hơn thời gian lớp trong cài đặt. Khi thời gian lớp ngắn hơn ngưỡng, tốc độ quạt được nội suy giữa tốc độ quạt tối thiểu và tối đa theo thời gian in lớp"
 
 msgid "Max fan speed threshold"
 msgstr "Ngưỡng tốc độ quạt tối đa"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Tốc độ quạt làm mát phần sẽ ở mức tối đa khi thời gian lớp ước tính ngắn hơn giá trị cài đặt"
 
 msgid "Auxiliary part cooling fan"
@@ -10593,7 +10593,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Không có đối tượng nào có thể in. Có thể quá nhỏ"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12539,7 +12539,7 @@ msgstr "Mật độ filament. Chỉ cho thống kê."
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Loại vật liệu của filament."
 
 msgid "Soluble material"
@@ -14589,7 +14589,7 @@ msgstr "G-code bắt đầu"
 msgid "Start G-code when starting the entire print."
 msgstr "G-code bắt đầu khi bắt đầu toàn bộ bản in."
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "G-code bắt đầu khi bắt đầu in filament này."
 
 msgid "Single Extruder Multi Material"
@@ -16082,7 +16082,7 @@ msgstr "Nạp file model thất bại."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Meshing of a model file failed or no valid shape."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "File được cung cấp không thể đọc được vì nó trống"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

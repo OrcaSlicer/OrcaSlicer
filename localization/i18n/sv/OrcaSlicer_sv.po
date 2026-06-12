@@ -2780,13 +2780,13 @@ msgstr "1x1 Grid: %d mm"
 msgid "More"
 msgstr "Mer"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "Öppna inställningar"
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "Öppna nästa tips"
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "Öppna dokumentationen i webbläsaren"
 
 msgid "Color"
@@ -3647,7 +3647,7 @@ msgstr "Klicka för att välja AMS fack manuellt"
 msgid "Do not Enable AMS"
 msgstr "Aktivera inte AMS"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "Skriv ut med filament på en extern spole."
 
 msgid "Print with filaments in AMS"
@@ -6587,7 +6587,7 @@ msgstr "Återställande av integrationen misslyckades."
 msgid "Exporting"
 msgstr "Exporterar."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "En uppdatering finns tillgänglig."
 
 msgid "Goto download page."
@@ -8886,7 +8886,7 @@ msgstr "File upload timed out. Please check if the firmware version supports thi
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "Beredning klar."
 
 msgid "View all Daily tips"
@@ -9339,13 +9339,13 @@ msgstr "Del kylningsfläkten"
 msgid "Min fan speed threshold"
 msgstr "Min fläkt hastighets gräns"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Del kylfläktens hastigheten kommer att börja gå med min hastighet när den beräknade lagringstiden inte är längre än lagringstiden i inställningarna. När lager tiden är kortare än gräns värdet, ställer fläkthastigheten sig mellan lägsta och högsta fläkthastighet enligt lagrets utskriftstid"
 
 msgid "Max fan speed threshold"
 msgstr "Max fläkt hastighets gräns"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Del kylfläktens hastighet kommer att vara max när den beräknade lagringstiden är kortare än inställningsvärdet"
 
 msgid "Auxiliary part cooling fan"
@@ -10602,7 +10602,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "Inget objekt kan skrivas ut. Det kan vara för litet"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12548,7 +12548,7 @@ msgstr "Filament densitet, endast för statistiska ändamål"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "Filament material"
 
 msgid "Soluble material"
@@ -14598,7 +14598,7 @@ msgstr "Starta G-kod"
 msgid "Start G-code when starting the entire print."
 msgstr "Starta G-kod när utskrift startar"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "Starta G-kod när utskrift startar med detta filament"
 
 msgid "Single Extruder Multi Material"
@@ -16086,7 +16086,7 @@ msgstr "Laddning av modell filen misslyckades."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Meshing of a model file failed or no valid shape."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "Den medföljande filen kunde inte läsas eftersom den är tom."
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."

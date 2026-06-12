@@ -2785,13 +2785,13 @@ msgstr "1x1 그리드: %d mm"
 msgid "More"
 msgstr "더보기"
 
-msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "기본 설정 열기."
 
-msgid "Open next tip."
+msgid "Open next tip"
 msgstr "다음 팁 열기."
 
-msgid "Open Documentation in web browser."
+msgid "Open Documentation in web browser"
 msgstr "웹 브라우저에서 문서 열기."
 
 msgid "Color"
@@ -3652,7 +3652,7 @@ msgstr "클릭하여 AMS 슬롯을 수동으로 선택합니다"
 msgid "Do not Enable AMS"
 msgstr "AMS 비활성"
 
-msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "케이스 뒷면에 장착된 재료를 사용하여 출력"
 
 msgid "Print with filaments in AMS"
@@ -6590,7 +6590,7 @@ msgstr "통합 실행 취소에 실패했습니다."
 msgid "Exporting"
 msgstr "내보내는중."
 
-msgid "Software has New version."
+msgid "An update is available!"
 msgstr "새 버전의 소프트웨어가 있습니다."
 
 msgid "Goto download page."
@@ -8878,7 +8878,7 @@ msgstr "파일 업로드 시간이 초과되었습니다. 펌웨어 버전이 �
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+msgid "Slice complete"
 msgstr "슬라이스 완료."
 
 msgid "View all Daily tips"
@@ -9323,13 +9323,13 @@ msgstr "출력물 냉각 팬"
 msgid "Min fan speed threshold"
 msgstr "팬 최소 속도 임계값"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "출력물 냉각 팬 속도는 예상 레이어 시간이 설정한 레이어 시간보다 짧으면 최소 속도로 작동됩니다. 레이어 시간이 임계값보다 짧은 경우 팬 속도는 레이어 출력 시간에 따라 최소 팬 속도와 최대 팬 속도 사이에 보간됩니다.(Interpolated)"
 
 msgid "Max fan speed threshold"
 msgstr "팬 최대 속도 임계값"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "예상 레이어 시간이 설정 값보다 짧을 때 출력물 냉각 팬 속도가 최대가 됩니다"
 
 msgid "Auxiliary part cooling fan"
@@ -10584,7 +10584,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "객체를 출력할 수 없습니다. 너무 작을 수 있습니다"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -12498,7 +12498,7 @@ msgstr "필라멘트 밀도. 통계 전용"
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+msgid "Filament material type."
 msgstr "필라멘트의 재료 유형"
 
 msgid "Soluble material"
@@ -14541,7 +14541,7 @@ msgstr "시작 Gcode"
 msgid "Start G-code when starting the entire print."
 msgstr "출력을 시작할 때의 Gcode"
 
-msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament."
 msgstr "이 필라멘트의 출력을 시작할 때의 시작 Gcode"
 
 msgid "Single Extruder Multi Material"
@@ -16023,7 +16023,7 @@ msgstr "모델 파일 로드에 실패했습니다."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "모델 파일의 메싱이 실패했거나 유효한 형태가 없습니다."
 
-msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "제공된 파일이 비어 있어 읽을 수 없습니다"
 
 msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
