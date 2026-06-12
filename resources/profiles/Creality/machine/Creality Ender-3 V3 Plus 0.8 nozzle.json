@@ -4,6 +4,8 @@
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality Ender-3 V3 Plus",
+	"name": "Creality Ender-3 V3 Plus 0.8 nozzle",
+	"setting_id": "GM001",
 	"printer_structure": "i3",
 	"auxiliary_fan": "1",
 	"bed_exclude_area": "0x0",
@@ -103,7 +105,5 @@
 	"wipe": "1",
 	"wipe_distance": "2",
 	"z_hop": "0.4",
-	"z_hop_types": "Auto Lift",
-	"name": "Creality Ender-3 V3 Plus 0.8 nozzle",
-	"setting_id": "65316"
-}
+	"z_hop_types": "Auto Lift"
+	}

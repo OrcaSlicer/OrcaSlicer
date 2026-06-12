@@ -4,6 +4,8 @@
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality Ender-3 V3",
+	"name": "Creality Ender-3 V3 0.8 nozzle",
+	"setting_id": "GM001",
 	"printer_structure": "i3",
 	"auxiliary_fan": "1",
 	"bed_exclude_area": "0x0",
@@ -78,7 +80,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA @Creality Ender-3 V3 0.8 nozzle"
+		"Creality Generic PLA @Ender-3V3-all"
 	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#018001",
@@ -102,7 +104,5 @@
 	"wipe": "1",
 	"wipe_distance": "2",
 	"z_hop": "0.4",
-	"z_hop_types": "Auto Lift",
-	"name": "Creality Ender-3 V3 0.8 nozzle",
-	"setting_id": "44601"
+	"z_hop_types": "Auto Lift"
 }
