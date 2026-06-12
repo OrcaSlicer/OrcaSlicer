@@ -55,14 +55,13 @@ private:
 
 	std::string get_upload_url(const std::string &filename, ConnectionType connectionType) const;
 	std::string get_status_url() const;
-	std::string get_connect_url(const bool dsfUrl) const;
+	std::string get_connect_url() const;
 	std::string get_base_url() const;
 	std::string timestamp_str() const;
 	ConnectionType connect(wxString &msg) const;
 	void set_auth(Http& http) const;
 	void disconnect(ConnectionType connectionType) const;
-	bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const;
-	// bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType) const; // TODO: re-enable and replace the line above
+	bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType) const;
 	int get_err_code_from_body(const std::string &body) const;
 };
 

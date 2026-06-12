@@ -45,24 +45,22 @@ const char* UltiMaker::get_name() const { return "UltiMaker"; }
 bool UltiMaker::test(wxString &msg) const
 {
 	// Returns true on success, false on error.
-
 	// If called with specific arg, just generate the auth creds.
 	if (msg == "generate_auth_creds") {
-		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: test called with generate_auth_creds! Generating the auth credentials.";
-		return this->generate_auth_creds(msg);;
+		BOOST_LOG_TRIVIAL(debug) << "UltiMaker: test called with generate_auth_creds! Generating the auth credentials.";
+		return this->generate_auth_creds(msg);
 	}
 
 	// Since the request is performed synchronously here,
     // it is ok to refer to `msg` from within the closure
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Attempting to test machine");
+	BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: Attempting to test machine");
 
     const char* name = get_name();
 
     bool res = true;
     auto url = (boost::format("http://%1%/api/v1/system/variant") % host).str();
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: name %1% url %2%") % name % url;
-    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Get system variant at: %2%") % name % url;
+    BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Get system variant at: %2%") % name % url;
 
     auto http = Http::get(std::move(url));
     set_auth(http);
@@ -71,21 +69,11 @@ bool UltiMaker::test(wxString &msg) const
         res = false;
         msg = format_error(body, error, status);
         })
-        .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: url completed without error: %1%") % url;
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got system variant: %2%") % name % body;
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; // DEBUG
+        .on_complete([name, &res, this](std::string body, unsigned) {
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got system variant: %2%") % name % body;
 
-            try {
-				// Validate that response is correct ("UltiMaker 3", "UltiMaker 3 extended" or "UltiMaker S5")
-				res = (boost::starts_with(body, "\"Ultimaker 3") || body == "\"Ultimaker S5\"");
-            }
-            catch (const std::exception &) {
-                res = false;
-                msg = "Could not parse server response";
-				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: test function Caught error") % name;
-				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
-            }
+			// Validate that response is correct ("UltiMaker 3", "UltiMaker 3 extended" or "UltiMaker S5")
+			res = (boost::starts_with(body, "\"Ultimaker 3") || body == "\"Ultimaker S5\"");
         })
 #ifdef WIN32
         .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
@@ -98,12 +86,10 @@ bool UltiMaker::test(wxString &msg) const
         .perform_sync();
 
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; //DEBUG
-    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Now doing authentication test.") % name;
+    BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Testing auth.") % name;
 	std::string auth_result = test_auth();
-	if ( not(boost::starts_with(auth_result,"OK")) ) { msg = auth_result; res = false; };
-    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth test result: %2%") % name % auth_result;
-	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; //DEBUG
+	if ( !boost::starts_with(auth_result,"OK") ) { msg = auth_result; res = false; };
+    BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Auth test result: %2%") % name % auth_result;
     return res;
 }
 
@@ -116,7 +102,6 @@ wxString UltiMaker::get_test_ok_msg () const
 wxString UltiMaker::get_test_failed_msg (wxString &msg) const
 {
     return GUI::from_u8((boost::format("%s: %s")
-                    // % _utf8(L("Could not connect to UltiMaker"))
                     % _utf8("Could not connect to UltiMaker")
                     % std::string(msg.ToUTF8())).str());
 }
@@ -126,20 +111,20 @@ wxString UltiMaker::get_test_failed_msg (wxString &msg) const
 // Modified from PrusaLink::set_auth in OctoPrint.cpp
 void UltiMaker::set_auth(Http& http) const
 {
-    BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: set_auth, m_api_username of %1% and m_api_password of %2%") % get_api_username() % get_api_password();
+    BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: set_auth, m_api_username of %1% and m_api_password of %2%") % get_api_username() % get_api_password();
     http.auth_digest(m_api_username, m_api_password);
 }
 
 
 bool UltiMaker::has_auth_creds() const{
 	// True if has authentication credentials, false otherwise
-	return not(m_api_username.empty()) && not(m_api_password.empty());
+	return (!m_api_username.empty()) && (!m_api_password.empty());
 }
 
 
 bool UltiMaker::is_authorized() const{
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: is_authorized() attempting to see if creds are valid.");
+	BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: is_authorized() checking if creds are valid.");
 
     const char* name = get_name();
 
@@ -152,14 +137,14 @@ bool UltiMaker::is_authorized() const{
         BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error verifying credentials: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
 
 		if (status == 403 || body == "{\"message\": \"Authorization required.\"}") {
-			// TODO: add logic for returning err to user dialog msg
+			rtn = false;
 		}
 
         })
         .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: url completed without error: %1%") % url;
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth] rtn=%2%") % name % rtn; // DEBUG
+            BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: url completed without error: %1%") % url;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got credential verification: %2%") % name % body;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: [auth] rtn=%2%") % name % rtn; // DEBUG
 
             try {
 				// Validate that response is correct
@@ -168,7 +153,6 @@ bool UltiMaker::is_authorized() const{
             catch (const std::exception &) {
                 rtn = false;
 				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: is_authorized Caught error") % name;
-				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
             }
         })
 #ifdef WIN32
@@ -181,7 +165,7 @@ bool UltiMaker::is_authorized() const{
 #endif // WIN32
         .perform_sync();
 	
-	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth] rtn=%2%") % name % rtn; //DEBUG
+	BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: [auth] rtn=%2%") % name % rtn;
 	return rtn;
 }
 
@@ -191,7 +175,7 @@ bool UltiMaker::is_authorized() const{
 std::string UltiMaker::auth_status() const{
 	// returns 'authorized', 'unauthorized', or 'waiting', or 'ERROR: unknown value' on a different output
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: auth_status() attempting to see if creds are valid.");
+	BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: auth_status() verifying credentials.");
 
     const char* name = get_name();
 
@@ -205,8 +189,8 @@ std::string UltiMaker::auth_status() const{
 
         })
         .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: url completed without error: %1%") % url;
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: url completed without error: %1%") % url;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got credential verification: %2%") % name % body;
 
             try {
 				if (body == "{\"message\": \"unknown\"}") { rtn = "waiting";}
@@ -216,7 +200,6 @@ std::string UltiMaker::auth_status() const{
             }
             catch (const std::exception &) {
 				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: auth_status Caught error") % name;
-				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
             }
         })
 #ifdef WIN32
@@ -229,20 +212,17 @@ std::string UltiMaker::auth_status() const{
 #endif // WIN32
         .perform_sync();
 	
-	if (boost::starts_with(rtn, "ERROR")) { BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth][auth_status] Unknown value encountered inn api/v1/auth/check") % name;}
+	if (boost::starts_with(rtn, "ERROR")) { BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth][auth_status] Unknown value encountered in api/v1/auth/check") % name;}
 	return rtn;
 }
-
-
 
 
 
 bool UltiMaker::generate_auth_creds(wxString &msg) const {
 	// Returns true if no error, false otherwise.
 
-	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds called!";
+	BOOST_LOG_TRIVIAL(debug) << "UltiMaker: generate_auth_creds called!";
 	bool ret = true;
-
 	/*
 		The auth POST request returns json of the form
 		{
@@ -251,41 +231,31 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 		}
 		where id is the m_api_username and key is the m_api_password
 	*/
-	
 	const std::string name = get_name();
-
 	std::string application = "OrcaSlicer";
 	std::string application_key = "application";
-	std::string user = "OrcaSlicer"; // TODO: get the user name from OrcaSlicer
+	std::string user = "OrcaSlicer";
 	std::string user_key = "user";
 	std::string exclusionKey = "OrcaSlicer";
 	std::string exclusionKey_key = "OrcaSlicer";
-
     auto url = (boost::format("http://%1%/api/v1/auth/request") % host).str();
-	BOOST_LOG_TRIVIAL(error) << " url = " << url; // TODO: remove
-
     auto http = Http::post(std::move(url));
 
 	// Note: the body/form cannot be blank or OrcaSlicer's Http library crashes on perform_sync()
-	
 	http.form_clear();
 	http.mime_form_add_text(application_key,application);
 	http.mime_form_add_text(user_key,user);
 	http.mime_form_add_text(exclusionKey_key,exclusionKey);
 
-
     http.on_error([this, name, &msg, &ret](std::string body, std::string error, unsigned status) {
         BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error generating credentials: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
-        msg = "Error generating credentials! See the log for details."; // todo: format correctly
+        msg = "Error generating credentials! See the log for details.";
 		ret = false;
         })
         .on_complete([this, name, &msg, &ret](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: body: %2%") % name % body; // TODO: remove this
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: POST request completed without error") % name;
-            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
-
-			BOOST_LOG_TRIVIAL(error) << "body size = " << body.size(); // TODO: remove this
-			std::cerr << body << std::endl; // TODO: remove this
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: body: %2%") % name % body;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: POST request completed without error") % name;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got credential verification: %2%") % name % body;
 
 			std::stringstream sin(body);
 			boost::property_tree::ptree pt;
@@ -296,15 +266,15 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 				// Extract the keys from the json
 				std::string id  = pt.get<std::string>("id", "");
 				std::string key = pt.get<std::string>("key", "");
-				BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Got id and key. ID=%1%") % id;
-				BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: KEY=%1%") % key;
+				BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: Got id and key. ID=%1%") % id;
+				BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: KEY=%1%") % key;
 
 				if (id.empty() || key.empty()) {
 					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Either ID or KEY is empty.") % name;
 					msg = GUI::from_u8("ERROR: Either ID or KEY is empty. ID=" + id + " KEY=" + key);
 					ret = false;
 				} else {
-					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: ID and KEY are both present. Setting message appropriately.") % name;
+					BOOST_LOG_TRIVIAL(info) << boost::format("%1%: ID and KEY are both present. Setting message appropriately.") % name;
 					msg = GUI::from_u8("Username: " + id + "  Password: " + key);
 				}
             }
@@ -324,8 +294,9 @@ bool UltiMaker::generate_auth_creds(wxString &msg) const {
 #endif // WIN32
         .perform_sync();
 
-
-	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds done! ret=" << ret;
+	
+	// Wait for user to authorize on the physical machine
+	BOOST_LOG_TRIVIAL(debug) << "UltiMaker: generate_auth_creds done! ret=" << ret;
 	return ret;
 }
 
@@ -338,21 +309,21 @@ std::string UltiMaker::test_auth() const {
 	Returns "OK" if no errors and creds are valid.
 	*/
 	const char* name = get_name();
-	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Testing for presence of auth creds...") % name;
+	BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Testing for presence of auth creds...") % name;
 
 	// Auth credentials are alreay existing (user-entered)
 	if (has_auth_creds()) {
-		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Has auth credentials. Testing validity...") % name;
+		BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Has auth credentials. Testing validity...") % name;
 
 		std::string auth_stat = auth_status();
-		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: auth_status returned %2%") % name % auth_stat;
+		BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: auth_status returned %2%") % name % auth_stat;
 
 		if (auth_stat == "waiting") { 
-			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are waiting for user approval at the physical machine.") % name;
+			BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Auth credentials are waiting for user approval at the physical machine.") % name;
 			return "Authentication creds waiting on approval; Please approve access via the dialog box on the printer's screen.";
 
 		} else if (auth_stat == "authorized" && is_authorized()) {
-			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are valid. Returning OK") % name;
+			BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Auth credentials are valid. Returning OK") % name;
 			return "OK";
 
 		} else {
@@ -361,8 +332,7 @@ std::string UltiMaker::test_auth() const {
 		}
 
 	} else { // Auth credentials do not exist
-		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials do NOT already exist. Returning error string. ") % name;
-		// BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: TODO: create generateAuthCreds logic.") % name
+		BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Auth credentials do NOT already exist. Returning error string.") % name;
 		return "Error: No authentication credentials found!";
 	}
 
@@ -373,7 +343,6 @@ std::string UltiMaker::test_auth() const {
 
 int UltiMaker::getPrintTime(std::string filepath) const {
 	// Get the total print time in seconds from the provided gcode filepath
-	// TODO: find a way to read the other orca variables without iterating another time through the gcode
 	std::ifstream file_in(filepath);
 	std::string line;
 	int ret = 0;
@@ -394,16 +363,16 @@ int UltiMaker::getPrintTime(std::string filepath) const {
 					BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: No Hours, Minutes=%1% Seconds=%2% Total Seconds=%3%") % m % s % ret;
 					found = true;
 				} else {
-					BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: sscanf error while getting total print time, no vars assigned.");
+					BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: ERROR: sscanf error while getting total print time, no vars assigned.");
 				}
 			}
 		}
     } else {
-		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker postprocessing ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
 		return 0;
 	}
 
-	if (not(found)) {
+	if (!found) {
 		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Print time estimate not found!!");
 	}
 
@@ -415,7 +384,7 @@ int UltiMaker::getPrintTime(std::string filepath) const {
 
 bool UltiMaker::makeGriffinCompatible(std::string filepath) const {
 	// Modifies the header of the given file path to remove the double colon
-	// at the timestamp because - if left in - it makes UltiMakers crash.
+	// at the timestamp because >1 colons in a line makes UltiMakers crash.
 
 	// Opening and modifying files code was modified from https://www.w3resource.com/cpp-exercises/file-handling/cpp-file-handling-exercise-6.php
 	std::string file_temp = filepath+".temp";
@@ -439,7 +408,6 @@ bool UltiMaker::makeGriffinCompatible(std::string filepath) const {
 				} else {	
 					file_out << line << "\n"; // Write the modified line to the output file
 				}
-				// TODO: fix potential crashes by replacing additional colons with dashes. (detect lines with more than one colon)
 
 			} else if (boost::starts_with(line, ";START_OF_HEADER")) {
 				write_on = true;
@@ -447,12 +415,12 @@ bool UltiMaker::makeGriffinCompatible(std::string filepath) const {
 			}
     	}
 	} else {
-		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
 		return false;
 	}
 
-	if (not(write_on)) {
-		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: while postprocessing to make compatible with Griffin, headers not found!");
+	if (!write_on) {
+		BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: while postprocessing to make compatible with Griffin, headers not found!");
 	}
 
 	file_in.close();
@@ -460,41 +428,17 @@ bool UltiMaker::makeGriffinCompatible(std::string filepath) const {
 
 	// Now replace the upload file with the temp one
 	std::remove(filepath.c_str());
-	// std::rename(file_temp.c_str(), filepath.c_str()); // TODO: uncomment this
-	boost::filesystem::copy_file(file_temp, filepath);
+	std::rename(file_temp.c_str(), filepath.c_str());
+	// boost::filesystem::copy_file(file_temp, filepath); // replacement of the above line to keep in /tmp/
 	return true;
 }
 
 
 bool UltiMaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
-	/* 
-		TODO: delete this reference.
-		Reference to Http.hpp
-		Http& form_clear();
-		// Add a HTTP multipart form field
-		Http& form_add(const std::string &name, const std::string &contents);
-		// Add a HTTP multipart form file data contents, `name` is the name of the part
-		Http& form_add_file(const std::string &name, const boost::filesystem::path &path, boost::filesystem::ifstream::off_type offset = 0, size_t length = 0);
-		// Add a HTTP mime form field
-		Http& mime_form_add_text(std::string& name, std::string& value);
-		// Add a HTTP mime form file
-		Http& mime_form_add_file(std::string& name, const char* path);
-		// Same as above except also override the file's filename with a wstring type
-		Http& form_add_file(const std::wstring& name, const boost::filesystem::path& path, boost::filesystem::ifstream::off_type offset = 0, size_t length = 0);
-		// Same as above except also override the file's filename with a custom one
-		Http& form_add_file(const std::string &name, const boost::filesystem::path &path, const std::string &filename, boost::filesystem::ifstream::off_type offset = 0, size_t length = 0);
-	
-		jobname
-		file
-		owner
-		created_at
-	
-		*/
-
 	// Preprocess the file so the machine doesn't crash
 	if (makeGriffinCompatible(upload_data.source_path.string())) {
-		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: [upload] Griffin compatibility appeared successful.";
+		BOOST_LOG_TRIVIAL(info) << "UltiMaker: [upload] Griffin compatibility appeared successful.";
 	} else {
 		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: [upload] Griffin compatibility FAILED.";
 		return false;
@@ -512,26 +456,19 @@ bool UltiMaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 	bool dsf = (connectionType == ConnectionType::dsf);
 
 	auto upload_cmd = get_upload_url(upload_data.upload_path.string(), connectionType);
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Uploading file %1%, filepath: %2%, post_action: %3%, command: %4%")
+	BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: Uploading file %1%, filepath: %2%, post_action: %3%, command: %4%")
 		% upload_data.source_path
 		% upload_data.upload_path
 		% int(upload_data.post_action)
 		% upload_cmd;
 
 	auto http = (dsf ? Http::put(std::move(upload_cmd)) : Http::post(std::move(upload_cmd)));
-	// if (dsf) {
-	// 	http.set_put_body(upload_data.source_path);
-	// } else {
-	// 	http.set_post_body(upload_data.source_path);
-	// }
 	http.form_add("jobname",upload_data.upload_path.string());
 	http.form_add_file("file", upload_data.source_path, upload_data.upload_path.string());
-	// http.form_add("owner","OrcaSlicer"); // TODO: remove this if unneeded
-	// http.form_add("created_at",???); // TODO: fill out
 
 	set_auth(http);
 	http.on_complete([&](std::string body, unsigned status) {
-			BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: File uploaded: HTTP %1%: %2%") % status % body;
+			BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: File uploaded: HTTP %1%: %2%") % status % body;
 
 			int err_code = dsf ? (status == 201 ? 0 : 1) : get_err_code_from_body(body);
 			if (err_code != 0) {
@@ -540,13 +477,7 @@ bool UltiMaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 				res = false;
 			} else if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
 				wxString errormsg;
-				res = start_print(errormsg, upload_data.upload_path.string(), connectionType, false);
-				if (! res) {
-					error_fn(std::move(errormsg));
-				}
-			} else if (upload_data.post_action == PrintHostPostUploadAction::StartSimulation) {
-				wxString errormsg;
-				res = start_print(errormsg, upload_data.upload_path.string(), connectionType, true);
+				res = start_print(errormsg, upload_data.upload_path.string(), connectionType);
 				if (! res) {
 					error_fn(std::move(errormsg));
 				}
@@ -561,7 +492,7 @@ bool UltiMaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 			prorgess_fn(std::move(progress), cancel);
 			if (cancel) {
 				// Upload was canceled
-				BOOST_LOG_TRIVIAL(warning) << "UltiMaker: Upload canceled";
+				BOOST_LOG_TRIVIAL(info) << "UltiMaker: Upload canceled";
 				res = false;
 			}
 		})
@@ -574,19 +505,18 @@ bool UltiMaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 
 UltiMaker::ConnectionType UltiMaker::connect(wxString &msg) const
 {
-	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: Attempting to connect"; // TODO: Remove this. Testing to see if var substitution is the issue
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Attempting to connect"); // TODO: Remove this. Testing to see if var substitution is the issue
+	BOOST_LOG_TRIVIAL(info) << boost::format("UltiMaker: Attempting to connect");
 	
 	auto res = ConnectionType::error;
-	auto url = get_connect_url(false);
+	auto url = get_connect_url();
 
 	auto http = Http::get(std::move(url));
 	set_auth(http);
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Attempting to connect to url %1%") % url;
+	BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: Connecting to url %1%") % url;
 
 	http.on_error([&](std::string body, std::string error, unsigned status) {
-			auto dsfUrl = get_connect_url(true);
+			auto dsfUrl = get_connect_url();
 			auto dsfHttp = Http::get(std::move(dsfUrl));
 			dsfHttp.on_error([&](std::string body, std::string error, unsigned status) {
 					BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Error connecting: %1%, HTTP %2%, body: `%3%`") % error % status % body;
@@ -598,7 +528,7 @@ UltiMaker::ConnectionType UltiMaker::connect(wxString &msg) const
 				.perform_sync();
 		})
 		.on_complete([&](std::string body, unsigned) {
-			BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Got: %1%") % body;
+			BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: Got: %1%") % body;
 
 			int err_code = get_err_code_from_body(body);
 			switch (err_code) {
@@ -643,8 +573,6 @@ void UltiMaker::disconnect(ConnectionType connectionType) const
 #pragma region Get Constants
 std::string UltiMaker::get_upload_url(const std::string &filename, ConnectionType connectionType) const
 {
-	// Fixed?
-	// TODO: figure out what connectionType even is.
     assert(connectionType != ConnectionType::error);
 
 	if (connectionType == ConnectionType::dsf) {
@@ -653,9 +581,6 @@ std::string UltiMaker::get_upload_url(const std::string &filename, ConnectionTyp
 				% Http::url_encode(filename)).str();
 	} else {
 		return get_base_url()+"/print_job";
-				// % Http::url_encode(filename)
-				// % timestamp_str()).str();
-			// );
 	}
 }
 
@@ -664,18 +589,9 @@ std::string UltiMaker::get_status_url() const
 	return (boost::format("%1%/printer/status") % get_base_url()).str();
 }
 
-std::string UltiMaker::get_connect_url(const bool dsfUrl) const
+std::string UltiMaker::get_connect_url() const
 {
-	if (dsfUrl)	{
-		return (boost::format("%1%/printer/status")
-				% get_base_url()).str();
-	} else {
-		return (boost::format("%1%/printer/status")
-				% get_base_url()
-				// % Http::url_encode(password.empty() ? "reprap" : password) // url_encode is needed because password can contain special characters like `&`, "#", etc.
-				// % timestamp_str()
-				).str();
-	}
+	return (boost::format("%1%/printer/status") % get_base_url()).str();
 }
 
 std::string UltiMaker::get_base_url() const
@@ -706,31 +622,22 @@ std::string UltiMaker::timestamp_str() const
 
 #pragma endregion Get Constants
 
-bool UltiMaker::start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const
+bool UltiMaker::start_print(wxString &msg, const std::string &filename, ConnectionType connectionType) const
 {
-	// TODO: Fix
     assert(connectionType != ConnectionType::error);
 
 	bool res = false;
 	bool dsf = (connectionType == ConnectionType::dsf);
 
 	auto url = dsf
-		? (boost::format("%1%machine/code")
-			% get_base_url()).str()
-		: (boost::format(simulationMode
-				? "%1%rr_gcode?gcode=M37%%20P\"0:/gcodes/%2%\""
-				: "%1%rr_gcode?gcode=M32%%20\"0:/gcodes/%2%\"")
-			% get_base_url()
-			% Http::url_encode(filename)).str();
+		? (boost::format("%1%machine/code") % get_base_url()).str()
+		: (boost::format("%1%rr_gcode?gcode=M32%%20\"0:/gcodes/%2%\"") % get_base_url() % Http::url_encode(filename)).str();
 
 	auto http = (dsf ? Http::post(std::move(url)) : Http::get(std::move(url)));
 	set_auth(http);
 	if (dsf) {
 		http.set_post_body(
-				(boost::format(simulationMode
-						? "M37 P\"0:/gcodes/%1%\""
-						: "M32 \"0:/gcodes/%1%\"")
-					% filename).str()
+				(boost::format("M32 \"0:/gcodes/%1%\"") % filename).str()
 				);
 	}
 	http.on_error([&](std::string body, std::string error, unsigned status) {
