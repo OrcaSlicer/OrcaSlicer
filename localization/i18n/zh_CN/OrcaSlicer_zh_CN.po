@@ -10797,7 +10797,7 @@ msgstr "结块检测需要 Prime 塔；否则，模型可能存在缺陷。"
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "请选择逐件打印以支持在旋转花瓶模式下打印多个对象。"
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "不支持在包含多个材料的打印中使用旋转花瓶模式。"
 
 #, boost-format

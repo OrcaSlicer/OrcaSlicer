@@ -10787,7 +10787,7 @@ msgstr "A prime tower is required for clumping detection; otherwise, there may b
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Vui lòng chọn trình tự in \"Theo đối tượng\" để in nhiều đối tượng trong chế độ bình xoắn ốc."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Chế độ bình xoắn ốc không hoạt động khi đối tượng chứa nhiều hơn một vật liệu."
 
 #, boost-format

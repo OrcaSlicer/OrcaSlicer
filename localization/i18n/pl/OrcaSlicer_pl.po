@@ -10794,7 +10794,7 @@ msgstr ""
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Proszę wybrać sekwencję druku „Według obiektu”, aby drukować wiele obiektów w trybie wazy."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Tryb „Wazy” nie działa, gdy obiekt zawiera więcej niż jeden filament."
 
 #, boost-format

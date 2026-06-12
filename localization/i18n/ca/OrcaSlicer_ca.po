@@ -10812,7 +10812,7 @@ msgstr "Es necessita una torre de purga per a la detecció d'acumulació; en cas
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Seleccioneu la seqüència d'impressió \"Per objecte\" per imprimir diversos objectes en mode Gerro en Espiral."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "El mode Gerro en Espiral no funciona quan un objecte conté més d'un material."
 
 #, boost-format

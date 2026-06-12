@@ -10851,7 +10851,7 @@ msgstr "Une tour d'amorçage est requise pour la détection d'agglomération ; s
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Veuillez sélectionner la séquence d'impression \"Par objet\" pour imprimer plusieurs objets en mode vase en spirale."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Le mode vase en spirale ne fonctionne pas lorsqu'un objet contient plusieurs matériaux."
 
 #, boost-format

@@ -10790,7 +10790,7 @@ msgstr "Topaklanma tespiti için bir ana kule gereklidir; Aksi takdirde modelde 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Birden fazla nesneyi spiral vazo modunda yazdırmak için lütfen \"Nesneye göre\" yazdırma sırasını seçin."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Bir nesne birden fazla malzeme içerdiğinde spiral vazo modu çalışmaz."
 
 #, boost-format

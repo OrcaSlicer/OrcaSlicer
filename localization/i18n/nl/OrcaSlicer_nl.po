@@ -10802,7 +10802,7 @@ msgstr "A prime tower is required for clumping detection; otherwise, there may b
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Selecteer de afdrukvolgorde \"per object\" om meerdere objecten in spiraalvaasmodus af te drukken."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spiraal (vaas) modus werkt niet als een object meer dan 1 filament bevalt."
 
 #, boost-format

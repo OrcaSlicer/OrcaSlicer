@@ -10853,7 +10853,7 @@ msgstr "Se requiere una torre de purga para la detección de aglomeraciones; de 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Seleccione la secuencia de impresión \"Por objeto\" para imprimir varios objetos en el modo de jarrón espiral."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "El modo de jarrón en espiral no funciona cuando un objeto contiene más de un material."
 
 #, boost-format

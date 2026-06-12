@@ -10811,7 +10811,7 @@ msgstr "È necessaria una torre di spurgo per il rilevamento degli ammassi; altr
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Seleziona la sequenza di stampa \"Per oggetto\" per stampare più oggetti in modalità vaso a spirale."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "La modalità Vaso a spirale non funziona quando un oggetto contiene più di un materiale."
 
 #, boost-format

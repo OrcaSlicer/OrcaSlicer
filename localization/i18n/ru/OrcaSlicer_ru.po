@@ -11133,7 +11133,7 @@ msgstr "Для обнаружения комкования требуется б
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Выберите последовательность печати «По очереди», для поддержки печати несколько моделей в режиме вазы."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Режим вазы не работает, когда модель печатается несколькими материалами."
 
 #, boost-format

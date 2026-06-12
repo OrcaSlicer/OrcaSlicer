@@ -10804,7 +10804,7 @@ msgstr ""
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Будь ласка, виберіть послідовність друку \"По об'єкту\" для друку кілька об'єктів у режим спіральної вази."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Режим спіральної вази не працює, якщо об'єкт містить більше одногоматеріалу."
 
 #, boost-format

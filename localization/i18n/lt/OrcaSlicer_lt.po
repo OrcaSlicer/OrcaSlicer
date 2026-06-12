@@ -10834,7 +10834,7 @@ msgstr "A prime tower is required for clumping detection; otherwise, there may b
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Pasirinkite spausdinimo seką \"Pagal objektą\", jei norite spausdinti kelis objektus spiralinės vazos režimu."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spiralinės vazos režimas neveikia, kai objekte yra daugiau nei viena medžiaga."
 
 #, boost-format

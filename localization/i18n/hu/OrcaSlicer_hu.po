@@ -10838,7 +10838,7 @@ msgstr "A csomósodásészleléshez törlőtorony szükséges; enélkül hibák 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Kérlek, válaszd a \"Tárgyanként\" nyomtatási sorrendet több tárgy spirálváza módban történő nyomtatásához."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "A spirál (váza) mód nem működik, ha egy objektum egynél több anyagot tartalmaz."
 
 #, boost-format

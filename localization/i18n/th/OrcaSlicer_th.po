@@ -10813,7 +10813,7 @@ msgstr "จำเป็นต้องใช้หอคอยหลักใน
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "โปรดเลือกลำดับการพิมพ์ \"ตามวัตถุ\" เพื่อพิมพ์วัตถุหลายชิ้นในโหมดแจกันเกลียว"
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "โหมดแจกันเกลียวจะไม่ทำงานเมื่อวัตถุมีวัสดุมากกว่าหนึ่งชนิด"
 
 #, boost-format

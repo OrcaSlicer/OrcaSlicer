@@ -10843,7 +10843,7 @@ msgstr "Uma torre de preparo é necessária para a detecção de aglomeração, 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Por favor, selecione a sequência de impressão \"Por objeto\" para imprimir vários objetos no modo vaso espiral."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "O modo de vaso espiral não funciona quando um objeto contém mais de um material."
 
 #, boost-format

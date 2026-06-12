@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 16:07-0300\n"
-"PO-Revision-Date: 2026-06-12 19:03-0300\n"
+"PO-Revision-Date: 2026-06-12 19:08-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
 "Language: en\n"
@@ -10559,7 +10559,7 @@ msgstr ""
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr ""
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spiral (vase) mode does not work when an object contains more than one material."
 
 #, boost-format
@@ -13521,7 +13521,7 @@ msgid "Start end points"
 msgstr ""
 
 msgid "The start and end points which is from cutter area to garbage can."
-msgstr "The start and end points which are from the cutter area to the excess chute."
+msgstr ""
 
 msgid "Reduce infill retraction"
 msgstr ""
@@ -13810,7 +13810,7 @@ msgid "Seam position"
 msgstr ""
 
 msgid "The start position to print each part of outer wall."
-msgstr "This is the starting position for each part of the outer wall."
+msgstr ""
 
 msgid "Nearest"
 msgstr ""
@@ -15529,7 +15529,7 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr ""
 
 msgid "The supplied file couldn't be read because it's empty."
-msgstr "The supplied file couldn't be read because it's empty.."
+msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr ""

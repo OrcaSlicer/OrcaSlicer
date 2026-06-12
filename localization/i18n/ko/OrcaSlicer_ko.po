@@ -10778,7 +10778,7 @@ msgstr ""
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "나선형 꽃병 모드에서 여러 객체를 출력하려면 \"객체별\" 출력 순서를 선택하세요."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "객체에 둘 이상의 재료가 포함된 경우 나선형 꽃병 모드가 작동하지 않습니다."
 
 #, boost-format
