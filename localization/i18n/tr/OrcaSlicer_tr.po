@@ -3970,7 +3970,7 @@ msgstr "Bu filament tipinin tavsiye edilen Nozul sıcaklığı [%d, %d] derece s
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Maksimum hacimsel hız çok küçük.\n"
 "0,5'e sıfırla."
@@ -3981,14 +3981,14 @@ msgstr "Mevcut hazne sıcaklığı malzemenin güvenli sıcaklığından yüksek
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Katman yüksekliği çok küçük.\n"
 "0,2'ye sıfırla."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Çok küçük ütüleme aralığı.\n"
 "0,1'e sıfırla."
@@ -9624,7 +9624,7 @@ msgstr "İşlem Ayarları"
 msgid "Undef"
 msgstr "Tanımsız"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Kaydedilmemiş Değişiklikler"
 
 msgid "Transfer or discard changes"
@@ -10673,7 +10673,7 @@ msgstr "dosya ZIP arşivi değil"
 msgid "invalid header or corrupted"
 msgstr "geçersiz başlık veya bozuk"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "desteklenmeyen çoklu disk"
 
 msgid "decompression failed"
@@ -13585,7 +13585,7 @@ msgstr "Topaklanma tespiti G kodu"
 msgid "Supports silent mode"
 msgstr "Sessiz modu destekler"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Makinenin yazdırmak için daha düşük hızlanma kullandığı sessiz modu destekleyip desteklemediği."
 
 msgid "Emit limits to G-code"

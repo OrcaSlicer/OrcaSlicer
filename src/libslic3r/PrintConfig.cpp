@@ -4431,7 +4431,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("silent_mode", coBool);
     def->label = L("Supports silent mode");
-    def->tooltip = L("Whether the machine supports silent mode in which machine use lower acceleration to print.");
+    def->tooltip = L("Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionBool(false));
 

@@ -3970,7 +3970,7 @@ msgstr "อุณหภูมิหัวฉีดที่แนะนำสำ
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "ความเร็วปริมาตรสูงสุดน้อยเกินไป\n"
 "รีเซ็ตเป็น 0.5"
@@ -3981,14 +3981,14 @@ msgstr "อุณหภูมิห้องเพาะเลี้ยงใน
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "ความสูงของชั้นเล็กเกินไป\n"
 "รีเซ็ตเป็น 0.2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "ระยะห่างในการรีดผิวน้อยเกินไป\n"
 "รีเซ็ตเป็น 0.1"
@@ -9636,7 +9636,7 @@ msgstr "การตั้งค่ากระบวนการ"
 msgid "Undef"
 msgstr "ไม่กำหนด"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "การเปลี่ยนแปลงที่ไม่ได้บันทึก"
 
 msgid "Transfer or discard changes"
@@ -10696,7 +10696,7 @@ msgstr "ไม่ใช่ไฟล์ ZIP"
 msgid "invalid header or corrupted"
 msgstr "ส่วนหัวไม่ถูกต้องหรือเสียหาย"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "มัลติดิสก์ที่ไม่รองรับ"
 
 msgid "decompression failed"
@@ -13648,7 +13648,7 @@ msgstr "G-code การตรวจจับการจับตัวเป�
 msgid "Supports silent mode"
 msgstr "รองรับโหมดเงียบ"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "เครื่องรองรับโหมดเงียบซึ่งเครื่องใช้ความเร่งในการพิมพ์ต่ำกว่าหรือไม่"
 
 msgid "Emit limits to G-code"

@@ -3976,7 +3976,7 @@ msgstr "Zalecana temperatura dyszy dla tego typu filamentu wynosi [%d, %d] stopn
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Zbyt mała maksymalna prędkość przepływu.\n"
 "Zresetowano do 0,5"
@@ -3987,14 +3987,14 @@ msgstr "Obecna temperatura komory jest wyższa niż bezpieczna temperatura dla f
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Zbyt mała wysokość warstwy.\n"
 "Zresetowano do 0,2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Zbyt mała odległość między ścieżkami przy prasowaniu.\n"
 "Zresetowano do 0,1"
@@ -9630,7 +9630,7 @@ msgstr "Ustawienia procesu"
 msgid "Undef"
 msgstr "Niezdefiniowany"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Niezapisane zmiany"
 
 msgid "Transfer or discard changes"
@@ -10677,7 +10677,7 @@ msgstr "to nie jest archiwum ZIP"
 msgid "invalid header or corrupted"
 msgstr "nieważny nagłówek lub uszkodzony"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "niewspierany wielodyskowy"
 
 msgid "decompression failed"
@@ -13553,7 +13553,7 @@ msgstr "G-code wykrywania zalepienia dyszy"
 msgid "Supports silent mode"
 msgstr "Obsługuje tryb cichy"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Czy drukarka obsługuje tryb cichy, w którym drukarka używa niższego przyspieszenia do druku"
 
 msgid "Emit limits to G-code"
@@ -20435,7 +20435,7 @@ msgstr ""
 #~ msgid "Export Configs"
 #~ msgstr "Eksportuj konfiguracje"
 
-#~ msgid "Actions For Unsaved Changes"
+#~ msgid "Actions For unsaved changes."
 #~ msgstr "Działania dotyczące niezapisanych zmian"
 
 #~ msgid "Preset Value"

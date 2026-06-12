@@ -7854,7 +7854,7 @@ const char *mz_zip_get_error_string(mz_zip_error mz_err)
         case MZ_ZIP_INVALID_HEADER_OR_CORRUPTED:
             return "invalid header or archive is corrupted";
         case MZ_ZIP_UNSUPPORTED_MULTIDISK:
-            return "unsupported multidisk archive";
+            return "saving to RAID is not supported archive";
         case MZ_ZIP_DECOMPRESSION_FAILED:
             return "decompression failed or archive is corrupted";
         case MZ_ZIP_COMPRESSION_FAILED:

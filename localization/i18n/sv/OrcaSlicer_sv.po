@@ -3966,7 +3966,7 @@ msgstr "Rekommenderad nozzel temperatur med denna filament typ är [%d, %d] grad
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "För liten max volymhastighet.\n"
 "Värdet återställdes till 0,5"
@@ -3977,14 +3977,14 @@ msgstr "Current chamber temperature is higher than the material's safe temperatu
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "För liten lagerhöjd.\n"
 "Den har återställts till 0.2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "För litet avstånd för strykning.\n"
 "Återställ till 0.1"
@@ -9630,7 +9630,7 @@ msgstr "Processinställningar"
 msgid "Undef"
 msgstr "Oidentifierad"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Ej sparade ändringar"
 
 msgid "Transfer or discard changes"
@@ -10679,7 +10679,7 @@ msgstr "inte ett ZIP arkiv"
 msgid "invalid header or corrupted"
 msgstr "ogiltig rubrik eller skadad"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "Spara till RAID stöds ej"
 
 msgid "decompression failed"
@@ -13593,7 +13593,7 @@ msgstr "Clumping detection G-code"
 msgid "Supports silent mode"
 msgstr "Tyst läge"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Om maskinen stöder tyst läge där maskinen använder lägre acceleration för att skriva ut"
 
 msgid "Emit limits to G-code"

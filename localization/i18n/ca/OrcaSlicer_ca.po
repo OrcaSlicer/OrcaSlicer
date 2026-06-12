@@ -3977,7 +3977,7 @@ msgstr "La temperatura recomanada del broquet d'aquest tipus de filament és de 
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Velocitat volumètrica màxima massa petita.\n"
 "Restableix a 0.5"
@@ -3988,14 +3988,14 @@ msgstr "La temperatura actual de la cambra és superior a la temperatura segura 
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Alçada de capa massa petita.\n"
 "Restableix a 0.2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Espaiat de planxa massa petit.\n"
 "Restableix a 0.1"
@@ -9646,7 +9646,7 @@ msgstr "Configuració del procés"
 msgid "Undef"
 msgstr "No definit"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Canvis no desats"
 
 msgid "Transfer or discard changes"
@@ -10695,7 +10695,7 @@ msgstr "no és un arxiu ZIP"
 msgid "invalid header or corrupted"
 msgstr "capçalera no vàlida o malmesa"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "multidisk no compatible"
 
 msgid "decompression failed"
@@ -13618,7 +13618,7 @@ msgstr "G-code de detecció d'acumulació"
 msgid "Supports silent mode"
 msgstr "Admet el mode silenciós"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Si la màquina admet el mode silenciós en el qual la màquina utilitza una acceleració més baixa per imprimir"
 
 msgid "Emit limits to G-code"
@@ -20405,7 +20405,7 @@ msgstr ""
 #~ msgstr "Placa Base"
 
 #, fuzzy
-#~ msgid "Actions For Unsaved Changes"
+#~ msgid "Actions For unsaved changes."
 #~ msgstr "Canvis no desats"
 
 #, fuzzy

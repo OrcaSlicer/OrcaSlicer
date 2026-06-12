@@ -3971,7 +3971,7 @@ msgstr "Doporučená teplota trysky pro tento typ filamentu je [%d, %d] stupňů
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Příliš malá maximální objemová rychlost.\n"
 "Nastaveno na 0,5."
@@ -3982,14 +3982,14 @@ msgstr "Aktuální teplota komory je vyšší než bezpečná teplota materiálu
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Příliš malá výška vrstvy.\n"
 "Nastaveno na 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Příliš malý rozestup žehlení.\n"
 "Nastaveno na 0,1."
@@ -9629,7 +9629,7 @@ msgstr "Nastavení procesu"
 msgid "Undef"
 msgstr "Nedef"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Neuložené změny"
 
 msgid "Transfer or discard changes"
@@ -10678,7 +10678,7 @@ msgstr "není ZIP archiv"
 msgid "invalid header or corrupted"
 msgstr "Neplatná hlavička nebo poškozený soubor"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "nepodporovaný vícedisk"
 
 msgid "decompression failed"
@@ -13592,7 +13592,7 @@ msgstr "Clumping detection G-code"
 msgid "Supports silent mode"
 msgstr "Podporuje tichý režim"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Zda stroj podporuje tichý režim, ve kterém používá nižší zrychlení při tisku."
 
 msgid "Emit limits to G-code"

@@ -3983,7 +3983,7 @@ msgstr "Die empfohlene Düsentemperatur für diesen Filamenttyp beträgt [%d, %d
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Zu kleine maximale volumetrische Geschwindigkeit.\n"
 "Wert wurde auf 0,5 zurückgesetzt"
@@ -3994,14 +3994,14 @@ msgstr "Die aktuelle Kammer-Temperatur ist höher als die sichere Temperatur des
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Zu geringe Schichthöhe.\n"
 "Auf 0,2 zurücksetzen"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Zu kleiner Ironing-Abstand.\n"
 "Auf 0,1 zurückgesetzt"
@@ -9678,7 +9678,7 @@ msgstr "Prozesseinstellungen"
 msgid "Undef"
 msgstr "Undefiniert"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Nicht gespeicherte Änderungen"
 
 msgid "Transfer or discard changes"
@@ -10733,7 +10733,7 @@ msgstr "kein ZIP Archiv"
 msgid "invalid header or corrupted"
 msgstr "ungültiger Header oder beschädigt"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "Das Speichern auf RAID wird nicht unterstützt."
 
 msgid "decompression failed"
@@ -13750,7 +13750,7 @@ msgstr "Klumpen-Erkennungs-G-Code"
 msgid "Supports silent mode"
 msgstr "Unterstützt den Leise-Modus"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Ob das Gerät den Leisen-Modus unterstützt, bei dem das Gerät eine geringere Beschleunigung zum Drucken verwendet"
 
 msgid "Emit limits to G-code"
@@ -21155,7 +21155,7 @@ msgstr ""
 #~ msgid "Export Configs"
 #~ msgstr "Konfigurationen exportieren"
 
-#~ msgid "Actions For Unsaved Changes"
+#~ msgid "Actions For unsaved changes."
 #~ msgstr "Aktivitäten für nicht gespeicherte Änderungen"
 
 #~ msgid "Preset Value"

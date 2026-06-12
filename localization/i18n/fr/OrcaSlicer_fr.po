@@ -3983,7 +3983,7 @@ msgstr "La température de buse recommandée pour ce type de filament est de [%d
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Vitesse volumétrique maximale trop faible.\n"
 "La valeur a été réinitialisée à 0,5"
@@ -3994,14 +3994,14 @@ msgstr "La température actuelle du caisson est supérieure à la température d
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Hauteur de couche trop petite.\n"
 "Réinitialisée à 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Espacement de lissage trop petit.\n"
 "Réinitialisé à 0,1."
@@ -9672,7 +9672,7 @@ msgstr "Paramètres de traitement"
 msgid "Undef"
 msgstr "Undef"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Modifications non enregistrées"
 
 msgid "Transfer or discard changes"
@@ -10734,7 +10734,7 @@ msgstr "n'est pas une archive ZIP"
 msgid "invalid header or corrupted"
 msgstr "en-tête invalide ou corrompu"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "multidisque non pris en charge"
 
 msgid "decompression failed"
@@ -13769,7 +13769,7 @@ msgstr "G-code de détection d'agglomération"
 msgid "Supports silent mode"
 msgstr "Prend en charge le mode silencieux"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Si la machine prend en charge le mode silencieux dans lequel la machine utilise une accélération plus faible pour imprimer"
 
 msgid "Emit limits to G-code"
@@ -21008,7 +21008,7 @@ msgstr ""
 #~ msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill"
 #~ msgstr "La zone de remplissage est légèrement agrandie pour chevaucher la paroi afin d'améliorer l'adhérence. La valeur en pourcentage est relative à la largeur de ligne de remplissage."
 
-#~ msgid "Actions For Unsaved Changes"
+#~ msgid "Actions For unsaved changes."
 #~ msgstr "Actions pour les changements non enregistrés"
 
 #~ msgid "Preset Value"

@@ -3970,7 +3970,7 @@ msgstr "De aanbevolen mondstuk temperatuur voor dit type filament is [%d, %d] gr
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Te kleine maximale volumetrische snelheid.\n"
 "De waarde is teruggezet naar 0,5"
@@ -3981,14 +3981,14 @@ msgstr "De huidige kamertemperatuur is hoger dan de veilige temperatuur van het 
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Laaghoogte is te klein\n"
 "Teruggezet naar 0.2mm"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "De ruimte voor het strijken is te klein\n"
 "Teruggezet naar 0.1"
@@ -9636,7 +9636,7 @@ msgstr "Procesinstellingen"
 msgid "Undef"
 msgstr "Niet gedefinieerd"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "niet-opgeslagen wijzigingen"
 
 msgid "Transfer or discard changes"
@@ -10685,7 +10685,7 @@ msgstr "Dit is geen ZIP archief"
 msgid "invalid header or corrupted"
 msgstr "Onjuiste of beschadigde header"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "Opslaan naar een RAID configuratie is niet ondersteund."
 
 msgid "decompression failed"
@@ -13599,7 +13599,7 @@ msgstr "Clumping detection G-code"
 msgid "Supports silent mode"
 msgstr "Stille modus"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Dit geeft aan of de machine de stille modus ondersteunt waarin de machine een lagere versnelling gebruikt om te printen"
 
 msgid "Emit limits to G-code"

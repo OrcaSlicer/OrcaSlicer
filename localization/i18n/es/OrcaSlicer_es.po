@@ -3988,7 +3988,7 @@ msgstr "La temperatura recomendada de la boquilla para este tipo de filamento es
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Velocidad volumétrica máxima demasiado baja.\n"
 "Restableciendo a 0,5."
@@ -3999,14 +3999,14 @@ msgstr "La temperatura actual de la cámara es superior a la temperatura de segu
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Altura de la capa demasiado pequeña.\n"
 "Restableciendo a 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Espaciado del alisado demasiado pequeño.\n"
 "Restableciendo a 0,1."
@@ -9677,7 +9677,7 @@ msgstr "Ajustes del proceso"
 msgid "Undef"
 msgstr "No definido"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Cambios No guardados"
 
 msgid "Transfer or discard changes"
@@ -10736,7 +10736,7 @@ msgstr "no es un archivo ZIP"
 msgid "invalid header or corrupted"
 msgstr "encabezado inválido o corrupto"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "multidisco no soportado"
 
 msgid "decompression failed"
@@ -13763,7 +13763,7 @@ msgstr "G-code de detección de aglomeraciones"
 msgid "Supports silent mode"
 msgstr "Admite el modo silencioso"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Si la máquina admite el modo silencioso en el que la se utiliza una menor aceleración para imprimir."
 
 msgid "Emit limits to G-code"
@@ -21619,7 +21619,7 @@ msgstr ""
 
 #~ msgid ""
 #~ "Too large layer height.\n"
-#~ "Reset to 0.2."
+#~ "It has been reset to 0.2."
 #~ msgstr ""
 #~ "Altura de la capa demasiado grande.\n"
 #~ "Reajustar a 0,2."

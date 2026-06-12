@@ -3985,7 +3985,7 @@ msgstr "Rekomenduojama šio tipo gijos spausdinimo temperatūra yra nuo %d iki %
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Per mažas maksimalus tūrinis greitis.\n"
 "Atstatyta į 0,5."
@@ -3996,14 +3996,14 @@ msgstr "Dabartinė kameros temperatūra yra aukštesnė už saugią medžiagos t
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Per mažas sluoksnio aukštis.\n"
 "Atstatyta į 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Per mažas lyginimo tarpas.\n"
 "Atstatyta į 0,1."
@@ -9668,7 +9668,7 @@ msgstr "Proceso nustatymai"
 msgid "Undef"
 msgstr "Neapib"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Neišsaugoti pakeitimai"
 
 msgid "Transfer or discard changes"
@@ -10717,7 +10717,7 @@ msgstr "ne ZIP archyvas"
 msgid "invalid header or corrupted"
 msgstr "negaliojanti arba sugadinta antraštė"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "įrašymas į RAID nepalaikomas"
 
 msgid "decompression failed"
@@ -13631,7 +13631,7 @@ msgstr "Clumping detection G-code"
 msgid "Supports silent mode"
 msgstr "Palaikomas tylusis režimas"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Ar įrenginys palaiko tylųjį režimą, kai spausdindamas naudoja mažesnį pagreitį."
 
 msgid "Emit limits to G-code"

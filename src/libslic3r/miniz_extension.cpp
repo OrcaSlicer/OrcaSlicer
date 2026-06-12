@@ -106,7 +106,7 @@ std::string MZ_Archive::get_errorstr(mz_zip_error mz_err)
     case MZ_ZIP_INVALID_HEADER_OR_CORRUPTED:
         return L("invalid header or corrupted");
     case MZ_ZIP_UNSUPPORTED_MULTIDISK:
-        return L("unsupported multidisk");
+        return L("saving to RAID is not supported");
     case MZ_ZIP_DECOMPRESSION_FAILED:
         return L("decompression failed");
     case MZ_ZIP_COMPRESSION_FAILED:

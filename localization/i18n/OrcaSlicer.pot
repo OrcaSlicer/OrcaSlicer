@@ -3896,7 +3896,7 @@ msgstr ""
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -3905,12 +3905,12 @@ msgstr ""
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 
 msgid ""
@@ -9394,7 +9394,7 @@ msgstr ""
 msgid "Undef"
 msgstr ""
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr ""
 
 msgid "Transfer or discard changes"
@@ -10414,7 +10414,7 @@ msgstr ""
 msgid "invalid header or corrupted"
 msgstr ""
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr ""
 
 msgid "decompression failed"
@@ -13126,7 +13126,7 @@ msgstr ""
 msgid "Supports silent mode"
 msgstr ""
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr ""
 
 msgid "Emit limits to G-code"

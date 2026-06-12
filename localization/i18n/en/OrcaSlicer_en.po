@@ -3899,7 +3899,7 @@ msgstr ""
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -3910,14 +3910,14 @@ msgstr "Current chamber temperature is higher than the material's safe temperatu
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Layer height too small\n"
 "It has been reset to 0.2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -9438,7 +9438,7 @@ msgstr ""
 msgid "Undef"
 msgstr "Undefined"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "unsaved changes"
 
 msgid "Transfer or discard changes"
@@ -10458,7 +10458,7 @@ msgstr ""
 msgid "invalid header or corrupted"
 msgstr ""
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "Saving to RAID is not supported."
 
 msgid "decompression failed"
@@ -13176,7 +13176,7 @@ msgstr ""
 msgid "Supports silent mode"
 msgstr "Silent Mode"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 
 msgid "Emit limits to G-code"

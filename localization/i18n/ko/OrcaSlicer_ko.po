@@ -3971,7 +3971,7 @@ msgstr "이 필라멘트 유형의 권장 노즐 온도는 [%d, %d]°C입니다"
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "최대 압출 속도가 너무 작습니다.\n"
 "0.5로 재설정"
@@ -3982,14 +3982,14 @@ msgstr "현재 챔버 온도가 재료의 안전 온도보다 높으므로 재�
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "레이어 높이가 너무 작습니다.\n"
 "0.2로 재설정"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "다림질 간격이 너무 작습니다.\n"
 "0.1로 재설정"
@@ -9612,7 +9612,7 @@ msgstr "프로세스 설정"
 msgid "Undef"
 msgstr "정의되지 않음"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "저장되지 않은 변경 사항"
 
 msgid "Transfer or discard changes"
@@ -10661,7 +10661,7 @@ msgstr "ZIP 형식의 압축파일이 아닙니다"
 msgid "invalid header or corrupted"
 msgstr "잘못된 헤더이거나 손상됨"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "지원되지 않는 멀티디스크"
 
 msgid "decompression failed"
@@ -13539,7 +13539,7 @@ msgstr "뭉침 감지 G-code"
 msgid "Supports silent mode"
 msgstr "무음 모드 지원"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "기기가 낮은 가속도를 사용하여 출력하는 무음 모드 지원 여부"
 
 msgid "Emit limits to G-code"

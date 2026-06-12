@@ -3963,7 +3963,7 @@ msgstr "该耗材的推荐喷嘴温度是[%d, %d]摄氏度"
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "最大体积流量设置过小\n"
 "重置为0.5"
@@ -3974,12 +3974,12 @@ msgstr "当前腔体温度高于材料的安全温度，这可能导致材料软
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr "层高过小。将重置为0.2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr "熨烫线距过小。将重置为0.1"
 
 msgid ""
@@ -9616,7 +9616,7 @@ msgstr "工艺设置"
 msgid "Undef"
 msgstr "未定义"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "未保存的更改"
 
 msgid "Transfer or discard changes"
@@ -10680,7 +10680,7 @@ msgstr "不是一个zip压缩包"
 msgid "invalid header or corrupted"
 msgstr "无效文件头或文件已损坏"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "不支持多磁盘存档"
 
 msgid "decompression failed"
@@ -13674,7 +13674,7 @@ msgstr "结块检测 G-code"
 msgid "Supports silent mode"
 msgstr "支持静音模式"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "机器是否支持使用低加速度打印的静音模式。"
 
 msgid "Emit limits to G-code"

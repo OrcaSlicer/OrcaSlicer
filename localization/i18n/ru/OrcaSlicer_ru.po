@@ -4086,7 +4086,7 @@ msgstr "Диапазон рекомендуемых температур печ�
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Слишком маленький максимальный объёмный расход.\n"
 "Значение будет сброшено на 0,5."
@@ -4097,14 +4097,14 @@ msgstr "Текущая температура внутри термокамер�
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Слишком маленькая высота слоя.\n"
 "Значение будет сброшено на 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Слишком маленькое расстояние между линиями разглаживания.\n"
 "Значение будет сброшено на 0,1."
@@ -9955,7 +9955,7 @@ msgstr "Настройки"
 msgid "Undef"
 msgstr "Не задано"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Несохранённые изменения"
 
 msgid "Transfer or discard changes"
@@ -11016,7 +11016,7 @@ msgstr "это не ZIP архив"
 msgid "invalid header or corrupted"
 msgstr "неверный или повреждённый заголовок"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "неподдерживаемый многотомный архив"
 
 msgid "decompression failed"
@@ -14188,7 +14188,7 @@ msgstr "G-код при обнаружении налипшего пластик
 msgid "Supports silent mode"
 msgstr "Поддержка тихого режима"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Поддерживает ли принтер тихий режим, в котором используются сниженные ускорения печати."
 
 msgid "Emit limits to G-code"

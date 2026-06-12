@@ -3955,7 +3955,7 @@ msgstr "このフィラメントで推奨ノズル温度は %d ~ %d ℃です。
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr "値が小さすぎます、0.5に戻します"
 
 #, c-format, boost-format
@@ -3964,12 +3964,12 @@ msgstr "現在のチャンバー温度が材料の安全温度を超えていま
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr "積層ピッチが小さすぎます、0.2にリセットされました"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr "値が小さいです、0.1にリセットします"
 
 msgid ""
@@ -9584,7 +9584,7 @@ msgstr "プロセス設定"
 msgid "Undef"
 msgstr "未定義"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "未保存の変更"
 
 msgid "Transfer or discard changes"
@@ -10625,7 +10625,7 @@ msgstr "ZIP形式ではありません"
 msgid "invalid header or corrupted"
 msgstr "無効又は破損したなヘッダー"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "RAID への保存はサポートされていません。"
 
 msgid "decompression failed"
@@ -13351,7 +13351,7 @@ msgstr "クラミング検出G-code"
 msgid "Supports silent mode"
 msgstr "サイレントモード"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "サイレントモード有無"
 
 msgid "Emit limits to G-code"

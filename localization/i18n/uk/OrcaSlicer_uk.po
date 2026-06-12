@@ -3980,7 +3980,7 @@ msgstr "Рекомендована температура сопла для ць
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Надто маленька максимальна об'ємна швидкість.\n"
 "Скинути до 0,5"
@@ -3991,14 +3991,14 @@ msgstr "Поточна температура камери вища, ніж бе
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Надто маленька висота шару.\n"
 "Скинути на 0.2"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Занадто маленька відстань між розглажуванням.\n"
 "Скинути на 0,1"
@@ -9644,7 +9644,7 @@ msgstr "Налаштування процесу"
 msgid "Undef"
 msgstr "Невизначено"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Незбережені зміни"
 
 msgid "Transfer or discard changes"
@@ -10687,7 +10687,7 @@ msgstr "не ZIP-архів"
 msgid "invalid header or corrupted"
 msgstr "недійсний або пошкоджений заголовок"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "непідтримуваний мультидиск"
 
 msgid "decompression failed"
@@ -13573,7 +13573,7 @@ msgstr ""
 msgid "Supports silent mode"
 msgstr "Підтримує безшумний режим"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Чи підтримує машина безшумний режим, у якому машина використовує меншеприскорення для друку"
 
 msgid "Emit limits to G-code"

@@ -3974,7 +3974,7 @@ msgstr "La temperatura dell'ugello consigliata per questo filamento è [%d, %d] 
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Velocità volumetrica massima troppo bassa.\n"
 "Il valore è stato ripristinato a 0,5."
@@ -3985,14 +3985,14 @@ msgstr "L'attuale temperatura della camera è superiore alla temperatura di sicu
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Altezza dello strato troppo piccola.\n"
 "Il valore è stato ripristinato a 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Spaziatura di stiratura troppo piccola.\n"
 "Il valore è stato ripristinato a 0,1."
@@ -9643,7 +9643,7 @@ msgstr "Impostazioni processo"
 msgid "Undef"
 msgstr "Indefinito"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Modifiche non salvate"
 
 msgid "Transfer or discard changes"
@@ -10694,7 +10694,7 @@ msgstr "non è un archivio ZIP"
 msgid "invalid header or corrupted"
 msgstr "intestazione non valida o danneggiata"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "salvataggio su RAID non supportato"
 
 msgid "decompression failed"
@@ -13647,7 +13647,7 @@ msgstr "G-code rilevamento ammassi"
 msgid "Supports silent mode"
 msgstr "Supporto modalità silenziosa"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Indica se la macchina supporta la modalità silenziosa, ovvero utilizza un'accelerazione inferiore per stampare."
 
 msgid "Emit limits to G-code"

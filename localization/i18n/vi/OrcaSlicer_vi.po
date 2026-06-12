@@ -3967,7 +3967,7 @@ msgstr "Nhiệt độ vòi phun khuyến nghị cho loại filament này là [%d
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Tốc độ thể tích tối đa quá nhỏ.\n"
 "Đặt lại về 0.5."
@@ -3978,14 +3978,14 @@ msgstr "Nhiệt độ buồng hiện tại cao hơn nhiệt độ an toàn của
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Chiều cao lớp quá nhỏ.\n"
 "Đặt lại về 0.2."
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Khoảng cách ironing quá nhỏ.\n"
 "Đặt lại về 0.1."
@@ -9621,7 +9621,7 @@ msgstr "Cài đặt quy trình"
 msgid "Undef"
 msgstr "Không xác định"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Thay đổi chưa lưu"
 
 msgid "Transfer or discard changes"
@@ -10670,7 +10670,7 @@ msgstr "không phải lưu trữ ZIP"
 msgid "invalid header or corrupted"
 msgstr "tiêu đề không hợp lệ hoặc bị hỏng"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "đa đĩa không được hỗ trợ"
 
 msgid "decompression failed"
@@ -13584,7 +13584,7 @@ msgstr "Clumping detection G-code"
 msgid "Supports silent mode"
 msgstr "Hỗ trợ chế độ im lặng"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Máy có hỗ trợ chế độ im lặng trong đó máy sử dụng gia tốc thấp hơn để in hay không."
 
 msgid "Emit limits to G-code"

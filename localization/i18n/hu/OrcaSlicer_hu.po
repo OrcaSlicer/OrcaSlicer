@@ -3973,7 +3973,7 @@ msgstr "Az ajánlott fúvóka hőmérséklet ehhez a filament típushoz [%d, %d]
 
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"It has been reset to 0.5."
 msgstr ""
 "Túl alacsony max. volumetrikus sebesség.\n"
 "Az értéke 0,5-re állt vissza"
@@ -3984,14 +3984,14 @@ msgstr "A kamra aktuális hőmérséklete magasabb az anyag biztonságos hőmér
 
 msgid ""
 "Too small layer height.\n"
-"Reset to 0.2."
+"It has been reset to 0.2."
 msgstr ""
 "Túl alacsony rétegmagasság.\n"
 "Visszaállítva 0,2-re"
 
 msgid ""
 "Too small ironing spacing.\n"
-"Reset to 0.1."
+"It has been reset to 0.1."
 msgstr ""
 "Túl kicsi vasalási térköz.\n"
 "Visszaállítva 0,1-re"
@@ -9659,7 +9659,7 @@ msgstr "Folyamatbeállítások"
 msgid "Undef"
 msgstr "Nincs meghatározva"
 
-msgid "Unsaved Changes"
+msgid "unsaved changes."
 msgstr "Mentetlen változások"
 
 msgid "Transfer or discard changes"
@@ -10721,7 +10721,7 @@ msgstr "nem ZIP archívum"
 msgid "invalid header or corrupted"
 msgstr "érvénytelen fejléc vagy sérült"
 
-msgid "unsupported multidisk"
+msgid "saving to RAID is not supported"
 msgstr "a többlemezes mentés nem támogatott"
 
 msgid "decompression failed"
@@ -13678,7 +13678,7 @@ msgstr "Csomósodásészlelés G-kód"
 msgid "Supports silent mode"
 msgstr "Csendes mód támogatva"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly."
 msgstr "Csendes üzemmód támogatása, amelyben a gép kisebb gyorsulást használ a csendesebb nyomtatáshoz"
 
 msgid "Emit limits to G-code"
