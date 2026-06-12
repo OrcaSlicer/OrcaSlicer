@@ -5642,12 +5642,8 @@ LayerResult GCode::process_layer(
                         // Multi-nozzle BBL printers (H2C) use "; OBJECT_ID:" comments
                         // instead of M624 binary encoding (which is for single-nozzle P1/X1/A1).
                         if (m_config.nozzle_diameter.size() > 1) {
-                            // BBL H2C: COOLING_NODE paired with OBJECT_ID only on layers >= 2
-                            // (first 2 layers are adhesion layers without cooling markers)
-                            std::string obj_str = "; OBJECT_ID: " + std::to_string(instance_to_print.label_object_id) + "\n";
-                            if (m_layer_index >= 2)
-                                obj_str += "; COOLING_NODE: 0\n";
-                            m_writer.set_object_start_str(obj_str);
+                            m_writer.set_object_start_str(
+                                "; OBJECT_ID: " + std::to_string(instance_to_print.label_object_id) + "\n");
                         } else {
                             m_writer.set_object_start_str(
                                 std::string("; start printing object, unique label id: ") +
@@ -7292,15 +7288,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     assert(is_decimal_separator_point());
 
     if (path.role() != m_last_processor_extrusion_role) {
-        // BBL H2C firmware: emit '; COOLING_NODE: 0' boundary marker at inner wall → outer wall
-        // transition.  BBL Studio pairs this with M204 S250 to signal a cooling-zone boundary.
-        if (is_BBL_Printer() && m_config.nozzle_diameter.size() > 1 &&
-            m_layer_index >= 2 &&
-            m_last_processor_extrusion_role == erPerimeter &&
-            path.role() == erExternalPerimeter) {
-            gcode += "; COOLING_NODE: 0\n";
-            gcode += "M204 S250\n";
-        }
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
