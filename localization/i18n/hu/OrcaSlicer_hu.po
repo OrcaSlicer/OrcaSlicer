@@ -7179,7 +7179,7 @@ msgstr "Objektum túl kicsi"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object having multiple parts?"
+"the file be loaded as a single object with multiple parts?"
 msgstr "Ez a fájl több objektumot is tartalmaz különböző magasságban. Szeretnéd több objektum helyett több részből álló egyetlen objektumként betölteni?"
 
 msgid "Multi-part object detected"

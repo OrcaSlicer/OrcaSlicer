@@ -6731,7 +6731,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                MessageDialog msg_dlg(q, _L(
                     "This file contains several objects positioned at multiple heights.\n"
                     "Instead of considering them as multiple objects, should \n"
-                    "the file be loaded as a single object having multiple parts?") + "\n",
+                    "the file be loaded as a single object with multiple parts?") + "\n",
                     _L("Multi-part object detected"), wxICON_WARNING | wxYES | wxNO);
                 if (msg_dlg.ShowModal() == wxID_YES) {
                     model.convert_multipart_object(filaments_cnt);
