@@ -1136,9 +1136,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,  interlocking_beam_layer_count))
     ((ConfigOptionInt,  interlocking_depth))
     ((ConfigOptionInt,  interlocking_boundary_avoidance))
-
-    // Orca: internal use only
-    ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
