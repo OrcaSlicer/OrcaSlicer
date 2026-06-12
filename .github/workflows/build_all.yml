@@ -14,6 +14,7 @@ on:
      - 'resources/**'
      - ".github/workflows/build_*.yml"
      - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
 
   pull_request:
     branches:
@@ -31,6 +32,7 @@ on:
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
      - 'scripts/run_unit_tests.sh'
+     - 'scripts/msix/**'
 
 
   schedule:
