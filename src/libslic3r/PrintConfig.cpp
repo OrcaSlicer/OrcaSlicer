@@ -301,6 +301,14 @@ static t_config_enum_values s_keys_map_WallDirection{
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WallDirection)
 
+//Orca
+static t_config_enum_values s_keys_map_SurfaceFillOrder{
+    { "default",  int(SurfaceFillOrder::Default) },
+    { "outward",  int(SurfaceFillOrder::Outward) },
+    { "inward",   int(SurfaceFillOrder::Inward) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
+
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
     { "by layer",     int(PrintSequence::ByLayer) },
@@ -2196,6 +2204,40 @@ void PrintConfigDef::init_fff_params()
     def->min      = 10;
     def->max      = 100;
     def->set_default_value(new ConfigOptionPercent(100));
+
+    auto def_top_fill_order = def = this->add("top_surface_fill_order", coEnum);
+    def->label = L("Top surface fill order");
+    def->category = L("Strength");
+    def->tooltip = L("Direction in which top surfaces are filled when using a center-based pattern "
+                     "(Concentric, Archimedean Chords, Octagram Spiral).\n"
+                     "Outward starts at the center of the surface, so any excess material is pushed "
+                     "towards the edge where it is least visible. Inward starts at the edge and ends "
+                     "with the tight curves at the center.\n"
+                     "Default uses shortest-path ordering, which may run in either direction.");
+    def->enum_keys_map = &ConfigOptionEnum<SurfaceFillOrder>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("outward");
+    def->enum_values.push_back("inward");
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.push_back(L("Outward"));
+    def->enum_labels.push_back(L("Inward"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SurfaceFillOrder>(SurfaceFillOrder::Default));
+
+    def = this->add("bottom_surface_fill_order", coEnum);
+    def->label = L("Bottom surface fill order");
+    def->category = L("Strength");
+    def->tooltip = L("Direction in which bottom surfaces are filled when using a center-based pattern "
+                     "(Concentric, Archimedean Chords, Octagram Spiral).\n"
+                     "Inward starts each surface with the wider outer curves, which improves first layer "
+                     "adhesion on build plates where the tight curves at the center may not stick. "
+                     "Outward starts at the center, pushing any excess material towards the edge.\n"
+                     "Default uses shortest-path ordering, which may run in either direction.");
+    def->enum_keys_map = &ConfigOptionEnum<SurfaceFillOrder>::get_enum_values();
+    def->enum_values = def_top_fill_order->enum_values;
+    def->enum_labels = def_top_fill_order->enum_labels;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SurfaceFillOrder>(SurfaceFillOrder::Default));
 
 	def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");

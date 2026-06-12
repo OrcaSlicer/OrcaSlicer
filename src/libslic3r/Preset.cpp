@@ -1046,6 +1046,8 @@ static std::vector<std::string> s_Preset_print_options{
     "top_surface_expansion_margin",
     "top_surface_expansion_direction",
     "bottom_surface_pattern",
+    "top_surface_fill_order",
+    "bottom_surface_fill_order",
     "infill_direction",
     "solid_infill_direction",
     "top_layer_direction",
