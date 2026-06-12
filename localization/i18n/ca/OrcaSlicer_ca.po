@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6569,9 +6569,6 @@ msgstr "S'ha desconnectat el ratolí 3D."
 
 msgid "A new configuration is available. Update now?"
 msgstr "La configuració es pot actualitzar ara."
-
-msgid "Detail."
-msgstr "Detall."
 
 msgid "Integration was successful."
 msgstr "La integració s'ha realitzat correctament."
@@ -18940,6 +18937,9 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Detail."
+#~ msgstr "Detall."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

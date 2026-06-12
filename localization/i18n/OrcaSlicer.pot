@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6406,9 +6406,6 @@ msgid "3D Mouse disconnected."
 msgstr ""
 
 msgid "A new configuration is available. Update now?"
-msgstr ""
-
-msgid "Detail."
 msgstr ""
 
 msgid "Integration was successful."

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2025-05-18 09:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -6430,9 +6430,6 @@ msgstr ""
 
 msgid "A new configuration is available. Update now?"
 msgstr "A new configuration is available. Update now?"
-
-msgid "Detail."
-msgstr "More"
 
 msgid "Integration was successful."
 msgstr ""
@@ -18225,6 +18222,9 @@ msgid ""
 msgstr ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
+
+#~ msgid "Detail."
+#~ msgstr "More"
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

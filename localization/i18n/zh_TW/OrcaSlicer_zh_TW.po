@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -6582,9 +6582,6 @@ msgstr "3D 滑鼠已中斷連接。"
 
 msgid "A new configuration is available. Update now?"
 msgstr "設定檔現在可以升級。"
-
-msgid "Detail."
-msgstr "詳細。"
 
 msgid "Integration was successful."
 msgstr "整合成功。"
@@ -18866,6 +18863,9 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "Detail."
+#~ msgstr "詳細。"
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

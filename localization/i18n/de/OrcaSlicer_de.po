@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -6578,9 +6578,6 @@ msgstr "3D-Maus nicht angeschlossen."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Eine neue Konfiguration ist verfügbar. Jetzt aktualisieren?"
-
-msgid "Detail."
-msgstr "Detail."
 
 msgid "Integration was successful."
 msgstr "Die Integration war erfolgreich."
@@ -19109,6 +19106,9 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Detail."
+#~ msgstr "Detail."
 
 #~ msgid ""
 #~ "Controls the density (spacing) of external bridge lines. Default is 100%.\n"

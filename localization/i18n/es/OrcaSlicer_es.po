@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -6584,9 +6584,6 @@ msgstr "Ratón 3D desconectado."
 
 msgid "A new configuration is available. Update now?"
 msgstr "La configuración puede actualizarse ahora."
-
-msgid "Detail."
-msgstr "Detalle."
 
 msgid "Integration was successful."
 msgstr "La integración fue un éxito."
@@ -19119,6 +19116,9 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Detail."
+#~ msgstr "Detalle."
 
 #~ msgid "This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops the transmission of data to Bambu's cloud services too. Users who don't use BBL machines or use LAN mode only can safely turn on this function."
 #~ msgstr "Esto desactiva todos los servicios en la nube, como Orca Cloud y Bambu Cloud. Además, detiene la transmisión de datos a los servicios en la nube de Bambu. Los usuarios que no utilicen máquinas BBL o que utilicen únicamente el modo LAN pueden activar esta función sin ningún problema."

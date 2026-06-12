@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -6583,9 +6583,6 @@ msgstr "3D pelė atjungta."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Yra nauja konfigūracija. Atnaujinti dabar?"
-
-msgid "Detail."
-msgstr "Daugiau."
 
 msgid "Integration was successful."
 msgstr "Integracija sėkminga."
@@ -18952,6 +18949,9 @@ msgid ""
 msgstr ""
 "Išvengti deformacijos\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios linkusios deformuotis, pavyzdžiui, ABS, tinkamai padidinus kaitinimo pagrindo temperatūrą galima sumažinti deformavimosi tikimybę."
+
+#~ msgid "Detail."
+#~ msgstr "Daugiau."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

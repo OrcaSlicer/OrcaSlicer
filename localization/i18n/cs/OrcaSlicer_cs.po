@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -6563,9 +6563,6 @@ msgstr "3D myš odpojena."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Konfiguraci lze nyní aktualizovat."
-
-msgid "Detail."
-msgstr "Detail."
 
 msgid "Integration was successful."
 msgstr "Integrace byla úspěšná."
@@ -18904,6 +18901,9 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Detail."
+#~ msgstr "Detail."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -6569,9 +6569,6 @@ msgstr "3D Mouse csatlakoztatva."
 
 msgid "A new configuration is available. Update now?"
 msgstr "A konfiguráció már frissíthető."
-
-msgid "Detail."
-msgstr "Több"
 
 msgid "Integration was successful."
 msgstr "Az integráció sikeres volt."
@@ -19033,6 +19030,9 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Detail."
+#~ msgstr "Több"
 
 #~ msgid "Loading current beállítás"
 #~ msgstr "Jelenlegi beállítás betöltése"

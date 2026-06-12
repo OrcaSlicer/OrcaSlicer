@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -6559,9 +6559,6 @@ msgstr "3D Fare bağlantısı kesildi."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Yapılandırma şimdi güncellenebilir."
-
-msgid "Detail."
-msgstr "Detay."
 
 msgid "Integration was successful."
 msgstr "Entegrasyon başarılı oldu."
@@ -18894,6 +18891,9 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Detail."
+#~ msgstr "Detay."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

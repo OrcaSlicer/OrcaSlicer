@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6562,9 +6562,6 @@ msgstr "3D-muis losgekoppeld."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Er is een nieuwe configuratie beschikbaar. Wilt u updaten?"
-
-msgid "Detail."
-msgstr "Details."
 
 msgid "Integration was successful."
 msgstr "Integratie is gelukt."
@@ -18919,6 +18916,9 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Detail."
+#~ msgstr "Details."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

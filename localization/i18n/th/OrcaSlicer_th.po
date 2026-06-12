@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2026-06-04 12:39+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -6560,9 +6560,6 @@ msgstr "เมาส์ 3D ถูกตัดการเชื่อมต่�
 
 msgid "A new configuration is available. Update now?"
 msgstr "การกำหนดค่าสามารถอัปเดตได้ทันที"
-
-msgid "Detail."
-msgstr "รายละเอียด"
 
 msgid "Integration was successful."
 msgstr "บูรณาการสำเร็จ"
@@ -18983,6 +18980,9 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Detail."
+#~ msgstr "รายละเอียด"
 
 #, c-format, boost-format
 #~ msgid ""

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -6574,9 +6574,6 @@ msgstr "3D-миша відключена."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Конфігурацію можна оновити зараз."
-
-msgid "Detail."
-msgstr "Деталь."
 
 msgid "Integration was successful."
 msgstr "Інтеграція пройшла успішно."
@@ -18852,6 +18849,9 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+
+#~ msgid "Detail."
+#~ msgstr "Деталь."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -6579,9 +6579,6 @@ msgstr "Souris 3D déconnectée."
 
 msgid "A new configuration is available. Update now?"
 msgstr "La configuration peut maintenant être mise à jour."
-
-msgid "Detail."
-msgstr "Détail."
 
 msgid "Integration was successful."
 msgstr "L'intégration a réussi."
@@ -19122,6 +19119,9 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+#~ msgid "Detail."
+#~ msgstr "Détail."
 
 #, c-format, boost-format
 #~ msgid ""

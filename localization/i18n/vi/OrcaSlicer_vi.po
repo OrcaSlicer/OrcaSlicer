@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -6560,9 +6560,6 @@ msgstr "Chuột 3D đã ngắt kết nối."
 
 msgid "A new configuration is available. Update now?"
 msgstr "Cấu hình có thể cập nhật ngay bây giờ."
-
-msgid "Detail."
-msgstr "Chi tiết."
 
 msgid "Integration was successful."
 msgstr "Tích hợp thành công."
@@ -18908,6 +18905,9 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Detail."
+#~ msgstr "Chi tiết."
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 21:33-0300\n"
+"POT-Creation-Date: 2026-06-12 12:22-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6525,9 +6525,6 @@ msgstr "3D Mouseが切断されました。"
 
 msgid "A new configuration is available. Update now?"
 msgstr "新しい構成が使用できます。今すぐアップデートしますか？"
-
-msgid "Detail."
-msgstr "詳細"
 
 msgid "Integration was successful."
 msgstr "統合は成功しました"
@@ -18479,6 +18476,9 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Detail."
+#~ msgstr "詳細"
 
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction mode.\n"
