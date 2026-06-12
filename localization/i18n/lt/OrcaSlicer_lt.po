@@ -16248,7 +16248,7 @@ msgid "The input value size must be 3."
 msgstr "Įvesties reikšmės dydis turi būti 3."
 
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
 "Šio tipo mašinoje galima laikyti tik 16 istorijos rezultatų iš vieno purkštuko. Galite ištrinti turimus ankstesnius rezultatus ir tada pradėti kalibravimą. Arba galite tęsti kalibravimą, tačiau negalite sukurti naujų kalibravimo istorijos rezultatų.\n"
@@ -16271,7 +16271,7 @@ msgstr ""
 "Are you sure you want to override the historical result?"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Šis įrenginio tipas gali talpinti tik %d istorijos rezultatų iš vieno purkštuko. Šis rezultatas nebus išsaugotas."
 
 msgid "Connecting to printer..."
@@ -16566,7 +16566,7 @@ msgid "Action"
 msgstr "Veiksmas"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Šis įrenginio tipas gali talpinti tik %d ankstesnių rezultatų iš vieno purkštuko."
 
 msgid "Edit Flow Dynamics Calibration"

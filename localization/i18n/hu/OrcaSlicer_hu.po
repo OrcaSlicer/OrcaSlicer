@@ -16325,7 +16325,7 @@ msgid "The input value size must be 3."
 msgstr "A bemeneti értéknek 3-nak kell lennie."
 
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
 "Ez a géptípus fúvókánként legfeljebb 16 előzményeredményt tud tárolni. Törölheted a meglévő korábbi eredményeket és utána elindíthatod a kalibrálást. A kalibrálást folytathatod is, de új kalibrációs előzményeredményt nem tudsz létrehozni.\n"
@@ -16348,7 +16348,7 @@ msgstr ""
 "Biztosan felül akarod írni a korábbi eredményt?"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Ez a géptípus fúvókánként legfeljebb %d előzményeredményt tud tárolni. Ez az eredmény nem lesz elmentve."
 
 msgid "Connecting to printer..."
@@ -16643,7 +16643,7 @@ msgid "Action"
 msgstr "Művelet"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Ez a géptípus fúvókánként legfeljebb %d előzményeredményt tud tárolni."
 
 msgid "Edit Flow Dynamics Calibration"

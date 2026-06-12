@@ -16414,7 +16414,7 @@ msgid "The input value size must be 3."
 msgstr "La valeur saisie doit être 3."
 
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
 "Ce type de machine ne peut contenir que 16 résultats historiques par buse. Vous pouvez supprimer les résultats historiques existants, puis lancer l’étalonnage. Vous pouvez également poursuivre l’étalonnage, mais vous ne pouvez pas créer de nouveaux résultats historiques d’étalonnage.\n"
@@ -16437,7 +16437,7 @@ msgstr ""
 "Êtes-vous sûr de vouloir écraser le résultat historique ?"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Ce type de machine ne peut contenir que %d résultats historiques par buse. Ce résultat ne sera pas enregistré."
 
 msgid "Connecting to printer..."
@@ -16732,7 +16732,7 @@ msgid "Action"
 msgstr "Action"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Ce type de machine ne peut contenir que %d résultats historiques par buse."
 
 msgid "Edit Flow Dynamics Calibration"

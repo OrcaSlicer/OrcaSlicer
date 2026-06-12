@@ -16193,7 +16193,7 @@ msgid "The input value size must be 3."
 msgstr "Giriş değeri boyutu 3 olmalıdır."
 
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
 "Bu makine tipi, püskürtme ucu başına yalnızca 16 geçmiş sonucu tutabilir. Mevcut geçmiş sonuçları silebilir ve ardından kalibrasyona başlayabilirsiniz. Veya kalibrasyona devam edebilirsiniz ancak yeni kalibrasyon geçmişi sonuçları oluşturamazsınız.\n"
@@ -16216,7 +16216,7 @@ msgstr ""
 "Geçmiş sonucu geçersiz kılmak istediğinizden emin misiniz?"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Bu makine türü püskürtme ucu başına yalnızca %d geçmiş sonucunu tutabilir. Bu sonuç kaydedilmeyecek."
 
 msgid "Connecting to printer..."
@@ -16512,7 +16512,7 @@ msgid "Action"
 msgstr "İşlem"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Bu makine türü püskürtme ucu başına yalnızca %d geçmiş sonucunu tutabilir."
 
 msgid "Edit Flow Dynamics Calibration"

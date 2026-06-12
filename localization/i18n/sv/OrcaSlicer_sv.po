@@ -16212,10 +16212,10 @@ msgid "The input value size must be 3."
 msgstr "Storleken på ingångsvärdet måste vara 3."
 
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 
 #, c-format, boost-format
@@ -16235,8 +16235,8 @@ msgstr ""
 "Are you sure you want to override the historical result?"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
-msgstr "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
+msgstr "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 
 msgid "Connecting to printer..."
 msgstr "Ansluter till skrivaren..."
@@ -16530,8 +16530,8 @@ msgid "Action"
 msgstr "Åtgärd"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
-msgstr "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
+msgstr "This machine type can only hold %d historical results per nozzle."
 
 msgid "Edit Flow Dynamics Calibration"
 msgstr "Redigera kalibrering av flödesdynamik"

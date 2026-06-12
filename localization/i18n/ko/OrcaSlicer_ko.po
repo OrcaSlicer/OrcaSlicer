@@ -16149,7 +16149,7 @@ msgid "The input value size must be 3."
 msgstr "입력 값 크기는 3이어야 합니다."
 
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
 "이 기계 유형은 노즐당 16개의 기록 결과만 보유할 수 있습니다. 기존 기록 결과를 삭제한 후 교정을 시작할 수 있습니다. 또는 교정을 계속할 수 있지만 새로운 교정 기록 결과를 생성할 수는 없습니다.\n"
@@ -16172,7 +16172,7 @@ msgstr ""
 "과거 결과를 재정의하시겠습니까?"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "이 기계 유형은 노즐당 %d개의 기록 결과만 보유할 수 있습니다. 이 결과는 저장되지 않습니다."
 
 msgid "Connecting to printer..."
@@ -16463,7 +16463,7 @@ msgid "Action"
 msgstr "실행"
 
 #, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "이 기계 유형은 노즐당 %d개의 기록 결과만 보유할 수 있습니다."
 
 msgid "Edit Flow Dynamics Calibration"
