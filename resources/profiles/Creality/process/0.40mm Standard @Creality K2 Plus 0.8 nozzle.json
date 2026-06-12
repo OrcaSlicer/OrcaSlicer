@@ -228,7 +228,7 @@
 	"tree_support_top_rate": "30%",
 	"wall_distribution_count": "1",
 	"wall_filament": "1",
-	"wall_generator": "arachne",
+	"wall_generator": "classic",
 	"wall_sequence": "inner wall/outer wall",
 	"wall_transition_angle": "10",
 	"wall_transition_filter_deviation": "25%",

@@ -25,7 +25,7 @@
 	"outer_wall_speed": "100",
 	"outer_wall_acceleration": "3000",
 	"inner_wall_acceleration": "3000",
-	"wall_generator": "arachne",
+	"wall_generator": "classic",
 	"line_width": "0.82",
 	"infill_direction": "45",
 	"sparse_infill_density": "15",
