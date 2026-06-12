@@ -15095,7 +15095,7 @@ msgstr "Viršutiniai vientisi sluoksniai"
 msgid "Top shell thickness"
 msgstr "Viršutinio apvalkalo storis"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Sluoksniuojant didinamas viršutinių vientisų sluoksnių skaičius, jei pagal viršutinius apvalkalo sluoksnius apskaičiuotas storis yra plonesnis už šią vertę. Taip galima išvengti per plono apvalkalo, kai sluoksnių aukštis yra mažas. 0 reiškia, kad šis nustatymas išjungtas ir viršutinio apvalkalo storis visiškai nustatomas pagal viršutinio apvalkalo sluoksnius."
 
 msgid "Top surface density"

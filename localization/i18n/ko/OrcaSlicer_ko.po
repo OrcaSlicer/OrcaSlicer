@@ -14993,7 +14993,7 @@ msgstr "상부 꽉찬 레이어"
 msgid "Top shell thickness"
 msgstr "상단 쉘 두께"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "상단 쉘 레이어로 계산된 두께가 이 값보다 얇은 경우 슬라이싱할 때 상단 꽉찬 레이어의 수가 증가합니다. 이렇게 하면 레이어 높이가 작을 때 쉘이 너무 얇아지는 것을 방지할 수 있습니다. 0은 이 설정이 비활성화되고 상단 쉘의 두께가 절대적으로 상단 쉘 레이어에 의해 결정됨을 의미합니다"
 
 msgid "Top surface density"

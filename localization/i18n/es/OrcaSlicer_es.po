@@ -15259,7 +15259,7 @@ msgstr "Capas solidas superiores"
 msgid "Top shell thickness"
 msgstr "Espesor mínimo de la cubierta superior"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "El número de capas sólidas superiores se incrementa al laminar si el espesor calculado por las capas de la cubierta es más delgado que este valor. Esto puede evitar tener una cubierta demasiado fina cuando la altura de la capa es pequeña. 0 significa que este ajuste está desactivado y el grosor de la capa superior está absolutamente determinado por las capas de la cubierta superior."
 
 msgid "Top surface density"

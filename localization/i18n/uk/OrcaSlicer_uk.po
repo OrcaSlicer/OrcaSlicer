@@ -15035,7 +15035,7 @@ msgstr "Верхові суцільні шари"
 msgid "Top shell thickness"
 msgstr "Товщина верхньої оболонки"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Кількість верхніх суцільних шарів збільшується при розрізанні, якщо товщина, обчислена шарами верхньої оболонки, тонша за це значення. Це дозволяє уникнути занадто тонкої оболонки при невеликій висоті шару. 0 означає, що це налаштування вимкнено і товщина верхньої оболонки повністюобмежена верхніми шарами оболонки"
 
 msgid "Top surface density"

@@ -6719,8 +6719,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top shell thickness");
     def->category = L("Strength");
     def->tooltip = L("The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is "
-                     "thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that "
-                     "this setting is disabled and thickness of top shell is absolutely determined by top shell layers.");
+                     "thinner than this value. This can avoid having too thin a shell when layer height is small. "
+                     "0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers.");
     def->full_label = L("Top shell thickness");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;

@@ -15082,7 +15082,7 @@ msgstr "Capes sòlides superiors"
 msgid "Top shell thickness"
 msgstr "Gruix mínim de la carcassa superior"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "El nombre de capes sòlides superiors augmenta quan es tallen si el gruix calculat per les capes de closca superior és més prim que aquest valor. Això pot evitar tenir una closca massa fina quan l'alçada de la capa és petita. 0 significa que aquesta configuració està desactivada i que el gruix de la carcassa superior està absolutament determinat per les capes de la carcassa superior"
 
 msgid "Top surface density"

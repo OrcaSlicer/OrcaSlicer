@@ -15000,7 +15000,7 @@ msgstr "頂部外殼層數"
 msgid "Top shell thickness"
 msgstr "頂部外殼厚度"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "當切片時，如果通過頂部殼層計算的厚度小於設定值，將自動增加頂部實心層的數量，以避免層高較小時頂部殼層過薄。若設為 0，則停用此功能，頂部殼層厚度完全由設定的頂部殼層數決定"
 
 msgid "Top surface density"

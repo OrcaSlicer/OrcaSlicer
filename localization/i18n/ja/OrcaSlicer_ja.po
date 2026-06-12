@@ -14751,7 +14751,7 @@ msgstr "トップソリッド層"
 msgid "Top shell thickness"
 msgstr "トップ面厚さ"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "トップ面の厚さです、トップ面層数で決まった厚みがこの値より小さい場合、層数を増やします。この値が0にする場合、この設定が無効となり、設定した層数で造形します。"
 
 msgid "Top surface density"

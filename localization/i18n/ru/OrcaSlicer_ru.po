@@ -15830,7 +15830,7 @@ msgstr "Сплошных слоёв сверху"
 msgid "Top shell thickness"
 msgstr "Толщина оболочки сверху"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Минимальная толщина оболочки сверху в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв сверху, меньше этого значения, количество сплошных слоёв сверху будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки сверху полностью задаётся количеством сплошных слоёв сверху."
 
 # ??? Плотность верхней оболочки

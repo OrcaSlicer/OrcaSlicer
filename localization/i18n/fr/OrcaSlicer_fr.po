@@ -15264,7 +15264,7 @@ msgstr "Couches pleines supérieures"
 msgid "Top shell thickness"
 msgstr "Épaisseur de la coque supérieure"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Le nombre de couches solides supérieures est augmenté lors du découpage si l'épaisseur calculée par les couches de coque supérieures est inférieure à cette valeur. Cela peut éviter d'avoir une coque trop fine lorsque la hauteur de couche est faible. 0 signifie que ce paramètre est désactivé et que l'épaisseur de la coque supérieure est absolument déterminée par les couches de coque supérieures"
 
 msgid "Top surface density"

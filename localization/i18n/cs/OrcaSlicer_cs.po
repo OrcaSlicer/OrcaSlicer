@@ -15055,7 +15055,7 @@ msgstr "Horní plné vrstvy"
 msgid "Top shell thickness"
 msgstr "Tloušťka horního pláště"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Počet horních pevných vrstev bude při slicování zvýšen, pokud tloušťka vypočtená podle horních vrstev bude menší než tato hodnota. Tím lze předejít příliš tenké skořepině při malé výšce vrstvy. 0 znamená, že je nastavení vypnuté a tloušťka horní skořepiny je určena pouze počtem horních vrstev."
 
 msgid "Top surface density"

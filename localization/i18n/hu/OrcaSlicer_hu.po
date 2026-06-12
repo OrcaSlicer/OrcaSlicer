@@ -15170,7 +15170,7 @@ msgstr "Felső tömör rétegek"
 msgid "Top shell thickness"
 msgstr "Felső héj vastagság"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "A felső szilárd rétegek száma szeleteléskor megnő, ha a felső héjrétegekből számított vastagság kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj kis rétegmagasságnál. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és a felső héj vastagságát egyszerűen a felső héjrétegek száma határozza meg."
 
 msgid "Top surface density"

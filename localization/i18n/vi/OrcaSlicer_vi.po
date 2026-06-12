@@ -15048,7 +15048,7 @@ msgstr "Lớp đặc trên"
 msgid "Top shell thickness"
 msgstr "Độ dày vỏ trên"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Số lượng lớp đặc trên được tăng lên khi slice nếu độ dày được tính bởi lớp vỏ trên mỏng hơn giá trị này. Điều này có thể tránh vỏ quá mỏng khi chiều cao lớp nhỏ. 0 có nghĩa là cài đặt này bị tắt và độ dày vỏ trên được xác định tuyệt đối bởi lớp vỏ trên."
 
 msgid "Top surface density"

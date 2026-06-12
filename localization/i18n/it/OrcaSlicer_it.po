@@ -15127,7 +15127,7 @@ msgstr "Strati solidi superiori"
 msgid "Top shell thickness"
 msgstr "Spessore guscio superiore"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Il numero di strati solidi superiori viene aumentato durante l'elaborazione se lo spessore calcolato dagli strati del guscio superiore è più sottile di questo valore. In questo modo si evita di avere un guscio troppo sottile quando l'altezza degli strati è piccola. Il valore 0 indica che questa impostazione è disattivata e che lo spessore del guscio superiore è determinato in modo assoluto dagli strati del guscio superiore."
 
 msgid "Top surface density"

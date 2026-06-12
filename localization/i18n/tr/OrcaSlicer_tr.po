@@ -15045,7 +15045,7 @@ msgstr "Üst katı katmanlar"
 msgid "Top shell thickness"
 msgstr "Üst katman kalınlığı"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Üst kabuk katmanları tarafından hesaplanan kalınlık bu değerden daha ince ise dilimleme sırasında üst katı katmanların sayısı artırılır. Bu, katman yüksekliği küçük olduğunda kabuğun çok ince olmasını önleyebilir. 0, bu ayarın devre dışı olduğu ve üst kabuğun kalınlığının kesinlikle üst kabuk katmanları tarafından belirlendiği anlamına gelir."
 
 msgid "Top surface density"
