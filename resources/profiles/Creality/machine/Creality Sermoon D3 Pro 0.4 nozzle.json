@@ -86,7 +86,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA @Creality Sermoon D3 Pro 0.4 nozzle"
+		"CR-PLA @Sermoon D3-all"
 	],
 	"deretraction_speed": "40,40",
 	"extruder_colour": "#FCE94F,#FCE94F",

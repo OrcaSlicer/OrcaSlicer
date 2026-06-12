@@ -85,7 +85,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Generic PLA @Creality CR-10 Smart 0.4 nozzle"
+		"CR-PLA @CR-10-all"
 	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#FCE94F",

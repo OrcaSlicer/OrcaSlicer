@@ -86,7 +86,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"CR-PLA @Creality Ender-2 Pro 0.4 nozzle"
+		"CR-PLA @Ender-2 Pro-all"
 	],
 	"deretraction_speed": "25",
 	"extruder_colour": "#FCE94F",

@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_CR_10_Smart",
-	"default_materials": "Generic ABS;Generic PLA;Generic PETG"
+	"default_materials": "Creality Generic PLA;Creality HF Generic PLA;Creality HF Generic Speed PLA;Creality Generic PETG;Creality Generic TPU;Creality Generic ABS"
 }

@@ -9,7 +9,7 @@
 	"gcode_flavor": "marlin",
 	"printer_structure": "i3",
 	"default_filament_profile": [
-		"Creality Generic PLA"
+		"Generic PLA @CR-M4-all"
 	],
 	"default_print_profile": "0.20mm Standard @Creality CR-M4",
 	"nozzle_diameter": [

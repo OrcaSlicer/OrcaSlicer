@@ -1,12 +1,28 @@
 {
 	"name": "Creality",
-	"version": "02.03.02.73",
+	"version": "02.03.02.74",
 	"force_update": "0",
 	"description": "Creality configurations",
 	"machine_model_list": [
 		{
+			"name": "Creality CR-10",
+			"sub_path": "machine/Creality CR-10.json"
+		},
+		{
 			"name": "Creality CR-10 Max",
 			"sub_path": "machine/Creality CR-10 Max.json"
+		},
+		{
+			"name": "Creality CR-10 Smart",
+			"sub_path": "machine/Creality CR-10 Smart.json"
+		},
+		{
+			"name": "Creality CR-10 Smart Pro",
+			"sub_path": "machine/Creality CR-10 Smart Pro.json"
+		},
+		{
+			"name": "Creality CR-10S Pro V2",
+			"sub_path": "machine/Creality CR-10S Pro V2.json"
 		},
 		{
 			"name": "Creality CR-10 SE",
@@ -33,8 +49,32 @@
 			"sub_path": "machine/Creality CR-M4.json"
 		},
 		{
+			"name": "Creality CR-M4 SE",
+			"sub_path": "machine/Creality CR-M4 SE.json"
+		},
+		{
+			"name": "Creality CR-20 Pro",
+			"sub_path": "machine/Creality CR-20 Pro.json"
+		},
+		{
+			"name": "Creality Ender-2 Pro",
+			"sub_path": "machine/Creality Ender-2 Pro.json"
+		},
+		{
 			"name": "Creality Ender-3",
 			"sub_path": "machine/Creality Ender-3.json"
+		},
+		{
+			"name": "Creality Ender-3 Neo",
+			"sub_path": "machine/Creality Ender-3 Neo.json"
+		},
+		{
+			"name": "Creality Ender-3 Max",
+			"sub_path": "machine/Creality Ender-3 Max.json"
+		},
+		{
+			"name": "Creality Ender-3 Max Neo",
+			"sub_path": "machine/Creality Ender-3 Max Neo.json"
 		},
 		{
 			"name": "Creality Ender-3 Pro",
@@ -43,6 +83,10 @@
 		{
 			"name": "Creality Ender-3 S1",
 			"sub_path": "machine/Creality Ender-3 S1.json"
+		},
+		{
+			"name": "Creality Ender-3 S1 Sonic",
+			"sub_path": "machine/Creality Ender-3 S1 Sonic.json"
 		},
 		{
 			"name": "Creality Ender-3 S1 Plus",
@@ -99,6 +143,10 @@
 		{
 			"name": "Creality Ender-5 S1",
 			"sub_path": "machine/Creality Ender-5 S1.json"
+		},
+		{
+			"name": "Creality Ender-5 S1 Sonic",
+			"sub_path": "machine/Creality Ender-5 S1 Sonic.json"
 		},
 		{
 			"name": "Creality Ender-5S",
@@ -165,68 +213,20 @@
 			"sub_path": "machine/Creality SPARKX i7.json"
 		},
 		{
-			"name": "Creality Sermoon V1",
-			"sub_path": "machine/Creality Sermoon V1.json"
-		},
-		{
-			"name": "Creality CR-10 Smart Pro",
-			"sub_path": "machine/Creality CR-10 Smart Pro.json"
-		},
-		{
-			"name": "Creality CR-10 Smart",
-			"sub_path": "machine/Creality CR-10 Smart.json"
-		},
-		{
-			"name": "Creality CR-10",
-			"sub_path": "machine/Creality CR-10.json"
-		},
-		{
-			"name": "Creality CR-10S Pro V2",
-			"sub_path": "machine/Creality CR-10S Pro V2.json"
-		},
-		{
-			"name": "Creality CR-20 Pro",
-			"sub_path": "machine/Creality CR-20 Pro.json"
-		},
-		{
-			"name": "Creality CR-M4 SE",
-			"sub_path": "machine/Creality CR-M4 SE.json"
-		},
-		{
-			"name": "Creality Ender-2 Pro",
-			"sub_path": "machine/Creality Ender-2 Pro.json"
-		},
-		{
-			"name": "Creality Ender-3 Max Neo",
-			"sub_path": "machine/Creality Ender-3 Max Neo.json"
-		},
-		{
-			"name": "Creality Ender-3 Max",
-			"sub_path": "machine/Creality Ender-3 Max.json"
-		},
-		{
-			"name": "Creality Ender-3 Neo",
-			"sub_path": "machine/Creality Ender-3 Neo.json"
-		},
-		{
-			"name": "Creality Ender-3 S1 Sonic",
-			"sub_path": "machine/Creality Ender-3 S1 Sonic.json"
-		},
-		{
-			"name": "Creality Ender-5 S1 Sonic",
-			"sub_path": "machine/Creality Ender-5 S1 Sonic.json"
+			"name": "Creality Sermoon D3",
+			"sub_path": "machine/Creality Sermoon D3.json"
 		},
 		{
 			"name": "Creality Sermoon D3 Pro",
 			"sub_path": "machine/Creality Sermoon D3 Pro.json"
 		},
 		{
-			"name": "Creality Sermoon D3",
-			"sub_path": "machine/Creality Sermoon D3.json"
-		},
-		{
 			"name": "Creality Sermoon M300",
 			"sub_path": "machine/Creality Sermoon M300.json"
+		},
+		{
+			"name": "Creality Sermoon V1",
+			"sub_path": "machine/Creality Sermoon V1.json"
 		},
 		{
 			"name": "Creality Sermoon V1 Pro",
