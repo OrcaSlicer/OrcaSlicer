@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 16:07-0300\n"
-"PO-Revision-Date: 2026-06-12 17:42-0300\n"
+"PO-Revision-Date: 2026-06-12 17:51-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
 "Language: en\n"
@@ -7028,9 +7028,6 @@ msgid ""
 "Instead of considering them as multiple objects, should \n"
 "the file be loaded as a single object with multiple parts?"
 msgstr ""
-"This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
 
 msgid "Multi-part object detected"
 msgstr ""
@@ -15669,7 +15666,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
-msgstr "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -16556,7 +16553,7 @@ msgid "Filament serial is not entered, please enter serial."
 msgstr "Filament serial missing; please input serial."
 
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
+msgstr ""
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr ""
