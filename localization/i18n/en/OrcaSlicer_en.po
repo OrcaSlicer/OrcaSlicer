@@ -3724,7 +3724,7 @@ msgstr ""
 msgid "Go Home"
 msgstr ""
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "An error occurred. The system may have run out of memory, or a bug may have occurred."
 
 #, boost-format
@@ -9488,7 +9488,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr ""
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "No changes will be saved."
 
 msgid "All changes will be discarded."
@@ -10515,7 +10515,7 @@ msgstr ""
 msgid "file not found"
 msgstr ""
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "Archive too large"
 
 msgid "validation failed"
@@ -10957,7 +10957,7 @@ msgstr "This is the bed temperature of the first layer. A value of 0 means the f
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Plate types supported by the printer"
 
 msgid "Default bed type"

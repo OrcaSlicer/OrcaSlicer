@@ -3786,7 +3786,7 @@ msgstr ") för att lokalisera verktygshuvudets position. Detta förhindrar att e
 msgid "Go Home"
 msgstr "Gå hem"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Ett fel uppstod. För lite system minne eller en bugg i programmet"
 
 #, boost-format
@@ -9680,7 +9680,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Högerklicka för att se hela texten."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Ändringarna sparas ej"
 
 msgid "All changes will be discarded."
@@ -10736,7 +10736,7 @@ msgstr "internt fel"
 msgid "file not found"
 msgstr "filen hittades inte"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "för stort arkiv"
 
 msgid "validation failed"
@@ -11190,7 +11190,7 @@ msgstr "Detta är byggplattans temperatur för första lager. Värdet 0 betyder 
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Byggplattans temperatur för första lager 0 betyder att filamentet inte stöds på den texturerade PEI-plattan."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Byggplattans typ stöds av skrivaren"
 
 msgid "Default bed type"

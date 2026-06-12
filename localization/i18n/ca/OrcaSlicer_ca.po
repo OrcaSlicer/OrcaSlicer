@@ -3797,7 +3797,7 @@ msgstr ") per localitzar la posició del capçal. Això evita que el dispositiu 
 msgid "Go Home"
 msgstr "Ves a l'inici"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "S'ha produït un error. Potser la memòria del sistema no és suficient o és un error del programa"
 
 #, boost-format
@@ -9696,7 +9696,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Feu clic amb el botó dret del ratolí per mostrar el text complet."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Els canvis no es desaran"
 
 msgid "All changes will be discarded."
@@ -10752,7 +10752,7 @@ msgstr "error intern"
 msgid "file not found"
 msgstr "arxiu no trobat"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "arxiu massa gran"
 
 msgid "validation failed"
@@ -11206,7 +11206,7 @@ msgstr "Temperatura del llit en la capa inicial. El valor 0 significa que el fil
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Temperatura del llit en la capa inicial. El valor 0 significa que el filament no admet imprimir a la Base PEI amb Textura"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Tipus de llit suportats per la impressora"
 
 msgid "Default bed type"

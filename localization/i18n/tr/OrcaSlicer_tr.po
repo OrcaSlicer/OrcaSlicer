@@ -3790,7 +3790,7 @@ msgstr ") takım kafasının konumunu bulmak için. Bu, cihazın yazdırılabili
 msgid "Go Home"
 msgstr "Anasayfaya Git"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Bir hata oluştu. Belki sistemin hafızası yeterli değildir veya programın bir hatasıdır"
 
 #, boost-format
@@ -9674,7 +9674,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Tam metni görüntülemek için farenin sağ tuşuna tıklayın."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Tüm değişiklikler kaydedilmeyecek"
 
 msgid "All changes will be discarded."
@@ -10730,7 +10730,7 @@ msgstr "dahili hata"
 msgid "file not found"
 msgstr "dosya bulunamadı"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "arşiv çok büyük"
 
 msgid "validation failed"
@@ -11184,7 +11184,7 @@ msgstr "İlk katmanın yatak sıcaklığı. 0 değeri, filamentin Yüksek Sıcak
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "İlk katmanın yatak sıcaklığı. 0 Değeri, filamentin Dokulu PEI Plaka üzerine yazdırmayı desteklemediği anlamına gelir."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Yazıcının desteklediği yatak türleri."
 
 msgid "Default bed type"

@@ -3803,7 +3803,7 @@ msgstr "), um die Position des Werkzeugkopfs zu ermitteln. Dadurch wird verhinde
 msgid "Go Home"
 msgstr "Werkzeugkopf zur Referenzposition fahren"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Ein Fehler ist aufgetreten. Vielleicht reicht der Arbeitsspeicher des Systems nicht aus oder es handelt sich um einen Fehler im Programm."
 
 #, boost-format
@@ -9731,7 +9731,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Klicken Sie mit der rechten Maustaste, um den vollständigen Text anzuzeigen."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Keine Änderungen werden gespeichert"
 
 msgid "All changes will be discarded."
@@ -10790,7 +10790,7 @@ msgstr "interner Fehler"
 msgid "file not found"
 msgstr "Datei nicht gefunden"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "Archiv zu groß"
 
 msgid "validation failed"
@@ -11247,7 +11247,7 @@ msgstr "Dies ist die Betttemperatur der ersten Schicht. Ein Wert von 0 bedeutet,
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Druckbetttemperatur der ersten Schicht. 0 bedeutet, dass das Filament nicht auf der texturierten PEI-Platte unterstützt wird."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Vom Drucker unterstützte Druckbettypen"
 
 msgid "Default bed type"

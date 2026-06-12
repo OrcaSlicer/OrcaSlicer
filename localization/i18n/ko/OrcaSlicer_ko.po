@@ -3791,7 +3791,7 @@ msgstr ")을 클릭하여 툴헤드의 위치를 찾습니다. 이렇게 하면 
 msgid "Go Home"
 msgstr "홈으로"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "오류가 발생했습니다. 시스템 메모리가 부족하거나 프로그램의 버그일 수 있습니다"
 
 #, boost-format
@@ -9662,7 +9662,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "마우스 오른쪽 버튼을 클릭하여 전체 텍스트를 표시합니다."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "모든 변경 사항이 저장되지 않습니다"
 
 msgid "All changes will be discarded."
@@ -10718,7 +10718,7 @@ msgstr "내부 오류"
 msgid "file not found"
 msgstr "파일을 찾을 수 없습니다"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "압축파일이 너무 큽니다"
 
 msgid "validation failed"
@@ -11169,7 +11169,7 @@ msgstr "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 고
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "초기 레이어의 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "프린터가 지원하는 베드 유형"
 
 msgid "Default bed type"

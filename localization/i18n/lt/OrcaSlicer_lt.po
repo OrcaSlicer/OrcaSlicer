@@ -3805,7 +3805,7 @@ msgstr ") norėdami nustatyti spausdinimo galvutės padėtį. Taip išvengiama, 
 msgid "Go Home"
 msgstr "Grįžti į pradinę padėtį"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Įvyko klaida. Sistemoje galėjo pritrūkti atminties arba įvyko programos klaida"
 
 #, boost-format
@@ -9718,7 +9718,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Spustelėkite dešinįjį pelės klavišą, kad būtų rodomas visas tekstas."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Pakeitimai nebus išsaugoti"
 
 msgid "All changes will be discarded."
@@ -10774,7 +10774,7 @@ msgstr "vidinė klaida"
 msgid "file not found"
 msgstr "failas nerastas"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "per didelis archyvas"
 
 msgid "validation failed"
@@ -11228,7 +11228,7 @@ msgstr "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdini
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant tekstūruotos PEI plokštės."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Spausdintuvo palaikomi pagrindo tipai."
 
 msgid "Default bed type"

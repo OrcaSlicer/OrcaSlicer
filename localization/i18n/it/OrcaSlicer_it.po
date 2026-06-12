@@ -3794,7 +3794,7 @@ msgstr ") per individuare la posizione del gruppo testina. In questo modo si evi
 msgid "Go Home"
 msgstr "Vai all'origine"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Si è verificato un errore. È possibile che la memoria del sistema sia esaurita o che si sia verificato un bug"
 
 #, boost-format
@@ -9693,7 +9693,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Clicca il pulsante destro del mouse per visualizzare il testo completo."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Nessuna modifica verrà salvata"
 
 msgid "All changes will be discarded."
@@ -10751,7 +10751,7 @@ msgstr "errore interno"
 msgid "file not found"
 msgstr "file non trovato"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "archivio troppo grande"
 
 msgid "validation failed"
@@ -11208,7 +11208,7 @@ msgstr "Indica la temperatura del piatto per il primo strato. Un valore pari a 0
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Indica la temperatura del piatto per il primo strato. Un valore pari a 0 indica che il filamento non supporta la stampa su Piatto PEI ruvido."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Tipi di piatti supportati dalla stampante."
 
 msgid "Default bed type"

@@ -3800,7 +3800,7 @@ msgstr ") для визначення положення друкованої г
 msgid "Go Home"
 msgstr "На головну"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Відбулася помилка. Можливо не вистачає системноъ пам'яті або це баг самої програми"
 
 #, boost-format
@@ -9694,7 +9694,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Натисніть праву кнопку миші, щоб відобразити повний текст."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Всі зміни не будуть збережені"
 
 msgid "All changes will be discarded."
@@ -10744,7 +10744,7 @@ msgstr "внутрішня помилка"
 msgid "file not found"
 msgstr "файл не знайдено"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "великий архів"
 
 msgid "validation failed"
@@ -11199,7 +11199,7 @@ msgstr "Температура столу першого шару. Значен�
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Текстурованій Пластині PEI"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Типи ліжок, які підтримує принтер"
 
 msgid "Default bed type"

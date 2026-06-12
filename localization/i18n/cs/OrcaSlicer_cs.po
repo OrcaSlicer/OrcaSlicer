@@ -3791,7 +3791,7 @@ msgstr ") pro určení polohy tiskové hlavy. To zabraňuje pohybu zařízení m
 msgid "Go Home"
 msgstr "Na domovskou pozici"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Došlo k chybě. Možná není dostatek systémové paměti, nebo se jedná o chybu programu."
 
 #, boost-format
@@ -9679,7 +9679,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Kliknutím pravým tlačítkem myši zobrazíte celý text."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Všechny změny nebudou uloženy."
 
 msgid "All changes will be discarded."
@@ -10735,7 +10735,7 @@ msgstr "Interní chyba"
 msgid "file not found"
 msgstr "Soubor nenalezen"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "Archiv je příliš velký."
 
 msgid "validation failed"
@@ -11189,7 +11189,7 @@ msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na Texturované PEI podložce."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Typy desek podporované tiskárnou."
 
 msgid "Default bed type"

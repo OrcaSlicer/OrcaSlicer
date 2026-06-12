@@ -3787,7 +3787,7 @@ msgstr ") để xác định vị trí của đầu công cụ. Điều này ng�
 msgid "Go Home"
 msgstr "Về gốc"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Xảy ra lỗi. Có thể bộ nhớ của hệ thống không đủ hoặc đây là lỗi của chương trình"
 
 #, boost-format
@@ -9671,7 +9671,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Nhấp chuột phải để hiển thị toàn bộ văn bản."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Tất cả thay đổi sẽ không được lưu"
 
 msgid "All changes will be discarded."
@@ -10727,7 +10727,7 @@ msgstr "lỗi nội bộ"
 msgid "file not found"
 msgstr "không tìm thấy file"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "lưu trữ quá lớn"
 
 msgid "validation failed"
@@ -11181,7 +11181,7 @@ msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured PEI."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Loại bàn in được hỗ trợ bởi máy in."
 
 msgid "Default bed type"

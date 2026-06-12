@@ -3776,7 +3776,7 @@ msgstr "）。造形可能領域外へ移動してしまうことを防ぎます
 msgid "Go Home"
 msgstr "原点帰還"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "エラーが発生しました。システムのメモリ不足か、不具合が発生した可能性があります。"
 
 #, boost-format
@@ -9634,7 +9634,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "マウスを右クリックして全文を表示します"
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "変更は保存されません。"
 
 msgid "All changes will be discarded."
@@ -10682,7 +10682,7 @@ msgstr "内部エラー"
 msgid "file not found"
 msgstr "ﾌｧｲﾙが行方不明"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "アーカイブのサイスが大きすぎです"
 
 msgid "validation failed"
@@ -11124,7 +11124,7 @@ msgstr "1層目のベッド温度です。値が0の場合、フィラメント�
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "1層目のベッド温度。値が0の場合は、フィラメントがPEIプレートをサポートしない意味です。"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "適応ベッド種類"
 
 msgid "Default bed type"

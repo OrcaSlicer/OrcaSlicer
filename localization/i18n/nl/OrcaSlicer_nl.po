@@ -3790,7 +3790,7 @@ msgstr ") om de positie van de gereedschapskop te bepalen. Dit voorkomt dat het 
 msgid "Go Home"
 msgstr "Near home positie"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Er is een probleem opgetreden. Er is geen vrij geheugen of er een is een bug opgetreden"
 
 #, boost-format
@@ -9686,7 +9686,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Klik op de rechtermuisknop om de volledige tekst weer te geven."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Er zullen geen wijzigingen worden opgeslagen"
 
 msgid "All changes will be discarded."
@@ -10742,7 +10742,7 @@ msgstr "Interne fout"
 msgid "file not found"
 msgstr "Bestand mist"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "Archief is te groot"
 
 msgid "validation failed"
@@ -11196,7 +11196,7 @@ msgstr "Dit is de bedtemperatuur van de beginlaag. Een waarde van 0 betekent dat
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "De bedtemperatuur van de eerste laag 0 betekent dat het filament niet wordt ondersteund op de getextureerde PEI-plaat."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Printbedden ondersteund door de printer"
 
 msgid "Default bed type"

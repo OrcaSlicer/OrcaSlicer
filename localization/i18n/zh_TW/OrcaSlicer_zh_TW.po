@@ -3786,7 +3786,7 @@ msgstr "）來定位工具頭的位置，這可防止設備移動超出可列印
 msgid "Go Home"
 msgstr "回原點"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "發生錯誤。可能系統記憶體不足或者程式存在錯誤"
 
 #, boost-format
@@ -9685,7 +9685,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "單擊滑鼠右鍵顯示全文。"
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "所有的修改都不會被儲存"
 
 msgid "All changes will be discarded."
@@ -10742,7 +10742,7 @@ msgstr "內部錯誤"
 msgid "file not found"
 msgstr "檔案未找到"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "存檔檔案太大"
 
 msgid "validation failed"
@@ -11196,7 +11196,7 @@ msgstr "首層的列印床溫度。值為 0 表示該線材不適用於高溫列
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "列印設備所支援的列印板類型"
 
 msgid "Default bed type"

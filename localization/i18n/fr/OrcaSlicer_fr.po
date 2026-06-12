@@ -3803,7 +3803,7 @@ msgstr ") pour localiser la position de la tête. Cela éviter de dépasser la l
 msgid "Go Home"
 msgstr "Retour 0"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Une erreur s'est produite. Peut-être que la mémoire du système n'est pas suffisante ou c'est un bug du programme"
 
 #, boost-format
@@ -9733,7 +9733,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Cliquez sur le bouton droit de la souris pour afficher le texte complet."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "Toutes les modifications ne seront pas enregistrées"
 
 msgid "All changes will be discarded."
@@ -10791,7 +10791,7 @@ msgstr "erreur interne"
 msgid "file not found"
 msgstr "fichier non trouvé"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "archive trop volumineuse"
 
 msgid "validation failed"
@@ -11248,7 +11248,7 @@ msgstr "Il s'agit de la température du plateau pour la première couche. Une va
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "La température du plateau à la première couche. La valeur 0 signifie que le filament ne peut pas être imprimé sur la plaque PEI texturée"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Types de plateaux pris en charge par l'imprimante"
 
 msgid "Default bed type"

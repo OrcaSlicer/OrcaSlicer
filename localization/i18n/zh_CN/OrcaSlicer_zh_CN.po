@@ -3783,7 +3783,7 @@ msgstr "）操作以定位当前工具头位置，以防止轴移动时超出边
 msgid "Go Home"
 msgstr "回原点"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "发生错误。可能系统内存不足或者程序存在bug。"
 
 #, boost-format
@@ -9677,7 +9677,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "单击鼠标右键显示全文。"
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "所有的修改都不会被保存"
 
 msgid "All changes will be discarded."
@@ -10737,7 +10737,7 @@ msgstr "内部错误"
 msgid "file not found"
 msgstr "文件未找到"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "存档文件太大"
 
 msgid "validation failed"
@@ -11194,7 +11194,7 @@ msgstr "首层热床温度。0值表示这个耗材丝不支持高温打印热�
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "打印机所支持的热床类型"
 
 msgid "Default bed type"

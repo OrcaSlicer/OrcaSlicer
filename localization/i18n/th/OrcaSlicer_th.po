@@ -3791,7 +3791,7 @@ msgstr ") เพื่อค้นหาตำแหน่งของหัว�
 msgid "Go Home"
 msgstr "กลับจุดอ้างอิง"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "เกิดข้อผิดพลาด บางทีหน่วยความจำของระบบอาจไม่เพียงพอหรือเป็นข้อบกพร่องของโปรแกรม"
 
 #, boost-format
@@ -9697,7 +9697,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "คลิกปุ่มเมาส์ขวาเพื่อแสดงข้อความทั้งหมด"
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "การเปลี่ยนแปลงทั้งหมดจะไม่ถูกบันทึก"
 
 msgid "All changes will be discarded."
@@ -10753,7 +10753,7 @@ msgstr "ข้อผิดพลาดภายใน"
 msgid "file not found"
 msgstr "ไม่พบไฟล์"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "ไฟล์เก็บถาวรมีขนาดใหญ่เกินไป"
 
 msgid "validation failed"
@@ -11210,7 +11210,7 @@ msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก �
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนเพลต PEI ที่มีพื้นผิว"
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "ประเภทฐานพิมพ์ที่เครื่องพิมพ์รองรับ"
 
 msgid "Default bed type"

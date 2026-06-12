@@ -3793,7 +3793,7 @@ msgstr "). Ez megakadályozza, hogy a nyomtató megpróbálja a nyomtatható ter
 msgid "Go Home"
 msgstr "Alaphelyzet"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Hiba történt. Lehet, hogy a rendszer memóriája nem elég, vagy a program hibás"
 
 #, boost-format
@@ -9720,7 +9720,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Kattints a jobb egérgombbal a teljes szöveg megjelenítéséhez."
 
-msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "A módosítások nem kerülnek mentésre"
 
 msgid "All changes will be discarded."
@@ -10778,7 +10778,7 @@ msgstr "belső hiba"
 msgid "file not found"
 msgstr "fájl nem található"
 
-msgid "archive too large"
+msgid "Archive too large"
 msgstr "archívum túl nagy"
 
 msgid "validation failed"
@@ -11235,7 +11235,7 @@ msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a fi
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Az első réteg asztalhőmérsékletének beállított 0 érték azt jelenti, hogy a filament nem támogatja texturált PEI tálcára történő nyomtatást."
 
-msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer."
 msgstr "Nyomtató által támogatott asztaltípusok"
 
 msgid "Default bed type"
