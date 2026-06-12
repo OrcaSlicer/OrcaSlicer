@@ -12920,7 +12920,7 @@ msgstr "모든 벽"
 msgid "Fuzzy skin thickness"
 msgstr "퍼지 스킨 두께"
 
-msgid "The width within which to jitter. It's advised to be below outer wall line width."
+msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "임의로 움직일 너비입니다. 외벽 선 너비 보다 얇게 하는 것이 좋습니다"
 
 msgid "Fuzzy skin point distance"

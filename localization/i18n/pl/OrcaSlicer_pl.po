@@ -12933,7 +12933,7 @@ msgstr "Wszystkie ściany"
 msgid "Fuzzy skin thickness"
 msgstr "Grubość skóry fuzzy"
 
-msgid "The width within which to jitter. It's advised to be below outer wall line width."
+msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "Szerokość w granicach której występuje rozmycie. Zaleca się, aby była poniżej szerokości linii zewnętrznej ściany."
 
 msgid "Fuzzy skin point distance"

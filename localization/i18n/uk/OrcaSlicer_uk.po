@@ -12953,7 +12953,7 @@ msgstr "Всі периметри"
 msgid "Fuzzy skin thickness"
 msgstr "Товщина Шорсткої Поверхні"
 
-msgid "The width within which to jitter. It's advised to be below outer wall line width."
+msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "Ширина, в межах якої відбувається тремтіння. Небажано бути нижчеширини лінії зовнішнього периметра"
 
 msgid "Fuzzy skin point distance"
