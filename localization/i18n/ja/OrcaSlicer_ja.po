@@ -16786,7 +16786,7 @@ msgstr "フィラメントのベンダーまたはシリアル入力に許可さ
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "カスタムプリンタのベンダーまたはシリアルのすべての入力が空白です。再入力してください。"
 
-msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr ""
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
