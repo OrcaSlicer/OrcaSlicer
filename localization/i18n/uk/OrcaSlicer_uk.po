@@ -40,19 +40,20 @@ msgid "TPU is not supported by AMS."
 msgstr "TPU не підтримується AMS."
 
 msgid "AMS does not support 'Bambu Lab PET-CF'."
-msgstr "AMS не підтримує 'Bambu Lab PET-CF'."
+msgstr "AMS не підтримує \"Bambu Lab PET-CF\"."
 
 msgid ""
 "Please cold pull before printing TPU to avoid clogging. You may use cold "
 "pull maintenance on the printer."
-msgstr "Будь ласка, виконайте «холодну протяжку» (cold pull) перед друком TPU, щоб уникнути засмічення. Ви можете використати функцію обслуговування на принтері."
+msgstr ""
+"Будь ласка, виконайте холодне протягування перед друком TPU,"
+"щоб уникнути засмічення. Ви можете скористатися функцією обслуговування на принтері."
 
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
 "dry it before use."
 msgstr ""
-"Вологий PVA стає гнучким і може застрягти всередині AMS, будь ласка, "
-"обережно висушіть його перед використанням."
+"Вологий PVA стає гнучким і застрягає всередині AMS, будь ласка, висушіть його перед використанням."
 
 msgid "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
 msgstr "Вологий PVA гнучкий і може застрягти в екструдері. Висушіть його перед використанням."
@@ -60,27 +61,28 @@ msgstr "Вологий PVA гнучкий і може застрягти в ек
 msgid ""
 "The rough surface of PLA Glow can accelerate wear on the AMS system, "
 "particularly on the internal components of the AMS Lite."
-msgstr "Шорстка поверхня PLA Glow може прискорити знос системи AMS, зокрема внутрішніх компонентів AMS Lite."
+msgstr "Шорстка поверхня PLA Glow може прискорити зношення системи AMS,"
+"зокрема внутрішніх компонентів AMS Lite."
 
 msgid ""
 "CF/GF filaments are hard and brittle, it's easy to break or get stuck in "
 "AMS, please use with caution."
 msgstr ""
-"Філаменти CF/GF є жорсткими і крихкими, їх легко можна зламати або вони "
-"можуть застряти в AMS, будьте обережні під час використання."
+"Філаменти CF/GF тверді та крихкі, вони можуть зламатися або застрягти в AMS,"
+"будь ласка, будьте обережні."
 
 msgid "PPS-CF is brittle and could break in bended PTFE tube above Toolhead."
-msgstr "PPS-CF крихкий і може зламатися у вигнутій трубці PTFE над друкуючою голівкою."
+msgstr "PPS-CF крихкий і може зламатися у вигнутій трубці PTFE над хотендом."
 
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
-msgstr "PPA-CF крихкий і може зламатися у вигнутій трубці PTFE над друкуючою голівкою."
+msgstr "PPA-CF крихкий і може зламатися у viгнутій трубці PTFE над хотендом."
 
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
 msgstr "%s не підтримується екструдером %s."
 
 msgid "Current AMS humidity"
-msgstr "Поточна вологість AMS"
+msgstr "Поточна вологість в AMS"
 
 msgid "Humidity"
 msgstr "Вологість"
@@ -107,7 +109,7 @@ msgid "Version:"
 msgstr "Версія:"
 
 msgid "Latest version"
-msgstr "Остання версія"
+msgstr "Найновіша версія"
 
 msgid "Support Painting"
 msgstr "Малювання підтримок"
@@ -116,7 +118,7 @@ msgid "Perform"
 msgstr "Виконати"
 
 msgid "On highlighted overhangs only"
-msgstr "Тільки на підсвічених нависанняхх"
+msgstr "Тільки на підсвічених нависаннях"
 
 msgid "Erase all"
 msgstr "Очистити все"
@@ -125,16 +127,16 @@ msgid "Highlight overhang areas"
 msgstr "Підсвічувати області нависань"
 
 msgid "Tool type"
-msgstr "Тип інструменту"
+msgstr "Тип інструмента"
 
 msgid "Gap fill"
-msgstr "Заповнення прогалин"
+msgstr "Заповнення проміжків"
 
 msgid "Reset direction"
 msgstr "Скинути напрямок"
 
 msgid "Section view"
-msgstr "Вид у розрізі"
+msgstr "Вигляд у розрізі"
 
 msgid "Brush size"
 msgstr "Розмір пензля"
@@ -143,7 +145,7 @@ msgid "Smart fill angle"
 msgstr "Кут розумного заповнення"
 
 msgid "Gap area"
-msgstr "Площа прогалини"
+msgstr "Площа проміжку"
 
 msgid "Left mouse button"
 msgstr "Ліва кнопка миші"
@@ -155,16 +157,16 @@ msgid "Right mouse button"
 msgstr "Права кнопка миші"
 
 msgid "Block supports"
-msgstr "Блокувати підтримки"
+msgstr "Заблокувати підтримки"
 
 msgid "Erase"
 msgstr "Стерти"
 
 msgid "Mouse wheel"
-msgstr "оліщатко миші"
+msgstr "Коліщатко миші"
 
 msgid "Auto support threshold angle: "
-msgstr "Поріг кута автоматичної підтримки: "
+msgstr "Поріг кута автопідтримок: "
 
 msgid "Circle"
 msgstr "Коло"
@@ -176,7 +178,7 @@ msgid "Fill"
 msgstr "Заповнення"
 
 msgid "Gap Fill"
-msgstr "Заповнення прогалин"
+msgstr "Заповнення проміжків"
 
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
@@ -195,16 +197,16 @@ msgid "Support Generated"
 msgstr "Підтримки згенеровано"
 
 msgid "Entering Paint-on supports"
-msgstr ""
+msgstr "Активація малювання підтримок"
 
 msgid "Leaving Paint-on supports"
-msgstr ""
+msgstr "Деактивація малювання підтримок"
 
 msgid "Paint-on supports editing"
-msgstr ""
+msgstr "Редагування малювання підтримок"
 
 msgid "Gizmo-Place on Face"
-msgstr "Гізмо: Розмістити на грані"
+msgstr "Маніпулятор: Розмістити на грані"
 
 msgid "Lay on face"
 msgstr "Покласти на грань"
@@ -214,12 +216,11 @@ msgid ""
 "Filament count exceeds the maximum number that painting tool supports. Only "
 "the first %1% filaments will be available in painting tool."
 msgstr ""
-"Кількість філаменту перевищує максимальну кількість, яку підтримує "
-"інструмент малювання. Лише перші %1% філаменту будуть доступні в інструменті "
-"малювання."
+"Кількість філаментів перевищує максимум, який підтримує інструмент"
+"розфарбовування. Лише перші %1% будуть доступні для малювання."
 
 msgid "Color Painting"
-msgstr "Розфарбовуванн"
+msgstr "Розфарбовування"
 
 msgid "Brush shape"
 msgstr "Форма пензля"
@@ -252,7 +253,7 @@ msgid "Height range"
 msgstr "Діапазон висоти"
 
 msgid "Toggle Wireframe"
-msgstr "Переключити каркас"
+msgstr "Показати/приховати каркас"
 
 msgid "Remap filaments"
 msgstr "Перепризначити філаменти"
@@ -264,7 +265,7 @@ msgid "Reset"
 msgstr "Скинути"
 
 msgid "Enter"
-msgstr "Ввід"
+msgstr "Введення"
 
 msgid "Shortcut Key "
 msgstr "Комбінація клавіш "
@@ -282,66 +283,66 @@ msgid "Horizontal"
 msgstr "Горизонтально"
 
 msgid "Remove painted color"
-msgstr "Очистити колір"
+msgstr "Видалити колір"
 
 #, boost-format
 msgid "Painted using: Filament %1%"
-msgstr "Пофарбовано: Філамент %1%"
+msgstr "Пофарбовано за допомогою: Філамент %1%"
 
 msgid "To:"
-msgstr "До:"
+msgstr "На:"
 
 msgid "Entering color painting"
-msgstr ""
+msgstr "Активація розфарбовування"
 
 msgid "Leaving color painting"
-msgstr ""
+msgstr "Деактивація розфарбовування"
 
 msgid "Color painting editing"
-msgstr ""
+msgstr "Редагування розфарбовування"
 
 msgid "Paint-on fuzzy skin"
-msgstr "Малювання «пухнастої шкірки»"
+msgstr "Малювання текстури «Fuzzy Skin»"
 
 msgid "Add fuzzy skin"
-msgstr "Додати «пухнасту шкірку»"
+msgstr "Додати «Fuzzy Skin»"
 
 msgid "Remove fuzzy skin"
-msgstr "Видалити «пухнасту шкірку»"
+msgstr "Видалити «Fuzzy Skin»"
 
 msgid "Reset selection"
 msgstr "Скинути вибір"
 
 msgid ""
 "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
-msgstr "Попередження: «Пухнасту шкірку» вимкнено, намальована текстура не застосується!"
+msgstr "Попередження: Функцію «Fuzzy Skin» вимкнено, намальована текстура не буде застосована!"
 
 msgid "Enable painted fuzzy skin for this object"
-msgstr "Увімкнути намальовану «пухнасту шкірку» для цього об'єкта"
+msgstr "Увімкнути намальовану текстуру «Fuzzy Skin» для цього об'єкта"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr ""
+msgstr "Активація малювання «Fuzzy Skin»"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr ""
+msgstr "Деактивація малювання «Fuzzy Skin»"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr ""
+msgstr "Редагування малювання «Fuzzy Skin»"
 
 msgid "Move"
 msgstr "Перемістити"
 
 msgid "Please select at least one object."
-msgstr "Будь ласка, виберіть принаймні один об’єкт."
+msgstr "Будь ласка, виберіть принаймні один об'єкт."
 
 msgid "Gizmo-Move"
-msgstr "Гізмо: Переміщення"
+msgstr "Маніпулятор: Переміщення"
 
 msgid "Rotate"
 msgstr "Повернути"
 
 msgid "Gizmo-Rotate"
-msgstr "Гізмо: Обертання"
+msgstr "Маніпулятор: Обертання"
 
 msgid "Optimize orientation"
 msgstr "Оптимізувати орієнтацію"
@@ -350,10 +351,10 @@ msgid "Apply"
 msgstr "Застосувати"
 
 msgid "Scale"
-msgstr "Масштаб"
+msgstr "Масштабувати"
 
 msgid "Gizmo-Scale"
-msgstr "Гізмо: Масштабування"
+msgstr "Маніпулятор: Масштабування"
 
 msgid "Error: Please close all toolbar menus first"
 msgstr "Помилка: будь ласка, спочатку закрийте всі меню панелі інструментів"
@@ -374,7 +375,7 @@ msgid "Context Menu"
 msgstr "Контекстне меню"
 
 msgid "Toggle Auto-Drop"
-msgstr "Увімкнути/вимкнути автоопускання"
+msgstr "Показати/приховати автоопускання"
 
 msgid "Single sided scaling"
 msgstr "Одностороннє масштабування"
@@ -392,10 +393,10 @@ msgid "Object Operations"
 msgstr "Операції з об'єктами"
 
 msgid "Volume Operations"
-msgstr "Операції з об’ємами"
+msgstr "Операції з об'ємами"
 
 msgid "Translate"
-msgstr "Зсув"
+msgstr "Переміщення"
 
 msgid "Group Operations"
 msgstr "Операції з групами"
@@ -419,17 +420,16 @@ msgid "World coordinates"
 msgstr "Глобальні координати"
 
 msgid "Translate(Relative)"
-msgstr "Зсув (відносно)"
+msgstr "Переміщення (відносно)"
 
 msgid "Reset current rotation to the value when open the rotation tool."
-msgstr ""
-"Скинути поточне обертання до значення при відкритті інструмента обертання."
+msgstr "Скинути обертання до значення на момент відкриття інструмента."
 
 msgid "Rotate (absolute)"
 msgstr "Повернути (абсолютно)"
 
 msgid "Reset current rotation to real zeros."
-msgstr "Скинути поточне обертання до абсолютного нуля."
+msgstr "Скинути обертання до системного нуля."
 
 msgid "Part coordinates"
 msgstr "Координати деталі"
@@ -439,13 +439,13 @@ msgid "Size"
 msgstr "Розмір"
 
 msgid "Uniform scale"
-msgstr "Рівномірне масштабування"
+msgstr "Пропорційне масштабування"
 
 msgid "Planar"
 msgstr "Площинний"
 
 msgid "Dovetail"
-msgstr "Ластівчин хвіст"
+msgstr "Ластівчин хвост"
 
 msgid "Auto"
 msgstr "Авто"
@@ -478,7 +478,7 @@ msgid "Keep orientation"
 msgstr "Зберегти орієнтацію"
 
 msgid "Place on cut"
-msgstr "Покласти на зріз"
+msgstr "Розмістити на зрізі"
 
 msgid "Flip upside down"
 msgstr "Перевернути догори дриґом"
@@ -514,7 +514,7 @@ msgid "Width"
 msgstr "Ширина"
 
 msgid "Flap Angle"
-msgstr "Кут клапана"
+msgstr "Кут скосу"
 
 msgid "Groove Angle"
 msgstr "Кут паза"
@@ -535,7 +535,7 @@ msgid "Gap"
 msgstr "Зазор"
 
 msgid "Spacing"
-msgstr "Крок"
+msgstr "Інтервал"
 
 msgid "Part"
 msgstr "Деталь"
@@ -547,26 +547,26 @@ msgid ""
 "Click to flip the cut plane\n"
 "Drag to move the cut plane"
 msgstr ""
-"Клацніть, щоб перевернути площину розрізу\n"
-"Перетягніть, щоб перемістити площину розрізу"
+"Клацніть, щоб перевернути площину зрізу\n"
+"Перетягніть, щоб перемістити площину зрізу"
 
 msgid ""
 "Click to flip the cut plane\n"
 "Drag to move the cut plane\n"
 "Right-click a part to assign it to the other side"
 msgstr ""
-"Клацніть, щоб перевернути площину розрізу\n"
-"Перетягніть, щоб перемістити площину розрізу\n"
+"Клацніть, щоб перевернути площину зрізу\n"
+"Перетягніть, щоб перемістити площину зрізу\n"
 "Клацніть правою кнопкою миші на деталь, щоб перенести її на інший бік"
 
 msgid "Move cut plane"
-msgstr "Перемістити площину розрізу"
+msgstr "Перемістити площину зрізу"
 
 msgid "Mode"
 msgstr "Режим"
 
 msgid "Change cut mode"
-msgstr "Змінити режим розрізання"
+msgstr "Змінити режим зрізання"
 
 msgid "Tolerance"
 msgstr "Допуск"
@@ -575,10 +575,10 @@ msgid "Drag"
 msgstr "Перетягнути"
 
 msgid "Move cut line"
-msgstr "Перемістити лінію розрізу"
+msgstr "Перемістити лінію зрізу"
 
 msgid "Draw cut line"
-msgstr "Намалювати лінію розрізу"
+msgstr "Намалювати лінію зрізу"
 
 msgid "Add connector"
 msgstr "Додати з'єднувач"
@@ -590,28 +590,28 @@ msgid "Move connector"
 msgstr "Перемістити з'єднувач"
 
 msgid "Add connector to selection"
-msgstr "Додати з'єднувач до вибраного"
+msgstr "Додати з'єднувач до виділеного"
 
 msgid "Remove connector from selection"
-msgstr "Вилучити з'єднувач із вибраного"
+msgstr "Вилучити з'єднувач із виділеного"
 
 msgid "Select all connectors"
 msgstr "Вибрати всі з'єднувачі"
 
 msgid "Cut"
-msgstr "Розрізати"
+msgstr "Виконати зріз"
 
 msgid "Rotate cut plane"
-msgstr "Повернути площину розрізу"
+msgstr "Повернути площину зрізу"
 
 msgid "Remove connectors"
 msgstr "Видалити з'єднувачі"
 
 msgid "Bulge"
-msgstr "Випуклість"
+msgstr "Опуклість"
 
 msgid "Bulge proportion related to radius"
-msgstr "Пропорція випуклості відносно радіуса"
+msgstr "Пропорція опуклості відносно радіуса"
 
 msgid "Space"
 msgstr "Зазор"
@@ -626,7 +626,7 @@ msgid "Cancel"
 msgstr "Скасувати"
 
 msgid "Flip cut plane"
-msgstr "Перевернути площину розрізу"
+msgstr "Перевернути площину зрізу"
 
 msgid "Groove change"
 msgstr "Зміна паза"
@@ -636,13 +636,13 @@ msgid "Edited"
 msgstr "Відредаговано"
 
 msgid "Reset cutting plane"
-msgstr "Скинути площину розрізу"
+msgstr "Скинути площину зрізу"
 
 msgid "Edit connectors"
 msgstr "Редагувати з'єднувачі"
 
 msgid "Add connectors"
-msgstr "Додати з'єднання"
+msgstr "Додати з'єднувачі"
 
 msgid "Upper part"
 msgstr "Верхня частина"
@@ -657,16 +657,16 @@ msgid "Flip"
 msgstr "Перевернути"
 
 msgid "After cut"
-msgstr "Після розрізання"
+msgstr "Після зрізання"
 
 msgid "Cut to parts"
-msgstr "Розрізати на деталі"
+msgstr "Розділити на деталі"
 
 msgid "Reset cutting plane and remove connectors"
-msgstr "Скинути площину розрізу та вилучити з'єднувачі"
+msgstr "Скинути площину зрізу та вилучити з'єднувачі"
 
 msgid "Perform cut"
-msgstr "Виконати розрізання"
+msgstr "Виконати зрізання"
 
 msgid "Warning"
 msgstr "Попередження"
@@ -677,10 +677,10 @@ msgstr "Виявлено некоректні з'єднувачі"
 #, c-format, boost-format
 msgid "%1$d connector is out of cut contour"
 msgid_plural "%1$d connectors are out of cut contour"
-msgstr[0] "%1$d з'єднувач виходить за контур розрізання"
-msgstr[1] "%1$d з'єднувачі виходять за контур розрізання"
-msgstr[2] "%1$d з'єднувачів виходять за контур розрізання"
-msgstr[3] "%1$d з'єднувачі виходять за контур розрізання"
+msgstr[0] "%1$d з'єднувач виходить за контур зрізу"
+msgstr[1] "%1$d з'єднувачі виходять за контур зрізу"
+msgstr[2] "%1$d з'єднувачів виходять за контур зрізу"
+msgstr[3] "%1$d з'єднувачі виходять за контур зрізу"
 
 #, c-format, boost-format
 msgid "%1$d connector is out of object"
@@ -694,43 +694,43 @@ msgid "Some connectors are overlapped"
 msgstr "Деякі з'єднувачі перекриваються"
 
 msgid "Select at least one object to keep after cutting."
-msgstr "Виберіть принаймні один об'єкт, який потрібно зберегти після розрізання."
+msgstr "Виберіть принаймні один об'єкт, який потрібно зберегти після зрізання."
 
 msgid "Cut plane is placed out of object"
-msgstr "Площина розрізу розміщена поза межами об'єкта"
+msgstr "Площина зрізу розміщена поза межами об'єкта"
 
 msgid "Cut plane with groove is invalid"
-msgstr "Площина розрізу з пазом некоректна"
+msgstr "Площина зрізу з пазом є некоректною"
 
 msgid "Connector"
 msgstr "З'єднувач"
 
 msgid "Cut by Plane"
-msgstr "Розрізати площиною"
+msgstr "Зріз площиною"
 
 msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
-msgstr "Інструмент розрізання створив неманіфольдні (відкриті) ребра. Виправити це зараз?"
+msgstr "Інструмент зрізання створив некоректну геометрію (неманіфольдні ребра). Виправити це зараз?"
 
 msgid "Repairing model object"
-msgstr "Редагування геометрії об'єкта"
+msgstr "Відновлення геометрії об'єкта"
 
 msgid "Cut by line"
-msgstr "Розрізати лінією"
+msgstr "Зріз лінією"
 
 msgid "Delete connector"
 msgstr "Видалити з'єднувач"
 
 msgid "Entering Cut gizmo"
-msgstr ""
+msgstr "Активація маніпулятора зрізання"
 
 msgid "Leaving Cut gizmo"
-msgstr ""
+msgstr "Деактивація маніпулятора зрізання"
 
 msgid "Cut gizmo editing"
-msgstr ""
+msgstr "Редагування маніпулятором зрізання"
 
 msgid "Mesh name"
-msgstr "Назва полігональної сітки"
+msgstr "Назва мешу"
 
 msgid "Detail level"
 msgstr "Рівень деталізації"
@@ -743,7 +743,7 @@ msgid ""
 "Processing model '%1%' with more than 1M triangles could be slow. It is "
 "highly recommended to simplify the model."
 msgstr ""
-"Обробка моделі «%1%» з понад 1 млн трикутників може бути повільною."
+"Обробка моделі '%1%' з понад 1 млн трикутників може бути повільною.\n "
 "Настійно рекомендується спростити модель."
 
 msgid "Simplify model"
@@ -753,7 +753,7 @@ msgid "Simplify"
 msgstr "Спростити"
 
 msgid "Simplification is currently only allowed when a single part is selected"
-msgstr "Спрощення наразі дозволено лише тоді, коли вибрано одну деталь"
+msgstr "Спрощення наразі дозволено лише тоді, коли виділено одну деталь"
 
 msgid "Error"
 msgstr "Помилка"
@@ -784,34 +784,34 @@ msgid "Can't apply when processing preview."
 msgstr "Неможливо застосувати під час генерації попереднього перегляду."
 
 msgid "Operation already cancelling. Please wait a few seconds."
-msgstr "Процес скасування вже триває. Будь ласка, зачекайте кілька секунд."
+msgstr "Скасування операції вже триває. Будь ласка, зачекайте кілька секунд."
 
 msgid "Face recognition"
 msgstr "Розпізнавання граней"
 
 msgid "Perform Recognition"
-msgstr "Розпізнати"
+msgstr "Виконати розпізнавання"
 
 msgid "Enforce seam"
 msgstr "Примусовий шов"
 
 msgid "Block seam"
-msgstr "Блокувати шов"
+msgstr "Заблокувати шов"
 
 msgid "Seam painting"
 msgstr "Малювання шва"
 
 msgid "Remove selection"
-msgstr "Очистити вибір"
+msgstr "Видалити виділене"
 
 msgid "Entering Seam painting"
-msgstr "Вхід у режим малювання шва"
+msgstr "Активація малювання шва"
 
 msgid "Leaving Seam painting"
-msgstr "Вихід із режиму малювання шва"
+msgstr "Деактивація малювання шва"
 
 msgid "Paint-on seam editing"
-msgstr "Редагування намальованого шва"
+msgstr "Редагування малювання шва"
 
 #. TRN - Input label. Be short as possible
 #. Select look of letter shape
@@ -822,7 +822,7 @@ msgid "Thickness"
 msgstr "Товщина"
 
 msgid "Text Gap"
-msgstr "Міжлітерний інтервал"
+msgstr "Інтервал"
 
 msgid "Angle"
 msgstr "Кут"
@@ -832,10 +832,10 @@ msgid ""
 "depth"
 msgstr ""
 "Глибина\n"
-"вбудовування"
+"занурення"
 
 msgid "Input text"
-msgstr "Введення тексту"
+msgstr "Текст"
 
 msgid "Surface"
 msgstr "Поверхня"
@@ -867,19 +867,19 @@ msgid "Set Mirror"
 msgstr "Віддзеркалити"
 
 msgid "Embossed text"
-msgstr "Дії з тисненням"
+msgstr "Тиснення тексту"
 
 msgid "Enter emboss gizmo"
-msgstr "Активація гізмо тиснення"
+msgstr "Активація маніпулятора тиснення"
 
 msgid "Leave emboss gizmo"
-msgstr "Деактивація гізмо тиснення"
+msgstr "Деактивація маніпулятора тиснення"
 
 msgid "Embossing actions"
-msgstr "Дії з тисненням"
+msgstr "Операції тиснення"
 
 msgid "Position on surface"
-msgstr "Положення на поверхні"
+msgstr "Позиція на поверхні"
 
 msgid "Emboss"
 msgstr "Тиснення"
@@ -906,32 +906,32 @@ msgid "Default font"
 msgstr "Типовий шрифт"
 
 msgid "Advanced"
-msgstr "Розширені"
+msgstr "Додатково"
 
 msgid "Reset all options except the text and operation"
-msgstr "Скинути всі параметри, крім тексту та операції"
+msgstr "Скинути всі параметри, крім тексту та типу операції"
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
 "different font."
 msgstr ""
-"Текст не може бути створений вибраним шрифтом. Будь ласка, спробуйте вибрати інший шрифт."
+"Текст неможливо згенерувати виділеним шрифтом. Будь ласка,"
+"спробуйте вибрати інший шрифт."
 
 msgid "Embossed text cannot contain only white spaces."
-msgstr "Текст тиснення не може містити лише пробіли."
+msgstr "Текст тиснення не може складатися лише з пробілів."
 
 msgid "Text contains character glyph (represented by '?') unknown by font."
-msgstr ""
-"Текст містить гліф символу (позначений як «?»), який відсутній у цьому шрифті."
+msgstr "Текст містить гліф символу (відображається як '?'), відсутній у цьому шрифті."
 
 msgid "Text input doesn't show font skew."
-msgstr "Поле введення не відображає нахил шрифту."
+msgstr "Поле введення тексту не відображає нахил шрифту."
 
 msgid "Text input doesn't show font boldness."
-msgstr "Поле введення не відображає жирність шрифту."
+msgstr "Поле введення тексту не відображає насиченість шрифту."
 
 msgid "Text input doesn't show gap between lines."
-msgstr "Поле введення не відображає міжрядковий інтервал."
+msgstr "Поле введення тексту не відображає міжрядковий інтервал."
 
 msgid "Too tall, diminished font height inside text input."
 msgstr "Текст занадто високий, висоту шрифту в полі введення зменшено."
@@ -940,14 +940,14 @@ msgid "Too small, enlarged font height inside text input."
 msgstr "Текст занадто малий, висоту шрифту в полі введення збільшено."
 
 msgid "Text doesn't show current horizontal alignment."
-msgstr "Поле введення не відображає поточне горизонтальне вирівнювання."
+msgstr "Поле введення тексту не відображає поточне горизонтальне вирівнювання."
 
 msgid "Revert font changes."
-msgstr "Скасувати зміну шрифту."
+msgstr "Скасувати зміни шрифту."
 
 #, boost-format
 msgid "Font \"%1%\" can't be selected."
-msgstr "Шрифт \"%1%\" не вдалося вибрати."
+msgstr "Не вдалося вибрати шрифт \"%1%\"."
 
 msgid "Operation"
 msgstr "Операція"
@@ -955,7 +955,7 @@ msgstr "Операція"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Об'єднати"
+msgstr "Об'єднання"
 
 msgid "Click to change text into object part."
 msgstr "Клацніть, щоб перетворити текст на деталь об'єкта."
@@ -965,7 +965,7 @@ msgstr "Неможливо змінити тип останньої суціль
 
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "Відняти"
+msgstr "Вирізання"
 
 msgid "Click to change part type into negative volume."
 msgstr "Клацніть, щоб змінити тип деталі на від'ємний об'єм."
@@ -1027,34 +1027,34 @@ msgid "Save as new style."
 msgstr "Зберегти як новий стиль."
 
 msgid "Remove style"
-msgstr "Вилучити стиль"
+msgstr "Видалити стиль"
 
 msgid "Can't remove the last existing style."
 msgstr "Неможливо видалити останній наявний стиль."
 
 #, boost-format
 msgid "Are you sure you want to permanently remove the \"%1%\" style?"
-msgstr "Ви впевнені, що хочете назавжди видалити стиль «%1%»?"
+msgstr "Ви впевнені, що хочете назавжди видалити стиль \"%1%\"?"
 
 #, boost-format
 msgid "Delete \"%1%\" style."
-msgstr "Видалити стиль «%1%»."
+msgstr "Видати стиль \"%1%\"."
 
 #, boost-format
 msgid "Can't delete \"%1%\". It is last style."
-msgstr "Не вдалося видалити «%1%». Це останній стиль."
+msgstr "Неможливо видалити \"%1%\". Це останній стиль."
 
 #, boost-format
 msgid "Can't delete temporary style \"%1%\"."
-msgstr "Не вдалося видалити тимчасовий стиль «%1%»."
+msgstr "Неможливо видалити тимчасовий стиль \"%1%\"."
 
 #, boost-format
 msgid "Modified style \"%1%\""
-msgstr "Змінено стиль «%1%»""
+msgstr "Змінено стиль \"%1%\""
 
 #, boost-format
 msgid "Current style is \"%1%\""
-msgstr "Поточний стиль: «%1%»""
+msgstr "Поточний стиль: \"%1%\""
 
 #, boost-format
 msgid ""
@@ -1062,7 +1062,7 @@ msgid ""
 "\n"
 "Would you like to continue anyway?"
 msgstr ""
-"Зміна стилю на «%1%» призведе до скасування поточних змін стилю.\n"
+"Зміна стилю на \"%1%\" призведе до втрати змін поточного стилю.\n"
 "\n"
 "Усе одно продовжити?"
 
@@ -1071,31 +1071,31 @@ msgstr "Некоректний стиль."
 
 #, boost-format
 msgid "Style \"%1%\" can't be used and will be removed from a list."
-msgstr "Стиль «%1%» неможливо використати, тому його буде вилучено зі списку."
+msgstr "Стиль \"%1%\" неможливо використати, тому його буде видалено зі списку."
 
 msgid "Unset italic"
-msgstr "Прибрати курсив"
+msgstr "Вимкнути курсив"
 
 msgid "Set italic"
-msgstr "Зробити курсивом"
+msgstr "Увімкнути курсив"
 
 msgid "Unset bold"
-msgstr "Прибрати напівжирний"
+msgstr "Вимкнути жирне накреслення"
 
 msgid "Set bold"
-msgstr "Зробити напівжирним"
+msgstr "Увімкнути жирне накреслення"
 
 msgid "Revert text size."
-msgstr "Скинути розмір тексту."
+msgstr "Відновити розмір тексту."
 
 msgid "Revert embossed depth."
-msgstr "Скинути глибину тиснення."
+msgstr "Відновити глибину тиснення."
 
 msgid ""
 "Advanced options cannot be changed for the selected font.\n"
 "Select another font."
 msgstr ""
-"Для вибраного шрифту неможливо змінити розширені параметри.\n"
+"Для виділеного шрифту неможливо змінити додаткові параметри.\n"
 "Виберіть інший шрифт."
 
 msgid "Revert using of model surface."
@@ -1108,11 +1108,11 @@ msgid "Set global orientation for whole text."
 msgstr "Встановити глобальну орієнтацію для всього тексту."
 
 msgid "Set position and orientation per glyph."
-msgstr "Налаштувати положення та орієнтацію для кожного гліфа."
+msgstr "Налаштувати позицію та орієнтацію окремих гліфів."
 
 msgctxt "Alignment"
 msgid "Left"
-msgstr "По лівому краю"
+msgstr "Ліворуч"
 
 msgctxt "Alignment"
 msgid "Center"
@@ -1120,11 +1120,11 @@ msgstr "По центру"
 
 msgctxt "Alignment"
 msgid "Right"
-msgstr "По правому краю"
+msgstr "Праворуч"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "По верхньому краю"
+msgstr "Зверху"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1132,29 +1132,29 @@ msgstr "По центру"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "По нижньому краю"
+msgstr "Знизу"
 
 msgid "Revert alignment."
-msgstr "Скинути вирівнювання."
+msgstr "Відновити вирівнювання."
 
 #. TRN EmbossGizmo: font units
 msgid "points"
 msgstr "пункти"
 
 msgid "Revert gap between characters"
-msgstr "Скинути міжлітерний інтервал"
+msgstr "Відновити інтервал між символами"
 
 msgid "Distance between characters"
 msgstr "Відстань між символами"
 
 msgid "Revert gap between lines"
-msgstr "Скинути міжрядковий інтервал"
+msgstr "Відновити міжрядковий інтервал"
 
 msgid "Distance between lines"
-msgstr "Міжрядковий інтервал"
+msgstr "Відстань між рядками"
 
 msgid "Undo boldness"
-msgstr "Скасувати жирність"
+msgstr "Скасувати жирне накреслення"
 
 msgid "Tiny / Wide glyphs"
 msgstr "Вузькі / широкі гліфи"
@@ -1184,25 +1184,25 @@ msgid "Lock the text's rotation when moving text along the object's surface."
 msgstr "Заблокувати обертання тексту під час переміщення по поверхні об'єкта."
 
 msgid "Select from True Type Collection."
-msgstr "Вибрати з колекції TrueType."
+msgstr "Вибрати з колекції TrueType (TTC)."
 
 msgid "Set text to face camera"
 msgstr "Повернути текст до камери"
 
 msgid "Orient the text towards the camera."
-msgstr "Зорієнтувати текст обличчям до камери."
+msgstr "Зорієнтувати текст до камери."
 
 #, boost-format
 msgid "Font \"%1%\" can't be used. Please select another."
-msgstr "Шрифт «%1%» неможливо використить. Будь ласка, виберіть інший."
+msgstr "Шрифт \"%1%\" неможливо використати. Будь ласка, виберіть інший."
 
 #, boost-format
 msgid ""
 "Can't load exactly same font (\"%1%\"). Application selected a similar one "
 "(\"%2%\"). You have to specify font for enable edit text."
 msgstr ""
-"Не вдалося завантажити оригінальний шрифт «%1%». Програма вибрала "
-"схожий («%2%»). Щоб увімкнути редагування тексту, необхідно явно вказати шрифт."
+"Неможливо завантажити точний шрифт \"%1%\". Програма вибрала "
+"схожий \"%2%\". Необхідно вказати шрифт для увімкнення редагування тексту."
 
 msgid "No symbol"
 msgstr "Немає символів"
@@ -1222,13 +1222,13 @@ msgstr "Висота"
 #. Copy surface of model on surface of the embossed text
 #. TRN - Input label. Be short as possible
 msgid "Use surface"
-msgstr "По поверхні"
+msgstr "Прив'язка до поверхні"
 
 #. TRN - Input label. Be short as possible
 #. Option to change projection on curved surface
 #. for each character(glyph) in text separately
 msgid "Per glyph"
-msgstr "Погліфно"
+msgstr "По гліфах"
 
 #. TRN - Input label. Be short as possible
 #. Align Top|Middle|Bottom and Left|Center|Right
@@ -1237,7 +1237,7 @@ msgstr "Вирівнювання"
 
 #. TRN - Input label. Be short as possible
 msgid "Char gap"
-msgstr "Міжлітерний інтервал"
+msgstr "Міжсимвольний інтервал"
 
 #. TRN - Input label. Be short as possible
 msgid "Line gap"
@@ -1245,12 +1245,12 @@ msgstr "Міжрядковий інтервал"
 
 #. TRN - Input label. Be short as possible
 msgid "Boldness"
-msgstr "Жирність"
+msgstr "Насиченість"
 
 #. TRN - Input label. Be short as possible
 #. Like Font italic
 msgid "Skew ratio"
-msgstr "Коефіцієнт нахилу"
+msgstr "Нахил"
 
 #. TRN - Input label. Be short as possible
 #. Distance from model surface to be able
@@ -1258,18 +1258,18 @@ msgstr "Коефіцієнт нахилу"
 #. move text as modifier fully out of not flat surface
 #. TRN - Input label. Be short as possible
 msgid "From surface"
-msgstr "Від поверхні"
+msgstr "Відступ"
 
 #. TRN - Input label. Be short as possible
 #. Keep vector from bottom to top of text aligned with printer Y axis
 msgid "Keep up"
-msgstr "Тримати верх"
+msgstr "Фіксувати Y"
 
 #. TRN - Input label. Be short as possible.
 #. Some Font file contain multiple fonts inside and
 #. this is numerical selector of font inside font collections
 msgid "Collection"
-msgstr "Індекс"
+msgstr "Індекс шрифту"
 
 #. TRN - Title in Undo/Redo stack after rotate with SVG around emboss axe
 msgid "SVG rotate"
@@ -1280,13 +1280,13 @@ msgid "SVG move"
 msgstr "Переміщення SVG"
 
 msgid "Enter SVG gizmo"
-msgstr "Активація гізмо SVG"
+msgstr "Активація маніпулятора SVG"
 
 msgid "Leave SVG gizmo"
-msgstr "Деактивація гізмо SVG"
+msgstr "Деактивація маніпулятора SVG"
 
 msgid "SVG actions"
-msgstr "Дії з SVG"
+msgstr "Операції SVG"
 
 msgid "SVG"
 msgstr "SVG"
@@ -1315,14 +1315,13 @@ msgid "Undefined stroke type"
 msgstr "Невизначений тип обведення"
 
 msgid "Path can't be healed from self-intersection and multiple points."
-msgstr "Не вдалося виправити самоперетини й дубльовані точки контуру."
+msgstr "Не вдалося автоматично виправити самоперетини та дубльовані точки контуру."
 
 msgid ""
 "Final shape contains self-intersection or multiple points with same "
 "coordinate."
 msgstr ""
-"Фінальна форма містить самоперетини або кілька точок з однаковими "
-"координатами."
+"Фінальна форма містить самоперетини або кілька точок з однаковими координатами."
 
 #, boost-format
 msgid "Shape is marked as invisible (%1%)."
@@ -1346,31 +1345,30 @@ msgstr "Повернути до камери"
 
 #. TRN - Preview of filename after clear local filepath.
 msgid "Unknown filename"
-msgstr "Невідома назва файлу"
+msgstr "Невідома назва файла"
 
 #, boost-format
 msgid "SVG file path is \"%1%\""
-msgstr "Шлях до файлу SVG \"%1%\""
+msgstr "Шлях до файла SVG: \"%1%\""
 
 msgid "Reload SVG file from disk."
-msgstr "Оновити файл SVG з диска."
+msgstr "Перезавантажити файл SVG з диска."
 
 msgid "Change file"
 msgstr "Змінити файл"
 
-#, fuzzy
 msgid "Change to another SVG file."
-msgstr "Вибрати інший файл SVG."
+msgstr "Змінити на інший файл SVG."
 
 msgid "Forget the file path"
-msgstr "Очистити шлях до файлу"
+msgstr "Очистити шлях"
 
 msgid ""
 "Do NOT save local path to 3MF file.\n"
 "Also disables 'reload from disk' option."
 msgstr ""
-"НЕ зберігати локальний шлях до файлу 3MF.\n"
-"Також вимикає опцію «Оновити з диска»."
+"НЕ зберігати локальний шлях у файлі 3MF.\n"
+"Також вимикає опцію \"Перезавантажити з диска\"."
 
 #. TRN: An menu option to convert the SVG into an unmodifiable model part.
 msgid "Bake"
@@ -1390,7 +1388,7 @@ msgid "Save as SVG file."
 msgstr "Зберегти як файл SVG."
 
 msgid "Size in emboss direction."
-msgstr "Глибина тиснення."
+msgstr "Розмір у напрямку тиснення."
 
 #. TRN: The placeholder contains a number.
 #, boost-format
@@ -1410,7 +1408,7 @@ msgid "Reset scale"
 msgstr "Скинути масштаб"
 
 msgid "Distance of the center of the SVG to the model surface."
-msgstr "Відстань від центру SVG до поверхні моделі."
+msgstr "Відстань від центра SVG до поверхні моделі."
 
 msgid "Reset distance"
 msgstr "Скинути відстань"
@@ -1419,7 +1417,7 @@ msgid "Reset rotation"
 msgstr "Скинути обертання"
 
 msgid "Lock/unlock rotation angle when dragging above the surface."
-msgstr "Заблокувати/розблокувати кут обертання під час перетягування по поверхні."
+msgstr "Заблокувати/розблокувати кут обертання під час перетягування по поверхні моделі."
 
 msgid "Mirror vertically"
 msgstr "Віддзеркалити по вертикалі"
@@ -1433,18 +1431,18 @@ msgstr "Змінити тип SVG"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
-msgstr "Віддзеркалення"
+msgstr "Дзеркало"
 
 msgid "Choose SVG file for emboss:"
-msgstr "ВВиберіть файл SVG для тиснення:"
+msgstr "Виберіть файл SVG для тиснення:"
 
 #, boost-format
 msgid "File does NOT exist (%1%)."
-msgstr "Файл НЕ існує (%1%)."
+msgstr "Файл не існує (%1%)."
 
 #, boost-format
 msgid "Filename has to end with \".svg\" but you selected %1%"
-msgstr "Назва файлу має закінчуватися на «.svg», але ви вибрали %1%"
+msgstr "Назва файла має закінчуватися на \".svg\", але ви вибрали %1%"
 
 #, boost-format
 msgid "Nano SVG parser can't load from file (%1%)."
@@ -1455,7 +1453,7 @@ msgid "SVG file does NOT contain a single path to be embossed (%1%)."
 msgstr "Файл SVG не містить жодного контуру для тиснення (%1%)."
 
 msgid "No feature"
-msgstr "Без елемента"
+msgstr "Елемент відсутній"
 
 msgid "Vertex"
 msgstr "Вершина"
@@ -1476,7 +1474,7 @@ msgid "Point on plane"
 msgstr "Точка на площині"
 
 msgid "Center of edge"
-msgstr "Центр ребра"
+msgstr "Середина ребра"
 
 msgid "Center of circle"
 msgstr "Центр кола"
@@ -1491,13 +1489,13 @@ msgid "Delete"
 msgstr "Видалити"
 
 msgid "Restart selection"
-msgstr "Скинути вибір"
+msgstr "Перезапустити вибір"
 
 msgid "Esc"
 msgstr "Esc"
 
 msgid "Cancel a feature until exit"
-msgstr "Скасувати дію інструмента та вийти"
+msgstr "Скасувати елемент до виходу"
 
 msgid "Measure"
 msgstr "Вимірювання"
@@ -1505,10 +1503,10 @@ msgstr "Вимірювання"
 msgid ""
 "Please confirm explosion ratio = 1, and please select at least one object."
 msgstr ""
-"Переконайтеся, що коефіцієнт рознесення компонентів дорівнює 1, і виберіть щонайменше один об'єкт."
+"Переконайтеся, що коефіцієнт рознесення дорівнює 1, і виберіть принаймні один об'єкт."
 
 msgid "Edit to scale"
-msgstr "Редагувати масштаб"
+msgstr "Масштабувати за розміром"
 
 msgctxt "Verb"
 msgid "Scale all"
@@ -1533,8 +1531,8 @@ msgid ""
 "Select 2 faces on objects and \n"
 " make objects assemble together."
 msgstr ""
-"Виберіть 2 грані на об'єктах,\n"
-" щоб зібрати їх разом."
+"Виберіть 2 грані об'єктів,\n"
+" щоб з’єднати їх."
 
 msgid ""
 "Select 2 points or circles on objects and \n"
@@ -1556,7 +1554,7 @@ msgid ""
 "Feature 1 has been reset, \n"
 "feature 2 has been feature 1"
 msgstr ""
-"Елемент 1 скинуто, \n"
+"Елемент прив'язки 1 скинуто, \n"
 "елемент 2 став елементом 1"
 
 msgid "Copy to clipboard"
@@ -1572,16 +1570,16 @@ msgid "Direct distance"
 msgstr "Відстань по прямій"
 
 msgid "Distance XYZ"
-msgstr "Проекції відстані (XYZ)"
+msgstr "Проєкції відстані XYZ"
 
 msgid "Parallel"
 msgstr "Паралельність"
 
 msgid "Center coincidence"
-msgstr "Суміщення центрів"
+msgstr "Збіг центрів"
 
 msgid "Feature 1"
-msgstr "Елемент 1"
+msgstr "Елемент прив'язки 1"
 
 msgid "Reverse rotation"
 msgstr "Змінити напрямок обертання"
@@ -1590,31 +1588,31 @@ msgid "Rotate around center:"
 msgstr "Обертання навколо центра:"
 
 msgid "Parallel distance:"
-msgstr "Відстань по паралелі:"
+msgstr "Паралельна відстань:"
 
 msgid "Flip by Face 2"
-msgstr "Перевернути по грані 2"
+msgstr "Перевернути за гранню 2"
 
 msgid "Entering Measure gizmo"
-msgstr ""
+msgstr "Активація маніпулятора вимірювання"
 
 msgid "Leaving Measure gizmo"
-msgstr ""
+msgstr "Деактивація маніпулятора вимірювання"
 
 msgid "Assemble"
 msgstr "Зібрати"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
-msgstr "Переконайтеся, що коефіцієнт рознесення компонентів дорівнює 1, і виберіть щонайменше два об'єми."
+msgstr "Переконайтеся, що коефіцієнт рознесення дорівнює 1, і виберіть принаймні два об'єми."
 
 msgid "Please select at least two volumes."
-msgstr "Виберіть щонайменше два об'єми."
+msgstr "Виберіть принаймні два об'єми."
 
 msgid "(Moving)"
 msgstr "(Переміщення)"
 
 msgid "Point and point assembly"
-msgstr "Суміщення по двох точках"
+msgstr "Збирання за точками"
 
 msgid "Warning: please select two different meshes."
 msgstr "Попередження: виберіть дві різні полігональні сітки."
@@ -1630,18 +1628,18 @@ msgid ""
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
-"Рекомендується спочатку виконати складання,\n"
-"оскільки об'єкти прив'язані до робочого столу,\n"
+"Рекомендується спочатку виконати збирання,\n"
+"оскільки об'єкти прив'язані до столу,\n"
 "і піднімати можна лише окремі деталі."
 
 msgid "Face and face assembly"
-msgstr "Суміщення по двох гранях"
+msgstr "Збирання за гранями"
 
 msgid "Entering Assembly gizmo"
-msgstr ""
+msgstr "Активація маніпулятора збирання"
 
 msgid "Leaving Assembly gizmo"
-msgstr ""
+msgstr "Деактивація маніпулятора збирання"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1650,7 +1648,7 @@ msgid "Alt+"
 msgstr "Alt+"
 
 msgid "Notice"
-msgstr "Сповіщення"
+msgstr "Повідомлення"
 
 msgid "Undefined"
 msgstr "Невизначено"
@@ -1660,28 +1658,28 @@ msgid "%1% was replaced with %2%"
 msgstr "%1% замінено на %2%"
 
 msgid "The configuration may be generated by a newer version of OrcaSlicer."
-msgstr "Конфігурацію могло бути створено в новішій версії OrcaSlicer."
+msgstr "Цю конфігурацію могло бути створено в новішій версії OrcaSlicer."
 
 msgid "Some values have been replaced. Please check them:"
-msgstr "Деякі значення було замінено. Будь ласка, перевірте їх:"
+msgstr "Деякі значення було змінено. Перевірте їх:"
 
 msgid "Process"
-msgstr "Техпроцес"
+msgstr "Процес"
 
 msgid "Filament"
-msgstr "Пруток (Філамент)"
+msgstr "Філамент"
 
 msgid "Machine"
 msgstr "Принтер"
 
 msgid "Configuration package was loaded, but some values were not recognized."
-msgstr "Пакет конфігурації завантажено, але деякі значення не розпізнано."
+msgstr "Пакет конфігурації завантажено, проте деякі значення не розпізнано."
 
 #, boost-format
 msgid ""
 "Configuration file \"%1%\" was loaded, but some values were not recognized."
 msgstr ""
-"Файл конфігурації «%1%» завантажено, але деякі значення не розпізнано."
+"Файл конфігурації \"%1%\" завантажено, проте деякі значення не розпізнано."
 
 msgid "Loading configuration"
 msgstr "Завантаження конфігурації"
@@ -1714,10 +1712,10 @@ msgid "ZIP files"
 msgstr "Файли ZIP"
 
 msgid "Project files"
-msgstr "Файли проектів"
+msgstr "Файли проєктів"
 
 msgid "Known files"
-msgstr "Відомі типи файлів"
+msgstr "Відомі файли"
 
 msgid "INI files"
 msgstr "Файли INI"
@@ -1732,14 +1730,14 @@ msgid "Masked SLA files"
 msgstr "Файли MSLA"
 
 msgid "Draco files"
-msgstr "Стиснені файли Draco"
+msgstr "Файли Draco"
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
 msgstr ""
-"Роботу OrcaSlicer буде примусово завершено через нестачу оперативної пам'яті. "
-"Можливо, це помилка в коді. Будемо вдячні, якщо ви надішлете звіт про цю проблему нашій команді."
+"Роботу OrcaSlicer буде припинено через брак оперативної пам'яті. Можливо, це помилка. "
+"Будемо вдячні, якщо ви повідомите про цю проблему нашій команді."
 
 msgid "Fatal error"
 msgstr "Критична помилка"
@@ -1748,15 +1746,15 @@ msgid ""
 "OrcaSlicer will terminate because of a localization error. It will be "
 "appreciated if you report the specific scenario this issue happened."
 msgstr ""
-"Роботу OrcaSlicer буде примусово завершено через помилку локалізації. "
-"Будемо вдячні, якщо ви опишете конкретний сценарій, за якого виникла ця проблема."
+"Роботу OrcaSlicer буде припинено через помилку локалізації. Будемо вдячні, "
+"якщо ви опишете сценарій, за якого виникла ця проблема."
 
 msgid "Critical error"
 msgstr "Критична помилка"
 
 #, boost-format
 msgid "OrcaSlicer got an unhandled exception: %1%"
-msgstr "В OrcaSlicer виникло необроблене виключення: %1%"
+msgstr "В OrcaSlicer виник необроблений виняток: %1%"
 
 msgid "Untitled"
 msgstr "Без назви"
@@ -1771,14 +1769,14 @@ msgid "Downloading Bambu Network Plug-in"
 msgstr "Завантаження мережевого плагіна Bambu"
 
 msgid "Login information expired. Please login again."
-msgstr "Термін дії сесії закінчився. Будь ласка, увійдіть знову."
+msgstr "Термін дії сесії закінчився. Увійдіть знову."
 
 msgid "Incorrect password"
 msgstr "Неправильний пароль"
 
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
-msgstr "Помилка підключення до %s! [SN: %s, код: %s]"
+msgstr "Помилка підключення до %s! [SN:%s, code=%s]"
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain "
@@ -1786,10 +1784,10 @@ msgid ""
 "Click Yes to install it now."
 msgstr ""
 "Для роботи певних функцій OrcaSlicer потрібен Microsoft WebView2 Runtime.\n"
-"Натисніть «Так», щоб інсталювати його зараз."
+"Натисніть \"Так\", щоб інсталювати його зараз."
 
 msgid "WebView2 Runtime"
-msgstr "Microsoft WebView2 Runtime"
+msgstr "WebView2 Runtime"
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1804,14 +1802,12 @@ msgstr ""
 "Бажаєте продовжити?"
 
 msgid "Remember my choice"
-msgstr "Запам'ятати мій вибір"
+msgstr "Запам'ятати вибір"
 
 #, c-format, boost-format
 msgid "Click to download new version in default browser: %s"
-msgstr ""
-"Натисніть, щоб завантажити нову версію в браузері за замовчуванням: %s"
+msgstr "Натисніть для завантаження нової версії в браузері: %s"
 
-#, fuzzy
 msgid "OrcaSlicer needs an update"
 msgstr "Доступне оновлення OrcaSlicer"
 
@@ -1822,7 +1818,7 @@ msgid "Info"
 msgstr "Інформація"
 
 msgid "Loading printer & filament profiles"
-msgstr "Завантаження профілів принтерів та прутків (філаментів)"
+msgstr "Завантаження профілів принтерів та філаментів"
 
 msgid "Creating main window"
 msgstr "Створення головного вікна"
@@ -1839,9 +1835,9 @@ msgid ""
 "Please note, application settings will be lost, but printer profiles will "
 "not be affected."
 msgstr ""
-"Можливо, файл конфігурації OrcaSlicer пошкоджений і його не вдалося розпізнати.\n"
-"OrcaSlicer спробував створити конфігураційний файл наново.\n"
-"Зверніть увагу: налаштування програми буде втрачено, але це не вплине на профілі принтерів."
+"Файл конфігурації OrcaSlicer пошкоджено, його не вдалося прочитати.\n"
+"OrcaSlicer спробував створити файл конфігурації заново.\n"
+"Увага: налаштування програми буде втрачено, але це не вплине на профілі принтерів."
 
 msgid "Rebuild"
 msgstr "Перебудувати"
@@ -1850,22 +1846,22 @@ msgid "Loading current presets"
 msgstr "Завантаження поточних пресетів"
 
 msgid "Loading a mode view"
-msgstr "Завантаження режиму відображення"
+msgstr "Завантаження режиму вигляду"
 
 msgid "Choose one file (3MF):"
-msgstr "Виберіть файл (3MF):"
+msgstr "Виберіть один файл (3MF):"
 
 msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
-msgstr "Виберіть файли (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "Виберіть один або кілька файлів (3MF/STEP/STL/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
 msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
-msgstr "Виберіть файли (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Виберіть один або кілька файлів (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "Виберіть файл ZIP"
 
 msgid "Choose one file (GCODE/3MF):"
-msgstr "Виберіть файл (GCODE/3MF):"
+msgstr "Виберіть один файл (GCODE/3MF):"
 
 msgid "Ext"
 msgstr "Розширення"
@@ -1877,8 +1873,8 @@ msgid ""
 "You can keep the modified presets to the new project, discard or save "
 "changes as new presets."
 msgstr ""
-"Ви можете зберегти модифіковані налаштування в новому проекті, відмінити або "
-"зберегти зміни як нові налаштування."
+"Ви можете залишити змінені пресети в новому проєкті, відхилити зміни або "
+"зберегти їх як нові пресети."
 
 msgid "User logged out"
 msgstr "Користувач вийшов із системи"
@@ -1887,15 +1883,17 @@ msgid ""
 "You are currently in Stealth Mode. To log into the Cloud, you need to "
 "disable Stealth Mode first."
 msgstr ""
+"Зараз увімкнено прихований режим. Щоб увійти до хмари, спочатку потрібно "
+"вимкнути прихований режим."
 
 msgid "Stealth Mode"
-msgstr ""
+msgstr "Прихований режим"
 
 msgid "Quit Stealth Mode"
-msgstr ""
+msgstr "Вийти з прихованого режиму"
 
 msgid "new or open project file is not allowed during the slicing process!"
-msgstr "новий або відкритий файл проекту не дозволяється в процесі нарізки!"
+msgstr "створення або відкриття файлу проєкту під час нарізання заборонено!"
 
 msgid "Open Project"
 msgstr "Відкрити проєкт"
@@ -1904,20 +1902,24 @@ msgid ""
 "The version of Orca Slicer is too low and needs to be updated to the latest "
 "version before it can be used normally."
 msgstr ""
-"Версія студії Bambu надто низька, її необхідно оновити до останньоїверсії, "
-"перш ніж її можна буде використовувати у звичайному режимі"
+"Версія OrcaSlicer застаріла. Необхідно оновити програму до найновішої "
+"версії для її коректної роботи."
 
 msgid ""
 "Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
 msgstr ""
+"Конфлікт синхронізації з хмарою: у хмарі OrcaCloud є новіша версія цього пресета.\n"
+"«Завантажити з хмари» оновить копію. «Примусово надіслати» перезапише її локальним пресетом."
 
 msgid ""
 "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
 msgstr ""
+"Конфлікт синхронізації з хмарою: пресет із такою назвою вже існує в OrcaCloud.\n"
+"«Завантажити з хмари» оновить копію. «Примусово надіслати» перезапише її локальним пресетом."
 
 msgid ""
 "Cloud sync conflict: a preset with the same name was previously deleted from "
@@ -1925,6 +1927,8 @@ msgid ""
 "Delete will delete your local preset. Force push overwrites it with your "
 "local preset."
 msgstr ""
+"Конфлікт синхронізації з хмарою: пресет із такою назвою раніше було видалено з хмари.\n"
+"«Видалити» вилучить локальний пресет. «Примусово надіслати» завантажить локальний пресет до хмари."
 
 msgid ""
 "Cloud sync conflict: there was an unexpected or unidentified preset "
@@ -1932,35 +1936,42 @@ msgid ""
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
 msgstr ""
+"Конфлікт синхронізації з хмарою: виник непередбачуваний або невідомий конфлікт пресетів.\n"
+"«Завантажити з хмари» оновить копію. «Примусово надіслати» перезапише її локальним пресетом."
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
 "Do you want to continue?"
 msgstr ""
+"Примусове надсилання перезапише хмарну копію змінами вашого локального пресета.\n"
+"Бажаєте продовжити?"
 
 msgid "Resolve cloud sync conflict"
-msgstr ""
+msgstr "Вирішити конфлікт синхронізації з хмарою"
 
 msgid "Retrieving printer information, please try again later."
-msgstr ""
+msgstr "Отримання інформації про принтер. Спробуйте пізніше."
 
 msgid "Please try updating OrcaSlicer and then try again."
-msgstr ""
+msgstr "Спробуйте оновити OrcaSlicer і повторіть спробу."
 
 msgid ""
 "The certificate has expired. Please check the time settings or update "
 "OrcaSlicer and try again."
 msgstr ""
+"Термін дії сертифіката закінчився. Перевірте налаштування часу або оновіть OrcaSlicer і спробуйте знову."
 
 msgid ""
 "The certificate is no longer valid and the printing functions are "
 "unavailable."
 msgstr ""
+"Сертифікат недійсний, тому функції друку недоступні."
 
 msgid ""
 "Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
 "the issue persists, contact support."
 msgstr ""
+"Внутрішня помилка. Оновіть прошивку принтера та версію OrcaSlicer. Якщо проблема не зникне, зверніться до підтримки."
 
 msgid ""
 "To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
@@ -1973,23 +1984,30 @@ msgid ""
 "Developer mode allows the printer to work exclusively through local network "
 "access, enabling full functionality with OrcaSlicer."
 msgstr ""
+"Для використання OrcaSlicer із принтерами Bambu Lab увімкніть режим LAN та режим розробника.\n"
+"\n"
+"Перейдіть у налаштування принтера:\n"
+"1. Увімкніть режим LAN\n"
+"2. Увімкніть режим розробника\n"
+"\n"
+"Режим розробника забезпечує роботу принтера через локальну мережу з повною підтримкою функцій OrcaSlicer."
 
 msgid "Network Plug-in Restriction"
-msgstr ""
+msgstr "Обмеження мережевого плагіна"
 
 msgid "Privacy Policy Update"
 msgstr "Оновлення політики конфіденційності"
 
 #, c-format, boost-format
 msgid "your Orca Cloud profile (user ID: \"%s\")"
-msgstr ""
+msgstr "ваш профіль Orca Cloud (ID користувача: \"%s\")"
 
 msgid "your default profile"
-msgstr ""
+msgstr "ваш профіль за замовчуванням"
 
 #, c-format, boost-format
 msgid "a user profile (folder: \"%s\")"
-msgstr ""
+msgstr "профіль користувача (папка: \"%s\")"
 
 #, c-format, boost-format
 msgid ""
@@ -1997,9 +2015,12 @@ msgid ""
 "Do you want to migrate them to your OrcaCloud profile?\n"
 "This will copy your presets so they are available under your new account."
 msgstr ""
+"У %s знайдено наявні пресети користувача.\n"
+"Мігрувати їх до профілю OrcaCloud?\n"
+"Це скопіює ваші пресети, щоб вони були доступні у вашому новому обліковому записі."
 
 msgid "Migrate User Presets"
-msgstr ""
+msgstr "Міграція пресетів користувача"
 
 #, c-format, boost-format
 msgid ""
