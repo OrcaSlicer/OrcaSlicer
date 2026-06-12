@@ -262,9 +262,9 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (abs(config->option<ConfigOptionFloat>("xy_hole_compensation")->value) > 2)
     {
-        const wxString msg_text = _(L("This setting is only used for model size tunning with small value in some cases.\n"
-                                      "For example, when model size has small error and hard to be assembled.\n"
-                                      "For large size tuning, please use model scale function.\n\n"
+        const wxString msg_text = _(L("This setting is only used for tuning model size by small amounts.\n"
+                                      "For example, when the model size has small errors or when tolerances are incorrect.\n"
+                                      "For large adjustments, please use the model scale function.\n\n"
                                       "The value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
@@ -277,9 +277,9 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (abs(config->option<ConfigOptionFloat>("xy_contour_compensation")->value) > 2)
     {
-        const wxString msg_text = _(L("This setting is only used for model size tunning with small value in some cases.\n"
-                                      "For example, when model size has small error and hard to be assembled.\n"
-                                      "For large size tuning, please use model scale function.\n\n"
+        const wxString msg_text = _(L("This setting is only used for tuning model size by small amounts.\n"
+                                      "For example, when the model size has small errors or when tolerances are incorrect.\n"
+                                      "For large adjustments, please use the model scale function.\n\n"
                                       "The value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
