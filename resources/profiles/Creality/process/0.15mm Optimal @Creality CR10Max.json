@@ -30,7 +30,7 @@
 	"sparse_infill_density": "15%",
 	"sparse_infill_pattern": "crosshatch",
 	"initial_layer_acceleration": "500",
-	"travel_acceleration": "700",
+	"travel_acceleration": "500",
 	"inner_wall_acceleration": "500",
 	"initial_layer_line_width": "0.5",
 	"initial_layer_print_height": "0.2",

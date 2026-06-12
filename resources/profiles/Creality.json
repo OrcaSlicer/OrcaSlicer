@@ -1671,14 +1671,6 @@
 			"sub_path": "process/0.28mm SuperDraft @Creality Hi 0.4 nozzle.json"
 		},
 		{
-			"name": "0.2mm Standard @Creality Ender-5 Max 0.4 nozzle",
-			"sub_path": "process/0.2mm Standard @Creality Ender-5 Max 0.4 nozzle.json"
-		},
-		{
-			"name": "0.2mm Ultrafast @Creality Ender-5 Max 0.4 nozzle",
-			"sub_path": "process/0.2mm Ultrafast @Creality Ender-5 Max 0.4 nozzle.json"
-		},
-		{
 			"name": "0.30mm Standard @Creality Ender-5 Max 0.6 nozzle",
 			"sub_path": "process/0.30mm Standard @Creality Ender-5 Max 0.6 nozzle.json"
 		},
