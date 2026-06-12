@@ -127,7 +127,7 @@ void SLAImportJob::finalize(bool canceled, std::exception_ptr &eptr)
             if (object->volumes.size() > 1)
             {
                 Slic3r::GUI::show_info(nullptr,
-                                       _(L("You cannot load SLA project with a multi-part object on the bed")) + "\n\n" +
+                                       _(L("You cannot load an SLA project with a multi-part object on the bed")) + "\n\n" +
                                        _(L("Please check your object list before preset changing.")),
                                        _(L("Attention!")) );
                 return;

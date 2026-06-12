@@ -1812,7 +1812,7 @@ msgstr "ต่อ"
 msgid "Some presets are modified."
 msgstr "ค่าที่ตั้งล่วงหน้าบางส่วนได้รับการแก้ไข"
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "คุณสามารถเก็บค่าที่ตั้งล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่ ทิ้งหรือบันทึกการเปลี่ยนแปลงเป็นค่าที่ตั้งล่วงหน้าใหม่ได้"
 
 msgid "User logged out"
@@ -2603,7 +2603,7 @@ msgstr "หากต้องการบันทึกการติดต่
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3339,7 +3339,7 @@ msgstr "นำเข้าเรียบร้อยแล้ว"
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "ไฟล์เก็บถาวร SLA ที่นำเข้าไม่มีการตั้งค่าล่วงหน้าใดๆ ค่าที่ตั้งไว้ล่วงหน้าของ SLA ปัจจุบันถูกใช้เป็นทางเลือก"
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "คุณไม่สามารถโหลดโครงการ SLA ที่มีวัตถุหลายส่วนบนฐานพิมพ์ได้"
 
 msgid "Please check your object list before preset changing."
@@ -6220,7 +6220,7 @@ msgstr "ชัดเจน"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "คุณพิมพ์โมเดลห้างสรรพสินค้าเสร็จแล้ว \n"
 "แต่การซิงโครไนซ์ข้อมูลการให้คะแนนล้มเหลว"
@@ -7093,7 +7093,7 @@ msgstr "คุณต้องการให้ OrcaSlicer แก้ไขปั
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "ไฟล์ 3MF เวอร์ชัน %s ใหม่กว่าเวอร์ชัน %s ของ %s พบคีย์ที่ไม่รู้จักต่อไปนี้:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "คุณควรอัพเกรดซอฟต์แวร์ของคุณดีกว่า\n"
 
 #, c-format, boost-format
@@ -7235,9 +7235,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "ลบวัตถุซึ่งเป็นส่วนหนึ่งของวัตถุที่ตัด"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "คุณพยายามลบวัตถุซึ่งเป็นส่วนหนึ่งของวัตถุที่ตัดออก\n"
 "การกระทำนี้จะตัดการติดต่อทางจดหมาย\n"
@@ -7357,7 +7357,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "ซิงค์เลย"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "คุณสามารถเก็บค่าที่ตั้งไว้ล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่หรือทิ้งก็ได้"
 
 msgid "Creating a new project"
@@ -14252,7 +14252,7 @@ msgstr "ระยะการดึงกลับเมื่อชุดดั
 msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "เมื่อใดก็ตามที่การดึงกลับเสร็จสิ้น หัวฉีดจะถูกยกขึ้นเล็กน้อยเพื่อสร้างระยะห่างระหว่างหัวฉีดและงานพิมพ์ ป้องกันไม่ให้หัวฉีดชนกับงานพิมพ์ขณะเคลื่อนตัว การใช้เส้นเกลียวเพื่อยก Z สามารถป้องกันการร้อยสายได้"
 
 msgid "Z-hop lower boundary"
@@ -15163,7 +15163,7 @@ msgstr "เช็ดขณะดึงกลับ"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "เลื่อนหัวฉีดไปตามเส้นทางการอัดขึ้นรูปสุดท้ายเมื่อถอยกลับเพื่อทำความสะอาดวัสดุที่รั่วไหลบนหัวฉีด วิธีนี้จะช่วยลดรอยหยดเมื่อพิมพ์ชิ้นส่วนใหม่หลังการเดินทาง"
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "ระยะเช็ดหัวฉีด"
 
 msgid ""
@@ -17364,7 +17364,7 @@ msgstr "ประมวลผลเทมเพลตที่กำหนดไ
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "คุณยังไม่ได้เลือกพรีเซ็ตเครื่องพิมพ์ที่จะใช้สร้าง โปรดเลือกผู้จำหน่ายและรุ่นของเครื่องพิมพ์"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "คุณได้ป้อนข้อมูลที่ไม่ถูกต้องในส่วนพื้นที่ที่สามารถพิมพ์ได้ในหน้าแรก โปรดตรวจสอบก่อนที่จะสร้างมัน"
 
 msgid ""
@@ -17396,7 +17396,7 @@ msgstr "ไม่พบผู้ขาย โปรดเลือกใหม�
 msgid "Current vendor has no models, please reselect."
 msgstr "ผู้จำหน่ายปัจจุบันไม่มีรุ่น โปรดเลือกใหม่"
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "คุณยังไม่ได้เลือกผู้จำหน่ายและรุ่น หรือป้อนผู้จำหน่ายและรุ่นที่กำหนดเอง"
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17408,7 +17408,7 @@ msgstr "อินพุตทั้งหมดในผู้จำหน่า
 msgid "Please check bed printable shape and origin input."
 msgstr "โปรดตรวจสอบรูปร่างที่สามารถพิมพ์ฐานพิมพ์ได้และอินพุตจุดเริ่มต้น"
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "คุณยังไม่ได้เลือกเครื่องพิมพ์ที่จะเปลี่ยนหัวฉีด โปรดเลือก"
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

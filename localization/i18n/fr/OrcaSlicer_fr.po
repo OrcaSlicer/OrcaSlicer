@@ -1813,7 +1813,7 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "Certains préréglages sont modifiés."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Vous pouvez conserver les préréglages modifiés dans le nouveau projet, annuler ou enregistrer les modifications en tant que nouveaux préréglages."
 
 msgid "User logged out"
@@ -2613,7 +2613,7 @@ msgstr "Pour enregistrer la correspondance coupée, vous pouvez supprimer tous l
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3351,7 +3351,7 @@ msgstr "Importation terminée."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "L'archive SLA importée ne contenait aucun préréglage. Les préréglages SLA actuels ont été utilisés comme solution de secours."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Vous ne pouvez pas charger un projet SLA avec un objet en plusieurs parties sur le plateau"
 
 msgid "Please check your object list before preset changing."
@@ -6236,7 +6236,7 @@ msgstr "Nettoyer"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "Vous avez terminé l’impression du modèle,\n"
 "mais la synchronisation des informations de notation a échoué."
@@ -7116,7 +7116,7 @@ msgstr "Souhaitez-vous qu'OrcaSlicer corrige automatiquement cela en effaçant l
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "La version %s du 3MF est plus récente que la version %s de %s. Les clés suivantes ne sont pas reconnues:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "Vous feriez mieux de mettre à jour votre logiciel.\n"
 
 #, c-format, boost-format
@@ -7258,9 +7258,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "Supprimer l'objet qui fait partie de l'objet découpé"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "Vous essayez de supprimer un objet qui fait partie d'un objet coupé.\n"
 "Cette action va rompre la correspondance entre les objets coupés.\n"
@@ -7380,7 +7380,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Synchroniser maintenant"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "Vous pouvez conserver les préréglages modifiés dans le nouveau projet ou les supprimer"
 
 msgid "Creating a new project"
@@ -14377,7 +14377,7 @@ msgstr "Distance de rétraction lors du changement d'extrudeur"
 msgid "Z-hop height"
 msgstr "Hauteur du saut en Z"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "Chaque fois que la rétraction est effectuée, la buse est légèrement soulevée pour créer un espace entre la buse et l'impression. Il empêche la buse de toucher l'impression lors du déplacement. L'utilisation d'une ligne en spirale pour soulever z peut empêcher l'enfilage"
 
 msgid "Z-hop lower boundary"
@@ -15298,7 +15298,7 @@ msgstr "Essuyer lors des rétractions"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Déplacez la buse le long du dernier chemin d'extrusion lors de la rétraction pour nettoyer la fuite de matériau sur la buse. Cela peut minimiser les taches lors de l'impression d'une nouvelle pièce après le trajet"
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "Distance d’essuyage"
 
 msgid ""
@@ -17499,7 +17499,7 @@ msgstr "Modèle de préréglage de traitement"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Vous n’avez pas encore choisi le préréglage de l’imprimante sur lequel créer. Veuillez choisir le fournisseur et le modèle de l’imprimante"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Vous avez introduit une donnée illégale dans la section « zone imprimable » de la première page. Veuillez vérifier avant de la créer."
 
 msgid ""
@@ -17531,7 +17531,7 @@ msgstr "Le vendeur n’est pas trouvé, veuillez resélectionner."
 msgid "Current vendor has no models, please reselect."
 msgstr "Le vendeur actuel n’a pas de modèle, veuillez resélectionner."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Vous n’avez pas sélectionné le fournisseur et le modèle ou introduit le fournisseur et le modèle personnalisés."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17543,7 +17543,7 @@ msgstr "Toutes les entrées dans le modèle ou le fournisseur de l’imprimante 
 msgid "Please check bed printable shape and origin input."
 msgstr "Veuillez vérifier la forme imprimable du plateau et l’entrée de l’origine."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Vous n’avez pas encore sélectionné l’imprimante pour remplacer la buse, veuillez choisir."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

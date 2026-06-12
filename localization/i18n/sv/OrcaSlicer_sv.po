@@ -1806,7 +1806,7 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "Några inställningar har ändrats."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Fortsätt med redigerings inställningarna till nytt projekt, avfärda dem eller spara som ny inställning."
 
 msgid "User logged out"
@@ -2595,7 +2595,7 @@ msgstr "För att spara korrespondens kan du ta bort alla kontakter från alla re
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3334,7 +3334,7 @@ msgstr "Import utförd."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Det importerade SLA arkivet innehöll inga förinställningar. De aktuella SLA förinställningarna användes som reserv."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Du kan inte ladda ett SLA projekt med ett fler delat objekt på byggplattan"
 
 msgid "Please check your object list before preset changing."
@@ -6215,10 +6215,10 @@ msgstr "Rensa"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 
 msgid "How do you like this printing file?"
 msgstr "Vad tycker du om den här utskriftsfilen?"
@@ -7097,7 +7097,7 @@ msgstr "Would you like OrcaSlicer to automatically fix this by clearing the rota
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "3mf:s version %s är nyare än %s version %s, Följande nycklar har hittats som inte känns igen:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "Uppdatera mjukvaran.\n"
 
 #, fuzzy, c-format, boost-format
@@ -7239,9 +7239,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "Radera objekt som är en del av det utskurna objektet"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "Du försöker radera ett objekt som är en del av ett klippt objekt.\n"
 "Denna åtgärd kommer att bryta en klippt korrespondens.\n"
@@ -7361,7 +7361,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Sync now"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "Fortsätt med redigerings inställningarna till nytt projekt eller avfärda dem"
 
 msgid "Creating a new project"
@@ -14177,7 +14177,7 @@ msgstr "Retraction distance when extruder change"
 msgid "Z-hop height"
 msgstr "Z-hop height"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "När det är en retraktion lyfts nozzel en aning för att skapa ett spel mellan nozzel och utskriften. Detta förhindrar att nozzel träffar utskriften när den förflyttas. Att använda spirallinjer för att lyfta z kan förhindra strängning"
 
 msgid "Z-hop lower boundary"
@@ -15091,7 +15091,7 @@ msgstr "Avskrapa medans retraktering"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Detta flyttarnozzeln längs den sista extruderingsbanan när det retrakterar för att rengöra eventuellt läckt material på nozzeln. Detta kan minimera blobbar när du skriver ut en ny del efter förflyttning"
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "Avskrapnings avstånd"
 
 msgid ""
@@ -17299,7 +17299,7 @@ msgstr "Mall för process inställning"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Du har ännu inte valt vilken printer inställning du vill skapa baserat på. Välj leverantör och modell för printern"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Du har angett ett otillåtet tecken i det utskrivbara området på första sidan. Använd endast siffror."
 
 msgid ""
@@ -17331,7 +17331,7 @@ msgstr "Leverantören hittades inte; välj igen."
 msgid "Current vendor has no models, please reselect."
 msgstr "Nuvarande leverantör har inga modeller, vänligen välj om."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Du har inte valt leverantör och modell eller angett anpassad leverantör och modell."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17343,7 +17343,7 @@ msgstr "Alla inmatningar i den anpassade printer leverantören eller modellen ä
 msgid "Please check bed printable shape and origin input."
 msgstr "Kontrollera byggplattans utskrivbara form och ursprungs inmatning."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Du har ännu inte valt vilken printer som nozzeln ska bytas ut på; välj en printer."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

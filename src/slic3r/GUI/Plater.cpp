@@ -6087,7 +6087,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                  file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
                                 text += "\n";
                                 wxString context = text;
-                                wxString append = _L("You'd better upgrade your software.\n");
+                                wxString append = _L("You should update your software.\n");
                                 context += "\n\n";
                                 context += append;
                                 log_and_show_3mf_info(context, newer_3mf_title);
@@ -6156,7 +6156,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                      file_version.to_string(), slic3r_version.to_string());
                                     text += "\n";
                                     wxString context = text;
-                                    wxString append = _L("You'd better upgrade your software.\n");
+                                    wxString append = _L("You should update your software.\n");
                                     context += "\n\n";
                                     context += append;
                                     log_and_show_3mf_info(context, bambu_project_title);
@@ -7456,9 +7456,9 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
     ModelObject *obj = model.objects[obj_idx];
     if (obj->is_cut()) {
         InfoDialog dialog(q, _L("Delete object which is a part of cut object"),
-                          _L("You try to delete an object which is a part of a cut object.\n"
+                          _L("You are trying to delete an object which is a part of a cut object.\n"
                              "This action will break a cut correspondence.\n"
-                             "After that model consistency can't be guaranteed."),
+                             "After that, model consistency can't be guaranteed."),
                           false, wxYES | wxCANCEL | wxCANCEL_DEFAULT | wxICON_WARNING);
         dialog.SetButtonLabel(wxID_YES, _L("Delete"));
         if (dialog.ShowModal() == wxID_CANCEL)
@@ -12020,8 +12020,8 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     auto check = [this,&transfer_preset_changes](bool yes_or_no) {
         m_new_project_and_check_state = true;
         wxString header = _L("Some presets are modified.") + "\n" +
-            (yes_or_no ? _L("You can keep the modified presets to the new project or discard them") :
-                _L("You can keep the modified presets to the new project, discard or save changes as new presets."));
+            (yes_or_no ? _L("You can keep the modified presets for the new project or discard them.") :
+                _L("You can keep the modified presets for the new project, discard, or save changes as new presets."));
         int act_buttons = ActionButtons::KEEP | ActionButtons::REMEMBER_CHOISE;
         if (!yes_or_no)
             act_buttons |= ActionButtons::SAVE;

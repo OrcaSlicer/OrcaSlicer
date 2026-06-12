@@ -1809,7 +1809,7 @@ msgstr "外部"
 msgid "Some presets are modified."
 msgstr "プリセットが変更されました。"
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "変更したプリセットをデフォルトとして保存できます"
 
 msgid "User logged out"
@@ -2595,7 +2595,7 @@ msgstr "カット対応を保存するには、関連するすべてのオブジ
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3326,7 +3326,7 @@ msgstr "インポートが完了しました。"
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "インポートしたSLAアーカイブにプリセットが含まれていません。現在のSLAプリセットがフォールバックとして使用されました。"
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "マルチパーツオブジェクトがベッド上にあるSLAプロジェクトをロードできません"
 
 msgid "Please check your object list before preset changing."
@@ -6181,7 +6181,7 @@ msgstr "クリア"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "モールモデルの印刷が完了しましたが、\n"
 "評価情報の同期に失敗しました。"
@@ -7061,7 +7061,7 @@ msgstr "回転テンプレート設定をクリアして自動修正しますか
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "3mfのバージョン %s は %sのバージョン %sより新しい為、下記のキーを認識できません"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "ソフトウェアをアップデートする必要があります。\n"
 
 #, fuzzy, c-format, boost-format
@@ -7203,9 +7203,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "カットオブジェクトの一部であるオブジェクトを削除"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "カットオブジェクトの一部であるオブジェクトを削除しようとしています。\n"
 "この操作はカット対応を壊します。\n"
@@ -7325,7 +7325,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "今すぐ同期"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "変更したプリセットをプロジェクト内に保存するか、破棄もできます"
 
 msgid "Creating a new project"
@@ -13904,7 +13904,7 @@ msgstr "押出機切替時のリトラクション距離"
 msgid "Z-hop height"
 msgstr ""
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "リトラクション時に、ノズルを少し上げてから移動します。この動作でモデルとの衝突を回避できます。"
 
 msgid "Z-hop lower boundary"
@@ -14783,7 +14783,7 @@ msgstr "リトラクション時に拭き上げ"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "リトラクション時に、ノズルを最後のパスに沿って移動します。この設定によって、たるみにより壁面のブロブを抑えることができます。"
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "拭き上げ距離"
 
 msgid ""
@@ -16904,7 +16904,7 @@ msgstr "プロセスプリセットテンプレート"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "どのプリンタプリセットに基づいて作成するかはまだ選択されていません。プリンタのベンダーとモデルを選択してください。"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "印刷可能領域のセクション（1ページ目）に許可されていない文字が入力されています。数字のみを使用してください。"
 
 msgid ""
@@ -16936,7 +16936,7 @@ msgstr ""
 msgid "Current vendor has no models, please reselect."
 msgstr "現在のベンダーにはモデルがありません。再選択してください。"
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr ""
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -16948,7 +16948,7 @@ msgstr "カスタムプリンタのベンダーまたはモデルのすべての
 msgid "Please check bed printable shape and origin input."
 msgstr "ベッドの印刷可能な形状と原点の入力を確認してください。"
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "ノズルを交換するプリンタがまだ選択されていません。プリンタを選択してください。"
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

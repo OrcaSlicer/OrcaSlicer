@@ -1809,7 +1809,7 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "Některé předvolby byly upraveny."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Upravené předvolby můžete ponechat v novém projektu, zahodit je, nebo změny uložit jako nové předvolby."
 
 msgid "User logged out"
@@ -2601,7 +2601,7 @@ msgstr "Pro uložení přiřazení řezů můžete odstranit všechny konektory 
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3341,7 +3341,7 @@ msgstr "Import byl dokončen."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Importovaný SLA archiv neobsahoval žádné předvolby. Jako záloha byly použity aktuální SLA předvolby."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Nelze načíst SLA projekt s vícedílným objektem na podložce."
 
 msgid "Please check your object list before preset changing."
@@ -6222,7 +6222,7 @@ msgstr "Vymazat"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "Dokončili jste tisk modelu, \n"
 "ale synchronizace informací o hodnocení selhala."
@@ -7104,7 +7104,7 @@ msgstr "Chcete, aby OrcaSlicer tuto chybu automaticky opravil vymazáním nastav
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "Doporučujeme aktualizovat software.\n"
 
 #, c-format, boost-format
@@ -7243,9 +7243,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "Smazat objekt, který je součástí řezaného objektu"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "Pokoušíte se smazat objekt, který je součástí rozříznutého objektu.\n"
 "Tato akce naruší vztah řezu.\n"
@@ -7365,7 +7365,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Sync now"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "Upravené předvolby můžete ponechat v novém projektu nebo je zahodit."
 
 msgid "Creating a new project"
@@ -14176,7 +14176,7 @@ msgstr "Retraction distance when extruder change"
 msgid "Z-hop height"
 msgstr "Výška Z-hopu"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "Po každém stažení filamentu se tryska mírně zvedne, aby vznikla mezera mezi tryskou a tiskem. Zabrání kolizi trysky s tiskem při přesunu. Použití spirálových linií pro zvedání v ose Z může zabránit vytahování vláken."
 
 msgid "Z-hop lower boundary"
@@ -15089,7 +15089,7 @@ msgstr "Očištění při zasunování filamentu"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Při zatažení pohybujte tryskou po poslední trase extruze, abyste očistili případný uniklý materiál na trysce. Tím lze minimalizovat kapky při tisku nového dílu po cestování."
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "Vzdálenost očištění"
 
 msgid ""
@@ -17292,7 +17292,7 @@ msgstr "Šablona předvolby procesu"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Zatím jste nevybrali, podle které předvolby tiskárny chcete vytvořit. Vyberte prosím výrobce a model tiskárny."
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "V části tisknutelné oblasti na první stránce jste zadali neplatný vstup. Před vytvořením to prosím zkontrolujte."
 
 msgid ""
@@ -17320,7 +17320,7 @@ msgstr "Dodavatel nebyl nalezen, prosím vyberte jej znovu."
 msgid "Current vendor has no models, please reselect."
 msgstr "Aktuální výrobce nemá žádné modely, zvolte prosím jiného."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Nezvolili jste výrobce a model, ani jste nezadali vlastního výrobce a model."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17332,7 +17332,7 @@ msgstr "Všechna pole v uživatelském výrobci nebo modelu tiskárny obsahují 
 msgid "Please check bed printable shape and origin input."
 msgstr "Zkontrolujte prosím tvar a počátek tiskové plochy."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Zatím jste nevybrali tiskárnu pro výměnu trysky, vyberte prosím."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

@@ -1804,7 +1804,7 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "您可以保留未保存修改的预设应用到新项目中，或者选择忽略。"
 
 msgid "User logged out"
@@ -2604,7 +2604,7 @@ msgstr "为保证切割关系，您可以将所有关联对象的连接件一起
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3337,7 +3337,7 @@ msgstr "导入完成。"
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "导入的SLA存档不包含任何预设。当前的SLA预设被用作备用选项。"
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "您不能加载一个在床上有多个部件的SLA项目"
 
 msgid "Please check your object list before preset changing."
@@ -6208,7 +6208,7 @@ msgstr "清除"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr "您已经完成了商城模型的打印，但是评分信息的同步失败了。"
 
 msgid "How do you like this printing file?"
@@ -7078,7 +7078,7 @@ msgstr "您是否希望 OrcaSlicer 清除旋转模板设置以自动修复此问
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "该 3MF 文件版本 %s 比 %s 的版本 %s 新，发现以下无法识别的参数键值："
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "建议升级您的软件版本。\n"
 
 #, c-format, boost-format
@@ -7219,9 +7219,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "删除切割对象的一部分"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr "您正尝试删除切割对象的一部分，这将破坏切割对应关系，删除之后，将无法再保证模型的一致性。"
 
 msgid "The selected object couldn't be split."
@@ -7338,7 +7338,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "立即同步"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "您可以保留修改的预设到新项目中或者忽略这些修改"
 
 msgid "Creating a new project"
@@ -14276,7 +14276,7 @@ msgstr "更换挤出机时的回缩距离"
 msgid "Z-hop height"
 msgstr "Z抬升高度"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "回抽完成之后，喷嘴轻微抬升，和打印件之间产生一定间隙。这能够避免空驶时喷嘴和打印件剐蹭和碰撞。使用螺旋线抬升z能够减少拉丝。"
 
 msgid "Z-hop lower boundary"
@@ -15198,7 +15198,7 @@ msgstr "回抽时擦拭"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "当回抽时，让喷嘴沿着前面的走线方向继续移动，清除掉喷嘴上的漏料。这能够避免空驶结束打印新的区域时产生斑点。"
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "擦拭距离"
 
 msgid ""
@@ -17401,7 +17401,7 @@ msgstr "工艺预设模板"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "您尚未选择要基于哪个打印机预设来创建。请先选择打印机的供应商和型号。"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "您在第一页的可打印区域输入不正确。请检查后再创建。"
 
 msgid ""
@@ -17432,7 +17432,7 @@ msgstr "供应商未找到，请重新选择。"
 msgid "Current vendor has no models, please reselect."
 msgstr "当前供应商下没有型号，请重新选择。"
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "您还没有选择或输入一个自定义供应商和型号。"
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17444,7 +17444,7 @@ msgstr "检测到自定义供应商或型号的所有输入都是空格。请重
 msgid "Please check bed printable shape and origin input."
 msgstr "请检查 可打印区域 和 原点 的输入。"
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "您尚未选择要更换喷嘴的打印机，请进行选择。"
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

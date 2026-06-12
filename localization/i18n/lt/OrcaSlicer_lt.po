@@ -1819,7 +1819,7 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "Kai kurie nustatymai pakeisti."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Pakeistus išankstinius nustatymus galite išsaugoti naujame projekte, išmesti arba išsaugoti pakeitimus kaip naujus išankstinius nustatymus."
 
 msgid "User logged out"
@@ -2612,7 +2612,7 @@ msgstr "Norėdami nutraukti ryšius, galite ištrinti visus jungtis iš visų su
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3353,7 +3353,7 @@ msgstr "Importavimas atliktas."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Importuotame SLA archyve nebuvo jokių išankstinių nustatymų. Dabartiniai SLA nustatymai buvo naudojami kaip atsarginiai."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Negalite įkelti SLA projekto su kelių dalių objektu ant pagrindo"
 
 msgid "Please check your object list before preset changing."
@@ -6237,7 +6237,7 @@ msgstr "Išvalyti"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "Sėkmingai išspausdinote mažą modelį, tačiau \n"
 "įvertinimo informacijos sinchronizavimas nepavyko."
@@ -7125,7 +7125,7 @@ msgstr "Ar norėtumėte, kad „OrcaSlicer“ automatiškai ištaisytų šią pr
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "3mf versija %s yra naujesnė už %s versiją %s, rasta nepažįstamų raktų:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "Geriau jau atnaujinkite savo programinę įrangą\n"
 
 #, c-format, boost-format
@@ -7267,9 +7267,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "Pašalinti objektą su dalimi perpjauto objekto"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "Bandote ištrinti objektą, kuris yra supjaustyto objekto dalis.\n"
 "Šis veiksmas sugadins pjovimo atitikimą.\n"
@@ -7389,7 +7389,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Sync now"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "Jūs galite išsaugoti pakeistus nustatymus naujam projektui arba juos ištrinti"
 
 msgid "Creating a new project"
@@ -14215,7 +14215,7 @@ msgstr "Retraction distance when extruder change"
 msgid "Z-hop height"
 msgstr "Z šuolio aukštis"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "Kiekvieną kartą, kai gija įtraukiama, purkštukas šiek tiek pakeliamas, kad tarp purkštuko ir spaudinio atsirastų tarpas. Taip purkštukas, judėdamas daugiau, neužkliudo spaudinio. Naudojant spiralines linijas z pakėlimui, galima išvengti stygų susidarymo."
 
 msgid "Z-hop lower boundary"
@@ -15129,7 +15129,7 @@ msgstr "Nuvalyti įtraukiant"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Įtraukiant antgalį judinti išilgai paskutinio išspaudimo kelio, kad būtų išvalyta ant antgalio nutekėjusi medžiaga. Tai gali sumažinti artefaktų kiekį, kai po judėjimo spausdinama nauja dalis."
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "Valymo atstumas"
 
 msgid ""
@@ -17334,7 +17334,7 @@ msgstr "Proceso nustatymų šablonas"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Dar nepasirinkote, pagal kurį spausdintuvo išankstinį nustatymą kurti. Pasirinkite spausdintuvo gamintoją ir modelį"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Pirmojo puslapio spausdintinos srities skiltyje įvedėte neleistiną reikšmę. Prieš jį kurdami patikrinkite."
 
 msgid ""
@@ -17368,7 +17368,7 @@ msgstr "Pardavėjas nerastas, pasirinkite iš naujo."
 msgid "Current vendor has no models, please reselect."
 msgstr "Dabartinis pardavėjas neturi modelių, pasirinkite iš naujo."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Nepasirinkote pardavėjo ir modelio arba neįvedėte pasirinktinio pardavėjo ir modelio."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17380,7 +17380,7 @@ msgstr "Visi pasirinktinio spausdintuvo tiekėjo arba modelio įvesties duomenys
 msgid "Please check bed printable shape and origin input."
 msgstr "Patikrinkite pagrindo spausdinimo formą ir pradžią."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Dar nepasirinkote spausdintuvo, kuriuo norite pakeisti antgalį, pasirinkite."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

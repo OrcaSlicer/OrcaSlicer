@@ -2783,7 +2783,7 @@ bool ObjectList::del_from_cut_object(bool is_cut_connector, bool is_model_part/*
 
     InfoDialog dialog(wxGetApp().plater(), title,
                       (_L("This action will break a cut correspondence.\n"
-                         "After that model consistency can't be guaranteed.\n"
+                         "After that, model consistency can't be guaranteed.\n"
                          "\n"
                          "To manipulate with solid parts or negative volumes you have to invalidate cut information first.") + msg_end ),
                       false, buttons_style | wxCANCEL_DEFAULT | wxICON_WARNING);

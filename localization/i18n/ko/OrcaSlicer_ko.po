@@ -1815,7 +1815,7 @@ msgstr "외부"
 msgid "Some presets are modified."
 msgstr "일부 사전 설정이 수정 되었습니다."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "수정된 사전 설정을 새 프로젝트에 유지하거나, 변경 내용을 삭제 또는 새 사전 설정으로 저장할 수 있습니다."
 
 msgid "User logged out"
@@ -2602,7 +2602,7 @@ msgstr "잘라내기 연결을 저장하기 위해 모든 관련 객체에서 �
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3339,7 +3339,7 @@ msgstr "가져오기가 완료되었습니다."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "가져온 SLA 압축파일에 사전 설정이 없습니다. 현재 SLA 사전 설정이 예비로 사용되었습니다."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "베드에 다중 부품 객체가 있는 SLA 프로젝트를 로드할 수 없습니다"
 
 msgid "Please check your object list before preset changing."
@@ -6214,7 +6214,7 @@ msgstr "지우기"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "쇼핑몰 모델 출력이 완료되었으나,\n"
 "등급 정보 동기화에 실패했습니다."
@@ -7096,7 +7096,7 @@ msgstr ""
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "3mf의 버전 %s이(가) %s의 버전 %s보다 높습니다. 다음 키를 인식할 수 없습니다:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "소프트웨어를 업그레이드하는 것이 좋습니다.\n"
 
 #, fuzzy, c-format, boost-format
@@ -7239,9 +7239,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "잘라낸 객체의 일부인 객체 삭제"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "잘라낸 객체의 일부인 객체를 삭제하려고 합니다.\n"
 "이 작업을 수행하면 잘라낸 객체간 연결이 끊어집니다.\n"
@@ -7358,7 +7358,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "지금 동기화"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "수정된 사전 설정을 새 프로젝트에 유지하거나 삭제할 수 있습니다"
 
 msgid "Creating a new project"
@@ -14120,7 +14120,7 @@ msgstr "압출기 교체 시 수축 거리"
 msgid "Z-hop height"
 msgstr "Z올리기 높이"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "후퇴가 완료될 때마다 노즐이 약간 올라가서 노즐과 출력물 사이에 간격이 생깁니다. 이동 시 노즐이 출력물에 닿는 것을 방지합니다. 나선형 선을 사용하여 z를 들어 올리면 스트링 현상을 방지할 수 있습니다"
 
 msgid "Z-hop lower boundary"
@@ -15025,7 +15025,7 @@ msgstr "후퇴 시 노즐 청소"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "노즐에서 흘러내린된 재료를 청소하기 위해 후퇴할 때 마지막 압출 경로를 따라 노즐을 이동합니다. 이동 후 출력을 시작할 때 방울을 최소화할 수 있습니다."
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "노즐 청소 거리"
 
 msgid ""
@@ -17205,7 +17205,7 @@ msgstr "프로세스 사전 설정 템플릿"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "생성할 프린터 사전 설정을 아직 선택하지 않았습니다. 프린터의 공급업체와 모델을 선택하세요"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "첫 번째 페이지의 출력 가능 영역 섹션에 잘못된 입력을 입력했습니다. 작성 전 꼭 확인해주세요."
 
 msgid ""
@@ -17237,7 +17237,7 @@ msgstr "공급업체를 찾을 수 없습니다. 다시 선택하세요."
 msgid "Current vendor has no models, please reselect."
 msgstr "현재 공급업체에는 모델이 없습니다. 다시 선택하세요."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "공급업체 및 모델을 선택하지 않았거나 맞춤 공급업체 및 모델을 입력하지 않았습니다."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17249,7 +17249,7 @@ msgstr "사용자 정의 프린터 공급업체 또는 모델의 모든 입력�
 msgid "Please check bed printable shape and origin input."
 msgstr "출력 가능한 베드 형태를 확인해주세요."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "노즐을 교체할 프린터를 아직 선택하지 않으셨습니다. 선택해 주세요."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

@@ -878,7 +878,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_request_failed_panel    = new wxPanel(parent, wxID_ANY);
     m_request_failed_panel->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *static_request_failed_panel_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model, \nbut the synchronization of rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
+    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model, \nbut synchronizing rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
     m_request_failed_info->Wrap(-1);
     m_request_failed_info->SetForegroundColour(*wxRED);
     m_request_failed_info->SetFont(::Label::Body_10);

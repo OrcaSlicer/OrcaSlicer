@@ -1817,7 +1817,7 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "Alguns perfils s'han modificat."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Podeu mantenir les modificacions dels perfils al nou projecte, descartar o desar els canvis com a nous perfils."
 
 msgid "User logged out"
@@ -2606,7 +2606,7 @@ msgstr "Per desar la correspondència de tall, podeu eliminar tots els connector
 
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -3347,7 +3347,7 @@ msgstr "S'ha fet la importació."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "El fitxer SLA importat no contenia cap perfil. Els perfils actuals de SLA s'han utilitzat com a alternativa."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "No pots carregar un projecte SLA amb objectes multi-peça al llit"
 
 msgid "Please check your object list before preset changing."
@@ -6226,7 +6226,7 @@ msgstr "Buidar"
 
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "Heu acabat d'imprimir el model de mostra, \n"
 "Però la sincronització de la informació de valoració ha fallat."
@@ -7108,7 +7108,7 @@ msgstr "Voleu que OrcaSlicer solucioni això automàticament esborrant la config
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "La versió de 3MF %s és més nova que la versió de %s %s, S'han trobat les següents claus no reconegudes:"
 
-msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "És millor que actualitzeu el vostre programari.\n"
 
 #, c-format, boost-format
@@ -7253,9 +7253,9 @@ msgid "Delete object which is a part of cut object"
 msgstr "Eliminar l'objecte que forma part de l'objecte tallat"
 
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "Estàs provant d'eliminar un objecte que forma part d'un objecte tallat.\n"
 "Aquesta acció trencarà una correspondència de tall.\n"
@@ -7375,7 +7375,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Sincronitza ara"
 
-msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them."
 msgstr "Podeu mantenir els perfils modificats al projecte nou o descartar-los"
 
 msgid "Creating a new project"
@@ -14204,7 +14204,7 @@ msgstr "Distància de retracció al canviar d'extrusor"
 msgid "Z-hop height"
 msgstr "Alçada Z-hop"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling. Using spiral lines to lift Z can prevent stringing."
 msgstr "Cade vegada que es fa una retracció, s'aixeca una mica el broquet per crear espai lliure entre el broquet i la impressió. Evita que el broquet colpegi la impressió en els desplaçaments. L'ús de la línia espiral per aixecar z pot evitar l'aparició de fils"
 
 msgid "Z-hop lower boundary"
@@ -15116,7 +15116,7 @@ msgstr "Netejar durant retracció"
 msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Moure el broquet al llarg de l'última trajectòria d'extrusió en les retraccions per netejar el material que vessi del broquet. Això pot minimitzar grumolls quan s'imprimeix una peça nova després del desplaçament"
 
-msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "Distància de Neteja"
 
 msgid ""
@@ -17322,7 +17322,7 @@ msgstr "Plantilla de Perfil de Processament"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Encara no heu triat el perfil d'impressora en la que voleu Basar la seva creació. Trieu el proveïdor i el model de la impressora"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Heu introduït una entrada il·legal a la secció d'àrea imprimible de la primera pàgina. Comproveu-ho abans de crear-lo."
 
 msgid ""
@@ -17356,7 +17356,7 @@ msgstr "El proveïdor no es troba, torneu a seleccionar-ne un."
 msgid "Current vendor has no models, please reselect."
 msgstr "El proveïdor actual no té models, torneu a seleccionar."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "No heu seleccionat el proveïdor i el model ni heu introduït el proveïdor i el model personalitzats."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17368,7 +17368,7 @@ msgstr "Totes les entrades del proveïdor/marca o model d'impressora personalitz
 msgid "Please check bed printable shape and origin input."
 msgstr "Comproveu la forma imprimible del llit i l'entrada d'origen."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Encara no heu seleccionat la impressora per substituir el broquet, trieu-la."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"

@@ -2762,7 +2762,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         }
 
         if (!save_printable_area_config(m_printer_preset)) {
-            MessageDialog dlg(this, _L("You have entered an illegal input in the printable area section on the first page. Please check before creating it."),
+            MessageDialog dlg(this, _L("You have entered a disallowed character in the printable area section on the first page. Please use only numbers."),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             show_page1();
@@ -3317,7 +3317,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
         std::string vendor_name = get_printer_vendor();
         std::string model_name  = get_printer_model();
         if ((vendor_name.empty() || model_name.empty())) {
-            MessageDialog dlg(this, _L("You have not selected the vendor and model or entered the custom vendor and model."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("You have not selected the vendor and model or input the custom vendor and model."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return false;
@@ -3348,7 +3348,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
     } else if (curr_selected_printer_type == m_create_type.create_nozzle) {
         wxString printer_name = m_select_printer->GetStringSelection();
         if (printer_name.empty()) {
-            MessageDialog dlg(this, _L("You have not yet selected the printer to replace the nozzle, please choose."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("You have not yet selected the printer to replace the nozzle for; please choose a printer."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return false;
