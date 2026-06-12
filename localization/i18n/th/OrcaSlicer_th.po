@@ -9554,8 +9554,8 @@ msgstr[0] "พรีเซ็ตต่อไปนี้สืบทอดจา
 msgid "%1% Preset"
 msgstr "%1% ที่ตั้งไว้ล่วงหน้า"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "พรีเซ็ตต่อไปนี้จะถูกลบด้วย"
 
 msgid ""
@@ -10610,7 +10610,7 @@ msgstr "ไม่สามารถพิมพ์วัตถุสำหรั
 msgid "Object: %1%"
 msgstr "วัตถุ: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "บางทีบางส่วนของวัตถุที่ความสูงเหล่านี้บางเกินไป หรือวัตถุนั้นมีตาข่ายที่ผิดพลาด"
 
 msgid "Process change extrusion role G-code"
@@ -10753,7 +10753,7 @@ msgstr "ข้อผิดพลาดภายใน"
 msgid "file not found"
 msgstr "ไม่พบไฟล์"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "ไฟล์เก็บถาวรมีขนาดใหญ่เกินไป"
 
 msgid "validation failed"
@@ -15564,13 +15564,13 @@ msgstr "ส่งออก 3MF ด้วยขนาดขั้นต่ำ"
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "จำนวนสามเหลี่ยมสูงสุดต่อแผ่นสำหรับการสไลซ์"
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "เวลาสไลซ์สูงสุดต่อจานในหน่วยวินาที"
 
 msgid "No check"
@@ -15681,7 +15681,7 @@ msgstr "โคลนวัตถุในรายการโหลด"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "โหลดการตั้งค่ากระบวนการ/เครื่อง uptodate เมื่อใช้ uptodate"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "โหลดการตั้งค่ากระบวนการ/เครื่อง uptodate จากไฟล์ที่ระบุเมื่อใช้ uptodate"
 
 msgid "Load uptodate filament settings when using uptodate"

@@ -9562,8 +9562,8 @@ msgstr[0] "以下預設繼承了此預設。"
 msgid "%1% Preset"
 msgstr "%1% 預設"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "以下預設將一起被刪除。"
 
 msgid ""
@@ -10599,7 +10599,7 @@ msgstr "模型在 %1% 和 %2% 之間出現空層，無法列印。"
 msgid "Object: %1%"
 msgstr "模型：%1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "部分模型在這些高度可能過薄，或者模型存在缺陷"
 
 msgid "Process change extrusion role G-code"
@@ -10742,7 +10742,7 @@ msgstr "內部錯誤"
 msgid "file not found"
 msgstr "檔案未找到"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "存檔檔案太大"
 
 msgid "validation failed"
@@ -15435,13 +15435,13 @@ msgstr "匯出最小尺寸的 3mf。"
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "每片板的最大切片三角形數量。"
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "每片板的最大切片時間（秒）。"
 
 msgid "No check"
@@ -15552,7 +15552,7 @@ msgstr "複製載入清單中的物件"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "使用最新版本時載入最新的列印參數與設備設定"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "當使用最新版本時，從指定檔案載入最新的參數與列印設備設定"
 
 msgid "Load uptodate filament settings when using uptodate"

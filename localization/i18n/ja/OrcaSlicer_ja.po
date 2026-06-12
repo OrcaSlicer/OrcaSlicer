@@ -9511,8 +9511,8 @@ msgstr[0] ""
 msgid "%1% Preset"
 msgstr "%1% プリセット"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "以下のプリセットも削除されます: "
 
 msgid ""
@@ -10541,7 +10541,7 @@ msgstr "オブジェクトの %1% と %2% の間には、造形できるもの�
 msgid "Object: %1%"
 msgstr "オブジェクト: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "この高さでオブジェクトが薄すぎるか、メッシュに欠陥がある可能性があります"
 
 msgid "Process change extrusion role G-code"
@@ -10682,7 +10682,7 @@ msgstr "内部エラー"
 msgid "file not found"
 msgstr "ﾌｧｲﾙが行方不明"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "アーカイブのサイスが大きすぎです"
 
 msgid "validation failed"
@@ -15161,13 +15161,13 @@ msgstr ""
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
-msgstr "max triangle count per plate for slicing"
+msgid "Max triangle count per plate for slicing."
+msgstr "Max triangle count per plate for slicing"
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "max slicing time per plate in seconds"
 
 msgid "No check"
@@ -15278,7 +15278,7 @@ msgstr ""
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr ""
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr ""
 
 msgid "Load uptodate filament settings when using uptodate"

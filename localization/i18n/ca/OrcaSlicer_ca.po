@@ -9572,8 +9572,8 @@ msgstr[1] "Els següents perfils hereten d'aquest perfil."
 msgid "%1% Preset"
 msgstr "%1% Perfil"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "El següent perfil també se suprimirà."
 msgstr[1] "Els següents perfils també se suprimiran."
 
@@ -10609,7 +10609,7 @@ msgstr "L'objecte no es pot imprimir degut a que hi ha una capa buida entre %1% 
 msgid "Object: %1%"
 msgstr "Objecte: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Potser parts de l'objecte a aquesta alçada són massa primes, o l'objecte té una malla defectuosa"
 
 msgid "Process change extrusion role G-code"
@@ -10752,7 +10752,7 @@ msgstr "error intern"
 msgid "file not found"
 msgstr "arxiu no trobat"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "arxiu massa gran"
 
 msgid "validation failed"
@@ -15521,13 +15521,13 @@ msgstr "exportar 3MF amb la mida mínima."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "recompte màxim de triangles per placa en laminar."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "temps màxim de laminació per placa en segons."
 
 msgid "No check"
@@ -15638,7 +15638,7 @@ msgstr "Clonar objectes a la llista de càrrega"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Carrega la configuració de procés/màquina actualitzada quan s'utilitza actualitzada"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "carregar la configuració del procés/màquina d'actualització des del fitxer especificat en usar l'actualització"
 
 msgid "Load uptodate filament settings when using uptodate"

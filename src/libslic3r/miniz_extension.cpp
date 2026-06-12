@@ -144,7 +144,7 @@ std::string MZ_Archive::get_errorstr(mz_zip_error mz_err)
     case MZ_ZIP_FILE_NOT_FOUND:
         return L("file not found");
     case MZ_ZIP_ARCHIVE_TOO_LARGE:
-        return L("Archive too large");
+        return L("archive too large");
     case MZ_ZIP_VALIDATION_FAILED:
         return L("validation failed");
     case MZ_ZIP_WRITE_CALLBACK_FAILED:

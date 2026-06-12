@@ -9554,8 +9554,8 @@ msgstr[2] "Následující předvolby dědí tuto předvolbu."
 msgid "%1% Preset"
 msgstr "%1% přednastavení"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Následující předvolba bude také smazána."
 msgstr[1] "Následující předvolby budou také smazány."
 msgstr[2] "Následující předvolby budou také smazány."
@@ -10592,7 +10592,7 @@ msgstr "Objekt nelze vytisknout kvůli prázdné vrstvě mezi %1% a %2%."
 msgid "Object: %1%"
 msgstr "Objekt: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Možná jsou části objektu v těchto výškách příliš tenké, nebo má objekt vadnou síť."
 
 msgid "Process change extrusion role G-code"
@@ -10735,7 +10735,7 @@ msgstr "Interní chyba"
 msgid "file not found"
 msgstr "Soubor nenalezen"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "Archiv je příliš velký."
 
 msgid "validation failed"
@@ -15491,13 +15491,13 @@ msgstr "Export 3MF with minimum size."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "maximální počet trojúhelníků na desku pro slicování."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "Maximální čas slicování na desku v sekundách."
 
 msgid "No check"
@@ -15608,7 +15608,7 @@ msgstr "Klonovat objekty v seznamu načtení."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Načíst aktuální nastavení procesu/stroje při použití aktuálních"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Načíst aktuální nastavení procesu/stroje ze zadaného souboru při použití aktuálních."
 
 msgid "Load uptodate filament settings when using uptodate"

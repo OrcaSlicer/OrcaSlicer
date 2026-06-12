@@ -9593,8 +9593,8 @@ msgstr[2] "Šiuos nustatymus paveldi šie išankstiniai nustatymai."
 msgid "%1% Preset"
 msgstr "%1% iš anksto nustatytas"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Bus ištrintas ir šis išankstinis nustatymas."
 msgstr[1] "Bus ištrinti ir šie išankstiniai nustatymai."
 msgstr[2] "Bus ištrinti ir šie išankstiniai nustatymai."
@@ -10631,7 +10631,7 @@ msgstr "Objekto negalima spausdinti dėl tuščio sluoksnio tarp %1% ir %2%."
 msgid "Object: %1%"
 msgstr "Objektas: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Objekto dalys šiuose aukščiuose gali būti per plonos arba gali būti pažeista objekto 3D figūra"
 
 msgid "Process change extrusion role G-code"
@@ -10774,7 +10774,7 @@ msgstr "vidinė klaida"
 msgid "file not found"
 msgstr "failas nerastas"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "per didelis archyvas"
 
 msgid "validation failed"
@@ -15531,13 +15531,13 @@ msgstr "eksportuoti mažiausio dydžio 3MF."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "maksimalus trikampių skaičius plokštelėje sluoksniavimui."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "maksimalus vienos plokštės sluoksniavimo laikas sekundėmis."
 
 msgid "No check"
@@ -15648,7 +15648,7 @@ msgstr "Įkrovos sąraše esančių objektų klonavimas."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Naudojant „Naujausius“, įkelkite naujausius proceso/mašinos nustatymus"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Įkelti \"naujausio\" proceso/įrenginio nustatymus iš nurodyto failo, kai naudojamas \"naujausias\"."
 
 msgid "Load uptodate filament settings when using uptodate"

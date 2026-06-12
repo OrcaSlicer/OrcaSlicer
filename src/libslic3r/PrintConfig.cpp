@@ -10664,14 +10664,14 @@ CLIActionsConfigDef::CLIActionsConfigDef()
 
     def = this->add("mtcpp", coInt);
     def->label = L("mtcpp");
-    def->tooltip = L("max triangle count per plate for slicing.");
+    def->tooltip = L("Max triangle count per plate for slicing.");
     def->cli = "mtcpp";
     def->cli_params = "count";
     def->set_default_value(new ConfigOptionInt(1000000));
 
     def = this->add("mstpp", coInt);
     def->label = L("mstpp");
-    def->tooltip = L("max slicing time per plate in seconds.");
+    def->tooltip = L("Max slicing time per plate in seconds.");
     def->cli = "mstpp";
     def->cli_params = "time";
     def->set_default_value(new ConfigOptionInt(300));
@@ -10890,7 +10890,7 @@ CLIMiscConfigDef::CLIMiscConfigDef()
 
     def = this->add("uptodate_settings", coStrings);
     def->label = L("Load uptodate process/machine settings when using uptodate");
-    def->tooltip = L("Load uptodate process/machine settings from the specified file when using uptodate.");
+    def->tooltip = L("Load up-to-date process/machine settings from the specified file when using up-to-date.");
     def->cli_params = "\"setting1.json;setting2.json\"";
     def->set_default_value(new ConfigOptionStrings());
 

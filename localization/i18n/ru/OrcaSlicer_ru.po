@@ -9879,8 +9879,8 @@ msgstr[2] "Профили, указанные ниже, наследуются �
 msgid "%1% Preset"
 msgstr "%1% профиль"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Следующий профиль также будет удалён."
 msgstr[1] "Следующие профили также будут удалены."
 msgstr[2] "Следующие профили также будут удалены."
@@ -10929,7 +10929,7 @@ msgstr "Модель не может быть напечатан из-за пу�
 msgid "Object: %1%"
 msgstr "Модель: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Возможно, части модели на этой высоте слишком тонкие, или она имеет дефектную сетку"
 
 msgid "Process change extrusion role G-code"
@@ -11073,7 +11073,7 @@ msgstr "внутренняя ошибка"
 msgid "file not found"
 msgstr "файл не найден"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "слишком большой архив"
 
 msgid "validation failed"
@@ -16318,14 +16318,14 @@ msgstr "Экспорт 3MF файла с минимальным размером
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "максимальное количество треугольников на столе при нарезке."
 
 # мвнс , Макс. время нарезки стола
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "максимальное время нарезки одного стола в секундах."
 
 msgid "No check"
@@ -16449,7 +16449,7 @@ msgstr "Клонировать объекты в списке загрузки."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Загрузить настройки печати/принтера при использовании обновления"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Загрузить настройки печати/принтера при использовании обновления из указанного файла."
 
 msgid "Load uptodate filament settings when using uptodate"

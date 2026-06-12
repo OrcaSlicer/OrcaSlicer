@@ -9533,8 +9533,8 @@ msgstr[0] "以下预设继承此预设。"
 msgid "%1% Preset"
 msgstr "%1% 预设"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "下列预设将被一起删除。"
 
 msgid ""
@@ -10592,7 +10592,7 @@ msgstr "模型在%1%和%2%之间出现空层，无法打印。"
 msgid "Object: %1%"
 msgstr "模型：%1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "部分模型在这些高度可能过薄，或者模型存在面片错误"
 
 msgid "Process change extrusion role G-code"
@@ -10737,7 +10737,7 @@ msgstr "内部错误"
 msgid "file not found"
 msgstr "文件未找到"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "存档文件太大"
 
 msgid "validation failed"
@@ -15603,13 +15603,13 @@ msgstr "以最小尺寸导出3mf。"
 msgid "mtcpp"
 msgstr "材料温度补偿"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "切片时每个盘的最大三角形数。"
 
 msgid "mstpp"
 msgstr "材料温度暂停"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "每板的最大切片耗时（秒）。"
 
 msgid "No check"
@@ -15720,7 +15720,7 @@ msgstr "复制加载列表中的对象。"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "更新同步时加载最新工艺/机器设置"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "在使用 同步最新设置 时，从指定的文件中加载最新的进程/机器设置。"
 
 msgid "Load uptodate filament settings when using uptodate"

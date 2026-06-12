@@ -9575,8 +9575,8 @@ msgstr[1] "A következő profil örökli ezt a profilt."
 msgid "%1% Preset"
 msgstr "%1% beállítás"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "A következő beállítás szintén törlődni fog."
 msgstr[1] "A következő beállítások szintén törlődni fognak."
 
@@ -10633,7 +10633,7 @@ msgstr "Az objektumnak üres rétegei vannak %1% és %2% között, ezért nem ny
 msgid "Object: %1%"
 msgstr "Objektum: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Az objektum ezen magasságban lévő részei túl vékonyak lehetnek, vagy az objektum hibás hálóval rendelkezik."
 
 msgid "Process change extrusion role G-code"
@@ -10778,7 +10778,7 @@ msgstr "belső hiba"
 msgid "file not found"
 msgstr "fájl nem található"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "archívum túl nagy"
 
 msgid "validation failed"
@@ -15610,13 +15610,13 @@ msgstr "3MF exportálása minimális mérettel."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "tálcánkénti maximális háromszögszám szeleteléshez."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "tálcánkénti maximális szeletelési idő másodpercben."
 
 msgid "No check"
@@ -15727,7 +15727,7 @@ msgstr "Objektumok klónozása a betöltési listában."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Naprakész folyamat-/gépbeállítások betöltése naprakész használatakor"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Naprakész folyamat-/gépbeállítások betöltése a megadott fájlból naprakész használatakor."
 
 msgid "Load uptodate filament settings when using uptodate"

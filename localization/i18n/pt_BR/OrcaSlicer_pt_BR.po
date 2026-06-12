@@ -9580,8 +9580,8 @@ msgstr[1] "A seguinte predefinição herda esta predefinição."
 msgid "%1% Preset"
 msgstr "%1% Predefinição"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "A seguinte predefinição também será excluída."
 msgstr[1] "As seguintes predefinições também serão excluídas."
 
@@ -10638,7 +10638,7 @@ msgstr "O objeto não pode ser impresso devido a uma camada vazia entre %1% e %2
 msgid "Object: %1%"
 msgstr "Objeto: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Talvez partes do objeto nessa altura sejam muito finas, ou o objeto tenha uma malha com falhas"
 
 msgid "Process change extrusion role G-code"
@@ -10783,7 +10783,7 @@ msgstr "erro interno"
 msgid "file not found"
 msgstr "arquivo não encontrado"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "arquivo muito grande"
 
 msgid "validation failed"
@@ -15594,13 +15594,13 @@ msgstr "Exportar 3MF com tamanho mínimo."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "contagem máxima de triângulos por placa para fatiar."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "tempo máximo de fatiamento por placa em segundos."
 
 msgid "No check"
@@ -15711,7 +15711,7 @@ msgstr "Clonar objetos na lista de carregamento."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Carregar configurações de processo/máquina atualizadas ao usar Atualizar"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Carregar configurações de processo/máquina atualizadas do arquivo especificado ao usar Atualizar."
 
 msgid "Load uptodate filament settings when using uptodate"

@@ -9555,8 +9555,8 @@ msgstr[2] "Następnych profili przejmie te ustawienia."
 msgid "%1% Preset"
 msgstr "%1% profil"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Następujący profil również zostanie usunięty."
 msgstr[1] "Następujące profile również zostaną usunięte."
 msgstr[2] "Następujące profile również zostaną usunięte."
@@ -10593,7 +10593,7 @@ msgstr "Obiekt nie może być wydrukowany z powodu pustej warstwy między %1% a 
 msgid "Object: %1%"
 msgstr "Obiekt: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Możliwe, że części obiektu na tej wysokości są zbyt cienkie, lub obiekt ma wadliwą siatkę"
 
 msgid "Process change extrusion role G-code"
@@ -10734,7 +10734,7 @@ msgstr "błąd wewnętrzny"
 msgid "file not found"
 msgstr "plik nie znaleziony"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "archiwum za duże"
 
 msgid "validation failed"
@@ -15443,13 +15443,13 @@ msgstr "eksportuj 3MF o minimalnym rozmiarze."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "maksymalna liczba trójkątów na podłoże do slicowania."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "maksymalny czas slicowania na podłoże w sekundach."
 
 msgid "No check"
@@ -15561,7 +15561,7 @@ msgstr ""
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr ""
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "załaduj aktualne ustawienia procesu/maszyny z określonego pliku podczas korzystania z aktualizacji"
 
 msgid "Load uptodate filament settings when using uptodate"

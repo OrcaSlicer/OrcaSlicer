@@ -9593,8 +9593,8 @@ msgstr[1] "Los siguientes perfiles heredan de este otro."
 msgid "%1% Preset"
 msgstr "Perfil %1%"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "El siguiente perfil también se eliminará."
 msgstr[1] "Los siguientes perfiles también se eliminarán."
 
@@ -10648,7 +10648,7 @@ msgstr "No se puede imprimir el objeto para la capa vacía entre %1% y %2%."
 msgid "Object: %1%"
 msgstr "Objeto: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Tal vez detalles del objeto a esa altura son demasiado finos, o el objeto tiene una malla defectuosa"
 
 msgid "Process change extrusion role G-code"
@@ -10793,7 +10793,7 @@ msgstr "error interno"
 msgid "file not found"
 msgstr "archivo no encontrado"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "archivo demasiado grande"
 
 msgid "validation failed"
@@ -15694,13 +15694,13 @@ msgstr "Exportar 3MF con el tamaño mínimo."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "número máximo de triángulos por plato para laminar."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "tiempo máximo de corte por cama en segundos."
 
 msgid "No check"
@@ -15811,7 +15811,7 @@ msgstr "Clonar objetos en la lista de carga."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Cargar ajustes de proceso/máquina actualizados al usar 'uptodate'"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Carga los ajustes actualizados de proceso/máquina desde el archivo especificado cuando se usa actualizar."
 
 msgid "Load uptodate filament settings when using uptodate"

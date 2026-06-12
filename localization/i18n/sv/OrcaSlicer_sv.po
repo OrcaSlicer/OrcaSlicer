@@ -9556,8 +9556,8 @@ msgstr[1] "Följande förinställning ärver denna förinställning."
 msgid "%1% Preset"
 msgstr "%1% Förinställning"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Följande förinställning raderas också.@Följande förinställningar raderas också."
 msgstr[1] "Följande förinställning raderas också.@Följande förinställningar raderas också."
 
@@ -10593,7 +10593,7 @@ msgstr "Ett objekt har tomma lager mellan %1% och %2% utskrift ej möjlig."
 msgid "Object: %1%"
 msgstr "Objekt: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Delar av objektet på dessa höjder är för tunna eller så har objektet en felaktig mesh"
 
 msgid "Process change extrusion role G-code"
@@ -10736,7 +10736,7 @@ msgstr "internt fel"
 msgid "file not found"
 msgstr "filen hittades inte"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "för stort arkiv"
 
 msgid "validation failed"
@@ -15497,13 +15497,13 @@ msgstr "Export 3MF with minimum size."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "max antal trianglar per platta för beredning"
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "Max berednings tid per platta i sekunder"
 
 msgid "No check"
@@ -15614,7 +15614,7 @@ msgstr "Clone objects in the load list."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Load uptodate process/machine settings when using uptodate"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "ladda aktuella process/maskin inställningar från angiven fil vid användning av aktuella"
 
 msgid "Load uptodate filament settings when using uptodate"

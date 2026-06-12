@@ -9594,8 +9594,8 @@ msgstr[1] "Das folgende Profil erbt dieses Profil."
 msgid "%1% Preset"
 msgstr "%1% Profil"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Das folgende Profil wird ebenfalls gelöscht."
 msgstr[1] "Die folgenden Profile werden ebenfalls gelöscht."
 
@@ -10645,7 +10645,7 @@ msgstr "Objekt kann aufgrund leerer Schichten zwischen %1% und %2% nicht gedruck
 msgid "Object: %1%"
 msgstr "Objekt: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Vielleicht sind Teile des Objekts in dieser Höhe zu dünn, oder das Objekt hat ein fehlerhaftes Netz"
 
 msgid "Process change extrusion role G-code"
@@ -10790,7 +10790,7 @@ msgstr "interner Fehler"
 msgid "file not found"
 msgstr "Datei nicht gefunden"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "Archiv zu groß"
 
 msgid "validation failed"
@@ -15687,13 +15687,13 @@ msgstr "Exportieren Sie 3MF mit minimaler Größe."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "Maximale Anzahl von Dreiecken pro Bauplattform für das Slicing."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "Das maximale Slicing-Zeitlimit pro Plate in Sekunden."
 
 msgid "No check"
@@ -15804,7 +15804,7 @@ msgstr "Objekte in der Ladeliste klonen"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Lade aktuelle Prozess-/Maschineneinstellungen, wenn Aktuell verwendet wird"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Aktuelle Prozess-/Maschineneinstellungen aus der angegebenen Datei laden, wenn Aktuell verwendet wird"
 
 msgid "Load uptodate filament settings when using uptodate"

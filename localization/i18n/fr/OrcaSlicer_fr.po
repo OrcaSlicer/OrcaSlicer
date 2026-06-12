@@ -9588,8 +9588,8 @@ msgstr[1] "Le préréglage suivant hérite de ce préréglage."
 msgid "%1% Preset"
 msgstr "%1% Préréglage"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Le préréglage suivant sera également supprimé."
 msgstr[1] "Les préréglages suivants seront également supprimés."
 
@@ -10646,7 +10646,7 @@ msgstr "L'objet comporte des couches vides comprises entre %1% et %2% et ne peut
 msgid "Object: %1%"
 msgstr "Objet : %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Peut-être que certaines parties de l'objet à ces hauteurs sont trop fines ou que l'objet a un maillage défectueux"
 
 msgid "Process change extrusion role G-code"
@@ -10791,7 +10791,7 @@ msgstr "erreur interne"
 msgid "file not found"
 msgstr "fichier non trouvé"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "archive trop volumineuse"
 
 msgid "validation failed"
@@ -15699,13 +15699,13 @@ msgstr "Exporter le 3MF avec une taille minimale."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "nombre maximal de triangles par plaque pour le tranchage."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "temps de tranchage maximal par plaque en secondes."
 
 msgid "No check"
@@ -15816,7 +15816,7 @@ msgstr "Cloner des objets dans la liste de chargement"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Charger les paramètres de processus/machine à jour lors de l'utilisation de la mise à jour"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "charger les paramètres actualisés du processus/de la machine à partir du fichier spécifié lors de l'utilisation de la mise à jour"
 
 msgid "Load uptodate filament settings when using uptodate"

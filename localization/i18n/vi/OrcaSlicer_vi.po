@@ -9548,8 +9548,8 @@ msgstr[0] "Các preset sau kế thừa preset này."
 msgid "%1% Preset"
 msgstr "Preset %1%"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Các preset sau cũng sẽ bị xóa."
 
 msgid ""
@@ -10584,7 +10584,7 @@ msgstr "Đối tượng không thể in do lớp trống giữa %1% và %2%."
 msgid "Object: %1%"
 msgstr "Đối tượng: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Có thể các phần của đối tượng ở chiều cao này quá mỏng, hoặc đối tượng có mesh lỗi"
 
 msgid "Process change extrusion role G-code"
@@ -10727,7 +10727,7 @@ msgstr "lỗi nội bộ"
 msgid "file not found"
 msgstr "không tìm thấy file"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "lưu trữ quá lớn"
 
 msgid "validation failed"
@@ -15484,13 +15484,13 @@ msgstr "xuất 3MF với kích thước tối thiểu."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "số lượng tam giác tối đa trên mỗi bản để slice."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "thời gian slice tối đa trên mỗi bản tính bằng giây."
 
 msgid "No check"
@@ -15601,7 +15601,7 @@ msgstr "Sao chép đối tượng trong danh sách nạp."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Nạp cài đặt quy trình/máy cập nhật khi sử dụng cập nhật"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Nạp cài đặt quy trình/máy cập nhật từ file được chỉ định khi sử dụng cập nhật."
 
 msgid "Load uptodate filament settings when using uptodate"

@@ -9562,8 +9562,8 @@ msgstr[1] "De volgende voorinstelling erft van deze voorinstelling."
 msgid "%1% Preset"
 msgstr "%1% Voorinstelling"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "De volgende voorinstelling zal ook verwijderd worden@"
 msgstr[1] "De volgende voorinstelling zal ook verwijderd worden@"
 
@@ -10599,7 +10599,7 @@ msgstr "Het object heeft lege lagen tussen %1% en %2% en kan daarom niet geprint
 msgid "Object: %1%"
 msgstr "Object: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Delen van het object op deze hoogts kunnen te dun zijn of het object kan een defect in de constructie hebben."
 
 msgid "Process change extrusion role G-code"
@@ -10742,7 +10742,7 @@ msgstr "Interne fout"
 msgid "file not found"
 msgstr "Bestand mist"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "Archief is te groot"
 
 msgid "validation failed"
@@ -15502,14 +15502,14 @@ msgstr "Export 3MF with minimum size."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
-msgstr "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
+msgstr "Max triangle count per plate for slicing."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
-msgstr "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
+msgstr "Max slicing time per plate in seconds."
 
 msgid "No check"
 msgstr "Geen controle"
@@ -15619,7 +15619,7 @@ msgstr "Clone objects in the load list."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Load uptodate process/machine settings when using uptodate"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "laad actuele proces-/machine-instellingen uit het opgegeven bestand bij gebruik van up-to-date"
 
 msgid "Load uptodate filament settings when using uptodate"

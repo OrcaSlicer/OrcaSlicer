@@ -9539,8 +9539,8 @@ msgstr[0] "다음 사전 설정은 이 사전 설정을 상속합니다."
 msgid "%1% Preset"
 msgstr "사전 설정 %1%"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "다음 사전 설정도 삭제됩니다."
 
 msgid ""
@@ -10575,7 +10575,7 @@ msgstr "%1%에서 %2% 사이의 빈 레이어에 대해 객체를 출력할 수 
 msgid "Object: %1%"
 msgstr "객체: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "이 높이에 있는 객체의 일부가 너무 얇거나 객체에 결함이 있는 메시가 있을 수 있습니다"
 
 msgid "Process change extrusion role G-code"
@@ -10718,7 +10718,7 @@ msgstr "내부 오류"
 msgid "file not found"
 msgstr "파일을 찾을 수 없습니다"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "압축파일이 너무 큽니다"
 
 msgid "validation failed"
@@ -15425,13 +15425,13 @@ msgstr "최소 크기로 3mf를 내보냅니다."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "슬라이싱을 위한 플레이트당 최대 삼각형 개수."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "플레이트당 최대 슬라이싱 시간(초)"
 
 msgid "No check"
@@ -15542,7 +15542,7 @@ msgstr "로드 목록에서 객체 복제"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr ""
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "uptodate를 사용할 때 지정된 파일에서 최신 프로세스/프린터 설정을 로드합니다"
 
 msgid "Load uptodate filament settings when using uptodate"

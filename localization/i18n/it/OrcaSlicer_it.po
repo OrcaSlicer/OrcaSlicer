@@ -9559,8 +9559,8 @@ msgstr[1] "I seguentii profili ereditano questi profili."
 msgid "%1% Preset"
 msgstr "%1% Profilo"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Verrà eliminato anche il seguente profilo."
 msgstr[1] "Verranno eliminati anche i seguenti profili."
 
@@ -10606,7 +10606,7 @@ msgstr "L'oggetto ha degli strati vuoti compresi tra %1% e %2% e non può essere
 msgid "Object: %1%"
 msgstr "Oggetto: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Le parti dell'oggetto a queste altezze potrebbero essere troppo sottili o l'oggetto potrebbe avere una maglia poligonale difettosa"
 
 msgid "Process change extrusion role G-code"
@@ -10751,7 +10751,7 @@ msgstr "errore interno"
 msgid "file not found"
 msgstr "file non trovato"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "archivio troppo grande"
 
 msgid "validation failed"
@@ -15562,13 +15562,13 @@ msgstr "Esporta 3MF con dimensione minima."
 msgid "mtcpp"
 msgstr "nmtpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "numero massimo di triangoli per piatto da elaborare."
 
 msgid "mstpp"
 msgstr "tmepp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "tempo massimo di elaborazione per piatto in secondi."
 
 msgid "No check"
@@ -15679,7 +15679,7 @@ msgstr "Clona gli oggetti nell'elenco di caricamento."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Carica impostazioni processo/macchina aggiornate quando si usa aggiornate"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Carica le impostazioni di processo/macchina aggiornate dal file specificato quando si utilizza Aggiorna."
 
 msgid "Load uptodate filament settings when using uptodate"

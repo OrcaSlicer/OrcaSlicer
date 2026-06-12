@@ -9550,8 +9550,8 @@ msgstr[1] "Aşağıdaki ön ayar bu ön ayarı devralır."
 msgid "%1% Preset"
 msgstr "%1% Ön Ayar"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Aşağıdaki ön ayar da silinecektir."
 msgstr[1] "Aşağıdaki ön ayarlar da silinecektir."
 
@@ -10587,7 +10587,7 @@ msgstr "%1% ile %2% arasındaki boş katman için nesne yazdırılamıyor."
 msgid "Object: %1%"
 msgstr "Nesne: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Belki nesnenin bu yükseklikteki bazı kısımları çok incedir veya nesnenin ağı hatalı olabilir"
 
 msgid "Process change extrusion role G-code"
@@ -10730,7 +10730,7 @@ msgstr "dahili hata"
 msgid "file not found"
 msgstr "dosya bulunamadı"
 
-msgid "Archive too large"
+msgid "archive too large"
 msgstr "arşiv çok büyük"
 
 msgid "validation failed"
@@ -15480,13 +15480,13 @@ msgstr "3mf'yi minimum boyutta dışa aktarın."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+msgid "Max triangle count per plate for slicing."
 msgstr "dilimleme için plaka başına maksimum üçgen sayısı."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+msgid "Max slicing time per plate in seconds."
 msgstr "saniye cinsinden plaka başına maksimum dilimleme süresi."
 
 msgid "No check"
@@ -15597,7 +15597,7 @@ msgstr "Yükleme listesindeki nesneleri klonlama."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Güncel olan bir baskı süreci (process) veya makine (printer) profili seçildiğinde, ona ait en güncel ayarları otomatik olarak yükle"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "Load up-to-date process/machine settings from the specified file when using up-to-date."
 msgstr "Güncellemeyi kullanırken belirtilen dosyadan güncel işlem/yazıcı ayarlarını yükle."
 
 msgid "Load uptodate filament settings when using uptodate"

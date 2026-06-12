@@ -1819,7 +1819,7 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
             warning += Slic3r::format(_(L("Object can't be printed for empty layer between %1% and %2%.")),
                                       warning_ranges[i].first, warning_ranges[i].second) + "\n";
         warning += Slic3r::format(_(L("Object: %1%")), object.model_object()->name) + "\n"
-            + _(L("Maybe parts of the object at these height are too thin, or the object has faulty mesh"));
+            + _(L("Parts of the object at these heights may be too thin or the object may have a faulty mesh."));
 
         const_cast<Print*>(object.print())->active_step_add_warning(
             PrintStateBase::WarningLevel::CRITICAL, warning, PrintStateBase::SlicingEmptyGcodeLayers);
