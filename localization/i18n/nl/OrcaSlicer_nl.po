@@ -8108,7 +8108,7 @@ msgstr "Alleen op stabiele updates controleren"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Gebruikersvoorinstellingen automatisch synchroniseren (printer/filament/proces)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Ingebouwde voorinstellingen automatisch bijwerken."
 
 msgid "Use encrypted file for token storage"
@@ -8663,8 +8663,8 @@ msgstr "Het filament komt niet overeen met het filament in de AMS-sleuf. Update 
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
-msgstr "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
+msgstr "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13157,9 +13157,6 @@ msgstr "Mondstuk type"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Het type metaal van het mondstuk. Dit bepaalt de slijtvastheid van het mondstuk en wat voor soort filament kan worden geprint"
 
-msgid "Undefine"
-msgstr "Undefined"
-
 msgid "Hardened steel"
 msgstr "Gehard staal"
 
@@ -14011,7 +14008,7 @@ msgstr "This option will drop the temperature of the inactive extruders to preve
 msgid "Filename format"
 msgstr "Bestandsnaam formaat"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Gebruikers kunnen zelf de project bestandsnaam kiezen tijdens het exporteren"
 
 msgid "Make overhangs printable"
@@ -16091,11 +16088,11 @@ msgstr "Meshing of a model file failed or no valid shape."
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "The supplied file couldn't be read because it's empty."
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
-msgstr "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
+msgstr "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
-msgstr "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
+msgstr "Unknown file format: input file must have .3mf or .zip.amf extension."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: failed to parse"
@@ -17166,7 +17163,7 @@ msgid "Create"
 msgstr "Creëren"
 
 #, fuzzy
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
 #, fuzzy
@@ -17330,7 +17327,7 @@ msgstr "Voorinstellingen voor filament maken mislukt. Als volgt:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Procesvoorinstellingen maken mislukt. Als volgt:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Leverancier is niet gevonden; selecteer opnieuw."
 
 msgid "Current vendor has no models, please reselect."
@@ -18904,7 +18901,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Wanneer moet u printen met de printerdeur open?\n"
 "Wist je dat het openen van de printerdeur de kans op verstopping van de extruder/hotend kan verminderen bij het printen van filament met een lagere temperatuur en een hogere omgevingstemperatuur? Er staat meer informatie hierover in de Wiki."

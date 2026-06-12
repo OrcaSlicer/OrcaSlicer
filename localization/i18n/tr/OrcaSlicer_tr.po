@@ -8102,7 +8102,7 @@ msgstr "Yalnızca kararlı güncellemeleri kontrol edin"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Kullanıcı ön ayarları otomatik senkronizasyon (Yazıcı/Filament/İşlem)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Yerleşik Ön Ayarları otomatik olarak güncelleyin."
 
 msgid "Use encrypted file for token storage"
@@ -8651,7 +8651,7 @@ msgstr "Filament, AMS yuvasındaki filamentle eşleşmiyor. AMS yuvası ataması
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Seçilen yazıcı (%s), yazdırma dosyası yapılandırmasıyla (%s) uyumlu değil. Lütfen hazırlama sayfasında yazıcı ön ayarını yapın veya bu sayfada uyumlu bir yazıcı seçin."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Spiral vazo modu etkinleştirildiğinde, I3 yapısına sahip makineler zaman atlamalı videolar oluşturmayacaktır."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13144,9 +13144,6 @@ msgstr "Nozul tipi"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Nozulnin metalik malzemesi. Bu, nozulun aşınma direncini ve ne tür filamentin basılabileceğini belirler."
 
-msgid "Undefine"
-msgstr "Tanımsız"
-
 msgid "Hardened steel"
 msgstr "Güçlendirilmiş çelik"
 
@@ -13997,7 +13994,7 @@ msgstr "Bu seçenek sızıntıyı önlemek için aktif olmayan ekstrüderlerin s
 msgid "Filename format"
 msgstr "Dosya adı formatı"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Kullanıcı dışa aktarma sırasında proje dosyası adını kendisi tanımlayabilir."
 
 msgid "Make overhangs printable"
@@ -16067,10 +16064,10 @@ msgstr "Bir model dosyasının meshlenmesi başarısız oldu veya geçerli bir �
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Sağlanan dosya boş olduğundan okunamadı"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Bilinmeyen dosya formatı. Giriş dosyası .stl, .obj, .amf(.xml) uzantılı olmalıdır."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Bilinmeyen dosya formatı. Giriş dosyası .3mf veya .zip.amf uzantılı olmalıdır."
 
 msgid "load_obj: failed to parse"
@@ -17142,7 +17139,7 @@ msgstr "Filament Ön Ayarı"
 msgid "Create"
 msgstr "Oluştur"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Satıcı seçilmedi, lütfen satıcıyı yeniden seçin."
 
 #, fuzzy
@@ -17306,7 +17303,7 @@ msgstr "Filament ön ayarları oluşturulamadı. Şu şekilde:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "İşlem ön ayarları oluşturulamadı. Şu şekilde:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Satıcı bulunamadı, lütfen yeniden seçin."
 
 msgid "Current vendor has no models, please reselect."
@@ -18879,7 +18876,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Yazıcı kapısı açıkken yazdırmanız gerektiğinde\n"
 "Yazıcı kapısının açılmasının, daha yüksek muhafaza sıcaklığıyla daha düşük sıcaklıktaki filamenti yazdırırken ekstrüder/sıcak ucun tıkanma olasılığını azaltabileceğini biliyor muydunuz? Bununla ilgili daha fazla bilgiyi Wiki'de bulabilirsiniz."

@@ -1708,7 +1708,7 @@ void PreferencesDialog::create_items()
         if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
     }
 
-    auto item_system_sync      = create_item_checkbox(_L("Update built-in Presets automatically."), "", "sync_system_preset");
+    auto item_system_sync      = create_item_checkbox(_L("Update built-in presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 
     auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),

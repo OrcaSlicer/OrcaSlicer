@@ -8107,7 +8107,7 @@ msgstr "Kontrolovat pouze stabilní aktualizace"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatická synchronizace uživatelských předvoleb (tiskárna/filament/proces)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Automaticky aktualizovat vestavěné předvolby."
 
 msgid "Use encrypted file for token storage"
@@ -8656,7 +8656,7 @@ msgstr "Filament neodpovídá filamentu ve slotu AMS. Aktualizujte firmware tisk
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Při zapnutém režimu spirálové vázy nebudou stroje s konstrukcí I3 vytvářet časosběr."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13150,9 +13150,6 @@ msgstr "Typ trysky"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Kovový materiál trysky. Toto určuje abrazivní odolnost trysky a jaký typ filamentu lze tisknout."
 
-msgid "Undefine"
-msgstr "Nedefinovat"
-
 msgid "Hardened steel"
 msgstr "Kalená ocel"
 
@@ -14004,7 +14001,7 @@ msgstr "Tato možnost sníží teplotu neaktivních extruderů, aby se zabránil
 msgid "Filename format"
 msgstr "Formát názvu souboru"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Uživatelé mohou při exportu definovat název souboru projektu."
 
 msgid "Make overhangs printable"
@@ -16080,10 +16077,10 @@ msgstr "Meshing of a model file failed or no valid shape."
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Zadaný soubor nelze načíst, protože je prázdný."
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Neznámý formát souboru. Vstupní soubor musí mít příponu .stl, .obj nebo .amf(.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Neznámý formát souboru. Vstupní soubor musí mít příponu .3mf nebo .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17154,7 +17151,7 @@ msgstr "filamentový přednastavený profil"
 msgid "Create"
 msgstr "Vytvořit"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Dodavatel není vybrán, prosím vyberte jej znovu."
 
 #, fuzzy
@@ -17314,7 +17311,7 @@ msgstr "Vytvoření filamentových profilů selhalo. Viz níže:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Vytvoření předvoleb procesu selhalo. Viz níže:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Dodavatel nebyl nalezen, prosím vyberte jej znovu."
 
 msgid "Current vendor has no models, please reselect."
@@ -18889,10 +18886,10 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""

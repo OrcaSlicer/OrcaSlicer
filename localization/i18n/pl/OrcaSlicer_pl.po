@@ -8111,7 +8111,7 @@ msgstr "Sprawdzanie aktualizacji do stabilnych wersji"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatyczne synchronizowanie profili użytkownika (drukarka/filament/proces)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Automatyczne uaktualnianie wbudowanych profili"
 
 msgid "Use encrypted file for token storage"
@@ -8654,7 +8654,7 @@ msgstr "Filament nie pasuje do filamentu w slocie AMS. Proszę zaktualizować op
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Wybrana drukarka (%s) jest niezgodna z konfiguracją pliku druku (%s). Dostosuj profil drukarki na stronie przygotowania lub wybierz kompatybilną drukarkę na tej stronie."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Po włączeniu trybu wazy, maszyny o strukturze I3 nie będą generować filmów timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13107,9 +13107,6 @@ msgstr "Typ dyszy"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Materiał metalu dyszy. Określa on odporność na ścieranie dyszy oraz rodzaj filamentu, który można drukować"
 
-msgid "Undefine"
-msgstr "Nie zdefiniowane"
-
 msgid "Hardened steel"
 msgstr "Stal hartowana"
 
@@ -13967,7 +13964,7 @@ msgstr "Opcja ta obniży temperaturę nieaktywnych ekstruderów, aby zapobiec wy
 msgid "Filename format"
 msgstr "Format nazwy pliku"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Użytkownik może samodzielnie zdefiniować nazwę pliku projektu podczas eksportu"
 
 msgid "Make overhangs printable"
@@ -16035,10 +16032,10 @@ msgstr "Siatkowanie pliku modelu nie powiodło się lub nie ma prawidłowego ksz
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Dostarczony plik nie mógł być odczytany, ponieważ jest pusty"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Nieznany format pliku. Plik wejściowy musi mieć rozszerzenie .stl, .obj, .amf(.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Nieznany format pliku. Plik wejściowy musi mieć rozszerzenie .3mf lub .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17079,7 +17076,7 @@ msgstr "Ustawienie profilu filamentu"
 msgid "Create"
 msgstr "Utwórz"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Dostawca nie jest wybrany, proszę ponownie wybrać producenta."
 
 #, fuzzy
@@ -17243,7 +17240,7 @@ msgstr "Tworzenie ustawień filamentu nie powiodło się. Oto szczegóły:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Tworzenie ustawień procesu nie powiodło się. Oto szczegóły:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Dostawca nie został znaleziony, proszę wybrać ponownie."
 
 msgid "Current vendor has no models, please reselect."
@@ -18816,7 +18813,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Kiedy należy drukować przy otwartych drzwiach drukarki?\n"
 "Czy wiesz, że otwarcie drzwiczek drukarki może zmniejszyć prawdopodobieństwo zatkania ekstrudera/hotendu podczas drukowania filamentem o niższej temperaturze gdy temperatura obudowy jest wyższa? Więcej informacji na ten temat znajdziesz na Wiki."

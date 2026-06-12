@@ -8102,7 +8102,7 @@ msgstr "Chỉ kiểm tra cập nhật ổn định"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Tự động đồng bộ preset người dùng (Máy in/Filament/Quy trình)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Cập nhật preset tích hợp tự động."
 
 msgid "Use encrypted file for token storage"
@@ -8653,7 +8653,7 @@ msgstr "Filament không khớp với filament trong khe AMS. Vui lòng cập nh�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Khi bật chế độ bình xoắn ốc, máy có cấu trúc I3 sẽ không tạo video timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13142,9 +13142,6 @@ msgstr "Loại đầu phun"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Vật liệu kim loại của đầu phun. Điều này xác định khả năng chống mài mòn của đầu phun, và loại filament nào có thể được in."
 
-msgid "Undefine"
-msgstr "Không xác định"
-
 msgid "Hardened steel"
 msgstr "Thép cứng"
 
@@ -13996,7 +13993,7 @@ msgstr "Tùy chọn này sẽ giảm nhiệt độ của các extruder không ho
 msgid "Filename format"
 msgstr "Định dạng tên file"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Người dùng có thể xác định tên file dự án khi xuất."
 
 msgid "Make overhangs printable"
@@ -16082,10 +16079,10 @@ msgstr "Meshing of a model file failed or no valid shape."
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "File được cung cấp không thể đọc được vì nó trống"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Định dạng file không xác định. File đầu vào phải có phần mở rộng .stl, .obj, .amf(.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Định dạng file không xác định. File đầu vào phải có phần mở rộng .3mf hoặc .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17156,7 +17153,7 @@ msgstr "Cài đặt sẵn filament"
 msgid "Create"
 msgstr "Tạo"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Nhà cung cấp không được chọn, vui lòng chọn lại nhà cung cấp."
 
 #, fuzzy
@@ -17320,7 +17317,7 @@ msgstr "Tạo cài đặt sẵn filament thất bại. Như sau:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Tạo cài đặt sẵn quy trình thất bại. Như sau:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Nhà cung cấp không tìm thấy, vui lòng chọn lại."
 
 msgid "Current vendor has no models, please reselect."
@@ -18893,7 +18890,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Khi nào bạn cần in với cửa máy in mở?\n"
 "Bạn có biết rằng mở cửa máy in có thể giảm xác suất tắc extruder/hotend khi in filament nhiệt độ thấp hơn với nhiệt độ vỏ bọc cao hơn không? Thêm thông tin về điều này trong Wiki."

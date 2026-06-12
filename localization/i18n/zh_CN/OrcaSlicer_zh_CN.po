@@ -8090,7 +8090,7 @@ msgstr "仅检测正式版的更新"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "同步用户预设（打印机/耗材丝/工艺）"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "自动更新系统预设"
 
 msgid "Use encrypted file for token storage"
@@ -8635,7 +8635,7 @@ msgstr "材料编号和AMS槽位中的耗材丝材质不匹配，请更新打印
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "所选打印机 (%s) 与打印文件配置 (%s) 不兼容。请在准备页面调整打印机预设或在此页面选择兼容的打印机。"
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "当启用旋转花瓶模式时，I3结构的机器将不会生成延时摄影。"
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13224,9 +13224,6 @@ msgstr "喷嘴类型"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "喷嘴的金属材料。这将决定喷嘴的耐磨性，以及可打印材料的种类"
 
-msgid "Undefine"
-msgstr "未定义"
-
 msgid "Hardened steel"
 msgstr "硬化钢"
 
@@ -14101,7 +14098,7 @@ msgstr "此选项将降低非活动挤出机的温度，以防止渗出。"
 msgid "Filename format"
 msgstr "文件名格式"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "用户可以自定义导出项目文件的名称。"
 
 msgid "Make overhangs printable"
@@ -16192,10 +16189,10 @@ msgstr "模型文件的网格划分失败，或缺少有效的形状。"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "无法读取提供的文件，因为该文件内容为空。"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .stl、.obj 或 .amf（.xml）。"
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .3mf、.zip 或 .amf。"
 
 msgid "load_obj: failed to parse"
@@ -17264,7 +17261,7 @@ msgstr "耗材预设"
 msgid "Create"
 msgstr "创建"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "未选择供应商，请重新选择供应商。"
 
 msgid "Custom vendor is missing, please input custom vendor."
@@ -17426,7 +17423,7 @@ msgstr "创建耗材预设失败。如下：\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "创建工艺预设失败。如下：\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "供应商未找到，请重新选择。"
 
 msgid "Current vendor has no models, please reselect."
@@ -18999,7 +18996,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "什么时候需要打开打印机门进行打印？\n"
 "您知道吗，在较高封闭仓温度下打印较低温度的耗材时，打开打印机门可以减少挤出机/热端堵塞的概率。更多信息请参阅Wiki。"

@@ -1647,7 +1647,7 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         for (auto warning : plate->get_slice_result()->warnings) {
             if (warning.msg == NOT_GENERATE_TIMELAPSE) {
                 if (warning.error_code == "10014001") {
-                    msg_text = _L("When enable spiral vase mode, machines with I3 structure will not generate timelapse videos.");
+                    msg_text = _L("When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos.");
                 }
                 else if (warning.error_code == "10014002") {
                     msg_text = _L("The current printer does not support timelapse in Traditional Mode when printing By-Object.");
@@ -3620,7 +3620,7 @@ bool SelectMachineDialog::has_timelapse_warning(wxString &msg_text)
     for (auto warning : plate->get_slice_result()->warnings) {
         if (warning.msg == NOT_GENERATE_TIMELAPSE) {
             if (warning.error_code == "10014001") {
-                msg_text = _L("When enable spiral vase mode, machines with I3 structure will not generate timelapse videos.");
+                msg_text = _L("When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos.");
             } else if (warning.error_code == "10014002") {
                 msg_text = _L("The current printer does not support timelapse in Traditional Mode when printing By-Object.");
             }

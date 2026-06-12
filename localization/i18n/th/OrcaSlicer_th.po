@@ -8111,7 +8111,7 @@ msgstr "ตรวจสอบการอัปเดตที่เสถีย
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "การตั้งค่าล่วงหน้าของผู้ใช้ซิงค์อัตโนมัติ (เครื่องพิมพ์/เส้นพลาสติก/กระบวนการ)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "อัปเดตค่าที่ตั้งล่วงหน้าในตัวโดยอัตโนมัติ"
 
 msgid "Use encrypted file for token storage"
@@ -8661,7 +8661,7 @@ msgstr "เส้นพลาสติกไม่ตรงกับเส้น
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "เครื่องพิมพ์ที่เลือก (%s) เข้ากันไม่ได้กับการกำหนดค่าไฟล์การพิมพ์ (%s) โปรดปรับการตั้งค่าล่วงหน้าของเครื่องพิมพ์ในหน้าจัดเตรียมหรือเลือกเครื่องพิมพ์ที่ใช้งานร่วมกันได้ในหน้านี้"
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "เมื่อเปิดใช้งานโหมดแจกันเกลียว เครื่องจักรที่มีโครงสร้าง I3 จะไม่สร้างวิดีโอไทม์แลปส์"
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13199,9 +13199,6 @@ msgstr "ชนิดหัวฉีด"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "วัสดุโลหะของหัวฉีด สิ่งนี้จะกำหนดความต้านทานต่อการขัดถูของหัวฉีด และชนิดของฟิลาเมนท์ที่สามารถพิมพ์ได้"
 
-msgid "Undefine"
-msgstr "ไม่กำหนด"
-
 msgid "Hardened steel"
 msgstr "เหล็กชุบแข็ง"
 
@@ -14081,7 +14078,7 @@ msgstr "ตัวเลือกนี้จะทำให้อุณหภู
 msgid "Filename format"
 msgstr "รูปแบบชื่อไฟล์"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "ผู้ใช้สามารถกำหนดชื่อไฟล์โครงการเมื่อส่งออก"
 
 msgid "Make overhangs printable"
@@ -16153,10 +16150,10 @@ msgstr "การประสานไฟล์โมเดลล้มเหล
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "ไม่สามารถอ่านไฟล์ที่ให้มาได้เนื่องจากไฟล์ว่างเปล่า"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .stl, .obj, .amf(.xml)"
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .3mf หรือ .zip.amf"
 
 msgid "load_obj: failed to parse"
@@ -17227,7 +17224,7 @@ msgstr "พรีเซ็ตเส้นพลาสติก"
 msgid "Create"
 msgstr "สร้าง"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "ไม่ได้เลือกผู้ขาย โปรดเลือกผู้ขายอีกครั้ง"
 
 msgid "Custom vendor is missing, please input custom vendor."
@@ -17390,7 +17387,7 @@ msgstr "การสร้างค่าที่ตั้งไว้ล่ว
 msgid "Create process presets failed. As follows:\n"
 msgstr "สร้างการตั้งค่าล่วงหน้าของกระบวนการล้มเหลว ดังนี้:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "ไม่พบผู้ขาย โปรดเลือกใหม่"
 
 msgid "Current vendor has no models, please reselect."
@@ -18968,7 +18965,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "เมื่อใดที่คุณจำเป็นต้องพิมพ์โดยเปิดประตูเครื่องพิมพ์?\n"
 "คุณรู้หรือไม่ว่าการเปิดประตูเครื่องพิมพ์สามารถลดโอกาสที่ชุดดันเส้น/ฮอตเอนด์จะอุดตันเมื่อพิมพ์เส้นพลาสติกที่มีอุณหภูมิต่ำลงและมีอุณหภูมิของกรอบที่สูงขึ้น ข้อมูลเพิ่มเติมเกี่ยวกับเรื่องนี้ใน Wiki"

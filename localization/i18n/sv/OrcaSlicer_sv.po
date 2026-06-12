@@ -8104,7 +8104,7 @@ msgstr "Check for stable updates only"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatisk synkronisering av användarens förinställningar (skrivare/filament/process)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Uppdatera inbyggda förinställningar automatiskt."
 
 msgid "Use encrypted file for token storage"
@@ -8656,8 +8656,8 @@ msgstr "Filamentet matchar inte filamentet i AMS-facket. Uppdatera skrivarens pr
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
-msgstr "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
+msgstr "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13151,9 +13151,6 @@ msgstr "Nozzel typ"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Nozzelns metalliska material avgör munstyckets nötningsbeständighet och vilken typ av filament som kan skrivas ut"
 
-msgid "Undefine"
-msgstr "Oidentifierad"
-
 msgid "Hardened steel"
 msgstr "Härdat stål"
 
@@ -14005,7 +14002,7 @@ msgstr "This option will drop the temperature of the inactive extruders to preve
 msgid "Filename format"
 msgstr "Filnamns format"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Användaren kan bestämma projekt namn när den ska exporteras"
 
 msgid "Make overhangs printable"
@@ -16086,10 +16083,10 @@ msgstr "Meshing of a model file failed or no valid shape."
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Den medföljande filen kunde inte läsas eftersom den är tom."
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Okänt filformat: indata filen måste ha tillägget .stl, .obj eller .amf(.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Okänt filformat: indata filen måste ha fil ändelsen .3mf eller .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17161,7 +17158,7 @@ msgid "Create"
 msgstr "Skapa"
 
 #, fuzzy
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
 #, fuzzy
@@ -17325,7 +17322,7 @@ msgstr "Skapa inställningar för filament misslyckades. Enligt följande:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Skapa process inställningar misslyckades. Enligt följande:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Leverantören hittades inte; välj igen."
 
 msgid "Current vendor has no models, please reselect."
@@ -18899,7 +18896,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "När behöver du skriva ut med printer dörren öppen?\n"
 "Visste du att en öppen printer dörr kan minska risken för igensättning av extruder/hotend vid utskrift av filament med lägre temperatur och högre kapslingstemperatur? Det finns mer information om detta i Wiki."

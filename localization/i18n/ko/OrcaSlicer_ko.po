@@ -8098,7 +8098,7 @@ msgstr "안정적인 업데이트만 확인"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "사용자 사전 설정 자동 동기화(프린터/필라멘트/프로세스)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "기본 제공 사전 설정을 자동으로 업데이트합니다."
 
 msgid "Use encrypted file for token storage"
@@ -8646,7 +8646,7 @@ msgstr "필라멘트가 AMS 슬롯의 필라멘트와 일치하지 않습니다.
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "선택한 프린터(%s)가 출력 파일 구성(%s)과 호환되지 않습니다. 준비 페이지에서 프린터 사전 설정을 조정하거나 이 페이지에서 호환되는 프린터를 선택하세요."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "나선형 꽃병 모드를 활성화하면 I3 구조의 장치는 타임랩스 비디오를 생성하지 않습니다."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13094,9 +13094,6 @@ msgstr "노즐 유형"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "노즐의 금속 재질. 노즐의 내마모성을 결정하고 어떤 종류의 필라멘트를 출력할 수 있는지를 결정합니다"
 
-msgid "Undefine"
-msgstr "알 수 없음"
-
 msgid "Hardened steel"
 msgstr "경화강"
 
@@ -13948,7 +13945,7 @@ msgstr "이 옵션은 비활성 압출기의 온도를 낮추어 스며드는 �
 msgid "Filename format"
 msgstr "파일 이름 형식"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "사용자가 내보낼 파일 이름을 자체 정의할 수 있습니다"
 
 msgid "Make overhangs printable"
@@ -16023,10 +16020,10 @@ msgstr "모델 파일의 메싱이 실패했거나 유효한 형태가 없습니
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "제공된 파일이 비어 있어 읽을 수 없습니다"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "알 수 없는 파일 형식: 입력 파일의 확장자는 .stl, .obj 또는 .amf(.xml)여야 합니다."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "알 수 없는 파일 형식: 입력 파일의 확장자는.3mf 또는.zip.amf여야 합니다."
 
 msgid "load_obj: failed to parse"
@@ -17069,7 +17066,7 @@ msgstr "필라멘트 사전 설정"
 msgid "Create"
 msgstr "생성"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "공급업체가 선택되지 않았습니다. 공급업체를 다시 선택하세요."
 
 #, fuzzy
@@ -17231,7 +17228,7 @@ msgstr "필라멘트 사전 설정 생성에 실패했습니다. 다음과 같�
 msgid "Create process presets failed. As follows:\n"
 msgstr "프로세스 사전 설정 생성에 실패했습니다. 다음과 같이:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "공급업체를 찾을 수 없습니다. 다시 선택하세요."
 
 msgid "Current vendor has no models, please reselect."
@@ -18802,7 +18799,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "프린터 도어를 연 상태로 출력해야 하는 경우\n"
 "더 높은 프린터 내부 온도로 낮은 온도의 필라멘트를 출력할 때 프린터 도어를 열면 압출기/핫엔드가 막힐 가능성을 줄일 수 있다는 것을 알고 계섰나요? 이에 대한 자세한 내용은 Wiki에서 확인하세요."

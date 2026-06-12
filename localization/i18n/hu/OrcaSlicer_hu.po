@@ -8121,7 +8121,7 @@ msgstr "Csak stabil frissítések keresése"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Felhasználói beállítások automatikus szinkronizálása (Nyomtató/Filament/Folyamat)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Beépített beállítások automatikus frissítése."
 
 msgid "Use encrypted file for token storage"
@@ -8678,7 +8678,7 @@ msgstr "A filament típusa nem egyezik az AMS-férőhelyben találhatóval. Kér
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "A kiválasztott nyomtató (%s) nem kompatibilis a nyomtatási fájl konfigurációjával (%s). Állítsd be a nyomtató-előbeállítást az előkészítés oldalon, vagy válassz ezen az oldalon kompatibilis nyomtatót."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13228,9 +13228,6 @@ msgstr "Fúvóka típus"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "A fúvóka anyaga: Ez határozza meg a fúvóka kopásállóságát és azt, hogy milyen filamentekkel képes nyomtatni."
 
-msgid "Undefine"
-msgstr "Nincs meghatározva"
-
 msgid "Hardened steel"
 msgstr "Edzett acél"
 
@@ -14113,7 +14110,7 @@ msgstr "Ez az opció csökkenti az inaktív extruderek hőmérsékletét a sziv�
 msgid "Filename format"
 msgstr "Fájlnév formátum"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "A felhasználó dönthet a projektfájlok nevéről exportáláskor."
 
 msgid "Make overhangs printable"
@@ -16199,10 +16196,10 @@ msgstr "A modellfájl hálósítása sikertelen volt, vagy nincs érvényes alak
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "A megadott fájl nem olvasható be, mert üres"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .stl, .obj vagy .amf(.xml) kiterjesztésűnek kell lennie."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .3mf vagy .zip.amf kiterjesztésűnek kell lennie."
 
 msgid "load_obj: failed to parse"
@@ -17274,7 +17271,7 @@ msgid "Create"
 msgstr "Létrehoz"
 
 #, fuzzy
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
 #, fuzzy
@@ -17438,7 +17435,7 @@ msgstr "A következő filamentbeállítások létrehozása nem sikerült:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "A következő folyamatbeállítások létrehozása nem sikerült:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Gyártó nem található. Kérlek, válaszd ki újból."
 
 msgid "Current vendor has no models, please reselect."
@@ -19018,7 +19015,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Mikor nyomtass nyitott ajtóval\n"
 "Tudtad, hogy a nyomtató ajtajának kinyitásával csökkentheted az extruder/fejegység eltömődésének valószínűségét, ha alacsonyabb hőmérsékletű filamentet nyomtatsz? További információ erről a Wikiben található."

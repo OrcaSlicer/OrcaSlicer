@@ -8132,7 +8132,7 @@ msgstr "Tikrinti tik stabilius atnaujinimus"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatiškai sinchronizuoti naudotojo nustatymus (spausdintuvas/gija/procesas)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Automatinis įmontuotų nustatymų atnaujinimas."
 
 msgid "Use encrypted file for token storage"
@@ -8687,7 +8687,7 @@ msgstr "Naudojama gija nesutampa su gija AMS lizde. Atnaujinkite spausdintuvo pr
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Įjungus spiralės vazos režimą, I3 struktūros spausdintuvai negeneruos pakadrinių vaizdo įrašų."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13189,9 +13189,6 @@ msgstr "Purkštuko tipas"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Nuo purkštuko medžiagos priklauso antgalio atsparumas abrazyvui ir tai, kokią giją galima spausdinti."
 
-msgid "Undefine"
-msgstr "Neapibrėžti"
-
 msgid "Hardened steel"
 msgstr "Kietintas plienas"
 
@@ -14043,7 +14040,7 @@ msgstr "Pasirinkus šią parinktį sumažės neaktyvių ekstruderių temperatūr
 msgid "Filename format"
 msgstr "Failų pavadinimų formatas"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Eksportuodami vartotojai gali pasirinkti projekto failų pavadinimus."
 
 msgid "Make overhangs printable"
@@ -16122,10 +16119,10 @@ msgstr "Meshing of a model file failed or no valid shape."
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Nežinomas failo formatas. Įvesties failo plėtinys turi būti .stl, .obj, .amf(.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf arba .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17196,7 +17193,7 @@ msgstr "Gijos išankstinis nustatymas"
 msgid "Create"
 msgstr "Sukurti"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Pardavėjas nepasirinktas, pasirinkite pardavėją iš naujo."
 
 #, fuzzy
@@ -17362,7 +17359,7 @@ msgstr ""
 "Nepavyko sukurti proceso nustatymų. Taip:\n"
 "\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Pardavėjas nerastas, pasirinkite iš naujo."
 
 msgid "Current vendor has no models, please reselect."
@@ -18937,7 +18934,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Kai reikia spausdinti atidarius spausdintuvo dureles\n"
 "Ar žinojote, kad atidarius spausdintuvo dureles gali sumažėti ekstruderio ir (arba) karštosios jungties užsikimšimo tikimybė, kai spausdinate žemesnės temperatūros filamentą su aukštesne korpuso temperatūra. Daugiau informacijos apie tai rasite \"Wiki\"."

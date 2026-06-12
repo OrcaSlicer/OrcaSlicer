@@ -8068,7 +8068,7 @@ msgstr "安定版アップデートのみ確認"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "ユーザープリセットの自動同期 (プリンター/フィラメント/プロセス)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "組み込みプリセットを自動更新します。"
 
 msgid "Use encrypted file for token storage"
@@ -8623,7 +8623,7 @@ msgstr "フィラメントがAMSスロットのフィラメントと一致して
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "選択したプリンター(%s)が印刷ファイルの設定(%s)と互換性がありません。準備ページでプリンタープリセットを調整するか、このページで互換性のあるプリンターを選択してください。"
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "スパイラル花瓶モードを有効にすると、I3構造のマシンではタイムラプスビデオが生成されません。"
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -12927,9 +12927,6 @@ msgstr "ノズルタイプ"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "ノズル材料：これにより、ノズルの耐摩耗性と使用できるフィラメントが決まります。"
 
-msgid "Undefine"
-msgstr "未定義"
-
 msgid "Hardened steel"
 msgstr "焼入れスチール"
 
@@ -13737,7 +13734,7 @@ msgstr "このオプションは、非アクティブなエクストルーダー
 msgid "Filename format"
 msgstr "ファイル名形式"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "エクスポート時ファイル名を設定できます"
 
 msgid "Make overhangs printable"
@@ -15750,10 +15747,10 @@ msgstr "モデルファイルのメッシュ処理に失敗したか、有効な
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "提供されたファイルは空であるため読み込めませんでした。"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "ファイル形式が不明です。入力ファイルの拡張子は .stl、.obj、.amf（.xml）である必要があります。"
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "不明なファイル形式です。入力ファイルは .3mf または .zip.amf 拡張子である必要があります。"
 
 msgid "load_obj: failed to parse"
@@ -16770,7 +16767,7 @@ msgstr "フィラメントプリセット"
 msgid "Create"
 msgstr "作成"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "ベンダーが選択されていません。ベンダーを再選択してください。"
 
 #, fuzzy
@@ -16930,7 +16927,7 @@ msgstr "フィラメントプリセットの作成に失敗した。詳細は以
 msgid "Create process presets failed. As follows:\n"
 msgstr "作成に失敗しました。詳細は以下の通りです。\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr ""
 
 msgid "Current vendor has no models, please reselect."
@@ -18464,7 +18461,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "プリンターのドアを開けたまま印刷する必要があるのはどんなときですか？\n"
 "エンクロージャーの温度が高い状態で低温のフィラメントをプリントする場合、プリンターのドアを開けると、エクストルーダーやホットエンドが詰まる確率が下がることをご存知ですか？これについてはWikiに詳しい情報があります。"

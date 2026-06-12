@@ -1049,7 +1049,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
 
         if (!m_can_not_find_vendor_checkbox->GetValue()) {
             if (_L("Select Vendor") == vendor_str) {
-                MessageDialog dlg(this, _L("Vendor is not selected, please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                MessageDialog dlg(this, _L("Vendor is not selected; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                                   wxYES | wxYES_DEFAULT | wxCENTRE);
                 dlg.ShowModal();
                 return;
@@ -3044,7 +3044,7 @@ void CreatePrinterPresetDialog::on_select_printer_model(wxCommandEvent &e)
             return;
         }
 
-        MessageDialog dlg(this, _L("Vendor was not found, please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
+        MessageDialog dlg(this, _L("Vendor was not found; please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
         dlg.ShowModal();
         return;
     }

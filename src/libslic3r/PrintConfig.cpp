@@ -3771,7 +3771,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("stainless_steel");
     def->enum_values.push_back("tungsten_carbide");
     def->enum_values.push_back("brass");
-    def->enum_labels.push_back(L("Undefine"));
+    def->enum_labels.push_back(L("Undefined"));
     def->enum_labels.push_back(L("Hardened steel"));
     def->enum_labels.push_back(L("Stainless steel"));
     def->enum_labels.push_back(L("Tungsten carbide"));
@@ -3799,7 +3799,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("i3");
     def->enum_values.push_back("hbot");
     def->enum_values.push_back("delta");
-    def->enum_labels.push_back(L("Undefine"));
+    def->enum_labels.push_back(L("Undefined"));
     def->enum_labels.push_back(L("CoreXY"));
     def->enum_labels.push_back(L("I3"));
     def->enum_labels.push_back(L("Hbot"));
@@ -4958,7 +4958,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filename_format", coString);
     def->label = L("Filename format");
-    def->tooltip = L("Users can define the project file name when exporting.");
+    def->tooltip = L("Users can decide project file names when exporting.");
     def->full_width = true;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString("{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode"));

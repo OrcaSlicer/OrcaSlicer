@@ -8118,7 +8118,7 @@ msgstr "僅檢查穩定版更新"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "自動同步使用者預設（列印設備/線材/列印品質參數）"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "自動更新系統預設。"
 
 msgid "Use encrypted file for token storage"
@@ -8667,7 +8667,7 @@ msgstr "材料編號和 AMS 槽位中的線材材質不相符，請更新列印�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "選擇的列印設備（%s）與列印檔案設定檔（%s）不相容。請在準備頁面中調整列印設備預設，或在此頁面選擇相容的列印設備。"
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "當啟用螺旋花瓶模式時，龍門結構的設備不會產生縮時攝影影片。"
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13113,9 +13113,6 @@ msgstr "噴嘴類型"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "噴嘴的金屬材料。這將決定噴嘴的耐磨性，以及可列印線材的種類"
 
-msgid "Undefine"
-msgstr "未定義"
-
 msgid "Hardened steel"
 msgstr "硬化鋼"
 
@@ -13968,7 +13965,7 @@ msgstr "這個選項會降低未使用噴頭的溫度，以防止材料滲出。
 msgid "Filename format"
 msgstr "檔案名稱格式"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "使用者可以自訂匯出項目檔案的名稱"
 
 msgid "Make overhangs printable"
@@ -16024,10 +16021,10 @@ msgstr "模型檔案網格化失敗或沒有有效形狀"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "無法讀取提供的檔案，因為該檔案為空"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "檔案格式未知。輸入的檔案必須是 .stl、.obj 或 .amf(.xml) 格式。"
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "未知的檔案格式。輸入檔案的副檔名必須為 .3mf 或 .zip .amf。"
 
 msgid "load_obj: failed to parse"
@@ -17096,7 +17093,7 @@ msgstr "線材預設"
 msgid "Create"
 msgstr "建立"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "廠牌尚未選擇，請重新選擇廠牌。"
 
 #, fuzzy
@@ -17259,7 +17256,7 @@ msgstr "建立線材預設設定失敗，原因如下：\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "建立處理預設設定失敗，原因如下：\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "未找到廠牌，請重新選擇。"
 
 msgid "Current vendor has no models, please reselect."
@@ -18850,7 +18847,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "什麼時候需要打開列印設備門列印？\n"
 "您知道嗎？在列印低溫線材且機箱內溫度較高的情況下，打開列印設備門可以降低擠出機或熱端堵塞的機率。更多資訊請參閱 Wiki。"

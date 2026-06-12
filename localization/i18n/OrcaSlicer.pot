@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-12 12:22-0300\n"
+"POT-Creation-Date: 2026-06-12 16:07-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7913,7 +7913,7 @@ msgstr ""
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr ""
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr ""
 
 msgid "Use encrypted file for token storage"
@@ -8448,7 +8448,7 @@ msgstr ""
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr ""
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr ""
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -12703,9 +12703,6 @@ msgstr ""
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr ""
 
-msgid "Undefine"
-msgstr ""
-
 msgid "Hardened steel"
 msgstr ""
 
@@ -13512,7 +13509,7 @@ msgstr ""
 msgid "Filename format"
 msgstr ""
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr ""
 
 msgid "Make overhangs printable"
@@ -15508,10 +15505,10 @@ msgstr ""
 msgid "The supplied file couldn't be read because it's empty."
 msgstr ""
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr ""
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr ""
 
 msgid "load_obj: failed to parse"
@@ -16509,7 +16506,7 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr ""
 
 msgid "Custom vendor is missing, please input custom vendor."
@@ -16662,7 +16659,7 @@ msgstr ""
 msgid "Create process presets failed. As follows:\n"
 msgstr ""
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr ""
 
 msgid "Current vendor has no models, please reselect."
@@ -18051,7 +18048,7 @@ msgid "Improve strength\nDid you know that you can use more wall loops and highe
 msgstr ""
 
 #: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
-msgid "When do you need to print with the printer door opened?\nDid you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+msgid "When do you need to print with the printer door opened?\nDid you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]

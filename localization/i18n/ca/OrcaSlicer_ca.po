@@ -8118,7 +8118,7 @@ msgstr "Comprovar només si hi ha actualitzacions estables"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Sincronització automàtica dels perfils de l'usuari ( Impressora/Filament/Processament )"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Actualitzar els perfils de fàbrica automàticament."
 
 msgid "Use encrypted file for token storage"
@@ -8672,7 +8672,7 @@ msgstr "El filament no coincideix amb el filament de la ranura AMS. Actualitzeu 
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "La impressora seleccionada (%s) és incompatible amb la configuració del fitxer d'impressió (%s). Ajusteu el perfil de la impressora a la pàgina de preparació o trieu una impressora compatible en aquesta pàgina."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Quan s'habilita el mode Gerro Espiral, les màquines amb estructura I3 no generaran vídeos timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13175,9 +13175,6 @@ msgstr "Tipus de broquet"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "El material metàl·lic del broquet. Això determina la resistència abrasiva del broquet i quin tipus de filament es pot imprimir"
 
-msgid "Undefine"
-msgstr "Indefinit"
-
 msgid "Hardened steel"
 msgstr "Acer endurit"
 
@@ -14031,7 +14028,7 @@ msgstr "Aquesta opció farà baixar la temperatura de les extrusores inactives p
 msgid "Filename format"
 msgstr "Format del nom del fitxer"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "L'usuari pot definir el nom del fitxer del projecte quan exporta"
 
 msgid "Make overhangs printable"
@@ -16110,10 +16107,10 @@ msgstr "La generació de malla del fitxer del model ha fallat o la forma no és 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "El fitxer subministrat no s'ha pogut llegir perquè està buit"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Format de fitxer desconegut. El fitxer d'entrada ha de tenir extensió .stl, .obj, .amf( .xml )."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Format de fitxer desconegut. El fitxer d'entrada ha de tenir extensió .3mf o .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17184,7 +17181,7 @@ msgstr "Perfil de Filament"
 msgid "Create"
 msgstr "Crear"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "El proveïdor no està seleccionat, torneu a seleccionar el proveïdor."
 
 #, fuzzy
@@ -17350,7 +17347,7 @@ msgstr ""
 "S'ha produït un error en la creació de perfils de processament. Pel següent:\n"
 "\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "El proveïdor no es troba, torneu a seleccionar-ne un."
 
 msgid "Current vendor has no models, please reselect."
@@ -18925,7 +18922,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Quan cal imprimir amb la porta de la impressora oberta\n"
 "Sabíeu que obrir la porta de la impressora pot reduir la probabilitat d'obstrucció de l'extrusora/broquet en imprimir filaments a baixa temperatura amb una temperatura de cambra més alta? Més informació al respecte a la Wiki."

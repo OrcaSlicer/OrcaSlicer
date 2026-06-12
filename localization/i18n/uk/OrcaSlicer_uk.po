@@ -8120,7 +8120,7 @@ msgstr "Перевіряти лише стабільні оновлення"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Автоматична синхронізація користувацьких профілів (принтер/філамент/процес)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Оновлюйте вбудовані пресети автоматично."
 
 msgid "Use encrypted file for token storage"
@@ -8663,7 +8663,7 @@ msgstr "Філамент не відповідає філаменту в сло�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr ""
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "При увімкненні режиму спіралі для вази машини з I3 структурою не будуть створювати відео в режимі таймлапсу."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13127,9 +13127,6 @@ msgstr "Тип сопла"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Металевий матеріал сопла. Це визначає зносостійкість сопла та який тип нитки можна друкувати"
 
-msgid "Undefine"
-msgstr "Скасувати визначення"
-
 msgid "Hardened steel"
 msgstr "Гартова сталь"
 
@@ -13984,7 +13981,7 @@ msgstr "Цей параметр знижує температуру неакти
 msgid "Filename format"
 msgstr "Формат імені файлу"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Користувач може самостійно визначити ім'я файлу проекту під час експорту"
 
 msgid "Make overhangs printable"
@@ -16063,10 +16060,10 @@ msgstr ""
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Наданий файл не вдалося прочитати, оскільки він порожній"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Невідомий формат файлу: вхідний файл повинен мати розширення .stl, .obj або .amf (.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Невідомий формат файлу: вхідний файл повинен мати розширення .3mf або .zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -17109,7 +17106,7 @@ msgstr "Набір параметрів філаменту"
 msgid "Create"
 msgstr "Створити"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Виробник не вибраний. Будь ласка, перевиберіть виробника."
 
 #, fuzzy
@@ -17273,7 +17270,7 @@ msgstr "Створення налаштувань філаменту не вда
 msgid "Create process presets failed. As follows:\n"
 msgstr "Створення налаштувань процесу не вдалося. Ось докладніше:\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Виробника не знайдено, будь ласка, перевиберіть."
 
 msgid "Current vendor has no models, please reselect."
@@ -18837,7 +18834,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Коли потрібно друкувати з відкритими дверцятами принтера\n"
 "Чи знаєте ви, що відкриття дверцят принтера може знизити ймовірність засмічення екструдера/гарячого блока при друку низькотемпературного філаменту при вищій температурі усередині корпусу? Більше інформації знаходиться в Вікі."

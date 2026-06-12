@@ -8136,7 +8136,7 @@ msgstr "Vérifier les mises à jour stables uniquement"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Synchronisation automatique des pré-réglages utilisateur (Imprimante/Filament/Traitement)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Mettre à jour automatiquement les préréglages intégrés."
 
 msgid "Use encrypted file for token storage"
@@ -8686,7 +8686,7 @@ msgstr "Le filament ne correspond pas au filament du slot AMS. Veuillez mettre �
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "L'imprimante sélectionnée (%s) est incompatible avec la configuration du fichier d'impression (%s). Veuillez ajuster le préréglage d'imprimante sur la page de préparation ou choisir une imprimante compatible sur cette page."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Lorsque vous activez le mode vase, les machines avec une structure I3 ne généreront pas de vidéos timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13318,9 +13318,6 @@ msgstr "Type de buse"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Le matériau métallique de la buse. Cela détermine la résistance à l'abrasion de la buse et le type de filament pouvant être imprimé"
 
-msgid "Undefine"
-msgstr "Non défini"
-
 msgid "Hardened steel"
 msgstr "Acier trempé"
 
@@ -14202,7 +14199,7 @@ msgstr "Cette option permet d’abaisser la température des extrudeurs inactifs
 msgid "Filename format"
 msgstr "Format du nom de fichier"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "L'utilisateur peut définir lui-même le nom du fichier de projet lors de l'exportation"
 
 msgid "Make overhangs printable"
@@ -16288,10 +16285,10 @@ msgstr "Le maillage d'un fichier modèle a échoué ou la forme n'est pas valide
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Le fichier fourni n'a pas pu être lu car il est vide"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Format de fichier inconnu : le fichier d'entrée doit porter l'extension .stl, .obj ou .amf (.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Format de fichier inconnu : le fichier d'entrée doit porter l'extension .3mf, .zip ou .amf."
 
 msgid "load_obj: failed to parse"
@@ -17362,7 +17359,7 @@ msgstr "Préréglage du filament"
 msgid "Create"
 msgstr "Créer"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Le fournisseur n’est pas sélectionné, veuillez le sélectionner à nouveau."
 
 msgid "Custom vendor is missing, please input custom vendor."
@@ -17525,7 +17522,7 @@ msgstr "La création de préréglages de filaments a échoué. Comme suit :\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "La création de préréglages de traitement a échoué. Comme suit :\n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Le vendeur n’est pas trouvé, veuillez resélectionner."
 
 msgid "Current vendor has no models, please reselect."
@@ -19107,7 +19104,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Quand faut-il imprimer avec la porte de l’imprimante ouverte ?\n"
 "Saviez-vous que l’ouverture de la porte de l’imprimante peut réduire le risque de bouchage de l’extrudeur/du hotend lors de l’impression de filaments à basse température avec une température de boîtier plus élevée ? Plus d’informations à ce sujet dans le Wiki."

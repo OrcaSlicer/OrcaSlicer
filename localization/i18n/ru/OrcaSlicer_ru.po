@@ -8378,7 +8378,7 @@ msgstr "Уведомлять только о стабильных версиях
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Синхронизация пользовательских профилей (принтера/материала/настроек)"
 
-msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "Автоматически обновлять системные профили"
 
 msgid "Use encrypted file for token storage"
@@ -8932,7 +8932,7 @@ msgstr "Материал %s не соответствует материалу �
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Выбранный принтер (%s) несовместим с конфигурацией файла печати (%s). Пожалуйста, измените профиль принтера на странице подготовки или выберите совместимый принтер на этой странице."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "При включении режима вазы принтеры с кинематикой I3 не будут писать таймлапс."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -13711,9 +13711,6 @@ msgstr "Материал сопла"
 msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgstr "Материал сопла. Определяет абразивную стойкость сопла, а также то, каким материалом можно печатать."
 
-msgid "Undefine"
-msgstr "Не задано"
-
 msgid "Hardened steel"
 msgstr "Закалённая сталь"
 
@@ -14626,7 +14623,7 @@ msgstr "Эта опция снижает температуру неактивн
 msgid "Filename format"
 msgstr "Формат имени файла"
 
-msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "Пользователь может сам задать имя файла проекта при экспорте."
 
 msgid "Make overhangs printable"
@@ -16958,10 +16955,10 @@ msgstr "Не удалось обнаружить форму или создат�
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Невозможно прочитать файл, так как он пуст"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Неизвестный формат файла. Входной файл должен иметь расширение *.stl, *.obj, *.amf(.xml)."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Неизвестный формат файла. Входной файл должен иметь расширение *.3mf или *.zip.amf."
 
 msgid "load_obj: failed to parse"
@@ -18050,7 +18047,7 @@ msgstr "Профиль материала"
 msgid "Create"
 msgstr "Создать"
 
-msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "Не выбран производитель, пожалуйста, выберите его заново."
 
 #, fuzzy
@@ -18215,7 +18212,7 @@ msgstr "Не удалось создать профиль материала. П
 msgid "Create process presets failed. As follows:\n"
 msgstr "Не удалось создать профиль настроек печати. Причины: \n"
 
-msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "Производитель не найден, пожалуйста, выберите другого."
 
 msgid "Current vendor has no models, please reselect."
@@ -19828,7 +19825,7 @@ msgstr ""
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "Когда необходимо печатать с открытой дверцей принтера?\n"
 "Знаете ли вы, что при печати низкотемпературным материалом при более высокой температуре внутри термокамеры открытие дверцы принтера снижает вероятность засорения экструдера/хотэнда? Более подробную информацию читайте на Wiki."

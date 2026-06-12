@@ -337,7 +337,7 @@ Model Model::read_from_file(const std::string&                                  
     }
 #endif
     else
-        throw Slic3r::RuntimeError(_L("Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."));
+        throw Slic3r::RuntimeError(_L("Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."));
 
     if (is_cb_cancel) {
         Model empty_model;
@@ -399,7 +399,7 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
     else if (boost::algorithm::iends_with(input_file, ".zip.amf"))
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, &is_bbl_3mf);
     else
-        throw Slic3r::RuntimeError(_L("Unknown file format. Input file must have .3mf or .zip.amf extension."));
+        throw Slic3r::RuntimeError(_L("Unknown file format: input file must have .3mf or .zip.amf extension."));
 
     if (out_file_type != En3mfType::From_Prusa) {
         if (is_orca_3mf)
