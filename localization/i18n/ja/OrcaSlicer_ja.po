@@ -15880,7 +15880,7 @@ msgid "Only one of the results with the same name: %s will be saved. Are you sur
 msgstr "同じ名前の結果（%s）は1つだけ保存されます。他の結果を上書きしてもよろしいですか？"
 
 #, c-format, boost-format
-msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "同じ名前 (%s) のキャリブレーション結果がすでに存在します。名前付きの結果は1つのみ保存されます。以前の結果を上書きしてもよろしいですか？"
 
 #, c-format, boost-format

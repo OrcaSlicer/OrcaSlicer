@@ -913,8 +913,9 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
 
         if (iter != m_history_results.end()) {
 
-            wxString duplicate_name_info = wxString::Format(_L("There is already a historical calibration result with the same name: %s. Only one of the results with the same name "
-                                                      "is saved. Are you sure you want to override the historical result?"), m_new_result.name);
+            wxString duplicate_name_info = wxString::Format(_L("There is already a previous calibration result with the same name: %s. "
+                                                               "Only one result with a name is saved. "
+                                                               "Are you sure you want to overwrite the previous result?"), m_new_result.name);
 
             duplicate_name_info = wxString::Format(_L("Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
                                                       "Are you sure you want to override the historical result?"), m_new_result.name);

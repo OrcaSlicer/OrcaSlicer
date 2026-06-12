@@ -16336,7 +16336,7 @@ msgid "Only one of the results with the same name: %s will be saved. Are you sur
 msgstr "Azonos nevű eredmények közül csak egy kerül mentésre: %s. Biztosan felül akarod írni a többi eredményt?"
 
 #, c-format, boost-format
-msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Már létezik egy ugyanilyen nevű, korábbi kalibrálási eredmény: %s. Csak egy azonos nevű eredményt lehet elmenteni. Biztos, hogy felül akarod írni a korábbi eredményeket?"
 
 #, c-format, boost-format

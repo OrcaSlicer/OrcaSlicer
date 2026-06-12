@@ -930,8 +930,9 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
 
     if (!same_pa_names.empty()) {
         same_pa_names.erase(same_pa_names.size() - 2);
-        wxString duplicate_name_info = wxString::Format(_L("There is already a historical calibration result with the same name: %s. Only one of the results with the same name "
-                                                  "is saved. Are you sure you want to override the historical result?"), same_pa_names);
+        wxString duplicate_name_info = wxString::Format(_L("There is already a previous calibration result with the same name: %s. "
+                                                            "Only one result with a name is saved. "
+                                                            "Are you sure you want to overwrite the previous result?"), same_pa_names);
 
         if (curr_obj->is_multi_extruders())
             duplicate_name_info = wxString::Format(_L("Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"

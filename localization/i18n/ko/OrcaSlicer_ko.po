@@ -16160,7 +16160,7 @@ msgid "Only one of the results with the same name: %s will be saved. Are you sur
 msgstr "이름이 같은 결과 중 %s 하나만 저장됩니다. 다른 결과를 재정의하시겠습니까?"
 
 #, c-format, boost-format
-msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "동일한 이름을 가진 기록 교정 결과가 이미 있습니다: %s. 동일한 이름의 결과 중 하나만 저장됩니다. 과거 결과를 재정의하시겠습니까?"
 
 #, c-format, boost-format

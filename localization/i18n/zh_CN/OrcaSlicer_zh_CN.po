@@ -16327,7 +16327,7 @@ msgid "Only one of the results with the same name: %s will be saved. Are you sur
 msgstr "仅保存一个同名结果：%s。您确定要覆盖其他结果吗？"
 
 #, c-format, boost-format
-msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "已经存在一个同名的历史校准结果：%s。相同名称的结果只会保存一个。您确定要覆盖历史结果吗？"
 
 #, c-format, boost-format

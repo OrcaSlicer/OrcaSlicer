@@ -16219,7 +16219,7 @@ msgid "Only one of the results with the same name: %s will be saved. Are you sur
 msgstr "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 
 #, c-format, boost-format
-msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Đã có kết quả hiệu chỉnh lịch sử với cùng tên: %s. Chỉ một trong các kết quả có cùng tên được lưu. Bạn có chắc chắn muốn ghi đè kết quả lịch sử không?"
 
 #, c-format, boost-format
