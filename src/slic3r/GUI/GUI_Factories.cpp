@@ -929,7 +929,7 @@ wxMenuItem* MenuFactory::append_menu_item_printable(wxMenu* menu)
 wxMenuItem* MenuFactory::append_menu_item_auto_drop(wxMenu* menu)
 {
     wxString    menu_text                       = _L("Auto Drop");
-    wxString    menu_tooltip                    = _L("Automatically drops the selected object to the build plate");
+    wxString    menu_tooltip                    = _L("Automatically drops the selected object to the build plate.");
     wxMenuItem* menu_item_auto_drop = append_menu_check_item(
         menu, wxID_ANY, menu_text, menu_tooltip,
         [](wxCommandEvent&) { obj_list()->toggle_auto_drop(); }, menu);
@@ -2315,7 +2315,7 @@ void MenuFactory::append_menu_item_set_auto_drop(wxMenu* menu)
     const bool current_auto_drop = selection.get_auto_drop();
 
     wxString menu_text      = _L("Auto Drop");
-    wxString menu_tooltip   = _L("Automatically snaps the selected object to the build plate");
+    wxString menu_tooltip   = _L("Automatically snaps the selected object to the build plate.");
     wxMenuItem* menu_item_set_auto_drop = append_menu_check_item(
         menu, wxID_ANY, menu_text, menu_tooltip,
         [this, current_auto_drop](wxCommandEvent&) {

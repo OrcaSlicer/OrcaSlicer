@@ -1543,7 +1543,7 @@ void PrintConfigDef::init_fff_params()
         "This option creates bridges for counterbore holes, allowing them to be printed without support. Available modes include:\n"
          "1. None: No bridge is created\n"
          "2. Partially Bridged: Only a part of the unsupported area will be bridged\n"
-         "3. Sacrificial Layer: A full sacrificial bridge layer is created");
+         "3. Sacrificial Layer: A full sacrificial bridge layer is created.");
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<CounterboreHoleBridgingOption>::get_enum_values();
     def->enum_values.emplace_back("none");

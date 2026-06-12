@@ -3811,7 +3811,7 @@ void SelectMachineDialog::change_materialitem_tip(bool no_ams_only_ext)
             else {
                 wxString tip_text;
                 if (item->item->m_match) {
-                    tip_text = _L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify");
+                    tip_text = _L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify.");
                 } else {
                     tip_text = _L("Unable to automatically match to suitable filament. Please click to manually match.");
                 }
@@ -3871,7 +3871,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
     m_sizer_ams_mapping->Clear();
     m_materialList.clear();
     m_filaments.clear();
-    m_ams_tooltip =_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify");
+    m_ams_tooltip =_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify.");
 
     const auto& full_config = wxGetApp().preset_bundle->full_config();
     size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();

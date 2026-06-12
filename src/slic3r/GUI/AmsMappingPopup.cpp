@@ -410,11 +410,11 @@ void MaterialSyncItem::render(wxDC &dc)
     if (mapping_txt == "-") {
         m_match = false;
         mapping_txt = _L("Unmapped");
-        SetToolTip(_L("Upper half area:  Original\nLower half area: The filament from original project will be used when unmapped.\nAnd you can click it to modify"));
+        SetToolTip(_L("Upper half area:  Original\nLower half area: The filament from original project will be used when unmapped.\nAnd you can click it to modify."));
     } else {
         m_match = true;
         if (m_dropdown_allow_painted) {
-            SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify"));
+            SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify."));
         } else {
             SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you cannot click it to modify"));
         }
