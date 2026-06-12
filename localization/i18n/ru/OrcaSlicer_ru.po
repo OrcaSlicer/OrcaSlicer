@@ -6025,7 +6025,7 @@ msgstr "Превышен лимит подключений к устройств
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Проигрыватель неисправен. Пожалуйста, переустановите системный проигрыватель."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Проигрыватель не загружается. Нажмите кнопку «Воспроизвести», чтобы повторить попытку."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -7403,8 +7403,8 @@ msgstr "Объём модели равен нулю"
 
 #, c-format, boost-format
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"The object from file %s is too small, and may be in meters or inches.\n"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Модель из файла %s слишком мала. Возможно, её размеры \n"
 "в метрах или дюймах. Внутренней единицей программы \n"

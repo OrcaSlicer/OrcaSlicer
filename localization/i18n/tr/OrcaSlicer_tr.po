@@ -5825,7 +5825,7 @@ msgstr "Cihaz daha fazla konuşmayı yönetemiyor. Lütfen daha sonra tekrar den
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Oynatıcı arızalı. Lütfen sistem oynatıcısını yeniden yükleyin."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Oynatıcı yüklü değil, lütfen yeniden denemek için “oynat” düğmesine tıklayın."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -7159,8 +7159,8 @@ msgstr "Cismin hacmi sıfır"
 
 #, c-format, boost-format
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"The object from file %s is too small, and may be in meters or inches.\n"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s dosyasındaki nesne çok küçük; metre veya inç cinsinden olabilir.\n"
 " Milimetreye ölçeklendirmek istiyor musunuz?"

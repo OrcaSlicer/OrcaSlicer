@@ -5821,7 +5821,7 @@ msgstr "장치에서 더 많은 대화를 처리할 수 없습니다. 나중에 
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "플레이어가 오작동합니다. 시스템 플레이어를 다시 설치하세요."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "플레이어가 로드되지 않았습니다. 다시 시도하려면 '재생' 버튼을 클릭하세요."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -7160,8 +7160,8 @@ msgstr "물체의 부피는 0입니다"
 
 #, c-format, boost-format
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"The object from file %s is too small, and may be in meters or inches.\n"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s 파일의 객체가 너무 작습니다. 단위가 미터나 인치일 수 있습니다.\n"
 " mm 단위로 확장하시겠습니까?"

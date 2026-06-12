@@ -5825,7 +5825,7 @@ msgstr "Het apparaat kan niet meer gesprekken aan. Probeer het later opnieuw."
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "De speler werkt niet goed. Installeer de systeemspeler opnieuw."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "De speler is niet geladen; klik op de \"play\" knop om het opnieuw te proberen."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -7164,8 +7164,8 @@ msgstr "Het volume van het object is 0"
 
 #, c-format, boost-format
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"The object from file %s is too small, and may be in meters or inches.\n"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Het object uit bestand %s is erg klein, en misschien in meters of inches.\n"
 " Wil je schalen naar millimeters?"

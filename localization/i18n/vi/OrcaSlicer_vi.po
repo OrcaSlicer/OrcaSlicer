@@ -5820,7 +5820,7 @@ msgstr "Thiết bị không thể xử lý thêm cuộc trò chuyện. Vui lòng
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Trình phát đang trục trặc. Vui lòng cài đặt lại trình phát hệ thống."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Trình phát chưa được tải, vui lòng nhấn nút \"phát\" để thử lại."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -7158,8 +7158,8 @@ msgstr "Thể tích của đối tượng bằng không"
 
 #, c-format, boost-format
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"The object from file %s is too small, and may be in meters or inches.\n"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Đối tượng từ file %s quá nhỏ, và có thể đang ở đơn vị mét hoặc inch.\n"
 " Bạn có muốn chuyển đổi sang milimét?"

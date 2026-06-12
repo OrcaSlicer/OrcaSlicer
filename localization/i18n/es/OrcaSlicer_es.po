@@ -5848,7 +5848,7 @@ msgstr "El dispositivo no puede manejar más conversaciones. Por favor, inténte
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "El reproductor no funciona correctamente. Por favor, reinstale el reproductor del sistema.El reproductor no funciona correctamente. Vuelva a instalar el reproductor del sistema."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "El reproductor no está cargado, por favor haga clic en el botón \"play\" para volver a intentarlo.El reproductor no se carga; haga clic en el botón \"reproducir\" para volver a intentarlo."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -7184,8 +7184,8 @@ msgstr "El volumen del objeto es cero"
 
 #, c-format, boost-format
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"The object from file %s is too small, and may be in meters or inches.\n"
+"Do you want to scale to millimeters?"
 msgstr ""
 "El objeto del archivo %s es demasiado pequeño, tal vez en metros o pulgadas.\n"
 " ¿Quiere escalar a milímetros?"
