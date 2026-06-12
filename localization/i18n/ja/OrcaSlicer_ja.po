@@ -8641,7 +8641,7 @@ msgstr "外部スプールのフィラメントタイプ設定がスライスフ
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "G-code生成時に選択されたプリンタータイプが現在選択されているプリンターと一致しません。スライスには同じプリンタータイプの使用を推奨します。"
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "不明なフィラメントがあります、造形に必要かどうかご確認ください。引き続き造形する場合は、「確認」を押してください。"
 
 msgid "Please check the following:"

@@ -8653,7 +8653,7 @@ msgstr "外部料轴的耗材丝类型设置与切片文件中的耗材丝类型
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "生成G-code时选择的打印机类型与当前选择的打印机不一致。建议您使用相同的打印机类型进行切片。"
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS映射中存在一些未知的耗材。请检查它们是否符合预期。如果符合，按“确定”以开始打印任务。"
 
 msgid "Please check the following:"

@@ -8696,7 +8696,7 @@ msgstr "A külső tekercs filamenttípus-beállítása eltér a szeletelési fá
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "A G-kód létrehozásakor kiválasztott nyomtatótípus nem egyezik az aktuálisan kiválasztott nyomtatóval. Javasolt ugyanazt a nyomtatótípust használni a szeleteléshez."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Van néhány ismeretlen filament az AMS kiosztásban. Győződj meg róla, hogy ezek a szükséges filamentek. Ha igen, kattints a \"Megerősítés\" gombra a nyomtatás megkezdéséhez."
 
 msgid "Please check the following:"

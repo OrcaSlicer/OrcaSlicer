@@ -8681,7 +8681,7 @@ msgstr ""
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Тип принтера, вибраний під час створення G-коду, не відповідає поточному Вибраному принтеру. Рекомендується використовувати той самий тип принтера для нарізки."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "У порівнянні AMS є кілька невідомих філаментів. Будь ласка,перевірте, вони є необхідними нитками. Якщо вони гаразд, натисніть \"Подтвердити\", щоб почати друк."
 
 msgid "Please check the following:"

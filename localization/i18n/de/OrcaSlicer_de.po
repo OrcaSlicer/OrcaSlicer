@@ -8714,7 +8714,7 @@ msgstr "Die Filamenttyp-Einstellung der externen Spule unterscheidet sich von de
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Der ausgewählte Druckertyp beim Generieren des G-Codes stimmt nicht mit dem derzeit ausgewählten Drucker überein. Es wird empfohlen, für das Slicing denselben Druckertyp zu verwenden."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Es gibt einige unbekannte Filamente in den AMS-Zuordnungen. Bitte prüfen Sie, ob es sich um die erforderlichen Filamente handelt. Wenn diese in Ordnung sind, klicken Sie auf \"Bestätigen\", um den Druck zu starten."
 
 msgid "Please check the following:"

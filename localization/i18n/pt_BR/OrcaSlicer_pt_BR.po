@@ -8697,7 +8697,7 @@ msgstr "A configuração do tipo de filamento do carretel externo é diferente d
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "O tipo de impressora selecionado ao gerar o G-code não está consistente com a impressora atualmente selecionada. É recomendado que você use o mesmo tipo de impressora para fatiar."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Há alguns filamentos desconhecidos nos mapeamentos AMS. Por favor, verifique se eles são os filamentos necessários. Se estiverem corretos, pressione \"Confirmar\" para iniciar a impressão."
 
 msgid "Please check the following:"

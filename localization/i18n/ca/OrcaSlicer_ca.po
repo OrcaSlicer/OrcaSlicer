@@ -8690,7 +8690,7 @@ msgstr "La configuració del tipus de filament de la bobina externa és diferent
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "El tipus d'impressora seleccionat en generar el Codi-G no és coherent amb la impressora seleccionada actualment. Es recomana utilitzar el mateix tipus d'impressora per laminar."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Hi ha alguns filaments desconeguts en els mapejats AMS. Comproveu si són els filaments requerits. Si estan bé, premeu \"Confirmar\" per començar a imprimir."
 
 msgid "Please check the following:"

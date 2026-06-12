@@ -8669,7 +8669,7 @@ msgstr "Harici makaranın filaman türü ayarı, dilimleme dosyasındaki filaman
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "G Kodu oluşturulurken seçilen yazıcı türü mevcut seçili yazıcıyla tutarlı değil. Dilimleme için aynı yazıcı tipini kullanmanız tavsiye edilir."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS eşlemelerinde bazı bilinmeyen filamentler var. Lütfen bunların gerekli filamentler olup olmadığını kontrol edin. Sorun yoksa, yazdırmayı başlatmak için \"Onayla\"ya basın."
 
 msgid "Please check the following:"

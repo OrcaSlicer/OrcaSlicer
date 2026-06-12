@@ -8666,7 +8666,7 @@ msgstr ""
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Gcode를 생성할 때 선택한 프린터 유형이 현재 선택한 프린터와 일치하지 않습니다. 슬라이싱에 동일한 프린터 유형을 사용하는 것이 좋습니다."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS 매핑에 알 수 없는 필라멘트가 있습니다. 필요한 필라멘트인지 확인해주세요. 정상이면 \"확인\"을 눌러 출력을 시작하세요."
 
 msgid "Please check the following:"

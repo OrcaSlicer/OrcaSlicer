@@ -8704,7 +8704,7 @@ msgstr "Le réglage de type de filament de la bobine externe est différent du f
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Le type d'imprimante sélectionné lors de la génération du G-Code n'est pas cohérent avec l'imprimante actuellement sélectionnée. Il est recommandé d'utiliser le même type d'imprimante pour la découpe."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Il y a quelques filaments inconnus dans les association avec l'AMS. Veuillez vérifier s'il s'agit des filaments nécessaires. S'ils sont corrects, cliquez sur \"Confirmer\" pour lancer l'impression."
 
 msgid "Please check the following:"

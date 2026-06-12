@@ -8679,7 +8679,7 @@ msgstr "การตั้งค่าประเภทฟิลาเมนต
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "ประเภทเครื่องพิมพ์ที่เลือกเมื่อสร้าง G-code ไม่สอดคล้องกับเครื่องพิมพ์ที่เลือกในปัจจุบัน ขอแนะนำให้คุณใช้เครื่องพิมพ์ประเภทเดียวกันในการตัด"
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "มีเส้นพลาสติกที่ไม่รู้จักบางอย่างในการแมป AMS โปรดตรวจสอบว่าเป็นเส้นพลาสติกที่ต้องการหรือไม่ หากไม่เป็นไร ให้กด \"ยืนยัน\" เพื่อเริ่มพิมพ์"
 
 msgid "Please check the following:"

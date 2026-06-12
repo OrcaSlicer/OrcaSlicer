@@ -8705,7 +8705,7 @@ msgstr "The filament type setting of external spool is different from the filame
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "G-kodo generavimo metu pasirinktas spausdintuvo tipas neatitinka šiuo metu pasirinkto spausdintuvo. Rekomenduojame sluoksniavimui naudoti tą patį spausdintuvo tipą."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS sistemoje yra nežinomų gijų. Prašome patikrinti, ar tai yra reikalingos gijos. Jei viskas tvarkoje, spausdinimą galite pradėti paspaudę „Patvirtinti“."
 
 msgid "Please check the following:"

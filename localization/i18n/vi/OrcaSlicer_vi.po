@@ -8671,7 +8671,7 @@ msgstr "The filament type setting of external spool is different from the filame
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Loại máy in được chọn khi tạo G-code không nhất quán với máy in hiện được chọn. Khuyến nghị bạn sử dụng cùng loại máy in để slice."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Có một số filament không xác định trong ánh xạ AMS. Vui lòng kiểm tra xem chúng có phải là filament cần thiết không. Nếu không sao, nhấn \"Xác nhận\" để bắt đầu in."
 
 msgid "Please check the following:"
