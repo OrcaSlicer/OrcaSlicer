@@ -15308,7 +15308,7 @@ msgstr ""
 "\n"
 "Le réglage d’une valeur dans le paramètre de quantité de rétraction avant essuyage ci-dessous permet d’effectuer toute rétraction excédentaire avant l’essuyage, sinon elle sera effectuée après l’essuyage."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "La tour de purge peut être utilisée pour nettoyer les résidus sur la buse et stabiliser la pression du caisson à l'intérieur de la buse afin d'éviter les défauts d'apparence lors de l'impression d'objets."
 
 msgid "Internal ribs"

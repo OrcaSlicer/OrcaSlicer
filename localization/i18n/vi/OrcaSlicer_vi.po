@@ -15092,7 +15092,7 @@ msgstr ""
 "\n"
 "Đặt giá trị trong cài đặt lượng rút trước khi lau bên dưới sẽ thực hiện bất kỳ rút dư nào trước khi lau, nếu không nó sẽ được thực hiện sau."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Wipe tower có thể được sử dụng để làm sạch cặn trên đầu phun và ổn định áp suất buồng bên trong đầu phun, để tránh khuyết điểm bề ngoài khi in đối tượng."
 
 msgid "Internal ribs"

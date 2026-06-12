@@ -15099,7 +15099,7 @@ msgstr ""
 "\n"
 "Nastavení hodnoty v poli množství retrakce před setřením níže provede přebytečnou retrakci před setřením, jinak se provede po něm."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Čisticí věž lze použít k odstranění zbytků na trysce a stabilizaci tlaku v komoře uvnitř trysky, aby se při tisku objektů předešlo vzhledovým vadám."
 
 msgid "Internal ribs"

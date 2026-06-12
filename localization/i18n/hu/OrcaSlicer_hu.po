@@ -15214,7 +15214,7 @@ msgstr ""
 "\n"
 "Ha az alábbi \"visszahúzási mennyiség törlés előtt\" beállításban értéket adsz meg, akkor az esetleges többletvisszahúzás a törlés előtt történik meg, különben utána."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 
 msgid "Internal ribs"

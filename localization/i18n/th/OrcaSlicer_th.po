@@ -15173,7 +15173,7 @@ msgstr ""
 "\n"
 "การตั้งค่าในจำนวนการถอนก่อนการล้างการตั้งค่าด้านล่างจะทำการถอนส่วนที่เกินก่อนการล้าง มิฉะนั้นจะดำเนินการหลังจากนั้น"
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "หอเช็ดสามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
 
 msgid "Internal ribs"

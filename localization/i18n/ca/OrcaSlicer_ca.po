@@ -15126,7 +15126,7 @@ msgstr ""
 "\n"
 "L'establiment d'un valor en la quantitat de retractació abans de l'esborrat es realitzarà qualsevol retracció en excés abans de la neteja, sinó es realitzarà després."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "La Torre de Purga es pot utilitzar per netejar els residus al broquet i estabilitzar la pressió de la cambra dins del broquet, per tal d'evitar defectes d'aparença en imprimir objectes."
 
 msgid "Internal ribs"

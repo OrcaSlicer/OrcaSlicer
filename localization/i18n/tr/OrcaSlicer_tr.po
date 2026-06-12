@@ -15089,7 +15089,7 @@ msgstr ""
 "\n"
 "Aşağıdaki silme ayarından önce geri çekme miktarına bir değer ayarlamak, silme işleminden önce aşırı geri çekme işlemini gerçekleştirecektir, aksi takdirde silme işleminden sonra gerçekleştirilecektir."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Temizleme kulesi, nesneleri yazdırırken görünüm kusurlarını önlemek amacıyla nozul üzerindeki kalıntıları temizlemek ve nozul içindeki oda basıncını dengelemek için kullanılabilir."
 
 msgid "Internal ribs"

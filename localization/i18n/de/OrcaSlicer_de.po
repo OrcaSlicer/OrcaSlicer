@@ -15293,7 +15293,7 @@ msgstr ""
 "\n"
 "Wenn ein Wert in der Einstellung \"Rückzugsmenge vor dem Wischen\" unten angegeben ist, wird ein überschüssiger Rückzug vor dem Wischen ausgeführt, ansonsten wird er danach ausgeführt."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "The Wiping Tower kann verwendet werden, um Rückstände auf der Düse zu entfernen und den Kammerdruck im Inneren der Düse zu stabilisieren, um Erscheinungsdefekte beim Drucken von Objekten zu vermeiden."
 
 msgid "Internal ribs"

@@ -15054,7 +15054,7 @@ msgstr ""
 "\n"
 "Ustawienie wartości w ilości cofania przed ustawieniem czyszczenia poniżej spowoduje wykonanie nadmiernego cofania przed czyszczeniem, w przeciwnym razie zostanie wykonane po nim."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Wieża czyszcząca może być używana do czyszczenia resztek na dyszy i stabilizacji ciśnienia w komorze wewnątrz dyszy, aby uniknąć defektów wyglądu podczas drukowania obiektów."
 
 msgid "Internal ribs"

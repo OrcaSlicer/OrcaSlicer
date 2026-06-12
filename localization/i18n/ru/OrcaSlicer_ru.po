@@ -15889,7 +15889,7 @@ msgstr ""
 "\n"
 "Внимание: процент первичного отката будет увеличен, если длины очистки окажется недостаточно при текущей скорости отката (или из-за иных ограничений)."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Черновая башня – специальная структура, которая используется для прочистки сопла от остатков материала и стабилизации давления внутри сопла при смене экструдера, чтобы избежать дефектов на поверхности печатаемой модели."
 
 msgid "Internal ribs"

@@ -15139,7 +15139,7 @@ msgstr ""
 "\n"
 "Nustačius toliau esančio įvilkimo kiekio prieš valymą nustatymo reikšmę, bet koks perteklinis įvilkimas bus atliktas prieš valymą, priešingu atveju jis bus atliktas po jo."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Valymo bokštas gali būti naudojamas likučiams ant purkštuko išvalyti ir kameros slėgiui purkštuko viduje stabilizuoti, kad spausdinant objektus būtų išvengta paviršiaus defektų."
 
 msgid "Internal ribs"

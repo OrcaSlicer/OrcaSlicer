@@ -15077,7 +15077,7 @@ msgstr ""
 "\n"
 "Якщо встановити значення у параметрі \"Кількість втягування перед витиранням\" нижче, надлишкове втягування буде виконано перед витиранням, інакше воно буде виконано після нього."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Очисна колона може використовуватися для очищення залишку на соплі та стабілізації тиску в камері всередині сопла, щоб уникнути дефектівзовнішнього вигляду під час друку предметів."
 
 msgid "Internal ribs"

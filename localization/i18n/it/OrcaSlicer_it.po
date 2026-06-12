@@ -15171,7 +15171,7 @@ msgstr ""
 "\n"
 "Impostando un valore di quantità di retrazione prima dell'impostazione di spurgo di seguito, verra eseguita qualsiasi retrazione in eccesso prima dello spurgo. Altrimenti verrà eseguita dopo."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "La torre di spurgo può essere utilizzata per pulire i residui presenti sull'ugello e stabilizzare la pressione della camera all'interno dell'ugello, al fine di evitare difetti estetici durante la stampa."
 
 msgid "Internal ribs"

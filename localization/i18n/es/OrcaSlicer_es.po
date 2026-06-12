@@ -15303,7 +15303,7 @@ msgstr ""
 "\n"
 "Fijando un valor en la cantidad de retracción antes del purgado se realizará cualquier exceso de retracción antes del purgado, de lo contrario se realizará después."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la cámara en el interior de la boquilla, con el fin de evitar defectos de visuales al imprimir objetos."
 
 msgid "Internal ribs"

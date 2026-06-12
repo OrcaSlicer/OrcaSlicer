@@ -15035,7 +15035,7 @@ msgstr ""
 "\n"
 "아래의 와이프 전 후퇴량 설정에서 값을 설정하면 와이프 전에 초과 후퇴가 수행되고, 그렇지 않으면 와이프 후에 수행됩니다."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "프라임 타워는 객체를 출력할 때 외관 결함을 방지하기 위해 노즐의 잔류물을 청소하고 노즐 내부의 압력을 안정화하는 데 사용할 수 있습니다."
 
 msgid "Internal ribs"

@@ -15044,7 +15044,7 @@ msgstr ""
 "\n"
 "在以下的『擦拭前的回抽量』設定中設置一個值，將在擦拭之前執行任何額外的回抽操作；否則，將在擦拭之後執行。"
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "換料塔的功能是用於清除噴嘴上的殘留物，同時穩定噴嘴內的壓力，從而避免列印物件時出現外觀瑕疵。"
 
 msgid "Internal ribs"

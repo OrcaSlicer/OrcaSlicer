@@ -15203,7 +15203,7 @@ msgstr ""
 "\n"
 "Definir um valor na configuração de quantidade de retração antes da limpeza abaixo executará qualquer retração em excesso antes da limpeza, caso contrário, será realizada após."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "A torre de limpeza pode ser usada para limpar o resíduo no bico e estabilizar a pressão na câmara dentro do bico, a fim de evitar defeitos de aparência ao imprimir objetos."
 
 msgid "Internal ribs"

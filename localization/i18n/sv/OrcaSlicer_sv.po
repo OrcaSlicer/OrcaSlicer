@@ -15101,7 +15101,7 @@ msgstr ""
 "\n"
 "Setting a value in the retract amount before wipe setting below will perform any excess retraction before the wipe, else it will be performed after."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Avstryknings tornet kan användas för att avlägsna rester på munstycket och stabilisera kammartrycket inuti munstycket för att undvika utseendefel vid utskrift av objekt."
 
 msgid "Internal ribs"
