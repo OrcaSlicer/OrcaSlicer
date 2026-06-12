@@ -292,7 +292,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->option<ConfigOptionFloat>("elefant_foot_compensation")->value > 1)
     {
-        const wxString msg_text = _(L("Too large elephant foot compensation is unreasonable.\n"
+        const wxString msg_text = _(L("The elephant foot compensation value is too large.\n"
                                       "If really have serious elephant foot effect, please check other settings.\n"
                                       "For example, whether bed temperature is too high.\n\n"
                                       "The value will be reset to 0."));

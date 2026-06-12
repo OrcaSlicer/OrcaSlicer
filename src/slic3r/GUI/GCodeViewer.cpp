@@ -2799,7 +2799,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
-        imgui.title(_u8L("Total Estimation"));
+        imgui.title(_u8L("Total estimation"));
 
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
@@ -4552,7 +4552,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
     // total estimated printing time section
     ImGui::Spacing();
-    std::string time_title = m_viewer.get_view_type() == libvgcode::EViewType::FeatureType ? _u8L("Total Estimation") : _u8L("Time Estimation");
+    std::string time_title = m_viewer.get_view_type() == libvgcode::EViewType::FeatureType ? _u8L("Total estimation") : _u8L("Time Estimation");
     auto can_show_mode_button = [this](libvgcode::ETimeMode mode) {
         std::vector<std::string> time_strs;
         for (size_t i = 0; i < m_print_statistics.modes.size(); ++i) {

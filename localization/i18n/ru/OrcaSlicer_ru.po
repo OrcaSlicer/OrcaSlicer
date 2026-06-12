@@ -2430,13 +2430,13 @@ msgstr "Добавить модель"
 msgid "Show Labels"
 msgstr "Показать имена файлов"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "На модели"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Разделить выбранную модель на отдельные модели"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "На части"
 
 msgid "Split the selected object into multiple parts"
@@ -4132,7 +4132,7 @@ msgstr ""
 "Это значение будет сброшено на 0."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4897,7 +4897,7 @@ msgstr "Башня"
 msgid "Total"
 msgstr "Всего"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "Общая оценка"
 
 msgid "Total time"
@@ -11195,10 +11195,10 @@ msgstr "Для черновой башни требуется, чтобы все
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Для одного или нескольких моделей был назначен экструдер, который у принтера отсутствует."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "Слишком маленькая ширина линии"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "Слишком большая ширина линии"
 
 # ???  (support_filament == 0 или support_interface_filament == 0)
@@ -12778,7 +12778,7 @@ msgstr "Расход при прочистке"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Объёмный расход при прочистке материала. 0 – использовать максимальный расход из настроек материала."
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr ""
 "Ограничение объёма материала, проходящего через экструдер за секунду. Скорость движения головы при печати будет снижаться для соблюдения этого ограничения. Значение не может быть нулевым.\n"
 "Внимание: завышение этого значения приведёт к недогреву материала, недоэкструзии при печати и, в конечном итоге, к пропуску шагов подающего мотора."

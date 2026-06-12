@@ -2362,13 +2362,13 @@ msgstr "新增模型"
 msgid "Show Labels"
 msgstr "顯示標籤"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "拆分到物件"
 
 msgid "Split the selected object into multiple objects"
 msgstr "拆分所選物件為多個物件"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "到零件"
 
 msgid "Split the selected object into multiple parts"
@@ -4023,7 +4023,7 @@ msgstr ""
 "該值將會重設為 0。"
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4764,7 +4764,7 @@ msgstr "塔"
 msgid "Total"
 msgstr "總計"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "總預估"
 
 msgid "Total time"
@@ -10862,10 +10862,10 @@ msgstr "各個物件的層高存在差異，無法啟用換料塔"
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "一個或多個物件被分配到的印表設備沒有擠出機"
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "線寬太小"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "線寬太大"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12281,7 +12281,7 @@ msgstr "清理體積流量"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "清理線材時的體積流量。0 表示最大體積流量。"
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "這個設定表示每秒能夠融化和擠出的線材體積。列印速度會受限於到最大體積速度，防止設定過高和不合理的速度。不允許設定為 0"
 
 msgid "Filament load time"

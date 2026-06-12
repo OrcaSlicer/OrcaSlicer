@@ -2362,13 +2362,13 @@ msgstr "モデルを追加"
 msgid "Show Labels"
 msgstr "ラベルを表示"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "オブジェクトに"
 
 msgid "Split the selected object into multiple objects"
 msgstr "選択したオブジェクトを複数のオブジェクトに分割"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "パーツに"
 
 msgid "Split the selected object into multiple parts"
@@ -3993,7 +3993,7 @@ msgstr ""
 "値を0にリセットします。"
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4718,7 +4718,7 @@ msgstr "タワー"
 msgid "Total"
 msgstr "合計"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "予測合計"
 
 msgid "Total time"
@@ -10802,10 +10802,10 @@ msgstr "プライムタワーを使用するには、全てのオブジェクト
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "1つ以上のオブジェクトに、プリンターにないエクストルーダーが割り当てられました。"
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "線幅が小さすぎます"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "線幅が広すぎます"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12118,7 +12118,7 @@ msgstr "フラッシュ体積速度"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "フィラメントフラッシュ時の体積速度。0は最大体積速度を示します。"
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "この設定は、単位時間で押出できるフィラメントの体積を示します。造形速度はこのパラメータにも制限されています。0に設定できません。"
 
 msgid "Filament load time"

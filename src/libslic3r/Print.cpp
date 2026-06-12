@@ -1543,10 +1543,10 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             if (extrusion_width_min == 0) {
                 // Default "auto-generated" extrusion width is always valid.
             } else if (extrusion_width_min <= layer_height) {
-                    err_msg = L("Too small line width");
+                    err_msg = L("Line width too small");
                     return false;
                 } else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
-                err_msg = L("Too large line width");
+                err_msg = L("Line width too large");
 				return false;
 			}
 			return true;
@@ -1681,7 +1681,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         return { err_msg, object, "bridge_line_width" };
                     }
                     if (!allow_thin_bridge_width && bridge_width <= layer_height) {
-                        err_msg = L("Too small line width");
+                        err_msg = L("Line width too small");
                         return { err_msg, object, "bridge_line_width" };
                     }
                 }

@@ -2365,13 +2365,13 @@ msgstr "Thêm model"
 msgid "Show Labels"
 msgstr "Hiện nhãn"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "Thành vật thể"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Tách vật thể đã chọn thành nhiều vật thể"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "Thành phần"
 
 msgid "Split the selected object into multiple parts"
@@ -4013,7 +4013,7 @@ msgstr ""
 "Giá trị sẽ được đặt lại về 0."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4740,7 +4740,7 @@ msgstr "Tháp"
 msgid "Total"
 msgstr "Tổng"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "Ước tính tổng"
 
 msgid "Total time"
@@ -10847,10 +10847,10 @@ msgstr "Prime tower chỉ được hỗ trợ nếu tất cả đối tượng c
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Một hoặc nhiều đối tượng được gán extruder mà máy in không có."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "Độ rộng đường quá nhỏ"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "Độ rộng đường quá lớn"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12304,7 +12304,7 @@ msgstr "Flush volumetric speed"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Cài đặt này biểu thị bao nhiêu thể tích filament có thể được nóng chảy và đùn mỗi giây. Tốc độ in bị giới hạn bởi tốc độ thể tích tối đa, trong trường hợp cài đặt tốc độ quá cao và không hợp lý. Không thể bằng không."
 
 msgid "Filament load time"

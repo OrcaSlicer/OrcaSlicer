@@ -2541,9 +2541,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_max_volumetric_speed", coFloats);
     def->label = L("Max volumetric speed");
-    def->tooltip = L("This setting stands for how much volume of filament can be melted and extruded per second. "
+    def->tooltip = L("This setting is the volume of filament that can be melted and extruded per second. "
                      "Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. "
-                     "Can't be zero.");
+                     "This value cannot be zero.");
     def->sidetext = L(u8"mm³/s");	// cubic millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;

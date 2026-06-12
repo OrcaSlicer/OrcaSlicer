@@ -2373,13 +2373,13 @@ msgstr "Pridėti modelius"
 msgid "Show Labels"
 msgstr "Rodyti etiketes"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "Į objektus"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Suskaidyti pasirinktą objektą į kelis objektus"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "Į dalis"
 
 msgid "Split the selected object into multiple parts"
@@ -4031,7 +4031,7 @@ msgstr ""
 "Ši vertė bus atstatyta į 0."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4759,7 +4759,7 @@ msgstr "Bokštas"
 msgid "Total"
 msgstr "Iš viso"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "Bendra sąmata"
 
 msgid "Total time"
@@ -10894,10 +10894,10 @@ msgstr "Pagrindinis bokštas palaikomas tik tuo atveju, jei visi objektai turi t
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Vienas ar daugiau objektų buvo priskirti ekstruderiui, kurio spausdintuvas neturi."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "Per mažas linijos plotis"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "Per didelis linijos plotis"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12351,7 +12351,7 @@ msgstr "Flush volumetric speed"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Gijos tūris, kurį galima išlydyti ir išspausti per sekundę. Jei nustatytas per didelis ir nepagrįstas greitis, spausdinimo greitį riboja maksimalus tūrinis greitis. Ši reikšmė negali būti lygi nuliui."
 
 msgid "Filament load time"

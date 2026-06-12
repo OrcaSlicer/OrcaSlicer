@@ -2370,13 +2370,13 @@ msgstr "Afegir models"
 msgid "Show Labels"
 msgstr "Mostrar etiquetes"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "Als objectes"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Partir l'objecte seleccionat en diversos objectes"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "A les peces"
 
 msgid "Split the selected object into multiple parts"
@@ -4023,7 +4023,7 @@ msgstr ""
 "El valor es restablirà a 0."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4750,7 +4750,7 @@ msgstr "Torre"
 msgid "Total"
 msgstr "Total"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "Estimació total"
 
 msgid "Total time"
@@ -10872,10 +10872,10 @@ msgstr "La Torre de Purga només està suportat si tots els objectes tenen la ma
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Un o més objectes han estat assignats a un extrusor inexistent."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "Amplada de línia massa petita"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "Amplada de línia massa gran"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12337,7 +12337,7 @@ msgstr "Velocitat volumètrica de purga"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Velocitat volumètrica durant la purga del filament. 0 indica la velocitat volumètrica màxima."
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Aquest ajustament representa la quantitat de volum de filament que es pot fondre i extruir per segon. La velocitat d'impressió està limitada per la velocitat volumètrica màxima, en cas de configuració de velocitat massa alta i poc raonable. No pot ser zero"
 
 msgid "Filament load time"

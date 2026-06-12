@@ -2366,13 +2366,13 @@ msgstr "Modellek hozzáadása"
 msgid "Show Labels"
 msgstr "Címkék megjelenítése"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "Objektumokra"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Szétválasztja a kijelölt objektumot több objektumra"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "Tárgyakra"
 
 msgid "Split the selected object into multiple parts"
@@ -4018,7 +4018,7 @@ msgstr ""
 "Az érték 0-ra áll vissza."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4745,7 +4745,7 @@ msgstr "Torony"
 msgid "Total"
 msgstr "Összesen"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "Összesített becslés"
 
 msgid "Total time"
@@ -10898,10 +10898,10 @@ msgstr "A törlőtorony használatához minden objektumnak azonos változó rét
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Egy vagy több objektum olyan extruderhez lett rendelve, amellyel a nyomtató nem rendelkezik."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "Túl kicsi a vonalszélesség"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "Túl nagy vonalszélesség"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12369,7 +12369,7 @@ msgstr "Öblítési volumetrikus sebesség"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "A filament öblítésekor használt volumetrikus sebesség. A 0 a maximális volumetrikus sebességet jelenti."
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Ezzel a beállítással adhatod meg a másodpercenként megolvasztható és extrudálható maximális filamentmennyiséget. A nyomtatási sebességet a maximális térfogatsebesség korlátozhatja, túl magas és ésszerűtlen sebesség esetén. Ez az érték nem lehet 0."
 
 msgid "Filament load time"

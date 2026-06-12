@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 16:07-0300\n"
-"PO-Revision-Date: 2026-06-12 16:06-0300\n"
+"PO-Revision-Date: 2026-06-12 16:43-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
 "Language: en\n"
@@ -1996,10 +1996,10 @@ msgid "Strength"
 msgstr ""
 
 msgid "Top Solid Layers"
-msgstr "Top solid layers"
+msgstr ""
 
 msgid "Top Minimum Shell Thickness"
-msgstr "Top minimum shell thickness"
+msgstr ""
 
 msgid "Top Surface Density"
 msgstr ""
@@ -2323,14 +2323,14 @@ msgstr ""
 msgid "Show Labels"
 msgstr ""
 
-msgid "To objects"
-msgstr "To Objects"
+msgid "To Objects"
+msgstr ""
 
 msgid "Split the selected object into multiple objects"
 msgstr ""
 
-msgid "To parts"
-msgstr "To Parts"
+msgid "To Parts"
+msgstr ""
 
 msgid "Split the selected object into multiple parts"
 msgstr ""
@@ -3937,7 +3937,7 @@ msgstr ""
 "The value will be reset to 0."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4639,8 +4639,8 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-msgid "Total Estimation"
-msgstr "Total estimation"
+msgid "Total estimation"
+msgstr ""
 
 msgid "Total time"
 msgstr ""
@@ -4894,7 +4894,7 @@ msgid "Mirror Object"
 msgstr "Mirror object"
 
 msgid "Tool Move"
-msgstr "Tool move"
+msgstr ""
 
 msgid "Tool Rotate"
 msgstr ""
@@ -10626,11 +10626,11 @@ msgstr ""
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr ""
 
-msgid "Too small line width"
-msgstr "Line width too small"
+msgid "Line width too small"
+msgstr ""
 
-msgid "Too large line width"
-msgstr "Line width too large"
+msgid "Line width too large"
+msgstr ""
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr ""
@@ -11932,8 +11932,8 @@ msgstr ""
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr ""
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
-msgstr "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
+msgstr ""
 
 msgid "Filament load time"
 msgstr ""
@@ -13068,10 +13068,10 @@ msgid "No ironing"
 msgstr ""
 
 msgid "Top surfaces"
-msgstr "All top surfaces"
+msgstr ""
 
 msgid "Topmost surface"
-msgstr "Topmost surface only"
+msgstr ""
 
 msgid "All solid layers"
 msgstr ""
@@ -18113,8 +18113,7 @@ msgid ""
 "Did you know that you can split a model that has a lot of parts into individual plates ready to print? This will simplify the process of keeping track of all the parts."
 msgstr ""
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18176,8 +18175,7 @@ msgid ""
 "Did you know that you can use more wall loops and higher sparse infill density to improve the strength of the model?"
 msgstr ""
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

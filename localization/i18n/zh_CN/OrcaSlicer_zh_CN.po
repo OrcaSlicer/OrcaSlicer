@@ -2371,13 +2371,13 @@ msgstr "添加模型"
 msgid "Show Labels"
 msgstr "显示标签"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "拆分到对象"
 
 msgid "Split the selected object into multiple objects"
 msgstr "拆分所选对象为多个对象"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "到零件"
 
 msgid "Split the selected object into multiple parts"
@@ -4005,7 +4005,7 @@ msgstr ""
 "这个数值将被重置为0。"
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4732,7 +4732,7 @@ msgstr "擦料塔"
 msgid "Total"
 msgstr "总计"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "总预估"
 
 msgid "Total time"
@@ -10857,10 +10857,10 @@ msgstr "各个对象的层高存在差异，无法启用擦料塔"
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "为一个或多个对象分配了打印机没有的挤出机。"
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "线宽太小"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "线宽太大"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12350,7 +12350,7 @@ msgstr "冲洗体积流量"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "冲洗耗材丝时的体积流量。 0 表示最大体积流量。"
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "这个设置表示在1秒内能够融化和挤出的耗材丝体积。打印速度会受到最大体积流量的限制，防止设置过高和不合理的速度。不允许设置为0。"
 
 msgid "Filament load time"

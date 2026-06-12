@@ -2377,13 +2377,13 @@ msgstr "Modelle hinzufügen"
 msgid "Show Labels"
 msgstr "Bezeichnung anzeigen"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "Zu Objekten"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Das ausgewählte Objekt in mehrere Objekte aufteilen"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "Zu Teilen"
 
 msgid "Split the selected object into multiple parts"
@@ -4029,7 +4029,7 @@ msgstr ""
 "Der Wert 0 setz zurück."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4756,7 +4756,7 @@ msgstr "Turm"
 msgid "Total"
 msgstr "Gesamt"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "Gesamtschätzung"
 
 msgid "Total time"
@@ -10910,10 +10910,10 @@ msgstr "Der Reinigungsturm wird nur unterstützt, wenn alle Objekte die gleiche 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Einem oder mehreren Objekten wurde ein Extruder zugewiesen, den der Drucker nicht hat."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "Zu geringe Linienbreite"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "Zu große Linienbreite"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12447,7 +12447,7 @@ msgstr "Volumetrische Spülgeschwindigkeit"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Volumetrische Geschwindigkeit beim Spülen des Filaments. 0 bedeutet die maximale volumetrische Geschwindigkeit."
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Diese Einstellung ist das Volumen des Filaments, das pro Sekunde geschmolzen und extrudiert werden kann. Die Druckgeschwindigkeit wird durch die maximale volumetrische Geschwindigkeit begrenzt, falls die Geschwindigkeit zu hoch und unangemessen eingestellt ist. Dieser Wert kann nicht Null sein."
 
 msgid "Filament load time"

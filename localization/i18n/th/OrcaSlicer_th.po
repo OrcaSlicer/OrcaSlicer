@@ -2370,13 +2370,13 @@ msgstr "เพิ่มโมเดล"
 msgid "Show Labels"
 msgstr "แสดงป้ายชื่อ"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "ไปยังวัตถุ"
 
 msgid "Split the selected object into multiple objects"
 msgstr "แยกวัตถุที่เลือกออกเป็นหลายวัตถุ"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "เพื่อชิ้นส่วน"
 
 msgid "Split the selected object into multiple parts"
@@ -4016,7 +4016,7 @@ msgstr ""
 "ค่าจะถูกรีเซ็ตเป็น 0"
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4743,7 +4743,7 @@ msgstr "ทาวเวอร์"
 msgid "Total"
 msgstr "รวม"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "การประมาณค่าทั้งหมด"
 
 msgid "Total time"
@@ -10873,10 +10873,10 @@ msgstr "ไพรม์ทาวเวอร์ได้รับส่วนร
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "วัตถุอย่างน้อยหนึ่งชิ้นถูกกำหนดให้เป็นชุดดันเส้นที่เครื่องพิมพ์ไม่มี"
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "ความกว้างของเส้นเล็กเกินไป"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "ความกว้างของเส้นใหญ่เกินไป"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12341,7 +12341,7 @@ msgstr "ความเร็วเชิงปริมาตรไล่เส
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "ความเร็วตามปริมาตรเมื่อทำการล้างเส้นพลาสติก 0 หมายถึงความเร็วปริมาตรสูงสุด"
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "การตั้งค่านี้หมายถึงปริมาณเส้นพลาสติกที่สามารถหลอมและอัดขึ้นรูปต่อวินาทีได้ ความเร็วในการพิมพ์จะถูกจำกัดด้วยความเร็วปริมาตรสูงสุด ในกรณีที่ตั้งค่าความเร็วไว้สูงเกินไปและไม่เหมาะสม ไม่สามารถเป็นศูนย์ได้"
 
 msgid "Filament load time"

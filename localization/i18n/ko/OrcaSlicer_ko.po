@@ -2369,13 +2369,13 @@ msgstr "모델 추가"
 msgid "Show Labels"
 msgstr "이름표 보기"
 
-msgid "To objects"
+msgid "To Objects"
 msgstr "객체로"
 
 msgid "Split the selected object into multiple objects"
 msgstr "선택한 객체를 여러 객체로 분할"
 
-msgid "To parts"
+msgid "To Parts"
 msgstr "부품으로"
 
 msgid "Split the selected object into multiple parts"
@@ -4017,7 +4017,7 @@ msgstr ""
 "값이 0으로 재설정됩니다."
 
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
+"The elephant foot compensation value is too large.\n"
 "If really have serious elephant foot effect, please check other settings.\n"
 "For example, whether bed temperature is too high.\n"
 "\n"
@@ -4745,7 +4745,7 @@ msgstr "타워"
 msgid "Total"
 msgstr "합계"
 
-msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "추정치 합계"
 
 msgid "Total time"
@@ -10838,10 +10838,10 @@ msgstr "프라임 타워는 모든 객체의 가변 레이어 높이가 동일�
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "하나 이상의 객체에 프린터에 없는 압출기가 할당되었습니다."
 
-msgid "Too small line width"
+msgid "Line width too small"
 msgstr "선 너비가 너무 작습니다"
 
-msgid "Too large line width"
+msgid "Line width too large"
 msgstr "선 너비가 너무 큽니다"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
@@ -12268,7 +12268,7 @@ msgstr "플러시 체적 속도"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr ""
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "이 설정은 초당 얼마나 많은 양의 필라멘트를 녹이고 압출할 수 있는지를 나타냅니다. 너무 높고 부적절한 속도 설정의 경우 출력 속도는 최대 압출 속도에 의해 제한됩니다. 0이 될 수 없습니다"
 
 msgid "Filament load time"

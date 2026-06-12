@@ -1436,10 +1436,10 @@ void MenuFactory::create_object_menu()
     if (!split_menu)
         return;
 
-    append_menu_item(split_menu, wxID_ANY, _L("To objects"), _L("Split the selected object into multiple objects"),
+    append_menu_item(split_menu, wxID_ANY, _L("To Objects"), _L("Split the selected object into multiple objects"),
         [](wxCommandEvent&) { plater()->split_object(); }, "menu_split_objects", &m_object_menu,
         []() { return plater()->can_split(true); }, m_parent);
-    append_menu_item(split_menu, wxID_ANY, _L("To parts"), _L("Split the selected object into multiple parts"),
+    append_menu_item(split_menu, wxID_ANY, _L("To Parts"), _L("Split the selected object into multiple parts"),
         [](wxCommandEvent&) { plater()->split_volume(); }, "menu_split_parts", &m_object_menu,
         []() { return plater()->can_split(false); }, m_parent);
 
@@ -1479,10 +1479,10 @@ void MenuFactory::create_extra_object_menu()
     wxMenu* split_menu = new wxMenu();
     if (!split_menu)
         return;
-    append_menu_item(split_menu, wxID_ANY, _L("To objects"), _L("Split the selected object into multiple objects"),
+    append_menu_item(split_menu, wxID_ANY, _L("To Objects"), _L("Split the selected object into multiple objects"),
         [](wxCommandEvent&) { plater()->split_object(); }, "menu_split_objects", &m_object_menu,
         []() { return plater()->can_split(true); }, m_parent);
-    append_menu_item(split_menu, wxID_ANY, _L("To parts"), _L("Split the selected object into multiple parts"),
+    append_menu_item(split_menu, wxID_ANY, _L("To Parts"), _L("Split the selected object into multiple parts"),
         [](wxCommandEvent&) { plater()->split_volume(); }, "menu_split_parts", &m_object_menu,
         []() { return plater()->can_split(false); }, m_parent);
 
@@ -1617,10 +1617,10 @@ void MenuFactory::create_bbl_part_menu()
     if (!split_menu)
         return;
 
-    append_menu_item(split_menu, wxID_ANY, _L("To objects"), _L("Split the selected object into multiple objects"),
+    append_menu_item(split_menu, wxID_ANY, _L("To Objects"), _L("Split the selected object into multiple objects"),
         [](wxCommandEvent&) { plater()->split_object(); }, "menu_split_objects", menu,
         []() { return plater()->can_split(true); }, m_parent);
-    append_menu_item(split_menu, wxID_ANY, _L("To parts"), _L("Split the selected object into multiple parts"),
+    append_menu_item(split_menu, wxID_ANY, _L("To Parts"), _L("Split the selected object into multiple parts"),
         [](wxCommandEvent&) { plater()->split_volume(); }, "menu_split_parts", menu,
         []() { return plater()->can_split(false); }, m_parent);
 
@@ -1964,10 +1964,10 @@ wxMenu* MenuFactory::multi_selection_menu()
         append_menu_item_change_filament(menu);
         wxMenu* split_menu = new wxMenu();
         if (split_menu) {
-            append_menu_item(split_menu, wxID_ANY, _L("To objects"), _L("Split the selected object into multiple objects"),
+            append_menu_item(split_menu, wxID_ANY, _L("To Objects"), _L("Split the selected object into multiple objects"),
                 [](wxCommandEvent&) { plater()->split_object(); }, "menu_split_objects", menu,
                 []() { return plater()->can_split(true); }, m_parent);
-            append_menu_item(split_menu, wxID_ANY, _L("To parts"), _L("Split the selected object into multiple parts"),
+            append_menu_item(split_menu, wxID_ANY, _L("To Parts"), _L("Split the selected object into multiple parts"),
                 [](wxCommandEvent&) { plater()->split_volume(); }, "menu_split_parts", menu,
                 []() { return plater()->can_split(false); }, m_parent);
 
