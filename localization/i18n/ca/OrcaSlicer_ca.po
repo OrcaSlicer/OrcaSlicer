@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-08 00:18+0800\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -202,6 +202,15 @@ msgstr "Fet"
 msgid "Support Generated"
 msgstr "Suport generat"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Recolzar sobre la Cara"
 
@@ -289,6 +298,15 @@ msgstr "Pintat amb: Filament %1%"
 msgid "To:"
 msgstr "A:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "Pell difusa pintada"
 
@@ -309,6 +327,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Activa la pell difusa pintada per a aquest objecte"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "Moure"
@@ -699,6 +726,15 @@ msgstr "Tall per línia"
 
 msgid "Delete connector"
 msgstr "Suprimeix el connector"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Nom de la malla"
@@ -1577,6 +1613,12 @@ msgstr "Distància paral·lela:"
 msgid "Flip by Face 2"
 msgstr "Gira per la cara 2"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Ensamblar"
 
@@ -1613,6 +1655,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "Muntatge cara a cara"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1898,6 +1946,20 @@ msgstr ""
 
 msgid ""
 "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
 msgstr ""
@@ -3194,6 +3256,45 @@ msgstr "La temperatura màxima no pot superar "
 msgid "The minmum temperature should not be less than "
 msgstr "La temperatura mínima no hauria de ser inferior a "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Tots"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Deseleccionar-ho tot"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "Configuració avançada"
+
+msgid "Expert settings"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3476,6 +3577,9 @@ msgstr "La tipografia no té cap forma per al text indicat."
 
 msgid "There is no valid surface for text projection."
 msgstr "No hi ha cap superfície vàlida per a la projecció del text."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Precondicionament tèrmic per a l'optimització de la primera capa"
@@ -8716,9 +8820,6 @@ msgstr "Agrupa els perfils de filament de l'usuari"
 msgid "Group user filament presets based on selection"
 msgstr "Agrupa els perfils de filament de l'usuari segons la selecció"
 
-msgid "All"
-msgstr "Tots"
-
 msgid "By type"
 msgstr "Per tipus"
 
@@ -9100,6 +9201,14 @@ msgstr "Descarrega el connector de xarxa"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Associar fitxers a OrcaSlicer"
+
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
 
 #, fuzzy
 msgid "Associate 3MF files to OrcaSlicer"
@@ -9979,6 +10088,9 @@ msgstr ""
 "firmware admet aquesta operació o verifiqueu si la impressora funciona "
 "correctament."
 
+msgid "Sending failed, please try again!"
+msgstr ""
+
 msgid "Slice ok."
 msgstr "Laminat ok."
 
@@ -10438,6 +10550,9 @@ msgstr "Establir la velocitat dels ponts externs i interns"
 
 msgid "Travel speed"
 msgstr "Velocitat de desplaçament"
+
+msgid "Junction Deviation"
+msgstr "Desviació de cruïlla"
 
 msgid "Jerk(XY)"
 msgstr "Sacsejada( XY )-Jerk( XY )"
@@ -11321,9 +11436,6 @@ msgstr ""
 "els filaments de la impressora. Els filaments de la impressora no utilitzats "
 "s'afegiran automàticament al final de la llista."
 
-msgid "Advanced settings"
-msgstr "Configuració avançada"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Afegeix filaments d'AMS no utilitzats a la llista de filaments."
 
@@ -11834,11 +11946,22 @@ msgstr "Un nou plugin de Xarxa( %s ) disponible, Vols instal·lar-lo?"
 msgid "New version of Orca Slicer"
 msgstr "Nova versió d'Orca Slicer"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "Omet aquesta versió"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Confirmar i Actualitzar el broquet"
@@ -11955,6 +12078,9 @@ msgstr "Mòdul de tall"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Sistema d'extinció automàtica d'incendis"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "Actualitzar el firmware"
@@ -13204,7 +13330,7 @@ msgid "External bridge density"
 msgstr "Densitat del pont exterior"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
 "Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
 "extrusions to sag, 100% may not be sufficient.\n"
 "\n"
@@ -13218,18 +13344,14 @@ msgid ""
 "  - Pros: Can create a string-like first layer. Faster and with better "
 "cooling because there is more space for air to circulate around the extruded "
 "bridge.\n"
-"  - Cons: May lead to sagging and poorer surface finish.\n"
-"\n"
-"Recommended range: Minimum 10% - Maximum 125%."
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
 
 msgid "Internal bridge density"
 msgstr "Densitat del pont intern"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. Default is 100%. "
-"100% means a solid internal bridge.\n"
-"\n"
+"Controls the density (spacing) of internal bridge lines.\n"
 "Internal bridges act as intermediate support between sparse infill and top "
 "solid infill and can strongly affect top surface quality.\n"
 "\n"
@@ -13264,11 +13386,9 @@ msgid ""
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
-"Bridge line width is expressed either as an absolute value or as a "
-"percentage of the active nozzle diameter (percentages are computed from the "
-"nozzle diameter).\n"
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
 "Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
 "The maximum value is 100% or the nozzle diameter.\n"
@@ -15531,9 +15651,6 @@ msgstr "El max_accel_to_decel de Klipper s'ajustarà a aquest %% d'acceleració"
 
 msgid "Default jerk."
 msgstr "Jerk predeterminat."
-
-msgid "Junction Deviation"
-msgstr "Desviació de cruïlla"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -21775,9 +21892,6 @@ msgstr "Perfil d'Impressora"
 msgid "Filament Preset Template"
 msgstr "Plantilla de Perfil de Filament"
 
-msgid "Deselect All"
-msgstr "Deseleccionar-ho tot"
-
 msgid "Process Preset Template"
 msgstr "Plantilla de Perfil de Processament"
 
@@ -22301,7 +22415,19 @@ msgstr ""
 msgid "Authorizing..."
 msgstr ""
 
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
 msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
 msgstr ""
 
 #, c-format, boost-format
@@ -23126,6 +23252,105 @@ msgstr "No s'ha pogut connectar a Flashforge per sèrie"
 msgid "Flashforge local API requires both serial number and access code."
 msgstr ""
 
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
+
 msgid "The provided state is not correct."
 msgstr "L'estat proporcionat no és correcte."
 
@@ -23180,6 +23405,12 @@ msgstr "Orelles de la Vora d'Adherència"
 msgid "Please select single object."
 msgstr "Seleccioneu un sol objecte."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "Allunya"
 
@@ -23189,6 +23420,9 @@ msgstr "Apropa"
 msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 "La càrrega d'informació dels objectes a ometre ha fallat. Torneu-ho a provar."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -23339,6 +23573,100 @@ msgstr "Nombre de cares triangulars"
 
 msgid "Calculating, please wait..."
 msgstr "Calculant, espereu..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "

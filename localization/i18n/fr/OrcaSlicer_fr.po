@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-08 00:18+0800\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -202,6 +202,15 @@ msgstr "Terminé"
 msgid "Support Generated"
 msgstr "Supports générés"
 
+msgid "Entering Paint-on supports"
+msgstr "Entrée dans Supports peints"
+
+msgid "Leaving Paint-on supports"
+msgstr "Quitter Supports peints"
+
+msgid "Paint-on supports editing"
+msgstr "Modification des supports peints"
+
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Placer sur la face"
 
@@ -290,6 +299,15 @@ msgstr "Peint avec : filament %1%"
 msgid "To:"
 msgstr "Vers :"
 
+msgid "Entering color painting"
+msgstr "Entrée dans la mise en couleur"
+
+msgid "Leaving color painting"
+msgstr "Quitter la mise en couleur"
+
+msgid "Color painting editing"
+msgstr "Modification de la mise en couleur"
+
 msgid "Paint-on fuzzy skin"
 msgstr "Surface irrégulière peinte"
 
@@ -310,6 +328,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Activer la surface irrégulière peinte pour cet objet"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr "Entrée dans Surface irrégulière peinte"
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr "Quitter Surface irrégulière peinte"
+
+msgid "Paint-on fuzzy skin editing"
+msgstr "Modification de la surface irrégulière peinte"
 
 msgid "Move"
 msgstr "Déplacer"
@@ -701,6 +728,15 @@ msgstr "Coupe par ligne"
 
 msgid "Delete connector"
 msgstr "Supprimer le connecteur"
+
+msgid "Entering Cut gizmo"
+msgstr "Entrée dans l’outil Couper"
+
+msgid "Leaving Cut gizmo"
+msgstr "Quitter l’outil Couper"
+
+msgid "Cut gizmo editing"
+msgstr "Modification de la découpe"
 
 msgid "Mesh name"
 msgstr "Nom du maillage"
@@ -1596,6 +1632,12 @@ msgstr "Distance parallèle :"
 msgid "Flip by Face 2"
 msgstr "Retournement par la Face 2"
 
+msgid "Entering Measure gizmo"
+msgstr "Entrée dans l’outil Mesurer"
+
+msgid "Leaving Measure gizmo"
+msgstr "Quitter l’outil Mesurer"
+
 msgid "Assemble"
 msgstr "Assembler"
 
@@ -1634,6 +1676,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "Assemblage face à face"
+
+msgid "Entering Assembly gizmo"
+msgstr "Entrée dans l’outil Assemblage"
+
+msgid "Leaving Assembly gizmo"
+msgstr "Quitter l’outil Assemblage"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1932,6 +1980,20 @@ msgstr ""
 "OrcaCloud.\n"
 "Récupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre "
 "préréglage local."
+
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -3248,6 +3310,45 @@ msgstr "La température maximale ne peut pas dépasser "
 msgid "The minmum temperature should not be less than "
 msgstr "La température minimale ne doit pas être inférieure à "
 
+msgid "Type to filter..."
+msgstr "Saisissez du texte pour filtrer…"
+
+msgid "All"
+msgstr "Tous"
+
+msgid "No selected items..."
+msgstr "Aucun élément sélectionné…"
+
+msgid "All items selected..."
+msgstr "Tous les éléments sont sélectionnés…"
+
+msgid "No matching items..."
+msgstr "Aucun élément correspondant…"
+
+msgid "Deselect All"
+msgstr "Désélectionner tout"
+
+msgid "Select visible"
+msgstr "Sélectionner les éléments visibles"
+
+msgid "Deselect visible"
+msgstr "Désélectionner les éléments visibles"
+
+msgid "Filter selected"
+msgstr "Filtrer les éléments sélectionnés"
+
+msgid "Filter nonSelected"
+msgstr "Filtrer les éléments non sélectionnés"
+
+msgid "Simple settings"
+msgstr "Paramètres simples"
+
+msgid "Advanced settings"
+msgstr "Paramètres avancés"
+
+msgid "Expert settings"
+msgstr "Paramètres expert"
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3529,6 +3630,9 @@ msgstr "La police n'a aucune forme pour le texte donné."
 
 msgid "There is no valid surface for text projection."
 msgstr "Il n'y a pas de surface valide pour la projection du texte."
+
+msgid "An unexpected error occurred"
+msgstr "Une erreur inattendue s’est produite"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Préconditionnement thermique pour l'optimisation de la première couche"
@@ -4837,8 +4941,8 @@ msgid ""
 "TPU) is not allowed to be loaded."
 msgstr ""
 "La température actuelle ou cible du caisson dépasse 45℃. Afin d’éviter le "
-"bouchage de l’extrudeur, le chargement de filament basse température "
-"(PLA/PETG/TPU) n’est pas autorisé."
+"bouchage de l’extrudeur, le chargement de filament basse température (PLA/"
+"PETG/TPU) n’est pas autorisé."
 
 msgid ""
 "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
@@ -7029,9 +7133,8 @@ msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
 "to heating mode. Please confirm whether to switch."
 msgstr ""
-"Si la température du caisson dépasse 40℃, le système passera "
-"automatiquement en mode chauffage. Veuillez confirmer si vous souhaitez "
-"commuter."
+"Si la température du caisson dépasse 40℃, le système passera automatiquement "
+"en mode chauffage. Veuillez confirmer si vous souhaitez commuter."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Veuillez sélectionner un emplacement AMS avant la calibration"
@@ -8868,9 +8971,6 @@ msgstr "Regrouper les préréglages de filament utilisateur"
 msgid "Group user filament presets based on selection"
 msgstr "Regrouper les préréglages de filament utilisateur selon la sélection"
 
-msgid "All"
-msgstr "Tous"
-
 msgid "By type"
 msgstr "Par type"
 
@@ -9286,6 +9386,14 @@ msgstr "Télécharger le plug-in réseau"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Associer des fichiers à Orca Slicer"
+
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
 
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Associer les fichiers 3MF à OrcaSlicer"
@@ -10190,6 +10298,9 @@ msgstr ""
 "firmware prend en charge cette opération ou si l'imprimante fonctionne "
 "correctement."
 
+msgid "Sending failed, please try again!"
+msgstr "L’envoi a échoué, veuillez réessayer !"
+
 msgid "Slice ok."
 msgstr "Découpe terminée."
 
@@ -10663,6 +10774,9 @@ msgstr "Définir la vitesse pour les ponts externes et internes"
 
 msgid "Travel speed"
 msgstr "Vitesse de déplacement"
+
+msgid "Junction Deviation"
+msgstr "Déviation de jonction"
 
 msgid "Jerk(XY)"
 msgstr "Jerk (X-Y)"
@@ -11600,9 +11714,6 @@ msgstr ""
 "filaments de l'imprimante. Les filaments non utilisés de l'imprimante seront "
 "automatiquement ajoutés à la fin de la liste."
 
-msgid "Advanced settings"
-msgstr "Paramètres avancés"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Ajouter les filaments AMS non utilisés à la liste de filaments."
 
@@ -12125,11 +12236,22 @@ msgstr ""
 msgid "New version of Orca Slicer"
 msgstr "Nouvelle version de OrcaSlicer"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
 msgstr "Vérifier sur GitHub"
 
+msgid "Open Microsoft Store"
+msgstr ""
+
 msgid "Skip this Version"
 msgstr "Sauter cette version"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Confirmation et mise à jour de la buse"
@@ -12247,6 +12369,9 @@ msgstr "Module de découpe"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Système d'extinction automatique"
+
+msgid "Beta"
+msgstr "Bêta"
 
 msgid "Update firmware"
 msgstr "Mise à jour du firmware"
@@ -13583,7 +13708,7 @@ msgid "External bridge density"
 msgstr "Densité du pont externe"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
 "Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
 "extrusions to sag, 100% may not be sufficient.\n"
 "\n"
@@ -13597,9 +13722,7 @@ msgid ""
 "  - Pros: Can create a string-like first layer. Faster and with better "
 "cooling because there is more space for air to circulate around the extruded "
 "bridge.\n"
-"  - Cons: May lead to sagging and poorer surface finish.\n"
-"\n"
-"Recommended range: Minimum 10% - Maximum 125%."
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
 "Contrôle la densité (espacement) des lignes de ponts externes. La valeur par "
 "défaut est 100 %.\n"
@@ -13626,9 +13749,7 @@ msgid "Internal bridge density"
 msgstr "Densité du pont interne"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. Default is 100%. "
-"100% means a solid internal bridge.\n"
-"\n"
+"Controls the density (spacing) of internal bridge lines.\n"
 "Internal bridges act as intermediate support between sparse infill and top "
 "solid infill and can strongly affect top surface quality.\n"
 "\n"
@@ -13699,11 +13820,9 @@ msgstr ""
 "par le rapport de débit du filament et, s’il est défini, par celui de "
 "l’objet."
 
-#, c-format, boost-format
 msgid ""
-"Bridge line width is expressed either as an absolute value or as a "
-"percentage of the active nozzle diameter (percentages are computed from the "
-"nozzle diameter).\n"
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
 "Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
 "The maximum value is 100% or the nozzle diameter.\n"
@@ -14474,8 +14593,8 @@ msgid ""
 msgstr ""
 "Si activé, l’extrusion des ponts internes utilise une hauteur de ligne égale "
 "au diamètre de la buse.\n"
-"Cela augmente la résistance et la fiabilité des ponts internes imprimés "
-"au-dessus du remplissage, mais peut dégrader l’apparence.\n"
+"Cela augmente la résistance et la fiabilité des ponts internes imprimés au-"
+"dessus du remplissage, mais peut dégrader l’apparence.\n"
 "Si désactivé, les ponts internes peuvent être plus esthétiques mais moins "
 "fiables au-dessus du remplissage."
 
@@ -15818,7 +15937,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Optimisation du biais de flambage en Z (expérimental)"
 
-#, no-c-format, no-boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
 "Tightens the gyroid wave along the Z (vertical) axis at low infill density "
 "to shorten the effective vertical column length and improve Z-axis "
@@ -15829,8 +15948,8 @@ msgstr ""
 "Resserre l’onde gyroïde le long de l’axe Z (vertical) à faible densité de "
 "remplissage afin de raccourcir la longueur effective des colonnes verticales "
 "et d’améliorer la résistance au flambage en compression selon l’axe Z. La "
-"consommation de filament est préservée. Aucun effet à partir d’environ 30 % "
-"de densité de remplissage. S’applique uniquement lorsque le motif de "
+"consommation de filament est préservée. Aucun effet à partir d’environ 30 "
+"% de densité de remplissage. S’applique uniquement lorsque le motif de "
 "remplissage est réglé sur Gyroïde."
 
 msgid "Sparse infill pattern"
@@ -16094,9 +16213,6 @@ msgstr ""
 
 msgid "Default jerk."
 msgstr "Jerk par défaut."
-
-msgid "Junction Deviation"
-msgstr "Déviation de jonction"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -20294,8 +20410,7 @@ msgstr "Valeur non valide lorsque le mode vase en spirale est activé: "
 
 msgid "Bridge line width must not exceed nozzle diameter: "
 msgstr ""
-"La largeur de ligne des ponts ne doit pas dépasser le diamètre de la "
-"buse : "
+"La largeur de ligne des ponts ne doit pas dépasser le diamètre de la buse : "
 
 msgid "too large line width "
 msgstr "largeur de ligne trop grande "
@@ -20571,8 +20686,7 @@ msgid "Log file"
 msgstr "Fichier journal"
 
 msgid "Redirects debug logging to file.\n"
-msgstr ""
-"Redirige les journaux de débogage vers un fichier.\n"
+msgstr "Redirige les journaux de débogage vers un fichier.\n"
 
 msgid "Enable timelapse for print"
 msgstr "Activer le timelapse pour l’impression"
@@ -22575,9 +22689,6 @@ msgstr "Préréglage de l’imprimante"
 msgid "Filament Preset Template"
 msgstr "Modèle de préréglage Filament"
 
-msgid "Deselect All"
-msgstr "Désélectionner tout"
-
 msgid "Process Preset Template"
 msgstr "Modèle de préréglage de traitement"
 
@@ -23113,8 +23224,20 @@ msgstr "Type d’imprimante introuvable, veuillez le sélectionner manuellement.
 msgid "Authorizing..."
 msgstr "Autorisation en cours…"
 
+msgid "Error. Can't get api token for authorization"
+msgstr "Erreur : impossible d’obtenir le jeton d’API pour l’autorisation"
+
+msgid "Could not parse server response."
+msgstr "Impossible d’analyser la réponse du serveur."
+
+msgid "Error saving session to file"
+msgstr "Erreur lors de l’enregistrement de la session dans un fichier"
+
 msgid "Error session check"
 msgstr "Erreur lors de la vérification de la session"
+
+msgid "Error during file upload"
+msgstr "Erreur pendant l’envoi du fichier"
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -23955,6 +24078,108 @@ msgstr ""
 "L’API locale Flashforge nécessite à la fois le numéro de série et le code "
 "d’accès."
 
+msgid "Printer returned an error"
+msgstr "L’imprimante a renvoyé une erreur"
+
+msgid "Missing system_info in response"
+msgstr "Champ system_info absent de la réponse"
+
+msgid "Missing printer serial number in response"
+msgstr "Numéro de série de l’imprimante absent de la réponse"
+
+msgid "Error parsing response"
+msgstr "Erreur lors de l’analyse de la réponse"
+
+msgid "ElegooLink not detected"
+msgstr "ElegooLink non détecté"
+
+msgid "Invalid access code"
+msgstr "Code d’accès invalide"
+
+msgid "CC2 device not detected"
+msgstr "Appareil CC2 non détecté"
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr "La connexion à ElegooLink fonctionne correctement."
+
+msgid "Could not connect to ElegooLink"
+msgstr "Impossible de se connecter à ElegooLink"
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr "Code d’erreur : %1%"
+
+msgid "Upload failed"
+msgstr "Échec de l’envoi"
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr "Impossible d’ouvrir le fichier à envoyer."
+
+msgid "Failed to read file chunk for upload."
+msgstr "Impossible de lire le fragment de fichier à envoyer."
+
+msgid "CC2 upload failed"
+msgstr "Échec de l’envoi vers la CC2"
+
+msgid "The file is empty or could not be read."
+msgstr "Le fichier est vide ou n’a pas pu être lu."
+
+msgid "Failed to calculate file checksum."
+msgstr "Impossible de calculer la somme de contrôle du fichier."
+
+msgid "Error code not found"
+msgstr "Code d’erreur introuvable"
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr "Le fichier est introuvable, veuillez vérifier et réessayer."
+
+msgid "The file is corrupted, please check and try again."
+msgstr "Le fichier est corrompu, veuillez vérifier et réessayer."
+
+msgid "Transmission abnormality, please check and try again."
+msgstr "Anomalie de transmission, veuillez vérifier et réessayer."
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+"Le fichier ne correspond pas à l’imprimante, veuillez vérifier et réessayer."
+
+msgid "Start print timeout"
+msgstr "Délai de démarrage de l’impression dépassé"
+
+msgid "Start print failed"
+msgstr "Échec du démarrage de l’impression"
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr "Connexion à CrealityPrint réussie !"
+
+msgid "Could not connect to CrealityPrint"
+msgstr "Impossible de se connecter à CrealityPrint"
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+"Le nom d’hôte/IP/URL n’a pas pu être analysé, veuillez le vérifier et "
+"réessayer."
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
+
 msgid "The provided state is not correct."
 msgstr "L’état communiqué n’est pas correct."
 
@@ -24013,6 +24238,12 @@ msgstr "Bordure à oreilles"
 msgid "Please select single object."
 msgstr "Veuillez sélectionner un seul objet."
 
+msgid "Entering Brim Ears"
+msgstr "Entrée dans Bordure à oreilles"
+
+msgid "Leaving Brim Ears"
+msgstr "Quitter Bordure à oreilles"
+
 msgid "Zoom Out"
 msgstr "Zoom arrière"
 
@@ -24022,6 +24253,9 @@ msgstr "Zoom avant"
 msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 "Échec du chargement des informations d'objets à sauter. Veuillez réessayer."
+
+msgid "Failed to create the temporary folder."
+msgstr "Échec de la création du dossier temporaire."
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -24175,6 +24409,102 @@ msgstr "Nombre de facettes triangulaires"
 
 msgid "Calculating, please wait..."
 msgstr "Calcul en cours, veuillez patienter…"
+
+msgid "PresetBundle"
+msgstr "Paquet de préréglages"
+
+msgid "Bundle folder does not exist."
+msgstr "Le dossier du paquet n’existe pas."
+
+msgid "Failed to open folder."
+msgstr "Impossible d’ouvrir le dossier."
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+"Supprimer le paquet sélectionné du dossier ainsi que tous les préréglages "
+"chargés depuis celui-ci ?"
+
+msgid "Delete Bundle"
+msgstr "Supprimer le paquet"
+
+msgid "Failed to remove bundle."
+msgstr "Impossible de retirer le paquet."
+
+msgid "Remove Bundle"
+msgstr "Retirer le paquet"
+
+msgid "Unsubscribe bundle?"
+msgstr "Se désabonner du paquet ?"
+
+msgid "UnsubscribeBundle"
+msgstr "Se désabonner du paquet"
+
+msgid "Failed to unsubscribe bundle."
+msgstr "Impossible de se désabonner du paquet."
+
+msgid "Unsubscribe Bundle"
+msgstr "Se désabonner du paquet"
+
+msgid "ExportPresetBundle"
+msgstr "Exporter le paquet de préréglages"
+
+msgid "Save preset bundle"
+msgstr "Enregistrer le paquet de préréglages"
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr "Échec de l’intégration au bureau : exécutable introuvable."
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr "Intégration au bureau"
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr "Le téléchargement a échoué"
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr "Impossible de créer le fichier à l’emplacement %1%"
+
+msgid "Archive preview"
+msgstr "Aperçu de l’archive"
+
+msgid "Open File"
+msgstr "Ouvrir un fichier"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -24341,8 +24671,8 @@ msgid ""
 "Did you know that you can auto-arrange all the objects in your project?"
 msgstr ""
 "Agencement automatique\n"
-"Saviez-vous que vous pouvez agencer automatiquement tous les objets de "
-"votre projet ?"
+"Saviez-vous que vous pouvez agencer automatiquement tous les objets de votre "
+"projet ?"
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
@@ -24623,249 +24953,6 @@ msgstr ""
 #~ "Impossible de se connecter à OrcaCloud.\n"
 #~ "Veuillez vérifier votre connexion réseau\n"
 #~ "(HTTP %u)"
-
-msgid "Entering Paint-on supports"
-msgstr "Entrée dans Supports peints"
-
-msgid "Leaving Paint-on supports"
-msgstr "Quitter Supports peints"
-
-msgid "Paint-on supports editing"
-msgstr "Modification des supports peints"
-
-msgid "Entering Brim Ears"
-msgstr "Entrée dans Bordure à oreilles"
-
-msgid "Leaving Brim Ears"
-msgstr "Quitter Bordure à oreilles"
-
-msgid "Entering color painting"
-msgstr "Entrée dans la mise en couleur"
-
-msgid "Leaving color painting"
-msgstr "Quitter la mise en couleur"
-
-msgid "Color painting editing"
-msgstr "Modification de la mise en couleur"
-
-msgid "Entering Paint-on fuzzy skin"
-msgstr "Entrée dans Surface irrégulière peinte"
-
-msgid "Leaving Paint-on fuzzy skin"
-msgstr "Quitter Surface irrégulière peinte"
-
-msgid "Paint-on fuzzy skin editing"
-msgstr "Modification de la surface irrégulière peinte"
-
-msgid "Entering Cut gizmo"
-msgstr "Entrée dans l’outil Couper"
-
-msgid "Leaving Cut gizmo"
-msgstr "Quitter l’outil Couper"
-
-msgid "Cut gizmo editing"
-msgstr "Modification de la découpe"
-
-msgid "Entering Measure gizmo"
-msgstr "Entrée dans l’outil Mesurer"
-
-msgid "Leaving Measure gizmo"
-msgstr "Quitter l’outil Mesurer"
-
-msgid "Entering Assembly gizmo"
-msgstr "Entrée dans l’outil Assemblage"
-
-msgid "Leaving Assembly gizmo"
-msgstr "Quitter l’outil Assemblage"
-
-msgid "Simple settings"
-msgstr "Paramètres simples"
-
-msgid "Expert settings"
-msgstr "Paramètres expert"
-
-msgid "Type to filter..."
-msgstr "Saisissez du texte pour filtrer…"
-
-msgid "No selected items..."
-msgstr "Aucun élément sélectionné…"
-
-msgid "All items selected..."
-msgstr "Tous les éléments sont sélectionnés…"
-
-msgid "No matching items..."
-msgstr "Aucun élément correspondant…"
-
-msgid "Select visible"
-msgstr "Sélectionner les éléments visibles"
-
-msgid "Deselect visible"
-msgstr "Désélectionner les éléments visibles"
-
-msgid "Filter selected"
-msgstr "Filtrer les éléments sélectionnés"
-
-msgid "Filter nonSelected"
-msgstr "Filtrer les éléments non sélectionnés"
-
-msgid "An unexpected error occurred"
-msgstr "Une erreur inattendue s’est produite"
-
-msgid "The download has failed"
-msgstr "Le téléchargement a échoué"
-
-msgid "Can't create file at %1%"
-msgstr "Impossible de créer le fichier à l’emplacement %1%"
-
-msgid "Archive preview"
-msgstr "Aperçu de l’archive"
-
-msgid "Open File"
-msgstr "Ouvrir un fichier"
-
-msgid "Desktop Integration"
-msgstr "Intégration au bureau"
-
-msgid "Performing desktop integration failed - Could not find executable."
-msgstr "Échec de l’intégration au bureau : exécutable introuvable."
-
-msgid "Beta"
-msgstr "Bêta"
-
-msgid "Sending failed, please try again!"
-msgstr "L’envoi a échoué, veuillez réessayer !"
-
-msgid "Failed to create the temporary folder."
-msgstr "Échec de la création du dossier temporaire."
-
-msgid "PresetBundle"
-msgstr "Paquet de préréglages"
-
-msgid "ExportPresetBundle"
-msgstr "Exporter le paquet de préréglages"
-
-msgid "Save preset bundle"
-msgstr "Enregistrer le paquet de préréglages"
-
-msgid "Bundle folder does not exist."
-msgstr "Le dossier du paquet n’existe pas."
-
-msgid "Failed to open folder."
-msgstr "Impossible d’ouvrir le dossier."
-
-msgid "Delete selected bundle from folder and all presets loaded from it?"
-msgstr "Supprimer le paquet sélectionné du dossier ainsi que tous les préréglages chargés depuis celui-ci ?"
-
-msgid "Delete Bundle"
-msgstr "Supprimer le paquet"
-
-msgid "Failed to remove bundle."
-msgstr "Impossible de retirer le paquet."
-
-msgid "Remove Bundle"
-msgstr "Retirer le paquet"
-
-msgid "Unsubscribe bundle?"
-msgstr "Se désabonner du paquet ?"
-
-msgid "UnsubscribeBundle"
-msgstr "Se désabonner du paquet"
-
-msgid "Failed to unsubscribe bundle."
-msgstr "Impossible de se désabonner du paquet."
-
-msgid "Unsubscribe Bundle"
-msgstr "Se désabonner du paquet"
-
-msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
-msgstr "Le nom d’hôte/IP/URL n’a pas pu être analysé, veuillez le vérifier et réessayer."
-
-msgid "Could not parse server response."
-msgstr "Impossible d’analyser la réponse du serveur."
-
-msgid "Connected to CrealityPrint successfully!"
-msgstr "Connexion à CrealityPrint réussie !"
-
-msgid "Could not connect to CrealityPrint"
-msgstr "Impossible de se connecter à CrealityPrint"
-
-msgid "Connection to ElegooLink is working correctly."
-msgstr "La connexion à ElegooLink fonctionne correctement."
-
-msgid "Could not connect to ElegooLink"
-msgstr "Impossible de se connecter à ElegooLink"
-
-msgid "ElegooLink not detected"
-msgstr "ElegooLink non détecté"
-
-msgid "Invalid access code"
-msgstr "Code d’accès invalide"
-
-msgid "CC2 device not detected"
-msgstr "Appareil CC2 non détecté"
-
-msgid "CC2 upload failed"
-msgstr "Échec de l’envoi vers la CC2"
-
-msgid "Upload failed"
-msgstr "Échec de l’envoi"
-
-msgid "Printer returned an error"
-msgstr "L’imprimante a renvoyé une erreur"
-
-msgid "Missing system_info in response"
-msgstr "Champ system_info absent de la réponse"
-
-msgid "Missing printer serial number in response"
-msgstr "Numéro de série de l’imprimante absent de la réponse"
-
-msgid "Error parsing response"
-msgstr "Erreur lors de l’analyse de la réponse"
-
-msgid "Error code: %1%"
-msgstr "Code d’erreur : %1%"
-
-msgid "Error code not found"
-msgstr "Code d’erreur introuvable"
-
-msgid "Failed to open file for upload."
-msgstr "Impossible d’ouvrir le fichier à envoyer."
-
-msgid "Failed to read file chunk for upload."
-msgstr "Impossible de lire le fragment de fichier à envoyer."
-
-msgid "The file is empty or could not be read."
-msgstr "Le fichier est vide ou n’a pas pu être lu."
-
-msgid "Failed to calculate file checksum."
-msgstr "Impossible de calculer la somme de contrôle du fichier."
-
-msgid "The file is lost, please check and try again."
-msgstr "Le fichier est introuvable, veuillez vérifier et réessayer."
-
-msgid "The file is corrupted, please check and try again."
-msgstr "Le fichier est corrompu, veuillez vérifier et réessayer."
-
-msgid "Transmission abnormality, please check and try again."
-msgstr "Anomalie de transmission, veuillez vérifier et réessayer."
-
-msgid "The file does not match the printer, please check and try again."
-msgstr "Le fichier ne correspond pas à l’imprimante, veuillez vérifier et réessayer."
-
-msgid "Start print timeout"
-msgstr "Délai de démarrage de l’impression dépassé"
-
-msgid "Start print failed"
-msgstr "Échec du démarrage de l’impression"
-
-msgid "Error. Can't get api token for authorization"
-msgstr "Erreur : impossible d’obtenir le jeton d’API pour l’autorisation"
-
-msgid "Error saving session to file"
-msgstr "Erreur lors de l’enregistrement de la session dans un fichier"
-
-msgid "Error during file upload"
-msgstr "Erreur pendant l’envoi du fichier"
 
 #~ msgid "Cloud Error"
 #~ msgstr "Erreur cloud"
