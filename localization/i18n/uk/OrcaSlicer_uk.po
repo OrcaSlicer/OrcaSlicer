@@ -231,7 +231,7 @@ msgid "Choose filament"
 msgstr "Вибрати філамент"
 
 msgid "Edge detection"
-msgstr "ВВиявлення меж"
+msgstr "Виявлення меж"
 
 msgid "Triangles"
 msgstr "Трикутники"
