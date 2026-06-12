@@ -17272,7 +17272,7 @@ msgstr "Pode haver caracteres de escape na entrada de fornecedor ou serial do fi
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Todas as entradas no fornecedor personalizado ou serial são espaços. Por favor, insira novamente."
 
-msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr "O fornecedor não pode ser um número. Por favor, insira novamente."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."

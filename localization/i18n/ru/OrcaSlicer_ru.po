@@ -18066,7 +18066,7 @@ msgstr "В данных о производителе или серийном н
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "В поле ввода производителя/серии материала введены пробелы. Пожалуйста, введите корректные данные."
 
-msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr "Имя производителя не может начинаться с числа. Пожалуйста, введите корректное имя."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."

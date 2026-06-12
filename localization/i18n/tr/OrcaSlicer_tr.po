@@ -17158,7 +17158,7 @@ msgstr "Filamentin satıcı veya seri numarası girişinde kaçış karakterleri
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Özel satıcı veya seri numarasındaki tüm girişler boşluklardan oluşuyor. Lütfen tekrar girin."
 
-msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr "Üretici bir sayı olamaz. Lütfen tekrar girin."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."

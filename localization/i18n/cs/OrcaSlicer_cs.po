@@ -17170,7 +17170,7 @@ msgstr "V dodavateli nebo sériovém čísle filamentu mohou být únikové znak
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Všechna pole ve vlastním výrobci nebo sériovém čísle obsahují pouze mezery. Zadejte prosím znovu."
 
-msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr "Dodavatel nemůže být číslo. Zadejte prosím znovu."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."

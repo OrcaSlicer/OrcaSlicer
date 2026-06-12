@@ -17242,7 +17242,7 @@ msgstr "อาจมีอักขระหลีกในผู้ขายห
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "อินพุตทั้งหมดในผู้จำหน่ายแบบกำหนดเองหรือซีเรียลเป็นช่องว่าง กรุณาเข้าใหม่อีกครั้ง"
 
-msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr "ผู้จัดจำหน่ายไม่สามารถเป็นตัวเลขได้ กรุณาเข้าใหม่อีกครั้ง"
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
