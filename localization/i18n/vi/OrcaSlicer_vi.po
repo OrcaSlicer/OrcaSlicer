@@ -745,7 +745,7 @@ msgstr "%d tam giác"
 msgid "Show wireframe"
 msgstr "Hiện khung dây"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Không thể áp dụng khi đang xử lý xem trước."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2168,8 +2168,8 @@ msgstr "Orca String Hell"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Model này có chữ emboss trên bề mặt trên. Để có kết quả tối ưu, nên đặt 'Ngưỡng một wall (min_width_top_surface)' thành 0 để 'Chỉ một wall trên bề mặt trên' hoạt động tốt nhất.\n"
 "Yes - Thay đổi các cài đặt này tự động\n"
@@ -3874,7 +3874,7 @@ msgstr ""
 "Thông báo lỗi: %1%.\n"
 "File nguồn %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Sao chép G-code tạm thời sang G-code đầu ra thất bại"
 
 #, boost-format
@@ -6558,7 +6558,7 @@ msgstr "Không hiển thị hộp thoại này nữa"
 msgid "3D Mouse disconnected."
 msgstr "Chuột 3D đã ngắt kết nối."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Cấu hình có thể cập nhật ngay bây giờ."
 
 msgid "Detail."
@@ -6585,7 +6585,7 @@ msgstr "Có cấu hình máy in mới."
 msgid "Undo integration failed."
 msgstr "Hoàn tác tích hợp thất bại."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Đang xuất."
 
 msgid "Software has New version."
@@ -7419,10 +7419,10 @@ msgstr "Nhập lưu trữ SLA"
 msgid "The selected file"
 msgstr "File đã chọn"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "không chứa G-code hợp lệ."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Lỗi xảy ra khi tải file G-code"
 
 #. TRN %1% is archive path
@@ -7460,7 +7460,7 @@ msgstr "Đang tải G-code"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "File G-code không thể được tải cùng với model!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Không thể thêm model khi đang ở chế độ xem trước!"
 
 msgid "All objects will be removed, continue?"
@@ -9044,8 +9044,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Thay đổi các cài đặt này tự động?\n"
 "Có - Thay đổi các cài đặt này tự động\n"

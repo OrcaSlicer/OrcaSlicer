@@ -753,7 +753,7 @@ msgstr "%d trikampiai"
 msgid "Show wireframe"
 msgstr "Rodyti vielinį rėmą"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Negalima taikyti, kai atliekama proceso peržiūra."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2175,8 +2175,8 @@ msgstr "Orca stygų testas"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Šiame modelyje viršutinio paviršiaus tekstas yra išgaubtas. Norint pasiekti optimalų rezultatą, rekomenduojama nustatyti „Vienos sienelės slenkstį (minimalus viršutinio paviršiaus plotis)“ į 0, kad funkcija „Tik viena sienelė viršutiniuose paviršiuose“ veiktų geriausiai.\n"
 "\n"
@@ -3892,7 +3892,7 @@ msgstr ""
 "Klaidos pranešimas: %1%.\n"
 "Šaltinio failas: %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Nepavyko nukopijuoti laikinojo G-kodo į išvesties G-kodą"
 
 #, boost-format
@@ -6581,7 +6581,7 @@ msgstr "Daugiau nerodyti šio dialogo lango"
 msgid "3D Mouse disconnected."
 msgstr "3D pelė atjungta."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Yra nauja konfigūracija. Atnaujinti dabar?"
 
 msgid "Detail."
@@ -6608,7 +6608,7 @@ msgstr "Pasiekiama nauja spausdintuvo konfigūracija."
 msgid "Undo integration failed."
 msgstr "Integracijos atšaukimas nepavyko."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Eksportuojama."
 
 msgid "Software has New version."
@@ -7449,10 +7449,10 @@ msgstr "Importuoti SLA archyvą"
 msgid "The selected file"
 msgstr "Pasirinktame faile"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "nėra galiojančio G-kodo."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Įkeliant G-kodo failą įvyko klaida"
 
 #. TRN %1% is archive path
@@ -7490,7 +7490,7 @@ msgstr "Įkeliamas G-kodas"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-kodas negali būti įkeltas kartu su modeliais!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Negalima pridėti modelių peržiūros režime!"
 
 msgid "All objects will be removed, continue?"
@@ -9078,8 +9078,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Automatiškai pakeisti šiuos nustatymus?\n"
 "Taip - Pakeiskite šiuos nustatymus automatiškai.\n"

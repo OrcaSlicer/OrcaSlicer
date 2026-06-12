@@ -748,7 +748,7 @@ msgstr "%d 삼각형"
 msgid "Show wireframe"
 msgstr "와이어프레임 보기"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "미리 보기 진행 시 적용할 수 없습니다."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2172,8 +2172,8 @@ msgstr "Orca 스트링 지옥"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "이 모델은 상단 표면에 텍스트 엠보싱이 있습니다. 최적의 결과를 얻으려면 '상단 표면의 한 벽만'에 대해 '한 벽 임계값(min_width_top_surface)'을 0으로 설정하는 것이 가장 좋습니다.\n"
 "예 - 이 설정을 자동으로 변경합니다\n"
@@ -3878,7 +3878,7 @@ msgstr ""
 "오류 메시지: %1%.\n"
 "원본 파일 %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "출력 Gcode에 임시 Gcode를 복사하지 못했습니다"
 
 #, boost-format
@@ -6560,7 +6560,7 @@ msgstr "이 대화 상자를 다시 표시하지 마세요."
 msgid "3D Mouse disconnected."
 msgstr "3D 마우스가 분리됨."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "구성을 지금 업데이트할 수 있습니다."
 
 msgid "Detail."
@@ -6587,7 +6587,7 @@ msgstr "새로운 프린터 구성을 사용할 수 있습니다."
 msgid "Undo integration failed."
 msgstr "통합 실행 취소에 실패했습니다."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "내보내는중."
 
 msgid "Software has New version."
@@ -7418,10 +7418,10 @@ msgstr "SLA 압축파일 가져오기"
 msgid "The selected file"
 msgstr "선택한 파일"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "유효한 Gcode를 포함하지 않습니다."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Gcode 파일을 로드하는 중 오류가 발생했습니다"
 
 #. TRN %1% is archive path
@@ -7459,7 +7459,7 @@ msgstr "Gcode 불러오는 중"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "Gcode 파일은 모델과 함께 로드할 수 없습니다!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "미리보기 모드에서는 모델을 추가할 수 없습니다!"
 
 msgid "All objects will be removed, continue?"
@@ -9038,8 +9038,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "이 설정을 자동으로 변경하시겠습니까?\n"
 "예 - 이 설정을 자동으로 변경합니다\n"

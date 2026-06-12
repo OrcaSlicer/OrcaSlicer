@@ -746,7 +746,7 @@ msgstr "%d üçgen"
 msgid "Show wireframe"
 msgstr "Wireframe göster"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "İşlem önizlemesi sırasında uygulanamaz."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2167,8 +2167,8 @@ msgstr "Orca Cehennemi"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Bu modelin üst yüzeyinde metin kabartması bulunmaktadır. En iyi sonuçları elde etmek amacıyla, 'Üst Yüzeylerde Yalnızca Bir Duvar'ın en iyi şekilde çalışması için 'Tek Duvar Eşiği(min_width_top_surface)' seçeneğini 0'a ayarlamanız önerilir.\n"
 "Evet - Bu ayarları otomatik olarak değiştir\n"
@@ -3877,7 +3877,7 @@ msgstr ""
 "Hata mesajı: %1%.\n"
 "Kaynak dosya %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Geçici G kodunun çıkış G koduna kopyalanması başarısız oldu"
 
 #, boost-format
@@ -6557,7 +6557,7 @@ msgstr "Bu iletişim kutusunu bir daha gösterme"
 msgid "3D Mouse disconnected."
 msgstr "3D Fare bağlantısı kesildi."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Yapılandırma şimdi güncellenebilir."
 
 msgid "Detail."
@@ -6584,7 +6584,7 @@ msgstr "Yeni yazıcı yapılandırması mevcut."
 msgid "Undo integration failed."
 msgstr "Entegrasyon geri alınamadı."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Dışa Aktarılıyor."
 
 msgid "Software has New version."
@@ -7419,10 +7419,10 @@ msgstr "SLA arşivini içe aktar"
 msgid "The selected file"
 msgstr "Seçili dosya"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "geçerli gcode içermiyor."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "G kodu dosyası yüklenirken hata oluşuyor"
 
 #. TRN %1% is archive path
@@ -7460,7 +7460,7 @@ msgstr "G-kod yükleniyor"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G kodu dosyaları modellerle birlikte yüklenemez!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Önizleme modundayken model eklenemiyor!"
 
 msgid "All objects will be removed, continue?"
@@ -9042,8 +9042,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Bu ayarlar otomatik olarak değiştirilsin mi?\n"
 "Evet - Bu ayarları otomatik olarak değiştir\n"

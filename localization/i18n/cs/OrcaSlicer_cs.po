@@ -748,7 +748,7 @@ msgstr "%d trojúhelníků"
 msgid "Show wireframe"
 msgstr "Zobrazit drátový model"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Nelze použít při zpracování náhledu."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2165,8 +2165,8 @@ msgstr "Orca String Hell"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Tento model má textový výstupek na horním povrchu. Pro optimální výsledky doporučujeme nastavit hodnotu ‚One Wall Threshold (min_width_top_surface)‘ na 0, aby možnost ‚Pouze jedna stěna na horních površích‘ fungovala co nejlépe.\n"
 "Ano – změnit tato nastavení automaticky\n"
@@ -3878,7 +3878,7 @@ msgstr ""
 "Chybová zpráva: %1%.\n"
 "Zdrojový soubor: %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Kopírování dočasného G-kódu do výstupního G-kódu selhalo"
 
 #, boost-format
@@ -6561,7 +6561,7 @@ msgstr "Tento dialog již nezobrazovat"
 msgid "3D Mouse disconnected."
 msgstr "3D myš odpojena."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Konfiguraci lze nyní aktualizovat."
 
 msgid "Detail."
@@ -6588,7 +6588,7 @@ msgstr "K dispozici je nová konfigurace tiskárny."
 msgid "Undo integration failed."
 msgstr "Integrace zpět selhala."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Exportuji."
 
 msgid "Software has New version."
@@ -7424,10 +7424,10 @@ msgstr "Importovat SLA archiv"
 msgid "The selected file"
 msgstr "Zvolený soubor"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "neobsahuje platný G-code."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Chyba při načítání G-code souboru"
 
 #. TRN %1% is archive path
@@ -7465,7 +7465,7 @@ msgstr "Načítání G-code"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-code soubory nelze načíst společně s modely!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Nelze přidávat modely v režimu náhledu!"
 
 msgid "All objects will be removed, continue?"
@@ -9045,8 +9045,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Změnit tato nastavení automaticky?\n"
 "Ano – změnit tato nastavení automaticky\n"

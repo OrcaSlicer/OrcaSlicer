@@ -750,7 +750,7 @@ msgstr "%d trójkątów"
 msgid "Show wireframe"
 msgstr "Pokaż siatkę"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Nie można zastosować w czasie podglądu procesu."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2165,8 +2165,8 @@ msgstr "Orca String Hell"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Ten model posiada wytłoczenia tekstu na górnej powierzchni. Dla optymalnych wyników zaleca się ustawienie „Próg jednej ściany (min_width_top_surface)” na 0, aby opcja „Tylko jedna ściana na górnych powierzchniach” działała najlepiej.\n"
 "Tak - Zmień te ustawienia automatycznie\n"
@@ -3883,7 +3883,7 @@ msgstr ""
 "Wiadomość o błędzie: %1%.\n"
 "Plik źródłowy %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Kopiowanie tymczasowego G-kodu do G-kodu wyjściowego nie powiodło się"
 
 #, boost-format
@@ -6566,7 +6566,7 @@ msgstr "Nie pokazuj tego okna dialogowego ponownie"
 msgid "3D Mouse disconnected."
 msgstr "Mysz 3D niepodłączona."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Konfiguracja może teraz zostać zaktualizowana."
 
 msgid "Detail."
@@ -6593,7 +6593,7 @@ msgstr "Dostępna jest nowa konfiguracja drukarki."
 msgid "Undo integration failed."
 msgstr "Cofnij nieudaną integrację."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Eksportuj."
 
 msgid "Software has New version."
@@ -7431,10 +7431,10 @@ msgstr "Importuj archiwum SLA"
 msgid "The selected file"
 msgstr "Wybrany plik"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "nie zawiera prawidłowego G-code."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Wystąpił błąd podczas wczytywania pliku z G-code"
 
 #. TRN %1% is archive path
@@ -7472,7 +7472,7 @@ msgstr "Wczytywanie pliku G-code"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "Pliki G-code nie mogą być wczytywane razem z modelami!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Nie można dodawać modeli w trybie podglądu!"
 
 msgid "All objects will be removed, continue?"
@@ -9046,8 +9046,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Zmienić te ustawienia automatycznie?\n"
 "Tak - Zmień te ustawienia automatycznie\n"
@@ -21484,7 +21484,7 @@ msgstr ""
 
 #~ msgid ""
 #~ "Change these settings automatically?\n"
-#~ "Yes - Change these settings automatically\n"
+#~ "Yes - Change these settings automatically.\n"
 #~ "No - Do not change these settings for me"
 #~ msgstr ""
 #~ "Zmienić te ustawienia automatycznie?\n"

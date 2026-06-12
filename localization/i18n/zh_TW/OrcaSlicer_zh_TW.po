@@ -750,7 +750,7 @@ msgstr "%d 個三角形"
 msgid "Show wireframe"
 msgstr "顯示線框"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "處理預覽的過程中無法套用。"
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2163,8 +2163,8 @@ msgstr "Orca 拉絲測試"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "這個模型在頂部表面具有文字浮雕效果。為了達到最佳效果，建議將「One Wall Threshold（min_width_top_surface）」設為 0，以便「僅在頂部表面用一層牆壁」能夠最佳運作。\n"
 "是 - 自動更改這些設定\n"
@@ -3876,7 +3876,7 @@ msgstr ""
 "錯誤資訊：%1%。\n"
 "原始檔 %2%。"
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "將臨時 G-Code 複製到輸出 G-Code 失敗"
 
 #, boost-format
@@ -6580,7 +6580,7 @@ msgstr "不要再顯示此提示"
 msgid "3D Mouse disconnected."
 msgstr "3D 滑鼠已中斷連接。"
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "設定檔現在可以升級。"
 
 msgid "Detail."
@@ -6607,7 +6607,7 @@ msgstr "有新的列印設備設定可用。"
 msgid "Undo integration failed."
 msgstr "整合取消失敗。"
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "正在匯出。"
 
 msgid "Software has New version."
@@ -7435,10 +7435,10 @@ msgstr "匯入 SLA 存檔"
 msgid "The selected file"
 msgstr "已選擇的檔案"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "不包含有效的 G-code 檔案。"
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "載入 G-code 檔案時遇到錯誤"
 
 #. TRN %1% is archive path
@@ -7476,7 +7476,7 @@ msgstr "正在載入 G-code 檔案"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-code 檔案不能和模型一起載入！"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "在預覽模式不允許增加模型！"
 
 msgid "All objects will be removed, continue?"
@@ -9058,8 +9058,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "自動調整這些設定？\n"
 "是 - 自動調整這些設定\n"

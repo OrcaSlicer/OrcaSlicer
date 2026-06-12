@@ -751,7 +751,7 @@ msgstr "%d triangles"
 msgid "Show wireframe"
 msgstr "Mostra estructura de xarxa"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "No es pot aplicar quan es previsualitza el processament."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2173,8 +2173,8 @@ msgstr "Infern de Fils d'Orca"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Aquest model compta amb relleu de text a la superfície superior. Per obtenir resultats òptims, és recomanable establir el \"Llindar d'una paret (min_width_top_surface)\" a 0 perquè \"Només una paret a les superfícies superiors\" funcioni millor.\n"
 "Sí: Canviar aquesta configuració automàticament\n"
@@ -3884,7 +3884,7 @@ msgstr ""
 "Missatge d'error: %1%.\n"
 "Fitxer origen %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Error en copiar el Codi-G temporal al Codi-G de sortida"
 
 #, boost-format
@@ -6567,7 +6567,7 @@ msgstr "No tornis a mostrar aquest diàleg"
 msgid "3D Mouse disconnected."
 msgstr "S'ha desconnectat el ratolí 3D."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "La configuració es pot actualitzar ara."
 
 msgid "Detail."
@@ -6594,7 +6594,7 @@ msgstr "Nova configuració d'impressora disponible."
 msgid "Undo integration failed."
 msgstr "L'operació de desfer ha fallat."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Exportant."
 
 msgid "Software has New version."
@@ -7435,10 +7435,10 @@ msgstr "Importar fitxer SLA"
 msgid "The selected file"
 msgstr "El fitxer seleccionat"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "no conté Codi-G vàlid."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Es produeix un error en carregar el fitxer de Codi-G"
 
 #. TRN %1% is archive path
@@ -7476,7 +7476,7 @@ msgstr "Càrrega del Codi-G"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "Els fitxers de Codi-G no es poden carregar amb els models junts!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "No es poden afegir models en mode de previsualització!"
 
 msgid "All objects will be removed, continue?"
@@ -9064,8 +9064,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Canviar aquesta configuració automàticament?\n"
 "Sí: Canviar aquesta configuració automàticament\n"

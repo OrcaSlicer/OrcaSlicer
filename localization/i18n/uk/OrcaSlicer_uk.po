@@ -755,7 +755,7 @@ msgstr "%d трикутники"
 msgid "Show wireframe"
 msgstr "Показати каркас"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Не можна застосовувати під час попереднього перегляду процесу."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2166,8 +2166,8 @@ msgstr "«Струнне пекло» Orca"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Ця модель має тиснення тексту на верхній поверхні. Для отримання оптимальних результатів рекомендується встановити \"Поріг однієї стіни (min_width_top_surface)\" на 0, щоб функція \"Тільки одна стіна на верхній поверхні\" працювала найкраще.\n"
 "Так - змінювати ці налаштування автоматично\n"
@@ -3887,7 +3887,7 @@ msgstr ""
 "Повідомлення про помилку: %1%.\n"
 "Початковий файл %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Не вдалося скопіювати тимчасовий G-код у вихідний G-код"
 
 #, boost-format
@@ -6572,7 +6572,7 @@ msgstr "Більше не показувати це діалогове вікн�
 msgid "3D Mouse disconnected."
 msgstr "3D-миша відключена."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Конфігурацію можна оновити зараз."
 
 msgid "Detail."
@@ -6599,7 +6599,7 @@ msgstr "Доступна нова конфігурація принтера."
 msgid "Undo integration failed."
 msgstr "Скасувати інтеграцію не вдалося."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Експорт."
 
 msgid "Software has New version."
@@ -7446,10 +7446,10 @@ msgid "The selected file"
 msgstr "Вибраний файл"
 
 #, fuzzy
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "не містить дійсний gcode."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Помилка під час завантаження файлу G-коду"
 
 #. TRN %1% is archive path
@@ -7487,7 +7487,7 @@ msgstr "Завантаження G-коду"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "Файли G-коду не можна завантажувати разом із моделями!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Неможливо додати моделі у режимі попереднього перегляду!"
 
 msgid "All objects will be removed, continue?"
@@ -9053,8 +9053,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Змінити ці налаштування автоматично?\n"
 "Так - Змінити ці налаштування автоматично\n"

@@ -743,7 +743,7 @@ msgstr "%d háromszög"
 msgid "Show wireframe"
 msgstr "Drótváz megjelenítése"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Nem használható folyamat előnézetben."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2169,8 +2169,8 @@ msgstr "Orca szálazási pokol"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Ez a modell szöveges dombornyomást tartalmaz a felső felületen. Az optimális eredményhez javasolt a 'Egy fal küszőb (min_width_top_surface)' értékét 0-ra állítani, hogy az 'Csak egy fal a felső felületeken' funkció a legjobban működjön.\n"
 "Igen - A beállítások automatikus módosítása\n"
@@ -3880,7 +3880,7 @@ msgstr ""
 "Hibaüzenet: %1%.\n"
 "Forrás fájl: %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni."
 
 #, boost-format
@@ -6567,7 +6567,7 @@ msgstr "Ne jelenjen meg többé ez a párbeszédablak"
 msgid "3D Mouse disconnected."
 msgstr "3D Mouse csatlakoztatva."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "A konfiguráció már frissíthető."
 
 msgid "Detail."
@@ -6594,7 +6594,7 @@ msgstr "Új nyomtatókonfiguráció érhető el."
 msgid "Undo integration failed."
 msgstr "Az integráció visszavonása nem sikerült."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Exportálás."
 
 msgid "Software has New version."
@@ -7426,10 +7426,10 @@ msgstr "SLA archívum importálása"
 msgid "The selected file"
 msgstr "A kiválasztott fájl"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "nem tartalmaz érvényes G-kódot."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Hiba a G-kód betöltésének során"
 
 #. TRN %1% is archive path
@@ -7467,7 +7467,7 @@ msgstr "G-code betöltése"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "A G-code fájlokat nem lehet a modellekkel együtt betölteni!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Előnézeti módban nem lehet modelleket hozzáadni!"
 
 msgid "All objects will be removed, continue?"
@@ -9069,8 +9069,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Automatikusan megváltoztatod ezeket a beállításokat?\n"
 "Igen  - Módosítsa ezeket a beállításokat\n"

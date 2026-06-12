@@ -746,7 +746,7 @@ msgstr "%d driehoeken"
 msgid "Show wireframe"
 msgstr "Draadmodel tonen"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Kan niet toepassen bij een voorvertoning."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2166,12 +2166,12 @@ msgstr "Orca String Hell"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 
 msgid "Suggestion"
 msgstr "Suggestie"
@@ -3877,7 +3877,7 @@ msgstr ""
 "Foutmelding: %1%.\n"
 "Bronbestand %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Het kopiëren van de tijdelijke G-code naar de G-uitvoercode is mislukt."
 
 #, boost-format
@@ -6560,7 +6560,7 @@ msgstr "Don't show this dialog again"
 msgid "3D Mouse disconnected."
 msgstr "3D-muis losgekoppeld."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Er is een nieuwe configuratie beschikbaar. Wilt u updaten?"
 
 msgid "Detail."
@@ -6587,7 +6587,7 @@ msgstr "Nieuwe printerconfiguratie beschikbaar."
 msgid "Undo integration failed."
 msgstr "Het ongedaan maken van de integratie is mislukt."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Exporteren."
 
 msgid "Software has New version."
@@ -7425,10 +7425,10 @@ msgstr "Importeer SLA-archief"
 msgid "The selected file"
 msgstr "Het geselecteerde bestand"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "Bevat geen geldige G-code"
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Er is een fout opgetreden tijdens het laden van het G-codebestand."
 
 #. TRN %1% is archive path
@@ -7466,7 +7466,7 @@ msgstr "G-Code wordt geladen"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-Code bestanden en modellen kunnen niet tegelijk geladen worden!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Modellen kunnen niet worden toegevoegd in voorbeeldmodus"
 
 msgid "All objects will be removed, continue?"
@@ -9054,8 +9054,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Deze instellingen automatisch wijzigen?\n"
 "Ja - Wijzig deze instellingen automatisch\n"

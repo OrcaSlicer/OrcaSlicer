@@ -743,7 +743,7 @@ msgstr "%d trianglar"
 msgid "Show wireframe"
 msgstr "Visa trådram"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "Kan inte tillämpas när processen förhandsgranskas."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2162,12 +2162,12 @@ msgstr "Orca String Hell"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 
 msgid "Suggestion"
 msgstr "Förslag"
@@ -3873,7 +3873,7 @@ msgstr ""
 "Felmeddelande: %1%.\n"
 "Source file %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Kopiering av den tillfälliga G-koden till utgången G-kod misslyckades."
 
 #, boost-format
@@ -6557,7 +6557,7 @@ msgstr "Don't show this dialog again"
 msgid "3D Mouse disconnected."
 msgstr "3D mus bortkopplad."
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "Ny konfiguration upptäckt! Uppdatera nu?"
 
 msgid "Detail."
@@ -6584,7 +6584,7 @@ msgstr "Ny printer konfiguration tillgänglig."
 msgid "Undo integration failed."
 msgstr "Återställande av integrationen misslyckades."
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "Exporterar."
 
 msgid "Software has New version."
@@ -7421,10 +7421,10 @@ msgstr "Import SLA archive"
 msgid "The selected file"
 msgstr "Den valda filen"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "Innehåller ingen giltlig G-kod."
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Fel uppstod vid laddningen av G-kod"
 
 #. TRN %1% is archive path
@@ -7462,7 +7462,7 @@ msgstr "Laddar G-kod"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-kod filer och modeller kan inte laddas tillsammans!!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "Det gick inte att lägga till modeller i förhandsvisningsläge"
 
 msgid "All objects will be removed, continue?"
@@ -9048,8 +9048,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "Ändra dessa inställningar automatiskt?\n"
 "Ja - Ändra dessa inställningar automatiskt.\n"

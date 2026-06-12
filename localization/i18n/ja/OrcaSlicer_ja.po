@@ -744,7 +744,7 @@ msgstr "%d 個の三角形"
 msgid "Show wireframe"
 msgstr "ワイヤフレームを表示"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "プレビュー処理中は適用できません"
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2165,8 +2165,8 @@ msgstr "Orca String Hell"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "このモデルの上面にはテキストのエンボスがあります。最適な結果を得るには、「上面のみ1壁」が最適に動作するよう「1壁しきい値（min_width_top_surface）」を0に設定することをお勧めします。\n"
 "はい - これらの設定を自動的に変更する\n"
@@ -3863,7 +3863,7 @@ msgstr ""
 "エラーメッセージ：%1%\n"
 "ソース ファイル %2%"
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "G-codeの出力が失敗しました"
 
 #, boost-format
@@ -6523,7 +6523,7 @@ msgstr "このダイアログを再度表示しない"
 msgid "3D Mouse disconnected."
 msgstr "3D Mouseが切断されました。"
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "新しい構成が使用できます。今すぐアップデートしますか？"
 
 msgid "Detail."
@@ -6550,7 +6550,7 @@ msgstr "新しいプリンター設定が利用可能です。"
 msgid "Undo integration failed."
 msgstr "統合の取り消しに失敗しました。"
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "エクスポート中"
 
 msgid "Software has New version."
@@ -7385,10 +7385,10 @@ msgstr "SLAアーカイブをインポート"
 msgid "The selected file"
 msgstr "選択したファイル"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "有効なG-codeが含まれていません。"
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "G-codeファイルの読込みにエラーが発生しました"
 
 #. TRN %1% is archive path
@@ -7426,7 +7426,7 @@ msgstr "G-code読込み中"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-codeファイルとモデルを一緒にロードできません"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "プレビューモードではモデルを追加できません"
 
 msgid "All objects will be removed, continue?"
@@ -9014,8 +9014,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "これらの設定を自動的に変更しますか?\n"
 "はい - 自動的に変更します\n"

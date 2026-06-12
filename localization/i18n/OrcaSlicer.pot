@@ -745,7 +745,7 @@ msgstr ""
 msgid "Show wireframe"
 msgstr ""
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr ""
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2133,8 +2133,8 @@ msgstr ""
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 
 msgid "Suggestion"
@@ -3806,7 +3806,7 @@ msgid ""
 "Source file %2%."
 msgstr ""
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr ""
 
 #, possible-boost-format
@@ -6405,7 +6405,7 @@ msgstr ""
 msgid "3D Mouse disconnected."
 msgstr ""
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr ""
 
 msgid "Detail."
@@ -6432,7 +6432,7 @@ msgstr ""
 msgid "Undo integration failed."
 msgstr ""
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr ""
 
 msgid "Software has New version."
@@ -7244,10 +7244,10 @@ msgstr ""
 msgid "The selected file"
 msgstr ""
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr ""
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr ""
 
 #. TRN %1% is archive path
@@ -7285,7 +7285,7 @@ msgstr ""
 msgid "G-code files cannot be loaded with models together!"
 msgstr ""
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr ""
 
 msgid "All objects will be removed, continue?"
@@ -8833,8 +8833,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 
 msgid ""

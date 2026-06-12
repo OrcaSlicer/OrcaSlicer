@@ -748,7 +748,7 @@ msgstr "%d รูปสามเหลี่ยม"
 msgid "Show wireframe"
 msgstr "แสดงโครงลวด"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "ใช้ไม่ได้เมื่อประมวลผลการแสดงตัวอย่าง"
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2173,8 +2173,8 @@ msgstr "ออร์ก้าสตริงนรก"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "รุ่นนี้มีข้อความนูนบนพื้นผิวด้านบน เพื่อให้ได้ผลลัพธ์ที่ดีที่สุด ขอแนะนำให้ตั้งค่า 'เกณฑ์ผนังด้านเดียว (min_width_top_surface)' เป็น 0 เพื่อให้ 'ผนังด้านเดียวเท่านั้นบนพื้นผิวด้านบน' เพื่อให้ทำงานได้ดีที่สุด\n"
 "ใช่ - เปลี่ยนการตั้งค่าเหล่านี้โดยอัตโนมัติ\n"
@@ -3878,7 +3878,7 @@ msgstr ""
 "ข้อความแสดงข้อผิดพลาด: %1%\n"
 "ไฟล์ต้นฉบับ %2%"
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "การคัดลอก G-code ชั่วคราวไปยังเอาต์พุต G-code ล้มเหลว"
 
 #, boost-format
@@ -6558,7 +6558,7 @@ msgstr "อย่าแสดงกล่องโต้ตอบนี้อี
 msgid "3D Mouse disconnected."
 msgstr "เมาส์ 3D ถูกตัดการเชื่อมต่อ"
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "การกำหนดค่าสามารถอัปเดตได้ทันที"
 
 msgid "Detail."
@@ -6585,7 +6585,7 @@ msgstr "มีการกำหนดค่าเครื่องพิมพ
 msgid "Undo integration failed."
 msgstr "เลิกทำการผสานรวมล้มเหลว"
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "กำลังส่งออก"
 
 msgid "Software has New version."
@@ -7416,10 +7416,10 @@ msgstr "นำเข้าเอกสาร SLA"
 msgid "The selected file"
 msgstr "ไฟล์ที่เลือก"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "ไม่มีรหัส G ที่ถูกต้อง"
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "เกิดข้อผิดพลาดขณะโหลดไฟล์ G-code"
 
 #. TRN %1% is archive path
@@ -7457,7 +7457,7 @@ msgstr "กำลังโหลดรหัส G"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "ไม่สามารถโหลดไฟล์ G-code กับโมเดลด้วยกันได้!"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "ไม่สามารถเพิ่มโมเดลได้เมื่ออยู่ในโหมดแสดงตัวอย่าง!"
 
 msgid "All objects will be removed, continue?"
@@ -9052,8 +9052,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "เปลี่ยนการตั้งค่าเหล่านี้โดยอัตโนมัติหรือไม่\n"
 "ใช่ - เปลี่ยนการตั้งค่าเหล่านี้โดยอัตโนมัติ\n"

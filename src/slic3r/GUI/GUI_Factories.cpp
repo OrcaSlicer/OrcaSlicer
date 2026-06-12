@@ -626,8 +626,8 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                             wxString msg_text = _L("This model features text embossment on the top surface. For optimal results, it is "
                                                    "advisable to set the 'One Wall Threshold (min_width_top_surface)' "
                                                    "to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-                                                   "Yes - Change these settings automatically\n"
-                                                   "No  - Do not change these settings for me");
+                                                   "Yes - Change these settings automatically.\n"
+                                                   "No  - Do not change these settings for me.");
 
                             MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
                             if (dialog.ShowModal() == wxID_YES) {

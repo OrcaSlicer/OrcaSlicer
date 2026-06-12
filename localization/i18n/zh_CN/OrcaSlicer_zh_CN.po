@@ -747,7 +747,7 @@ msgstr "%d 个三角形"
 msgid "Show wireframe"
 msgstr "显示线框"
 
-msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "处理预览的过程中无法应用。"
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -2171,8 +2171,8 @@ msgstr "Orca拉丝地狱"
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "该模型顶面具有文字浮雕。\n"
 "为了获得最佳效果，我们推荐您将“单层墙阈值”设置为 0 以使“仅首层单层墙”效果最佳。\n"
@@ -3870,7 +3870,7 @@ msgstr ""
 "错误信息：%1%。\n"
 "源文件 %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "将临时 G 代码复制到输出 G 代码失败"
 
 #, boost-format
@@ -6545,7 +6545,7 @@ msgstr "不再显示此对话框？"
 msgid "3D Mouse disconnected."
 msgstr "3D鼠标断连。"
 
-msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "配置现在可以升级。"
 
 msgid "Detail."
@@ -6572,7 +6572,7 @@ msgstr "有新的打印机配置可用。"
 msgid "Undo integration failed."
 msgstr "集成取消失败。"
 
-msgid "Exporting."
+msgid "Exporting"
 msgstr "正在导出。"
 
 msgid "Software has New version."
@@ -7395,10 +7395,10 @@ msgstr "导入 SLA 存档"
 msgid "The selected file"
 msgstr "已选择的文件"
 
-msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "不包含有效的G-code文件。"
 
-msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "加载G-code文件时遇到错误"
 
 #. TRN %1% is archive path
@@ -7436,7 +7436,7 @@ msgstr "正在加载G-code文件"
 msgid "G-code files cannot be loaded with models together!"
 msgstr "G-code文件不能和模型一起加载"
 
-msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode."
 msgstr "在预览模式不允许添加模型"
 
 msgid "All objects will be removed, continue?"
@@ -9024,8 +9024,8 @@ msgstr ""
 
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "自动调整这些设置？\n"
 "是 - 自动调整这些设置\n"
