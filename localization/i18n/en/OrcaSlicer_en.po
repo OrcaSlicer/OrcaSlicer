@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 16:07-0300\n"
-"PO-Revision-Date: 2026-06-12 17:53-0300\n"
+"PO-Revision-Date: 2026-06-12 19:00-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
 "Language: en\n"
@@ -8488,7 +8488,7 @@ msgid "The printer type selected when generating G-code is not consistent with t
 msgstr ""
 
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
-msgstr "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
+msgstr ""
 
 msgid "Please check the following:"
 msgstr ""
@@ -12562,7 +12562,7 @@ msgid "Fuzzy skin thickness"
 msgstr ""
 
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
-msgstr "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
+msgstr ""
 
 msgid "Fuzzy skin point distance"
 msgstr ""
