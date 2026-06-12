@@ -15830,7 +15830,7 @@ msgstr "Скорость печати верхних сплошных повер
 msgid "Top shell layers"
 msgstr "Сплошных слоёв сверху"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Количество сплошных слоёв при печати верхней поверхности модели. Если толщина, рассчитанная с помощью этого значения, меньше толщины оболочки сверху, количество сплошных слоёв сверху будет увеличено."
 
 msgid "Top solid layers"

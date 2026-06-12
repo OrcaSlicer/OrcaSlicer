@@ -15129,7 +15129,7 @@ msgstr "ความเร็วของไส้ในพื้นผิวด
 msgid "Top shell layers"
 msgstr "เลเยอร์ผนังด้านบน"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "นี่คือจำนวนชั้นทึบของเปลือกด้านบน รวมถึงชั้นผิวด้านบนด้วย เมื่อความหนาที่คำนวณโดยค่านี้บางกว่าความหนาของเปลือกด้านบน ชั้นเปลือกด้านบนจะเพิ่มขึ้น"
 
 msgid "Top solid layers"

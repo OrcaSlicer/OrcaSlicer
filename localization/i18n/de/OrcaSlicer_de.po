@@ -15249,7 +15249,7 @@ msgstr "Geschwindigkeit der massiven Füllung der Oberseite."
 msgid "Top shell layers"
 msgstr "Obere Schalenschichten"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Dies ist die Anzahl der massiven Schichten der oberen Schale, einschließlich der Oberflächenschicht. Wenn die mit diesem Wert berechnete Dicke dünner ist als die Dicke der oberen Schale, werden die Schichten der oberen Schale erhöht."
 
 msgid "Top solid layers"

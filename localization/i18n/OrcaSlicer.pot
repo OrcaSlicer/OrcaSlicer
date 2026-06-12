@@ -14518,7 +14518,7 @@ msgstr ""
 msgid "Top shell layers"
 msgstr ""
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr ""
 
 msgid "Top solid layers"

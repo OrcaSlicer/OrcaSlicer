@@ -15064,7 +15064,7 @@ msgstr "Dit is de snelheid voor de solide vulling (infill) van de bovenste laag"
 msgid "Top shell layers"
 msgstr "Aantal lagen bovenkant"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Dit is het aantal solide lagen van de bovenkant, inclusief de bovenste oppervlaktelaag. Wanneer de door deze waarde berekende dikte dunner is dan de dikte van de bovenste laag, worden de bovenste lagen vergroot"
 
 msgid "Top solid layers"

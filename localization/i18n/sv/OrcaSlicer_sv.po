@@ -15057,7 +15057,7 @@ msgstr "Hastighet för solida topp ytors ifyllnad"
 msgid "Top shell layers"
 msgstr "Övre skal lager"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Antal solida topp lager på topp skal, inkluderar topp ytans lager. När tjockleken kalkyleras av detta värde och det är tunnare än topp skalets tjocklek, kommer toppskalets lager att öka"
 
 msgid "Top solid layers"

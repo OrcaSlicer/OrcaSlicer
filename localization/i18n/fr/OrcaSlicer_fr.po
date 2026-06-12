@@ -15264,7 +15264,7 @@ msgstr "Vitesse de remplissage de la surface supérieure qui est solide"
 msgid "Top shell layers"
 msgstr "Couches supérieures de la coque"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Il s'agit du nombre de couches solides de la coque supérieure, y compris la couche de surface supérieure. Lorsque l'épaisseur calculée par cette valeur est plus fine que l'épaisseur de la coque supérieure, les couches de la coque supérieure seront augmentées"
 
 msgid "Top solid layers"

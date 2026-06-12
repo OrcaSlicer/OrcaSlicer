@@ -15035,7 +15035,7 @@ msgstr "Швидкість суцільного заповнення верхн�
 msgid "Top shell layers"
 msgstr "Шари верхньої оболонки"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Це кількість суцільних шарів верхньої оболонки, включаючи верхнійповерхневий шар. Якщо товщина, розрахована за цим значенням, меншатовщини верхньої оболонки, то верхні шари оболонки будуть збільшені"
 
 msgid "Top solid layers"

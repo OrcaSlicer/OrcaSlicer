@@ -15082,7 +15082,7 @@ msgstr "Velocitat del farciment de la superfície superior que és sòlida"
 msgid "Top shell layers"
 msgstr "Capes sòlides de la carcassa superior"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Aquest és el nombre de capes sòlides de la carcassa superior, inclosa la capa superficial superior. Quan el gruix calculat per aquest valor sigui més prim que el gruix de la carcassa superior, s'incrementaran les capes superiors de la carcassa"
 
 msgid "Top solid layers"

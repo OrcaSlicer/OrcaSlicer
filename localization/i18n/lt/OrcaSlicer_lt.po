@@ -15095,7 +15095,7 @@ msgstr "Viršutinio vientiso paviršiaus užpildo greitis."
 msgid "Top shell layers"
 msgstr "Viršutiniai apvalkalo sluoksniai"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Tai viršutinio apvalkalo vientisų sluoksnių skaičius, įskaitant viršutinį paviršiaus sluoksnį. Kai pagal šią reikšmę apskaičiuotas storis yra plonesnis už viršutinio apvalkalo storį, viršutinio apvalkalo sluoksnių skaičius bus padidintas."
 
 msgid "Top solid layers"

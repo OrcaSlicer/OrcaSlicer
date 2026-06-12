@@ -15055,7 +15055,7 @@ msgstr "Rychlost výplně horního povrchu, která je plná."
 msgid "Top shell layers"
 msgstr "Vrstvy horního pláště"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Toto je počet pevných vrstev horní skořepiny, včetně horního povrchu. Pokud je tloušťka vypočítaná touto hodnotou menší než tloušťka horní skořepiny, počet horních vrstev se zvýší."
 
 msgid "Top solid layers"

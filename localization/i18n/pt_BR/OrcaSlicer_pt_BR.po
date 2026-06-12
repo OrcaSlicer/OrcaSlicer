@@ -15159,7 +15159,7 @@ msgstr "Velocidade de preenchimento da superfície superior, que é sólida."
 msgid "Top shell layers"
 msgstr "Camadas de topo da casca"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Este é o número de camadas sólidas da casca do topo, incluindo a camada da superfície superior. Quando a espessura calculada por este valor for menor do que a espessura da casca do topo, as camadas da casca do topo serão aumentadas."
 
 msgid "Top solid layers"

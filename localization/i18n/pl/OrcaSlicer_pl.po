@@ -15012,7 +15012,7 @@ msgstr "Prędkość wypełnienia górnej powierzchni, która jest zwarta"
 msgid "Top shell layers"
 msgstr "Górne warstwy powłoki"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "To jest liczba pełnych warstw górnej powłoki, włączając w to górną powierzchnie. Jeżeli grubość obliczona na podstawie tej wartości jest mniejsza niż grubość górnej powłoki, liczba warstw górnej powłoki zostanie zwiększona"
 
 msgid "Top solid layers"

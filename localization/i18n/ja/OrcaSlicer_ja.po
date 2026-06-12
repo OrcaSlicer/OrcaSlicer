@@ -14751,7 +14751,7 @@ msgstr "トップ面のインフィルの造形速度です。"
 msgid "Top shell layers"
 msgstr "トップ面層数"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "トップ面に使用するソリッド層数です。この値がトップ面の厚みより小さい場合、層数を増やして厚みに合わせます。"
 
 msgid "Top solid layers"

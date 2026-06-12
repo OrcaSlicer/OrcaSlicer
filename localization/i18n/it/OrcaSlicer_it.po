@@ -15127,7 +15127,7 @@ msgstr "Velocità per il riempimento delle superfici solide superiori."
 msgid "Top shell layers"
 msgstr "Strati guscio superiore"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Indica il numero di strati solidi del guscio superiore, compreso lo strato della superficie superiore. Se lo spessore calcolato con questo valore è più sottile dello spessore del guscio superiore, gli strati del guscio superiore verranno aumentati."
 
 msgid "Top solid layers"

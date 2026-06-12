@@ -15000,7 +15000,7 @@ msgstr "頂面實心填充的速度"
 msgid "Top shell layers"
 msgstr "頂部外殼層數"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "頂部外殼實心層層數，包括頂面。當由該層數計算的厚度小於頂部外殼厚度，切片時會增加頂部外殼的層數"
 
 msgid "Top solid layers"

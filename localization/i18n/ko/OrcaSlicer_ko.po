@@ -14993,7 +14993,7 @@ msgstr "꽉찬 상단 표면 채우기 속도"
 msgid "Top shell layers"
 msgstr "상단 쉘 레이어"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "상단 표면을 포함한 상단 쉘의 꽉찬 레이어 수입니다. 이 값으로 계산한 두께가 상단 쉘 두께보다 얇으면 상단 쉘 레이어가 증가합니다"
 
 msgid "Top solid layers"

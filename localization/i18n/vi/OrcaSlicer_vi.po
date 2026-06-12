@@ -15048,7 +15048,7 @@ msgstr "Tốc độ của infill bề mặt trên là đặc."
 msgid "Top shell layers"
 msgstr "Lớp vỏ trên"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Đây là số lượng lớp đặc của vỏ trên, bao gồm lớp bề mặt trên. Khi độ dày được tính bởi giá trị này mỏng hơn độ dày vỏ trên, các lớp vỏ trên sẽ được tăng lên."
 
 msgid "Top solid layers"

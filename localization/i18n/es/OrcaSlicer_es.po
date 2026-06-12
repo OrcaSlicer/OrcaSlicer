@@ -15259,7 +15259,7 @@ msgstr "Velocidad del relleno de la superficie superior que es sólida."
 msgid "Top shell layers"
 msgstr "Capas de la cubierta superior"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased."
 msgstr "Es el número de capas sólidas de la cubierta superior, incluida la capa superficial superior. Si el grosor calculado por este valor es menor que el grosor de la cubierta superior, las capas de la cubierta superior se incrementarán."
 
 msgid "Top solid layers"
