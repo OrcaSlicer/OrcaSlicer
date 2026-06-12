@@ -3330,7 +3330,7 @@ msgstr "Tempo rimanente: %dmin%ds"
 msgid "Importing SLA archive"
 msgstr "Importa archivio SLA"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "L'archivio SLA non contiene profili. Attivare alcuni profili di stampanti SLA prima di importare l'archivio SLA."
 
 msgid "Importing canceled."

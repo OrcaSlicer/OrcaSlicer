@@ -3335,7 +3335,7 @@ msgstr "Temps restant: %dmin%ds"
 msgid "Importing SLA archive"
 msgstr "S'està important l'arxiu SLA"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "El fitxer SLA no conté cap perfil. Si us plau, primer activeu algun perfil de la impressora SLA abans d'importar aquest fitxer SLA."
 
 msgid "Importing canceled."

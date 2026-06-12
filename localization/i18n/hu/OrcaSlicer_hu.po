@@ -3329,7 +3329,7 @@ msgstr "Hátralévő idő: %d perc %d mp"
 msgid "Importing SLA archive"
 msgstr "SLA archívum importálása"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "Az SLA archívum nem tartalmaz beállításokat. Az SLA archívum importálása előtt aktiválj egy SLA nyomtatóbeállítást."
 
 msgid "Importing canceled."

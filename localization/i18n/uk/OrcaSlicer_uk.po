@@ -3340,7 +3340,7 @@ msgstr ""
 msgid "Importing SLA archive"
 msgstr "Імпорт архіву SLA"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr ""
 "Архів SLA не містить пресетів. Будь ласка, активуйте SLA\n"
 "Перед встановленням принтера, перш ніж імпортувати цей архів SLA."

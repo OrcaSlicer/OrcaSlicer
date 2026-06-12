@@ -3341,7 +3341,7 @@ msgstr "Remaining time: %dmin%ds"
 msgid "Importing SLA archive"
 msgstr "Importuojamas SLA archyvas"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "SLA archyve nėra jokių išankstinių nustatymų. Prieš importuodami SLA archyvą, pirmiausia suaktyvinkite SLA spausdintuvo nustatymą."
 
 msgid "Importing canceled."

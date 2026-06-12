@@ -3327,7 +3327,7 @@ msgstr "เวลาที่เหลือ: %d นาที %d วินาท
 msgid "Importing SLA archive"
 msgstr "การนำเข้าไฟล์เก็บถาวร SLA"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "ไฟล์เก็บถาวร SLA ไม่มีการตั้งค่าล่วงหน้าใดๆ โปรดเปิดใช้งานเครื่องพิมพ์ SLA ที่ตั้งไว้ล่วงหน้าก่อนที่จะนำเข้าไฟล์เก็บถาวร SLA นั้น"
 
 msgid "Importing canceled."

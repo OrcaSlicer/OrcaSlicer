@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 16:07-0300\n"
-"PO-Revision-Date: 2026-06-12 19:08-0300\n"
+"PO-Revision-Date: 2026-06-12 19:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
 "Language: en\n"
@@ -3271,8 +3271,8 @@ msgstr ""
 msgid "Importing SLA archive"
 msgstr ""
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
-msgstr "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
+msgstr ""
 
 msgid "Importing canceled."
 msgstr ""
@@ -10560,7 +10560,7 @@ msgid "Please select \"By object\" print sequence to print multiple objects in s
 msgstr ""
 
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
-msgstr "Spiral (vase) mode does not work when an object contains more than one material."
+msgstr ""
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."

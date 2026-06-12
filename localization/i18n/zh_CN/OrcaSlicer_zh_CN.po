@@ -3325,7 +3325,7 @@ msgstr "剩余时间：%dmin%ds"
 msgid "Importing SLA archive"
 msgstr "导入SLA存档"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "SLA存档不包含任何预设。在导入该SLA存档之前，请先激活一些SLA打印机预设。"
 
 msgid "Importing canceled."
