@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2025-05-18 09:32-0300\n"
+"PO-Revision-Date: 2026-06-12 12:51-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
 "Language: en\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr ""
@@ -742,7 +742,7 @@ msgid "Show wireframe"
 msgstr ""
 
 msgid "Unable to apply when processing preview"
-msgstr "Unable to apply when processing preview"
+msgstr ""
 
 msgid "Operation already cancelling. Please wait a few seconds."
 msgstr ""
@@ -2744,10 +2744,10 @@ msgid "More"
 msgstr ""
 
 msgid "Open Preferences"
-msgstr "Open Preferences"
+msgstr ""
 
 msgid "Open next tip"
-msgstr "Open next tip"
+msgstr ""
 
 msgid "Open Documentation in web browser"
 msgstr "Open documentation in web browser"
@@ -3588,7 +3588,7 @@ msgid "Do not Enable AMS"
 msgstr ""
 
 msgid "Print using filament on external spool."
-msgstr "Print using filament on external spool."
+msgstr ""
 
 msgid "Print with filaments in AMS"
 msgstr "Print with filament in AMS"
@@ -3725,7 +3725,7 @@ msgid "Go Home"
 msgstr ""
 
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
-msgstr "An error occurred. The system may have run out of memory, or a bug may have occurred."
+msgstr ""
 
 #, boost-format
 msgid "A fatal error occurred: \"%1%\""
@@ -3807,7 +3807,7 @@ msgid ""
 msgstr ""
 
 msgid "Copying of the temporary G-code to the output G-code failed."
-msgstr "Copying of the temporary G-code to the output G-code failed."
+msgstr ""
 
 #, boost-format
 msgid "Scheduling upload to `%1%`. See Window -> Print Host Upload Queue"
@@ -6429,7 +6429,7 @@ msgid "3D Mouse disconnected."
 msgstr ""
 
 msgid "A new configuration is available. Update now?"
-msgstr "A new configuration is available. Update now?"
+msgstr ""
 
 msgid "Integration was successful."
 msgstr ""
@@ -6453,10 +6453,10 @@ msgid "Undo integration failed."
 msgstr ""
 
 msgid "Exporting"
-msgstr "Exporting"
+msgstr ""
 
 msgid "An update is available!"
-msgstr "An update is available!"
+msgstr ""
 
 msgid "Goto download page."
 msgstr "Go to download page"
@@ -7277,10 +7277,10 @@ msgid "The selected file"
 msgstr ""
 
 msgid "Does not contain valid G-code."
-msgstr "Does not contain valid G-code."
+msgstr ""
 
 msgid "An Error has occurred while loading the G-code file."
-msgstr "An Error has occurred while loading the G-code file."
+msgstr ""
 
 #. TRN %1% is archive path
 #, boost-format
@@ -8713,7 +8713,7 @@ msgid "Sending failed, please try again!"
 msgstr ""
 
 msgid "Slice complete"
-msgstr "Slice complete"
+msgstr ""
 
 msgid "View all Daily tips"
 msgstr ""
@@ -9007,7 +9007,7 @@ msgid "Top/bottom shells"
 msgstr ""
 
 msgid "First layer speed"
-msgstr "First layer speed"
+msgstr ""
 
 msgid "Other layers speed"
 msgstr ""
@@ -9150,13 +9150,13 @@ msgid "Min fan speed threshold"
 msgstr ""
 
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
-msgstr "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
+msgstr ""
 
 msgid "Max fan speed threshold"
 msgstr ""
 
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
-msgstr "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
+msgstr ""
 
 msgid "Auxiliary part cooling fan"
 msgstr ""
@@ -9486,7 +9486,7 @@ msgid "Click the right mouse button to display the full text."
 msgstr ""
 
 msgid "No changes will be saved."
-msgstr "No changes will be saved."
+msgstr ""
 
 msgid "All changes will be discarded."
 msgstr ""
@@ -10033,7 +10033,7 @@ msgid "Movement step set to 1 mm"
 msgstr "Movement step set to 1mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
-msgstr "Keyboard 1-9: set filament for object/part"
+msgstr ""
 
 msgid "Camera view - Default"
 msgstr ""
@@ -10129,7 +10129,7 @@ msgid "Set extruder number for the objects and parts"
 msgstr ""
 
 msgid "Delete objects, parts, modifiers"
-msgstr "Delete objects, parts, modifiers"
+msgstr ""
 
 msgid "Select the object/part and press space to change the name"
 msgstr ""
@@ -10372,7 +10372,7 @@ msgid "Object: %1%"
 msgstr ""
 
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
-msgstr "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
+msgstr ""
 
 msgid "Process change extrusion role G-code"
 msgstr ""
@@ -10381,7 +10381,7 @@ msgid "Filament change extrusion role G-code"
 msgstr ""
 
 msgid "No object can be printed. It may be too small."
-msgstr "No object can be printed. It may be too small."
+msgstr ""
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
 msgstr ""
@@ -10504,7 +10504,7 @@ msgid "invalid filename"
 msgstr ""
 
 msgid "buffer too small"
-msgstr "buffer too small"
+msgstr ""
 
 msgid "internal error"
 msgstr ""
@@ -10513,7 +10513,7 @@ msgid "file not found"
 msgstr ""
 
 msgid "archive too large"
-msgstr "archive too large"
+msgstr ""
 
 msgid "validation failed"
 msgstr ""
@@ -10672,7 +10672,7 @@ msgid "Support enforcers are used but support is not enabled. Please enable supp
 msgstr ""
 
 msgid "Layer height cannot exceed nozzle diameter."
-msgstr "Layer height cannot exceed nozzle diameter."
+msgstr ""
 
 msgid "Bridge line width must not exceed nozzle diameter"
 msgstr ""
@@ -10931,10 +10931,10 @@ msgid "Bed temperature for layers except the initial one. A value of 0 means the
 msgstr "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 
 msgid "First layer"
-msgstr "First layer"
+msgstr ""
 
 msgid "First layer bed temperature"
-msgstr "First layer bed temperature"
+msgstr ""
 
 msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
@@ -11400,7 +11400,7 @@ msgid ""
 msgstr ""
 
 msgid "Brim follows compensated outline"
-msgstr "Brim follows compensated outline"
+msgstr ""
 
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
@@ -11408,10 +11408,6 @@ msgid ""
 "\n"
 "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgstr ""
-"When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
-"This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
-"\n"
-"If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 
 msgid "Combine brims"
 msgstr ""
@@ -12045,7 +12041,7 @@ msgid "Unloading speed"
 msgstr ""
 
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
-msgstr "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
+msgstr ""
 
 msgid "Unloading speed at the start"
 msgstr ""
@@ -12471,7 +12467,7 @@ msgid "Line width of the first layer. If expressed as a %, it will be computed o
 msgstr ""
 
 msgid "First layer height"
-msgstr "First layer height"
+msgstr ""
 
 #, fuzzy
 msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
@@ -12481,7 +12477,7 @@ msgid "Speed of the first layer except the solid infill part."
 msgstr "This is the speed for the first layer except for solid infill sections."
 
 msgid "First layer infill"
-msgstr "First layer infill"
+msgstr ""
 
 msgid "Speed of solid infill part of the first layer."
 msgstr "This is the speed for solid infill parts of the first layer."
@@ -12500,7 +12496,7 @@ msgid "The first few layers are printed slower than normal. The speed is gradual
 msgstr ""
 
 msgid "First layer nozzle temperature"
-msgstr "First layer nozzle temperature"
+msgstr ""
 
 msgid "Nozzle temperature for printing the first layer when using this filament."
 msgstr "Nozzle temperature for printing the first layer with this filament"
@@ -13554,7 +13550,7 @@ msgid "Reduce infill retraction"
 msgstr ""
 
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr ""
@@ -13654,7 +13650,7 @@ msgid "Raft contact Z distance"
 msgstr ""
 
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
-msgstr "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
+msgstr ""
 
 msgid "Raft expansion"
 msgstr ""
@@ -13663,13 +13659,13 @@ msgid "Expand all raft layers in XY plane."
 msgstr "This expands all raft layers in XY plane."
 
 msgid "First layer density"
-msgstr "First layer density"
+msgstr ""
 
 msgid "Density of the first raft or support layer."
 msgstr "This is the density of the first raft or support layer."
 
 msgid "First layer expansion"
-msgstr "First layer expansion"
+msgstr ""
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
 msgstr "This expands the first raft or support layer to improve bed adhesion."
@@ -13708,7 +13704,7 @@ msgid "Some amount of material in extruder is pulled back to avoid ooze during l
 msgstr ""
 
 msgid "Long retraction when cut (beta)"
-msgstr "Long retraction when cut (beta)"
+msgstr ""
 
 msgid "Experimental feature: Retracting and cutting off the filament at a longer distance during changes to minimize purge. While this reduces flush significantly, it may also raise the risk of nozzle clogs or other printing problems."
 msgstr ""
@@ -14270,13 +14266,13 @@ msgid "Top Z distance"
 msgstr ""
 
 msgid "Z gap between the support's top and object."
-msgstr "Z gap between the support's top and object."
+msgstr ""
 
 msgid "Bottom Z distance"
 msgstr ""
 
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
-msgstr "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
+msgstr ""
 
 msgid "Support/raft base"
 msgstr ""
@@ -14418,8 +14414,6 @@ msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
-"Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 
 msgid "Threshold overlap"
 msgstr ""
@@ -14834,7 +14828,7 @@ msgid "Wall transition length"
 msgstr ""
 
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
-msgstr "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
+msgstr ""
 
 msgid "Wall transitioning filter margin"
 msgstr ""
@@ -15817,7 +15811,7 @@ msgid "Please find the best line on your plate"
 msgstr ""
 
 msgid "Please find the corner with the perfect degree of extrusion"
-msgstr "Please find the corner with the perfect degree of extrusion"
+msgstr ""
 
 msgid "Input Value"
 msgstr ""
@@ -16600,8 +16594,6 @@ msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
 msgstr ""
-"The Filament name %s you created already exists.\n"
-"If you continue, the preset created will be displayed with its full name. Do you want to continue?"
 
 msgid "Some existing presets have failed to be created, as follows:\n"
 msgstr ""
@@ -18063,16 +18055,12 @@ msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
 msgstr ""
-"Auto-Arrange\n"
-"Did you know that you can auto-arrange all the objects in your project?"
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgstr ""
-"Auto-Orient\n"
-"Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 
 #: resources/data/hints.ini: [hint:Lay on Face]
 msgid ""
@@ -18141,8 +18129,7 @@ msgid ""
 "Did you know that you can split a model that has a lot of parts into individual plates ready to print? This will simplify the process of keeping track of all the parts."
 msgstr ""
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18183,8 +18170,6 @@ msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
 msgstr ""
-"Set parameters for multiple objects\n"
-"Did you know that you can set slicing parameters for all selected objects at once?"
 
 #: resources/data/hints.ini: [hint:Stack objects]
 msgid ""
@@ -18206,8 +18191,7 @@ msgid ""
 "Did you know that you can use more wall loops and higher sparse infill density to improve the strength of the model?"
 msgstr ""
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
@@ -18220,8 +18204,6 @@ msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgstr ""
-"Avoid warping\n"
-"Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 
 #~ msgid "Detail."
 #~ msgstr "More"
