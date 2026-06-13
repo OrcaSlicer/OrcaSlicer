@@ -13,6 +13,7 @@
 #include "MsgDialog.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Flashforge.hpp"
+#include "../Utils/Moonraker.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ProjectTask.hpp"
 class wxButton;
@@ -277,6 +278,63 @@ private:
     const char* CONFIG_KEY_LEVELING  = "flashforge_leveling_before_print";
     const char* CONFIG_KEY_TIMELAPSE = "flashforge_timelapse_video";
     const char* CONFIG_KEY_IFS       = "flashforge_use_material_station";
+};
+
+
+// ORCA-CFS: Send dialog for rooted Creality K1/K1C/K1 SE/K1 Max over Moonraker, with Creality
+// Filament System (CFS) slot mapping. Reuses the Flashforge slot widgets by storing UI slots as
+// FlashforgeMaterialSlot with slot_id = (CFS global slot)+1 (the widgets treat id<=0 as unselected).
+// Mapping is emitted as extended_info {"cfs_enabled","cfs_map"} consumed by Moonraker::upload().
+class MoonrakerCFSPrintHostSendDialog : public PrintHostSendDialog
+{
+public:
+    MoonrakerCFSPrintHostSendDialog(const boost::filesystem::path&  path,
+                                    PrintHostPostUploadActions      post_actions,
+                                    const wxArrayString&            groups,
+                                    const wxArrayString&            storage_paths,
+                                    const wxArrayString&            storage_names,
+                                    bool                            switch_to_device_tab,
+                                    const Slic3r::Moonraker*        host,
+                                    bool                            supports_cfs,
+                                    std::vector<Slic3r::CFSSlot>    cfs_slots,
+                                    const std::vector<FilamentInfo>& project_filaments);
+
+    virtual void init() override;
+    virtual void EndModal(int ret) override;
+    virtual std::map<std::string, std::string> extendedInfo() const override;
+
+private:
+    struct MappingRow { int tool_id {-1}; wxWindow* card {nullptr}; };
+
+    void load_slots();
+    bool ensure_slots_loaded(bool force_reload = false);
+    void rebuild_mapping_rows();
+    void auto_assign_mappings();
+    void refresh_mapping_card(MappingRow& row);
+    void sync_mapping_section_visibility();
+    const Slic3r::FlashforgeMaterialSlot* find_slot_by_id(const std::string& slot_id_text) const;
+    const FilamentInfo* find_filament_by_tool_id(int tool_id) const;
+    bool slot_matches_filament(const Slic3r::FlashforgeMaterialSlot& slot, const FilamentInfo& filament) const;
+    bool validate_before_close();
+    std::string normalize_material(const std::string& material) const;
+    wxColour to_wx_colour(const std::string& color) const;
+    static std::vector<Slic3r::FlashforgeMaterialSlot> to_ui_slots(const std::vector<Slic3r::CFSSlot>& cfs);
+
+private:
+    const Slic3r::Moonraker*         m_host {nullptr};
+    std::vector<FilamentInfo>        m_project_filaments;
+    std::vector<Slic3r::FlashforgeMaterialSlot> m_slots; // UI slots; slot_id = CFS global + 1
+    std::vector<MappingRow>          m_mapping_rows;
+    wxBoxSizer*                      m_cfs_options_sizer {nullptr};
+    wxBoxSizer*                      m_mapping_section_sizer {nullptr};
+    wxWrapSizer*                     m_mapping_wrap_sizer {nullptr};
+    wxStaticText*                    m_status_text {nullptr};
+    ::CheckBox*                      m_checkbox_cfs {nullptr};
+    bool                             m_use_cfs {false};
+    bool                             m_supports_cfs {false};
+    bool                             m_slots_loaded {false};
+
+    const char* CONFIG_KEY_CFS = "moonraker_use_cfs";
 };
 
 wxDECLARE_EVENT(EVT_PRINTHOST_PROGRESS, PrintHostQueueDialog::Event);

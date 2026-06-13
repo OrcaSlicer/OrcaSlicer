@@ -1164,6 +1164,466 @@ wxColour FlashforgePrintHostSendDialog::to_wx_colour(const std::string& color) c
     return wxColour("#999999");
 }
 
+// ============================ ORCA-CFS: Moonraker CFS send dialog ============================
+
+std::vector<Slic3r::FlashforgeMaterialSlot> MoonrakerCFSPrintHostSendDialog::to_ui_slots(const std::vector<Slic3r::CFSSlot>& cfs)
+{
+    // Reuse the Flashforge slot widgets: convert CFSSlot -> FlashforgeMaterialSlot. The widgets use
+    // slot_id<=0 as "unselected", and the CFS global index is 0-based (T1A=0), so we store id+1 here
+    // and subtract 1 again in extendedInfo() when emitting the firmware-facing mapping.
+    std::vector<Slic3r::FlashforgeMaterialSlot> out;
+    out.reserve(cfs.size());
+    for (const auto& s : cfs) {
+        Slic3r::FlashforgeMaterialSlot u;
+        u.slot_id        = s.slot_id + 1;
+        u.has_filament   = s.has_filament;
+        u.material_name  = s.material_name;
+        u.material_color = s.material_color;
+        out.push_back(u);
+    }
+    return out;
+}
+
+MoonrakerCFSPrintHostSendDialog::MoonrakerCFSPrintHostSendDialog(const fs::path&             path,
+                                                                 PrintHostPostUploadActions  post_actions,
+                                                                 const wxArrayString&        groups,
+                                                                 const wxArrayString&        storage_paths,
+                                                                 const wxArrayString&        storage_names,
+                                                                 bool                        switch_to_device_tab,
+                                                                 const Slic3r::Moonraker*    host,
+                                                                 bool                        supports_cfs,
+                                                                 std::vector<Slic3r::CFSSlot> cfs_slots,
+                                                                 const std::vector<FilamentInfo>& project_filaments)
+    : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
+    , m_host(host)
+    , m_slots(to_ui_slots(cfs_slots))
+    , m_project_filaments(project_filaments)
+{
+    m_supports_cfs = supports_cfs;
+    m_slots_loaded = !m_slots.empty();
+}
+
+void MoonrakerCFSPrintHostSendDialog::init()
+{
+    const AppConfig* app_config = wxGetApp().app_config;
+    const auto&      path       = m_path;
+
+    // Default CFS mapping ON when the printer reports a CFS unit.
+    m_use_cfs = m_supports_cfs;
+
+    this->SetMinSize(wxSize(560, 420));
+
+    auto* label_dir_hint = new wxStaticText(this, wxID_ANY, _L("Use forward slashes ( / ) as a directory separator if needed."));
+    label_dir_hint->Wrap(CONTENT_WIDTH * wxGetApp().em_unit());
+    content_sizer->Add(txt_filename, 0, wxEXPAND);
+    content_sizer->Add(label_dir_hint);
+    content_sizer->AddSpacer(VERT_SPACING);
+
+    wxString recent_path = from_u8(app_config->get("recent", CONFIG_KEY_PATH));
+    if (recent_path.Length() > 0 && recent_path[recent_path.Length() - 1] != '/')
+        recent_path += '/';
+    const auto recent_path_len = recent_path.Length();
+    recent_path += path.filename().wstring();
+    wxString stem(path.stem().wstring());
+    const auto stem_len = stem.Length();
+    txt_filename->SetValue(recent_path);
+
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this, wxID_APPLY);
+        checkbox->SetValue(m_switch_to_device_tab);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            auto* source = dynamic_cast<::CheckBox*>(e.GetEventObject());
+            if (source != nullptr)
+                source->SetValue(e.IsChecked());
+            m_switch_to_device_tab = e.IsChecked();
+            e.Skip();
+        });
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Switch to Device tab after upload."));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        content_sizer->Add(checkbox_sizer);
+        content_sizer->AddSpacer(VERT_SPACING);
+    }
+
+    m_cfs_options_sizer = new wxBoxSizer(wxVERTICAL);
+
+    {
+        auto row      = new wxBoxSizer(wxHORIZONTAL);
+        m_checkbox_cfs = new ::CheckBox(this);
+        m_checkbox_cfs->SetValue(m_use_cfs);
+        m_checkbox_cfs->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            auto* source = dynamic_cast<::CheckBox*>(e.GetEventObject());
+            if (source != nullptr)
+                source->SetValue(e.IsChecked());
+            m_use_cfs = e.IsChecked();
+            if (m_use_cfs) {
+                ensure_slots_loaded();
+                rebuild_mapping_rows();
+            }
+            sync_mapping_section_visibility();
+            e.Skip();
+        });
+        row->Add(m_checkbox_cfs, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+        auto text = new wxStaticText(this, wxID_ANY, _L("Use CFS (auto filament mapping)"));
+        text->SetFont(::Label::Body_13);
+        text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        row->Add(text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        m_cfs_options_sizer->Add(row);
+        m_cfs_options_sizer->AddSpacer(FromDIP(6));
+    }
+
+    if (m_checkbox_cfs != nullptr && !m_supports_cfs)
+        m_checkbox_cfs->Enable(false);
+
+    m_status_text = new wxStaticText(this, wxID_ANY, wxEmptyString);
+    m_status_text->SetFont(::Label::Body_12);
+    m_cfs_options_sizer->Add(m_status_text, 0, wxTOP | wxBOTTOM, FromDIP(4));
+
+    m_mapping_section_sizer = new wxBoxSizer(wxVERTICAL);
+    m_mapping_wrap_sizer    = new wxWrapSizer(wxHORIZONTAL, wxWRAPSIZER_DEFAULT_FLAGS);
+    m_mapping_section_sizer->Add(m_mapping_wrap_sizer, 0, wxTOP | wxALIGN_LEFT, FromDIP(10));
+    m_cfs_options_sizer->Add(m_mapping_section_sizer, 0, wxEXPAND);
+
+    content_sizer->Add(m_cfs_options_sizer, 0, wxEXPAND);
+
+    if (m_supports_cfs)
+        m_status_text->SetLabel(wxString::Format(_L("Detected %d CFS slots on printer."), static_cast<int>(m_slots.size())));
+    else
+        m_status_text->SetLabel(_L("This printer does not report a CFS unit."));
+
+    rebuild_mapping_rows();
+    sync_mapping_section_visibility();
+
+    if (size_t extension_start = recent_path.find_last_of('.'); extension_start != std::string::npos)
+        m_valid_suffix = recent_path.substr(extension_start);
+
+    auto validate_path = [this](const wxString& filename) -> bool {
+        if (!filename.Lower().EndsWith(m_valid_suffix.Lower())) {
+            MessageDialog msg_wingow(this, wxString::Format(_L("Upload filename doesn't end with \"%s\". Do you wish to continue?"), m_valid_suffix),
+                                     wxString(SLIC3R_APP_NAME), wxYES | wxNO);
+            if (msg_wingow.ShowModal() == wxID_NO)
+                return false;
+        }
+        return validate_before_close();
+    };
+
+    auto* btn_ok = add_button(wxID_OK, true, _L("Upload"));
+    btn_ok->Bind(wxEVT_BUTTON, [this, validate_path](wxCommandEvent&) {
+        if (validate_path(txt_filename->GetValue())) {
+            post_upload_action = PrintHostPostUploadAction::None;
+            EndDialog(wxID_OK);
+        }
+    });
+
+    if (m_post_actions.has(PrintHostPostUploadAction::StartPrint)) {
+        auto* btn_print = add_button(wxID_YES, false, _L("Upload and Print"));
+        btn_print->Bind(wxEVT_BUTTON, [this, validate_path](wxCommandEvent&) {
+            if (validate_path(txt_filename->GetValue())) {
+                post_upload_action = PrintHostPostUploadAction::StartPrint;
+                EndDialog(wxID_OK);
+            }
+        });
+    }
+
+    add_button(wxID_CANCEL, false, _L("Cancel"));
+    finalize();
+    txt_filename->SetFocus();
+
+#ifdef __linux__
+    txt_filename->Bind(wxEVT_KILL_FOCUS, [this](wxEvent& e) {
+        e.Skip();
+        txt_filename->SetInsertionPoint(txt_filename->GetLastPosition());
+    }, txt_filename->GetId());
+#endif /* __linux__ */
+
+    Bind(wxEVT_SHOW, [=](const wxShowEvent&) {
+        CallAfter([=]() {
+            txt_filename->SetInsertionPoint(0);
+            txt_filename->SetSelection(recent_path_len, recent_path_len + stem_len);
+        });
+    });
+}
+
+void MoonrakerCFSPrintHostSendDialog::EndModal(int ret)
+{
+    if (ret == wxID_OK) {
+        AppConfig* app_config = wxGetApp().app_config;
+        app_config->set("recent", CONFIG_KEY_CFS, m_use_cfs ? "1" : "0");
+    }
+    PrintHostSendDialog::EndModal(ret);
+}
+
+std::map<std::string, std::string> MoonrakerCFSPrintHostSendDialog::extendedInfo() const
+{
+    // Emit the firmware-facing mapping consumed by Moonraker::upload():
+    //   cfs_enabled = "1"/"0"
+    //   cfs_map     = "<toolId>:<globalSlot>,..."   (globalSlot is 0-based: UI slot_id - 1)
+    std::string cfs_map;
+    if (m_use_cfs) {
+        for (const auto& row : m_mapping_rows) {
+            auto* card = as_ff_map_widget(row.card);
+            if (card == nullptr || row.tool_id < 0)
+                continue;
+            const int ui_slot_id = card->selected_slot_id();
+            if (ui_slot_id <= 0)
+                continue;
+            if (!cfs_map.empty())
+                cfs_map += ",";
+            cfs_map += std::to_string(row.tool_id) + ":" + std::to_string(ui_slot_id - 1);
+        }
+    }
+
+    return {
+        {"cfs_enabled", m_use_cfs ? "1" : "0"},
+        {"cfs_map",     cfs_map}
+    };
+}
+
+void MoonrakerCFSPrintHostSendDialog::load_slots()
+{
+    m_slots.clear();
+    m_slots_loaded = false;
+    m_supports_cfs = false;
+
+    if (m_host == nullptr) {
+        m_status_text->SetLabel(_L("Moonraker host is not available."));
+        return;
+    }
+
+    wxString msg;
+    bool     supports_cfs = false;
+    std::vector<Slic3r::CFSSlot> cfs_slots;
+    if (!m_host->fetch_cfs_slots(cfs_slots, &supports_cfs, msg)) {
+        m_status_text->SetLabel(msg.empty() ? _L("Unable to read CFS slots from printer.") : msg);
+        return;
+    }
+
+    m_slots        = to_ui_slots(cfs_slots);
+    m_supports_cfs = supports_cfs;
+    m_slots_loaded = !m_slots.empty();
+    m_use_cfs      = m_supports_cfs;
+
+    if (m_supports_cfs)
+        m_status_text->SetLabel(wxString::Format(_L("Detected %d CFS slots on printer."), static_cast<int>(m_slots.size())));
+    else
+        m_status_text->SetLabel(_L("This printer does not report a CFS unit."));
+}
+
+bool MoonrakerCFSPrintHostSendDialog::ensure_slots_loaded(bool force_reload)
+{
+    if (!force_reload && (m_slots_loaded || !m_supports_cfs))
+        return m_slots_loaded;
+    if (m_status_text != nullptr)
+        m_status_text->SetLabel(_L("Loading CFS slots from printer..."));
+    wxBusyCursor wait;
+    load_slots();
+    return m_slots_loaded;
+}
+
+void MoonrakerCFSPrintHostSendDialog::rebuild_mapping_rows()
+{
+    if (m_mapping_wrap_sizer == nullptr)
+        return;
+
+    m_mapping_wrap_sizer->Clear(true);
+    m_mapping_rows.clear();
+
+    if (m_project_filaments.empty()) {
+        m_mapping_wrap_sizer->Add(new wxStaticText(this, wxID_ANY, _L("Slice the plate first to get project material information.")), 0, wxALL, FromDIP(2));
+        return;
+    }
+
+    for (const auto& filament : m_project_filaments) {
+        auto* card = new FlashforgeMaterialMapWidget(this, filament.id, to_wx_colour(filament.color), from_u8(filament.get_display_filament_type()),
+                                                     [this](FlashforgeMaterialMapWidget* changed_card) {
+                                                         if (changed_card == nullptr)
+                                                             return;
+                                                         for (auto& row : m_mapping_rows) {
+                                                             if (row.card == changed_card) {
+                                                                 refresh_mapping_card(row);
+                                                                 break;
+                                                             }
+                                                         }
+                                                     });
+        m_mapping_wrap_sizer->Add(card, 0, wxRIGHT | wxBOTTOM | wxFIXED_MINSIZE, FromDIP(10));
+
+        MappingRow row;
+        row.tool_id = filament.id;
+        row.card    = card;
+        m_mapping_rows.push_back(row);
+    }
+
+    auto_assign_mappings();
+}
+
+void MoonrakerCFSPrintHostSendDialog::auto_assign_mappings()
+{
+    for (size_t idx = 0; idx < m_project_filaments.size() && idx < m_mapping_rows.size(); ++idx) {
+        auto& filament = m_project_filaments[idx];
+        auto* card     = as_ff_map_widget(m_mapping_rows[idx].card);
+        if (card == nullptr)
+            continue;
+
+        const wxColour filament_color = to_wx_colour(filament.color);
+        const Slic3r::FlashforgeMaterialSlot* best_slot = nullptr;
+        long long best_distance = std::numeric_limits<long long>::max();
+
+        for (const auto& slot : m_slots) {
+            if (!slot.has_filament || !slot_matches_filament(slot, filament))
+                continue;
+            const long long distance = color_distance_sq(filament_color, to_wx_colour(slot.material_color));
+            if (best_slot == nullptr || distance < best_distance) {
+                best_slot = &slot;
+                best_distance = distance;
+            }
+        }
+
+        if (best_slot != nullptr)
+            card->set_slot_selection(best_slot->slot_id, to_wx_colour(best_slot->material_color));
+        else
+            card->reset_slot();
+
+        refresh_mapping_card(m_mapping_rows[idx]);
+    }
+}
+
+void MoonrakerCFSPrintHostSendDialog::refresh_mapping_card(MappingRow& row)
+{
+    auto* card = as_ff_map_widget(row.card);
+    if (card == nullptr)
+        return;
+
+    const auto* filament = find_filament_by_tool_id(row.tool_id);
+    card->set_enable_mapping(m_use_cfs);
+    card->update_popup_slots(m_slots, [this, filament](const FlashforgeMaterialSlot& slot) {
+        return filament != nullptr && slot_matches_filament(slot, *filament);
+    });
+
+    if (card->selected_slot_id() <= 0) {
+        card->reset_slot();
+        return;
+    }
+
+    const auto* slot = find_slot_by_id(std::to_string(card->selected_slot_id()));
+    if (slot == nullptr) {
+        card->reset_slot();
+        return;
+    }
+    card->set_slot_selection(slot->slot_id, to_wx_colour(slot->material_color));
+}
+
+void MoonrakerCFSPrintHostSendDialog::sync_mapping_section_visibility()
+{
+    if (m_mapping_section_sizer == nullptr)
+        return;
+
+    m_mapping_section_sizer->ShowItems(m_use_cfs && m_supports_cfs);
+    if (wxSizer* sizer = GetSizer(); sizer != nullptr) {
+        sizer->Layout();
+        sizer->Fit(this);
+        SetMinSize(GetBestSize());
+    }
+    Layout();
+    Fit();
+}
+
+const Slic3r::FlashforgeMaterialSlot* MoonrakerCFSPrintHostSendDialog::find_slot_by_id(const std::string& slot_id_text) const
+{
+    const auto slot_it = std::find_if(m_slots.begin(), m_slots.end(), [&](const FlashforgeMaterialSlot& slot) { return std::to_string(slot.slot_id) == slot_id_text; });
+    return slot_it == m_slots.end() ? nullptr : &(*slot_it);
+}
+
+const FilamentInfo* MoonrakerCFSPrintHostSendDialog::find_filament_by_tool_id(int tool_id) const
+{
+    const auto filament_it = std::find_if(m_project_filaments.begin(), m_project_filaments.end(), [&](const FilamentInfo& filament) { return filament.id == tool_id; });
+    return filament_it == m_project_filaments.end() ? nullptr : &(*filament_it);
+}
+
+bool MoonrakerCFSPrintHostSendDialog::slot_matches_filament(const Slic3r::FlashforgeMaterialSlot& slot, const FilamentInfo& filament) const
+{
+    if (!slot.has_filament)
+        return false;
+    const std::string project_material = normalize_material(!filament.type.empty() ? filament.type : filament.get_display_filament_type());
+    const std::string slot_material    = normalize_material(slot.material_name);
+    return !project_material.empty() && !slot_material.empty() && project_material == slot_material;
+}
+
+bool MoonrakerCFSPrintHostSendDialog::validate_before_close()
+{
+    if (!m_use_cfs && m_project_filaments.size() > 1) {
+        show_error(this, _L("This plate uses multiple materials. Enable CFS and assign each tool to a printer slot."));
+        return false;
+    }
+    if (!m_use_cfs)
+        return true;
+
+    for (const auto& row : m_mapping_rows) {
+        auto* card = as_ff_map_widget(row.card);
+        if (card == nullptr || !card->is_slot_selected()) {
+            show_error(this, _L("Each project material must be assigned to a CFS slot before printing."));
+            return false;
+        }
+        const auto* slot     = find_slot_by_id(std::to_string(card->selected_slot_id()));
+        const auto* filament = find_filament_by_tool_id(row.tool_id);
+        if (slot == nullptr || filament == nullptr || !slot->has_filament) {
+            show_error(this, _L("Each project material must be assigned to a loaded CFS slot before printing."));
+            return false;
+        }
+        if (!slot_matches_filament(*slot, *filament)) {
+            show_error(this, _L("Each project material must match the material loaded in the selected CFS slot."));
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string MoonrakerCFSPrintHostSendDialog::normalize_material(const std::string& material) const
+{
+    std::string normalized = boost::to_upper_copy(material);
+    normalized.erase(std::remove_if(normalized.begin(), normalized.end(), [](unsigned char ch) { return !std::isalnum(ch); }), normalized.end());
+    if (normalized.empty())
+        return {};
+    if (normalized.find("SILK") != std::string::npos)
+        return "SILK";
+    if (normalized.find("PLA") != std::string::npos && normalized.find("CF") != std::string::npos)
+        return "PLACF";
+    if (normalized.find("PETG") != std::string::npos && normalized.find("CF") != std::string::npos)
+        return "PETGCF";
+    if (normalized == "PLA" || normalized == "PLA+" || normalized == "PLAPLUS")
+        return "PLA";
+    if (normalized.find("PLA") != std::string::npos)
+        return "PLA";
+    if (normalized == "ABS" || normalized.find("ABS") != std::string::npos)
+        return "ABS";
+    if (normalized == "ASA" || normalized.find("ASA") != std::string::npos)
+        return "ABS";
+    if (normalized.find("PETG") != std::string::npos)
+        return "PETG";
+    if (normalized.find("TPU") != std::string::npos || normalized.find("TPE") != std::string::npos || normalized.find("FLEX") != std::string::npos)
+        return "TPU";
+    return normalized;
+}
+
+wxColour MoonrakerCFSPrintHostSendDialog::to_wx_colour(const std::string& color) const
+{
+    std::string normalized = boost::trim_copy(color);
+    if (boost::istarts_with(normalized, "0x"))
+        normalized = normalized.substr(2);
+    if (!normalized.empty() && normalized.front() == '#')
+        normalized.erase(normalized.begin());
+    if (!normalized.empty() && normalized.front() != '#')
+        normalized = "#" + normalized;
+    wxColour wx_color(from_u8(normalized));
+    if (wx_color.IsOk())
+        return wx_color;
+    return *wxWHITE;
+}
+
 wxDEFINE_EVENT(EVT_PRINTHOST_PROGRESS, PrintHostQueueDialog::Event);
 wxDEFINE_EVENT(EVT_PRINTHOST_ERROR,    PrintHostQueueDialog::Event);
 wxDEFINE_EVENT(EVT_PRINTHOST_CANCEL,   PrintHostQueueDialog::Event);
