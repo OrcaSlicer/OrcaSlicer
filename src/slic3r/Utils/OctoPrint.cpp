@@ -183,7 +183,7 @@ bool OctoPrint::test_with_resolved_ip(wxString &msg) const
             }
             catch (const std::exception&) {
                 res = false;
-                msg = "Could not parse server response.";
+                msg = _L("Could not parse server response.");
             }
         })
         .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
@@ -232,7 +232,7 @@ bool OctoPrint::test(wxString& msg) const
             }
             catch (const std::exception &) {
                 res = false;
-                msg = "Could not parse server response";
+                msg = _L("Could not parse server response.");
             }
         })
 #ifdef WIN32
@@ -635,7 +635,7 @@ bool PrusaLink::test(wxString& msg) const
             }
             catch (const std::exception&) {
                 res = false;
-                msg = "Could not parse server response";
+                msg = _L("Could not parse server response.");
             }
         })
 #ifdef WIN32
@@ -811,7 +811,7 @@ bool PrusaLink::test_with_method_check(wxString& msg, bool& use_put) const
         }
         catch (const std::exception&) {
             res = false;
-            msg = "Could not parse server response";
+            msg = _L("Could not parse server response.");
         }
     })
 #ifdef WIN32
@@ -891,7 +891,7 @@ bool PrusaLink::test_with_resolved_ip_and_method_check(wxString& msg, bool& use_
             }
             catch (const std::exception&) {
                 res = false;
-                msg = "Could not parse server response";
+                msg = _L("Could not parse server response.");
             }
 
         })

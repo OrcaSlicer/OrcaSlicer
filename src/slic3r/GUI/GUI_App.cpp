@@ -2859,7 +2859,11 @@ bool GUI_App::on_init_inner()
                     switch (dialog.ShowModal())
                     {
                     case wxID_YES:
-                        wxLaunchDefaultBrowser(version_info.url);
+                        // Store builds get updates from the Microsoft Store, not the GitHub release page.
+                        if (is_running_in_msix())
+                            open_ms_store_product_page();
+                        else
+                            wxLaunchDefaultBrowser(version_info.url);
                         break;
                     case wxID_NO:
                         break;
@@ -9112,6 +9116,10 @@ static bool del_win_registry(HKEY hkeyHive, const wchar_t *pszVar, const wchar_t
 void GUI_App::associate_files(std::wstring extend)
 {
 #ifdef WIN32
+    // MSIX: shell integration is declared in the package manifest; registry
+    // writes from a packaged process are virtualized and invisible to the shell.
+    if (is_running_in_msix())
+        return;
     wchar_t app_path[MAX_PATH];
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
@@ -9137,6 +9145,8 @@ void GUI_App::associate_files(std::wstring extend)
 void GUI_App::disassociate_files(std::wstring extend)
 {
 #ifdef WIN32
+    if (is_running_in_msix())
+        return;
     wchar_t app_path[MAX_PATH];
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
@@ -9188,6 +9198,8 @@ bool GUI_App::check_url_association(std::wstring url_prefix, std::wstring& reg_b
 void GUI_App::associate_url(std::wstring url_prefix)
 {
 #ifdef WIN32
+    if (is_running_in_msix())
+        return;
     boost::filesystem::path binary_path(boost::filesystem::canonical(boost::dll::program_location()));
     wxString wbinary = from_path(binary_path);
     BOOST_LOG_TRIVIAL(info) << "Downloader registration: Path of binary: " << wbinary.ToUTF8().data();
@@ -9213,6 +9225,8 @@ void GUI_App::associate_url(std::wstring url_prefix)
 void GUI_App::disassociate_url(std::wstring url_prefix)
 {
 #ifdef WIN32
+    if (is_running_in_msix())
+        return;
     wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");
     if (!key_full.Exists()) {
         return;
