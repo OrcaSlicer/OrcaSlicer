@@ -650,6 +650,16 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     // Single nozzle & non ams
     panel_nozzle_dia->Show(!isDual && preset_bundle.get_printer_extruder_count() < 2);
     extruder_single_sizer->Show(false);
+
+    // ORCA ensure printer section is visible after changing printer from printer selection dialog
+    // this will inform user on printer change when printer section is collapsed
+    if (m_panel_printer_content){
+        bool isShown = m_panel_printer_content->IsShown();
+        if(!isShown && m_text_printer_settings){
+            m_text_printer_settings->SetLabel(_L("Printer")); // ensure title returns to default state
+            m_panel_printer_content->Show();
+        }
+    }
 }
 
 void Sidebar::priv::flush_printer_sync(bool restart)
@@ -1650,7 +1660,7 @@ Sidebar::Sidebar(Plater *parent)
         p->m_panel_printer_title->SetBackgroundColor2(0xF1F1F1);
 
         p->m_printer_icon = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "printer");
-        p->m_text_printer_settings = new Label(p->m_panel_printer_title, _L("Printer"), LB_PROPAGATE_MOUSE_EVENT);
+        p->m_text_printer_settings = new Label(p->m_panel_printer_title, _L("Printer"), LB_PROPAGATE_MOUSE_EVENT | wxST_ELLIPSIZE_END);
 
         p->m_printer_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
             //auto wizard_t = new ConfigWizard(wxGetApp().mainframe);
@@ -1683,8 +1693,8 @@ Sidebar::Sidebar(Plater *parent)
         wxBoxSizer* h_sizer_title = new wxBoxSizer(wxHORIZONTAL);
         h_sizer_title->Add(p->m_printer_icon, 0, wxALIGN_CENTRE | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        h_sizer_title->Add(p->m_text_printer_settings, 0, wxALIGN_CENTER);
-        h_sizer_title->AddStretchSpacer();
+        h_sizer_title->Add(p->m_text_printer_settings, 1, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        //h_sizer_title->AddStretchSpacer();
         h_sizer_title->Add(p->m_printer_connect , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_bbl_sync, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_setting, 0, wxALIGN_CENTER);
@@ -1703,7 +1713,13 @@ Sidebar::Sidebar(Plater *parent)
         // add printer title
         scrolled_sizer->Add(p->m_panel_printer_title, 0, wxEXPAND | wxALL, 0);
         p->m_panel_printer_title->Bind(wxEVT_LEFT_UP, [this] (auto & e) {
-            p->m_panel_printer_content->Show(!p->m_panel_printer_content->IsShown());
+            if (!p || !p->combo_printer || !p->m_text_printer_settings || !p->m_panel_printer_content || !m_scrolled_sizer)
+                return;
+            // ORCA Show printer name on title when its folded to inform user without expanding it again
+            bool     isShown = p->m_panel_printer_content->IsShown();
+            wxString title   = _L("Printer") + wxString(!isShown ? "" : ("  |  " + p->combo_printer->GetValue()));
+            p->m_text_printer_settings->SetLabel(title);
+            p->m_panel_printer_content->Show(!isShown);
             m_scrolled_sizer->Layout();
         });
 
