@@ -6348,7 +6348,7 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 
         Vortek::PlateMapping::load_from_3mf_structure(
             m_plate_list[index],
-            plate_data_list[i].get(),
+            plate_data_list[i],
             filament_count,
             gcode_result
         );
