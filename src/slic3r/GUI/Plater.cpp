@@ -1246,6 +1246,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
         MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
         bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
+        // Map physical UI widget index to logical extruder index (e.g. T0 on Right / T1 on Left for H2C)
         int logical_index = index;
         if (index >= 0 && !main_on_left) {
             logical_index = 1 - index;
@@ -2051,6 +2052,7 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         extruder_infos[0].diameter = float(value);
     }
     else if(extruder_nums == 2){
+        // Resolve logical index for Left and Right UI widgets depending on printer layout (Main on Left vs Right)
         int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
         int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
         // Read nozzle diameter from preset config directly
@@ -3265,6 +3267,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
             MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
             bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
+            // Map physical Left/Right sidebar widgets to logical extruder IDs dynamically
             int left_logical_idx = main_on_left ? 0 : 1;
             int right_logical_idx = main_on_left ? 1 : 0;
 
@@ -11674,6 +11677,7 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         }
 
         if (!preset_bundle->extruder_ams_counts.empty() && !preset_bundle->extruder_ams_counts.front().empty()) {
+            // Direct logical-to-logical comparison of AMS counts (index 0 is Main/logical 0, index 1 is Deputy/logical 1)
             if (preset_bundle->extruder_ams_counts.size() >= 2) {
                 is_same_as_printer &= preset_bundle->extruder_ams_counts[0][4] == main_4
                 && preset_bundle->extruder_ams_counts[0][1] == main_1
