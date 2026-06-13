@@ -237,17 +237,19 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     bool result = true;
     std::string uploaded_path;
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, filename=%5%, start_print=%6%)")
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, path = %5%, filename=%6%, start_print=%7%)")
         % name
         % upload_data.source_path
         % url
         % root
+        % upload_parent_path.string()
         % upload_filename.string()
         % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false");
 
     auto http = Http::post(std::move(url));
     set_auth(http);
     http.form_add("root", root)
+        .form_add("path", upload_parent_path.string())
         .form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: upload HTTP %2%: %3%") % name % status % body;
@@ -259,7 +261,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
                 //ORCA: Moonraker confirms the storage-relative path in result.item.path. We pass exactly
                 //      that string to /printer/print/start so any server-side renaming (collision suffix,
                 //      etc.) is respected.
-                const auto stored_path = ptree.get_optional<std::string>("result.item.path");
+                const auto stored_path = ptree.get_optional<std::string>("item.path");
                 if (stored_path) {
                     uploaded_path = *stored_path;
                 } else {
