@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "VortekPlateMapping.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
@@ -1243,7 +1244,13 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     combo_flow->GetDropDown().SetUseContentWidth(true);
     combo_flow->Bind(wxEVT_COMBOBOX, [this, index, combo_flow](wxCommandEvent &evt) {
         auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
-        printer_tab->set_extruder_volume_type(index, NozzleVolumeType(intptr_t(combo_flow->GetClientData(evt.GetInt()))));
+        MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
+        bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
+        int logical_index = index;
+        if (index >= 0 && !main_on_left) {
+            logical_index = 1 - index;
+        }
+        printer_tab->set_extruder_volume_type(logical_index, NozzleVolumeType(intptr_t(combo_flow->GetClientData(evt.GetInt()))));
         if (GUI::wxGetApp().plater())
             GUI::wxGetApp().plater()->update_machine_sync_status();
     });
@@ -1263,7 +1270,13 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
 #endif
         btn_edit->Hide();
         btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index](auto &evt) {
-            PopupWindow *window = new AMSCountPopupWindow(this, index);
+            MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
+            bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
+            int logical_index = index;
+            if (index >= 0 && !main_on_left) {
+                logical_index = 1 - index;
+            }
+            PopupWindow *window = new AMSCountPopupWindow(this, logical_index);
             auto         size   = GetSize();
             auto         pos    = ClientToScreen({0, size.y + 12});
             size.SetWidth(size.GetWidth() + FromDIP(10));
@@ -1779,7 +1792,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         } else if (select_type) {
             target_type = *select_type;
         }
-        target_types[index] = target_type;
+        target_types[extruder_id] = target_type;
     }
 
     int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
@@ -1798,22 +1811,22 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         }
     }
     only_external_material = !obj->GetFilaSystem()->HasAms();
-    int main_index = obj->is_main_extruder_on_left() ? 0 : 1;
-    int deputy_index = obj->is_main_extruder_on_left() ? 1 : 0;
+    int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
+    int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
 
     if (extruder_nums > 1) {
-        int left_index  = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
-        int right_index = right_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[1]));
+        int left_index  = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[left_logical_idx]));
+        int right_index = right_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[right_logical_idx]));
         assert(left_index != -1 && right_index != -1);
         left_extruder->combo_diameter->SetSelection(left_index);
         right_extruder->combo_diameter->SetSelection(right_index);
         is_switching_diameter = true;
         switch_diameter(false);
         is_switching_diameter = false;
-        AMSCountPopupWindow::SetAMSCount(deputy_index, deputy_4, deputy_1);
-        AMSCountPopupWindow::SetAMSCount(main_index, main_4, main_1);
-        AMSCountPopupWindow::UpdateAMSCount(0, left_extruder);
-        AMSCountPopupWindow::UpdateAMSCount(1, right_extruder);
+        AMSCountPopupWindow::SetAMSCount(0, main_4, main_1);
+        AMSCountPopupWindow::SetAMSCount(1, deputy_4, deputy_1);
+        AMSCountPopupWindow::UpdateAMSCount(left_logical_idx, left_extruder);
+        AMSCountPopupWindow::UpdateAMSCount(right_logical_idx, right_extruder);
     } else {
         int index = single_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
         assert(index != -1);
@@ -1839,8 +1852,8 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
                 }
             }
         };
-        select_flow(left_extruder, target_types[0]);
-        select_flow(right_extruder, target_types.size() > 1 ? target_types[1] : NozzleVolumeType::nvtStandard);
+        select_flow(left_extruder, target_types[left_logical_idx]);
+        select_flow(right_extruder, target_types.size() > 1 ? target_types[right_logical_idx] : NozzleVolumeType::nvtStandard);
     }
 
     // Update FTS separator icon
@@ -2038,6 +2051,8 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         extruder_infos[0].diameter = float(value);
     }
     else if(extruder_nums == 2){
+        int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
+        int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
         // Read nozzle diameter from preset config directly
         // (UI wxStrings may be locale-dependent or uninitialized)
         auto *nozzle_diam_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
@@ -2047,11 +2062,11 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         } else {
             double value = 0.0;
             left_extruder->diameter.ToDouble(&value);
-            extruder_infos[0].diameter = float(value);
+            extruder_infos[left_logical_idx].diameter = float(value);
         
             value = 0.0;
             right_extruder->diameter.ToDouble(&value);
-            extruder_infos[1].diameter = float(value);
+            extruder_infos[right_logical_idx].diameter = float(value);
         }
     }
 
@@ -2076,8 +2091,6 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         }
     }
 
-    std::reverse(machine_extruder_infos.begin(), machine_extruder_infos.end());
-
     std::vector<bool> extruder_synced(extruder_nums, false);
     if (extruder_nums == 1) {
         if (is_same_nozzle_info(extruder_infos[0], machine_extruder_infos[0])) {
@@ -2093,52 +2106,32 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         }
     }
     else if (extruder_nums == 2) {
-        // EXPERIMENTAL: skip-nozzle-type-sync - decouple AMS display from nozzle type comparison
-        // AMS icons shown when diameter+AMS counts match; badge requires full equality incl. nozzle type
-        /* ORIGINAL:
-        if (extruder_infos[0] == machine_extruder_infos[0]) {
-            left_extruder->ShowBadge(true);
-            left_extruder->sync_ams(obj, machine_extruder_infos[0].ams_v4, machine_extruder_infos[0].ams_v1);
-            extruder_synced[0] = true;
-        }
-        else {
-            left_extruder->ShowBadge(false);
-            left_extruder->sync_ams(obj, {}, {});
-        }
+        int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
+        int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
 
-        if (extruder_infos[1] == machine_extruder_infos[1]) {
-            right_extruder->ShowBadge(true);
-            right_extruder->sync_ams(obj, machine_extruder_infos[1].ams_v4, machine_extruder_infos[1].ams_v1);
-            extruder_synced[1] = true;
-        }
-        else {
-            right_extruder->ShowBadge(false);
-            right_extruder->sync_ams(obj, {}, {});
-        }
-        */
         auto is_same_ams = [](const ExtruderInfo &a, const ExtruderInfo &b) {
             return abs(a.diameter - b.diameter) < EPSILON
                 && a.ams_4 == b.ams_4
                 && a.ams_1 == b.ams_1;
         };
 
-        bool left_fully_synced = (extruder_infos[0] == machine_extruder_infos[0]);
+        bool left_fully_synced = (extruder_infos[left_logical_idx] == machine_extruder_infos[left_logical_idx]);
         left_extruder->ShowBadge(left_fully_synced);
-        if (is_same_ams(extruder_infos[0], machine_extruder_infos[0])) {
-            left_extruder->sync_ams(obj, machine_extruder_infos[0].ams_v4, machine_extruder_infos[0].ams_v1);
+        if (is_same_ams(extruder_infos[left_logical_idx], machine_extruder_infos[left_logical_idx])) {
+            left_extruder->sync_ams(obj, machine_extruder_infos[left_logical_idx].ams_v4, machine_extruder_infos[left_logical_idx].ams_v1);
         } else {
             left_extruder->sync_ams(obj, {}, {});
         }
-        extruder_synced[0] = left_fully_synced;
+        extruder_synced[left_logical_idx] = left_fully_synced;
 
-        bool right_fully_synced = (extruder_infos[1] == machine_extruder_infos[1]);
+        bool right_fully_synced = (extruder_infos[right_logical_idx] == machine_extruder_infos[right_logical_idx]);
         right_extruder->ShowBadge(right_fully_synced);
-        if (is_same_ams(extruder_infos[1], machine_extruder_infos[1])) {
-            right_extruder->sync_ams(obj, machine_extruder_infos[1].ams_v4, machine_extruder_infos[1].ams_v1);
+        if (is_same_ams(extruder_infos[right_logical_idx], machine_extruder_infos[right_logical_idx])) {
+            right_extruder->sync_ams(obj, machine_extruder_infos[right_logical_idx].ams_v4, machine_extruder_infos[right_logical_idx].ams_v1);
         } else {
             right_extruder->sync_ams(obj, {}, {});
         }
-        extruder_synced[1] = right_fully_synced;
+        extruder_synced[right_logical_idx] = right_fully_synced;
     }
 
     StateColor synced_colour(std::pair<wxColour, int>(wxColour("#CECECE"), StateColor::Normal));
@@ -3270,15 +3263,20 @@ void Sidebar::update_presets(Preset::Type preset_type)
             };
 
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
-            p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
-            p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
-            AMSCountPopupWindow::UpdateAMSCount(0, p->left_extruder);
-            AMSCountPopupWindow::UpdateAMSCount(1, p->right_extruder);
-            update_extruder_variant(*p->left_extruder, 0);
-            update_extruder_variant(*p->right_extruder, 1);
+            MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
+            bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
+            int left_logical_idx = main_on_left ? 0 : 1;
+            int right_logical_idx = main_on_left ? 1 : 0;
+
+            p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, left_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
+            p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, right_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
+            AMSCountPopupWindow::UpdateAMSCount(left_logical_idx, p->left_extruder);
+            AMSCountPopupWindow::UpdateAMSCount(right_logical_idx, p->right_extruder);
+            update_extruder_variant(*p->left_extruder, left_logical_idx);
+            update_extruder_variant(*p->right_extruder, right_logical_idx);
             //if (!p->is_switching_diameter) {
-                update_extruder_diameter(0, *p->left_extruder);
-                update_extruder_diameter(1, *p->right_extruder);
+                update_extruder_diameter(left_logical_idx, *p->left_extruder);
+                update_extruder_diameter(right_logical_idx, *p->right_extruder);
             //}
             p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
         } else {
@@ -7105,17 +7103,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                         filament_map->values.resize(filament_count, 1);
                                     }
 
-                                    // H2C Vortek: Sync filament nozzle map
-                                    ConfigOptionInts* filament_nozzle_map = proj_cfg.opt<ConfigOptionInts>("filament_nozzle_map", true);
-                                    if (filament_nozzle_map->size() != filament_count) {
-                                        filament_nozzle_map->values.resize(filament_count, 0);
-                                    }
-
-                                    // H2C Vortek: Sync filament volume map
-                                    ConfigOptionInts* filament_volume_map = proj_cfg.opt<ConfigOptionInts>("filament_volume_map", true);
-                                    if (filament_volume_map->size() != filament_count) {
-                                        filament_volume_map->values.resize(filament_count, 0);
-                                    }
+                                    Vortek::PlateMapping::sync_project_config_on_load(proj_cfg, filament_count);
 
                                     // Sync filament multi colour
                                     ConfigOptionStrings* filament_multi_color = proj_cfg.opt<ConfigOptionStrings>("filament_multi_colour", true);
@@ -11685,22 +11673,16 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
             }
         }
 
-        int left_4  = main_4;
-        int left_1  = main_1;
-        int right_4 = deputy_4;
-        int right_1 = deputy_1;
-        if (!obj->is_main_extruder_on_left()) {
-            left_4  = deputy_4;
-            left_1  = deputy_1;
-            right_4 = main_4;
-            right_1 = main_1;
-        }
-
         if (!preset_bundle->extruder_ams_counts.empty() && !preset_bundle->extruder_ams_counts.front().empty()) {
-            is_same_as_printer &= preset_bundle->extruder_ams_counts[0][4] == left_4
-            && preset_bundle->extruder_ams_counts[0][1] == left_1
-            && preset_bundle->extruder_ams_counts[1][4] == right_4
-            && preset_bundle->extruder_ams_counts[1][1] == right_1;
+            if (preset_bundle->extruder_ams_counts.size() >= 2) {
+                is_same_as_printer &= preset_bundle->extruder_ams_counts[0][4] == main_4
+                && preset_bundle->extruder_ams_counts[0][1] == main_1
+                && preset_bundle->extruder_ams_counts[1][4] == deputy_4
+                && preset_bundle->extruder_ams_counts[1][1] == deputy_1;
+            } else {
+                is_same_as_printer &= preset_bundle->extruder_ams_counts[0][4] == main_4
+                && preset_bundle->extruder_ams_counts[0][1] == main_1;
+            }
         }
 
         if (!is_same_as_printer) {

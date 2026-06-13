@@ -36,6 +36,7 @@
 //#include "RemovableDriveManager.hpp"
 
 #include "slic3r/GUI/Plater.hpp"
+#include "VortekPlateMapping.hpp"
 
 namespace Slic3r {
 
@@ -229,30 +230,7 @@ void BackgroundSlicingProcess::process_fff()
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process")%__LINE__;
 		m_print->process();
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: after print::process, send slicing complete event to gui...")%__LINE__;
-        const bool is_bbl_printers = m_fff_print->is_BBL_printer();
-        const bool is_h2c_multi_nozzle = is_bbl_printers &&
-            (m_fff_print->config().nozzle_diameter.size() > 1) &&
-            (m_fff_print->config().extruder_max_nozzle_count.values.size() > 1) &&
-            (m_fff_print->config().extruder_max_nozzle_count.values[1] > 1);
-
-        // Vortek H2C: We must unconditionally write back the calculated filament maps, volume maps,
-        // and nozzle maps from the Print object (which just finished slicing) back into the active plater plate (m_current_plate)
-        // and global preset bundle (preset_bundle.project_config).
-        // This ensures the correct mapping is synchronized back to GUI preset structures and is serialized
-        // into 3MF metadata (slice_info.config and project_settings.config), even if the mapping mode is manual.
-        if (is_h2c_multi_nozzle || m_current_plate->get_real_filament_map_mode(preset_bundle.project_config) < FilamentMapMode::fmmManual) {
-            m_current_plate->set_filament_maps(m_fff_print->get_filament_maps());
-            m_current_plate->set_filament_volume_maps(m_fff_print->get_filament_volume_maps());
-        }
-        if (is_h2c_multi_nozzle || m_current_plate->get_real_filament_map_mode(preset_bundle.project_config) != FilamentMapMode::fmmNozzleManual) {
-            std::vector<int> f_nozzle_maps = m_fff_print->get_filament_nozzle_maps();
-            m_current_plate->set_filament_nozzle_maps(f_nozzle_maps);
-        }
-        if (is_h2c_multi_nozzle) {
-            preset_bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values = m_fff_print->get_filament_maps();
-            preset_bundle.project_config.option<ConfigOptionInts>("filament_volume_map", true)->values = m_fff_print->get_filament_volume_maps();
-            preset_bundle.project_config.option<ConfigOptionInts>("filament_nozzle_map", true)->values = m_fff_print->get_filament_nozzle_maps();
-        }
+        Vortek::PlateMapping::sync_after_slicing(m_current_plate, m_fff_print, preset_bundle);
 		wxCommandEvent evt(m_event_slicing_completed_id);
 		// Post the Slicing Finished message for the G-code viewer to update.
 		// Passing the timestamp
