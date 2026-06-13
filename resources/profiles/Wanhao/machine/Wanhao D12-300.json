@@ -6,8 +6,8 @@
 	"nozzle_diameter": "0.4",
 	"machine_tech": "FFF",
 	"family": "Wanhao",
-	"bed_model": "",
-	"bed_texture": "Wanhao_D12-300_buildplate_texture.png",
+	"bed_model": "Wanhao_D12-300_buildplate_model.stl",
+	"bed_texture": "Wanhao_D12-300_buildplate_texture.svg",
 	"hotend_model": "Wanhao D12-300_hotend.stl",
 	"default_materials": "Generic PLA @System;Generic PETG @System;Generic TPU @System;"
 }

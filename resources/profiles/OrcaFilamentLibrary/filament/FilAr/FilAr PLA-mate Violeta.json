@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Violeta",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "filament_id": "FILAR0046",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#6B3FA0"
+    ]
+}

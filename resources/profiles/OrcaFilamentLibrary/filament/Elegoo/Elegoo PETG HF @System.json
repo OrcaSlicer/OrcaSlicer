@@ -1,0 +1,43 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG HF @System",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "OERPETGHFS00",
+	"instantiation": "true",
+	"renamed_from": "Elegoo PETG HF",
+	"pressure_advance": [
+		"0.052"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"filament_density": [
+		"1.26"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"fan_max_speed": [
+		"50"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"compatible_printers": []
+}

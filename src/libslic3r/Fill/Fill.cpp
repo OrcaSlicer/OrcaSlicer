@@ -256,20 +256,21 @@ struct SurfaceFillParams
 
 	// Index of this entry in a linear vector.
     size_t 			idx = 0;
-	// infill speed settings
-	float			sparse_infill_speed = 0;
-	float			top_surface_speed = 0;
-	float			solid_infill_speed = 0;
+	// Infill speed setting for the effective extrusion role.
+	float role_speed = 0;
 
     // Params for lattice infill angles
     float lateral_lattice_angle_1 = 0.f;
     float lateral_lattice_angle_2 = 0.f;
-    float infill_lock_depth          = 0;
-    float skin_infill_depth          = 0;
-    bool symmetric_infill_y_axis = false;
+    float infill_lock_depth       = 0;
+    float skin_infill_depth       = 0;
+    bool symmetric_infill_y_axis  = false;
 
     // Params for Lateral honeycomb
     float infill_overhang_angle = 60.f;
+
+    // For Gyroid: when true, use the parameterized "optimized" wave.
+    bool gyroid_optimized = false;
 
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
@@ -295,42 +296,40 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(flow.nozzle_diameter());
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, bridge);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, extrusion_role);
-		RETURN_COMPARE_NON_EQUAL(sparse_infill_speed);
-		RETURN_COMPARE_NON_EQUAL(top_surface_speed);
-		RETURN_COMPARE_NON_EQUAL(solid_infill_speed);
+		RETURN_COMPARE_NON_EQUAL(role_speed);
         RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_1);
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);		RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
+		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
 
 		return false;
 	}
 
 	bool operator==(const SurfaceFillParams &rhs) const {
-		return  this->extruder 			== rhs.extruder 		&&
-				this->pattern 			== rhs.pattern 			&&
-				this->spacing 			== rhs.spacing 			&&
-				this->overlap 			== rhs.overlap 			&&
-				this->angle   			== rhs.angle   			&&
-				this->fixed_angle == rhs.fixed_angle &&
-				this->bridge   			== rhs.bridge   		&&
-				this->bridge_angle 		== rhs.bridge_angle		&&
-				this->density   		== rhs.density   		&&
-				this->multiline             == rhs.multiline    &&
-//				this->dont_adjust   	== rhs.dont_adjust 		&&
-				this->anchor_length  	== rhs.anchor_length    &&
-				this->anchor_length_max == rhs.anchor_length_max &&
-				this->flow 				== rhs.flow 			&&
-				this->extrusion_role	== rhs.extrusion_role	&&
-				this->sparse_infill_speed	== rhs.sparse_infill_speed &&
-				this->top_surface_speed		== rhs.top_surface_speed &&
-				this->solid_infill_speed	== rhs.solid_infill_speed &&
-                this->lateral_lattice_angle_1		== rhs.lateral_lattice_angle_1 &&
-				this->lateral_lattice_angle_2	    == rhs.lateral_lattice_angle_2 &&
-				this->infill_lock_depth      ==  rhs.infill_lock_depth &&
-				this->skin_infill_depth      ==  rhs.skin_infill_depth &&
-                this->infill_overhang_angle == rhs.infill_overhang_angle;
+		return  this->extruder 			      == rhs.extruder                &&
+				this->pattern 			      == rhs.pattern                 &&
+				this->spacing 			      == rhs.spacing                 &&
+				this->overlap 			      == rhs.overlap                 &&
+				this->angle   			      == rhs.angle                   &&
+				this->fixed_angle             == rhs.fixed_angle             &&
+				this->bridge                  == rhs.bridge                  &&
+				this->bridge_angle            == rhs.bridge_angle            &&
+				this->density                 == rhs.density                 &&
+				this->multiline               == rhs.multiline               &&
+//				this->dont_adjust             == rhs.dont_adjust             &&
+				this->anchor_length           == rhs.anchor_length           &&
+				this->anchor_length_max       == rhs.anchor_length_max       &&
+				this->flow                    == rhs.flow                    &&
+				this->extrusion_role          == rhs.extrusion_role          &&
+				this->role_speed              == rhs.role_speed              &&
+                this->lateral_lattice_angle_1 == rhs.lateral_lattice_angle_1 &&
+				this->lateral_lattice_angle_2 == rhs.lateral_lattice_angle_2 &&
+				this->infill_lock_depth       == rhs.infill_lock_depth       &&
+				this->skin_infill_depth       == rhs.skin_infill_depth       &&
+                this->infill_overhang_angle   == rhs.infill_overhang_angle   &&
+                this->gyroid_optimized        == rhs.gyroid_optimized;
 	}
 };
 
@@ -808,8 +807,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
         return;
     }
 
-    // Expand the normal infills a little bit to avoid gaps between normal and narrow infills
-    normal_infill = intersection_ex(offset_ex(normal_fill_areas_ex, scaled_spacing * 0.1), fill.expolygons);
+    // Expand the normal infills to avoid gaps between normal and narrow infills.
+    // The inner_area was shrunk by scaled_spacing * 0.5, so we need to expand
+    // by at least that amount to ensure proper coverage and avoid gaps.
+    normal_infill = intersection_ex(offset_ex(normal_fill_areas_ex, scaled_spacing * 0.5), fill.expolygons);
     narrow_infill = narrow_fill_areas;
 
 #ifdef DEBUG_SURFACE_SPLIT
@@ -915,8 +916,20 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.extrusion_role = erSolidInfill;
                     }
                 }
+                if (params.extrusion_role == erTopSolidInfill)
+                    params.extruder = region_config.top_surface_filament_id;
+                else if (params.extrusion_role == erBottomSurface)
+                    params.extruder = region_config.bottom_surface_filament_id;
+                else if (params.extrusion_role == erSolidInfill)
+                    params.extruder = region_config.internal_solid_filament_id;
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
+
+                // Pass through gyroid_optimized only when the effective pattern is Gyroid,
+                // so non-Gyroid fills do not differ in SurfaceFillParams by an irrelevant flag
+                // (which would unnecessarily split fill batching).
+                // Stored on SurfaceFillParams; copied to FillParams during conversion.
+                params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
 
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
@@ -928,10 +941,13 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.fixed_angle = !region_config.solid_infill_rotate_template.value.empty();
                 }
                 params.bridge_angle = float(surface.bridge_angle);
-                
+
+                // ORCA: Align infill angle to model
+                float align_offset = 0.f;
                 if (region_config.align_infill_direction_to_model) {
                     auto m = layer.object()->trafo().matrix();
-                    params.angle += atan2((float) m(1, 0), (float) m(0, 0));
+                    align_offset = atan2((float)m(1, 0), (float)m(0, 0));
+                    params.angle += align_offset;
                 }
 
                 // Calculate the actual flow we'll be using for this infill.
@@ -941,15 +957,18 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 					//Orca: enable thick bridge based on config
 					layerm.bridging_flow(extrusion_role, is_thick_bridge) :
 					layerm.flow(extrusion_role, (surface.thickness == -1) ? layer.height : surface.thickness);
-				// record speed params
-                if (!params.bridge) {
-                    if (params.extrusion_role == erInternalInfill)
-                        params.sparse_infill_speed = region_config.sparse_infill_speed;
-                    else if (params.extrusion_role == erTopSolidInfill) {
-                        params.top_surface_speed = region_config.top_surface_speed;
-                    } else if (params.extrusion_role == erSolidInfill)
-                        params.solid_infill_speed = region_config.internal_solid_infill_speed;
-                }
+
+				params.role_speed = 0;
+                if (params.extrusion_role == erBridgeInfill)
+                    params.role_speed = region_config.bridge_speed;
+                else if (params.extrusion_role == erInternalBridgeInfill)
+                    params.role_speed = region_config.get_abs_value("internal_bridge_speed");
+                else if (params.extrusion_role == erInternalInfill)
+                    params.role_speed = region_config.sparse_infill_speed;
+                else if (params.extrusion_role == erTopSolidInfill)
+                    params.role_speed = region_config.top_surface_speed;
+                else if (params.extrusion_role == erSolidInfill)
+                    params.role_speed = region_config.internal_solid_infill_speed;
 				// Calculate flow spacing for infill pattern generation.
 		        if (surface.is_solid() || is_bridge) {
 		            params.spacing = params.flow.spacing();
@@ -1014,6 +1033,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     if (fill.region_id == size_t(-1)) {
 	        			fill.region_id = region_id;
 	        			fill.surface = surface;
+            		    fill.surface.bridge_angle = params->bridge_angle;
 	        			fill.expolygons.emplace_back(std::move(fill.surface.expolygon));
 						//BBS
 						fill.region_id_group.push_back(region_id);
@@ -1216,6 +1236,10 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
         f->set_bounding_box(bbox);
         f->layer_id = this->id();
+        {
+            const auto &rcfg = m_regions[surface_fill.region_id]->region().config();
+            f->dont_alternate_fill_direction = rcfg.zaa_enabled && rcfg.zaa_dont_alternate_fill_direction;
+        }
         f->z 		= this->print_z;
         f->angle 	= surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
@@ -1267,6 +1291,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.lateral_lattice_angle_1   = surface_fill.params.lateral_lattice_angle_1;
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
+        params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
 
 		// BBS
 		params.flow = surface_fill.params.flow;
@@ -1318,7 +1343,14 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
                 params.density = f->print_object_config->internal_bridge_density.get_abs_value(1.0);
                 params.dont_adjust = true;
             }
-			// BBS: make fill
+            // Orca: Elephant foot compensation for solid layers above bottommost by infill density manipulation.
+            float elefant_density = f->print_object_config->elefant_foot_layers_density.get_abs_value(1.0);
+            if (!is_approx(elefant_density, 1.0f) && surface_fill.surface.is_solid_infill()) {
+                size_t elefant_layers = f->print_object_config->elefant_foot_compensation_layers.value;
+                if (f->layer_id > 0 && f->layer_id <= elefant_layers)
+                    params.density = 1.0f - (1.0f - elefant_density) * (elefant_layers - (f->layer_id - 1)) / elefant_layers; // Reverse calculation - The higher layer number means the higher density. Counting starts from the second layer.
+            }
+            // make fill
 			f->fill_surface_extrusion(&surface_fill.surface,
 				params,
 				m_regions[surface_fill.region_id]->fills.entities);
@@ -1409,6 +1441,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
         f->set_bounding_box(bbox);
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.
+        {
+            const auto &rcfg = m_regions[surface_fill.region_id]->region().config();
+            f->dont_alternate_fill_direction = rcfg.zaa_enabled && rcfg.zaa_dont_alternate_fill_direction;
+        }
         f->z        = this->print_z;
         f->angle    = surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
@@ -1451,6 +1487,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.multiline         = surface_fill.params.multiline;
+        params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
             // Spacing is modified by the filler to indicate adjustments. Reset it for each expolygon.
@@ -1540,18 +1577,18 @@ void Layer::make_ironing()
 				    ((config.top_shell_layers > 0 || (this->object()->print()->config().spiral_mode && config.bottom_shell_layers > 1)) &&
 					    (config.ironing_type == IroningType::TopSurfaces ||
 					        (config.ironing_type == IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.wall_filament == config.solid_infill_filament || config.wall_loops == 0) {
+				if (config.outer_wall_filament_id == config.top_surface_filament_id || config.wall_loops == 0) {
 					// Iron the whole face.
-					ironing_params.extruder = config.solid_infill_filament;
+					ironing_params.extruder = config.top_surface_filament_id;
 				} else {
 					// Iron just the infill.
-					ironing_params.extruder = config.solid_infill_filament;
+					ironing_params.extruder = config.top_surface_filament_id;
 				}
 			}
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
-				// Get filament-specific overrides if configured, otherwise use default values
+				// ORCA: Get filament-specific overrides if configured, otherwise use process values
 				size_t extruder_idx = ironing_params.extruder - 1;
 				ironing_params.line_spacing = (!config.filament_ironing_spacing.is_nil(extruder_idx)
 					? config.filament_ironing_spacing.get_at(extruder_idx)
@@ -1565,7 +1602,12 @@ void Layer::make_ironing()
 				ironing_params.speed = (!config.filament_ironing_speed.is_nil(extruder_idx)
 					? config.filament_ironing_speed.get_at(extruder_idx)
 					: config.ironing_speed);
-                ironing_params.angle        = (config.ironing_angle_fixed ? 0 : calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value)) + config.ironing_angle * M_PI / 180.;
+                double ironing_angle = (config.ironing_angle_fixed ? 0 : calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value)) + config.ironing_angle * M_PI / 180.;
+                if (config.align_infill_direction_to_model) {
+                    auto m = this->object()->trafo().matrix();
+                    ironing_angle += atan2((double)m(1, 0), (double)m(0, 0));
+                }
+                ironing_params.angle       = ironing_angle;
                 ironing_params.fixed_angle = config.ironing_angle_fixed || !config.solid_infill_rotate_template.value.empty();
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
@@ -1586,6 +1628,7 @@ void Layer::make_ironing()
 	for (size_t i = 0; i < by_extruder.size();) {
 		// Find span of regions equivalent to the ironing operation.
 		IroningParams &ironing_params = by_extruder[i];
+        f->dont_alternate_fill_direction = ironing_params.layerm->region().config().zaa_enabled && ironing_params.layerm->region().config().zaa_dont_alternate_fill_direction;
 		// Create the filler object.
 		if( f_pattern != ironing_params.pattern )
 		{

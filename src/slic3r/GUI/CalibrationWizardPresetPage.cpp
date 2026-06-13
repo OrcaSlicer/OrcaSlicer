@@ -1505,6 +1505,9 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
 
     bed_temp = 0;
     std::vector<std::string> filament_types;
+    std::vector<int> nozzle_temperatures;
+    std::vector<int> nozzle_temperature_range_lows;
+    std::vector<int> nozzle_temperature_range_highs;
     for (auto &item : prests) {
         const auto& item_preset = item.second;
         if (!item_preset)
@@ -1533,13 +1536,38 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         std::string display_filament_type;
         filament_types.push_back(item_preset->config.get_filament_type(display_filament_type, 0));
 
+        int nozzle_temperature = 0;
+        int nozzle_temperature_range_low = 0;
+        int nozzle_temperature_range_high = 0;
+        if (const auto* opt_nozzle_temp = item_preset->config.option<ConfigOptionInts>("nozzle_temperature"))
+            nozzle_temperature = opt_nozzle_temp->get_at(0);
+        if (const auto* opt_nozzle_temp_low = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low"))
+            nozzle_temperature_range_low = opt_nozzle_temp_low->get_at(0);
+        if (const auto* opt_nozzle_temp_high = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high"))
+            nozzle_temperature_range_high = opt_nozzle_temp_high->get_at(0);
+
+        nozzle_temperatures.push_back(nozzle_temperature);
+        nozzle_temperature_range_lows.push_back(nozzle_temperature_range_low);
+        nozzle_temperature_range_highs.push_back(nozzle_temperature_range_high);
+
         // check is it in the filament blacklist
         if (!is_filament_in_blacklist(item.first, item_preset, error_tips))
             return false;
     }
 
-    if (Print::check_multi_filaments_compatibility(filament_types) == FilamentCompatibilityType::HighLowMixed) {
-        error_tips = _u8L("Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing");
+    auto compatibility = Print::check_multi_filaments_compatibility(
+            filament_types,
+            nozzle_temperatures,
+            nozzle_temperature_range_lows,
+            nozzle_temperature_range_highs);
+
+    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+        error_tips = _u8L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+        return false;
+    }
+
+    if (compatibility == FilamentCompatibilityType::HighLowMixed) {
+        error_tips = _u8L("Selected nozzle temperatures are incompatible. For multi-material printing, each filament's nozzle temperature must be within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
         return false;
     }
 
@@ -1620,6 +1648,29 @@ bool CalibrationPresetPage::is_blocking_printing()
     return false;
 }
 
+bool CalibrationPresetPage::is_nozzle_info_synced() const
+{
+    if (!curr_obj || !curr_obj->is_info_ready())
+        return false;
+
+
+    for (const DevExtder& extruder : curr_obj->GetExtderSystem()->GetExtruders()) {
+        const int extruder_id = extruder.GetExtId();
+
+        if (!curr_obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(extruder_id, get_nozzle_diameter(extruder_id)))
+            return false;
+
+        if (curr_obj->is_nozzle_flow_type_supported()) {
+            if (extruder.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE)
+                return false;
+            if (int(extruder.GetNozzleFlowType()) - 1 != int(get_nozzle_volume_type(extruder_id)))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 void CalibrationPresetPage::update_sync_button_status()
 {
     auto set_status = [this](bool synced) {
@@ -1636,53 +1687,7 @@ void CalibrationPresetPage::update_sync_button_status()
         }
     };
 
-    if (!curr_obj || !curr_obj->is_info_ready()) {
-        set_status(false);
-        return;
-    }
-
-    struct CaliNozzleInfo
-    {
-        float nozzle_diameter{0.4f};
-        int   nozzle_volume_type{0};
-
-        bool operator==(const CaliNozzleInfo &other) const
-        {
-            return abs(nozzle_diameter - other.nozzle_diameter) < EPSILON
-                && nozzle_volume_type == other.nozzle_volume_type;
-        }
-    };
-
-    if (curr_obj->is_multi_extruders()) {
-        std::vector<CaliNozzleInfo> machine_obj_nozzle_infos;
-        machine_obj_nozzle_infos.resize(2);
-        for (const DevExtder& extruder : curr_obj->GetExtderSystem()->GetExtruders()) {
-            machine_obj_nozzle_infos[extruder.GetExtId()].nozzle_diameter = extruder.GetNozzleDiameter();
-            machine_obj_nozzle_infos[extruder.GetExtId()].nozzle_volume_type = int(extruder.GetNozzleFlowType()) - 1;
-        }
-
-        std::vector<CaliNozzleInfo> cali_nozzle_infos;
-        cali_nozzle_infos.resize(2);
-        for (size_t extruder_id = 0; extruder_id < 2; ++extruder_id) {
-            cali_nozzle_infos[extruder_id].nozzle_diameter = get_nozzle_diameter(extruder_id);
-            cali_nozzle_infos[extruder_id].nozzle_volume_type = int(get_nozzle_volume_type(extruder_id));
-        }
-
-        if (machine_obj_nozzle_infos == cali_nozzle_infos) {
-            set_status(true);
-        }
-        else {
-            set_status(false);
-        }
-    }
-    else {
-        if (abs(curr_obj->GetExtderSystem()->GetNozzleDiameter(0) - get_nozzle_diameter(0)) < EPSILON) {
-            set_status(true);
-        }
-        else {
-            set_status(false);
-        }
-    }
+    set_status(is_nozzle_info_synced());
 }
 
 void CalibrationPresetPage::update_show_status()
@@ -1694,7 +1699,7 @@ void CalibrationPresetPage::update_show_status()
 
     MachineObject* obj_ = dev->get_selected_machine();
     if (!obj_) {
-        if (agent->is_user_login()) {
+        if (agent->is_user_login(wxGetApp().get_printer_cloud_provider())) {
             show_status(CaliPresetPageStatus::CaliPresetStatusInvalidPrinter);
         }
         else {
@@ -1704,7 +1709,7 @@ void CalibrationPresetPage::update_show_status()
     }
 
     if (!obj_->is_lan_mode_printer()) {
-        if (!agent->is_server_connected()) {
+        if (!agent->is_server_connected(wxGetApp().get_printer_cloud_provider())) {
             show_status(CaliPresetPageStatus::CaliPresetStatusConnectingServer);
             return;
         }
