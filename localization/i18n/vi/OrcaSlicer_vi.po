@@ -3323,7 +3323,7 @@ msgstr "Remaining time: %dmin%ds"
 msgid "Importing SLA archive"
 msgstr "Đang nhập lưu trữ SLA"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgstr "Lưu trữ SLA không chứa preset nào. Vui lòng kích hoạt một số preset máy in SLA trước khi nhập lưu trữ SLA đó."
 
 msgid "Importing canceled."

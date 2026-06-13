@@ -3327,7 +3327,7 @@ msgstr "남은 시간: %d분%d초"
 msgid "Importing SLA archive"
 msgstr "SLA 압축파일 가져오는 중"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgstr "SLA 압축파일에 사전 설정이 없습니다. 해당 SLA 압축파일를 가져오기 전에 먼저 일부 SLA 프린터 사전 설정을 활성화하세요."
 
 msgid "Importing canceled."

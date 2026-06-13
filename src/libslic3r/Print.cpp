@@ -1568,7 +1568,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 // BBS
 #if 0
                 if (this->has_wipe_tower() && object->config().independent_support_layer_height) {
-                    return {L("A prime tower requires that support has the same layer height as the object."), object, "support_filament"};
+                    return {L("The prime tower requires that support has the same layer height as the object."), object, "support_filament"};
                 }
 #endif
 
