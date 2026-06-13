@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2026-04-08 23:59+0300\n"
+"PO-Revision-Date: 2026-06-12 21:10-0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
 "Language: tr\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
-"X-Generator: Po Translator App\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "sağ"
@@ -79,7 +79,7 @@ msgid "Idle"
 msgstr "Boşta"
 
 msgid "Model:"
-msgstr "Model:"
+msgstr ""
 
 msgid "Serial:"
 msgstr "Seri:"
@@ -240,7 +240,7 @@ msgid "Reset"
 msgstr "Sıfırla"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Kısayol tuşu "
@@ -334,10 +334,10 @@ msgid "Error: Please close all toolbar menus first"
 msgstr "Hata: Lütfen önce tüm araç çubuğu menülerini kapatın"
 
 msgid "in"
-msgstr "in"
+msgstr ""
 
 msgid "mm"
-msgstr "mm"
+msgstr ""
 
 msgid "Part selection"
 msgstr "Parça seçimi"
@@ -810,7 +810,7 @@ msgid "Horizontal text"
 msgstr "Yatay metin"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "Mouse’u yukarı veya aşağı hareket ettirin"
@@ -851,7 +851,7 @@ msgid "Emboss"
 msgstr "Kabartma"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
 msgstr "KÜÇÜK"
@@ -860,10 +860,10 @@ msgid "ITALIC"
 msgstr "YATIK"
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "İlk yazı tipi"
@@ -1247,7 +1247,7 @@ msgid "SVG actions"
 msgstr "SVG eylemleri"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1447,7 +1447,7 @@ msgid "Restart selection"
 msgstr "Seçimi sıfırla"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "İptal et"
@@ -1595,10 +1595,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "Bildirim"
@@ -1620,7 +1620,7 @@ msgid "Process"
 msgstr "İşlem"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
 msgstr "Makine"
@@ -1970,7 +1970,7 @@ msgid "Language"
 msgstr "Dil"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "Dil değiştiriliyor"
@@ -2118,7 +2118,7 @@ msgid "Delete the selected object"
 msgstr "Seçilen nesneyi sil"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "Yükle..."
@@ -2148,7 +2148,7 @@ msgid "Orca Tolerance Test"
 msgstr "Orca tolerans testi"
 
 msgid "3DBenchy"
-msgstr "3DBenchy"
+msgstr ""
 
 msgid "Cali Cat"
 msgstr "Cali Kedisi"
@@ -2266,7 +2266,7 @@ msgstr "Varsayılan"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "geçerli"
@@ -2515,7 +2515,7 @@ msgid "Name"
 msgstr "İsim"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2845,7 +2845,7 @@ msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Bu katmanın başlangıcına şablon özel G kodunu ekleyin."
 
 msgid "Filament "
-msgstr "Filament "
+msgstr ""
 
 msgid "Change filament at the beginning of this layer."
 msgstr "Bu katmanın başlangıcında filamenti değiştirin."
@@ -2869,7 +2869,7 @@ msgid "No printer"
 msgstr "Yazıcı yok"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "Sunucuya bağlanırken hata oluştu"
@@ -2987,7 +2987,7 @@ msgid "Left(Aux)"
 msgstr "Sol (Yardımcı)"
 
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Parçalar"
@@ -3005,7 +3005,7 @@ msgid "Heat"
 msgstr "Sıcaklık"
 
 msgid "Fan"
-msgstr "Fan"
+msgstr ""
 
 msgid "Idling..."
 msgstr "Rölantide Çalışıyor..."
@@ -3432,7 +3432,7 @@ msgid "The input value should be greater than %1% and less than %2%"
 msgstr "Giriş değeri %1%'den büyük ve %2%'den küçük olmalıdır"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Akış Dinamiği Kalibrasyonunun Faktörleri"
@@ -3474,7 +3474,7 @@ msgstr ""
 "'Cihaz -> Parçaları yazdır'"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "Diğer renk"
@@ -3510,7 +3510,7 @@ msgid "Bed temperature"
 msgstr "Yatak Sıcaklığı"
 
 msgid "mm³"
-msgstr "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "Kalibrasyonu başlat"
@@ -3545,7 +3545,7 @@ msgid "Dynamic flow Calibration"
 msgstr "Dinamik akış kalibrasyonu"
 
 msgid "Step"
-msgstr "Step"
+msgstr ""
 
 msgid "Unmapped"
 msgstr "Eşlenmemiş"
@@ -3915,7 +3915,7 @@ msgid "Not found:"
 msgstr "Bulunamadı:"
 
 msgid "Model"
-msgstr "Model"
+msgstr ""
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "Yatak şeklini içe aktarmak için bir STL dosyası seçin:"
@@ -4549,7 +4549,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Geçersiz format. Beklenen vektör formatı: \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "Seç"
@@ -4678,7 +4678,7 @@ msgid "Flow: "
 msgstr "Akış: "
 
 msgid "Fan: "
-msgstr "Fan: "
+msgstr ""
 
 msgid "Temperature: "
 msgstr "Sıcaklık: "
@@ -4702,13 +4702,13 @@ msgid "PA: "
 msgstr "PA:"
 
 msgid "mm/s"
-msgstr "mm/s"
+msgstr ""
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
-msgstr "mm³/s"
+msgstr ""
 
 msgid "Flow rate"
 msgstr "Akış hızı"
@@ -4717,7 +4717,7 @@ msgid "Fan speed"
 msgstr "Fan hızı"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "Zaman"
@@ -5291,7 +5291,7 @@ msgid "Show \"Live Video\" guide page."
 msgstr "\"Canlı Video\" kılavuz sayfasını gösterin."
 
 msgid "Connect Printer (LAN)"
-msgstr "Connect Printer (LAN)"
+msgstr ""
 
 msgid "Please input the printer access code:"
 msgstr "Lütfen yazıcı erişim kodunu girin:"
@@ -5706,7 +5706,7 @@ msgid "Input Shaping"
 msgstr "Input shaping"
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr ""
@@ -5921,13 +5921,13 @@ msgid "Show all files, recent first."
 msgstr "Tüm dosyaları göster, en yenisi önce."
 
 msgid "Timelapse"
-msgstr "Timelapse"
+msgstr ""
 
 msgid "Switch to timelapse files."
 msgstr "Timelapse dosyalarına geç."
 
 msgid "Video"
-msgstr "Video"
+msgstr ""
 
 msgid "Switch to video files."
 msgstr "Video dosyalarına geç."
@@ -6129,7 +6129,7 @@ msgid "Invert Roll axis"
 msgstr "Silindir eksenini ters çevir"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Ara"
@@ -6248,7 +6248,7 @@ msgid "Control"
 msgstr "Kontrol"
 
 msgid "Printer Parts"
-msgstr "Printer Parts"
+msgstr ""
 
 msgid "Print Options"
 msgstr "Yazdırma Seçenekleri"
@@ -7062,7 +7062,7 @@ msgid "Collapse sidebar"
 msgstr "Kenar çubuğunu daralt"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7735,7 +7735,7 @@ msgid "Metric"
 msgstr "Metrik"
 
 msgid "Imperial"
-msgstr "Imperial"
+msgstr ""
 
 msgid "Units"
 msgstr "Birimler"
@@ -8082,7 +8082,7 @@ msgid "Network test"
 msgstr "Ağ testi"
 
 msgid "Test"
-msgstr "Test"
+msgstr ""
 
 msgid "Cloud Providers"
 msgstr ""
@@ -8559,7 +8559,7 @@ msgid "Task canceled"
 msgstr "Görev iptal edildi"
 
 msgid "Bambu Cool Plate"
-msgstr "Bambu Cool Plate"
+msgstr ""
 
 msgid "PLA Plate"
 msgstr "PLA Plaka"
@@ -8577,7 +8577,7 @@ msgid "Bambu Textured PEI Plate"
 msgstr "Bambu Dokulu PEI Plaka"
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr "Bambu Cool Plate SuperTack"
+msgstr ""
 
 msgid "Send print job"
 msgstr "Yazdırma işini gönder"
@@ -8741,19 +8741,19 @@ msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr "Filament yumuşamasını önlemek için takım başlığı geliştirilmiş soğutma fanını takın."
 
 msgid "Smooth Cool Plate"
-msgstr "Smooth Cool Plate"
+msgstr ""
 
 msgid "Engineering Plate"
-msgstr "Engineering Plate"
+msgstr ""
 
 msgid "Smooth High Temp Plate"
-msgstr "Smooth High Temp Plate"
+msgstr ""
 
 msgid "Textured PEI Plate"
-msgstr "Textured PEI Plate"
+msgstr ""
 
 msgid "Cool Plate (SuperTack)"
-msgstr "Cool Plate (SuperTack)"
+msgstr ""
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Yazıcıya bağlanamıyorsanız burayı tıklayın"
@@ -9212,7 +9212,7 @@ msgid "Jerk(XY)"
 msgstr "Sarsıntı(XY)"
 
 msgid "Raft"
-msgstr "Raft"
+msgstr ""
 
 msgid "Support filament"
 msgstr "Destek Filamenti"
@@ -9301,7 +9301,7 @@ msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the 
 msgstr "Cool Plate takıldığında yatak sıcaklığı. 0 değeri, filamentin Cool Plate üzerine yazdırmayı desteklemediği anlamına gelir."
 
 msgid "Textured Cool Plate"
-msgstr "Textured Cool Plate"
+msgstr ""
 
 msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Cool Plate takıldığında yatak sıcaklığı. 0 Değeri, filamentin Textured Cool Plate üzerine yazdırmayı desteklemediği anlamına gelir."
@@ -9310,7 +9310,7 @@ msgid "Bed temperature when the Engineering Plate is installed. A value of 0 mea
 msgstr "Engineering Plate takıldığında yatak sıcaklığı. Değer 0, filamentin Engineering Plate yazdırmayı desteklemediği anlamına gelir."
 
 msgid "Smooth PEI Plate / High Temp Plate"
-msgstr "Smooth PEI Plate / High Temp Plate"
+msgstr ""
 
 msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Smooth PEI Plate / High Temp Plate takılığın da yatak sıcaklığı. 0 Değeri, filamentin Smooth PEI Plate / High Temp Plate üzerine baskı yapmayı desteklemediği anlamına gelir."
@@ -9447,7 +9447,7 @@ msgid "Motion ability"
 msgstr "Hareket"
 
 msgid "Normal"
-msgstr "Normal"
+msgstr ""
 
 msgid "Resonance Compensation"
 msgstr ""
@@ -9903,7 +9903,7 @@ msgstr ""
 " Devam etmek veya manuel olarak ayarlamak için"
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10331,7 +10331,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Destek/Renkli Boyama: bölüm konumunu ayarlayın"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Nesneler ve parçalar için ekstruder numarasını ayarlayın"
@@ -10433,7 +10433,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. Lütfen cihazın SN'sini yazıcı tarafından alın; genellikle yazıcı ekranındaki cihaz bilgilerinde bulunur."
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "Giriş kodu"
@@ -11965,7 +11965,7 @@ msgid "Line pattern of top surface infill."
 msgstr "Üst yüzey dolgusunun çizgi deseni."
 
 msgid "Monotonic"
-msgstr "Monotonic"
+msgstr ""
 
 msgid "Monotonic line"
 msgstr "Monotonik çizgi"
@@ -12246,7 +12246,7 @@ msgid "Part cooling fan will be enabled for layers of which estimated time is sh
 msgstr "Tahmini süresi bu değerden kısa olan katlarda parça soğutma fanı devreye girecektir. Fan hızı, katman yazdırma süresine göre minimum ve maksimum fan hızları arasında enterpole edilir."
 
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgid "Default color"
 msgstr "Varsayılan renk"
@@ -12482,7 +12482,7 @@ msgid "Ironing area for prime tower interface layer (where different materials m
 msgstr "Prime tower arayüz katmanı için ütüleme alanı (farklı malzemelerin buluştuğu yer)."
 
 msgid "mm²"
-msgstr "mm²"
+msgstr ""
 
 msgid "Interface layer purge length"
 msgstr "Arayüz katmanı temizleme uzunluğu"
@@ -12533,7 +12533,7 @@ msgid "Filament density. For statistics only."
 msgstr "Filament yoğunluğu. Yalnızca istatistikler için."
 
 msgid "g/cm³"
-msgstr "g/cm³"
+msgstr ""
 
 msgid "Filament material type."
 msgstr "Filament malzeme türü."
@@ -13024,16 +13024,16 @@ msgid "Classic"
 msgstr "Klasik"
 
 msgid "Perlin"
-msgstr "Perlin"
+msgstr ""
 
 msgid "Billow"
-msgstr "Billow"
+msgstr ""
 
 msgid "Ridged Multifractal"
 msgstr "Ridged multifractal"
 
 msgid "Voronoi"
-msgstr "Voronoi"
+msgstr ""
 
 msgid "Ripple"
 msgstr ""
@@ -13166,16 +13166,16 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "Yazıcının fiziksel düzenlemesi ve bileşenleri."
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
-msgstr "Delta"
+msgstr ""
 
 msgid "Best object position"
 msgstr "En iyi nesne konumu"
@@ -13225,7 +13225,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Zaman maliyeti"
@@ -13263,7 +13263,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "Yazıcının ne tür bir gcode ile uyumlu olduğu."
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Pelet modlu yazıcı"
@@ -13865,7 +13865,7 @@ msgstr ""
 "Not: bu parametre ark montajını devre dışı bırakır."
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr "Segment uzunluğunu yumuşatma"
@@ -14187,7 +14187,7 @@ msgid "Slope"
 msgstr "Eğim"
 
 msgid "Spiral"
-msgstr "Spiral"
+msgstr ""
 
 msgid "Traveling angle"
 msgstr "Seyahat açısı"
@@ -14229,7 +14229,7 @@ msgid "Direct Drive"
 msgstr "Doğrudan Tahrik"
 
 msgid "Bowden"
-msgstr "Bowden"
+msgstr ""
 
 msgid "Extra length on restart"
 msgstr "Yeniden başlatma sırasında ekstra uzunluk"
@@ -14851,7 +14851,7 @@ msgid "Default (Grid/Organic)"
 msgstr "Varsayılan (Izgara/Organik)"
 
 msgid "Snug"
-msgstr "Snug"
+msgstr ""
 
 msgid "Organic"
 msgstr "Organik"
@@ -15322,7 +15322,7 @@ msgid "Classic wall generator produces walls with constant extrusion width and f
 msgstr "Klasik duvar oluşturucu sabit ekstrüzyon genişliğine sahip duvarlar üretir ve çok ince alanlar için boşluk doldurma kullanılır. Arachne motoru değişken ekstrüzyon genişliğine sahip duvarlar üretir."
 
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "Duvar geçiş uzunluğu"
@@ -15469,13 +15469,13 @@ msgid "Export 3MF with minimum size."
 msgstr "3mf'yi minimum boyutta dışa aktarın."
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "dilimleme için plaka başına maksimum üçgen sayısı."
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "saniye cinsinden plaka başına maksimum dilimleme süresi."
@@ -15688,7 +15688,7 @@ msgid "MakerLab name to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab adı."
 
 msgid "MakerLab version"
-msgstr "MakerLab version"
+msgstr ""
 
 msgid "MakerLab version to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab sürümü."
@@ -15932,7 +15932,7 @@ msgid "String containing current time in yyyyMMdd-hhmmss format."
 msgstr "Geçerli saati yyyyMMdd-hhmmss biçiminde içeren dize."
 
 msgid "Day"
-msgstr "Day"
+msgstr ""
 
 msgid "Hour"
 msgstr "Saat"
@@ -16573,7 +16573,7 @@ msgid "Extruder type"
 msgstr "Ekstruder tipi"
 
 msgid "DDE"
-msgstr "DDE"
+msgstr ""
 
 msgid "PA Tower"
 msgstr "PA Kulesi"
@@ -16597,7 +16597,7 @@ msgid "Accelerations: "
 msgstr "İvmeler: "
 
 msgid "Speeds: "
-msgstr "Speeds: "
+msgstr ""
 
 msgid "Print numbers"
 msgstr "Sayıları yazdır"
@@ -16633,25 +16633,25 @@ msgid "Filament type"
 msgstr "Filament türü"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "Başlangıç sıcaklığı: "
@@ -16723,7 +16723,7 @@ msgid "Input shaping Frequency test"
 msgstr "Input shaping frekans testi"
 
 msgid "Test model"
-msgstr "Test model"
+msgstr ""
 
 msgid "Ringing Tower"
 msgstr "Titreşim Test Kulesi"
@@ -16767,7 +16767,7 @@ msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "RepRap ürün yazılımı her iki eksen için aynı frekans aralığını kullanır."
 
 msgid "Damp: "
-msgstr "Damp: "
+msgstr ""
 
 msgid ""
 "Recommended: Set Damp to 0.\n"
@@ -16796,7 +16796,7 @@ msgid "Frequency: "
 msgstr "Sıklık:"
 
 msgid "Damp"
-msgstr "Damp"
+msgstr ""
 
 msgid "RepRap firmware uses the same frequency for both axes."
 msgstr "RepRap ürün yazılımı her iki eksen için de aynı frekansı kullanır."
@@ -16818,7 +16818,7 @@ msgid "Cornering test"
 msgstr "Viraj testi"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "Başlangıç:"
@@ -16964,7 +16964,7 @@ msgid "Progress"
 msgstr "İlerleme"
 
 msgid "Host"
-msgstr "Host"
+msgstr ""
 
 msgctxt "OfFile"
 msgid "Size"
@@ -17020,7 +17020,7 @@ msgid "Mesh Boolean"
 msgstr "Mesh Bölme"
 
 msgid "Union"
-msgstr "Union"
+msgstr ""
 
 msgid "Difference"
 msgstr "Fark"
@@ -17536,7 +17536,7 @@ msgid "For more information, please check out Wiki"
 msgstr "Daha fazla bilgi için lütfen Wiki'ye göz atın"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "Daralt"
@@ -17715,7 +17715,7 @@ msgid "Unknown error occurred"
 msgstr "Bilinmeyen hata oluştu"
 
 msgid "Wrong password"
-msgstr "Wrong password"
+msgstr ""
 
 msgid "Could not get resources to create a new connection"
 msgstr "Yeni bir bağlantı oluşturmak için kaynaklar alınamadı"
@@ -18796,8 +18796,7 @@ msgstr ""
 "Baskılarınızı plakalara ayırın\n"
 "Çok sayıda parçası olan bir modeli baskıya hazır ayrı kalıplara bölebileceğinizi biliyor muydunuz? Bu, tüm parçaları takip etme sürecini basitleştirecektir."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18869,8 +18868,7 @@ msgstr ""
 "Gücü artırın\n"
 "Modelin gücünü artırmak için daha fazla duvar halkası ve daha yüksek seyrek dolgu yoğunluğu kullanabileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

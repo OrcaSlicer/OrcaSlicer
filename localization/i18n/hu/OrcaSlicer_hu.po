@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
-"X-Generator: Localazy (https://localazy.com)\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "jobb"
@@ -27,7 +27,7 @@ msgid "left extruder"
 msgstr "bal extruder"
 
 msgid "extruder"
-msgstr "extruder"
+msgstr ""
 
 msgid "TPU is not supported by AMS."
 msgstr "Az AMS nem támogatja a TPU-t."
@@ -240,7 +240,7 @@ msgid "Reset"
 msgstr "Visszaállítás"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Gyorsgomb "
@@ -334,10 +334,10 @@ msgid "Error: Please close all toolbar menus first"
 msgstr "Hiba: Kérlek, először zárd be az összes eszköztár menüt"
 
 msgid "in"
-msgstr "in"
+msgstr ""
 
 msgid "mm"
-msgstr "mm"
+msgstr ""
 
 msgid "Part selection"
 msgstr "Rész kijelölése"
@@ -422,7 +422,7 @@ msgid "Dovetail"
 msgstr "Fecskefarok"
 
 msgid "Auto"
-msgstr "Auto"
+msgstr ""
 
 msgid "Manual"
 msgstr "Manuális"
@@ -810,7 +810,7 @@ msgid "Horizontal text"
 msgstr "Vízszintes szöveg"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "Egér mozgatása fel vagy le"
@@ -863,7 +863,7 @@ msgid "SWISS"
 msgstr "SVÁJCI"
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "Első betűtípus"
@@ -952,7 +952,7 @@ msgid "Name has to be unique."
 msgstr "A névnek egyedinek kell lennie."
 
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Rename style"
 msgstr "Stílus átnevezése"
@@ -1247,7 +1247,7 @@ msgid "SVG actions"
 msgstr "SVG műveletek"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1447,7 +1447,7 @@ msgid "Restart selection"
 msgstr "Kijelölés újrakezdése"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Jellemző visszavonása kilépésig"
@@ -1495,10 +1495,10 @@ msgstr ""
 "és add meg köztük a távolságot."
 
 msgid "Face"
-msgstr "Face"
+msgstr ""
 
 msgid " (Fixed)"
-msgstr " (Fixed)"
+msgstr ""
 
 msgid "Point"
 msgstr "Pont"
@@ -1595,10 +1595,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "Megjegyzés"
@@ -1620,7 +1620,7 @@ msgid "Process"
 msgstr "Folyamat"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
 msgstr "Gép"
@@ -1729,7 +1729,7 @@ msgstr ""
 "Kattints az Igen gombra a telepítéshez."
 
 msgid "WebView2 Runtime"
-msgstr "WebView2 Runtime"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1975,7 +1975,7 @@ msgid "Language"
 msgstr "Nyelv"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "Alkalmazás nyelvének megváltoztatása"
@@ -2117,7 +2117,7 @@ msgid "Show"
 msgstr "Megjelenítés"
 
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Kiválasztott objektum törlése"
@@ -2153,7 +2153,7 @@ msgid "Orca Tolerance Test"
 msgstr "Orca tolerancia teszt"
 
 msgid "3DBenchy"
-msgstr "3DBenchy"
+msgstr ""
 
 msgid "Cali Cat"
 msgstr "Cali macska"
@@ -2271,7 +2271,7 @@ msgstr "Alapértelmezett"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "jelenlegi"
@@ -2520,7 +2520,7 @@ msgid "Name"
 msgstr "Név"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2851,7 +2851,7 @@ msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Sablon szerinti egyéni G-kód beszúrása ennek a rétegnek az elejére."
 
 msgid "Filament "
-msgstr "Filament "
+msgstr ""
 
 msgid "Change filament at the beginning of this layer."
 msgstr "Filament cseréje ennek a rétegnek az elején."
@@ -2875,7 +2875,7 @@ msgid "No printer"
 msgstr "Nincs nyomtató"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "Nem sikerült csatlakozni a szerverhez"
@@ -2999,7 +2999,7 @@ msgid "Parts"
 msgstr "Alkatrészek"
 
 msgid "Aux"
-msgstr "Aux"
+msgstr ""
 
 msgid "Nozzle1"
 msgstr "Fúvóka1"
@@ -3375,7 +3375,7 @@ msgid "Portions copyright"
 msgstr "Szerzői jogok"
 
 msgid "Copyright"
-msgstr "Copyright"
+msgstr ""
 
 msgid "License"
 msgstr "Licenc"
@@ -3428,17 +3428,17 @@ msgstr ""
 "Hőmérséklet"
 
 msgid "max"
-msgstr "max"
+msgstr ""
 
 msgid "min"
-msgstr "min"
+msgstr ""
 
 #, boost-format
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "A megadott értéknek nagyobbnak kell lennie, mint %1% és kisebbnek, mint %2%"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Anyagáramlás kalibrálásának faktorai"
@@ -3480,7 +3480,7 @@ msgstr ""
 "'Eszköz -> Nyomtatási részek'"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "Egyéb szín"
@@ -3510,13 +3510,13 @@ msgid "Max volumetric speed"
 msgstr "Max. volumetrikus sebesség"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "Asztalhőmérséklet"
 
 msgid "mm³"
-msgstr "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "Start"
@@ -3698,10 +3698,10 @@ msgstr ""
 "*Azonos filament: azonos márka, típus és szín."
 
 msgid "DRY"
-msgstr "DRY"
+msgstr ""
 
 msgid "WET"
-msgstr "WET"
+msgstr ""
 
 msgid "AMS Settings"
 msgstr "AMS beállítások"
@@ -4554,7 +4554,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Érvénytelen formátum. Elvárt vektor formátum: \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "Kiválasztás"
@@ -4704,16 +4704,16 @@ msgid "Jerk: "
 msgstr "Rántás: "
 
 msgid "PA: "
-msgstr "PA: "
+msgstr ""
 
 msgid "mm/s"
-msgstr "mm/s"
+msgstr ""
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
-msgstr "mm³/s"
+msgstr ""
 
 msgid "Flow rate"
 msgstr "Anyagáramlás"
@@ -4722,7 +4722,7 @@ msgid "Fan speed"
 msgstr "Ventilátor fordulatszám"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "Idő"
@@ -4866,7 +4866,7 @@ msgid "Options"
 msgstr "Opciók"
 
 msgid "Extruder"
-msgstr "Extruder"
+msgstr ""
 
 msgid "Cost"
 msgstr "Költség"
@@ -5343,7 +5343,7 @@ msgid "Device"
 msgstr "Nyomtató"
 
 msgid "Multi-device"
-msgstr "Multi-device"
+msgstr ""
 
 msgid "Project"
 msgstr "Projekt"
@@ -5711,7 +5711,7 @@ msgid "Input Shaping"
 msgstr "Rezgéskompenzáció"
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr "Kalibrálási útmutató"
@@ -5931,13 +5931,13 @@ msgid "Show all files, recent first."
 msgstr "Minden fájl megjelenítése, elöl a legújabb."
 
 msgid "Timelapse"
-msgstr "Timelapse"
+msgstr ""
 
 msgid "Switch to timelapse files."
 msgstr "Váltás timelapse fájlokra."
 
 msgid "Video"
-msgstr "Video"
+msgstr ""
 
 msgid "Switch to video files."
 msgstr "Váltás a videófájlokra."
@@ -6139,7 +6139,7 @@ msgid "Invert Roll axis"
 msgstr "Roll tengely invertálása"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Keresés"
@@ -6151,7 +6151,7 @@ msgid "Other Device"
 msgstr "Egyéb eszköz"
 
 msgid "Online"
-msgstr "Online"
+msgstr ""
 
 msgid "Input access code"
 msgstr "Add meg a hozzáférési kódot"
@@ -6163,7 +6163,7 @@ msgid "Log out successful."
 msgstr "Sikeres kijelentkezés."
 
 msgid "Offline"
-msgstr "Offline"
+msgstr ""
 
 msgid "Busy"
 msgstr "Elfoglalt"
@@ -6352,7 +6352,7 @@ msgid "Standard"
 msgstr "Normál"
 
 msgid "Sport"
-msgstr "Sport"
+msgstr ""
 
 msgid "Ludicrous"
 msgstr "Őrült"
@@ -7075,7 +7075,7 @@ msgid "Collapse sidebar"
 msgstr "&Az oldalsáv összecsukása"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7412,7 +7412,7 @@ msgid "Importing to Orca Slicer failed. Please download the file and manually im
 msgstr "Az Orca Slicerbe importálás sikertelen. Töltsd le a fájlt és manuálisan importáljad."
 
 msgid "INFO:"
-msgstr "INFO:"
+msgstr ""
 
 msgid "No accelerations provided for calibration. Use default acceleration value "
 msgstr "Nincs megadva gyorsulás a kalibráláshoz. Alapértelmezett gyorsulási érték használata "
@@ -8062,7 +8062,7 @@ msgstr ""
 "Azonnal hatályba lép."
 
 msgid "FPS"
-msgstr "FPS"
+msgstr ""
 
 msgid "FPS cap"
 msgstr "FPS korlát"
@@ -8279,7 +8279,7 @@ msgid "warning"
 msgstr "figyelmeztetés"
 
 msgid "debug"
-msgstr "debug"
+msgstr ""
 
 msgid "trace"
 msgstr "követés"
@@ -8345,16 +8345,16 @@ msgid "Host Setting"
 msgstr "Host beállítás"
 
 msgid "DEV host: api-dev.bambu-lab.com/v1"
-msgstr "DEV host: api-dev.bambu-lab.com/v1"
+msgstr ""
 
 msgid "QA  host: api-qa.bambu-lab.com/v1"
-msgstr "QA  host: api-qa.bambu-lab.com/v1"
+msgstr ""
 
 msgid "PRE host: api-pre.bambu-lab.com/v1"
-msgstr "PRE host: api-pre.bambu-lab.com/v1"
+msgstr ""
 
 msgid "Product host"
-msgstr "Product host"
+msgstr ""
 
 msgid "Debug save button"
 msgstr "debug mentés gomb"
@@ -8480,16 +8480,16 @@ msgid "Same as Global Bed Type"
 msgstr "Ugyanaz, mint a globális tálca típusa"
 
 msgid "By Layer"
-msgstr "By Layer"
+msgstr ""
 
 msgid "By Object"
-msgstr "By Object"
+msgstr ""
 
 msgid "Accept"
-msgstr "Accept"
+msgstr ""
 
 msgid "Log Out"
-msgstr "Log Out"
+msgstr ""
 
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Szeleteld fel az összes tálcát az idő és a filament becsléséhez"
@@ -8682,7 +8682,7 @@ msgid "The selected printer (%s) is incompatible with the print file configurati
 msgstr "A kiválasztott nyomtató (%s) nem kompatibilis a nyomtatási fájl konfigurációjával (%s). Állítsd be a nyomtató-előbeállítást az előkészítés oldalon, vagy válassz ezen az oldalon kompatibilis nyomtatót."
 
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
-msgstr "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
+msgstr ""
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Az aktuális nyomtató nem támogatja az időfelvételt hagyományos módban, ha a nyomtatás objektumonként történik."
@@ -9237,7 +9237,7 @@ msgid "Junction Deviation"
 msgstr "Csomóponti eltérés"
 
 msgid "Jerk(XY)"
-msgstr "Jerk(XY)"
+msgstr ""
 
 msgid "Raft"
 msgstr "Tutaj"
@@ -9323,13 +9323,13 @@ msgid "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 
 msgstr "Asztalhőmérséklet a Cool Plate SuperTack használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate SuperTack-re történő nyomtatást."
 
 msgid "Cool Plate"
-msgstr "Cool Plate"
+msgstr ""
 
 msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Asztalhőmérséklet a hideg tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
 msgid "Textured Cool Plate"
-msgstr "Textured Cool Plate"
+msgstr ""
 
 msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Asztalhőmérséklet a Textured Cool Plate használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja a Textured Cool Plate-re történő nyomtatást."
@@ -9952,7 +9952,7 @@ msgstr ""
 " vagy akár manuálisan is módosíthatod."
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10092,7 +10092,7 @@ msgstr "A filament színének és típusának szinkronizálása a nyomtatóról 
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Ramming customization"
 msgstr "Tömörítés testreszabása"
@@ -10111,7 +10111,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "Állandó áramlási sebességhez húzás közben tartsd lenyomva ezt: %1%."
 
 msgid "ms"
-msgstr "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr "Összes tömörítés"
@@ -10380,7 +10380,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Támasz/Színfestés: metszet pozíciójának beállítása"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Extruder szám beállítása az objektumok és tárgyak számára"
@@ -10482,7 +10482,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. Kérjük, szerezd be az eszköz sorozatszámát a nyomtatóról; ez általában a nyomtató kijelzőjén, az eszközinformációk között található."
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "Hozzáférési kód"
@@ -11170,7 +11170,7 @@ msgid "API key"
 msgstr "API-kulcs"
 
 msgid "HTTP digest"
-msgstr "HTTP digest"
+msgstr ""
 
 msgid "Avoid crossing walls"
 msgstr "Kerülje a falak keresztezését"
@@ -12548,7 +12548,7 @@ msgid "Ironing area for prime tower interface layer (where different materials m
 msgstr "Vasalási terület a törlőtorony érintkezőrétegéhez (ahol a különböző anyagok találkoznak)."
 
 msgid "mm²"
-msgstr "mm²"
+msgstr ""
 
 msgid "Interface layer purge length"
 msgstr "Érintkezőréteg kiürítési hossza"
@@ -12599,7 +12599,7 @@ msgid "Filament density. For statistics only."
 msgstr "Filament sűrűsége. Csak statisztikákhoz kerül felhasználásra"
 
 msgid "g/cm³"
-msgstr "g/cm³"
+msgstr ""
 
 msgid "Filament material type."
 msgstr "Filament anyagának típusa"
@@ -12753,13 +12753,13 @@ msgid "Cross Hatch"
 msgstr "Keresztsraffozás"
 
 msgid "TPMS-D"
-msgstr "TPMS-D"
+msgstr ""
 
 msgid "TPMS-FK"
-msgstr "TPMS-FK"
+msgstr ""
 
 msgid "Gyroid"
-msgstr "Gyroid"
+msgstr ""
 
 msgid "Lateral lattice angle 1"
 msgstr "Oldalsó rács 1. szöge"
@@ -12872,7 +12872,7 @@ msgid "Klipper's max_accel_to_decel will be adjusted automatically."
 msgstr "A Klipper max_accel_to_decel értékét a rendszer automatikusan beállítja"
 
 msgid "accel_to_decel"
-msgstr "accel_to_decel"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
@@ -13101,16 +13101,16 @@ msgid "Classic"
 msgstr "Klasszikus"
 
 msgid "Perlin"
-msgstr "Perlin"
+msgstr ""
 
 msgid "Billow"
-msgstr "Billow"
+msgstr ""
 
 msgid "Ridged Multifractal"
 msgstr "Bordás multifraktális"
 
 msgid "Voronoi"
-msgstr "Voronoi"
+msgstr ""
 
 msgid "Ripple"
 msgstr "Fodrozódás"
@@ -13244,7 +13244,7 @@ msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness durin
 msgstr "A fúvóka keménysége. A 0 azt jelenti, hogy szeletelés során nem ellenőrzi a fúvóka HRC értékét."
 
 msgid "HRC"
-msgstr "HRC"
+msgstr ""
 
 msgid "Printer structure"
 msgstr "Nyomtató szerkezete"
@@ -13253,16 +13253,16 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "A nyomtató fizikai felépítése és alkatrészei"
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
-msgstr "Delta"
+msgstr ""
 
 msgid "Best object position"
 msgstr "Legjobb tárgypozíció"
@@ -13315,7 +13315,7 @@ msgstr ""
 "A deaktiváláshoz állítsd 0-ra."
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Időköltség"
@@ -13353,7 +13353,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "Milyen G-kóddal kompatibilis a nyomtató."
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Granulátumos módosított nyomtató"
@@ -13645,7 +13645,7 @@ msgstr ""
 "Az ésszerű érték 35. A letiltáshoz állítsd 0-ra."
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr "Ne váltakozzon a töltési irány"
@@ -13829,13 +13829,13 @@ msgstr ""
 "Kérlek, a rezonanciacsíkok tesztelésekor kapcsold ki ezt az opciót."
 
 msgid "Min"
-msgstr "Min"
+msgstr ""
 
 msgid "Minimum speed of resonance avoidance."
 msgstr "A rezonanciaelkerülés minimális sebessége."
 
 msgid "Max"
-msgstr "Max"
+msgstr ""
 
 msgid "Maximum speed of resonance avoidance."
 msgstr "A rezonanciaelkerülés maximális sebessége."
@@ -13863,40 +13863,40 @@ msgstr ""
 "A letiltása kikapcsolja a rezgéskompenzációt a firmware-ben."
 
 msgid "MZV"
-msgstr "MZV"
+msgstr ""
 
 msgid "ZV"
-msgstr "ZV"
+msgstr ""
 
 msgid "ZVD"
-msgstr "ZVD"
+msgstr ""
 
 msgid "ZVDD"
-msgstr "ZVDD"
+msgstr ""
 
 msgid "ZVDDD"
-msgstr "ZVDDD"
+msgstr ""
 
 msgid "EI"
-msgstr "EI"
+msgstr ""
 
 msgid "EI2"
-msgstr "EI2"
+msgstr ""
 
 msgid "2HUMP_EI"
-msgstr "2HUMP_EI"
+msgstr ""
 
 msgid "EI3"
-msgstr "EI3"
+msgstr ""
 
 msgid "3HUMP_EI"
-msgstr "3HUMP_EI"
+msgstr ""
 
 msgid "DAA"
-msgstr "DAA"
+msgstr ""
 
 msgid "X"
-msgstr "X"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -13910,7 +13910,7 @@ msgstr ""
 "RRF: X és Y értékek egyenlőek."
 
 msgid "Y"
-msgstr "Y"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -13980,7 +13980,7 @@ msgstr ""
 "Megjegyzés: ez a paraméter kikapcsolja az íves illesztést."
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr "Simítási szegmenshossz"
@@ -14346,10 +14346,10 @@ msgid "Top and Bottom"
 msgstr "Felül és alul"
 
 msgid "Direct Drive"
-msgstr "Direct Drive"
+msgstr ""
 
 msgid "Bowden"
-msgstr "Bowden"
+msgstr ""
 
 msgid "Extra length on restart"
 msgstr "Extra hossz újraindításkor"
@@ -14681,7 +14681,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "Az az alkalmazandó hőmérséklet-különbség, amikor egy extruder nem aktív. Ez az érték nem kerül felhasználásra, ha a filament beállításokban az 'idle_temperature' nem nulla értékre van állítva."
 
 msgid "∆℃"
-msgstr "∆℃"
+msgstr ""
 
 msgid "Preheat time"
 msgstr "Előmelegítési idő"
@@ -15218,7 +15218,7 @@ msgstr ""
 "Ha az alábbi \"visszahúzási mennyiség törlés előtt\" beállításban értéket adsz meg, akkor az esetleges többletvisszahúzás a törlés előtt történik meg, különben utána."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
+msgstr ""
 
 msgid "Internal ribs"
 msgstr "Belső bordák"
@@ -15454,7 +15454,7 @@ msgid "Classic wall generator produces walls with constant extrusion width and f
 msgstr "A klasszikus falgenerátor állandó szélességű falakat generál, és a nagyon vékony területeknél hézagkitöltést használ. Az Arachne engine változó szélességű falakat generál."
 
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "Falátmenet hossza"
@@ -15602,13 +15602,13 @@ msgid "Export 3MF with minimum size."
 msgstr "3MF exportálása minimális mérettel."
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "tálcánkénti maximális háromszögszám szeleteléshez."
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "tálcánkénti maximális szeletelési idő másodpercben."
@@ -16233,7 +16233,7 @@ msgid "Result can be read by human eyes."
 msgstr "Az eredmények könnyen átláthatóak és megérthetőek."
 
 msgid "Auto-Calibration"
-msgstr "Auto-Calibration"
+msgstr ""
 
 msgid "We would use Lidar to read the calibration result"
 msgstr "A Lidar segítségével olvassuk le a kalibrálás eredményét"
@@ -16545,7 +16545,7 @@ msgid "Printing Parameters"
 msgstr "Nyomtatási paraméterek"
 
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "Fúvóka- és AMS-információk szinkronizálása"
@@ -16707,7 +16707,7 @@ msgid "Extruder type"
 msgstr "Extruder típusa"
 
 msgid "DDE"
-msgstr "DDE"
+msgstr ""
 
 msgid "PA Tower"
 msgstr "PA-torony"
@@ -16767,25 +16767,25 @@ msgid "Filament type"
 msgstr "Filament típusa"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "Kezdőhőmérséklet: "
@@ -16895,7 +16895,7 @@ msgid "Frequency settings"
 msgstr "Frekvenciabeállítások"
 
 msgid "Hz"
-msgstr "Hz"
+msgstr ""
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "A RepRap firmware mindkét tengelyhez ugyanazt a frekvenciatartományt használja."
@@ -16952,7 +16952,7 @@ msgid "Cornering test"
 msgstr "Kanyarsebesség-teszt"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "Kezdés: "
@@ -17092,7 +17092,7 @@ msgid "Print host upload queue"
 msgstr "Feltöltési sor nyomtatása"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "Folyamat"
@@ -17270,9 +17270,8 @@ msgstr "Filamentbeállítás"
 msgid "Create"
 msgstr "Létrehoz"
 
-#, fuzzy
 msgid "Vendor is not selected; please reselect vendor."
-msgstr "Vendor is not selected; please reselect vendor."
+msgstr ""
 
 #, fuzzy
 msgid "Custom vendor is missing, please input custom vendor."
@@ -17288,7 +17287,7 @@ msgid "Filament serial is not entered, please enter serial."
 msgstr "Filament serial missing; please input serial."
 
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
+msgstr ""
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Az egyedi gyártó vagy sorozat értéke üres. Kérlek, írd be újra."
@@ -17395,7 +17394,7 @@ msgid "The nozzle diameter was not found, please reselect."
 msgstr "The nozzle diameter was not found; please reselect."
 
 msgid "The printer preset was not found; please reselect."
-msgstr "The printer preset was not found; please reselect."
+msgstr ""
 
 msgid "Printer Preset"
 msgstr "Nyomtatóbeállítás"
@@ -17418,10 +17417,6 @@ msgid ""
 "and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
-"The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
-"\tCancel: Do not create a preset; return to the creation interface."
 
 msgid "You need to select at least one filament preset."
 msgstr "Ki kell választanod legalább egy filamentbeállítást."
@@ -17488,7 +17483,7 @@ msgid "Printer Created Successfully"
 msgstr "Nyomtató sikeresen létrehozva"
 
 msgid "Filament Created Successfully"
-msgstr "Filament Created Successfully"
+msgstr ""
 
 msgid "Printer Created"
 msgstr "Nyomtató létrehozva"
@@ -17674,7 +17669,7 @@ msgid "For more information, please check out Wiki"
 msgstr "For more information, please check out our Wiki"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "Összecsuk"
@@ -18937,8 +18932,7 @@ msgstr ""
 "Oszd fel a nyomatokat több tálcára\n"
 "Tudtad, hogy a sok részből álló modellt nyomtatásra kész tálcákra oszthatod? Így egyszerűbben nyomon követheted a nyomtatásra váró tárgyakat."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -19010,8 +19004,7 @@ msgstr ""
 "Szilárdság javítása\n"
 "Tudtad, hogy több fal vagy nagyobb kitöltés használatával javíthatod a modell szilárdságát?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"

@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2025-11-28 13:48-0600\n"
+"PO-Revision-Date: 2026-06-12 21:11-0300\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
 "Language: zh_TW\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.8\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "右"
@@ -246,7 +246,7 @@ msgid "Reset"
 msgstr "重設"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "快捷鍵 "
@@ -343,7 +343,7 @@ msgid "in"
 msgstr "在"
 
 msgid "mm"
-msgstr "mm"
+msgstr ""
 
 msgid "Part selection"
 msgstr "選擇零件"
@@ -812,7 +812,7 @@ msgid "Horizontal text"
 msgstr "水平文字"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "滑鼠上下移動"
@@ -862,13 +862,13 @@ msgid "ITALIC"
 msgstr "斜體"
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
-msgstr "First font"
+msgstr ""
 
 msgid "Default font"
 msgstr "預設字型"
@@ -1249,7 +1249,7 @@ msgid "SVG actions"
 msgstr "SVG 操作"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1449,7 +1449,7 @@ msgid "Restart selection"
 msgstr "重新開始選取"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "在退出前取消功能"
@@ -1593,10 +1593,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "通知"
@@ -1725,7 +1725,7 @@ msgid ""
 msgstr "Orca Slicer 需要 Microsoft WebView2 Runtime 才能操作某些功能，請點擊 Yes 進行安裝。"
 
 msgid "WebView2 Runtime"
-msgstr "WebView2 Runtime"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1966,7 +1966,7 @@ msgid "Language"
 msgstr "語言"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "正在為應用程式切換語言"
@@ -2114,7 +2114,7 @@ msgid "Delete the selected object"
 msgstr "刪除所選物件"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "載入..."
@@ -2477,7 +2477,7 @@ msgid "Center"
 msgstr "居中"
 
 msgid "Drop"
-msgstr "Drop"
+msgstr ""
 
 msgid "Edit Process Settings"
 msgstr "編輯列印參數"
@@ -2865,7 +2865,7 @@ msgid "No printer"
 msgstr "無列印設備"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "無法連接伺服器"
@@ -2874,7 +2874,7 @@ msgid "Check the status of current system services"
 msgstr "請檢查目前系統服務狀態"
 
 msgid "code"
-msgstr "code"
+msgstr ""
 
 msgid "Failed to connect to cloud service"
 msgstr "無法連接到雲端服務"
@@ -3379,7 +3379,7 @@ msgid "Orca Slicer is based on PrusaSlicer and BambuStudio"
 msgstr "Orca Slicer 基於 PrusaSlicer 與 BambuStudio"
 
 msgid "Libraries"
-msgstr "Libraries"
+msgstr ""
 
 msgid "This software uses open source components whose copyright and other proprietary rights belong to their respective owners"
 msgstr "本軟體採用了開源組件，其版權及相關專有權歸屬於各自的所有者"
@@ -3470,7 +3470,7 @@ msgstr ""
 "『設備 -> 列印零件』"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "其他顏色"
@@ -3500,13 +3500,13 @@ msgid "Max volumetric speed"
 msgstr "最大體積流量"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "床溫"
 
 msgid "mm³"
-msgstr "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "開始"
@@ -4570,7 +4570,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無效格式，應該是「%1%」這種格式"
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "選取"
@@ -4669,7 +4669,7 @@ msgid "Gap infill"
 msgstr "填縫"
 
 msgid "Skirt"
-msgstr "Skirt"
+msgstr ""
 
 msgid "Support interface"
 msgstr "支撐面"
@@ -4723,13 +4723,13 @@ msgid "PA: "
 msgstr "PA："
 
 msgid "mm/s"
-msgstr "mm/s"
+msgstr ""
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
-msgstr "mm³/s"
+msgstr ""
 
 msgid "Flow rate"
 msgstr "流量"
@@ -4738,7 +4738,7 @@ msgid "Fan speed"
 msgstr "風扇速度"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "時間"
@@ -5729,7 +5729,7 @@ msgid "Input Shaping"
 msgstr "輸入震動補償"
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr ""
@@ -9914,7 +9914,7 @@ msgstr ""
 "以繼續或手動調整。"
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10445,7 +10445,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. 請從列印設備端獲取設備序號；通常可在列印設備螢幕的設備資訊中找到。"
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "訪問代碼"
@@ -12456,7 +12456,7 @@ msgid "Ironing area for prime tower interface layer (where different materials m
 msgstr "換料塔界面層（不同材料相遇處）的熨燙區域。"
 
 msgid "mm²"
-msgstr "mm²"
+msgstr ""
 
 msgid "Interface layer purge length"
 msgstr "介面層清理長度"
@@ -13135,16 +13135,16 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "列印設備的實體佈置和組件"
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
-msgstr "Delta"
+msgstr ""
 
 msgid "Best object position"
 msgstr "最佳物件位置"
@@ -13196,7 +13196,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "時間成本"
@@ -13234,7 +13234,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "列印設備相容的 G-code 樣式"
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "顆粒改裝列印設備"
@@ -13524,7 +13524,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -13836,7 +13836,7 @@ msgstr ""
 "注意：此參數會停用弧線擬合。"
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr "平滑段長度"
@@ -15277,7 +15277,7 @@ msgid "Classic wall generator produces walls with constant extrusion width and f
 msgstr "經典牆產生器產生的牆走線具有一致的擠出寬度，對狹窄區域使用填縫。Arachne 引擎則產生變線寬的牆走線"
 
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "牆過渡長度"
@@ -15424,13 +15424,13 @@ msgid "Export 3MF with minimum size."
 msgstr "匯出最小尺寸的 3mf。"
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "每片板的最大切片三角形數量。"
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "每片板的最大切片時間（秒）。"
@@ -16365,7 +16365,7 @@ msgid "Printing Parameters"
 msgstr "列印參數"
 
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "同步噴嘴和 AMS 資訊"
@@ -16587,25 +16587,25 @@ msgid "Filament type"
 msgstr "線材類型"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "起始溫度： "
@@ -16772,7 +16772,7 @@ msgid "Cornering test"
 msgstr "轉彎測試"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "開始："
@@ -16912,7 +16912,7 @@ msgid "Print host upload queue"
 msgstr "列印主機上傳佇列"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "進度"
@@ -17487,7 +17487,7 @@ msgid "For more information, please check out Wiki"
 msgstr "如需更多資訊，請查看 Wiki"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "摺疊"
@@ -17511,7 +17511,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Printing %1s material with %2s nozzle may cause nozzle damage."
+msgstr ""
 
 msgid "Need select printer"
 msgstr "需要選擇列印設備"
@@ -18760,8 +18760,7 @@ msgstr ""
 "您知道嗎？您可以把一個有很多零件的模型安排到多個獨立的列印板，\n"
 "然後列印出來，這將簡化對所有零件的管理。"
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18840,8 +18839,7 @@ msgstr ""
 "您知道嗎？您可以使用更多的牆層數和更高的疏散填充密度來提高模型\n"
 "強度。"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

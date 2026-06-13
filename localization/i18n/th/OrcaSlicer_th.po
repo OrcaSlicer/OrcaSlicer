@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2026-06-04 12:39+0700\n"
+"PO-Revision-Date: 2026-06-12 21:10-0300\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
 "Language: th\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Codex Thai translation bootstrap\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "ขวา"
@@ -1249,7 +1249,7 @@ msgid "SVG actions"
 msgstr "การกระทำ SVG"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1449,7 +1449,7 @@ msgid "Restart selection"
 msgstr "เริ่มการเลือกใหม่"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "ยกเลิกคุณลักษณะจนกว่าจะออก"
@@ -1597,10 +1597,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "ประกาศ"
@@ -1976,7 +1976,7 @@ msgid "Language"
 msgstr "ภาษา"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "การเปลี่ยนภาษาของแอปพลิเคชัน"
@@ -2870,7 +2870,7 @@ msgid "No printer"
 msgstr "ไม่มีเครื่องพิมพ์"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์"
@@ -3475,7 +3475,7 @@ msgstr ""
 "'อุปกรณ์ -> พิมพ์ชิ้นส่วน'"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "สีอื่น"
@@ -3505,7 +3505,7 @@ msgid "Max volumetric speed"
 msgstr "ความเร็วปริมาตรสูงสุด"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "อุณหภูมิฐานพิมพ์"
@@ -4717,7 +4717,7 @@ msgid "Fan speed"
 msgstr "ความเร็วพัดลม"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "เวลา"
@@ -5703,10 +5703,10 @@ msgid "Input Shaping Damping/zeta factor"
 msgstr "ค่าหน่วง/zeta ของ Input Shaping"
 
 msgid "Input Shaping"
-msgstr "Input Shaping"
+msgstr ""
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr "คู่มือการสอบเทียบ"
@@ -7630,7 +7630,7 @@ msgid "isometric"
 msgstr "มีมิติเท่ากัน"
 
 msgid "top_front"
-msgstr "top_front"
+msgstr ""
 
 msgid "top"
 msgstr "สูงสุด"
@@ -9926,7 +9926,7 @@ msgstr ""
 " เพื่อดำเนินการต่อหรือปรับเปลี่ยนด้วยตนเอง"
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -12722,10 +12722,10 @@ msgid "Cross Hatch"
 msgstr "ครอสแฮทช์"
 
 msgid "TPMS-D"
-msgstr "TPMS-D"
+msgstr ""
 
 msgid "TPMS-FK"
-msgstr "TPMS-FK"
+msgstr ""
 
 msgid "Gyroid"
 msgstr "ไจรอยด์"
@@ -12841,7 +12841,7 @@ msgid "Klipper's max_accel_to_decel will be adjusted automatically."
 msgstr "max_accel_to_decel ของ Klipper จะถูกปรับโดยอัตโนมัติ"
 
 msgid "accel_to_decel"
-msgstr "accel_to_decel"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
@@ -13221,10 +13221,10 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "การจัดเรียงทางกายภาพและส่วนประกอบของอุปกรณ์การพิมพ์"
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
 msgstr "ฮอทบอต"
@@ -13283,7 +13283,7 @@ msgstr ""
 "ตั้งค่าเป็น 0 เพื่อปิดใช้งาน"
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "ต้นทุนเวลา"
@@ -13612,7 +13612,7 @@ msgstr ""
 "ค่าที่เหมาะสมคือ 35 ตั้งค่าเป็น 0 เพื่อปิดใช้งาน"
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr "อย่าสลับทิศทางไส้ใน"
@@ -13848,22 +13848,22 @@ msgid "EI"
 msgstr "อีไอ"
 
 msgid "EI2"
-msgstr "EI2"
+msgstr ""
 
 msgid "2HUMP_EI"
-msgstr "2HUMP_EI"
+msgstr ""
 
 msgid "EI3"
-msgstr "EI3"
+msgstr ""
 
 msgid "3HUMP_EI"
-msgstr "3HUMP_EI"
+msgstr ""
 
 msgid "DAA"
 msgstr "อปท"
 
 msgid "X"
-msgstr "X"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -13877,7 +13877,7 @@ msgstr ""
 "RRF: ค่า X และ Y เท่ากัน"
 
 msgid "Y"
-msgstr "Y"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -14640,7 +14640,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "ความแตกต่างของอุณหภูมิที่จะใช้เมื่อชุดดันเส้นไม่ทำงาน ค่าจะไม่ถูกใช้เมื่อตั้งค่า 'idle_temperature' ในการตั้งค่าเส้นพลาสติกเป็นค่าที่ไม่ใช่ศูนย์"
 
 msgid "∆℃"
-msgstr "∆℃"
+msgstr ""
 
 msgid "Preheat time"
 msgstr "เวลาอุ่นเครื่อง"
@@ -15553,13 +15553,13 @@ msgid "Export 3MF with minimum size."
 msgstr "ส่งออก 3MF ด้วยขนาดขั้นต่ำ"
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "จำนวนสามเหลี่ยมสูงสุดต่อแผ่นสำหรับการสไลซ์"
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "เวลาสไลซ์สูงสุดต่อจานในหน่วยวินาที"
@@ -16496,7 +16496,7 @@ msgid "Printing Parameters"
 msgstr "พารามิเตอร์การพิมพ์"
 
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "ประสานข้อมูลหัวฉีดและ AMS"
@@ -16718,25 +16718,25 @@ msgid "Filament type"
 msgstr "ชนิดเส้นพลาสติก"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "อุณหภูมิเริ่มต้น:"
@@ -16846,7 +16846,7 @@ msgid "Frequency settings"
 msgstr "การตั้งค่าความถี่"
 
 msgid "Hz"
-msgstr "Hz"
+msgstr ""
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "เฟิร์มแวร์ RepRap ใช้ช่วงความถี่เดียวกันสำหรับทั้งสองแกน"
@@ -16903,7 +16903,7 @@ msgid "Cornering test"
 msgstr "การทดสอบการเข้าโค้ง"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "เริ่ม:"
@@ -17043,7 +17043,7 @@ msgid "Print host upload queue"
 msgstr "คิวการอัพโหลดโฮสต์การพิมพ์"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "ความคืบหน้า"
@@ -18885,8 +18885,7 @@ msgstr ""
 "แบ่งงานพิมพ์ของคุณออกเป็นจาน\n"
 "คุณรู้ไหมว่าคุณสามารถแบ่งแบบจำลองที่มีชิ้นส่วนจำนวนมากออกเป็นเพลตแต่ละอันที่พร้อมพิมพ์ได้ สิ่งนี้จะทำให้กระบวนการติดตามทุกส่วนง่ายขึ้น"
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18958,8 +18957,7 @@ msgstr ""
 "ปรับปรุงความแข็งแรง\n"
 "คุณรู้ไหมว่าคุณสามารถใช้ลูปติดผนังได้มากขึ้นและมีความหนาแน่นของไส้ในแบบโปร่งที่สูงขึ้นเพื่อปรับปรุงความแข็งแกร่งของแบบจำลอง"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

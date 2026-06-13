@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2025-03-07 09:30+0200\n"
+"PO-Revision-Date: 2026-06-12 21:10-0300\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "Language: uk_UA\n"
@@ -17,7 +17,7 @@ msgstr ""
 "X-Crowdin-Language: uk\n"
 "X-Crowdin-Project: orcaslicerua\n"
 "X-Crowdin-Project-ID: 748805\n"
-"X-Generator: Poedit 3.5\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr ""
@@ -786,7 +786,7 @@ msgid "Leaving Seam painting"
 msgstr "Leaving Seam Painting"
 
 msgid "Paint-on seam editing"
-msgstr "Paint-on seam editing"
+msgstr ""
 
 #. TRN - Input label. Be short as possible
 #. Select look of letter shape
@@ -817,7 +817,7 @@ msgid "Horizontal text"
 msgstr "Горизонтальний текст"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr ""
@@ -1254,7 +1254,7 @@ msgid "SVG actions"
 msgstr "Дії з SVG"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1449,13 +1449,13 @@ msgid "Select point"
 msgstr "Виберіть точку"
 
 msgid "Delete"
-msgstr "Delete"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Вибрати заново"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Скасувати функцію до виходу"
@@ -1603,10 +1603,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "Повідомлення"
@@ -1969,7 +1969,7 @@ msgid "Language"
 msgstr "Мова"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "Зміна мови програми"
@@ -2147,13 +2147,13 @@ msgid "Orca Tolerance Test"
 msgstr "Тест на допуски ORCA"
 
 msgid "3DBenchy"
-msgstr "3DBenchy"
+msgstr ""
 
 msgid "Cali Cat"
 msgstr ""
 
 msgid "Autodesk FDM Test"
-msgstr "Autodesk FDM Test"
+msgstr ""
 
 msgid "Voron Cube"
 msgstr "Voron Куб"
@@ -2881,7 +2881,7 @@ msgid "No printer"
 msgstr "Принтер не вибраний"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "Не вдалося підключитися до сервера"
@@ -3005,7 +3005,7 @@ msgid "Parts"
 msgstr "Part"
 
 msgid "Aux"
-msgstr "Aux"
+msgstr ""
 
 msgid "Nozzle1"
 msgstr "Сопло1"
@@ -3490,7 +3490,7 @@ msgid ""
 msgstr ""
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "Інший колір"
@@ -4617,7 +4617,7 @@ msgid "Color Change"
 msgstr "Зміна Кольору"
 
 msgid "Pause Print"
-msgstr "Pause Print"
+msgstr ""
 
 msgid "Travel"
 msgstr "Переміщення"
@@ -4722,7 +4722,7 @@ msgid "Fan speed"
 msgstr "Швидкість вентилятора"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "Час"
@@ -6137,7 +6137,7 @@ msgid "Invert Roll axis"
 msgstr "Інвертувати вісь Roll"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Пошук"
@@ -6766,7 +6766,7 @@ msgid "Pausing Sensitivity:"
 msgstr ""
 
 msgid "Spaghetti Detection"
-msgstr "Spaghetti Detection"
+msgstr ""
 
 msgid "Detect spaghetti failures (scattered lose filament)."
 msgstr ""
@@ -8288,7 +8288,7 @@ msgid "Reload Failed"
 msgstr ""
 
 msgid "Debug"
-msgstr "Debug"
+msgstr ""
 
 msgid "Sync settings"
 msgstr "Налаштування синхронізації"
@@ -8595,7 +8595,7 @@ msgid "Bambu Textured PEI Plate"
 msgstr "Bambu Текстурована PEI пластина"
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr "Bambu Cool Plate SuperTack"
+msgstr ""
 
 msgid "Send print job"
 msgstr ""
@@ -10343,7 +10343,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Підтримка/кольорове фарбування: регулювання положення секцій"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Встановіть номер екструдера для об'єктів та деталей"
@@ -10445,7 +10445,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr ""
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "Код доступу"
@@ -13140,7 +13140,7 @@ msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness durin
 msgstr "Твердість сопла. Нуль означає відсутність перевірки жорсткості сопла під час нарізка."
 
 msgid "HRC"
-msgstr "HRC"
+msgstr ""
 
 msgid "Printer structure"
 msgstr "Структура принтера"
@@ -13149,16 +13149,16 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "Фізична структура та компоненти пристрою для друку"
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
 msgstr "І3"
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
-msgstr "Delta"
+msgstr ""
 
 msgid "Best object position"
 msgstr "Найкраще положення об’єкта"
@@ -13209,7 +13209,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Вартість часу"
@@ -13247,7 +13247,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "З яким gcode сумісний принтер"
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Принтер модифікований гранулами"
@@ -13539,7 +13539,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -13780,7 +13780,7 @@ msgid "DAA"
 msgstr ""
 
 msgid "X"
-msgstr "X"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -13790,7 +13790,7 @@ msgid ""
 msgstr ""
 
 msgid "Y"
-msgstr "Y"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -15308,7 +15308,7 @@ msgid "Classic wall generator produces walls with constant extrusion width and f
 msgstr "Класичний генератор стін виробляє стіни з постійною шириною екструзії, а для дуже тонких ділянок використовується заповнення прогалин. Двигун Arachne виробляє стіни зі змінною шириною екструзії."
 
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "Довжина переходу до периметру"
@@ -15453,13 +15453,13 @@ msgid "Export 3MF with minimum size."
 msgstr "експортувати 3MF з мінімальним розміром."
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "максимальна кількість трикутників на стіл для нарізки."
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "максимальний час нарізки на стіл у секундах."
@@ -16402,7 +16402,7 @@ msgid "Printing Parameters"
 msgstr "Параметри друку"
 
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr ""
@@ -16622,25 +16622,25 @@ msgid "Filament type"
 msgstr "Тип філаменту"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "Початкова температура: "
@@ -18753,8 +18753,7 @@ msgstr ""
 "Розбийте відбитки на пластини\n"
 "Чи знаєте ви, що можна розділити модель з великою кількістю деталей на окремі столи, готові до друку? Це спростить процес відстеження всіхдеталей."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18826,8 +18825,7 @@ msgstr ""
 "Підвищення міцності\n"
 "Чи знаєте ви, що для підвищення міцності моделі можна використовувати більшепериметрів та вищу щільність заповнення?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"

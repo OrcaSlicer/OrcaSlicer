@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2025-06-02 17:12+0900\n"
+"PO-Revision-Date: 2026-06-12 21:08-0300\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
 "Language: ko_KR\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "오른쪽"
@@ -244,7 +244,7 @@ msgid "Reset"
 msgstr "초기화"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "단축키 "
@@ -341,7 +341,7 @@ msgid "in"
 msgstr "인치"
 
 msgid "mm"
-msgstr "mm"
+msgstr ""
 
 msgid "Part selection"
 msgstr "파트 선택"
@@ -812,7 +812,7 @@ msgid "Horizontal text"
 msgstr "가로 텍스트"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "마우스 위 또는 아래로 이동"
@@ -853,19 +853,19 @@ msgid "Emboss"
 msgstr "양각"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
-msgstr "SMALL"
+msgstr ""
 
 msgid "ITALIC"
-msgstr "ITALIC"
+msgstr ""
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "첫 번째 글꼴"
@@ -1249,7 +1249,7 @@ msgid "SVG actions"
 msgstr "SVG 작업"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1451,7 +1451,7 @@ msgid "Restart selection"
 msgstr "다시 선택"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "종료할 때까지 기능 취소"
@@ -1599,10 +1599,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "공지사항"
@@ -1974,7 +1974,7 @@ msgid "Language"
 msgstr "언어"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "응용 프로그램 언어 변경"
@@ -2117,13 +2117,13 @@ msgstr "보이기"
 
 # 단축키
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "선택된 객체 삭제"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "불러오기..."
@@ -2156,7 +2156,7 @@ msgid "3DBenchy"
 msgstr "3D 벤치"
 
 msgid "Cali Cat"
-msgstr "Cali Cat"
+msgstr ""
 
 msgid "Autodesk FDM Test"
 msgstr "Autodesk FDM 테스트"
@@ -2870,7 +2870,7 @@ msgid "No printer"
 msgstr "프린터 없음"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "서버 연결 실패"
@@ -3433,7 +3433,7 @@ msgid "The input value should be greater than %1% and less than %2%"
 msgstr "입력 값은 %1%보다 크고 %2%보다 작아야 합니다"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "동적 압출량 교정 계수"
@@ -3475,7 +3475,7 @@ msgstr ""
 "'장치 -> 파트 출력'"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "기타 색상"
@@ -3505,13 +3505,13 @@ msgid "Max volumetric speed"
 msgstr "최대 압출 속도"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "베드 온도"
 
 msgid "mm³"
-msgstr "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "교정 시작"
@@ -4551,7 +4551,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "잘못된 형식입니다. 필요한 벡터 형식: \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "선택"
@@ -4701,16 +4701,16 @@ msgid "Jerk: "
 msgstr ""
 
 msgid "PA: "
-msgstr "PA: "
+msgstr ""
 
 msgid "mm/s"
-msgstr "mm/s"
+msgstr ""
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
-msgstr "mm³/s"
+msgstr ""
 
 msgid "Flow rate"
 msgstr "압출량"
@@ -4719,7 +4719,7 @@ msgid "Fan speed"
 msgstr "팬 속도"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "시간"
@@ -5704,7 +5704,7 @@ msgid "Input Shaping"
 msgstr "입력 셰이핑"
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr ""
@@ -6125,7 +6125,7 @@ msgid "Invert Roll axis"
 msgstr "종축을 중심으로 반전"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "검색"
@@ -8310,13 +8310,13 @@ msgid "Host Setting"
 msgstr "호스트 설정"
 
 msgid "DEV host: api-dev.bambu-lab.com/v1"
-msgstr "DEV host: api-dev.bambu-lab.com/v1"
+msgstr ""
 
 msgid "QA  host: api-qa.bambu-lab.com/v1"
-msgstr "QA  host: api-qa.bambu-lab.com/v1"
+msgstr ""
 
 msgid "PRE host: api-pre.bambu-lab.com/v1"
-msgstr "PRE host: api-pre.bambu-lab.com/v1"
+msgstr ""
 
 msgid "Product host"
 msgstr "제품 호스트"
@@ -10421,7 +10421,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. 일반적으로 프린터 화면의 장치 정보에서 찾을 수 있는 장치 SN을 프린터 측에서 받으세요."
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "액세스 코드"
@@ -12210,7 +12210,7 @@ msgid "Part cooling fan will be enabled for layers of which estimated time is sh
 msgstr "예상 시간이 이 값보다 짧은 레이어에 대해 출력물 냉각 팬이 활성화됩니다. 팬 속도는 레이어 출력 시간에 따라 최소 및 최대 팬 속도 사이에서 보간됩니다"
 
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgid "Default color"
 msgstr "기본 색상"
@@ -12439,7 +12439,7 @@ msgid "Ironing area for prime tower interface layer (where different materials m
 msgstr "프라임 타워 인터페이스 레이어(서로 다른 재료가 만나는 부분)의 다림질 영역."
 
 msgid "mm²"
-msgstr "mm²"
+msgstr ""
 
 msgid "Interface layer purge length"
 msgstr "인터페이스 레이어 퍼지 길이"
@@ -12490,7 +12490,7 @@ msgid "Filament density. For statistics only."
 msgstr "필라멘트 밀도. 통계 전용"
 
 msgid "g/cm³"
-msgstr "g/cm³"
+msgstr ""
 
 msgid "Filament material type."
 msgstr "필라멘트의 재료 유형"
@@ -13107,7 +13107,7 @@ msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness durin
 msgstr "노즐의 경도. 0은 슬라이스하는 동안 노즐의 경도를 확인하지 않음을 의미합니다."
 
 msgid "HRC"
-msgstr "HRC"
+msgstr ""
 
 msgid "Printer structure"
 msgstr "프린터 구조"
@@ -13119,10 +13119,10 @@ msgid "CoreXY"
 msgstr "코어XY"
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
 msgstr "델타"
@@ -13175,7 +13175,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "시간비용"
@@ -13213,7 +13213,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "프린터와 호환되는 Gcode 종류"
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "펠릿 프린터"
@@ -13505,7 +13505,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -13816,7 +13816,7 @@ msgstr ""
 "참고: 이 매개변수는 원호 피팅(Arc fitting)을 비활성화합니다."
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr "유연 분할 길이"
@@ -15414,13 +15414,13 @@ msgid "Export 3MF with minimum size."
 msgstr "최소 크기로 3mf를 내보냅니다."
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "슬라이싱을 위한 플레이트당 최대 삼각형 개수."
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "플레이트당 최대 슬라이싱 시간(초)"
@@ -16582,25 +16582,25 @@ msgid "Filament type"
 msgstr "필라멘트 유형"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "시작 온도: "
@@ -18718,8 +18718,7 @@ msgstr ""
 "출력을 플레이트로 분할\n"
 "부품이 많은 모델을 출력할 준비가 된 개별 플레이트로 분할할 수 있다는 사실을 알고 계섰나요? 이렇게 하면 모든 부품을 추적하는 프로세스가 간소화됩니다."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18791,8 +18790,7 @@ msgstr ""
 "강도 향상\n"
 "더 많은 외벽과 더 높은 드문 채우기 밀도를 사용하여 모델의 강도를 높일 수 있다는 사실을 알고 계섰나요?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"

@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2026-06-11 12:37-0300\n"
+"PO-Revision-Date: 2026-06-12 21:11-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
 "Language: zh_CN\n"
@@ -243,7 +243,7 @@ msgid "Reset"
 msgstr "重置"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "快捷键 "
@@ -340,7 +340,7 @@ msgid "in"
 msgstr "在"
 
 msgid "mm"
-msgstr "mm"
+msgstr ""
 
 msgid "Part selection"
 msgstr "零件选择"
@@ -809,7 +809,7 @@ msgid "Horizontal text"
 msgstr "水平文字"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "鼠标上移或下移"
@@ -1445,7 +1445,7 @@ msgid "Restart selection"
 msgstr "重新选择"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "取消一个特征直到退出"
@@ -1591,10 +1591,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "通知"
@@ -1799,7 +1799,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "选择一个文件（GCODE/3MF）："
 
 msgid "Ext"
-msgstr "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
@@ -1974,7 +1974,7 @@ msgid "Language"
 msgstr "语言"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "正在为应用程序切换语言"
@@ -2764,7 +2764,7 @@ msgid "Plate"
 msgstr "盘"
 
 msgid "Brim"
-msgstr "Brim"
+msgstr ""
 
 msgid "Object/Part Settings"
 msgstr "对象/零件设置"
@@ -2870,7 +2870,7 @@ msgid "No printer"
 msgstr "无打印机"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "无法连接服务器"
@@ -3469,7 +3469,7 @@ msgid ""
 msgstr "喷嘴流量未设置，请在编辑耗材设置前设置喷嘴流量。“设备 -> 打印件”"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "其他颜色"
@@ -3499,7 +3499,7 @@ msgid "Max volumetric speed"
 msgstr "最大体积流量"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "热床温度"
@@ -3936,11 +3936,11 @@ msgstr "热床形状"
 
 #, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
-msgstr "A minimum temperature above %d℃ is recommended for %s.\n"
+msgstr ""
 
 #, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
-msgstr "A maximum temperature below %d℃ is recommended for %s.\n"
+msgstr ""
 
 msgid "The recommended minimum temperature cannot be higher than the recommended maximum temperature.\n"
 msgstr "推荐最低温度不能大于推荐最高温度。\n"
@@ -4538,7 +4538,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "无效格式，应该是\"%1%\"这种数组格式"
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "选择"
@@ -4694,7 +4694,7 @@ msgid "mm/s"
 msgstr "毫米/秒"
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
 msgstr "毫米立方/秒"
@@ -4706,7 +4706,7 @@ msgid "Fan speed"
 msgstr "风扇速度"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "时间"
@@ -8026,7 +8026,7 @@ msgstr ""
 "立即生效。"
 
 msgid "FPS"
-msgstr "FPS"
+msgstr ""
 
 msgid "FPS cap"
 msgstr "FPS 上限"
@@ -9904,7 +9904,7 @@ msgid ""
 msgstr "颜色已选好，可以选择确定 继续或手动调整。"
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10064,7 +10064,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "为保持恒定流量，拖动时按住%1%"
 
 msgid "ms"
-msgstr "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr "总冲刷量"
@@ -12290,7 +12290,7 @@ msgid "Part cooling fan will be enabled for layers of which estimated time is sh
 msgstr "当层预估打印时间小于该数值时，部件冷却风扇将会被开启。风扇转速将根据层打印时间在最大和最小风扇转速之间插值获得"
 
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgid "Default color"
 msgstr "默认颜色"
@@ -12632,7 +12632,7 @@ msgid "Filament price. For statistics only."
 msgstr "耗材丝的价格。只用于统计信息。"
 
 msgid "money/kg"
-msgstr "money/kg"
+msgstr ""
 
 msgid "Vendor"
 msgstr "供应商"
@@ -13248,13 +13248,13 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "打印设备的物理结构和组件"
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
 msgstr "Delta（三角）"
@@ -13309,7 +13309,7 @@ msgstr ""
 "设置为 0 以停用。"
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "耗时"
@@ -13638,7 +13638,7 @@ msgstr ""
 "合理的取值为 35。设置为 0 以禁用。"
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr "不交替填充方向"
@@ -13856,40 +13856,40 @@ msgstr ""
 "“禁用”将关闭固件中的输入整形。"
 
 msgid "MZV"
-msgstr "MZV"
+msgstr ""
 
 msgid "ZV"
-msgstr "ZV"
+msgstr ""
 
 msgid "ZVD"
-msgstr "ZVD"
+msgstr ""
 
 msgid "ZVDD"
-msgstr "ZVDD"
+msgstr ""
 
 msgid "ZVDDD"
-msgstr "ZVDDD"
+msgstr ""
 
 msgid "EI"
-msgstr "EI"
+msgstr ""
 
 msgid "EI2"
-msgstr "EI2"
+msgstr ""
 
 msgid "2HUMP_EI"
-msgstr "2HUMP_EI"
+msgstr ""
 
 msgid "EI3"
-msgstr "EI3"
+msgstr ""
 
 msgid "3HUMP_EI"
-msgstr "3HUMP_EI"
+msgstr ""
 
 msgid "DAA"
-msgstr "DAA"
+msgstr ""
 
 msgid "X"
-msgstr "X"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -13903,7 +13903,7 @@ msgstr ""
 "RRF：X 和 Y 的值相等。"
 
 msgid "Y"
-msgstr "Y"
+msgstr ""
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -13972,7 +13972,7 @@ msgstr ""
 "注意：此参数禁用圆弧拟合。"
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr "平滑段长度"
@@ -14672,7 +14672,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "挤出机未启动时施加的温差。当耗材丝设置中的“idle_Temperature”设置为非零值时，不使用该值。"
 
 msgid "∆℃"
-msgstr "∆℃"
+msgstr ""
 
 msgid "Preheat time"
 msgstr "预热时间"
@@ -15442,7 +15442,7 @@ msgid "Classic wall generator produces walls with constant extrusion width and f
 msgstr "经典墙生成器产生的墙走线具有一致的挤出宽度，对狭窄区域使用填缝。Arachne引擎则产生变线宽的墙走线"
 
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "墙过渡长度"
@@ -16535,7 +16535,7 @@ msgid "Printing Parameters"
 msgstr "打印参数"
 
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "同步喷嘴和 AMS 信息"
@@ -16755,25 +16755,25 @@ msgid "Filament type"
 msgstr "耗材类型"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "起始温度: "
@@ -16940,7 +16940,7 @@ msgid "Cornering test"
 msgstr "转角测试"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "开始："
@@ -17080,7 +17080,7 @@ msgid "Print host upload queue"
 msgstr "打印主机上传队列"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "进程"
@@ -17656,7 +17656,7 @@ msgid "For more information, please check out Wiki"
 msgstr "了解更多信息，请参阅Wiki"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "收起"
@@ -17680,7 +17680,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Printing %1s material with %2s nozzle may cause nozzle damage."
+msgstr ""
 
 msgid "Need select printer"
 msgstr "需要选择打印机"
@@ -18916,8 +18916,7 @@ msgstr ""
 "分盘打印\n"
 "您知道吗，您可以把一个有很多零件的模型安排到多个独立的分盘，然后打印出来，这将简化对所有零件的管理。"
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18989,8 +18988,7 @@ msgstr ""
 "提高强度\n"
 "你知道吗？你可以使用更多的墙层数和更高的疏散填充密度来提高模型的强度。"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

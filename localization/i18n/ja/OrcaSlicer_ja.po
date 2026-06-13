@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.2.2\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "右"
@@ -240,7 +240,7 @@ msgid "Reset"
 msgstr "リセット"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "ショートカット"
@@ -337,7 +337,7 @@ msgid "in"
 msgstr "に"
 
 msgid "mm"
-msgstr "mm"
+msgstr ""
 
 msgid "Part selection"
 msgstr "パーツ選択"
@@ -808,7 +808,7 @@ msgid "Horizontal text"
 msgstr "水平テキスト"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "マウスを上下に動かす"
@@ -950,7 +950,7 @@ msgid "Name has to be unique."
 msgstr "名前は一意でなければなりません。"
 
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Rename style"
 msgstr "スタイルの名前を変更"
@@ -1245,7 +1245,7 @@ msgid "SVG actions"
 msgstr "SVGアクション"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1447,7 +1447,7 @@ msgid "Restart selection"
 msgstr "選択をリセット"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "終了までフィーチャーをキャンセル"
@@ -1593,10 +1593,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "通知"
@@ -1727,7 +1727,7 @@ msgstr ""
 "「はい」をクリックしてインストールしてください。"
 
 msgid "WebView2 Runtime"
-msgstr "WebView2 Runtime"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1968,7 +1968,7 @@ msgid "Language"
 msgstr "言語"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "言語を変更"
@@ -2110,13 +2110,13 @@ msgid "Show"
 msgstr "表示"
 
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "選択したオブジェクトを削除"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "ファイルを読込む"
@@ -2131,13 +2131,13 @@ msgid "Cone"
 msgstr "コーン"
 
 msgid "Disc"
-msgstr "Disc"
+msgstr ""
 
 msgid "Torus"
-msgstr "Torus"
+msgstr ""
 
 msgid "Orca Cube"
-msgstr "Orca Cube"
+msgstr ""
 
 msgid "OrcaSliced Combo"
 msgstr ""
@@ -2146,22 +2146,22 @@ msgid "Orca Tolerance Test"
 msgstr "Orca公差テスト"
 
 msgid "3DBenchy"
-msgstr "3DBenchy"
+msgstr ""
 
 msgid "Cali Cat"
-msgstr "Cali Cat"
+msgstr ""
 
 msgid "Autodesk FDM Test"
 msgstr "Autodesk FDMテスト"
 
 msgid "Voron Cube"
-msgstr "Voron Cube"
+msgstr ""
 
 msgid "Stanford Bunny"
-msgstr "Stanford Bunny"
+msgstr ""
 
 msgid "Orca String Hell"
-msgstr "Orca String Hell"
+msgstr ""
 
 msgid ""
 "This model features text embossment on the top surface. For optimal results, it is advisable to set the 'One Wall Threshold (min_width_top_surface)' to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
@@ -2863,7 +2863,7 @@ msgid "No printer"
 msgstr "プリンタ無し"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "サーバーに接続できませんでした"
@@ -2872,7 +2872,7 @@ msgid "Check the status of current system services"
 msgstr "現在のシステムサービスの状態を確認"
 
 msgid "code"
-msgstr "code"
+msgstr ""
 
 msgid "Failed to connect to cloud service"
 msgstr "クラウドサービスへの接続に失敗しました。"
@@ -3460,7 +3460,7 @@ msgstr ""
 "「デバイス -> 印刷パーツ」"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "その他の色"
@@ -3490,13 +3490,13 @@ msgid "Max volumetric speed"
 msgstr "最大体積速度"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "ベッド温度"
 
 msgid "mm³"
-msgstr "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "開始"
@@ -3678,10 +3678,10 @@ msgstr ""
 "※同一フィラメント: 同じブランド、タイプ、色。"
 
 msgid "DRY"
-msgstr "DRY"
+msgstr ""
 
 msgid "WET"
-msgstr "WET"
+msgstr ""
 
 msgid "AMS Settings"
 msgstr "AMS 設定"
@@ -4524,7 +4524,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無効なフォーマット、%1%であるはずです。"
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "ピック"
@@ -4674,16 +4674,16 @@ msgid "Jerk: "
 msgstr ""
 
 msgid "PA: "
-msgstr "PA: "
+msgstr ""
 
 msgid "mm/s"
-msgstr "mm/s"
+msgstr ""
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
-msgstr "mm³/s"
+msgstr ""
 
 msgid "Flow rate"
 msgstr "フロー率"
@@ -4692,7 +4692,7 @@ msgid "Fan speed"
 msgstr "回転速度"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "時間"
@@ -5307,7 +5307,7 @@ msgid "Device"
 msgstr "デバイス"
 
 msgid "Multi-device"
-msgstr "Multi-device"
+msgstr ""
 
 msgid "Project"
 msgstr "プロジェクト"
@@ -5675,7 +5675,7 @@ msgid "Input Shaping"
 msgstr "入力シェーピング"
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr ""
@@ -6092,7 +6092,7 @@ msgid "Invert Roll axis"
 msgstr "ロール軸を反転"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "検索"
@@ -7024,7 +7024,7 @@ msgid "Collapse sidebar"
 msgstr "サイドバーを折りたたむ"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -8549,7 +8549,7 @@ msgid "Bambu Textured PEI Plate"
 msgstr "Bambu Textured PEIプレート"
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr "Bambu Cool Plate SuperTack"
+msgstr ""
 
 msgid "Send print job"
 msgstr "印刷ジョブを送信"
@@ -9857,7 +9857,7 @@ msgstr ""
 "手動で調整してください。"
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -9997,7 +9997,7 @@ msgstr "プリンターからフィラメントの色とタイプを正常に同
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Ramming customization"
 msgstr "ラミングのカスタマイズ"
@@ -10016,7 +10016,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "流量を一定にするには、%1% を押したままドラッグします。"
 
 msgid "ms"
-msgstr "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr "合計ラミング"
@@ -10285,7 +10285,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "サポート/色塗り: 断面の位置"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "オブジェクトとパーツ造形用の押出機番号を設定"
@@ -10387,7 +10387,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. プリンター側からデバイスSNを取得してください。通常、プリンター画面のデバイス情報に表示されています。"
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "アクセスコード"
@@ -10472,7 +10472,7 @@ msgid "Update firmware"
 msgstr "ファームウェアを更新"
 
 msgid "Beta version"
-msgstr "Beta version"
+msgstr ""
 
 msgid "Updating"
 msgstr "更新中"
@@ -11056,7 +11056,7 @@ msgid "API key"
 msgstr "APIキー"
 
 msgid "HTTP digest"
-msgstr "HTTP digest"
+msgstr ""
 
 msgid "Avoid crossing walls"
 msgstr "壁上の移動を迂回"
@@ -12058,7 +12058,7 @@ msgid "Part cooling fan will be enabled for layers of which estimated time is sh
 msgstr "パーツ冷却ファンは、積層造形時間がこの値より短い時に作動します。"
 
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgid "Default color"
 msgstr "デフォルト色"
@@ -12286,7 +12286,7 @@ msgid "Ironing area for prime tower interface layer (where different materials m
 msgstr "異なる材料が接するプライムタワーのインターフェース層に適用される、アイロニングの領域です。"
 
 msgid "mm²"
-msgstr "mm²"
+msgstr ""
 
 msgid "Interface layer purge length"
 msgstr "インターフェース層のパージ長さ"
@@ -12337,7 +12337,7 @@ msgid "Filament density. For statistics only."
 msgstr "フィラメント密度"
 
 msgid "g/cm³"
-msgstr "g/cm³"
+msgstr ""
 
 msgid "Filament material type."
 msgstr "フィラメント素材タイプ"
@@ -12488,13 +12488,13 @@ msgid "Lateral Lattice"
 msgstr ""
 
 msgid "Cross Hatch"
-msgstr "Cross Hatch"
+msgstr ""
 
 msgid "TPMS-D"
-msgstr "TPMS-D"
+msgstr ""
 
 msgid "TPMS-FK"
-msgstr "TPMS-FK"
+msgstr ""
 
 msgid "Gyroid"
 msgstr "ジャイロイド"
@@ -12604,7 +12604,7 @@ msgid "Klipper's max_accel_to_decel will be adjusted automatically."
 msgstr ""
 
 msgid "accel_to_decel"
-msgstr "accel_to_decel"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
@@ -12940,7 +12940,7 @@ msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness durin
 msgstr "ノズル硬度です、値が0になる場合、ノズル硬度を考慮しません。"
 
 msgid "HRC"
-msgstr "HRC"
+msgstr ""
 
 msgid "Printer structure"
 msgstr "プリンタ構造"
@@ -13001,7 +13001,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr ""
@@ -13021,7 +13021,7 @@ msgid ""
 msgstr ""
 
 msgid "Support air filtration"
-msgstr "Support air filtration"
+msgstr ""
 
 msgid ""
 "Enable this if printer support air filtration\n"
@@ -13317,7 +13317,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -13612,7 +13612,7 @@ msgid ""
 msgstr ""
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr ""
@@ -14039,16 +14039,16 @@ msgid "Scarf joint seam (beta)"
 msgstr ""
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Use scarf joint to minimize seam visibility and increase seam strength."
+msgstr ""
 
 msgid "Conditional scarf joint"
-msgstr "Conditional scarf joint"
+msgstr ""
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
 msgstr "従来のシームが鋭角部でシームを十分に隠せない場合にのみ、滑らかな外周にスカーフ継手を適用してください。"
 
 msgid "Conditional angle threshold"
-msgstr "Conditional angle threshold"
+msgstr ""
 
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
@@ -14081,8 +14081,6 @@ msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 
 msgid "Scarf around entire wall"
 msgstr "壁全体にスカーフを巻く"
@@ -14359,19 +14357,19 @@ msgid "Slice gap closing radius"
 msgstr "隙間充填半径"
 
 msgid "Cracks smaller than 2x gap closing radius are being filled during the triangle mesh slicing. The gap closing operation may reduce the final print resolution, therefore it is advisable to keep the value reasonably low."
-msgstr "Cracks smaller than 2x gap closing radius are being filled during the triangle mesh slicing. The gap closing operation may reduce the final print resolution, therefore it is advisable to keep the value reasonably low."
+msgstr ""
 
 msgid "Slicing Mode"
 msgstr "スライシングモード"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
-msgstr "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
+msgstr ""
 
 msgid "Regular"
 msgstr "レギュラー"
 
 msgid "Even-odd"
-msgstr "Even-odd"
+msgstr ""
 
 msgid "Close holes"
 msgstr "穴を閉じる"
@@ -14564,7 +14562,7 @@ msgid "Default (Grid/Organic)"
 msgstr ""
 
 msgid "Snug"
-msgstr "Snug"
+msgstr ""
 
 msgid "Organic"
 msgstr "オーガニック"
@@ -14789,7 +14787,7 @@ msgid ""
 msgstr ""
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
+msgstr ""
 
 msgid "Internal ribs"
 msgstr "内部リブ"
@@ -15005,7 +15003,7 @@ msgid "Classic wall generator produces walls with constant extrusion width and f
 msgstr "クラシックでは従来通りの壁面を生成しますが、Arachneでは押出線幅が可変になります。"
 
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "壁面遷移長さ"
@@ -15111,7 +15109,7 @@ msgid "Load cached slicing data from directory."
 msgstr "スライスデータを読込み"
 
 msgid "Export STL"
-msgstr "Export STL"
+msgstr ""
 
 msgid "Export the objects as single STL."
 msgstr ""
@@ -15138,7 +15136,7 @@ msgid "Update the config values of 3MF to latest."
 msgstr "3mfの構成値を更新"
 
 msgid "Load default filaments"
-msgstr "Load default filaments"
+msgstr ""
 
 msgid "Load first filament as default for those not loaded."
 msgstr ""
@@ -15150,13 +15148,13 @@ msgid "Export 3MF with minimum size."
 msgstr ""
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "Max triangle count per plate for slicing"
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "max slicing time per plate in seconds"
@@ -15168,10 +15166,10 @@ msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr ""
 
 msgid "Normative check"
-msgstr "Normative check"
+msgstr ""
 
 msgid "Check the normative items."
-msgstr "Check the normative items."
+msgstr ""
 
 msgid "Output Model Info"
 msgstr "出力モデル情報"
@@ -16033,10 +16031,10 @@ msgid "Please enter the name of the preset you want to save."
 msgstr "保存したいプリセットの名前を入力してください。"
 
 msgid "Calibration1"
-msgstr "Calibration1"
+msgstr ""
 
 msgid "Calibration2"
-msgstr "Calibration2"
+msgstr ""
 
 msgid "Please find the best object on your plate"
 msgstr "プレート上で最適なオブジェクトを見つけてください"
@@ -16076,7 +16074,7 @@ msgid "Printing Parameters"
 msgstr "印刷パラメータ"
 
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "ノズルとAMS情報を同期"
@@ -16291,25 +16289,25 @@ msgid "Filament type"
 msgstr "フィラメントタイプ"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "開始温度: "
@@ -16403,7 +16401,7 @@ msgid "Frequency settings"
 msgstr "周波数設定"
 
 msgid "Hz"
-msgstr "Hz"
+msgstr ""
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
@@ -16454,7 +16452,7 @@ msgid "Cornering test"
 msgstr "コーナリングテスト"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "開始: "
@@ -16586,7 +16584,7 @@ msgid "Print host upload queue"
 msgstr "印刷ホストアップロードキュー"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "進捗"
@@ -16907,10 +16905,6 @@ msgid ""
 "and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
-"The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
-"\tCancel: Do not create a preset; return to the creation interface."
 
 msgid "You need to select at least one filament preset."
 msgstr "少なくとも1つのフィラメントプリセットを選択する必要があります。"
@@ -17143,7 +17137,7 @@ msgid "For more information, please check out Wiki"
 msgstr "詳細はWikiをご覧ください"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "折りたたむ"
@@ -18382,8 +18376,7 @@ msgstr ""
 "複数のプレートに分割\n"
 "一つのモデルを分割し、複数のプレートで造形することもできます。"
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18453,8 +18446,7 @@ msgstr ""
 "強度の向上\n"
 "壁面層数やインフィルの充填密度を増やして造形強度を向上できます。"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"

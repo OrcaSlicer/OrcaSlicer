@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2025-03-15 10:55+0100\n"
+"PO-Revision-Date: 2026-06-12 21:01-0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ca\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.5\n"
+"X-Generator: Poedit 3.9\n"
 
 msgid "right"
 msgstr "dreta"
@@ -84,7 +84,7 @@ msgid "Idle"
 msgstr "Inactiu"
 
 msgid "Model:"
-msgstr "Model:"
+msgstr ""
 
 msgid "Serial:"
 msgstr "Número de Sèrie:"
@@ -215,10 +215,10 @@ msgid "Edge detection"
 msgstr "Detecció de contorn"
 
 msgid "Triangles"
-msgstr "Triangles"
+msgstr ""
 
 msgid "Filaments"
-msgstr "Filaments"
+msgstr ""
 
 msgid "Brush"
 msgstr "Pinzell"
@@ -251,7 +251,7 @@ msgid "Shortcut Key "
 msgstr "Tecla de drecera "
 
 msgid "Triangle"
-msgstr "Triangle"
+msgstr ""
 
 msgid "Height Range"
 msgstr "Rang d'alçada"
@@ -421,7 +421,7 @@ msgid "Uniform scale"
 msgstr "escala uniforme"
 
 msgid "Planar"
-msgstr "Planar"
+msgstr ""
 
 msgid "Dovetail"
 msgstr "Matxembrat"
@@ -463,7 +463,7 @@ msgid "Flip upside down"
 msgstr "Capgirar"
 
 msgid "Connectors"
-msgstr "Connectors"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipus"
@@ -542,7 +542,7 @@ msgid "Move cut plane"
 msgstr "Moure pla de tall"
 
 msgid "Mode"
-msgstr "Mode"
+msgstr ""
 
 msgid "Change cut mode"
 msgstr "Canvia el mode de tall"
@@ -678,7 +678,7 @@ msgid "Cut plane with groove is invalid"
 msgstr "El pla de tall amb solc no és vàlid"
 
 msgid "Connector"
-msgstr "Connector"
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Tallar pel pla"
@@ -746,7 +746,7 @@ msgstr "Extra baix"
 
 #, c-format, boost-format
 msgid "%d triangles"
-msgstr "%d triangles"
+msgstr ""
 
 msgid "Show wireframe"
 msgstr "Mostra estructura de xarxa"
@@ -796,7 +796,7 @@ msgid "Text Gap"
 msgstr "Espaiat de text"
 
 msgid "Angle"
-msgstr "Angle"
+msgstr ""
 
 msgid ""
 "Embedded\n"
@@ -856,7 +856,7 @@ msgid "Emboss"
 msgstr "Relleu"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
 msgstr "PETIT"
@@ -868,7 +868,7 @@ msgid "SWISS"
 msgstr "SUÍS"
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "Primer tipus de lletra"
@@ -1453,7 +1453,7 @@ msgid "Restart selection"
 msgstr "Reinicia la selecció"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Cancel·la una funció fins a sortir"
@@ -1601,10 +1601,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "Avís"
@@ -1626,7 +1626,7 @@ msgid "Process"
 msgstr "Processar"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
 msgstr "Màquina"
@@ -1735,7 +1735,7 @@ msgstr ""
 "Feu clic a Sí per instal·lar-lo ara."
 
 msgid "WebView2 Runtime"
-msgstr "WebView2 Runtime"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1812,7 +1812,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "Trieu un fitxer ( GCODE/3MF ):"
 
 msgid "Ext"
-msgstr "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "Alguns perfils s'han modificat."
@@ -2139,7 +2139,7 @@ msgid "Cone"
 msgstr "Con"
 
 msgid "Disc"
-msgstr "Disc"
+msgstr ""
 
 msgid "Torus"
 msgstr "Tor"
@@ -2154,10 +2154,10 @@ msgid "Orca Tolerance Test"
 msgstr "Prova de tolerància d'Orca"
 
 msgid "3DBenchy"
-msgstr "3DBenchy"
+msgstr ""
 
 msgid "Cali Cat"
-msgstr "Cali Cat"
+msgstr ""
 
 msgid "Autodesk FDM Test"
 msgstr "Prova FDM d'Autodesk"
@@ -2184,7 +2184,7 @@ msgid "Suggestion"
 msgstr "Suggeriment"
 
 msgid "Text"
-msgstr "Text"
+msgstr ""
 
 msgid "Height range Modifier"
 msgstr "Modificador Rang d'Alçada"
@@ -2272,7 +2272,7 @@ msgstr "Per defecte"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "actual"
@@ -2521,7 +2521,7 @@ msgid "Name"
 msgstr "Nom"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2572,7 +2572,7 @@ msgid "Loading file"
 msgstr "S'està carregant el fitxer"
 
 msgid "Error!"
-msgstr "Error!"
+msgstr ""
 
 msgid "Failed to get the model data in the current file."
 msgstr "No s'han pogut obtenir les dades del model al fitxer actual."
@@ -2801,7 +2801,7 @@ msgid "Open Documentation in web browser"
 msgstr "Obre la Documentació al navegador web."
 
 msgid "Color"
-msgstr "Color"
+msgstr ""
 
 msgid "Pause"
 msgstr "Pausa"
@@ -2852,7 +2852,7 @@ msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Inserir la plantilla de Codi-G personalitzat al començament d'aquesta capa."
 
 msgid "Filament "
-msgstr "Filament "
+msgstr ""
 
 msgid "Change filament at the beginning of this layer."
 msgstr "Canviar el filament al principi d'aquesta capa."
@@ -2994,13 +2994,13 @@ msgid "Left(Aux)"
 msgstr "Esquerra (Aux)"
 
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
-msgstr "Parts"
+msgstr ""
 
 msgid "Aux"
-msgstr "Aux"
+msgstr ""
 
 msgid "Nozzle1"
 msgstr "Broquet1"
@@ -3378,7 +3378,7 @@ msgid "Portions copyright"
 msgstr "Porcions del copyright"
 
 msgid "Copyright"
-msgstr "Copyright"
+msgstr ""
 
 msgid "License"
 msgstr "Llicència"
@@ -3439,7 +3439,7 @@ msgid "The input value should be greater than %1% and less than %2%"
 msgstr "El valor d'entrada ha de ser superior a %1% i inferior a %2%"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factors de Calibratge de les Dinàmiques de Flux"
@@ -3448,10 +3448,10 @@ msgid "PA Profile"
 msgstr "Perfil PA( Pressure Advance )"
 
 msgid "Factor K"
-msgstr "Factor K"
+msgstr ""
 
 msgid "Factor N"
-msgstr "Factor N"
+msgstr ""
 
 msgid "Setting AMS slot information while printing is not supported"
 msgstr "No es permet la configuració de la informació de les ranures AMS mentre s'imprimeix"
@@ -3481,7 +3481,7 @@ msgstr ""
 "'Dispositiu -> Parts d'impressió'"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "Un altre color"
@@ -3517,7 +3517,7 @@ msgid "Bed temperature"
 msgstr "Temperatura del llit"
 
 msgid "mm³"
-msgstr "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "Iniciar el calibratge"
@@ -3904,10 +3904,10 @@ msgid "Diameter of the print bed. It is assumed that origin (0,0) is located in 
 msgstr "Diàmetre del llit d'impressió. Se suposa que l'origen ( 0,0 ) està ubicat al centre."
 
 msgid "Rectangular"
-msgstr "Rectangular"
+msgstr ""
 
 msgid "Circular"
-msgstr "Circular"
+msgstr ""
 
 msgid "Load shape from STL..."
 msgstr "Carregar forma des de l'STL..."
@@ -3922,7 +3922,7 @@ msgid "Not found:"
 msgstr "No trobat:"
 
 msgid "Model"
-msgstr "Model"
+msgstr ""
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "Escolliu un fitxer STL per importar la forma del llit:"
@@ -4468,10 +4468,10 @@ msgid "Objects Info"
 msgstr "Informació dels objectes"
 
 msgid "Dimensions"
-msgstr "Dimensions"
+msgstr ""
 
 msgid "Temperatures"
-msgstr "Temperatures"
+msgstr ""
 
 msgid "Timestamps"
 msgstr "Marques de temps"
@@ -4598,7 +4598,7 @@ msgid "Layer Time (log)"
 msgstr "Temps de capa ( log )"
 
 msgid "Pressure Advance"
-msgstr "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr "Sense operació"
@@ -4697,7 +4697,7 @@ msgid "Tool: "
 msgstr "Eina: "
 
 msgid "Color: "
-msgstr "Color: "
+msgstr ""
 
 msgid "Acceleration: "
 msgstr ""
@@ -4706,16 +4706,16 @@ msgid "Jerk: "
 msgstr ""
 
 msgid "PA: "
-msgstr "PA: "
+msgstr ""
 
 msgid "mm/s"
-msgstr "mm/s"
+msgstr ""
 
 msgid "mm/s²"
-msgstr "mm/s²"
+msgstr ""
 
 msgid "mm³/s"
-msgstr "mm³/s"
+msgstr ""
 
 msgid "Flow rate"
 msgstr "Ratio de Flux"
@@ -4724,7 +4724,7 @@ msgid "Fan speed"
 msgstr "Velocitat del ventilador"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "Temps"
@@ -4748,7 +4748,7 @@ msgid "Tower"
 msgstr "Torre"
 
 msgid "Total"
-msgstr "Total"
+msgstr ""
 
 msgid "Total estimation"
 msgstr "Estimació total"
@@ -4871,7 +4871,7 @@ msgid "Extruder"
 msgstr "Extrusor"
 
 msgid "Cost"
-msgstr "Cost"
+msgstr ""
 
 msgid "Filament change times"
 msgstr "Canvis de filament"
@@ -5354,7 +5354,7 @@ msgid "Yes"
 msgstr "Sí"
 
 msgid "No"
-msgstr "No"
+msgstr ""
 
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "es tancarà abans de crear un nou model. Vols continuar?"
@@ -5710,10 +5710,10 @@ msgid "Input Shaping Damping/zeta factor"
 msgstr "Factor d'amortiment/zeta d'Input Shaping"
 
 msgid "Input Shaping"
-msgstr "Input Shaping"
+msgstr ""
 
 msgid "VFA"
-msgstr "VFA"
+msgstr ""
 
 msgid "Calibration Guide"
 msgstr ""
@@ -5928,7 +5928,7 @@ msgid "Show all files, recent first."
 msgstr "Mostrar tots els fitxers, primers els recents."
 
 msgid "Timelapse"
-msgstr "Timelapse"
+msgstr ""
 
 msgid "Switch to timelapse files."
 msgstr "Canvieu als fitxers timelapse."
@@ -6107,7 +6107,7 @@ msgid "Options:"
 msgstr "Opcions:"
 
 msgid "Zoom"
-msgstr "Zoom"
+msgstr ""
 
 msgid "Translation/Zoom"
 msgstr "Trasllat/Zoom"
@@ -6149,7 +6149,7 @@ msgid "Other Device"
 msgstr "Un Altre Dispositiu"
 
 msgid "Online"
-msgstr "Online"
+msgstr ""
 
 msgid "Input access code"
 msgstr "Introduir el codi d'accés"
@@ -6161,7 +6161,7 @@ msgid "Log out successful."
 msgstr "Tancament de sessió correcte."
 
 msgid "Offline"
-msgstr "Offline"
+msgstr ""
 
 msgid "Busy"
 msgstr "Ocupat"
@@ -6253,7 +6253,7 @@ msgid "Switch Camera View"
 msgstr "Canviar Vista de Càmera"
 
 msgid "Control"
-msgstr "Control"
+msgstr ""
 
 msgid "Printer Parts"
 msgstr "Peces d'Impressora"
@@ -6493,7 +6493,7 @@ msgstr "Més tard"
 
 #, c-format, boost-format
 msgid "%s error"
-msgstr "%s error"
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s has encountered an error"
@@ -6631,7 +6631,7 @@ msgstr[0] "%1$d objecte s'ha carregat amb pintura de pell difusa."
 msgstr[1] "%1$d objectes s'han carregat amb pintura de pell difusa."
 
 msgid "ERROR"
-msgstr "ERROR"
+msgstr ""
 
 msgid "COMPLETED"
 msgstr "COMPLETAT"
@@ -6646,7 +6646,7 @@ msgid "Jump to"
 msgstr "Saltar a"
 
 msgid "Error:"
-msgstr "Error:"
+msgstr ""
 
 msgid "Warning:"
 msgstr "Advertència:"
@@ -6848,7 +6848,7 @@ msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr "Atura l'escalfament automàticament després de 5 minuts d'inactivitat per garantir la seguretat."
 
 msgid "Global"
-msgstr "Global"
+msgstr ""
 
 msgid "Objects"
 msgstr "Objectes"
@@ -7010,7 +7010,7 @@ msgid "Search plate, object and part."
 msgstr "Cercar placa, objecte i peça."
 
 msgid "Pellets"
-msgstr "Pellets"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -7072,7 +7072,7 @@ msgid "Collapse sidebar"
 msgstr "Replegar barra lateral"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7630,7 +7630,7 @@ msgstr "Volum: %1% mm³\n"
 
 #, boost-format
 msgid "Triangles: %1%\n"
-msgstr "Triangles: %1%\n"
+msgstr ""
 
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
@@ -7745,13 +7745,13 @@ msgid "Current Instance Path: "
 msgstr "Ruta de la Instància Actual: "
 
 msgid "General"
-msgstr "General"
+msgstr ""
 
 msgid "Metric"
 msgstr "Mètric"
 
 msgid "Imperial"
-msgstr "Imperial"
+msgstr ""
 
 msgid "Units"
 msgstr "Unitats"
@@ -7868,7 +7868,7 @@ msgid "Optimize filaments area height for..."
 msgstr "Optimitza l'alçada de l'àrea de filaments per a..."
 
 msgid "filaments"
-msgstr "filaments"
+msgstr ""
 
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "Optimitza l'alçada màxima de l'àrea de filaments segons el nombre de filaments triat."
@@ -7889,7 +7889,7 @@ msgid "Quality level for Draco export"
 msgstr "Nivell de qualitat per a l'exportació Draco"
 
 msgid "bits"
-msgstr "bits"
+msgstr ""
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -8098,7 +8098,7 @@ msgid "Network test"
 msgstr "Prova de Xarxa"
 
 msgid "Test"
-msgstr "Test"
+msgstr ""
 
 msgid "Cloud Providers"
 msgstr ""
@@ -8262,10 +8262,10 @@ msgid "Log Level"
 msgstr "Nivell d'enregistrament"
 
 msgid "fatal"
-msgstr "fatal"
+msgstr ""
 
 msgid "error"
-msgstr "error"
+msgstr ""
 
 msgid "warning"
 msgstr "advertència"
@@ -8424,7 +8424,7 @@ msgid "Empty"
 msgstr "Buit"
 
 msgid "Incompatible"
-msgstr "Incompatible"
+msgstr ""
 
 msgid "The selected preset is null!"
 msgstr "El perfil seleccionat és nul!"
@@ -8598,7 +8598,7 @@ msgid "Bambu Textured PEI Plate"
 msgstr "Base PEI amb Textura Bambu"
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr "Bambu Cool Plate SuperTack"
+msgstr ""
 
 msgid "Send print job"
 msgstr "Envia treball d'impressió"
@@ -8679,7 +8679,7 @@ msgid "The current printer does not support timelapse in Traditional Mode when p
 msgstr "La impressora actual no admet el timelapse en mode tradicional quan s'imprimeix per objecte."
 
 msgid "Errors"
-msgstr "Errors"
+msgstr ""
 
 msgid "More than one filament types have been mapped to the same external spool, which may cause printing issues. The printer won't pause during printing."
 msgstr "S'han mapejat més d'un tipus de filament a la mateixa bobina externa, cosa que pot causar problemes d'impressió. La impressora no es posarà en pausa durant la impressió."
@@ -8774,7 +8774,7 @@ msgid "Textured PEI Plate"
 msgstr "Base PEI amb Textura"
 
 msgid "Cool Plate (SuperTack)"
-msgstr "Cool Plate (SuperTack)"
+msgstr ""
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Feu clic aquí si no us podeu connectar a la impressora"
@@ -9246,7 +9246,7 @@ msgid "Tree supports"
 msgstr "Suports d'arbre"
 
 msgid "Multimaterial"
-msgstr "Multimaterial"
+msgstr ""
 
 msgid "Filament for Features"
 msgstr "Filament per a característiques"
@@ -9267,7 +9267,7 @@ msgid "Post-processing Scripts"
 msgstr "Scripts de postprocessament"
 
 msgid "Notes"
-msgstr "Notes"
+msgstr ""
 
 msgid "Frequent"
 msgstr "Freqüent"
@@ -9469,7 +9469,7 @@ msgid "Motion ability"
 msgstr "Capacitat de moviment"
 
 msgid "Normal"
-msgstr "Normal"
+msgstr ""
 
 msgid "Resonance Compensation"
 msgstr ""
@@ -9529,7 +9529,7 @@ msgid "Layer height limits"
 msgstr "Límits d'alçada de capa"
 
 msgid "Z-Hop"
-msgstr "Z-Hop"
+msgstr ""
 
 msgid "Retraction when switching material"
 msgstr "Retracció en canviar de material"
@@ -9925,7 +9925,7 @@ msgstr ""
 "per continuar o ajustar-lo manualment."
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -9936,7 +9936,7 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr "Original"
+msgstr ""
 
 msgid "After mapping"
 msgstr "Després del mapatge"
@@ -10084,7 +10084,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "Per a una taxa de flux constant, manteniu %1% mentre arrossegueu."
 
 msgid "ms"
-msgstr "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr "Empenta total"
@@ -10353,7 +10353,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Suport/Pintat de color: configuració de la posició de la secció"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Establir el número d'extrusor per als objectes i les peces"
@@ -10455,7 +10455,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. Obteniu el número de sèrie del dispositiu del costat de la impressora; normalment es troba a la informació del dispositiu a la pantalla de la impressora."
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "Clau d'Accés"
@@ -12277,7 +12277,7 @@ msgid "Part cooling fan will be enabled for layers of which estimated time is sh
 msgstr "S'habilitarà el ventilador de refrigeració de peces per a capes el temps estimat de les quals sigui inferior a aquest valor. La velocitat del ventilador s'interpola entre les velocitats mínima i màxima del ventilador segons el temps d'impressió per capes"
 
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgid "Default color"
 msgstr "Color predeterminat"
@@ -12513,7 +12513,7 @@ msgid "Ironing area for prime tower interface layer (where different materials m
 msgstr "Àrea de planxat per a la capa d'interfície de la torre de purga (on es troben materials diferents)."
 
 msgid "mm²"
-msgstr "mm²"
+msgstr ""
 
 msgid "Interface layer purge length"
 msgstr "Longitud de purga de la capa d'interfície"
@@ -12564,7 +12564,7 @@ msgid "Filament density. For statistics only."
 msgstr "Densitat del filament. Només per a estadístiques"
 
 msgid "g/cm³"
-msgstr "g/cm³"
+msgstr ""
 
 msgid "Filament material type."
 msgstr "El tipus de material del filament"
@@ -12670,13 +12670,13 @@ msgid "Line pattern for internal sparse infill."
 msgstr "Patró de línia per al farciment poc dens"
 
 msgid "Zig Zag"
-msgstr "Zig Zag"
+msgstr ""
 
 msgid "Cross Zag"
-msgstr "Cross Zag"
+msgstr ""
 
 msgid "Locked Zag"
-msgstr "Locked Zag"
+msgstr ""
 
 msgid "Line"
 msgstr "Lineal"
@@ -12718,10 +12718,10 @@ msgid "Cross Hatch"
 msgstr "Quadrícula"
 
 msgid "TPMS-D"
-msgstr "TPMS-D"
+msgstr ""
 
 msgid "TPMS-FK"
-msgstr "TPMS-FK"
+msgstr ""
 
 msgid "Gyroid"
 msgstr "Giroide"
@@ -12835,7 +12835,7 @@ msgid "Klipper's max_accel_to_decel will be adjusted automatically."
 msgstr "El max_accel_to_decel de Klipper s'ajustarà automàticament"
 
 msgid "accel_to_decel"
-msgstr "accel_to_decel"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
@@ -13055,16 +13055,16 @@ msgid "Classic"
 msgstr "Clàssic"
 
 msgid "Perlin"
-msgstr "Perlin"
+msgstr ""
 
 msgid "Billow"
-msgstr "Billow"
+msgstr ""
 
 msgid "Ridged Multifractal"
 msgstr "Multifractal estriat"
 
 msgid "Voronoi"
-msgstr "Voronoi"
+msgstr ""
 
 msgid "Ripple"
 msgstr ""
@@ -13188,7 +13188,7 @@ msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness durin
 msgstr "La duresa del broquet. Zero significa que no es comprova la duresa del broquet durant el laminat."
 
 msgid "HRC"
-msgstr "HRC"
+msgstr ""
 
 msgid "Printer structure"
 msgstr "Estructura de la impressora"
@@ -13197,16 +13197,16 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "La disposició física i els components d'un dispositiu d'impressió"
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
-msgstr "Delta"
+msgstr ""
 
 msgid "Best object position"
 msgstr "Millor posició de l'objecte"
@@ -13257,7 +13257,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Cost per Temps"
@@ -13295,7 +13295,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "Amb quin tipus de Codi-G és compatible la impressora."
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Impressora modificada de pellets"
@@ -13584,7 +13584,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -13898,7 +13898,7 @@ msgstr ""
 "Nota: aquest paràmetre desactiva l'Ajustament en Arc( arc fitting )."
 
 msgid "mm³/s²"
-msgstr "mm³/s²"
+msgstr ""
 
 msgid "Smoothing segment length"
 msgstr "Longitud del segment de suavitzat"
@@ -14262,10 +14262,10 @@ msgid "Top and Bottom"
 msgstr "A dalt i a baix"
 
 msgid "Direct Drive"
-msgstr "Direct Drive"
+msgstr ""
 
 msgid "Bowden"
-msgstr "Bowden"
+msgstr ""
 
 msgid "Extra length on restart"
 msgstr "Longitud addicional en reiniciar"
@@ -14591,7 +14591,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "Diferència de temperatura a aplicar quan una extrusora no està activa. El valor no s'utilitza quan 'idle_temperature' a la configuració del filament s'estableix en un valor diferent de zero."
 
 msgid "∆℃"
-msgstr "∆℃"
+msgstr ""
 
 msgid "Preheat time"
 msgstr "Temps de preescalfament"
@@ -14711,7 +14711,7 @@ msgid "Tree (auto)"
 msgstr "Arbre (automàtic)"
 
 msgid "Normal (manual)"
-msgstr "Normal (manual)"
+msgstr ""
 
 msgid "Tree (manual)"
 msgstr "Arbre (manual)"
@@ -15208,7 +15208,7 @@ msgstr ""
 "3. Nervi: afegeix quatre nervis a la paret de la torre per a una estabilitat millorada."
 
 msgid "Rectangle"
-msgstr "Rectangle"
+msgstr ""
 
 msgid "Rib"
 msgstr "Nervi"
@@ -15510,13 +15510,13 @@ msgid "Export 3MF with minimum size."
 msgstr "exportar 3MF amb la mida mínima."
 
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "recompte màxim de triangles per placa en laminar."
 
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "temps màxim de laminació per placa en segons."
@@ -16675,25 +16675,25 @@ msgid "Filament type"
 msgstr "Tipus de filament"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "Temperatura Inicial: "
@@ -16803,7 +16803,7 @@ msgid "Frequency settings"
 msgstr "Configuració de freqüència"
 
 msgid "Hz"
-msgstr "Hz"
+msgstr ""
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "El firmware RepRap utilitza el mateix rang de freqüència per a ambdós eixos."
@@ -16860,7 +16860,7 @@ msgid "Cornering test"
 msgstr "Test de gestió de cantonades"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "Inici: "
@@ -16963,7 +16963,7 @@ msgid "Leveling before print"
 msgstr ""
 
 msgid "Time-lapse"
-msgstr "Time-lapse"
+msgstr ""
 
 msgid "Enable IFS"
 msgstr ""
@@ -17000,7 +17000,7 @@ msgid "Print host upload queue"
 msgstr "Cua de pujada de l'amfitrió( host ) d'impressió"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "Progrés"
@@ -17086,10 +17086,10 @@ msgid "selected"
 msgstr "sel·leccionat"
 
 msgid "Part 1"
-msgstr "Part 1"
+msgstr ""
 
 msgid "Part 2"
-msgstr "Part 2"
+msgstr ""
 
 msgid "Delete input"
 msgstr "Esborrar entrada"
@@ -17581,7 +17581,7 @@ msgid "For more information, please check out Wiki"
 msgstr "Per obtenir més informació, consulteu la Wiki"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "Replegar"
@@ -18454,7 +18454,7 @@ msgstr "El connector de xarxa Bambu és necessari per a les funcions del núvol,
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr "Error: %s"
+msgstr ""
 
 msgid "Show details"
 msgstr "Mostra detalls"
@@ -18841,8 +18841,7 @@ msgstr ""
 "Partir les impressions en varies plaques\n"
 "Sabíeu que podeu partir un model que tingui moltes peces en plaques individuals preparades per imprimir? Això simplificarà el procés de fer un seguiment de totes les peces."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -18914,8 +18913,7 @@ msgstr ""
 "Millorar la força\n"
 "Sabíeu que podeu utilitzar més bucles de perímetre i una densitat de farciment més alta per millorar la resistència del model?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"

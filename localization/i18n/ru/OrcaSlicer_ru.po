@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-12 12:22-0300\n"
-"PO-Revision-Date: 2026-02-25 13:38+0300\n"
+"PO-Revision-Date: 2026-06-12 21:10-0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
 "Language: ru_RU\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"X-Generator: Poedit 3.8\n"
+"X-Generator: Poedit 3.9\n"
 
 # В большинстве мест подставляется в "%s экструдер", но также тянется и в
 # списке выбора видов при импорте цвета из OBJ
@@ -256,7 +256,7 @@ msgid "Reset"
 msgstr "Сброс"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Горячая клавиша "
@@ -835,7 +835,7 @@ msgid "Horizontal text"
 msgstr "Горизонтальный текст"
 
 msgid "Shift+"
-msgstr "Shift+"
+msgstr ""
 
 msgid "Mouse move up or down"
 msgstr "Движение мыши вверх или вниз"
@@ -876,19 +876,19 @@ msgid "Emboss"
 msgstr "Рельефный текст"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
-msgstr "SMALL"
+msgstr ""
 
 msgid "ITALIC"
-msgstr "ITALIC"
+msgstr ""
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "Первый шрифт"
@@ -1286,7 +1286,7 @@ msgid "SVG actions"
 msgstr "Действия с SVG"
 
 msgid "SVG"
-msgstr "SVG"
+msgstr ""
 
 #, boost-format
 msgid "Opacity (%1%)"
@@ -1488,7 +1488,7 @@ msgid "Restart selection"
 msgstr "Выбрать заново"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Отменить выбор до выхода"
@@ -1641,10 +1641,10 @@ msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
-msgstr "Ctrl+"
+msgstr ""
 
 msgid "Alt+"
-msgstr "Alt+"
+msgstr ""
 
 msgid "Notice"
 msgstr "Примечание"
@@ -1788,7 +1788,7 @@ msgstr ""
 "Нажмите Да, чтобы установить."
 
 msgid "WebView2 Runtime"
-msgstr "WebView2 Runtime"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -2033,7 +2033,7 @@ msgid "Language"
 msgstr "Язык"
 
 msgid "*"
-msgstr "*"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "Изменение языка приложения"
@@ -2175,13 +2175,13 @@ msgid "Show"
 msgstr "Показать"
 
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Удаление выбранных моделей"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "Загрузить…"
@@ -2211,10 +2211,10 @@ msgid "Orca Tolerance Test"
 msgstr "Тест точности Orca"
 
 msgid "3DBenchy"
-msgstr "3DBenchy"
+msgstr ""
 
 msgid "Cali Cat"
-msgstr "Cali Cat"
+msgstr ""
 
 msgid "Autodesk FDM Test"
 msgstr "FDM тест от Autodesk"
@@ -2961,7 +2961,7 @@ msgid "No printer"
 msgstr "Не выбран"
 
 msgid "..."
-msgstr "..."
+msgstr ""
 
 msgid "Failed to connect to the server"
 msgstr "Не удалось подключиться к серверу"
@@ -3473,7 +3473,7 @@ msgid "Portions copyright"
 msgstr "Сторонние компоненты"
 
 msgid "Copyright"
-msgstr "Copyright"
+msgstr ""
 
 msgid "License"
 msgstr "Лицензия"
@@ -3578,7 +3578,7 @@ msgstr ""
 "«Устройство -> Компоненты для печати»"
 
 msgid "AMS"
-msgstr "AMS"
+msgstr ""
 
 msgid "Other Color"
 msgstr "Другой цвет"
@@ -3609,7 +3609,7 @@ msgid "Max volumetric speed"
 msgstr "Предел объёмного расхода"
 
 msgid "℃"
-msgstr "℃"
+msgstr ""
 
 msgid "Bed temperature"
 msgstr "Подогрев покрытия стола"
@@ -4843,7 +4843,7 @@ msgid "Jerk: "
 msgstr ""
 
 msgid "PA: "
-msgstr "PA: "
+msgstr ""
 
 msgid "mm/s"
 msgstr "мм/с"
@@ -4868,7 +4868,7 @@ msgid "Fan speed"
 msgstr "Обдув"
 
 msgid "°C"
-msgstr "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "Время"
@@ -5900,7 +5900,7 @@ msgstr "Затухание Input Shaping/Коэффициент затухани
 
 # Тест шейпера
 msgid "Input Shaping"
-msgstr "Input Shaping"
+msgstr ""
 
 msgid "VFA"
 msgstr "Тест ряби (VFA)"
@@ -6333,7 +6333,7 @@ msgid "Invert Roll axis"
 msgstr "Инвертировать ось крена (Z)"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Поиск"
@@ -7299,7 +7299,7 @@ msgstr "Свернуть боковую панель"
 # Название кнопки на клавиатуре, на момент 2.3.2 используется в 5 местах в
 # значении названия кнопки
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -8590,13 +8590,13 @@ msgid "Host Setting"
 msgstr "Настройка хоста"
 
 msgid "DEV host: api-dev.bambu-lab.com/v1"
-msgstr "DEV host: api-dev.bambu-lab.com/v1"
+msgstr ""
 
 msgid "QA  host: api-qa.bambu-lab.com/v1"
-msgstr "QA  host: api-qa.bambu-lab.com/v1"
+msgstr ""
 
 msgid "PRE host: api-pre.bambu-lab.com/v1"
-msgstr "PRE host: api-pre.bambu-lab.com/v1"
+msgstr ""
 
 msgid "Product host"
 msgstr "Хост принтера"
@@ -8688,7 +8688,7 @@ msgstr "Выбранный профиль пуст!"
 
 # ?????? не переводим, пока #6970 не исправят
 msgid "End"
-msgstr "End"
+msgstr ""
 
 msgid "Customize"
 msgstr "Настроить"
@@ -9505,7 +9505,7 @@ msgid "Travel speed"
 msgstr "Ограничение скорости холостых перемещений"
 
 msgid "Junction Deviation"
-msgstr "Junction Deviation"
+msgstr ""
 
 msgid "Jerk(XY)"
 msgstr "Рывок (XY)"
@@ -10243,7 +10243,7 @@ msgid ""
 msgstr "выбор цветов можно изменить вручную."
 
 msgid "—> "
-msgstr "—> "
+msgstr ""
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10660,7 +10660,7 @@ msgstr "Переключение между подготовкой и просм
 
 # ??? Plater – это название библиотеки.
 msgid "Plater"
-msgstr "Plater"
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "Перемещение: Фиксация перемещения на 1 мм"
@@ -10774,7 +10774,7 @@ msgid "3. Please obtain the device SN from the printer side; it is usually found
 msgstr "3. Найдите и введите серийный номер принтера (находится в информации об устройстве на экране принтера)."
 
 msgid "IP"
-msgstr "IP"
+msgstr ""
 
 msgid "Access Code"
 msgstr "Код доступа"
@@ -13724,7 +13724,7 @@ msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness durin
 msgstr "Твёрдость сопел. 0 - отключение контроля сопел на твёрдость при нарезке."
 
 msgid "HRC"
-msgstr "HRC"
+msgstr ""
 
 msgid "Printer structure"
 msgstr "Кинематика принтера"
@@ -13733,16 +13733,16 @@ msgid "The physical arrangement and components of a printing device."
 msgstr "Конструкция физического принтера."
 
 msgid "CoreXY"
-msgstr "CoreXY"
+msgstr ""
 
 msgid "I3"
-msgstr "I3"
+msgstr ""
 
 msgid "Hbot"
-msgstr "Hbot"
+msgstr ""
 
 msgid "Delta"
-msgstr "Delta"
+msgstr ""
 
 msgid "Best object position"
 msgstr "Наилучшее расположение модели"
@@ -13793,7 +13793,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Стоимость часа печати"
@@ -13831,7 +13831,7 @@ msgid "What kind of G-code the printer is compatible with."
 msgstr "Выбор типа G-кода для совместимости с прошивкой вашего принтера."
 
 msgid "Klipper"
-msgstr "Klipper"
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Гранульная модификация принтера"
@@ -14154,7 +14154,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr "°"
+msgstr ""
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -15278,7 +15278,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "Разница температур для охлаждения неактивного экструдера. Значение не используется, если в настройках материала явно задан параметр «Температура в простое» ('idle_temperature')."
 
 msgid "∆℃"
-msgstr "∆℃"
+msgstr ""
 
 msgid "Preheat time"
 msgstr "Время преднагрева"
@@ -16148,7 +16148,7 @@ msgstr ""
 # Исторически переводим по названию движка, а так по контексту тут новичкам
 # было бы полнятнее "Адаптивный" генератор.
 msgid "Arachne"
-msgstr "Arachne"
+msgstr ""
 
 msgid "Wall transition length"
 msgstr "Длина перехода между периметрами"
@@ -16307,14 +16307,14 @@ msgstr "Экспорт 3MF файла с минимальным размером
 
 # мктс, Макс. кол. треугольников на столе
 msgid "mtcpp"
-msgstr "mtcpp"
+msgstr ""
 
 msgid "Max triangle count per plate for slicing."
 msgstr "максимальное количество треугольников на столе при нарезке."
 
 # мвнс , Макс. время нарезки стола
 msgid "mstpp"
-msgstr "mstpp"
+msgstr ""
 
 msgid "Max slicing time per plate in seconds."
 msgstr "максимальное время нарезки одного стола в секундах."
@@ -17306,7 +17306,7 @@ msgstr "Параметры печати"
 
 # в коде не используется на момент 2.3.2 beta2
 msgid "- ℃"
-msgstr "- ℃"
+msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "Синхронизировать данные сопел и AMS"
@@ -17529,25 +17529,25 @@ msgid "Filament type"
 msgstr "Тип материала"
 
 msgid "PLA"
-msgstr "PLA"
+msgstr ""
 
 msgid "ABS/ASA"
-msgstr "ABS/ASA"
+msgstr ""
 
 msgid "PETG"
-msgstr "PETG"
+msgstr ""
 
 msgid "PCTG"
-msgstr "PCTG"
+msgstr ""
 
 msgid "TPU"
-msgstr "TPU"
+msgstr ""
 
 msgid "PA-CF"
-msgstr "PA-CF"
+msgstr ""
 
 msgid "PET-CF"
-msgstr "PET-CF"
+msgstr ""
 
 msgid "Start temp: "
 msgstr "Начальная температура: "
@@ -17717,7 +17717,7 @@ msgid "Cornering test"
 msgstr "Тест прохождения углов"
 
 msgid "SCV-V2"
-msgstr "SCV-V2"
+msgstr ""
 
 msgid "Start: "
 msgstr "Начало: "
@@ -17860,7 +17860,7 @@ msgid "Print host upload queue"
 msgstr "Очередь загрузки на хост печати"
 
 msgid "ID"
-msgstr "ID"
+msgstr ""
 
 msgid "Progress"
 msgstr "Прогресс"
@@ -18457,7 +18457,7 @@ msgid "For more information, please check out Wiki"
 msgstr "Подробности читайте на сайте"
 
 msgid "Wiki"
-msgstr "Wiki"
+msgstr ""
 
 msgid "Collapse"
 msgstr "Свернуть"
@@ -19745,8 +19745,7 @@ msgstr ""
 "Распределение печатаемого на другие столы\n"
 "Знаете ли вы, что модель, состоящую из большого количества частей, можно распределить на несколько столов? Это упрощает процесс отслеживания всех деталей при печати."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
@@ -19818,8 +19817,7 @@ msgstr ""
 "Увеличение прочности\n"
 "Знаете ли вы, что для повышения прочности модели можно увеличить количество периметров и плотность заполнения?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
