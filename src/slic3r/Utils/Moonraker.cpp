@@ -215,8 +215,10 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     //ORCA: POST /server/files/upload as multipart/form-data with:
     //          file = <gcode file>
     //          root = <storage root>     (Moonraker default: "gcodes")
+    //          path = <subdirectory from root> (optional)
+    //          print = <bool> (start print immediately after upload)
     //      Successful response shape:
-    //          { "result": { "item": { "path": "<name>.gcode", "root": "<root>" }, "print_started": <bool> } }
+    //          { "item": { "path": "<name>.gcode", "root": "<root>" }, "print_started": <bool> }
     //      We always start the print explicitly via /printer/print/start regardless of `print_started`
     //      so the user can rely on a single call site for state.
     wxString test_msg;
