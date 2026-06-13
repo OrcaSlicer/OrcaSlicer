@@ -1943,14 +1943,21 @@ namespace DoExport {
                 print_statistics.cost_electricity =
                     kw * hours * config.electricity_rate.getFloat();
             } else {
-                auto *night_start_opt = config.option<ConfigOptionFloat>("night_start_hour");
-                auto *night_end_opt   = config.option<ConfigOptionFloat>("night_end_hour");
-                auto *print_start_opt = config.option<ConfigOptionFloat>("print_start_hour");
                 double day_rate       = config.electricity_rate.getFloat();
 
+                time_t now = Slic3r::Utils::get_current_time_utc();
+                struct tm local_tm;
+#ifdef _WIN32
+                localtime_s(&local_tm, &now);
+#else
+                localtime_r(&now, &local_tm);
+#endif
+                double print_start = local_tm.tm_hour + (local_tm.tm_min / 60.0);
+
+                auto *night_start_opt = config.option<ConfigOptionFloat>("night_start_hour");
+                auto *night_end_opt   = config.option<ConfigOptionFloat>("night_end_hour");
                 double night_start = (night_start_opt != nullptr) ? night_start_opt->getFloat() : 22.0;
                 double night_end   = (night_end_opt   != nullptr) ? night_end_opt->getFloat()   : 6.0;
-                double print_start = (print_start_opt != nullptr) ? print_start_opt->getFloat() : 8.0;
 
                 // Normalize night window: handle wrap-around (e.g., 22:00 to 06:00)
                 double n_start = night_start;

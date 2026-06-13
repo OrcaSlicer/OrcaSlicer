@@ -3874,7 +3874,7 @@ void PrintConfigDef::init_fff_params()
 
 
     def = this->add("time_cost", coFloat);
-    def->label = L("Time cost");
+    def->label = L("Total cost");
     def->tooltip = L("The printer cost per hour.");
     def->sidetext = L("money/h");
     def->min     = 0;
@@ -3882,7 +3882,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("printer_power_watts", coFloat);
-    def->label = L("Printer power consumption");
+    def->label = L("Power consumption");
     def->tooltip = L("Average power consumption of the printer in watts (W). Used to calculate electricity cost automatically.");
     def->sidetext = L("W");
     def->min = 0;
@@ -3898,7 +3898,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("printer_purchase_price", coFloat);
-    def->label = L("Printer purchase price");
+    def->label = L("Purchase price");
     def->tooltip = L("Original purchase price of the printer. Used to calculate depreciation per print.");
     def->sidetext = L("money");
     def->min = 0;
@@ -3906,7 +3906,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("printer_lifetime_hours", coFloat);
-    def->label = L("Printer expected lifetime");
+    def->label = L("Expected lifespan");
     def->tooltip = L("Expected total printing hours before the printer needs replacement.");
     def->sidetext = L("h");
     def->min = 1;
@@ -3914,7 +3914,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(2000));
 
     def = this->add("maintenance_cost_per_hour", coFloat);
-    def->label = L("Maintenance cost per hour");
+    def->label = L("Maintenance cost (money/h)");
     def->tooltip = L("Estimated cost of consumables (nozzles, build plate, lubricant, etc.) averaged per hour of printing.");
     def->sidetext = L("money/h");
     def->min = 0;
@@ -3948,7 +3948,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("failure_rate_percent", coFloat);
-    def->label = L("Estimated failure rate");
+    def->label = L("Print failure rate");
     def->tooltip = L("Percentage of prints that fail on average. Increases material and electricity costs proportionally.");
     def->sidetext = L("%");
     def->min = 0;
@@ -3957,7 +3957,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("electricity_rate_night", coFloat);
-    def->label = L("Night electricity rate");
+    def->label = L("Electricity rate (Night)");
     def->tooltip = L("Cost per kWh during night hours.");
     def->sidetext = L("money/kWh");
     def->min = 0;
@@ -3965,7 +3965,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("night_start_hour", coFloat);
-    def->label = L("Night rate start hour");
+    def->label = L("Night rate start");
     def->tooltip = L("Hour when night electricity rate begins (0-23). Example: 22 means 10:00 PM.");
     def->sidetext = L("h");
     def->min = 0;
@@ -3974,22 +3974,13 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(22));
 
     def = this->add("night_end_hour", coFloat);
-    def->label = L("Night rate end hour");
+    def->label = L("Night rate end");
     def->tooltip = L("Hour when night electricity rate ends (0-23). Example: 6 means 6:00 AM.");
     def->sidetext = L("h");
     def->min = 0;
     def->max = 23;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(6));
-
-    def = this->add("print_start_hour", coFloat);
-    def->label = L("Estimated print start hour");
-    def->tooltip = L("The hour you usually start printing (0-23). Used to calculate how much of the print falls in night vs day rate.");
-    def->sidetext = L("h");
-    def->min = 0;
-    def->max = 23;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(8));
 
     // Orca: may remove this option later
     def =this->add("support_chamber_temp_control",coBool);

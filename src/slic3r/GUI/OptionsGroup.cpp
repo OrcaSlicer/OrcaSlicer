@@ -19,6 +19,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "I18N.hpp"
 #include <locale>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -555,7 +556,6 @@ void OptionsGroup::clear(bool destroy_custom_ctrl)
 
 	m_grid_sizer = nullptr;
 	sizer = nullptr;
-    stb = nullptr; // BBS: fix pointer
 
 	for (Line& line : m_lines) {
         if (line.near_label_widget_win)
@@ -573,11 +573,15 @@ void OptionsGroup::clear(bool destroy_custom_ctrl)
 	}
 
     if (custom_ctrl) {
-        for (auto const &item : m_fields) {
-            wxWindow* win = item.second.get()->getWindow();
-            if (win) {
-                free_window(win);
-                win = nullptr;
+        bool ctrl_alive = (custom_ctrl->GetParent() != nullptr);
+        BOOST_LOG_TRIVIAL(debug) << "OptionsGroup::clear custom_ctrl alive=" << (ctrl_alive ? "yes" : "no");
+        if (ctrl_alive) {
+            for (auto const &item : m_fields) {
+                wxWindow* win = item.second.get()->getWindow();
+                if (win) {
+                    free_window(win);
+                    win = nullptr;
+                }
             }
         }
 		//BBS: custom_ctrl already destroyed from sizer->clear(), no need to destroy here anymore
@@ -587,6 +591,9 @@ void OptionsGroup::clear(bool destroy_custom_ctrl)
         else
             custom_ctrl = nullptr;
     }
+
+    // Only null out stb AFTER field processing so custom_ctrl parent is still valid
+    stb = nullptr;
 
 	m_extra_column_item_ptrs.clear();
 	m_fields.clear();
@@ -632,7 +639,12 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
 	if (m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
 	    wxGetApp().sidebar().get_searcher().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category());
 
-	return Option(*m_config->def()->get(opt_key), opt_id);
+    const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
+    if (opt_def == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << "get_option: option '" << opt_key << "' not found in ConfigDef!";
+        return Option(ConfigOptionDef(), opt_id);
+    }
+	return Option(*opt_def, opt_id);
 }
 
 void ConfigOptionsGroup::on_change_OG(const t_config_option_key& opt_id, const boost::any& value)

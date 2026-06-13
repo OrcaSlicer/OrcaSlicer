@@ -1375,7 +1375,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               electricity_rate_night))
     ((ConfigOptionFloat,               night_start_hour))
     ((ConfigOptionFloat,               night_end_hour))
-    ((ConfigOptionFloat,               print_start_hour))
     ((ConfigOptionString,              layer_change_gcode))
     ((ConfigOptionString,              time_lapse_gcode))
     ((ConfigOptionString,              wrapping_detection_gcode))
