@@ -247,7 +247,7 @@
 	"wall_filament": "1",
 	"outer_wall_filament_id": "0",
 	"inner_wall_filament_id": "0",
-	"wall_generator": "arachne",
+	"wall_generator": "classic",
 	"wall_loops": "2",
 	"wall_sequence": "inner wall/outer wall",
 	"wall_transition_angle": "10",
