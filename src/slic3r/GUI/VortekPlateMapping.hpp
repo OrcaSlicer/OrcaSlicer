@@ -9,7 +9,7 @@ namespace Slic3r {
     class Print;
     struct GCodeProcessorResult;
     class PresetBundle;
-    class DynamicPrintConfig;
+    class DynamicConfig;
     struct PlateData;
     namespace GUI {
         class PartPlate;
@@ -40,7 +40,7 @@ public:
         Slic3r::GCodeProcessorResult* gcode_result
     );
 
-    static void sync_project_config_on_load(Slic3r::DynamicPrintConfig& proj_cfg, int filament_count);
+    static void sync_project_config_on_load(Slic3r::DynamicConfig& proj_cfg, int filament_count);
 };
 
 } // namespace Vortek

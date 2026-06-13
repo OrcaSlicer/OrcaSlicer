@@ -177,7 +177,7 @@ void PlateMapping::load_from_3mf_structure(
         gcode_result->nozzle_group_result = nullptr;
 }
 
-void PlateMapping::sync_project_config_on_load(Slic3r::DynamicPrintConfig& proj_cfg, int filament_count)
+void PlateMapping::sync_project_config_on_load(Slic3r::DynamicConfig& proj_cfg, int filament_count)
 {
     Slic3r::ConfigOptionInts* filament_nozzle_map = proj_cfg.opt<Slic3r::ConfigOptionInts>("filament_nozzle_map", true);
     if (filament_nozzle_map->size() != filament_count) {
