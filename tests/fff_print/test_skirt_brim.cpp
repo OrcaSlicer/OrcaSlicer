@@ -3,16 +3,19 @@
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include <boost/algorithm/string.hpp>
+
+#include <cmath>
 
 #include "test_data.hpp" // get access to init_print, etc
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
 
-/// Helper method to find the tool used for the brim (always the first extrusion)
-static int get_brim_tool(const std::string &gcode)
+/// Helper method to find the tool used for the brim (always the first extrusion).
+[[maybe_unused]] static int get_brim_tool(const std::string &gcode)
 {
     int brim_tool	= -1;
     int tool		= -1;
@@ -29,16 +32,13 @@ static int get_brim_tool(const std::string &gcode)
     return brim_tool;
 }
 
-TEST_CASE("Skirt height is honored", "[Skirt][.]") {
+TEST_CASE("Skirt height is honored", "[SkirtBrim]") {
     DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-    	{ "skirts",					1 },
-    	{ "skirt_height", 			5 },
-    	{ "perimeters", 			0 },
-    	{ "support_material_speed", 99 },
-		// avoid altering speeds unexpectedly
-    	{ "cooling", 				false },
-    	{ "first_layer_speed", 		"100%" }
+        { "skirt_loops",    1 },
+        { "skirt_height",   5 },
+        { "wall_loops",     0 },
+        { "gcode_comments", true }
     });
 
 	std::string gcode;
@@ -49,75 +49,38 @@ TEST_CASE("Skirt height is honored", "[Skirt][.]") {
         gcode = Slic3r::Test::slice({TestMesh::cube_20x20x20, TestMesh::cube_20x20x20}, config);
     }
 
-    std::map<double, bool> layers_with_skirt;
-    double support_speed = config.opt<Slic3r::ConfigOptionFloat>("support_material_speed")->value * MM_PER_MIN;
-	GCodeReader parser;
-    parser.parse_buffer(gcode, [&layers_with_skirt, &support_speed] (Slic3r::GCodeReader &self, const Slic3r::GCodeReader::GCodeLine &line) {
-        if (line.extruding(self) && self.f() == Catch::Approx(support_speed)) {
-            layers_with_skirt[self.z()] = 1;
-        }
-    });
-    REQUIRE(layers_with_skirt.size() == (size_t)config.opt_int("skirt_height"));
+    REQUIRE(layers_with_role(gcode, "skirt").size() == (size_t)config.opt_int("skirt_height"));
 }
 
-SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim][.]") {
+SCENARIO("Skirt and brim generation", "[SkirtBrim]") {
     GIVEN("A default configuration") {
 	    DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
 		config.set_num_extruders(4);
 		config.set_deserialize_strict({
-			{ "support_material_speed", 		99 },
-			{ "first_layer_height", 			0.3 },
-        	{ "gcode_comments", 				true },
+            { "initial_layer_print_height", 0.3 },
+            { "gcode_comments",             true },
         	// avoid altering speeds unexpectedly
-        	{ "cooling", 						false },
-        	{ "first_layer_speed", 				"100%" },
+            { "slow_down_for_layer_cooling", false },
+            { "initial_layer_speed",         "100%" },
         	// remove noise from top/solid layers
-        	{ "top_solid_layers", 				0 },
-        	{ "bottom_solid_layers", 			1 },
-			{ "start_gcode",					"T[initial_tool]\n" }
+            { "top_shell_layers",    0 },
+            { "bottom_shell_layers", 1 },
+            { "machine_start_gcode", "T[initial_tool]\n" }
         });
 
         WHEN("Brim width is set to 5") {
         	config.set_deserialize_strict({
-				{ "perimeters", 		0 },
-				{ "skirts", 			0 },
-				{ "brim_width", 		5 }
+                { "wall_loops",  0 },
+                { "skirt_loops", 0 },
+                { "brim_type",   "outer_only" },
+                { "brim_width",  5 }
 			});
 			THEN("Brim is generated") {
 		        std::string gcode = Slic3r::Test::slice({TestMesh::cube_20x20x20}, config);
-                bool brim_generated = false;
-                double support_speed = config.opt<Slic3r::ConfigOptionFloat>("support_material_speed")->value * MM_PER_MIN;
-			    Slic3r::GCodeReader parser;
-                parser.parse_buffer(gcode, [&brim_generated, support_speed] (Slic3r::GCodeReader& self, const Slic3r::GCodeReader::GCodeLine& line) {
-                    if (self.z() == Catch::Approx(0.3) || line.new_Z(self) == Catch::Approx(0.3)) {
-                        if (line.extruding(self) && self.f() == Catch::Approx(support_speed)) {
-                            brim_generated = true;
-                        }
-                    }
-                });
-                REQUIRE(brim_generated);
+                REQUIRE(! layers_with_role(gcode, "brim").empty());
             }
         }
 
-        WHEN("Skirt area is smaller than the brim") {
-            config.set_deserialize_strict({
-            	{ "skirts", 	1 },
-            	{ "brim_width", 10}
-            });
-            THEN("Gcode generates") {
-                REQUIRE(! Slic3r::Test::slice({TestMesh::cube_20x20x20}, config).empty());
-            }
-        }
-
-        WHEN("Skirt height is 0 and skirts > 0") {
-            config.set_deserialize_strict({
-            	{ "skirts", 	  2 },
-            	{ "skirt_height", 0 }
-            });
-            THEN("Gcode generates") {
-                REQUIRE(! Slic3r::Test::slice({TestMesh::cube_20x20x20}, config).empty());
-            }
-        }
 
 #if 0
 		// This is a real error! One shall print the brim with the external perimeter extruder!
@@ -154,10 +117,11 @@ SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim][.]") {
 
         WHEN("brim width to 1 with layer_width of 0.5") {
         	config.set_deserialize_strict({
-				{ "skirts", 						0 },
-				{ "first_layer_extrusion_width", 	0.5 },
-				{ "brim_width", 					1 }
-        	});			
+                { "skirt_loops",              0 },
+                { "initial_layer_line_width", 0.5 },
+                { "brim_type",                "outer_only" },
+                { "brim_width",               1 }
+        	});
             THEN("2 brim lines") {
 		        Slic3r::Print print;
 		        Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, config);
@@ -203,68 +167,68 @@ SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim][.]") {
 
         WHEN("Object is plated with overhang support and a brim") {
         	config.set_deserialize_strict({
-	            { "layer_height", 				0.4 },
-	            { "first_layer_height", 		0.4 },
-	            { "skirts", 					1 },
-	            { "skirt_distance", 			0 },
-	            { "support_material_speed", 	99 },
-	            { "perimeter_extruder", 		1 },
-	            { "support_material_extruder", 	2 },
-	            { "infill_extruder", 			3 },			// ensure that a tool command gets emitted.
-	            { "cooling", 					false },		// to prevent speeds to be altered
-	            { "first_layer_speed", 			"100%" },		// to prevent speeds to be altered
-				{ "start_gcode",				"T[initial_tool]\n" }
+                { "layer_height",               0.4 },
+                { "initial_layer_print_height", 0.4 },
+                { "skirt_loops",                1 },
+                { "skirt_distance",             0 },
+                { "enable_support",             1 },
+                { "brim_type",                  "outer_only" },
+                { "brim_width",                 5 }
         	});
 
-            THEN("overhang generates?") {
-            	//FIXME does it make sense?
-                REQUIRE(! Slic3r::Test::slice({TestMesh::overhang}, config).empty());
+            THEN("Support and brim are both emitted") {
+                std::string gcode = Slic3r::Test::slice({TestMesh::overhang}, config);
+                REQUIRE(! layers_with_role(gcode, "support").empty());
+                REQUIRE(! layers_with_role(gcode, "brim").empty());
             }
-
-            // config.set("support_material", true);      // to prevent speeds to be altered
-
-#if 0
-			// This test is not finished.
-            THEN("skirt length is large enough to contain object with support") {
-                CHECK(config.opt_bool("support_material")); // test is not valid if support material is off
-				std::string gcode = Slic3r::Test::slice({TestMesh::cube_20x20x20}, config);
-                double support_speed = config.opt<ConfigOptionFloat>("support_material_speed")->value * MM_PER_MIN;
-				double skirt_length = 0.0;
-				Points extrusion_points;
-				int tool = -1;
-				GCodeReader parser;
-                parser.parse_buffer(gcode, [config, &extrusion_points, &tool, &skirt_length, support_speed] (Slic3r::GCodeReader& self, const Slic3r::GCodeReader::GCodeLine& line) {
-                    // std::cerr << line.cmd() << "\n";
-					if (boost::starts_with(line.cmd(), "T")) {
-						tool = atoi(line.cmd().data() + 1);
-					} else if (self.z() == Catch::Approx(config.opt<ConfigOptionFloat>("first_layer_height")->value)) {
-                        // on first layer
-						if (line.extruding(self) && line.dist_XY(self) > 0) {
-                            float speed = ( self.f() > 0 ?  self.f() : line.new_F(self));
-                            // std::cerr << "Tool " << tool << "\n";
-                            if (speed == Catch::Approx(support_speed) && tool == config.opt_int("perimeter_extruder") - 1) {
-                                // Skirt uses first material extruder, support material speed.
-                                skirt_length += line.dist_XY(self);
-                            } else
-                                extrusion_points.push_back(Slic3r::Point::new_scale(line.new_X(self), line.new_Y(self)));
-                        }
-                    }
-                    if (self.z() == Catch::Approx(0.3) || line.new_Z(self) == Catch::Approx(0.3)) {
-                        if (line.extruding(self) && self.f() == Catch::Approx(support_speed)) {
-                        }
-                    }
-                });
-                Slic3r::Polygon convex_hull = Slic3r::Geometry::convex_hull(extrusion_points);
-                double hull_perimeter = unscale<double>(convex_hull.split_at_first_point().length());
-                REQUIRE(skirt_length > hull_perimeter);
-            }
-#endif
 
         }
+        WHEN("an object with support is surrounded by a skirt") {
+            config.set_deserialize_strict({
+                { "enable_support", 1 },
+                { "skirt_loops",    1 },
+                { "skirt_distance", 2 },
+                { "brim_type",      "no_brim" },
+                { "z_hop",          0 }
+            });
+            THEN("the skirt is long enough to enclose the object and its support") {
+                std::string gcode = Slic3r::Test::slice({TestMesh::overhang}, config);
+                const double first_layer_z = config.opt_float("initial_layer_print_height");
+
+                // On the first layer, accumulate the skirt loop length and collect the
+                // object + support extrusion points; the skirt must enclose them.
+                double skirt_length = 0.0;
+                Points footprint;
+                GCodeReader parser;
+                parser.parse_buffer(gcode, [&] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
+                    if (! line.extruding(self) || line.dist_XY(self) <= 0 || std::abs(self.z() - first_layer_z) > 0.01)
+                        return;
+                    if (line.comment().find("skirt") != std::string_view::npos)
+                        skirt_length += line.dist_XY(self);
+                    else
+                        footprint.push_back(Point::new_scale(line.new_X(self), line.new_Y(self)));
+                });
+
+                const double hull_perimeter = unscale<double>(Geometry::convex_hull(footprint).split_at_first_point().length());
+                REQUIRE(hull_perimeter > 0.0); // guard against an empty footprint passing trivially
+                REQUIRE(skirt_length > hull_perimeter);
+            }
+        }
         WHEN("Large minimum skirt length is used.") {
-            config.set("min_skirt_length", 20);
-            THEN("Gcode generation doesn't crash") {
-                REQUIRE(! Slic3r::Test::slice({TestMesh::cube_20x20x20}, config).empty());
+            // One skirt loop around a 20mm cube is ~88mm, so 500mm forces extra loops.
+            config.set_deserialize_strict({
+                { "skirt_loops",      1 },
+                { "min_skirt_length", 500 }
+            });
+            THEN("The skirt is extended to at least the minimum length") {
+                std::string gcode = Slic3r::Test::slice({TestMesh::cube_20x20x20}, config);
+                double skirt_length = 0.0;
+                GCodeReader parser;
+                parser.parse_buffer(gcode, [&skirt_length] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
+                    if (line.extruding(self) && line.comment().find("skirt") != std::string_view::npos)
+                        skirt_length += line.dist_XY(self);
+                });
+                REQUIRE(skirt_length >= 500.0);
             }
         }
     }

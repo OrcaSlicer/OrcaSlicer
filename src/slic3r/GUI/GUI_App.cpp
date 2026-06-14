@@ -2859,7 +2859,11 @@ bool GUI_App::on_init_inner()
                     switch (dialog.ShowModal())
                     {
                     case wxID_YES:
-                        wxLaunchDefaultBrowser(version_info.url);
+                        // Store builds get updates from the Microsoft Store, not the GitHub release page.
+                        if (is_running_in_msix())
+                            open_ms_store_product_page();
+                        else
+                            wxLaunchDefaultBrowser(version_info.url);
                         break;
                     case wxID_NO:
                         break;
@@ -6519,16 +6523,16 @@ void GUI_App::update_single_bundle(wxCommandEvent& evt)
     });
 }
 
-void GUI_App::sync_bundle(std::string bundle_id, std::string version)
+int GUI_App::sync_bundle(std::string bundle_id, std::string version)
 {
     // if(preset_bundle->bundles.pauseReads.load())
     // {
     //     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : Update thread sync_bundle function yielded to main thread. 1";
     //     return; // if the main thread acquires the lock at the start of our operations, we will yield
     // }
-    if (!m_agent || !m_agent->is_user_login()) return;
+    if (!m_agent || !m_agent->is_user_login()) return 0;
     auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
-    if (!orca_agent) return;
+    if (!orca_agent) return 0;
 
     BOOST_LOG_TRIVIAL(info) << "sync_bundle: checking bundle " << bundle_id << " for updates";
 
@@ -6551,12 +6555,12 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
             BOOST_LOG_TRIVIAL(warning) << "sync_bundle: failed to parse versions for bundle " << bundle_id
                                     << " (local: " << local_version << ", remote: " << remote_version << ")";
             preset_bundle->bundles.ReadUnlock(); // unlock read when fail
-            return;
+            return -1;
         }
         if (remote_version <= local_version) {
             BOOST_LOG_TRIVIAL(info) << "sync_bundle: bundle " << bundle_id << " is up-to-date (version " << local_version << ")";
             preset_bundle->bundles.ReadUnlock(); // unlock read when fail
-            return;
+            return -1;
         }
         BOOST_LOG_TRIVIAL(info) << "sync_bundle: updating bundle " << bundle_id
                                 << " from version " << local_version
@@ -6573,8 +6577,7 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
 
     // if it is an update, we will lock and write
     std::string ver;
-    if(is_update)
-    {
+    if (is_update) {
         preset_bundle->bundles.WriteLock();
         preset_bundle->bundles.m_bundles[bundle_id].update_available = true;
         preset_bundle->bundles.m_bundles[bundle_id].is_subscribed = true;
@@ -6582,8 +6585,13 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
         preset_bundle->bundles.WriteUnlock();
     }
 
-    if(app_config->get_bool("preset_bundle_auto_update") == true || is_new) 
-    {  
+    const bool auto_update = app_config->get_bool("preset_bundle_auto_update");
+
+    if (is_update && !auto_update) {
+        return 1;
+    }
+
+    if (auto_update || is_new) {
         // Fetch the latest bundle data from cloud
         std::map<std::string, std::map<std::string, std::string>> bundle_presets;
         BundleMetadata remote_metadata;
@@ -6591,22 +6599,23 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
 
         if (result != 0) {
             BOOST_LOG_TRIVIAL(warning) << "sync_bundle: failed to fetch bundle " << bundle_id << ", result=" << result;
-            return;
+            return -1;
         }
 
         // Import the updated bundle on the main thread
-        CallAfter([this, bundle_id, bundle_presets, remote_metadata,is_new,is_update,ver]() {
-            if (!is_closing() && preset_bundle && app_config) {
-                // Check the presets for any system vendors that need to be installed
-                for (auto data : bundle_presets) {
-                    if (!check_preset_parent_available(data)) {
-                        add_pending_vendor_preset(data);
+        CallAfter(
+            [this, bundle_id, bundle_presets, remote_metadata, is_new, is_update, ver]() {
+                if (!is_closing() && preset_bundle && app_config) {
+                    // Check the presets for any system vendors that need to be installed
+                    for (auto data : bundle_presets) {
+                        if (!check_preset_parent_available(data)) {
+                            add_pending_vendor_preset(data);
+                        }
                     }
-                }
-                load_pending_vendors();
+                    load_pending_vendors();
 
-                // if(!preset_bundle->bundles.pauseReads.load()) // check again if we can actually update so as to not block the main thread 
-                // {
+                    // if(!preset_bundle->bundles.pauseReads.load()) // check again if we can actually update so as to not block the main thread
+                    // {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : CallAfter from sync_bundle function actually updating subscribed presets";
                     
                     preset_bundle->bundles.WriteLock();
@@ -6636,10 +6645,12 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
                     if (mainframe)
                         mainframe->update_side_preset_ui();
                     BOOST_LOG_TRIVIAL(info) << "sync_bundle: successfully updated bundle " << bundle_id;
-                // }
-            }
-        });
+                    // }
+                }
+            });
     }
+
+    return 0;
 }
 
 
@@ -6843,6 +6854,10 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             std::vector<Preset> presets_to_sync;
             std::vector<std::pair<std::string, std::string>> bundles_to_sync;
             std::unordered_set<std::string> bundles_synced;
+
+            std::unordered_set<std::string> known_available_updates;
+
+            bool update_available = false;
             // Sync once immediately, then every 60 seconds.
             while (!t.expired()) {
                 ++tick_tock;
@@ -6948,17 +6963,31 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         
                             // Iterate over the bundles, and update/create
                         for (const auto& bundle_entry : bundles_to_sync) {
-
                             bundles_synced.insert(bundle_entry.first);
-                                // Sync each bundle individually
-                                // if(!preset_bundle->bundles.pauseReads.load()) // if pause is true we will skip updating this frame altogether
-                                // {   
-                                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : Update thread syncing bundles";
-                                    sync_bundle(bundle_entry.first, bundle_entry.second);
-                                // }
-                                // Small delay between bundle syncs to avoid overwhelming the server
-                                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-                            
+                            // Sync each bundle individually
+                            // if(!preset_bundle->bundles.pauseReads.load()) // if pause is true we will skip updating this frame altogether
+                            // {
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : Update thread syncing bundles";
+                            int res = sync_bundle(bundle_entry.first, bundle_entry.second);
+
+                            const std::string known_update_key = bundle_entry.first + ":" + bundle_entry.second;
+                            if (res == 1 && known_available_updates.insert(known_update_key).second) {
+                                update_available = true;
+                            }
+
+                            // }
+                            // Small delay between bundle syncs to avoid overwhelming the server
+                            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+                        }
+
+                        if (update_available) {
+                            wxGetApp()
+                                .plater()
+                                ->get_notification_manager()
+                                ->push_notification(NotificationType::CustomNotification,
+                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, "There is an update available. Open the preset bundle dialog to update it.");
+
+                            update_available = false;
                         }
                         
                         std::vector<BundleMetadata> to_delete;
@@ -9112,6 +9141,10 @@ static bool del_win_registry(HKEY hkeyHive, const wchar_t *pszVar, const wchar_t
 void GUI_App::associate_files(std::wstring extend)
 {
 #ifdef WIN32
+    // MSIX: shell integration is declared in the package manifest; registry
+    // writes from a packaged process are virtualized and invisible to the shell.
+    if (is_running_in_msix())
+        return;
     wchar_t app_path[MAX_PATH];
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
@@ -9137,6 +9170,8 @@ void GUI_App::associate_files(std::wstring extend)
 void GUI_App::disassociate_files(std::wstring extend)
 {
 #ifdef WIN32
+    if (is_running_in_msix())
+        return;
     wchar_t app_path[MAX_PATH];
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
@@ -9188,6 +9223,8 @@ bool GUI_App::check_url_association(std::wstring url_prefix, std::wstring& reg_b
 void GUI_App::associate_url(std::wstring url_prefix)
 {
 #ifdef WIN32
+    if (is_running_in_msix())
+        return;
     boost::filesystem::path binary_path(boost::filesystem::canonical(boost::dll::program_location()));
     wxString wbinary = from_path(binary_path);
     BOOST_LOG_TRIVIAL(info) << "Downloader registration: Path of binary: " << wbinary.ToUTF8().data();
@@ -9213,6 +9250,8 @@ void GUI_App::associate_url(std::wstring url_prefix)
 void GUI_App::disassociate_url(std::wstring url_prefix)
 {
 #ifdef WIN32
+    if (is_running_in_msix())
+        return;
     wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");
     if (!key_full.Exists()) {
         return;
