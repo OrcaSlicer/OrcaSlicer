@@ -173,6 +173,7 @@ public:
     bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
     void change_top_border_for_mode_sizer(bool increase_border);
     void update_filaments_area_height();
+    void update_filaments_counter(bool force_layout = false);
     void msw_rescale();
     void sys_color_changed();
     void search();
