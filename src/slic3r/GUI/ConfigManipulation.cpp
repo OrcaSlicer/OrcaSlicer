@@ -11,10 +11,25 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "Plater.hpp"
 
+#include <sstream>
 #include <wx/msgdlg.h>
 
 namespace Slic3r {
 namespace GUI {
+
+namespace {
+
+std::string trim_copy(const std::string& text)
+{
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+
+    const auto last = text.find_last_not_of(" \t\r\n");
+    return text.substr(first, last - first + 1);
+}
+
+} // namespace
 
 void ConfigManipulation::apply(DynamicPrintConfig* config, DynamicPrintConfig* new_config)
 {
@@ -138,6 +153,75 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
             dialog.ShowModal();
             is_msg_dlg_already_exist = false;
         }
+    }
+}
+
+void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config)
+{
+    if (is_msg_dlg_already_exist || !config->has("adaptive_pressure_advance_model"))
+        return;
+
+    const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
+    if (model == nullptr || model->values.empty())
+        return;
+
+    std::string raw_model;
+    for (const std::string& chunk : model->values)
+        raw_model += chunk;
+
+    wxString msg_text;
+    bool need_check = false;
+    std::istringstream model_stream(raw_model);
+    std::string line;
+    int line_number = 0;
+
+    while (std::getline(model_stream, line)) {
+        ++line_number;
+
+        const std::string trimmed_line = trim_copy(line);
+        if (trimmed_line.empty())
+            continue;
+
+        std::vector<std::string> values;
+        std::istringstream line_stream(trimmed_line);
+        std::string value;
+        while (std::getline(line_stream, value, ','))
+            values.emplace_back(trim_copy(value));
+
+        if (values.size() != 3) {
+            msg_text += wxString::Format(_L("Line %d must contain exactly 3 comma-separated values.\n"), line_number);
+            need_check = true;
+            continue;
+        }
+
+        try {
+            const double pa = std::stod(values[0]);
+            const double flow = std::stod(values[1]);
+            const double accel = std::stod(values[2]);
+            if (pa >= 2.0) {
+                msg_text += wxString::Format(_L("Line %d must have a PA value less than 2.\n"), line_number);
+                need_check = true;
+            }
+            if (flow <= pa) {
+                msg_text += wxString::Format(_L("Line %d must have a flow value greater than the PA value.\n"), line_number);
+                need_check = true;
+            }
+            if (accel <= flow) {
+                msg_text += wxString::Format(_L("Line %d must have an acceleration value greater than the flow value.\n"), line_number);
+                need_check = true;
+            }
+        } catch (const std::exception&) {
+            msg_text += wxString::Format(_L("Line %d contains an invalid numeric value.\n"), line_number);
+            need_check = true;
+        }
+    }
+
+    if (need_check) {
+        msg_text += _L("Please check.\n");
+        MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        is_msg_dlg_already_exist = false;
     }
 }
 
