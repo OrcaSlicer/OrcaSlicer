@@ -1407,6 +1407,7 @@ static std::vector<std::string> s_Preset_filament_options {
     "filament_printable",
     "filament_extruder_compatibility",
     "filament_max_volumetric_speed",
+    "filament_max_outer_volumetric_speed",
     "filament_adaptive_volumetric_speed",
     "filament_flow_ratio",
     "filament_density",
