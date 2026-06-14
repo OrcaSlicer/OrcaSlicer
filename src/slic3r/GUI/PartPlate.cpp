@@ -6236,7 +6236,7 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
                     // nozzles_info + FilamentInfo::group_id directly from plate carousel mapping.
                     if (print)
                         Vortek::PlateMapping::patch_plate_data_for_export(
-                            plate_data_item, m_plate_list[i], print->full_print_config());
+                            plate_data_item, m_plate_list[i], print->full_print_config(), print);
                 } else {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "slice result = " << m_plate_list[i]->get_slice_result()
                                             << ", result valid = " << m_plate_list[i]->is_slice_result_valid();

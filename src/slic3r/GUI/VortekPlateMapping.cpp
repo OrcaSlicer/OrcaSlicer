@@ -243,7 +243,8 @@ void PlateMapping::patch_export_config(Slic3r::DynamicPrintConfig& cfg)
 void PlateMapping::patch_plate_data_for_export(
     Slic3r::PlateData* plate_data,
     const Slic3r::GUI::PartPlate* plate,
-    const Slic3r::DynamicPrintConfig& config)
+    const Slic3r::DynamicPrintConfig& config,
+    const Slic3r::Print* print)
 {
     if (!plate_data || !plate) return;
 
@@ -290,38 +291,52 @@ void PlateMapping::patch_plate_data_for_export(
         return static_cast<Slic3r::NozzleVolumeType>(nozzle_volume_type_opt->values.back());
     };
 
-    // ── Build unique nozzle list from used filaments ──
-    // The upstream ToolOrdering pipeline collapses all carousel filaments into
-    // a single nozzle group (e.g., nozzle_id=1) because they share the same
-    // (extruder, diameter, volume_type). For H2C export, each physical carousel
-    // slot must have a unique nozzle ID so the firmware routes filaments correctly.
+    // ── Build nozzle assignments for carousel filaments ──
+    // When a LayeredNozzleGroupResult (LNGR) is available from the Print object,
+    // we use its PAM/MCMF-optimized nozzle_id assignments. These minimize flush
+    // volume and respect the printer's current loaded-nozzle state.
     //
-    // Strategy: extruder-1 filaments → nozzle 0, carousel filaments → unique IDs
-    // starting from 1, assigned sequentially per filament.
+    // Fallback (no LNGR): sequential assignment — extruder-1 filaments → nozzle 0,
+    // carousel filaments → unique IDs starting from 1.
 
     std::map<int, Slic3r::MultiNozzleUtils::NozzleInfo> nozzle_map;
-
-    // First pass: determine extruder_id for each filament in slice_filaments_info
-    // and reassign unique nozzle IDs for carousel (extruder 2) filaments.
-    int next_carousel_nozzle_id = 1; // carousel nozzle IDs start at 1
-    // Map from filament_id → reassigned nozzle_id
     std::map<int, int> reassigned_nozzle_ids;
 
-    for (const auto& fil_info : plate_data->slice_filaments_info) {
-        int fil_id = fil_info.id;
-        if (fil_id < 0 || fil_id >= static_cast<int>(filament_maps.size()))
-            continue;
+    // Attempt to read optimized nozzle map from LNGR
+    std::vector<int> lngr_nozzle_map;
+    bool use_lngr = false;
+    if (print) {
+        auto lngr = print->get_layered_nozzle_group_result();
+        if (lngr) {
+            lngr_nozzle_map = lngr->get_nozzle_map();
+            if (!lngr_nozzle_map.empty())
+                use_lngr = true;
+        }
+    }
 
-        int extruder_id = 1; // default: carousel side
-        if (filament_maps[fil_id] > 0)
-            extruder_id = filament_maps[fil_id] - 1; // filament_maps is 1-indexed
-
-        if (extruder_id == 0) {
-            // Extruder 1 (left head) — always nozzle 0
-            reassigned_nozzle_ids[fil_id] = 0;
-        } else {
-            // Carousel (extruder 2) — each filament gets its own unique nozzle slot
-            reassigned_nozzle_ids[fil_id] = next_carousel_nozzle_id++;
+    if (use_lngr) {
+        // LNGR path: use PAM/MCMF-optimized nozzle_id per filament
+        for (const auto& fil_info : plate_data->slice_filaments_info) {
+            int fil_id = fil_info.id;
+            if (fil_id < 0 || fil_id >= static_cast<int>(lngr_nozzle_map.size()))
+                continue;
+            reassigned_nozzle_ids[fil_id] = lngr_nozzle_map[fil_id];
+        }
+    } else {
+        // Fallback: sequential carousel slot assignment
+        int next_carousel_nozzle_id = 1;
+        for (const auto& fil_info : plate_data->slice_filaments_info) {
+            int fil_id = fil_info.id;
+            if (fil_id < 0 || fil_id >= static_cast<int>(filament_maps.size()))
+                continue;
+            int extruder_id = 1; // default: carousel side
+            if (filament_maps[fil_id] > 0)
+                extruder_id = filament_maps[fil_id] - 1; // filament_maps is 1-indexed
+            if (extruder_id == 0) {
+                reassigned_nozzle_ids[fil_id] = 0;
+            } else {
+                reassigned_nozzle_ids[fil_id] = next_carousel_nozzle_id++;
+            }
         }
     }
 
@@ -354,7 +369,8 @@ void PlateMapping::patch_plate_data_for_export(
             << " filament_volume_map=" << vm_str
             << " reassigned=" << rn_str
             << " slice_filaments_info.size=" << plate_data->slice_filaments_info.size()
-            << " nozzle_group_result.has_value=" << plate_data->nozzle_group_result.has_value();
+            << " nozzle_group_result.has_value=" << plate_data->nozzle_group_result.has_value()
+            << " use_lngr=" << (use_lngr ? "true" : "false");
     }
 
     // Second pass: patch each FilamentInfo and build the nozzle list
@@ -405,23 +421,21 @@ void PlateMapping::patch_plate_data_for_export(
 
     // ── CRITICAL: Reset nozzle_group_result so Tier 1 is skipped ──
     // The bbs_3mf serializer (bbs_3mf.cpp:8395) checks nozzle_group_result
-    // (Tier 1) BEFORE nozzles_info (Tier 2). The upstream pipeline
-    // (ToolOrdering → GCodeProcessorResult → parse_filament_info) produces
-    // a LayeredNozzleGroupResult that maps ALL carousel filaments to the same
-    // group_id (typically 1), because the PAM clustering treats the entire
-    // extruder-2 carousel as a single nozzle group.
+    // (Tier 1) BEFORE nozzles_info (Tier 2). Even when LNGR provides correct
+    // per-slot assignments, the Tier 1 serialization path uses a different
+    // code path that may re-derive group_ids from the LayeredNozzleGroupResult
+    // via get_used_nozzles_in_extruder() rather than our patched FilamentInfo.
     //
     // By resetting nozzle_group_result to nullopt, the serializer falls
-    // through to Tier 2 where our correct per-filament nozzle assignments
-    // are stored. This is safe because nozzles_info contains exactly the
-    // same information that nozzle_group_result would provide, but with
-    // correct carousel slot assignments.
+    // through to Tier 2 where our patched nozzles_info + FilamentInfo::group_id
+    // are serialized directly. This guarantees the 3MF contains the exact
+    // nozzle assignments we computed (whether from LNGR or sequential fallback).
     plate_data->nozzle_group_result.reset();
 
     BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: patched "
                             << plate_data->slice_filaments_info.size() << " filaments, "
                             << plate_data->nozzles_info.size() << " nozzles for H2C export"
-                            << " (nozzle_group_result reset to force Tier 2)";
+                            << " (source=" << (use_lngr ? "LNGR" : "sequential") << ", Tier 2)";
 }
 
 } // namespace Vortek

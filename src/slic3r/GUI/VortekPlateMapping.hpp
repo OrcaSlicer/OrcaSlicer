@@ -86,11 +86,17 @@ public:
      * bypassing the fragile nozzle_group_result pipeline from the slicing backend.
      *
      * For non-H2C printers this is a no-op.
+     *
+     * When @p print is provided and contains a valid LayeredNozzleGroupResult,
+     * group_id assignments are taken from the PAM/MCMF-optimized result
+     * (minimizing flush volume and respecting loaded nozzle state).
+     * Otherwise falls back to sequential carousel slot assignment.
      */
     static void patch_plate_data_for_export(
         Slic3r::PlateData* plate_data,
         const Slic3r::GUI::PartPlate* plate,
-        const Slic3r::DynamicPrintConfig& config
+        const Slic3r::DynamicPrintConfig& config,
+        const Slic3r::Print* print = nullptr
     );
 };
 
