@@ -23,7 +23,7 @@
 #include "3DBed.hpp"
 #include "MeshUtils.hpp"
 #include "libslic3r/ParameterUtils.hpp"
-#include "VortekPlateMapping.hpp"
+#include "libslic3r/VortekPlateMapping.hpp"
 
 class GLUquadric;
 typedef class GLUquadric GLUquadricObject;

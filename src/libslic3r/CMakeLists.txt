@@ -483,6 +483,8 @@ set(lisbslic3r_sources
     VortekWipeTower.cpp
     VortekGCode.hpp
     VortekGCode.cpp
+    VortekPlateMapping.hpp
+    VortekPlateMapping.cpp
     GCode/WipeTowerWriter.hpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp

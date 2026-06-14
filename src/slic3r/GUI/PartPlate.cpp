@@ -40,7 +40,7 @@
 #include "format.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/Utils/FileHelp.hpp"
-#include "VortekPlateMapping.hpp"
+#include "libslic3r/VortekPlateMapping.hpp"
 #include <imgui/imgui_internal.h>
 #include <wx/dcgraph.h>
 using boost::optional;
@@ -3807,7 +3807,7 @@ void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 
     if (old_real_mode != new_real_mode) {
         clear_filament_map();
-        Vortek::PlateMapping::clear_mappings(this);
+        Vortek::PlateMapping::clear_mappings(&m_config);
     }
     if (mode == fmmDefault)
         clear_filament_map_mode();
@@ -3897,7 +3897,7 @@ void PartPlate::set_filament_count(int filament_count)
         std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
         filament_maps.resize(filament_count, 1);
     }
-    Vortek::PlateMapping::handle_filament_count_changed(this, filament_count);
+    Vortek::PlateMapping::handle_filament_count_changed(&m_config, filament_count);
 }
 
 void PartPlate::on_filament_added()
@@ -3906,7 +3906,7 @@ void PartPlate::on_filament_added()
         std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
         filament_maps.push_back(1);
     }
-    Vortek::PlateMapping::handle_filament_added(this);
+    Vortek::PlateMapping::handle_filament_added(&m_config);
 }
 
 void PartPlate::on_filament_deleted(int filament_count, int filament_id)
@@ -3919,7 +3919,7 @@ void PartPlate::on_filament_deleted(int filament_count, int filament_id)
         if (filament_id >= 0 && filament_id < (int) filament_maps.size())
             filament_maps.erase(filament_maps.begin() + filament_id);
     }
-    Vortek::PlateMapping::handle_filament_deleted(this, filament_id);
+    Vortek::PlateMapping::handle_filament_deleted(&m_config, filament_id);
     update_first_layer_print_sequence_when_delete_filament(filament_id);
 }
 
@@ -6236,7 +6236,11 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
                     // nozzles_info + FilamentInfo::group_id directly from plate carousel mapping.
                     if (print)
                         Vortek::PlateMapping::patch_plate_data_for_export(
-                            plate_data_item, m_plate_list[i], print->full_print_config(), print);
+                            plate_data_item,
+                            m_plate_list[i]->get_filament_nozzle_maps(),
+                            m_plate_list[i]->get_filament_volume_maps(),
+                            m_plate_list[i]->get_filament_maps(),
+                            print->full_print_config(), print);
                 } else {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "slice result = " << m_plate_list[i]->get_slice_result()
                                             << ", result valid = " << m_plate_list[i]->is_slice_result_valid();
@@ -6357,12 +6361,13 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
             }
         }
 
-        Vortek::PlateMapping::load_from_3mf_structure(
-            m_plate_list[index],
+        auto mapping_result = Vortek::PlateMapping::load_from_3mf_structure(
             plate_data_list[i],
             filament_count,
             gcode_result
         );
+        m_plate_list[index]->set_filament_nozzle_maps(mapping_result.filament_nozzle_map);
+        m_plate_list[index]->set_filament_volume_maps(mapping_result.filament_volume_map);
     }
     print();
     ret = reload_all_objects();

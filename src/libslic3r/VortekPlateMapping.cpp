@@ -1,10 +1,9 @@
 #include "VortekPlateMapping.hpp"
-#include "slic3r/GUI/PartPlate.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/MultiNozzleUtils.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "Print.hpp"
+#include "PresetBundle.hpp"
+#include "MultiNozzleUtils.hpp"
+#include "Format/bbs_3mf.hpp"
+#include "GCode/GCodeProcessor.hpp"
 #include <boost/algorithm/string.hpp>
 
 namespace Vortek {
@@ -22,22 +21,23 @@ bool PlateMapping::is_h2c_multi_nozzle(const Slic3r::Print* print)
 
 // Synchronize filament, volume, and nozzle maps after slicing finishes
 void PlateMapping::sync_after_slicing(
-    Slic3r::GUI::PartPlate* current_plate, 
-    const Slic3r::Print* print, 
+    Slic3r::DynamicPrintConfig& plate_config,
+    Slic3r::FilamentMapMode filament_map_mode,
+    const Slic3r::Print* print,
     Slic3r::PresetBundle& preset_bundle
 )
 {
-    if (!current_plate || !print) return;
+    if (!print) return;
 
     bool is_h2c = is_h2c_multi_nozzle(print);
 
     // Update nozzle/volume flow mapping options in UI configuration
-    if (is_h2c || current_plate->get_real_filament_map_mode(preset_bundle.project_config) < Slic3r::FilamentMapMode::fmmManual) {
-        current_plate->set_filament_maps(print->get_filament_maps());
-        current_plate->set_filament_volume_maps(print->get_filament_volume_maps());
+    if (is_h2c || filament_map_mode < Slic3r::FilamentMapMode::fmmManual) {
+        plate_config.option<Slic3r::ConfigOptionInts>("filament_map", true)->values = print->get_filament_maps();
+        plate_config.option<Slic3r::ConfigOptionInts>("filament_volume_map", true)->values = print->get_filament_volume_maps();
     }
-    if (is_h2c || current_plate->get_real_filament_map_mode(preset_bundle.project_config) != Slic3r::FilamentMapMode::fmmNozzleManual) {
-        current_plate->set_filament_nozzle_maps(print->get_filament_nozzle_maps());
+    if (is_h2c || filament_map_mode != Slic3r::FilamentMapMode::fmmNozzleManual) {
+        plate_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map", true)->values = print->get_filament_nozzle_maps();
     }
     // For H2C, update preset_bundle project config vectors directly to align with slicing output
     if (is_h2c) {
@@ -53,10 +53,9 @@ void PlateMapping::sync_after_slicing(
 }
 
 // Resizes custom mapping vectors to stay in sync with updated filament count
-void PlateMapping::handle_filament_count_changed(Slic3r::GUI::PartPlate* plate, int filament_count)
+void PlateMapping::handle_filament_count_changed(Slic3r::DynamicPrintConfig* config, int filament_count)
 {
-    if (!plate) return;
-    auto* config = plate->config();
+    if (!config) return;
     if (config->has("filament_nozzle_map")) {
         auto& filament_nozzle_maps = config->option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values;
         filament_nozzle_maps.resize(filament_count, 0);
@@ -68,10 +67,9 @@ void PlateMapping::handle_filament_count_changed(Slic3r::GUI::PartPlate* plate, 
 }
 
 // Appends placeholder value to vectors when new filament is added
-void PlateMapping::handle_filament_added(Slic3r::GUI::PartPlate* plate)
+void PlateMapping::handle_filament_added(Slic3r::DynamicPrintConfig* config)
 {
-    if (!plate) return;
-    auto* config = plate->config();
+    if (!config) return;
     if (config->has("filament_nozzle_map")) {
         config->option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values.push_back(0);
     }
@@ -81,10 +79,9 @@ void PlateMapping::handle_filament_added(Slic3r::GUI::PartPlate* plate)
 }
 
 // Erases specific mapping entry when filament is removed
-void PlateMapping::handle_filament_deleted(Slic3r::GUI::PartPlate* plate, int filament_id)
+void PlateMapping::handle_filament_deleted(Slic3r::DynamicPrintConfig* config, int filament_id)
 {
-    if (!plate) return;
-    auto* config = plate->config();
+    if (!config) return;
     if (config->has("filament_nozzle_map")) {
         auto& filament_nozzle_maps = config->option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values;
         if (filament_id >= 0 && filament_id < (int)filament_nozzle_maps.size())
@@ -98,22 +95,24 @@ void PlateMapping::handle_filament_deleted(Slic3r::GUI::PartPlate* plate, int fi
 }
 
 // Clear custom plate mappings (returns them to defaults)
-void PlateMapping::clear_mappings(Slic3r::GUI::PartPlate* plate)
+void PlateMapping::clear_mappings(Slic3r::DynamicPrintConfig* config)
 {
-    if (!plate) return;
-    plate->clear_filament_nozzle_map();
-    plate->clear_filament_volume_map();
+    if (!config) return;
+    if (config->has("filament_nozzle_map"))
+        config->erase("filament_nozzle_map");
+    if (config->has("filament_volume_map"))
+        config->erase("filament_volume_map");
 }
 
 // Parse nozzle and volume type attributes from loaded 3MF metadata
-void PlateMapping::load_from_3mf_structure(
-    Slic3r::GUI::PartPlate* plate,
+LoadMappingResult PlateMapping::load_from_3mf_structure(
     const Slic3r::PlateData* plate_data,
     int filament_count,
     Slic3r::GCodeProcessorResult* gcode_result
 )
 {
-    if (!plate || !plate_data || !gcode_result) return;
+    LoadMappingResult result;
+    if (!plate_data || !gcode_result) return result;
 
     // Helper lambda to tokenize value strings
     auto parse_values = [](const std::string& value, const char* seps, auto to_value) {
@@ -185,9 +184,9 @@ void PlateMapping::load_from_3mf_structure(
         }
     }
 
-    // Store maps onto active plate
-    plate->set_filament_nozzle_maps(filament_nozzle_map);
-    plate->set_filament_volume_maps(filament_volume_map);
+    // Return maps for caller to apply onto plate
+    result.filament_nozzle_map = filament_nozzle_map;
+    result.filament_volume_map = filament_volume_map;
 
     // Initialize layered nozzle groups inside gcode_result
     auto group_result = Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult::create(filament_nozzle_map, nozzle_infos, used_fils);
@@ -195,6 +194,8 @@ void PlateMapping::load_from_3mf_structure(
         gcode_result->nozzle_group_result = std::make_shared<Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult>(group_result.value());
     else
         gcode_result->nozzle_group_result = nullptr;
+
+    return result;
 }
 
 // Resize vectors inside configuration to match filament count when loading projects
@@ -242,11 +243,13 @@ void PlateMapping::patch_export_config(Slic3r::DynamicPrintConfig& cfg)
 //
 void PlateMapping::patch_plate_data_for_export(
     Slic3r::PlateData* plate_data,
-    const Slic3r::GUI::PartPlate* plate,
+    const std::vector<int>& filament_nozzle_map,
+    const std::vector<int>& filament_volume_map,
+    const std::vector<int>& filament_maps,
     const Slic3r::DynamicPrintConfig& config,
     const Slic3r::Print* print)
 {
-    if (!plate_data || !plate) return;
+    if (!plate_data) return;
 
     // ── Guard: only for H2C multi-nozzle printers ──
     auto* nozzle_diam_opt = config.option<Slic3r::ConfigOptionFloats>("nozzle_diameter");
@@ -257,11 +260,6 @@ void PlateMapping::patch_plate_data_for_export(
     if (!max_nozzle_count_opt || max_nozzle_count_opt->values.size() <= 1 ||
         max_nozzle_count_opt->values[1] <= 1)
         return; // not a carousel multi-nozzle system
-
-    // ── Gather plate mapping data ──
-    const std::vector<int> filament_nozzle_map = plate->get_filament_nozzle_maps();
-    const std::vector<int> filament_volume_map = plate->get_filament_volume_maps();
-    const std::vector<int> filament_maps       = plate->get_filament_maps();
 
     if (filament_nozzle_map.empty())
         return; // nothing to patch
@@ -292,13 +290,6 @@ void PlateMapping::patch_plate_data_for_export(
     };
 
     // ── Build nozzle assignments for carousel filaments ──
-    // When a LayeredNozzleGroupResult (LNGR) is available from the Print object,
-    // we use its PAM/MCMF-optimized nozzle_id assignments. These minimize flush
-    // volume and respect the printer's current loaded-nozzle state.
-    //
-    // Fallback (no LNGR): sequential assignment — extruder-1 filaments → nozzle 0,
-    // carousel filaments → unique IDs starting from 1.
-
     std::map<int, Slic3r::MultiNozzleUtils::NozzleInfo> nozzle_map;
     std::map<int, int> reassigned_nozzle_ids;
 
@@ -420,16 +411,6 @@ void PlateMapping::patch_plate_data_for_export(
     }
 
     // ── CRITICAL: Reset nozzle_group_result so Tier 1 is skipped ──
-    // The bbs_3mf serializer (bbs_3mf.cpp:8395) checks nozzle_group_result
-    // (Tier 1) BEFORE nozzles_info (Tier 2). Even when LNGR provides correct
-    // per-slot assignments, the Tier 1 serialization path uses a different
-    // code path that may re-derive group_ids from the LayeredNozzleGroupResult
-    // via get_used_nozzles_in_extruder() rather than our patched FilamentInfo.
-    //
-    // By resetting nozzle_group_result to nullopt, the serializer falls
-    // through to Tier 2 where our patched nozzles_info + FilamentInfo::group_id
-    // are serialized directly. This guarantees the 3MF contains the exact
-    // nozzle assignments we computed (whether from LNGR or sequential fallback).
     plate_data->nozzle_group_result.reset();
 
     BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: patched "
@@ -439,4 +420,3 @@ void PlateMapping::patch_plate_data_for_export(
 }
 
 } // namespace Vortek
-

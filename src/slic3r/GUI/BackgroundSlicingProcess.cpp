@@ -36,7 +36,7 @@
 //#include "RemovableDriveManager.hpp"
 
 #include "slic3r/GUI/Plater.hpp"
-#include "VortekPlateMapping.hpp"
+#include "libslic3r/VortekPlateMapping.hpp"
 
 namespace Slic3r {
 
@@ -230,7 +230,10 @@ void BackgroundSlicingProcess::process_fff()
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process")%__LINE__;
 		m_print->process();
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: after print::process, send slicing complete event to gui...")%__LINE__;
-        Vortek::PlateMapping::sync_after_slicing(m_current_plate, m_fff_print, preset_bundle);
+        Vortek::PlateMapping::sync_after_slicing(
+            *m_current_plate->config(),
+            m_current_plate->get_real_filament_map_mode(preset_bundle.project_config),
+            m_fff_print, preset_bundle);
 		wxCommandEvent evt(m_event_slicing_completed_id);
 		// Post the Slicing Finished message for the G-code viewer to update.
 		// Passing the timestamp

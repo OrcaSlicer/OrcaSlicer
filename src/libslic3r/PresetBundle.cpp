@@ -3312,6 +3312,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         bool valid{false};
         bool is_map{false};
         bool is_placeholder{false};
+        int  extruder_id{1};  // 1-indexed: 1=left, 2=right (H2C)
         std::string filament_color  = "";
         std::string filament_color_type = "";
         std::string filament_preset = "";
@@ -3330,7 +3331,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         auto ams_id     = ams.opt_string("ams_id", 0u);
         auto slot_id    = ams.opt_string("slot_id", 0u);
         auto is_placeholder = ams.has("filament_slot_placeholder") && ams.opt_bool("filament_slot_placeholder", 0u);
-        ams_infos.push_back({filament_id.empty() ? false : true, false, is_placeholder, filament_color});
+        int ams_extruder_id = (entry.first & 0x10000) ? 2 : 1;  // H2C: right AMS = extruder 2
+        ams_infos.push_back({filament_id.empty() ? false : true, false, is_placeholder, ams_extruder_id, filament_color});
         AMSMapInfo temp = {ams_id, slot_id};
         ams_array_maps.push_back(temp);
         index++;
@@ -3630,6 +3632,13 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_multi_color_filment = exist_multi_color_filment;
         this->filament_presets = exist_filament_presets;
         filament_map->values.resize(exist_filament_presets.size(), 1);
+        // H2C: assign filaments to correct extruder based on AMS source
+        if (is_double_extruder) {
+            for (size_t fi = 0; fi < ams_infos.size() && fi < filament_map->values.size(); fi++) {
+                if (ams_infos[fi].valid)
+                    filament_map->values[fi] = ams_infos[fi].extruder_id;
+            }
+        }
     }
     else {//overwrite;
         bool has_placeholders = std::any_of(ams_infos.begin(), ams_infos.end(),
@@ -3684,12 +3693,26 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             this->filament_presets      = result_presets;
             ams_multi_color_filment     = result_multi_colors;
             filament_map->values.resize(total, 1);
+            // H2C: assign filaments to correct extruder based on AMS source
+            if (is_double_extruder) {
+                for (size_t fi = 0; fi < ams_infos.size() && fi < filament_map->values.size(); fi++) {
+                    if (ams_infos[fi].valid)
+                        filament_map->values[fi] = ams_infos[fi].extruder_id;
+                }
+            }
         } else {
             // BBL: existing wholesale replace
             filament_color->values = ams_filament_colors;
             filament_color_type->values = ams_filament_color_types;
             this->filament_presets = ams_filament_presets;
             filament_map->values.resize(ams_filament_colors.size(), 1);
+            // H2C: assign filaments to correct extruder based on AMS source
+            if (is_double_extruder) {
+                for (size_t fi = 0; fi < ams_infos.size() && fi < filament_map->values.size(); fi++) {
+                    if (ams_infos[fi].valid)
+                        filament_map->values[fi] = ams_infos[fi].extruder_id;
+                }
+            }
         }
 
         auto& print_config = this->prints.get_edited_preset().config;
