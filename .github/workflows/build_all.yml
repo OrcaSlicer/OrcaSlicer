@@ -108,7 +108,6 @@ jobs:
             .github
             scripts
             tests
-            resources/info
       - name: Apt-Install Dependencies
         if: ${{ !vars.SELF_HOSTED }}
         uses: ./.github/actions/apt-install-deps
