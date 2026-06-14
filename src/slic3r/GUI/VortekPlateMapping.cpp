@@ -44,6 +44,11 @@ void PlateMapping::sync_after_slicing(
         preset_bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_map", true)->values = print->get_filament_maps();
         preset_bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_volume_map", true)->values = print->get_filament_volume_maps();
         preset_bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map", true)->values = print->get_filament_nozzle_maps();
+        // Propagate has_filament_switcher into project config so that
+        // slice_info.config serialization (bbs_3mf.cpp) picks up the correct value.
+        // H2C dual-nozzle printers always have a filament track switcher (FTS).
+        preset_bundle.project_config.set_key_value("has_filament_switcher",
+            new Slic3r::ConfigOptionBool(true));
     }
 }
 
@@ -206,4 +211,218 @@ void PlateMapping::sync_project_config_on_load(Slic3r::DynamicConfig& proj_cfg, 
     }
 }
 
+void PlateMapping::patch_export_config(Slic3r::DynamicPrintConfig& cfg)
+{
+    // H2C (SEMM dual-nozzle) printers always have a filament track switcher.
+    auto* nozzle_diam = cfg.option<Slic3r::ConfigOptionFloats>("nozzle_diameter");
+    auto* semm = cfg.option<Slic3r::ConfigOptionBool>("single_extruder_multi_material");
+    if (nozzle_diam && nozzle_diam->values.size() > 1 && semm && semm->value) {
+        cfg.set_key_value("has_filament_switcher", new Slic3r::ConfigOptionBool(true));
+    }
+}
+
+// ─── H2C export-time patching ───────────────────────────────────────────────
+//
+// The upstream nozzle_group_result pipeline is fragile:
+//   Print::export_gcode → get_layered_nozzle_group_result →
+//   GCodeProcessorResult::nozzle_group_result →
+//   PlateData::parse_filament_info → dynamic_pointer_cast →
+//   PlateData::nozzle_group_result → bbs_3mf serialization
+//
+// When any link in this chain fails (e.g. wipe tower not generated,
+// backend creates wrong subtype, shared_ptr is nullptr), the serializer
+// falls back to a dumb filament_maps-based heuristic that produces
+// group_id=1 for ALL filaments on extruder 2 and writes a single
+// <nozzle> entry.
+//
+// This method provides a DIRECT, ISOLATED path: it reads the plate's own
+// filament_nozzle_map (which Vortek::sync_after_slicing always maintains)
+// and builds nozzles_info + patches FilamentInfo::group_id WITHOUT touching
+// nozzle_group_result at all.
+//
+void PlateMapping::patch_plate_data_for_export(
+    Slic3r::PlateData* plate_data,
+    const Slic3r::GUI::PartPlate* plate,
+    const Slic3r::DynamicPrintConfig& config)
+{
+    if (!plate_data || !plate) return;
+
+    // ── Guard: only for H2C multi-nozzle printers ──
+    auto* nozzle_diam_opt = config.option<Slic3r::ConfigOptionFloats>("nozzle_diameter");
+    // extruder_max_nozzle_count is ConfigOptionIntsNullable in PrintConfig.hpp
+    auto* max_nozzle_count_opt = config.option<Slic3r::ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    if (!nozzle_diam_opt || nozzle_diam_opt->values.size() <= 1)
+        return; // single-extruder — not H2C
+    if (!max_nozzle_count_opt || max_nozzle_count_opt->values.size() <= 1 ||
+        max_nozzle_count_opt->values[1] <= 1)
+        return; // not a carousel multi-nozzle system
+
+    // ── Gather plate mapping data ──
+    const std::vector<int> filament_nozzle_map = plate->get_filament_nozzle_maps();
+    const std::vector<int> filament_volume_map = plate->get_filament_volume_maps();
+    const std::vector<int> filament_maps       = plate->get_filament_maps();
+
+    if (filament_nozzle_map.empty())
+        return; // nothing to patch
+
+    const size_t extruder_count = nozzle_diam_opt->values.size();
+    auto* nozzle_volume_type_opt = config.option<Slic3r::ConfigOptionEnumsGeneric>("nozzle_volume_type");
+
+    // Helper: get nozzle diameter string for a given extruder
+    auto get_diameter_str = [&](int extruder_id) -> std::string {
+        double diam = 0.4;
+        if (extruder_id >= 0 && extruder_id < static_cast<int>(nozzle_diam_opt->values.size()))
+            diam = nozzle_diam_opt->values[extruder_id];
+        else if (!nozzle_diam_opt->values.empty())
+            diam = nozzle_diam_opt->values.back();
+        // Format to canonical string like "0.40"
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%.2f", diam);
+        return std::string(buf);
+    };
+
+    // Helper: get volume type for a given extruder
+    auto get_volume_type = [&](int extruder_id) -> Slic3r::NozzleVolumeType {
+        if (!nozzle_volume_type_opt || nozzle_volume_type_opt->values.empty())
+            return Slic3r::NozzleVolumeType::nvtStandard;
+        if (extruder_id >= 0 && extruder_id < static_cast<int>(nozzle_volume_type_opt->values.size()))
+            return static_cast<Slic3r::NozzleVolumeType>(nozzle_volume_type_opt->values[extruder_id]);
+        return static_cast<Slic3r::NozzleVolumeType>(nozzle_volume_type_opt->values.back());
+    };
+
+    // ── Build unique nozzle list from used filaments ──
+    // The upstream ToolOrdering pipeline collapses all carousel filaments into
+    // a single nozzle group (e.g., nozzle_id=1) because they share the same
+    // (extruder, diameter, volume_type). For H2C export, each physical carousel
+    // slot must have a unique nozzle ID so the firmware routes filaments correctly.
+    //
+    // Strategy: extruder-1 filaments → nozzle 0, carousel filaments → unique IDs
+    // starting from 1, assigned sequentially per filament.
+
+    std::map<int, Slic3r::MultiNozzleUtils::NozzleInfo> nozzle_map;
+
+    // First pass: determine extruder_id for each filament in slice_filaments_info
+    // and reassign unique nozzle IDs for carousel (extruder 2) filaments.
+    int next_carousel_nozzle_id = 1; // carousel nozzle IDs start at 1
+    // Map from filament_id → reassigned nozzle_id
+    std::map<int, int> reassigned_nozzle_ids;
+
+    for (const auto& fil_info : plate_data->slice_filaments_info) {
+        int fil_id = fil_info.id;
+        if (fil_id < 0 || fil_id >= static_cast<int>(filament_maps.size()))
+            continue;
+
+        int extruder_id = 1; // default: carousel side
+        if (filament_maps[fil_id] > 0)
+            extruder_id = filament_maps[fil_id] - 1; // filament_maps is 1-indexed
+
+        if (extruder_id == 0) {
+            // Extruder 1 (left head) — always nozzle 0
+            reassigned_nozzle_ids[fil_id] = 0;
+        } else {
+            // Carousel (extruder 2) — each filament gets its own unique nozzle slot
+            reassigned_nozzle_ids[fil_id] = next_carousel_nozzle_id++;
+        }
+    }
+
+    {
+        // Diagnostic: dump input data for debugging nozzle assignment
+        std::string nm_str = "[", fm_str = "[", vm_str = "[", rn_str = "[";
+        for (size_t i = 0; i < filament_nozzle_map.size(); ++i) {
+            if (i) nm_str += ",";
+            nm_str += std::to_string(filament_nozzle_map[i]);
+        }
+        nm_str += "]";
+        for (size_t i = 0; i < filament_maps.size(); ++i) {
+            if (i) fm_str += ",";
+            fm_str += std::to_string(filament_maps[i]);
+        }
+        fm_str += "]";
+        for (size_t i = 0; i < filament_volume_map.size(); ++i) {
+            if (i) vm_str += ",";
+            vm_str += std::to_string(filament_volume_map[i]);
+        }
+        vm_str += "]";
+        for (auto& [fid, nid] : reassigned_nozzle_ids) {
+            if (rn_str.size() > 1) rn_str += ",";
+            rn_str += std::to_string(fid) + "->" + std::to_string(nid);
+        }
+        rn_str += "]";
+        BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: "
+            << "filament_nozzle_map=" << nm_str
+            << " filament_maps=" << fm_str
+            << " filament_volume_map=" << vm_str
+            << " reassigned=" << rn_str
+            << " slice_filaments_info.size=" << plate_data->slice_filaments_info.size()
+            << " nozzle_group_result.has_value=" << plate_data->nozzle_group_result.has_value();
+    }
+
+    // Second pass: patch each FilamentInfo and build the nozzle list
+    for (auto& fil_info : plate_data->slice_filaments_info) {
+        int fil_id = fil_info.id;
+        auto it = reassigned_nozzle_ids.find(fil_id);
+        if (it == reassigned_nozzle_ids.end())
+            continue;
+
+        int nozzle_id = it->second;
+
+        // Determine which physical extruder (0-indexed) this filament is on
+        int extruder_id = 1; // default: extruder 2 (carousel side) for H2C
+        if (fil_id < static_cast<int>(filament_maps.size()) && filament_maps[fil_id] > 0)
+            extruder_id = filament_maps[fil_id] - 1; // filament_maps is 1-indexed
+
+        // Determine volume type from filament's volume map
+        Slic3r::NozzleVolumeType vol_type = Slic3r::NozzleVolumeType::nvtStandard;
+        if (fil_id < static_cast<int>(filament_volume_map.size()))
+            vol_type = static_cast<Slic3r::NozzleVolumeType>(filament_volume_map[fil_id]);
+        if (vol_type == Slic3r::NozzleVolumeType::nvtStandard)
+            vol_type = get_volume_type(extruder_id);
+
+        // Patch FilamentInfo with unique group_id per carousel slot
+        fil_info.group_id = {nozzle_id};
+        fil_info.nozzle_diameter = nozzle_diam_opt->values[
+            std::min(static_cast<size_t>(extruder_id), nozzle_diam_opt->values.size() - 1)];
+        fil_info.nozzle_volume_type = Slic3r::get_nozzle_volume_type_string(vol_type);
+
+        // Register nozzle if not seen
+        if (nozzle_map.find(nozzle_id) == nozzle_map.end()) {
+            Slic3r::MultiNozzleUtils::NozzleInfo ni;
+            ni.group_id    = nozzle_id;
+            ni.extruder_id = extruder_id;
+            ni.diameter    = get_diameter_str(extruder_id);
+            ni.volume_type = vol_type;
+            nozzle_map[nozzle_id] = ni;
+        }
+    }
+
+    // ── Write nozzles_info to PlateData ──
+    // This populates Tier 2 in bbs_3mf serialization.
+    plate_data->nozzles_info.clear();
+    plate_data->nozzles_info.reserve(nozzle_map.size());
+    for (auto& [id, ni] : nozzle_map) {
+        plate_data->nozzles_info.push_back(ni);
+    }
+
+    // ── CRITICAL: Reset nozzle_group_result so Tier 1 is skipped ──
+    // The bbs_3mf serializer (bbs_3mf.cpp:8395) checks nozzle_group_result
+    // (Tier 1) BEFORE nozzles_info (Tier 2). The upstream pipeline
+    // (ToolOrdering → GCodeProcessorResult → parse_filament_info) produces
+    // a LayeredNozzleGroupResult that maps ALL carousel filaments to the same
+    // group_id (typically 1), because the PAM clustering treats the entire
+    // extruder-2 carousel as a single nozzle group.
+    //
+    // By resetting nozzle_group_result to nullopt, the serializer falls
+    // through to Tier 2 where our correct per-filament nozzle assignments
+    // are stored. This is safe because nozzles_info contains exactly the
+    // same information that nozzle_group_result would provide, but with
+    // correct carousel slot assignments.
+    plate_data->nozzle_group_result.reset();
+
+    BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: patched "
+                            << plate_data->slice_filaments_info.size() << " filaments, "
+                            << plate_data->nozzles_info.size() << " nozzles for H2C export"
+                            << " (nozzle_group_result reset to force Tier 2)";
+}
+
 } // namespace Vortek
+

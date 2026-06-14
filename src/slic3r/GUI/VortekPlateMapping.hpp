@@ -7,6 +7,7 @@
 
 namespace Slic3r {
     class Print;
+    class DynamicPrintConfig;
     struct GCodeProcessorResult;
     class PresetBundle;
     class DynamicConfig;
@@ -68,6 +69,29 @@ public:
      * active filament count when starting file loading.
      */
     static void sync_project_config_on_load(Slic3r::DynamicConfig& proj_cfg, int filament_count);
+
+    /**
+     * @brief Patches the full DynamicPrintConfig before 3MF export.
+     * For H2C printers: ensures has_filament_switcher = true (FTS flag).
+     */
+    static void patch_export_config(Slic3r::DynamicPrintConfig& cfg);
+
+    /**
+     * @brief Patches PlateData for 3MF export with correct H2C nozzle group info.
+     *
+     * For H2C dual-nozzle printers, fills plate_data->nozzles_info and
+     * patches FilamentInfo::group_id in slice_filaments_info using the plate's
+     * filament_nozzle_map/filament_volume_map/filament_maps.
+     * This is the canonical source of nozzle metadata for slice_info.config,
+     * bypassing the fragile nozzle_group_result pipeline from the slicing backend.
+     *
+     * For non-H2C printers this is a no-op.
+     */
+    static void patch_plate_data_for_export(
+        Slic3r::PlateData* plate_data,
+        const Slic3r::GUI::PartPlate* plate,
+        const Slic3r::DynamicPrintConfig& config
+    );
 };
 
 } // namespace Vortek

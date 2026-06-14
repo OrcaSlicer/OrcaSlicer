@@ -16224,6 +16224,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     publish(p->model, strategy);
 
     DynamicPrintConfig cfg = wxGetApp().preset_bundle->full_config_secure();
+    Vortek::PlateMapping::patch_export_config(cfg); // H2C: FTS flag
     const std::string path_u8 = into_u8(path);
     wxBusyCursor wait;
 

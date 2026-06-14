@@ -40,6 +40,7 @@
 #include "format.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/Utils/FileHelp.hpp"
+#include "VortekPlateMapping.hpp"
 #include <imgui/imgui_internal.h>
 #include <wx/dcgraph.h>
 using boost::optional;
@@ -6211,6 +6212,10 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
                     plate_data_item->filament_change_sequence = m_plate_list[i]->m_gcode_result->filament_change_sequence;
                     plate_data_item->nozzle_change_sequence   = m_plate_list[i]->m_gcode_result->nozzle_change_sequence;
                     plate_data_item->optimal_assignment       = m_plate_list[i]->m_gcode_result->optimal_assignment;
+                    // Propagate nozzle group result so slice_info.config serialization
+                    // can write per-nozzle entries (grouping filaments by physical nozzles).
+                    if (m_plate_list[i]->m_gcode_result->nozzle_group_result)
+                        plate_data_item->nozzle_group_result = *m_plate_list[i]->m_gcode_result->nozzle_group_result;
                     plate_data_item->first_layer_time         = std::to_string(m_plate_list[i]->cali_bboxes_data.first_layer_time);
                     Print* print                              = nullptr;
                     m_plate_list[i]->get_print((PrintBase**) &print, nullptr, nullptr);
@@ -6226,6 +6231,12 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
                     }
                     // parse filament info
                     plate_data_item->parse_filament_info(m_plate_list[i]->get_slice_result(), print ? &print->full_print_config() : nullptr);
+                    // H2C Vortek: patch nozzle group data for correct slice_info.config serialization.
+                    // This bypasses the fragile upstream nozzle_group_result pipeline and writes
+                    // nozzles_info + FilamentInfo::group_id directly from plate carousel mapping.
+                    if (print)
+                        Vortek::PlateMapping::patch_plate_data_for_export(
+                            plate_data_item, m_plate_list[i], print->full_print_config());
                 } else {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "slice result = " << m_plate_list[i]->get_slice_result()
                                             << ", result valid = " << m_plate_list[i]->is_slice_result_valid();
