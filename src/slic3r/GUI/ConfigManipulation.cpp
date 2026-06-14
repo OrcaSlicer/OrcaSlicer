@@ -198,15 +198,15 @@ void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfi
             const double pa = std::stod(values[0]);
             const double flow = std::stod(values[1]);
             const double accel = std::stod(values[2]);
-            if (pa >= 2.0) {
-                msg_text += wxString::Format(_L("Line %d must have a PA value less than 2.\n"), line_number);
+            if (pa > 2.0) {
+                msg_text += wxString::Format(_L("Line %d cannot have a PA value greater than 2.0.\n"), line_number);
                 need_check = true;
             }
-            if (flow <= pa) {
+            if (flow < pa) {
                 msg_text += wxString::Format(_L("Line %d must have a flow value greater than the PA value.\n"), line_number);
                 need_check = true;
             }
-            if (accel <= flow) {
+            if (accel < flow) {
                 msg_text += wxString::Format(_L("Line %d must have an acceleration value greater than the flow value.\n"), line_number);
                 need_check = true;
             }
