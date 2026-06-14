@@ -115,7 +115,7 @@ jobs:
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+          ./build_release_macos.sh -s -n -T -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -129,6 +129,30 @@ jobs:
         with:
           name: OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}
           path: ${{ github.workspace }}/OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}.tar.gz
+
+      - name: Pack macOS Test Artifact ${{ inputs.arch }}
+        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        working-directory: ${{ github.workspace }}
+        run: |
+          # On a cross-compile arch (x86_64 built on arm64 runner) catch_discover_tests
+          # cannot enumerate tests, so build/<arch>/tests/ may not be created.
+          # Produce the tar only when the directory exists; the upload step uses
+          # if-no-files-found: warn so missing x86_64 tests never fail the build job.
+          if [ -d "build/${{ inputs.arch }}/tests" ]; then
+            tar -cvpf build_tests_macos_${{ inputs.arch }}.tar build/${{ inputs.arch }}/tests
+          else
+            echo "build/${{ inputs.arch }}/tests not found — skipping test artifact pack"
+          fi
+
+      - name: Upload macOS Test Artifact ${{ inputs.arch }}
+        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-macos-${{ inputs.arch }}
+          overwrite: true
+          path: build_tests_macos_${{ inputs.arch }}.tar
+          retention-days: 5
+          if-no-files-found: warn
 
       - name: Download macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only
@@ -292,6 +316,32 @@ jobs:
         #   WindowsSDKVersion: '10.0.26100.0\'
         run: .\build_release_vs.bat slicer
 
+      - name: Build tests Win
+        if: runner.os == 'Windows'
+        working-directory: ${{ github.workspace }}
+        # build_release_vs.bat tests configures with -DBUILD_TESTS=ON -DSLIC3R_SERVER=ON
+        # and builds ALL_BUILD (which includes the test executables).
+        # We reuse the deps and build dir from the slicer step above; only the
+        # slicer cmake-configure is re-run with the extra flags and cmake then
+        # only rebuilds targets that changed (i.e. the test executables).
+        run: .\build_release_vs.bat tests
+
+      - name: Pack Windows Test Artifact
+        if: runner.os == 'Windows'
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: tar -cvpf build_tests_windows.tar build/tests
+
+      - name: Upload Windows Test Artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-windows
+          overwrite: true
+          path: build_tests_windows.tar
+          retention-days: 5
+          if-no-files-found: error
+
       - name: Create installer Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}/build
@@ -400,6 +450,11 @@ jobs:
       - name: Build slicer and tests
         if: runner.os == 'Linux'
         shell: bash
+        # ORCA_EXTRA_BUILD_ARGS is forwarded by build_linux.sh to the cmake
+        # configure step.  SLIC3R_SERVER=ON builds orca-server and enables the
+        # server e2e tests in tests/slice_core.
+        env:
+          ORCA_EXTRA_BUILD_ARGS: "-DSLIC3R_SERVER=ON"
         run: |
           ./build_linux.sh -istrlL
           ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-slicer

@@ -59,7 +59,7 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
         echo "   -1: Use single job for building"
-        echo "   -T: Build and run tests"
+        echo "   -T: Build tests (without running them inline)"
         exit 0
         ;;
     * )
@@ -200,6 +200,7 @@ function build_slicer() {
                     -DORCA_TOOLS=ON \
                     ${ORCA_UPDATER_SIG_KEY:+-DORCA_UPDATER_SIG_KEY="$ORCA_UPDATER_SIG_KEY"} \
                     ${BUILD_TESTS:+-DBUILD_TESTS=ON} \
+                    ${BUILD_TESTS:+-DSLIC3R_SERVER=ON} \
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
                     -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
@@ -208,15 +209,6 @@ function build_slicer() {
             fi
             cmake --build . --config "$BUILD_CONFIG" --target "$SLICER_BUILD_TARGET"
         )
-
-        if [ "1." == "$BUILD_TESTS". ]; then
-            echo "Running tests for $_ARCH..."
-            (
-                set -x
-                cd "$PROJECT_BUILD_DIR"
-                ctest --build-config "$BUILD_CONFIG" --output-on-failure
-            )
-        fi
 
         echo "Verify localization with gettext..."
         (

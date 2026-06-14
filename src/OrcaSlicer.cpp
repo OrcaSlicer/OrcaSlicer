@@ -73,6 +73,17 @@ using namespace nlohmann;
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 
+#ifdef SLIC3R_GUI
+// SliceCore headless helpers — by-name preset resolution and output routing.
+// liborca_slice_core is only linked when SLIC3R_GUI=ON (see src/CMakeLists.txt).
+#include "slic3r/SliceCore/SliceTypes.hpp"
+#include "slic3r/SliceCore/PresetResolver.hpp"
+#include "slic3r/SliceCore/OutputTargetDeliver.hpp"
+#include "slic3r/SliceCore/ModelTransforms.hpp"
+// parse_objects shared parser (lives in SliceCore/ObjectPlacementJson).
+#include "slic3r/SliceCore/ObjectPlacementJson.hpp"
+#endif /* SLIC3R_GUI */
+
 #include "OrcaSlicer.hpp"
 //BBS: add exception handler for win32
 #include <wx/stdpaths.h>
@@ -100,6 +111,9 @@ using namespace nlohmann;
 #endif /* SLIC3R_GUI */
 
 using namespace Slic3r;
+
+// Forward declaration for early use in --list-presets handler
+void attach_console_on_demand();
 
 /*typedef struct _error_message{
     int code;
@@ -1319,6 +1333,53 @@ int CLI::run(int argc, char **argv)
     BOOST_LOG_TRIVIAL(info) << "finished setup params, argc="<< argc << std::endl;
     std::string temp_path = wxFileName::GetTempDir().utf8_str().data();
     set_temporary_dir(temp_path);
+
+    // --list-presets: enumerate available printer/process/filament preset names
+    // and exit.  This is a pure read-only query that short-circuits before any
+    // model loading or slicing, so it is handled here, immediately after the
+    // data_dir is established by setup().
+    // liborca_slice_core (which provides enumerate_preset_names) is only linked
+    // when SLIC3R_GUI=ON; guard accordingly.
+    {
+        const ConfigOptionString *list_presets_opt =
+            m_config.opt<ConfigOptionString>("list_presets");
+        if (list_presets_opt && !list_presets_opt->value.empty()) {
+#ifdef SLIC3R_GUI
+            attach_console_on_demand();
+            const std::string category = list_presets_opt->value; // printer|process|filament|all
+            Slic3r::SliceCore::PresetNames names;
+            std::string enum_err;
+            if (!Slic3r::SliceCore::enumerate_preset_names(data_dir(), names, enum_err)) {
+                boost::nowide::cerr << "list-presets error: " << enum_err << std::endl;
+                return CLI_CONFIG_FILE_ERROR;
+            }
+            auto print_list = [](const std::string &header,
+                                 const std::vector<std::string> &list) {
+                boost::nowide::cout << header << ":\n";
+                for (const auto &n : list)
+                    boost::nowide::cout << "  " << n << "\n";
+            };
+            if (category == "printer") {
+                print_list("printer", names.printers);
+            } else if (category == "process") {
+                print_list("process", names.processes);
+            } else if (category == "filament") {
+                print_list("filament", names.filaments);
+            } else {
+                // "all" or any unrecognised value — print everything with headers
+                print_list("printer",  names.printers);
+                print_list("process",  names.processes);
+                print_list("filament", names.filaments);
+            }
+            boost::nowide::cout.flush();
+            return CLI_SUCCESS;
+#else
+            boost::nowide::cerr << "--list-presets is not supported in this build "
+                                   "(requires SLIC3R_GUI=ON)." << std::endl;
+            return CLI_UNSUPPORTED_OPERATION;
+#endif /* SLIC3R_GUI */
+        }
+    }
 
     m_extra_config.apply(m_config, true);
     m_extra_config.normalize_fdm();
@@ -3610,6 +3671,52 @@ int CLI::run(int argc, char **argv)
         }
     }
 
+    // --- By-name preset resolution (--printer / --process / --filament) ---
+    // Must run AFTER 3MF/load_settings load but BEFORE m_extra_config (CLI key=value) is
+    // applied, so that explicit key=value overrides still have the highest precedence.
+    // liborca_slice_core (which provides SliceCore::resolve) is only linked when
+    // SLIC3R_GUI=ON; guard accordingly.
+#ifdef SLIC3R_GUI
+    {
+        const std::string preset_printer  = m_config.opt_string("printer",  true);
+        const std::string preset_process  = m_config.opt_string("process",  true);
+        const std::vector<std::string> &preset_filaments =
+            m_config.option<ConfigOptionStrings>("filament", true)->values;
+
+        const bool have_preset_flags = !preset_printer.empty()
+                                    || !preset_process.empty()
+                                    || !preset_filaments.empty();
+
+        if (have_preset_flags) {
+            Slic3r::SliceCore::PresetSelection sel;
+            if (!preset_printer.empty())
+                sel.printer_name = preset_printer;
+            if (!preset_process.empty())
+                sel.process_name = preset_process;
+            sel.filament_names = preset_filaments;
+            // Pass through existing raw-JSON load lists so resolve() uses the same path.
+            sel.load_settings  = load_configs;
+            sel.load_filaments = load_filaments;
+
+            std::string resolve_err;
+            DynamicPrintConfig resolved = Slic3r::SliceCore::resolve(sel, Slic3r::data_dir(), resolve_err);
+            if (!resolve_err.empty()) {
+                boost::nowide::cerr << "Preset resolution error: " << resolve_err << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0, cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+            // Merge resolved preset config at the same precedence as --load_settings:
+            // below explicit CLI key=value overrides (m_extra_config), above the 3MF base.
+            m_print_config.apply(resolved, true);
+            BOOST_LOG_TRIVIAL(info) << "By-name preset resolution applied"
+                << (sel.printer_name  ? (std::string(" printer=")  + *sel.printer_name)  : "")
+                << (sel.process_name  ? (std::string(" process=")  + *sel.process_name)  : "")
+                << (!preset_filaments.empty() ? " filament(s) provided" : "");
+        }
+    }
+#endif /* SLIC3R_GUI */
+    // --- end by-name preset resolution ---
+
     // Apply command line options to a more specific DynamicPrintConfig which provides normalize()
     // (command line options override --load files)
     m_print_config.apply(m_extra_config, true);
@@ -4566,6 +4673,103 @@ int CLI::run(int argc, char **argv)
     }
     //BBS: clear the orient objects lists
     orients_requirement.clear();
+
+    // --- Per-object placement overrides (--placement-json) ---
+    // Applied after global transforms so that explicit instance positions take
+    // effect before the plate-assignment / arrange step.
+    // liborca_slice_core (which provides apply_object_placements) is only linked
+    // when SLIC3R_GUI=ON; guard consistently with the rest of the SliceCore CLI code.
+#ifdef SLIC3R_GUI
+    {
+        const std::string placement_json_path = m_config.opt_string("placement_json", true);
+        if (!placement_json_path.empty()) {
+            // Read the file (boost::nowide for UTF-8 path support on Windows).
+            boost::nowide::ifstream pj_ifs(placement_json_path);
+            if (!pj_ifs) {
+                boost::nowide::cerr << "--placement-json: cannot open file: "
+                                    << placement_json_path << std::endl;
+                record_exit_reson(outfile_dir, CLI_FILE_NOTFOUND, 0,
+                                  cli_errors[CLI_FILE_NOTFOUND], sliced_info);
+                flush_and_exit(CLI_FILE_NOTFOUND);
+            }
+            std::ostringstream pj_ss;
+            pj_ss << pj_ifs.rdbuf();
+            std::string pj_text = pj_ss.str();
+            if (pj_ifs.bad()) {
+                boost::nowide::cerr << "--placement-json: read error: "
+                                    << placement_json_path << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            // Parse JSON and extract the top-level "objects" array.
+            nlohmann::json pj_root;
+            try {
+                pj_root = nlohmann::json::parse(pj_text);
+            } catch (const nlohmann::json::exception &ex) {
+                boost::nowide::cerr << "--placement-json: JSON parse error in "
+                                    << placement_json_path << ": " << ex.what() << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            if (!pj_root.contains("objects") || !pj_root["objects"].is_array()) {
+                boost::nowide::cerr << "--placement-json: file must have a top-level "
+                                       "\"objects\" array: " << placement_json_path << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            std::vector<Slic3r::SliceCore::ObjectPlacement> placements;
+            try {
+                Slic3r::SliceCore::parse_objects(pj_root["objects"], placements);
+            } catch (const std::exception &ex) {
+                boost::nowide::cerr << "--placement-json: placement parse error: "
+                                    << ex.what() << std::endl;
+                record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0,
+                                  cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                flush_and_exit(CLI_CONFIG_FILE_ERROR);
+            }
+
+            // Apply placements to every loaded model.
+            for (auto &model : m_models) {
+                std::vector<std::string> placement_warnings;
+                std::string placement_err;
+                if (!Slic3r::SliceCore::apply_object_placements(
+                        model, placements, skip_objects,
+                        /*assemble=*/false, m_print_config,
+                        placement_warnings, placement_err)) {
+                    boost::nowide::cerr << "--placement-json: placement error: "
+                                        << placement_err << std::endl;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0,
+                                      cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+                for (const auto &w : placement_warnings)
+                    BOOST_LOG_TRIVIAL(warning) << "[placement-json] " << w;
+            }
+            BOOST_LOG_TRIVIAL(info) << "--placement-json applied: "
+                                    << placements.size() << " descriptor(s) from "
+                                    << placement_json_path;
+        }
+    }
+    // --- end per-object placement overrides ---
+
+    // --- Thumbnail flags (--thumbnail / --thumbnail-size) ---
+    // Stored in m_config for future use; the actual rendering task is wired
+    // separately.  Log them here so the intent is visible in verbose output.
+    {
+        const bool do_thumbnail = m_config.opt_bool("thumbnail");
+        if (do_thumbnail) {
+            const std::string sz_str = m_config.opt_string("thumbnail_size", true);
+            BOOST_LOG_TRIVIAL(info) << "--thumbnail requested, size=" << sz_str;
+        }
+    }
+    // --- end thumbnail flags ---
+#endif /* SLIC3R_GUI */
 
     bool is_seq_print_for_curr_plate = false;
     if ((plate_to_slice < 0) || (plate_to_slice > partplate_list.get_plate_count()))
@@ -6247,6 +6451,59 @@ int CLI::run(int argc, char **argv)
                                 // Run the post-processing scripts if defined.
                                 //run_post_process_scripts(outfile, print->full_print_config());
                                 BOOST_LOG_TRIVIAL(info) << "Slicing result exported to " << outfile << std::endl;
+
+                                // --- Output routing (--output_target) ---
+                                {
+                                    const std::string output_target_str = m_config.opt_string("output_target", true);
+                                    // Validate value when explicitly provided.
+                                    if (!output_target_str.empty()
+                                        && output_target_str != "file"
+                                        && output_target_str != "stdout"
+                                        && output_target_str != "printhost")
+                                    {
+                                        boost::nowide::cerr << "Invalid --output_target value '"
+                                            << output_target_str << "': must be file|stdout|printhost" << std::endl;
+                                        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                        flush_and_exit(CLI_INVALID_PARAMS);
+                                    }
+
+                                    if (output_target_str == "stdout") {
+                                        Slic3r::SliceCore::OutputTarget out_target;
+                                        out_target.mode      = Slic3r::SliceCore::OutputMode::Stdout;
+                                        out_target.outputdir = outfile_dir;
+                                        std::string deliver_err;
+                                        if (!Slic3r::SliceCore::deliver(out_target, outfile, deliver_err)) {
+                                            boost::nowide::cerr << "stdout delivery failed: " << deliver_err << std::endl;
+                                            record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                            flush_and_exit(CLI_SLICING_ERROR);
+                                        }
+                                    } else if (output_target_str == "printhost") {
+                                        Slic3r::SliceCore::OutputTarget out_target;
+                                        out_target.mode = Slic3r::SliceCore::OutputMode::PrintHost;
+                                        out_target.outputdir = outfile_dir;
+                                        // Map CLI host flags to the DynamicPrintConfig keys PrintHost expects.
+                                        const std::string host_url    = m_config.opt_string("host_url",    true);
+                                        const std::string host_type   = m_config.opt_string("host_type",   true);
+                                        const std::string host_apikey = m_config.opt_string("host_apikey", true);
+                                        if (!host_url.empty())
+                                            out_target.host_config.set("print_host",       host_url,    true);
+                                        if (!host_type.empty())
+                                            out_target.host_config.set("host_type",         host_type,   true);
+                                        if (!host_apikey.empty())
+                                            out_target.host_config.set("printhost_apikey",  host_apikey, true);
+                                        out_target.start_print = m_config.opt_bool("start_print");
+                                        std::string deliver_err;
+                                        if (!Slic3r::SliceCore::deliver(out_target, outfile, deliver_err)) {
+                                            boost::nowide::cerr << "PrintHost upload failed: " << deliver_err << std::endl;
+                                            record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                            flush_and_exit(CLI_SLICING_ERROR);
+                                        }
+                                    }
+                                    // output_target=="file" or empty: existing file-writing behavior is
+                                    // already complete at this point — no action needed.
+                                }
+                                // --- end output routing ---
+
                                 part_plate->update_slice_result_valid_state(true);
 #if defined(__linux__) || defined(__LINUX__)
                                 if (g_cli_callback_mgr.is_started()) {

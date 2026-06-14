@@ -91,6 +91,14 @@ if (SLIC3R_GUI)
     message(STATUS "wx libs: ${wxWidgets_LIBRARIES}")
 
     add_subdirectory(slic3r)
+    add_subdirectory(slic3r/SliceCore)
+
+    if (SLIC3R_SERVER)
+        # orca-server: optional headless REST binary for remote slicing.
+        # Placed inside the SLIC3R_GUI block because liborca_slice_core (and
+        # therefore orca-server) depends on libslic3r_gui transitively.
+        add_subdirectory(slic3r/Server)
+    endif ()
 endif()
 
 if(ORCA_TOOLS)
@@ -137,6 +145,10 @@ if (NOT WIN32 AND NOT APPLE)
 endif ()
 
 target_link_libraries(OrcaSlicer libslic3r cereal::cereal)
+# SliceCore helpers: by-name preset resolution and output routing used from CLI.
+if (SLIC3R_GUI)
+    target_link_libraries(OrcaSlicer liborca_slice_core)
+endif ()
 # target_include_directories(OrcaSlicer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/slic3r)
 if (APPLE)
 #    add_compile_options(-stdlib=libc++)

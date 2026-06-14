@@ -11039,6 +11039,82 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
+
+    def = this->add("printer", coString);
+    def->label = L("Printer preset");
+    def->tooltip = L("Name of the printer/machine preset to select by name.");
+    def->cli_params = "preset_name";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("process", coString);
+    def->label = L("Process preset");
+    def->tooltip = L("Name of the process/print preset to select by name.");
+    def->cli_params = "preset_name";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("filament", coStrings);
+    def->label = L("Filament preset(s)");
+    def->tooltip = L("Name(s) of filament preset(s) to select by name (repeatable / semicolon-separated).");
+    def->cli_params = "\"filament1;filament2;...\"";
+    def->set_default_value(new ConfigOptionStrings());
+
+    def = this->add("output_target", coString);
+    def->label = L("Output target");
+    def->tooltip = L("Where to send sliced output: file|stdout|printhost");
+    def->cli_params = "target";
+    def->set_default_value(new ConfigOptionString("file"));
+
+    def = this->add("host_url", coString);
+    def->label = L("Print host URL");
+    def->tooltip = L("Print host URL for output_target=printhost.");
+    def->cli_params = "url";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("host_type", coString);
+    def->label = L("Print host type");
+    def->tooltip = L("Print host type (octoprint, moonraker, etc.) for output_target=printhost.");
+    def->cli_params = "type";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("host_apikey", coString);
+    def->label = L("Print host API key");
+    def->tooltip = L("Print host API key/token.");
+    def->cli_params = "key";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("start_print", coBool);
+    def->label = L("Start print after upload");
+    def->tooltip = L("Start the print after upload (printhost).");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("list_presets", coString);
+    def->label = L("List presets");
+    def->tooltip = L("Print available preset names to stdout and exit. "
+                     "Pass a category to filter: printer, process, or filament. "
+                     "Omit the value (or pass 'all') to list all categories.");
+    def->cli_params = "printer|process|filament|all";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("thumbnail", coBool);
+    def->label = L("Generate thumbnail");
+    def->tooltip = L("Generate a thumbnail image of the sliced model. "
+                     "Use --thumbnail-size to control the resolution (default 512x512).");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("thumbnail_size", coString);
+    def->label = L("Thumbnail size");
+    def->tooltip = L("Resolution of the generated thumbnail as WxH (e.g. 512x512). "
+                     "Only used when --thumbnail is set.");
+    def->cli_params = "WxH";
+    def->set_default_value(new ConfigOptionString("512x512"));
+
+    def = this->add("placement_json", coString);
+    def->label = L("Placement JSON file");
+    def->tooltip = L("Path to a JSON file whose top-level \"objects\" array contains "
+                     "per-object placement descriptors (position, rotation, scale, "
+                     "mirror, instances, etc.).  Applied after global transforms.");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString(""));
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;
