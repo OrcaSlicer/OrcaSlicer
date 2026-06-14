@@ -485,6 +485,8 @@ set(lisbslic3r_sources
     VortekGCode.cpp
     VortekPlateMapping.hpp
     VortekPlateMapping.cpp
+    VortekNozzleState.hpp
+    VortekNozzleState.cpp
     GCode/WipeTowerWriter.hpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp

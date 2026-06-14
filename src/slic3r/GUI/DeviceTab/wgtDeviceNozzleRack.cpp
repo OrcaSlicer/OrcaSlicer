@@ -750,11 +750,31 @@ void wgtDeviceNozzleRackNozzleItem::CreateGui()
     m_nozzle_selected_bitmap = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, WX_DIP_SIZE(20, 20));
     m_nozzle_selected_bitmap->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
+    // Color swatch — solid color indicator for loaded filament
+    m_color_swatch = new wxPanel(this, wxID_ANY, wxDefaultPosition, WX_DIP_SIZE(14, 14));
+    m_color_swatch->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    m_color_swatch->Show(false);
+    m_color_swatch->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+        wxPaintDC dc(m_color_swatch);
+        wxSize sz = m_color_swatch->GetClientSize();
+        if (!m_filament_color.empty()) {
+            wxColour clr("#" + m_filament_color);
+            dc.SetBrush(wxBrush(clr));
+            dc.SetPen(wxPen(wxColour(136, 136, 136), 1));
+            dc.DrawRoundedRectangle(0, 0, sz.x, sz.y, 2);
+        }
+    });
+
     top_h_sizer->Add(m_nozzle_label_id, 0, wxTOP | wxLEFT, FromDIP(6));
     top_h_sizer->AddStretchSpacer(1);
     top_h_sizer->Add(m_nozzle_icon, 0, wxTOP, FromDIP(10));
     top_h_sizer->AddStretchSpacer(1);
-    top_h_sizer->Add(m_nozzle_selected_bitmap, 0, wxTOP | wxRIGHT, FromDIP(2));
+
+    // Vertical stack: color swatch on top, selected bitmap below
+    wxBoxSizer* right_v = new wxBoxSizer(wxVERTICAL);
+    right_v->Add(m_color_swatch, 0, wxTOP | wxRIGHT, FromDIP(4));
+    right_v->Add(m_nozzle_selected_bitmap, 0, wxTOP | wxRIGHT, FromDIP(2));
+    top_h_sizer->Add(right_v, 0, wxALIGN_TOP);
 
     // Bottom V
     wxBoxSizer* bottom_v = new wxBoxSizer(wxVERTICAL);
@@ -897,6 +917,16 @@ void wgtDeviceNozzleRackNozzleItem::SetNozzleStatus(NOZZLE_STATUS status, const 
     m_nozzle_label_1->SetLabel(str1);
     m_nozzle_label_2->SetLabel(str2);
 
+    // Update color swatch visibility and color
+    if (m_color_swatch) {
+        bool show_swatch = (status == NOZZLE_NORMAL) && !color.empty();
+        m_color_swatch->Show(show_swatch);
+        if (show_swatch) {
+            m_color_swatch->Refresh();
+        }
+        update_layout = true;
+    }
+
     if (update_layout) {
         Layout();
     }
@@ -1013,6 +1043,8 @@ void wgtDeviceNozzleRackNozzleItem::SetDisable(bool disabled)
     m_nozzle_selected_bitmap->SetBackgroundColour(bg_clr);
 
     SetBackgroundColor(bg_clr);
+    if (m_color_swatch)
+        m_color_swatch->SetBackgroundColour(bg_clr);
     Refresh();
 };
 

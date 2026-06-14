@@ -1011,6 +1011,11 @@ public:
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
     void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info) { m_extruder_filament_info = filament_info; }
 
+    // H2C: Resolved nozzle→filament map from connected device (color-matched).
+    // Empty when offline. Set by Plater via Vortek::NozzleState.
+    const std::unordered_map<int, int>& get_device_nozzle_status() const { return m_device_nozzle_status; }
+    void set_device_nozzle_status(const std::unordered_map<int, int>& status) { m_device_nozzle_status = status; }
+
     void set_geometric_unprintable_filaments(const std::vector<std::set<int>> &unprintables_filament_ids) { m_geometric_unprintable_filaments = unprintables_filament_ids; }
     std::vector<std::set<int>> get_geometric_unprintable_filaments() const { return m_geometric_unprintable_filaments;}
 
@@ -1178,6 +1183,9 @@ private:
     Points                                  m_skirt_convex_hull;
 
     std::vector<std::vector<DynamicPrintConfig>> m_extruder_filament_info;
+
+    // H2C: nozzle_id → filament_id map from connected device (empty when offline)
+    std::unordered_map<int, int> m_device_nozzle_status;
 
     // Following section will be consumed by the GCodeGenerator.
     ToolOrdering 							m_tool_ordering;

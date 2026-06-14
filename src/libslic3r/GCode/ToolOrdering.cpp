@@ -2,6 +2,7 @@
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
 #include "libslic3r/VortekGroupReorder.hpp"
+#include "libslic3r/VortekNozzleState.hpp"
 #include "Layer.hpp"
 #include "ClipperUtils.hpp"
 #include "ParameterUtils.hpp"
@@ -1668,8 +1669,9 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
             } else {
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-APL] no existing LNGR, computing fresh via get_recommended_filament_maps mode="
                                            << (int) map_mode;
+                auto device_nozzle_status = Vortek::NozzleState::resolve_for_print(m_print);
                 auto group_result = ToolOrdering::get_recommended_filament_maps(m_print, layer_filaments, map_mode, physical_unprintables,
-                                                                                geometric_unprintables);
+                                                                                geometric_unprintables, {}, device_nozzle_status);
                 // Store result so bbs_3mf serialization can access it for
                 // <nozzle> tag and group_id generation
                 m_print->set_nozzle_group_result(std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(group_result));
@@ -1733,6 +1735,21 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
 
     bool support_multi_nozzle = std::any_of(print_config->extruder_max_nozzle_count.values.begin(),
                                             print_config->extruder_max_nozzle_count.values.end(), [](auto v) { return v > 1; });
+
+    // H2C: Seed m_initial_nozzle_status from connected device before GroupReorder.
+    // VortekGroupReorder reads m_initial_nozzle_status to bias nozzle assignment
+    // toward currently-loaded filaments, reducing unnecessary carousel rotations.
+    {
+        auto device_nozzle_status = Vortek::NozzleState::resolve_for_print(m_print);
+        if (!device_nozzle_status.empty()) {
+            MultiNozzleUtils::NozzleStatusRecorder recorder;
+            for (const auto& [nozzle_id, filament_id] : device_nozzle_status)
+                recorder.set_nozzle_status(nozzle_id, filament_id);
+            m_initial_nozzle_status = recorder;
+            BOOST_LOG_TRIVIAL(info) << "[H2C-NozzleState] Seeded m_initial_nozzle_status from device: "
+                                   << device_nozzle_status.size() << " entries";
+        }
+    }
 
     // H2C: Dynamic GroupReorder + multi-nozzle reorder using Vortek::GroupReorder::reorder_extruders
     Vortek::GroupReorder::reorder_extruders(*this, filament_lists, filament_maps, maps_without_group, layer_filaments, nozzle_flush_mtx,

@@ -1,5 +1,6 @@
 #include "Plater.hpp"
 #include "libslic3r/VortekPlateMapping.hpp"
+#include "libslic3r/VortekNozzleState.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
@@ -8589,6 +8590,32 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         std::vector<int> f_maps = cur_plate->get_real_filament_maps(preset_bundle->project_config);
         invalidated = background_process.apply(this->model, preset_bundle->full_config(false, f_maps));
         background_process.fff_print()->set_extruder_filament_info(get_extruder_filament_info());
+        // H2C: Sync physical nozzle colors → preset filament mapping via Vortek::NozzleState
+        {
+            std::unordered_map<int, std::string> device_nozzle_colors;
+            DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+            if (dev) {
+                MachineObject *obj_ = dev->get_selected_machine();
+                if (obj_ && obj_->is_multi_extruders()) {
+                    auto* nozzle_system = obj_->GetNozzleSystem();
+                    if (nozzle_system) {
+                        for (const auto& [id, nozzle] : nozzle_system->GetExtNozzles()) {
+                            auto clr = nozzle.GetFilamentColor();
+                            if (!clr.empty())
+                                device_nozzle_colors[id] = clr;
+                        }
+                    }
+                }
+            }
+            if (!device_nozzle_colors.empty()) {
+                auto preset_colors = background_process.fff_print()->config().filament_colour.values;
+                auto nozzle_map = Vortek::NozzleState::match_nozzle_colors_to_filaments(
+                    device_nozzle_colors, preset_colors);
+                background_process.fff_print()->set_device_nozzle_status(nozzle_map);
+            } else {
+                background_process.fff_print()->set_device_nozzle_status({});
+            }
+        }
     }
     else
         invalidated = background_process.apply(this->model, preset_bundle->full_config(false));

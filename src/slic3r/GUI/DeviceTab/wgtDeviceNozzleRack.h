@@ -233,6 +233,7 @@ private:
     ScalableBitmap* m_nozzle_error_image{nullptr};
 
     // GUI
+    wxPanel* m_color_swatch{nullptr};
     wxStaticBitmap* m_nozzle_icon{nullptr};
     Label* m_nozzle_label_id{nullptr};
     Label* m_nozzle_label_1{nullptr};
