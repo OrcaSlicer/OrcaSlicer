@@ -193,6 +193,8 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
 {
     //if (is_msg_dlg_already_exist) return;
     //float max_volumetric_speed = config->opt_float("filament_max_volumetric_speed");
+    if (is_msg_dlg_already_exist)
+        return;
 
     float max_volumetric_speed = config->has("filament_max_volumetric_speed") ? config->opt_float("filament_max_volumetric_speed", (float) 0.5) : 0.5;
     // BBS: limite the min max_volumetric_speed
@@ -205,6 +207,28 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
         new_conf.set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats({0.5}));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
+        return;
+    }
+
+    if (config->has("filament_max_outer_volumetric_speed")) {
+        const ConfigOptionFloats *max_vol_opt   = config->option<ConfigOptionFloats>("filament_max_volumetric_speed");
+        const ConfigOptionFloats *outer_vol_opt = config->option<ConfigOptionFloats>("filament_max_outer_volumetric_speed");
+        if (max_vol_opt != nullptr && outer_vol_opt != nullptr) {
+            for (size_t i = 0; i < outer_vol_opt->values.size(); ++i) {
+                const float max_outer_volumetric_speed = outer_vol_opt->get_at(i);
+                const float max_volumetric_speed_i      = max_vol_opt->get_at(i);
+                if (max_outer_volumetric_speed > 0.f && max_outer_volumetric_speed > max_volumetric_speed_i) {
+                    wxString msg_text;
+                    msg_text += _L("Max outer volumetric speed must be less than or equal to max volumetric speed.\n");
+                    msg_text += _L("Please check.\n");
+                    MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+                    is_msg_dlg_already_exist = true;
+                    dialog.ShowModal();
+                    is_msg_dlg_already_exist = false;
+                    break;
+                }
+            }
+        }
     }
 
 }

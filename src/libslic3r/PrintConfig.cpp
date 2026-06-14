@@ -11726,15 +11726,15 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         }
 
     // --filament-max-outer-volumetric-speed
-    // If enabled (> 0), this per-filament value must stay below filament_max_volumetric_speed.
+    // If enabled (> 0), this per-filament value must stay less than or equal to filament_max_volumetric_speed.
     for (size_t i = 0; i < cfg.filament_max_outer_volumetric_speed.values.size(); ++i) {
         const double outer_v = cfg.filament_max_outer_volumetric_speed.get_at(i);
         const double max_v   = cfg.filament_max_volumetric_speed.get_at(i);
-        if (outer_v > 0 && outer_v >= max_v) {
+        if (outer_v > 0 && outer_v > max_v) {
             error_message.emplace(
                 "filament_max_outer_volumetric_speed",
                 L("invalid value ") + cfg.filament_max_outer_volumetric_speed.serialize() +
-                L(". Max outer volumetric speed must be lower than Max volumetric speed."));
+                L(". Max outer volumetric speed must be less than or equal to Max volumetric speed."));
             break;
         }
     }
