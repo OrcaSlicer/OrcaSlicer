@@ -181,7 +181,7 @@ private:
 class wgtDeviceNozzleRackNozzleItem : public StaticBox
 {
 public:
-    enum NOZZLE_STATUS { NOZZLE_EMPTY, NOZZLE_NORMAL, NOZZLE_UNKNOWN, NOZZLE_ERROR };
+    enum NOZZLE_STATUS { NOZZLE_EMPTY, NOZZLE_NORMAL, NOZZLE_UNKNOWN, NOZZLE_ERROR, NOZZLE_IN_EXTRUDER };
 
 public:
     wgtDeviceNozzleRackNozzleItem(wxWindow* parent, int nozzle_id);
@@ -216,6 +216,7 @@ private:
     int m_nozzle_id; // internal id, from 0 to 5
     std::string m_filament_color;
     NOZZLE_STATUS m_status = NOZZLE_STATUS::NOZZLE_EMPTY;
+    bool m_is_in_extruder = false;
 
     // select
     bool m_is_selected   = false;
