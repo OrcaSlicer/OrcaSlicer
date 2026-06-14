@@ -2194,7 +2194,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
     
-    if(is_BBL_Printer())
+    if(is_BBL_Printer() && result != nullptr)
         result->label_object_enabled = m_enable_exclude_object;
     // Write the profiler measurements to file
     PROFILE_UPDATE();
