@@ -231,6 +231,17 @@ else
     exit 1
 fi
 
+# Capture the git commit hash on the host. The flatpak manifest copies the
+# source tree without .git (see the `type: dir` sources), so CMake cannot read
+# the hash inside the sandbox and would embed the "0000000" placeholder. We pass
+# it in via the `git_commit_hash` env var that CMakeLists.txt reads at configure.
+GIT_COMMIT_HASH=$(git rev-parse --short=7 HEAD 2>/dev/null || echo "")
+if [[ -n "$GIT_COMMIT_HASH" ]]; then
+    echo -e "Commit: ${GREEN}$GIT_COMMIT_HASH${NC}"
+else
+    echo -e "Commit: ${YELLOW}unknown (not a git checkout) — build info will show 0000000${NC}"
+fi
+
 # Cleanup build directory if requested
 if [[ "$CLEANUP" == true ]]; then
     echo -e "${YELLOW}Cleaning up flatpak-specific build directories...${NC}"
@@ -315,12 +326,23 @@ if [[ "$DISABLE_ROFILES_FUSE" == true ]]; then
     echo -e "${YELLOW}rofiles-fuse disabled${NC}"
 fi
 
-# Use a temp manifest with no-debuginfo if requested
-MANIFEST="scripts/flatpak/com.orcaslicer.OrcaSlicer.yml"
+# Build from a generated manifest so we can inject the commit hash (and
+# optionally the no-debuginfo tweak) without touching the checked-in manifest.
+SRC_MANIFEST="scripts/flatpak/com.orcaslicer.OrcaSlicer.yml"
+MANIFEST="scripts/flatpak/com.orcaslicer.OrcaSlicer.generated.yml"
+cp "$SRC_MANIFEST" "$MANIFEST"
+
+# Inject the commit hash only into the OrcaSlicer module's cmake configure step.
+# Prefixing the env var on that one command (rather than the global
+# build-options) keeps the wxWidgets/deps module caches valid across commits —
+# only the OrcaSlicer module rebuilds when the hash changes.
+if [[ -n "$GIT_COMMIT_HASH" ]]; then
+    sed -i "s#cmake \. -B build_flatpak#git_commit_hash=\"$GIT_COMMIT_HASH\" cmake . -B build_flatpak#" "$MANIFEST"
+    echo -e "${GREEN}Embedding commit hash $GIT_COMMIT_HASH into build info${NC}"
+fi
+
 if [[ "$NO_DEBUGINFO" == true ]]; then
-    MANIFEST="scripts/flatpak/com.orcaslicer.OrcaSlicer.no-debug.yml"
-    sed '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
-        scripts/flatpak/com.orcaslicer.OrcaSlicer.yml > "$MANIFEST"
+    sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' "$MANIFEST"
     echo -e "${YELLOW}Debug info disabled (using temp manifest)${NC}"
 fi
 
@@ -330,12 +352,12 @@ if ! flatpak-builder \
     "$MANIFEST"; then
     echo -e "${RED}Error: flatpak-builder failed${NC}"
     echo -e "${YELLOW}Check the build log above for details${NC}"
-    rm -f "scripts/flatpak/com.orcaslicer.OrcaSlicer.no-debug.yml"
+    rm -f "$MANIFEST"
     exit 1
 fi
 
-# Clean up temp manifest
-rm -f "scripts/flatpak/com.orcaslicer.OrcaSlicer.no-debug.yml"
+# Clean up generated manifest
+rm -f "$MANIFEST"
 
 # Create bundle
 echo -e "${YELLOW}Creating Flatpak bundle...${NC}"
