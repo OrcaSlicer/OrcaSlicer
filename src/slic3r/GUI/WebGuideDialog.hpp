@@ -78,6 +78,7 @@ public:
     int LoadProfileData();
     int SaveProfileData();
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
+    bool BuildProfileDataFromPresetBundle();
     int SaveProfile();
     int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
 

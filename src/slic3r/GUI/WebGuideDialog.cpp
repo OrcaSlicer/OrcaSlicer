@@ -1127,6 +1127,123 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     return status;
 }
 
+bool GuideFrame::BuildProfileDataFromPresetBundle()
+{
+    PresetBundle* pb = wxGetApp().preset_bundle;
+    if (!pb || pb->vendors.empty())
+        return false;
+
+    try {
+        // Models from vendor profiles
+        for (const auto& [vendor_id, vp] : pb->vendors) {
+            for (const auto& model : vp.models) {
+                std::string nozzle_str;
+                for (const auto& v : model.variants) {
+                    if (!nozzle_str.empty()) nozzle_str += ";";
+                    nozzle_str += v.name;
+                }
+                std::string materials_str;
+                for (const auto& m : model.default_materials) {
+                    if (!materials_str.empty()) materials_str += ";";
+                    materials_str += m;
+                }
+                boost::filesystem::path cover_path =
+                    (boost::filesystem::path(resources_dir()) / "profiles" / vendor_id / (model.id + "_cover.png"))
+                        .make_preferred();
+                if (!boost::filesystem::exists(cover_path))
+                    cover_path =
+                        (boost::filesystem::path(resources_dir()) / "web/image/printer" / (model.id + "_cover.png"))
+                            .make_preferred();
+
+                json entry;
+                entry["model"]           = model.id;
+                entry["name"]            = model.name;
+                entry["vendor"]          = vendor_id;
+                entry["nozzle_diameter"] = nozzle_str;
+                entry["materials"]       = materials_str;
+                entry["cover"]           = cover_path.string();
+                entry["nozzle_selected"] = "";
+                entry["sub_path"]        = "";
+                m_ProfileJson["model"].push_back(entry);
+            }
+        }
+
+        // Machine map: preset name -> {model, nozzle variant}
+        for (const Preset& p : pb->printers()) {
+            if (!p.is_system) continue;
+            const auto* printer_model   = p.config.option<ConfigOptionString>("printer_model");
+            const auto* printer_variant = p.config.option<ConfigOptionString>("printer_variant");
+            if (!printer_model || printer_model->value.empty() || !printer_variant) continue;
+
+            json mach;
+            mach["model"]  = printer_model->value;
+            mach["nozzle"] = printer_variant->value;
+            m_ProfileJson["machine"][p.name] = mach;
+        }
+
+        // Filament map from system filament presets (vendor/type already resolved in config)
+        for (const Preset& p : pb->filaments()) {
+            if (!p.is_system) continue;
+            const auto* fila_vendor     = p.config.option<ConfigOptionStrings>("filament_vendor");
+            const auto* fila_type       = p.config.option<ConfigOptionStrings>("filament_type");
+            const auto* compat_printers = p.config.option<ConfigOptionStrings>("compatible_printers");
+
+            std::string vendor = (fila_vendor && !fila_vendor->values.empty()) ? fila_vendor->values[0] : "";
+            std::string type   = (fila_type   && !fila_type->values.empty())   ? fila_type->values[0]   : "";
+
+            std::string model_list;
+            if (compat_printers) {
+                for (const std::string& pname : compat_printers->values) {
+                    if (m_ProfileJson["machine"].contains(pname)) {
+                        std::string m = m_ProfileJson["machine"][pname]["model"];
+                        std::string n = m_ProfileJson["machine"][pname]["nozzle"];
+                        model_list += "[" + m + "++" + n + "]";
+                    }
+                }
+            }
+
+            json ff;
+            ff["name"]     = p.name;
+            ff["sub_path"] = p.file;
+            ff["vendor"]   = vendor;
+            ff["type"]     = type;
+            ff["models"]   = model_list;
+            ff["selected"] = 0;
+            m_ProfileJson["filament"][p.name] = ff;
+        }
+
+        // Process list from visible system print presets
+        for (const Preset& p : pb->prints()) {
+            if (!p.is_system || !p.is_visible) continue;
+            json entry;
+            entry["name"]     = p.name;
+            entry["sub_path"] = p.file;
+            m_ProfileJson["process"].push_back(entry);
+        }
+
+        // Set filament library path for any GetFilamentInfo calls on custom filaments
+        auto lib_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
+        if (boost::filesystem::exists(vendor_dir / lib_name))
+            m_OrcaFilaLibPath = (vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
+        else
+            m_OrcaFilaLibPath = (rsrc_vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
+
+        BOOST_LOG_TRIVIAL(info) << "GuideFrame: built profile data from preset_bundle ("
+                                << m_ProfileJson["model"].size()    << " models, "
+                                << m_ProfileJson["machine"].size()  << " machines, "
+                                << m_ProfileJson["filament"].size() << " filaments)";
+        return !m_ProfileJson["machine"].empty();
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "GuideFrame::BuildProfileDataFromPresetBundle failed: " << e.what()
+                                   << " — falling back to JSON loading";
+        m_ProfileJson["model"]    = json::array();
+        m_ProfileJson["machine"]  = json::object();
+        m_ProfileJson["filament"] = json::object();
+        m_ProfileJson["process"]  = json::array();
+        return false;
+    }
+}
+
 int GuideFrame::LoadProfileData()
 {
     try {
@@ -1151,52 +1268,53 @@ int GuideFrame::LoadProfileData()
             }
         }
 
-        // load the default filament library first
-        std::set<std::string> loaded_vendors;
-        auto filament_library_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
-        if (boost::filesystem::exists(vendor_dir / filament_library_name)) {
-            m_OrcaFilaLibPath = (vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
-            LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (vendor_dir / filament_library_name).string());
-        } else {
-            m_OrcaFilaLibPath = (rsrc_vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
-            LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (rsrc_vendor_dir / filament_library_name).string());
-        }
-        loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
-
-        //load custom bundle from user data path
-        boost::filesystem::directory_iterator endIter;
-        for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
-            if (!boost::filesystem::is_directory(*iter)) {
-                wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
-                strVendor          = strVendor.AfterLast('\\');
-                strVendor          = strVendor.AfterLast('/');
-
-                wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                if(strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
-                    continue;
-
-                LoadProfileFamily(w2s(strVendor), iter->path().string());
-                loaded_vendors.insert(w2s(strVendor));
+        if (!BuildProfileDataFromPresetBundle()) {
+            // Fallback: preset_bundle not ready or empty — load from JSON files.
+            std::set<std::string> loaded_vendors;
+            auto filament_library_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
+            if (boost::filesystem::exists(vendor_dir / filament_library_name)) {
+                m_OrcaFilaLibPath = (vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
+                LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (vendor_dir / filament_library_name).string());
+            } else {
+                m_OrcaFilaLibPath = (rsrc_vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
+                LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (rsrc_vendor_dir / filament_library_name).string());
             }
-            if (m_destroy)
-                return 0;
-        }
+            loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
 
-        boost::filesystem::directory_iterator others_endIter;
-        for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
-            if (!boost::filesystem::is_directory(*iter)) {
-                wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
-                strVendor          = strVendor.AfterLast('\\');
-                strVendor          = strVendor.AfterLast('/');
-                wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
-                    continue;
+            boost::filesystem::directory_iterator endIter;
+            for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
+                if (!boost::filesystem::is_directory(*iter)) {
+                    wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                    strVendor          = strVendor.AfterLast('\\');
+                    strVendor          = strVendor.AfterLast('/');
 
-                LoadProfileFamily(w2s(strVendor), iter->path().string());
-                loaded_vendors.insert(w2s(strVendor));
+                    wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                    if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                        continue;
+
+                    LoadProfileFamily(w2s(strVendor), iter->path().string());
+                    loaded_vendors.insert(w2s(strVendor));
+                }
+                if (m_destroy)
+                    return 0;
             }
-            if (m_destroy)
-                return 0;
+
+            boost::filesystem::directory_iterator others_endIter;
+            for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
+                if (!boost::filesystem::is_directory(*iter)) {
+                    wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                    strVendor          = strVendor.AfterLast('\\');
+                    strVendor          = strVendor.AfterLast('/');
+                    wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                    if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                        continue;
+
+                    LoadProfileFamily(w2s(strVendor), iter->path().string());
+                    loaded_vendors.insert(w2s(strVendor));
+                }
+                if (m_destroy)
+                    return 0;
+            }
         }
 
         wxGetApp().CallAfter([this] {
