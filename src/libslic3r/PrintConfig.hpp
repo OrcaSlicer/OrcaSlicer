@@ -20,6 +20,7 @@
 #include "CommonDefs.hpp"
 #include "Config.hpp"
 #include "Polygon.hpp"
+#include <boost/mp11/algorithm.hpp>
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -544,6 +545,12 @@ enum PrimeVolumeMode {
     pvmFast
 };
 
+enum class WaveOverhangPattern : int {
+    Monotonic,
+    ZigZag,
+    Repeat
+};
+
 extern std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
 
 // Base slot lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
@@ -695,6 +702,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1445,6 +1453,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
     ((ConfigOptionFloat, zaa_min_z))
     ((ConfigOptionFloat, zaa_minimize_perimeter_height))
+
+    // Orca: Wave Overhangs
+    ((ConfigOptionBool, wo_enabled))
+    ((ConfigOptionFloatOrPercent, wo_spacing))
+    ((ConfigOptionEnum<WaveOverhangPattern>, wo_pattern))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(
