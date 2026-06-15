@@ -5832,32 +5832,24 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         // BBL parity: combined condition — ONE unload + ONE load
         // (not separate if-blocks, which would double-count when both are true)
         bool perform_static_time_calc = nozzle_in_extruder_change || filament_in_nozzle_change;
-        if (m_printer_model == "Bambu Lab H2C") {
-            // H2C has two physical extruders: 
-            // Left extruder (id=0) has 1 physical nozzle.
-            // Right extruder (id=1) has 1 physical Vortek nozzle fed by AMS.
-            // Therefore, any filament change on the right extruder requires physical AMS unloading/loading.
-            if (new_extruder_id == 1) {
-                int last_filament = m_filament_id[1] == (unsigned char)(-1) ? -1 : (int)m_filament_id[1];
-                perform_static_time_calc = (last_filament != next_filament_id);
-                if (perform_static_time_calc) {
-                    if (last_filament >= 0)
-                        extra_time += get_filament_unload_time(static_cast<size_t>(last_filament));
-                    m_time_processor.extruder_unloaded = false;
-                    extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
-                    if (last_filament != -1)
-                        m_result.print_statistics.total_flush_filament_changes++;
-                }
-            } else {
-                perform_static_time_calc = filament_in_nozzle_change;
-                if (perform_static_time_calc) {
-                    if (old_filament_in_extruder >= 0)
-                        extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
-                    m_time_processor.extruder_unloaded = false;
-                    extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
-                    if (old_filament_in_nozzle != -1)
-                        m_result.print_statistics.total_flush_filament_changes++;
-                }
+        auto h2c_res = Vortek::WipeTower::calculate_filament_change_time(
+            m_printer_model,
+            new_extruder_id,
+            next_filament_id,
+            old_filament_in_extruder,
+            old_filament_in_nozzle,
+            filament_in_nozzle_change,
+            nozzle_in_extruder_change,
+            m_filament_id,
+            [this](size_t id) { return get_filament_unload_time(id); },
+            [this](size_t id) { return get_filament_load_time(id); }
+        );
+
+        if (h2c_res.performed) {
+            extra_time = h2c_res.extra_time;
+            m_time_processor.extruder_unloaded = h2c_res.extruder_unloaded;
+            if (h2c_res.flush_filament_changed) {
+                m_result.print_statistics.total_flush_filament_changes++;
             }
         } else {
             if (perform_static_time_calc) {

@@ -2613,10 +2613,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled, print.get_layered_nozzle_group_result());
     const bool is_bbl_printers = print.is_BBL_printer();
-    const bool is_h2c_multi_nozzle = is_bbl_printers &&
-        (print.config().nozzle_diameter.size() > 1) &&
-        (print.config().extruder_max_nozzle_count.values.size() > 1) &&
-        (print.config().extruder_max_nozzle_count.values[1] > 1);
+    const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(&print);
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
     // resets analyzer's tracking data
@@ -2729,10 +2726,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // printers we emit the BBL-compatible identifier so the firmware enables
         // nozzle rotation. For all other printers use the normal OrcaSlicer header.
         // Ref: H2C firmware source inspection; BBL GCode.cpp header_block (commit 3f2570c).
-        bool is_h2c_multi_nozzle = is_bbl_printers &&
-            (print.config().nozzle_diameter.size() > 1) &&
-            (print.config().extruder_max_nozzle_count.values.size() > 1) &&
-            (print.config().extruder_max_nozzle_count.values[1] > 1);
+        bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(&print);
         if (is_h2c_multi_nozzle) {
             // Emit BBL-compatible header so H2C firmware enables nozzle carousel.
             file.write_format("; BambuStudio 02.07.00.55\n");
@@ -8550,10 +8544,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("flush_length", new ConfigOptionFloat(wipe_length));
     float flush_length_a0 = wipe_length;
     float flush_length_a1 = wipe_length;
-    const bool is_h2c_multi_nozzle = m_print && m_print->is_BBL_printer() &&
-        (m_print->config().nozzle_diameter.size() > 1) &&
-        (m_print->config().extruder_max_nozzle_count.values.size() > 1) &&
-        (m_print->config().extruder_max_nozzle_count.values[1] > 1);
+    const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(m_print);
     if (is_h2c_multi_nozzle) {
         int new_nozzle_id = -1;
         if (m_print) {

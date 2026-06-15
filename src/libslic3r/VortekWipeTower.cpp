@@ -34,6 +34,59 @@ bool WipeTower::is_h2c_printer(const Slic3r::PrintConfig& config)
            (config.extruder_max_nozzle_count.values[1] > 1);
 }
 
+bool WipeTower::is_h2c_printer(const std::string& printer_model)
+{
+    return printer_model == "Bambu Lab H2C";
+}
+
+WipeTower::FilamentChangeTimeResult WipeTower::calculate_filament_change_time(
+    const std::string& printer_model,
+    int new_extruder_id,
+    int next_filament_id,
+    int old_filament_in_extruder,
+    int old_filament_in_nozzle,
+    bool filament_in_nozzle_change,
+    bool nozzle_in_extruder_change,
+    const std::vector<unsigned char>& m_filament_id,
+    const std::function<float(size_t)>& get_filament_unload_time,
+    const std::function<float(size_t)>& get_filament_load_time)
+{
+    FilamentChangeTimeResult res;
+    if (!is_h2c_printer(printer_model)) {
+        res.performed = false;
+        return res;
+    }
+    res.performed = true;
+
+    // H2C has two physical extruders: 
+    // Left extruder (id=0) has 1 physical nozzle.
+    // Right extruder (id=1) has 1 physical Vortek nozzle fed by AMS.
+    // Therefore, any filament change on the right extruder requires physical AMS unloading/loading.
+    if (new_extruder_id == 1) {
+        int last_filament = (m_filament_id.size() > 1 && m_filament_id[1] != (unsigned char)(-1)) ? (int)m_filament_id[1] : -1;
+        bool perform_static_time_calc = (last_filament != next_filament_id);
+        if (perform_static_time_calc) {
+            if (last_filament >= 0)
+                res.extra_time += get_filament_unload_time(static_cast<size_t>(last_filament));
+            res.extruder_unloaded = false;
+            res.extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+            if (last_filament != -1)
+                res.flush_filament_changed = true;
+        }
+    } else {
+        bool perform_static_time_calc = filament_in_nozzle_change;
+        if (perform_static_time_calc) {
+            if (old_filament_in_extruder >= 0)
+                res.extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
+            res.extruder_unloaded = false;
+            res.extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+            if (old_filament_in_nozzle != -1)
+                res.flush_filament_changed = true;
+        }
+    }
+    return res;
+}
+
 /**
  * @brief Initializes WipeTower instance variables using values from the print configuration.
  * 

@@ -9,6 +9,9 @@
 #define VORTEK_WIPE_TOWER_HPP
 
 #include "GCode/WipeTower.hpp"
+#include <string>
+#include <vector>
+#include <functional>
 
 namespace Slic3r {
     class PrintConfig;
@@ -16,6 +19,13 @@ namespace Slic3r {
 }
 
 namespace Vortek {
+
+struct FilamentChangeTimeResult {
+    bool  performed = false;
+    float extra_time = 0.f;
+    bool  extruder_unloaded = false;
+    bool  flush_filament_changed = false;
+};
 
 /**
  * @class WipeTower
@@ -32,6 +42,23 @@ public:
      */
     static bool is_h2c_printer(const Slic3r::Print* print);
     static bool is_h2c_printer(const Slic3r::PrintConfig& config);
+    static bool is_h2c_printer(const std::string& printer_model);
+
+    /**
+     * @brief Estimates time cost of H2C specific filament change.
+     */
+    static FilamentChangeTimeResult calculate_filament_change_time(
+        const std::string& printer_model,
+        int new_extruder_id,
+        int next_filament_id,
+        int old_filament_in_extruder,
+        int old_filament_in_nozzle,
+        bool filament_in_nozzle_change,
+        bool nozzle_in_extruder_change,
+        const std::vector<unsigned char>& m_filament_id,
+        const std::function<float(size_t)>& get_filament_unload_time,
+        const std::function<float(size_t)>& get_filament_load_time
+    );
 
     /**
      * @brief Initializes the WipeTower parameters from the PrintConfig.
