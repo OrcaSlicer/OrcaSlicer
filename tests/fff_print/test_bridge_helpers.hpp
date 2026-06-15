@@ -1,0 +1,190 @@
+#ifndef SLIC3R_TEST_BRIDGE_HELPERS_HPP
+#define SLIC3R_TEST_BRIDGE_HELPERS_HPP
+
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Surface.hpp"
+
+#include <cmath>
+#include <set>
+#include <vector>
+
+namespace Slic3r { namespace Test { namespace BridgeHelpers {
+
+// ---------------------------------------------------------------------------
+// Role collection helpers
+// ---------------------------------------------------------------------------
+
+/// Recursively collect extrusion roles from any ExtrusionEntity tree.
+inline void collect_roles_from_entity(const ExtrusionEntity &entity,
+                                      std::vector<ExtrusionRole> &out)
+{
+    if (entity.is_collection()) {
+        const auto &coll = static_cast<const ExtrusionEntityCollection &>(entity);
+        for (const ExtrusionEntity *child : coll.entities)
+            if (child != nullptr)
+                collect_roles_from_entity(*child, out);
+        return;
+    }
+
+    if (entity.is_loop()) {
+        const auto &loop = static_cast<const ExtrusionLoop &>(entity);
+        for (const ExtrusionPath &path : loop.paths)
+            out.push_back(path.role());
+        return;
+    }
+
+    out.push_back(entity.role());
+}
+
+/// Collect all perimeter extrusion roles at a given Z height (within tolerance).
+inline std::vector<ExtrusionRole>
+collect_perimeter_roles_at_z(const Print &print, double z, double tolerance = 0.02)
+{
+    std::vector<ExtrusionRole> roles;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                collect_roles_from_entity(region->perimeters, roles);
+        }
+    return roles;
+}
+
+/// Collect all fill extrusion roles at a given Z height (within tolerance).
+inline std::vector<ExtrusionRole>
+collect_fill_roles_at_z(const Print &print, double z, double tolerance = 0.02)
+{
+    std::vector<ExtrusionRole> roles;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                collect_roles_from_entity(region->fills, roles);
+        }
+    return roles;
+}
+
+/// Return true if the role vector contains erBridgeInfill, erOverhangPerimeter, or erBridgePerimeter.
+inline bool contains_bridge_role(const std::vector<ExtrusionRole> &roles)
+{
+    for (auto role : roles)
+        if (role == erBridgeInfill || role == erOverhangPerimeter || role == erBridgePerimeter)
+            return true;
+    return false;
+}
+
+/// Return true if the role vector contains erBridgePerimeter specifically.
+inline bool contains_erBridgePerimeter(const std::vector<ExtrusionRole> &roles)
+{
+    for (auto role : roles)
+        if (role == erBridgePerimeter)
+            return true;
+    return false;
+}
+
+/// Return true if the role vector contains erBridgeInfill specifically.
+inline bool contains_erBridgeInfill(const std::vector<ExtrusionRole> &roles)
+{
+    for (auto role : roles)
+        if (role == erBridgeInfill)
+            return true;
+    return false;
+}
+
+/// Return true if the role vector contains erInternalBridgeInfill.
+inline bool contains_erInternalBridgeInfill(const std::vector<ExtrusionRole> &roles)
+{
+    for (auto role : roles)
+        if (role == erInternalBridgeInfill)
+            return true;
+    return false;
+}
+
+/// Return a set of unique roles for diagnostic purposes.
+inline std::set<ExtrusionRole> unique_roles(const std::vector<ExtrusionRole> &roles)
+{
+    return {roles.begin(), roles.end()};
+}
+
+// ---------------------------------------------------------------------------
+// Surface type helpers
+// ---------------------------------------------------------------------------
+
+/// Collect all SurfaceType values from fill_surfaces at a given Z height.
+inline std::vector<SurfaceType>
+collect_surface_types_at_z(const Print &print, double z, double tolerance = 0.02)
+{
+    std::vector<SurfaceType> types;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                for (const Surface &surface : region->fill_surfaces.surfaces)
+                    types.push_back(surface.surface_type);
+        }
+    return types;
+}
+
+/// Return true if the type vector contains a given SurfaceType.
+inline bool contains_surface_type(const std::vector<SurfaceType> &types, SurfaceType target)
+{
+    for (auto t : types)
+        if (t == target)
+            return true;
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic bridge-layer finding
+// ---------------------------------------------------------------------------
+
+/// Find the print_z of the first layer that has at least one stBottomBridge
+/// fill surface.  Returns -1.0 if none found.
+inline double find_first_bridge_z(const Print &print)
+{
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const Surface &surface : region->fill_surfaces.surfaces)
+                    if (surface.surface_type == stBottomBridge)
+                        return layer->print_z;
+    return -1.0;
+}
+
+/// Find the print_z of the first layer that has at least one stInternalBridge
+/// fill surface.  Returns -1.0 if none found.
+inline double find_first_internal_bridge_z(const Print &print)
+{
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const Surface &surface : region->fill_surfaces.surfaces)
+                    if (surface.surface_type == stInternalBridge)
+                        return layer->print_z;
+    return -1.0;
+}
+
+/// Find the print_z of the first layer whose perimeters contain erBridgePerimeter.
+/// Returns -1.0 if none found.
+inline double find_first_bridge_perimeter_z(const Print &print)
+{
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers())
+            for (const LayerRegion *region : layer->regions()) {
+                std::vector<ExtrusionRole> roles;
+                collect_roles_from_entity(region->perimeters, roles);
+                if (contains_erBridgePerimeter(roles))
+                    return layer->print_z;
+            }
+    return -1.0;
+}
+
+}}} // namespace Slic3r::Test::BridgeHelpers
+
+#endif // SLIC3R_TEST_BRIDGE_HELPERS_HPP
