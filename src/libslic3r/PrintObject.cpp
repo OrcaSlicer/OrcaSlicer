@@ -675,6 +675,13 @@ void PrintObject::prepare_infill()
     this->bridge_over_infill();
     m_print->throw_if_canceled();
 
+    // Re-tag perimeters on layers with bridge fill surfaces so they get
+    // bridge speed / fan / flow treatment.  This must run after
+    // bridge_over_infill() which creates the stBottomBridge and
+    // stInternalBridge fill surfaces that we use as the reference geometry.
+    this->retag_bridge_perimeters();
+    m_print->throw_if_canceled();
+
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
     m_print->throw_if_canceled();
@@ -3551,6 +3558,150 @@ void PrintObject::bridge_over_infill()
     BOOST_LOG_TRIVIAL(info) << "Bridge over infill - End" << log_memory_info();
 
 } // void PrintObject::bridge_over_infill()
+
+// Helper: test whether a point lies inside any polygon in the set.
+static inline bool point_inside_bridge_region(const Point &pt, const Polygons &bridge_region)
+{
+    for (const Polygon &poly : bridge_region)
+        if (poly.contains(pt))
+            return true;
+    return false;
+}
+
+// Resample a polyline so that no segment is longer than `max_length`.
+// Test whether a path has any portion inside the bridge region by resampling
+// its polyline at the given spacing and checking each sample point.
+// Returns true if at least one sample point lies inside the bridge region.
+static bool path_overlaps_bridge_region(
+    const ExtrusionPath &path, const Polygons &bridge_region,
+    float sample_spacing)
+{
+    const Points3 &pts = path.polyline.points;
+    if (pts.empty())
+        return false;
+    // Check original vertices first.
+    for (const Point3 &pt : pts)
+        if (point_inside_bridge_region(pt.to_point(), bridge_region))
+            return true;
+    // Check intermediate resampled points along long edges.
+    for (size_t i = 0; i + 1 < pts.size(); ++i) {
+        double dx  = double(pts[i + 1].x()) - double(pts[i].x());
+        double dy  = double(pts[i + 1].y()) - double(pts[i].y());
+        double len = std::sqrt(dx * dx + dy * dy);
+        int    n   = int(std::ceil(len / double(sample_spacing)));
+        for (int k = 1; k < n; ++k) {
+            double t = double(k) / double(n);
+            Point  mid(coord_t(pts[i].x() + t * dx),
+                       coord_t(pts[i].y() + t * dy));
+            if (point_inside_bridge_region(mid, bridge_region))
+                return true;
+        }
+    }
+    return false;
+}
+
+// Recursively re-tag perimeter extrusion paths that overlap the bridge region.
+// `sample_spacing` controls how finely long edges are resampled for the
+// point-in-polygon test (scaled coordinate units).
+//
+// For loops, each path in the loop is tested individually.  If any resampled
+// point along the path lies inside the bridge region, the entire path is
+// retagged as erBridgePerimeter.  This preserves the loop's path structure
+// (no splitting) so that downstream G-code export remains safe.
+static void retag_perimeter_paths_in_bridge_region(
+    ExtrusionEntity *entity, const Polygons &bridge_region,
+    float sample_spacing)
+{
+    if (entity->is_collection()) {
+        auto *coll = static_cast<ExtrusionEntityCollection *>(entity);
+        for (ExtrusionEntity *child : coll->entities)
+            if (child != nullptr)
+                retag_perimeter_paths_in_bridge_region(child, bridge_region, sample_spacing);
+        return;
+    }
+
+    // Lambda to retag a single path if it overlaps the bridge region.
+    auto maybe_retag = [&](ExtrusionPath &path) {
+        if (path.role() != erPerimeter && path.role() != erExternalPerimeter)
+            return;
+        if (path_overlaps_bridge_region(path, bridge_region, sample_spacing))
+            path.set_extrusion_role(erBridgePerimeter);
+    };
+
+    if (entity->is_loop()) {
+        auto *loop = static_cast<ExtrusionLoop *>(entity);
+        for (ExtrusionPath &path : loop->paths)
+            maybe_retag(path);
+        return;
+    }
+
+    if (auto *multipath = dynamic_cast<ExtrusionMultiPath *>(entity)) {
+        for (ExtrusionPath &path : multipath->paths)
+            maybe_retag(path);
+        return;
+    }
+
+    if (auto *path = dynamic_cast<ExtrusionPath *>(entity))
+        maybe_retag(*path);
+}
+
+void PrintObject::retag_bridge_perimeters()
+{
+    BOOST_LOG_TRIVIAL(info) << "Re-tagging bridge perimeters - Start" << log_memory_info();
+
+    tbb::parallel_for(
+        tbb::blocked_range<size_t>(0, m_layers.size()),
+        [this](const tbb::blocked_range<size_t> &range) {
+            for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+                m_print->throw_if_canceled();
+                Layer *layer = m_layers[layer_idx];
+
+                // Collect bridge fill surface polygons across all regions.
+                // Fill surfaces only cover the infill area (inside perimeters),
+                // so we grow them outward by the full perimeter depth to
+                // encompass the perimeters surrounding the bridge.
+                Polygons bridge_region;
+                float grow_offset = 0.f;
+                for (const LayerRegion *region : layer->regions()) {
+                    for (const Surface &surface : region->fill_surfaces.surfaces)
+                        if (surface.surface_type == stBottomBridge || surface.surface_type == stInternalBridge)
+                            polygons_append(bridge_region, to_polygons(surface.expolygon));
+                    // Compute grow distance: full perimeter thickness so the
+                    // grown region covers the perimeter zone around bridge infill.
+                    if (grow_offset == 0.f) {
+                        const PrintRegionConfig &cfg = region->region().config();
+                        float ext_width = region->flow(frExternalPerimeter).scaled_width();
+                        float int_width = region->flow(frPerimeter).scaled_width();
+                        int   loops     = cfg.wall_loops;
+                        grow_offset = ext_width + std::max(0, loops - 1) * int_width
+                                    + ext_width * 0.5f; // extra margin
+                    }
+                }
+
+                if (bridge_region.empty())
+                    continue;
+
+                // Grow the bridge region to encompass surrounding perimeters.
+                if (grow_offset > 0.f)
+                    bridge_region = offset(bridge_region, grow_offset);
+
+                // Sample spacing for resampling long edges — use the external
+                // perimeter width so we get at least one test point per
+                // perimeter-width segment.  Fallback to 1mm scaled.
+                float sample_spacing = grow_offset > 0.f ? grow_offset * 0.5f
+                                                         : scaled<float>(1.0);
+
+                // Walk perimeter entities and re-tag paths that lie within the bridge region.
+                for (LayerRegion *region : layer->regions())
+                    for (ExtrusionEntity *entity : region->perimeters.entities)
+                        if (entity != nullptr)
+                            retag_perimeter_paths_in_bridge_region(entity, bridge_region, sample_spacing);
+            }
+        }
+    );
+
+    BOOST_LOG_TRIVIAL(info) << "Re-tagging bridge perimeters - End" << log_memory_info();
+}
 
 static void clamp_exturder_to_default(ConfigOptionInt &opt, size_t num_extruders)
 {
