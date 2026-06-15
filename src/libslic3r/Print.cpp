@@ -3514,7 +3514,6 @@ void Print::_make_wipe_tower()
                     wipe_volume_ec = 15.f;
                     wipe_volume_nc = 15.f;
                 }
-                Vortek::WipeTower::adjust_prime_volumes(prev_nozzle_filament, filament_id, wipe_volume_ec, wipe_volume_nc);
 
                 // H2C: when nozzle already loaded, zero out everything — no purge,
                 // no prime, no ramming needed.
