@@ -7,6 +7,7 @@
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
+#include "VortekWipeTower.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <limits>
@@ -645,8 +646,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
 
     // The shared-printable-area clipping below is only correct for H2C multi-nozzle
     // hardware; other multi-extruder printers use the original per-object clipping.
-    const auto& emnc = print.config().extruder_max_nozzle_count.values;
-    const bool is_h2c_multi_nozzle = std::any_of(emnc.begin(), emnc.end(), [](int e) { return e > 1; });
+    const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(&print);
 
     if (print.has_wipe_tower() && !print.get_fake_wipe_tower().outer_wall.empty()) {
         ExPolygons expolyFromLines{};

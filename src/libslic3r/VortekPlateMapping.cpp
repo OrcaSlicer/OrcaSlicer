@@ -4,6 +4,7 @@
 #include "MultiNozzleUtils.hpp"
 #include "Format/bbs_3mf.hpp"
 #include "GCode/GCodeProcessor.hpp"
+#include "VortekWipeTower.hpp"
 #include <boost/algorithm/string.hpp>
 
 namespace Vortek {
@@ -11,12 +12,7 @@ namespace Vortek {
 // Check if printer is H2C dual-nozzle system
 bool PlateMapping::is_h2c_multi_nozzle(const Slic3r::Print* print)
 {
-    if (!print) return false;
-    const auto& config = print->config();
-    return print->is_BBL_printer() &&
-           (config.nozzle_diameter.size() > 1) &&
-           (config.extruder_max_nozzle_count.values.size() > 1) &&
-           (config.extruder_max_nozzle_count.values[1] > 1);
+    return WipeTower::is_h2c_printer(print);
 }
 
 // Synchronize filament, volume, and nozzle maps after slicing finishes
@@ -252,14 +248,8 @@ void PlateMapping::patch_plate_data_for_export(
     if (!plate_data) return;
 
     // ── Guard: only for H2C multi-nozzle printers ──
-    auto* nozzle_diam_opt = config.option<Slic3r::ConfigOptionFloats>("nozzle_diameter");
-    // extruder_max_nozzle_count is ConfigOptionIntsNullable in PrintConfig.hpp
-    auto* max_nozzle_count_opt = config.option<Slic3r::ConfigOptionIntsNullable>("extruder_max_nozzle_count");
-    if (!nozzle_diam_opt || nozzle_diam_opt->values.size() <= 1)
-        return; // single-extruder — not H2C
-    if (!max_nozzle_count_opt || max_nozzle_count_opt->values.size() <= 1 ||
-        max_nozzle_count_opt->values[1] <= 1)
-        return; // not a carousel multi-nozzle system
+    if (!WipeTower::is_h2c_printer(config))
+        return;
 
     if (filament_nozzle_map.empty())
         return; // nothing to patch

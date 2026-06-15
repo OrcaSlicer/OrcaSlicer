@@ -1,6 +1,7 @@
 #include "ClipperUtils.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
+#include "VortekWipeTower.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
@@ -1123,11 +1124,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
 
     // H2C Vortek: Check if the printer is BBL and has a multi-extruder / multi-nozzle configuration (Vortek).
-    const bool is_bbl_printers = this->is_BBL_printer();
-    const bool is_h2c_multi_nozzle = is_bbl_printers &&
-        (m_config.nozzle_diameter.size() > 1) &&
-        (m_config.extruder_max_nozzle_count.values.size() > 1) &&
-        (m_config.extruder_max_nozzle_count.values[1] > 1);
+    const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(this);
 
     // H2C Vortek: If it is a multi-nozzle H2C configuration, handle initialization and preservation
     // of the nozzle map to avoid resetting it to all zeros.
