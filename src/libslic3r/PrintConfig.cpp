@@ -9468,7 +9468,9 @@ int DynamicPrintConfig::update_values_from_single_to_multi(DynamicPrintConfig& m
                 break;
             }
             default:
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: unsupported option type for %2%")%__LINE__%key;
+                // Scalar (non per-variant) option — nothing to expand per extruder. Expected for the
+                // scalar print options in print_options_with_variant; keep at debug to avoid log spam.
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                 break;
         }
     }
@@ -9711,7 +9713,9 @@ int DynamicPrintConfig::update_values_from_multi_to_multi(DynamicPrintConfig& ne
             break;
         }
         default:
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: unsupported option type for %2%") % __LINE__ % key;
+            // Scalar (non per-variant) option — nothing to expand per extruder. Expected for the
+            // scalar print options in print_options_with_variant; keep at debug to avoid log spam.
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%") % __LINE__ % key;
             break;
         }
     }
@@ -9828,7 +9832,9 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
                 break;
             }
             default:
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: unsupported option type for %2%")%__LINE__%key;
+                // Scalar (non per-variant) option — nothing to expand per extruder. Expected for the
+                // scalar print options in print_options_with_variant; keep at debug to avoid log spam.
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                 break;
         }
 
@@ -10403,7 +10409,11 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
                     break;
                 }
                 default:
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: unsupported option type for %2%")%__LINE__%key;
+                    // Scalar option types (coFloat/coFloatOrPercent/coInt/coBool/...) have no
+                    // per-extruder-variant array to slice, so there is nothing to remap here.
+                    // This is expected for the scalar print options listed in
+                    // print_options_with_variant, so keep it at debug level to avoid log spam.
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                     break;
             }
         }
@@ -10601,7 +10611,11 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                     break;
                 }
                 default:
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: unsupported option type for %2%")%__LINE__%key;
+                    // Scalar option types (coFloat/coFloatOrPercent/coInt/coBool/...) have no
+                    // per-extruder-variant array to slice, so there is nothing to remap here.
+                    // This is expected for the scalar print options listed in
+                    // print_options_with_variant, so keep it at debug level to avoid log spam.
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                     break;
             }
         }
@@ -10832,7 +10846,11 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     break;
                 }
                 default:
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: unsupported option type for %2%")%__LINE__%key;
+                    // Scalar option types (coFloat/coFloatOrPercent/coInt/coBool/...) have no
+                    // per-extruder-variant array to slice, so there is nothing to remap here.
+                    // This is expected for the scalar print options listed in
+                    // print_options_with_variant, so keep it at debug level to avoid log spam.
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                     break;
             }
         }
