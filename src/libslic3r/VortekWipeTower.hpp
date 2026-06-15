@@ -16,6 +16,7 @@
 namespace Slic3r {
     class PrintConfig;
     class Print;
+    class DynamicConfig;
 }
 
 namespace Vortek {
@@ -42,6 +43,7 @@ public:
      */
     static bool is_h2c_printer(const Slic3r::Print* print);
     static bool is_h2c_printer(const Slic3r::PrintConfig& config);
+    static bool is_h2c_printer(const Slic3r::DynamicConfig& config);
     static bool is_h2c_printer(const std::string& printer_model);
 
     /**

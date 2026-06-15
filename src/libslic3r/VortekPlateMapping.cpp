@@ -254,6 +254,10 @@ void PlateMapping::patch_plate_data_for_export(
     if (filament_nozzle_map.empty())
         return; // nothing to patch
 
+    auto* nozzle_diam_opt = config.option<Slic3r::ConfigOptionFloats>("nozzle_diameter");
+    if (!nozzle_diam_opt)
+        return;
+
     const size_t extruder_count = nozzle_diam_opt->values.size();
     auto* nozzle_volume_type_opt = config.option<Slic3r::ConfigOptionEnumsGeneric>("nozzle_volume_type");
 

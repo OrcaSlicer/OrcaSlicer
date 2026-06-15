@@ -34,12 +34,24 @@ bool WipeTower::is_h2c_printer(const Slic3r::PrintConfig& config)
            (config.extruder_max_nozzle_count.values[1] > 1);
 }
 
+bool WipeTower::is_h2c_printer(const Slic3r::DynamicConfig& config)
+{
+    auto* nozzle_diam_opt = config.option<Slic3r::ConfigOptionFloats>("nozzle_diameter");
+    auto* max_nozzle_count_opt = config.option<Slic3r::ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    if (!nozzle_diam_opt || nozzle_diam_opt->values.size() <= 1)
+        return false;
+    if (!max_nozzle_count_opt || max_nozzle_count_opt->values.size() <= 1 ||
+        max_nozzle_count_opt->values[1] <= 1)
+        return false;
+    return true;
+}
+
 bool WipeTower::is_h2c_printer(const std::string& printer_model)
 {
     return printer_model == "Bambu Lab H2C";
 }
 
-WipeTower::FilamentChangeTimeResult WipeTower::calculate_filament_change_time(
+FilamentChangeTimeResult WipeTower::calculate_filament_change_time(
     const std::string& printer_model,
     int new_extruder_id,
     int next_filament_id,
