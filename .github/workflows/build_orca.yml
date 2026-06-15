@@ -162,6 +162,15 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+      - name: Generate system presets cache (macOS)
+        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          tool=$(find build/${{ inputs.arch }} -name generate_system_cache -type f | head -1)
+          profiles=$(find build/${{ inputs.arch }} -path "*/Resources/profiles" -type d | head -1)
+          "$tool" --path "$profiles" --log_level 2
+
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
@@ -406,6 +415,14 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+      - name: Generate system presets cache (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $profiles = Get-ChildItem -Recurse -Path build -Directory -Filter profiles |
+            Where-Object { $_.FullName -match 'resources' } | Select-Object -First 1
+          .\build\src\Release\generate_system_cache.exe --path $profiles.FullName --log_level 2
+
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
       - name: Create installer Win
@@ -552,6 +569,20 @@ jobs:
           path: ./build/src/Release/OrcaSlicer_profile_validator
           retention-days: 5
           if-no-files-found: error
+
+      - name: Generate system presets cache (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ./build/src/Release/generate_system_cache --path build/package/resources/profiles --log_level 2
+          # Re-pack the AppImage so the cache is included
+          appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract
+          cp build/package/resources/profiles/system_presets_cache.cache squashfs-root/resources/profiles/
+          appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
+          ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
+          rm -rf squashfs-root
 
       - name: Run external slicer regression tests
         if: runner.os == 'Linux' && inputs.arch != 'aarch64'

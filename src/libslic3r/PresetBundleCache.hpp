@@ -119,6 +119,7 @@ struct SystemPresetsCache {
     }
 
     static std::string cache_path();
+    static std::string bundled_cache_path();
     bool is_valid(const std::string& system_dir) const;
     void capture(const PresetBundle& bundle, const std::string& system_dir);
     void apply(PresetBundle& bundle) const;

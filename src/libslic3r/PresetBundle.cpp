@@ -2273,6 +2273,26 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
             BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from cache in " << ms << " ms";
             return {PresetsConfigSubstitutions{}, ""};
         }
+
+        // Try bundled cache shipped with the installer (first launch, before user cache exists).
+        // Validates against resources/profiles/ — the same directory it was generated from in CI.
+        {
+            const std::string bundled_dir =
+                (boost::filesystem::path(resources_dir()) / "profiles").make_preferred().string();
+            PresetBundleCache::SystemPresetsCache bundled;
+            if (bundled.load(PresetBundleCache::SystemPresetsCache::bundled_cache_path()) &&
+                bundled.is_valid(bundled_dir)) {
+                bundled.apply(*this);
+                update_system_maps();
+                // Promote to user cache so subsequent launches skip this check.
+                bundled.save(cache_file);
+                const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - t0).count();
+                BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from bundled cache in " << ms << " ms";
+                return {PresetsConfigSubstitutions{}, ""};
+            }
+        }
+
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cache miss, falling back to JSON load";
     }
 

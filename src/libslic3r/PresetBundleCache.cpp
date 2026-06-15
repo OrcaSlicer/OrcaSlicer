@@ -116,6 +116,12 @@ std::string SystemPresetsCache::cache_path()
                .make_preferred().string();
 }
 
+std::string SystemPresetsCache::bundled_cache_path()
+{
+    return (boost::filesystem::path(resources_dir()) / "profiles" / "system_presets_cache.cache")
+               .make_preferred().string();
+}
+
 bool SystemPresetsCache::is_valid(const std::string& system_dir) const
 {
     if (format_version != FORMAT_VERSION)

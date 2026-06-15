@@ -115,6 +115,11 @@ if(ORCA_TOOLS)
     endif()
     target_link_libraries(OrcaSlicer_profile_validator libslic3r boost_headeronly libcurl OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(OrcaSlicer_profile_validator PRIVATE -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
+
+    # generate_system_cache: pre-generates resources/profiles/system_presets_cache.cache for CI bundling.
+    add_executable(generate_system_cache dev-utils/generate_system_cache.cpp)
+    target_link_libraries(generate_system_cache libslic3r boost_headeronly)
+    target_compile_definitions(generate_system_cache PRIVATE -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
 endif()
 
 # Create a slic3r executable
