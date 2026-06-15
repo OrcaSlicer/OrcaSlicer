@@ -413,4 +413,152 @@ void PlateMapping::patch_plate_data_for_export(
                             << " (source=" << (use_lngr ? "LNGR" : "sequential") << ", Tier 2)";
 }
 
+void PlateMapping::handle_h2c_mapping_apply(
+    Slic3r::Print* print,
+    Slic3r::DynamicPrintConfig& new_full_config,
+    const Slic3r::DynamicPrintConfig& old_full_config
+)
+{
+    if (!print || !is_h2c_multi_nozzle(print)) return;
+
+    auto opt_new_nozzle_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map");
+    auto opt_old_nozzle_map = old_full_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map");
+    if (!opt_new_nozzle_map || !opt_old_nozzle_map) return;
+
+    // 1. Detect if filament presets, types, or colors changed
+    bool presets_changed = false;
+    auto opt_new_presets = new_full_config.option<Slic3r::ConfigOptionStrings>("filament_settings_id");
+    auto opt_old_presets = old_full_config.option<Slic3r::ConfigOptionStrings>("filament_settings_id");
+    if (opt_new_presets && opt_old_presets && opt_new_presets->values != opt_old_presets->values) {
+        presets_changed = true;
+    }
+    auto opt_new_types = new_full_config.option<Slic3r::ConfigOptionStrings>("filament_type");
+    auto opt_old_types = old_full_config.option<Slic3r::ConfigOptionStrings>("filament_type");
+    if (opt_new_types && opt_old_types && opt_new_types->values != opt_old_types->values) {
+        presets_changed = true;
+    }
+    auto opt_new_colors = new_full_config.option<Slic3r::ConfigOptionStrings>("filament_colour");
+    auto opt_old_colors = old_full_config.option<Slic3r::ConfigOptionStrings>("filament_colour");
+    if (opt_new_colors && opt_old_colors && opt_new_colors->values != opt_old_colors->values) {
+        presets_changed = true;
+    }
+
+    if (presets_changed) {
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Filament presets/properties changed. Invalidating and clearing old filament maps.";
+        
+        // Reset mapping values in incoming config to trigger cyclic reset and full recalculation
+        std::fill(opt_new_nozzle_map->values.begin(), opt_new_nozzle_map->values.end(), 0);
+        
+        auto opt_new_filament_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_map");
+        if (opt_new_filament_map) {
+            std::fill(opt_new_filament_map->values.begin(), opt_new_filament_map->values.end(), 0);
+        }
+        auto opt_new_volume_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_volume_map");
+        if (opt_new_volume_map) {
+            std::fill(opt_new_volume_map->values.begin(), opt_new_volume_map->values.end(), 0);
+        }
+        
+        // Reset cached nozzle group result in print
+        print->set_nozzle_group_result(nullptr);
+    }
+
+    // 2. Perform preservation or cyclic fallback
+    auto is_all_zeros = [](const std::vector<int>& v) {
+        for (int val : v) {
+            if (val != 0) return false;
+        }
+        return true;
+    };
+
+    if (is_all_zeros(opt_new_nozzle_map->values)) {
+        if (!presets_changed && !is_all_zeros(opt_old_nozzle_map->values) &&
+            opt_new_nozzle_map->values.size() == opt_old_nozzle_map->values.size()) {
+            
+            auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Preserving calculated filament mappings: nozzle_map="
+                                       << fmt(opt_old_nozzle_map->values);
+
+            opt_new_nozzle_map->values = opt_old_nozzle_map->values;
+
+            auto map_mode_opt = new_full_config.option<Slic3r::ConfigOptionEnum<Slic3r::FilamentMapMode>>("filament_map_mode");
+            bool is_manual = map_mode_opt && (map_mode_opt->value == Slic3r::FilamentMapMode::fmmManual || map_mode_opt->value == Slic3r::FilamentMapMode::fmmNozzleManual);
+            if (!is_manual) {
+                auto opt_new_filament_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_map");
+                auto opt_old_filament_map = old_full_config.option<Slic3r::ConfigOptionInts>("filament_map");
+                if (opt_new_filament_map && opt_old_filament_map &&
+                    opt_new_filament_map->values.size() == opt_old_filament_map->values.size()) {
+                    opt_new_filament_map->values = opt_old_filament_map->values;
+                }
+
+                auto opt_new_volume_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_volume_map");
+                auto opt_old_volume_map = old_full_config.option<Slic3r::ConfigOptionInts>("filament_volume_map");
+                if (opt_new_volume_map && opt_old_volume_map &&
+                    opt_new_volume_map->values.size() == opt_old_volume_map->values.size()) {
+                    opt_new_volume_map->values = opt_old_volume_map->values;
+                }
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Manual filament mapping active. Keeping user-specified filament_map and filament_volume_map.";
+            }
+        } else {
+            // Otherwise (clean start), initialize cyclic nozzle assignment on the Vortek carousel.
+            int nozzle_count = 2;
+            auto opt_max_nozzles = new_full_config.option<Slic3r::ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+            if (opt_max_nozzles && !opt_max_nozzles->values.empty()) {
+                for (int val : opt_max_nozzles->values) {
+                    if (val > 1) {
+                        nozzle_count = val;
+                        break;
+                    }
+                }
+            }
+            for (size_t i = 0; i < opt_new_nozzle_map->values.size(); ++i) {
+                opt_new_nozzle_map->values[i] = i % nozzle_count;
+            }
+            {
+                auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Initializing zero filament nozzle map with cyclic mapping: "
+                                           << fmt(opt_new_nozzle_map->values) << " (nozzle_count=" << nozzle_count << ")";
+            }
+        }
+    }
+}
+
+void PlateMapping::handle_h2c_print_diff(
+    Slic3r::Print* print,
+    Slic3r::PrintConfig& config,
+    Slic3r::DynamicPrintConfig& full_print_config,
+    const Slic3r::DynamicPrintConfig& new_full_config,
+    std::unordered_set<std::string>& print_diff_set
+)
+{
+    if (!print || !is_h2c_multi_nozzle(print)) return;
+
+    if (print_diff_set.find("filament_map") != print_diff_set.end()) {
+        print_diff_set.erase("filament_map");
+        auto opt_new = new_full_config.option<Slic3r::ConfigOptionInts>("filament_map");
+        if (opt_new) {
+            full_print_config.option<Slic3r::ConfigOptionInts>("filament_map", true)->set(opt_new);
+            config.filament_map = *opt_new;
+        }
+    }
+    if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
+        print_diff_set.erase("filament_volume_map");
+        auto opt_new = new_full_config.option<Slic3r::ConfigOptionInts>("filament_volume_map");
+        if (opt_new) {
+            full_print_config.option<Slic3r::ConfigOptionInts>("filament_volume_map", true)->set(opt_new);
+            config.filament_volume_map = *opt_new;
+        }
+    }
+    if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
+        print_diff_set.erase("filament_nozzle_map");
+        auto opt_new = new_full_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map");
+        if (opt_new) {
+            full_print_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map", true)->set(opt_new);
+            config.filament_nozzle_map = *opt_new;
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C active: synced filament_nozzle_map to m_config: "
+                                       << opt_new->serialize();
+        }
+    }
+}
+
 } // namespace Vortek

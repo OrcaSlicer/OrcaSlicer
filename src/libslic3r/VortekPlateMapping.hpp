@@ -3,11 +3,13 @@
 
 #include <vector>
 #include <string>
+#include <unordered_set>
 #include "PrintConfig.hpp"
 
 namespace Slic3r {
     class Print;
     class DynamicPrintConfig;
+    class PrintConfig;
     struct GCodeProcessorResult;
     class PresetBundle;
     class DynamicConfig;
@@ -111,6 +113,28 @@ public:
         const std::vector<int>& filament_maps,
         const Slic3r::DynamicPrintConfig& config,
         const Slic3r::Print* print = nullptr
+    );
+
+    /**
+     * @brief H2C Vortek: Handles H2C filament map preservation, validation,
+     * and automatic recalculation/invalidation when presets/properties change.
+     */
+    static void handle_h2c_mapping_apply(
+        Slic3r::Print* print,
+        Slic3r::DynamicPrintConfig& new_full_config,
+        const Slic3r::DynamicPrintConfig& old_full_config
+    );
+
+    /**
+     * @brief H2C Vortek: Handles H2C print diff suppression. Removes mapped parameters
+     * from print_diff_set to prevent unnecessary invalidation while syncing values.
+     */
+    static void handle_h2c_print_diff(
+        Slic3r::Print* print,
+        Slic3r::PrintConfig& config,
+        Slic3r::DynamicPrintConfig& full_print_config,
+        const Slic3r::DynamicPrintConfig& new_full_config,
+        std::unordered_set<std::string>& print_diff_set
     );
 };
 
