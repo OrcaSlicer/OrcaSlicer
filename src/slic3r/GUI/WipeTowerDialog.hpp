@@ -69,6 +69,7 @@ private:
 
 class StaticBox;
 
+// Ref: Adapted from BambuStudio's PurgeModeDialog (see src/slic3r/GUI/PurgeModeDialog.hpp in BBS)
 class PurgeModeDialog : public wxDialog
 {
 public:

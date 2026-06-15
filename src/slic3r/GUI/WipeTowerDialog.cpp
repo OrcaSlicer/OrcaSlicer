@@ -608,6 +608,7 @@ std::vector<double> WipingDialog::GetMultipliers()const
     return m_flush_multipliers;
 }
 
+// Ref: Adapted from BambuStudio's PurgeModeDialog (see src/slic3r/GUI/PurgeModeDialog.cpp in BBS)
 PurgeModeDialog::PurgeModeDialog(wxWindow* parent, Slic3r::PrimeVolumeMode mode)
     : wxDialog(parent, wxID_ANY, _L("Purge Mode Settings"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE),
       m_mode(mode)

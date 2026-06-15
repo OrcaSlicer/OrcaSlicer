@@ -2783,6 +2783,7 @@ void GCodeProcessor::initialize_from_context(const MultiNozzleUtils::LayeredNozz
 {
     m_nozzle_group_result = std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(nozzle_group_result);
     m_result.nozzle_group_result = m_nozzle_group_result;
+    // Ref: Adapted from BambuStudio's GCodeProcessor::initialize_from_context (see src/libslic3r/GCode/GCodeProcessor.cpp in BBS)
     Vortek::WipeTower::initialize_nozzle_status(m_nozzle_status_recorder, *m_nozzle_group_result, m_print);
 }
 
@@ -5775,6 +5776,7 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
     }
     else {
         // BBL parity: nozzle_group_result path (H2C/H2S multi-nozzle)
+        // Ref: Adapted from BambuStudio's GCodeProcessor::process_filament_change (see src/libslic3r/GCode/GCodeProcessor.cpp in BBS)
         // Rewritten to match BambuStudio 2.7-beta process_filament_change.
         int next_filament_id = id;
 

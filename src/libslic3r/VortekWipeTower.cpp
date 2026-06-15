@@ -51,6 +51,8 @@ bool WipeTower::is_h2c_printer(const std::string& printer_model)
     return printer_model == "Bambu Lab H2C";
 }
 
+// Ref: Adapted from BambuStudio's GCodeProcessor::process_filament_change (see src/libslic3r/GCode/GCodeProcessor.cpp in BBS)
+// Calculates load/unload times specifically for H2C multi-nozzle system.
 FilamentChangeTimeResult WipeTower::calculate_filament_change_time(
     const std::string& printer_model,
     int new_extruder_id,
@@ -334,6 +336,7 @@ bool WipeTower::is_same_nozzle(const Slic3r::WipeTower& tower, int filament_id_1
     return tower.m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
 }
 
+// Ref: Adapted from BambuStudio's GCodeProcessor::initialize_from_context (see src/libslic3r/GCode/GCodeProcessor.cpp in BBS)
 void WipeTower::initialize_nozzle_status(
     Slic3r::MultiNozzleUtils::NozzleStatusRecorder& recorder,
     const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result,
