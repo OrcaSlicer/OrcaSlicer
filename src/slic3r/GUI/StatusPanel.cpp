@@ -685,7 +685,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     #endif
 
 
-    m_staticText_progress_left = new wxStaticText(penel_text, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_progress_left = new wxStaticText(penel_text, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_progress_left->Wrap(-1);
     m_staticText_progress_left->SetFont(wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
     m_staticText_progress_left->SetForegroundColour(wxColour(146, 146, 146));
@@ -787,7 +787,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_printing_stage_panel->SetSizer(printingstage_vertical_sizer);
 
     // Orca: display the end time of the print
-    m_staticText_progress_end = new wxStaticText(penel_finish_time, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_progress_end = new wxStaticText(penel_finish_time, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_progress_end->Wrap(-1);
     m_staticText_progress_end->SetFont(
         wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
