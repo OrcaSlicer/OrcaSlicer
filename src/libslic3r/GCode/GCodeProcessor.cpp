@@ -5832,19 +5832,43 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         // BBL parity: combined condition — ONE unload + ONE load
         // (not separate if-blocks, which would double-count when both are true)
         bool perform_static_time_calc = nozzle_in_extruder_change || filament_in_nozzle_change;
-        // H2C Vortek: H2C printer has independent nozzles on a single extruder, so nozzle switches
-        // within the same extruder do not require filament unloading/loading.
         if (m_printer_model == "Bambu Lab H2C") {
-            perform_static_time_calc = filament_in_nozzle_change;
-        }
-        if (perform_static_time_calc) {
-            if (old_filament_in_extruder >= 0)
-                extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
-            m_time_processor.extruder_unloaded = false;
-            extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+            // H2C has two physical extruders: 
+            // Left extruder (id=0) has 1 physical nozzle.
+            // Right extruder (id=1) has 1 physical Vortek nozzle fed by AMS.
+            // Therefore, any filament change on the right extruder requires physical AMS unloading/loading.
+            if (new_extruder_id == 1) {
+                int last_filament = m_filament_id[1] == (unsigned char)(-1) ? -1 : (int)m_filament_id[1];
+                perform_static_time_calc = (last_filament != next_filament_id);
+                if (perform_static_time_calc) {
+                    if (last_filament >= 0)
+                        extra_time += get_filament_unload_time(static_cast<size_t>(last_filament));
+                    m_time_processor.extruder_unloaded = false;
+                    extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+                    if (last_filament != -1)
+                        m_result.print_statistics.total_flush_filament_changes++;
+                }
+            } else {
+                perform_static_time_calc = filament_in_nozzle_change;
+                if (perform_static_time_calc) {
+                    if (old_filament_in_extruder >= 0)
+                        extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
+                    m_time_processor.extruder_unloaded = false;
+                    extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+                    if (old_filament_in_nozzle != -1)
+                        m_result.print_statistics.total_flush_filament_changes++;
+                }
+            }
+        } else {
+            if (perform_static_time_calc) {
+                if (old_filament_in_extruder >= 0)
+                    extra_time += get_filament_unload_time(static_cast<size_t>(old_filament_in_extruder));
+                m_time_processor.extruder_unloaded = false;
+                extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
 
-            if (filament_in_nozzle_change && old_filament_in_nozzle != -1)
-                m_result.print_statistics.total_flush_filament_changes++;
+                if (filament_in_nozzle_change && old_filament_in_nozzle != -1)
+                    m_result.print_statistics.total_flush_filament_changes++;
+            }
         }
         BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] perform_static_time_calc=" << perform_static_time_calc
             << " extra_time=" << extra_time;
