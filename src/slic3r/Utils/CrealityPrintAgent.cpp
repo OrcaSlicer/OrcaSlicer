@@ -91,7 +91,12 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
     }
 
     if (matches.empty()) {
-        const std::string fallback = filaments.filament_id_by_type(base_type);
+        // No brand/vendor match. Resolve to a generic OrcaFilamentLibrary preset by
+        // type. filament_id_by_type() would fall through to first_visible_idx() when
+        // no system base of this type is visible/compatible, returning an arbitrary
+        // preset (e.g. an ABS spool resolving to "Generic TPU 64D"). The explicit
+        // type→generic-id map can't drift to an unrelated material.
+        const std::string fallback = map_filament_type_to_generic_id(base_type);
         const bool        fallback_ok = has_visible_base_preset(filaments, fallback);
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no preset scored for spool {" << vendor << " "
@@ -105,7 +110,17 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
               [](const Match& a, const Match& b) {
                   if (a.score   != b.score)   return a.score > b.score;
                   if (a.is_user != b.is_user) return !a.is_user; // prefer system over user
-                  return false;
+                  // Deterministic tiebreak: prefer the plainest preset. A generic
+                  // spool ("Generic PLA") matches every variant equally — "Generic
+                  // PLA", "Generic PLA Matte", "Generic PLA High Speed", ... all
+                  // score the same. The variant carries extra modifier tokens, so
+                  // the shortest name is the unmodified base the user actually means.
+                  // Length first, then lexicographic, so the order is fully stable
+                  // regardless of std::sort internals (the previous `return false`
+                  // left ties in arbitrary order → random Matte/High Speed picks).
+                  if (a.preset->name.size() != b.preset->name.size())
+                      return a.preset->name.size() < b.preset->name.size();
+                  return a.preset->name < b.preset->name;
               });
 
     BOOST_LOG_TRIVIAL(info)
