@@ -115,6 +115,11 @@ public:
 
         NozzleChangeResult nozzle_change_result;
 
+        // H2C: when true, the target nozzle already holds the correct filament.
+        // No firmware-level nozzle change (M632/M633/change_filament_gcode) needed.
+        // append_tcr2 should emit only a T-code for writer state update.
+        bool nozzle_already_loaded = false;
+
 		// Sum the total length of the extrusion.
 		float total_extrusion_length_in_plane() {
 			float e_length = 0.f;
@@ -128,6 +133,7 @@ public:
 			return e_length;
 		}
 		bool force_travel = false;
+
 	};
 
     struct box_coordinates
@@ -191,7 +197,7 @@ public:
 
 	// Appends into internal structure m_plan containing info about the future wipe tower
 	// to be used before building begins. The entries must be added ordered in z.
-    void plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool, unsigned int new_tool, float wipe_volume_ec = 0.f, float wipe_volume_nc = 0.f, float prime_volume = 0.f);
+    void plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool, unsigned int new_tool, float wipe_volume_ec = 0.f, float wipe_volume_nc = 0.f, float prime_volume = 0.f, bool nozzle_already_loaded = false);
 
 	// Iterates through prepared m_plan, generates ToolChangeResults and appends them to "result"
 	void generate(std::vector<std::vector<ToolChangeResult>> &result);
@@ -582,7 +588,7 @@ private:
 
     // to store information about tool changes for a given layer
 	struct WipeTowerInfo{
-		struct ToolChange {
+	    struct ToolChange {
             size_t old_tool;
             size_t new_tool;
 			float required_depth;
@@ -594,6 +600,8 @@ private:
             float nozzle_change_length{0};
 			// BBS
 			float purge_volume;
+            // H2C: nozzle already holds the correct filament — no ramming/M632 needed
+            bool  nozzle_already_loaded{false};
             ToolChange(size_t old, size_t newtool, float depth=0.f, float ramming_depth=0.f, float fwl=0.f, float wv=0.f, float wl = 0, float pv = 0)
 				: old_tool{ old }, new_tool{ newtool }, required_depth{ depth }, ramming_depth{ ramming_depth }, first_wipe_line{ fwl }, wipe_volume{ wv }, wipe_length{ wl }, purge_volume{ pv } {}
 		};

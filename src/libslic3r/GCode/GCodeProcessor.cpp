@@ -21,6 +21,7 @@
 #include "libslic3r/format.hpp"
 #include "GCodeProcessor.hpp"
 #include "libslic3r/VortekPreCooling.hpp"
+#include "libslic3r/VortekWipeTower.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -2782,6 +2783,7 @@ void GCodeProcessor::initialize_from_context(const MultiNozzleUtils::LayeredNozz
 {
     m_nozzle_group_result = std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(nozzle_group_result);
     m_result.nozzle_group_result = m_nozzle_group_result;
+    Vortek::WipeTower::initialize_nozzle_status(m_nozzle_status_recorder, *m_nozzle_group_result);
 }
 
 
@@ -2819,7 +2821,7 @@ void GCodeProcessor::finalize(bool post_process)
 
     update_estimated_times_stats();
 
-    m_result.initial_layer_time = get_first_layer_time(PrintEstimatedStatistics::ETimeMode::Normal);
+    m_result.initial_layer_time = std::max(0.0f, get_first_layer_time(PrintEstimatedStatistics::ETimeMode::Normal) - get_prepare_time(PrintEstimatedStatistics::ETimeMode::Normal));
 
     if (post_process){
         run_post_process();
@@ -5803,6 +5805,20 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         bool nozzle_in_extruder_change = (new_nozzle_id_in_extruder != old_nozzle_id_in_extruder);
         bool filament_in_nozzle_change = (next_filament_id != old_filament_in_nozzle);
 
+        BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] process_filament_change:"
+            << " next_filament=" << next_filament_id
+            << " prev_filament=" << prev_filament_id
+            << " new_extruder=" << new_extruder_id
+            << " old_extruder=" << old_extruder_id
+            << " new_nozzle=" << new_nozzle_id_in_extruder
+            << " old_nozzle_in_ext=" << old_nozzle_id_in_extruder
+            << " old_filament_in_nozzle=" << old_filament_in_nozzle
+            << " old_filament_in_extruder=" << old_filament_in_extruder
+            << " extruder_change=" << extruder_change
+            << " nozzle_change=" << nozzle_in_extruder_change
+            << " filament_change=" << filament_in_nozzle_change
+            << " printer_model=" << m_printer_model;
+
         m_result.lock();
         // Extruder change time (e.g. dual-extruder swap)
         if (extruder_change && old_extruder_id != -1) {
@@ -5830,6 +5846,8 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
             if (filament_in_nozzle_change && old_filament_in_nozzle != -1)
                 m_result.print_statistics.total_flush_filament_changes++;
         }
+        BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] perform_static_time_calc=" << perform_static_time_calc
+            << " extra_time=" << extra_time;
         // Note: hotend_change_time is NOT added here — it's already accounted
         // for in SYNC gcode commands emitted by the firmware template.
 

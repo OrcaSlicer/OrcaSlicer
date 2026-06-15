@@ -252,4 +252,56 @@ bool WipeTower::is_same_nozzle(const Slic3r::WipeTower& tower, int filament_id_1
     return tower.m_multi_nozzle_group_result->are_filaments_same_nozzle(filament_id_1, filament_id_2, layer_id);
 }
 
+void WipeTower::initialize_nozzle_status(
+    Slic3r::MultiNozzleUtils::NozzleStatusRecorder& recorder,
+    const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result)
+{
+    std::set<int> initialized_nozzles;
+
+    // Collect filament IDs to seed from: prefer per-layer sequences, fall back to used_filaments.
+    // The 3-arg LayeredNozzleGroupResult::create() does NOT populate _layer_filament_sequences,
+    // so the recorder would remain empty — causing get_filament_in_nozzle() to always return -1
+    // and filament_in_nozzle_change to be true on every tool change, adding spurious 56s penalties.
+    const auto& layer_seqs = group_result.get_layer_filament_sequences();
+    if (!layer_seqs.empty()) {
+        for (const auto& seq : layer_seqs) {
+            for (const auto filament_id : seq) {
+                auto nozzle_info = group_result.get_nozzle_for_filament(filament_id, 0);
+                if (nozzle_info) {
+                    int nozzle_id = nozzle_info->group_id;
+                    if (initialized_nozzles.find(nozzle_id) == initialized_nozzles.end()) {
+                        recorder.set_nozzle_status(nozzle_id, filament_id, nozzle_info->extruder_id);
+                        initialized_nozzles.insert(nozzle_id);
+                    }
+                }
+            }
+        }
+    } else {
+        // Fallback: layer sequences are empty (3-arg create path).
+        // Seed from used_filaments via the default nozzle map.
+        for (const auto filament_id : group_result.get_used_filaments()) {
+            auto nozzle_info = group_result.get_nozzle_for_filament(static_cast<int>(filament_id));
+            if (nozzle_info) {
+                int nozzle_id = nozzle_info->group_id;
+                if (initialized_nozzles.find(nozzle_id) == initialized_nozzles.end()) {
+                    recorder.set_nozzle_status(nozzle_id, static_cast<int>(filament_id), nozzle_info->extruder_id);
+                    initialized_nozzles.insert(nozzle_id);
+                }
+            }
+        }
+    }
+}
+
+void WipeTower::adjust_prime_volumes(
+    int prev_nozzle_filament,
+    int new_filament_id,
+    float& wipe_volume_ec,
+    float& wipe_volume_nc)
+{
+    if (prev_nozzle_filament == new_filament_id) {
+        wipe_volume_ec = 0.f;
+        wipe_volume_nc = 0.f;
+    }
+}
+
 } // namespace Vortek

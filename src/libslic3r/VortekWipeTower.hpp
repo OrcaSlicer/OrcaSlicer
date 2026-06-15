@@ -72,6 +72,24 @@ public:
      * @brief Checks if two filaments map to the same physical nozzle.
      */
     static bool is_same_nozzle(const Slic3r::WipeTower& tower, int filament_id_1, int filament_id_2, int layer_id);
+
+    /**
+     * @brief Initializes NozzleStatusRecorder with the starting filament for each nozzle.
+     */
+    static void initialize_nozzle_status(
+        Slic3r::MultiNozzleUtils::NozzleStatusRecorder& recorder,
+        const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result
+    );
+
+    /**
+     * @brief Overrides prime volumes to 0 if the target nozzle already contains the requested filament.
+     */
+    static void adjust_prime_volumes(
+        int prev_nozzle_filament,
+        int new_filament_id,
+        float& wipe_volume_ec,
+        float& wipe_volume_nc
+    );
 };
 
 } // namespace Vortek

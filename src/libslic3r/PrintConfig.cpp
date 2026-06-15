@@ -12204,7 +12204,8 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
                                "travel_point_1_x", "travel_point_1_y", "travel_point_2_x", "travel_point_2_y", "travel_point_3_x",
                                "travel_point_3_y", "x_after_toolchange", "y_after_toolchange", "z_after_toolchange",
                                // H2C dual-nozzle placeholders (BBL change_filament_gcode template).
-                               "next_hotend", "old_extruder_variant", "new_extruder_variant", "flush_length"}},
+                               "next_hotend", "old_extruder_variant", "new_extruder_variant", "flush_length",
+                               "flush_length_a0", "flush_length_a1"}},
     {"change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"filament_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"process_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
@@ -12279,6 +12280,8 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("old_extruder_variant", coString, "Old extruder variant", "Variant string of the extruder being unloaded (e.g. \"Direct Drive Standard\", \"Direct Drive TPU High Flow\"). Empty on cold start.");
     new_def("new_extruder_variant", coString, "New extruder variant", "Variant string of the extruder being loaded.");
     new_def("flush_length", coFloat, "Flush length", "Total flush length for the current toolchange (sum of partial flushes).");
+    new_def("flush_length_a0", coFloat, "Flush length A0", "Flush length for left nozzle (A0).");
+    new_def("flush_length_a1", coFloat, "Flush length A1", "Flush length for right nozzle (A1).");
 
 // change_extrusion_role_gcode
     std::string extrusion_role_types = "Possible Values:\n[\"Perimeter\", \"ExternalPerimeter\", "

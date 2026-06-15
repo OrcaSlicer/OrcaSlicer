@@ -126,6 +126,26 @@ static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int ho
     return is_bambu_x2d_printer(config) ? -1 : hotend_id;
 }
 
+static std::string patch_h2c_change_filament_gcode(const std::string &gcode_str) {
+    std::string result;
+    std::istringstream stream(gcode_str);
+    std::string line;
+    while (std::getline(stream, line)) {
+        if (line.find("M620.10") != std::string::npos) {
+            if (line.find("A0") != std::string::npos) {
+                boost::replace_all(line, "[flush_length]", "[flush_length_a0]");
+            } else if (line.find("A1") != std::string::npos) {
+                boost::replace_all(line, "[flush_length]", "[flush_length_a1]");
+            }
+        }
+        result += line + "\n";
+    }
+    if (!gcode_str.empty() && gcode_str.back() != '\n' && !result.empty() && result.back() == '\n') {
+        result.pop_back();
+    }
+    return result;
+}
+
 Vec2d travel_point_1;
 Vec2d travel_point_2;
 Vec2d travel_point_3;
@@ -1016,6 +1036,30 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));
                 config.set_key_value("filament_cooling_before_tower", new ConfigOptionFloats(filament_cooling_before_tower));
                 config.set_key_value("flush_length", new ConfigOptionFloat(purge_length));
+                float flush_length_a0 = purge_length;
+                float flush_length_a1 = purge_length;
+                const bool is_h2c_multi_nozzle = gcodegen.m_print && gcodegen.m_print->is_BBL_printer() &&
+                    (gcodegen.m_print->config().nozzle_diameter.size() > 1) &&
+                    (gcodegen.m_print->config().extruder_max_nozzle_count.values.size() > 1) &&
+                    (gcodegen.m_print->config().extruder_max_nozzle_count.values[1] > 1);
+                if (is_h2c_multi_nozzle) {
+                    int new_nozzle_id = -1;
+                    if (gcodegen.m_print) {
+                        auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
+                        if (gr)
+                            new_nozzle_id = gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index);
+                    }
+                    if (new_nozzle_id == 0) {
+                        flush_length_a0 = purge_length;
+                        flush_length_a1 = 0.f;
+                    } else if (new_nozzle_id == 1) {
+                        flush_length_a0 = 0.f;
+                        flush_length_a1 = purge_length;
+                    }
+                    change_filament_gcode = patch_h2c_change_filament_gcode(change_filament_gcode);
+                }
+                config.set_key_value("flush_length_a0", new ConfigOptionFloat(flush_length_a0));
+                config.set_key_value("flush_length_a1", new ConfigOptionFloat(flush_length_a1));
                 config.set_key_value("wipe_avoid_perimeter", new ConfigOptionBool(is_used_travel_avoid_perimeter));
                 config.set_key_value("wipe_avoid_pos_x", new ConfigOptionFloat(wipe_avoid_pos_x));
                 config.set_key_value("is_prime_tower_interface", new ConfigOptionBool(tcr.is_contact));
@@ -1283,7 +1327,22 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
                 toolchange_temp_override = interface_temp;
             }
-            toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override); // TODO: toolchange_z vs print_z
+
+            if (tcr.nozzle_already_loaded) {
+                // H2C: nozzle already holds the correct filament — skip the full
+                // set_extruder() which would invoke change_filament_gcode (M620/M632/M633).
+                // Only emit a T-code to update firmware and writer state.
+                int nozzle_id_for_tc = -1;
+                if (gcodegen.m_print) {
+                    auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
+                    if (gr)
+                        nozzle_id_for_tc = gr->get_nozzle_id(new_extruder_id, gcodegen.m_layer_index);
+                }
+                toolchange_gcode_str = gcodegen.writer().toolchange(new_extruder_id, nozzle_id_for_tc);
+                gcodegen.placeholder_parser().set("current_extruder", new_extruder_id);
+            } else {
+                toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override); // TODO: toolchange_z vs print_z
+            }
             if (gcodegen.config().enable_prime_tower) {
                 deretraction_str += gcodegen.writer().travel_to_z(z, "Force restore layer Z", true);
                 Vec3d position{gcodegen.writer().get_position()};
@@ -8491,6 +8550,29 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));
     dyn_config.set_key_value("filament_cooling_before_tower", new ConfigOptionFloats(filament_cooling_before_tower));
     dyn_config.set_key_value("flush_length", new ConfigOptionFloat(wipe_length));
+    float flush_length_a0 = wipe_length;
+    float flush_length_a1 = wipe_length;
+    const bool is_h2c_multi_nozzle = m_print && m_print->is_BBL_printer() &&
+        (m_print->config().nozzle_diameter.size() > 1) &&
+        (m_print->config().extruder_max_nozzle_count.values.size() > 1) &&
+        (m_print->config().extruder_max_nozzle_count.values[1] > 1);
+    if (is_h2c_multi_nozzle) {
+        int new_nozzle_id = -1;
+        if (m_print) {
+            auto gr = m_print->get_layered_nozzle_group_result();
+            if (gr)
+                new_nozzle_id = gr->get_nozzle_id(new_filament_id, m_layer_index);
+        }
+        if (new_nozzle_id == 0) {
+            flush_length_a0 = wipe_length;
+            flush_length_a1 = 0.f;
+        } else if (new_nozzle_id == 1) {
+            flush_length_a0 = 0.f;
+            flush_length_a1 = wipe_length;
+        }
+    }
+    dyn_config.set_key_value("flush_length_a0", new ConfigOptionFloat(flush_length_a0));
+    dyn_config.set_key_value("flush_length_a1", new ConfigOptionFloat(flush_length_a1));
 
     int flush_count = std::min(g_max_flush_count, (int)std::round(wipe_volume / g_purge_volume_one_time));
     float flush_unit = wipe_length / flush_count;
@@ -8509,6 +8591,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
     // Process the custom change_filament_gcode.
     std::string change_filament_gcode = m_config.change_filament_gcode.value;
+    if (is_h2c_multi_nozzle) {
+        change_filament_gcode = patch_h2c_change_filament_gcode(change_filament_gcode);
+    }
 
     // Move the lift gcode here which is in the change_filament_gcode originally
     change_filament_gcode = this->retract(false, false, LiftType::SpiralLift, true) + change_filament_gcode;

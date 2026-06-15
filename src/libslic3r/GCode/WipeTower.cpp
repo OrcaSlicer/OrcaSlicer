@@ -1683,7 +1683,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer(bool extrude_perimeter, bool
 // Appends a toolchange into m_plan and calculates neccessary depth of the corresponding box
 void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool,
                                 // unsigned int new_tool, float wipe_volume, float purge_volume)
-                                unsigned int new_tool, float wipe_volume_ec,float wipe_volume_nc,float purge_volume)
+                                unsigned int new_tool, float wipe_volume_ec,float wipe_volume_nc,float purge_volume, bool nozzle_already_loaded)
 {
 	assert(m_plan.empty() || m_plan.back().z <= z_par + WT_EPSILON);	// refuses to add a layer below the last one
     // H2C TODO
@@ -1743,7 +1743,11 @@ void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned in
     }
 
     float nozzle_change_depth = 0;
-    if (is_need_ramming(old_tool, new_tool, layer_id)) {
+    // H2C: skip ramming when nozzle already holds the correct filament.
+    // The toolchange entry is still created (with zero depth) to maintain
+    // synchronization with WipeTowerIntegration::tool_change() which expects
+    // a 1:1 mapping between plan entries and consumption calls.
+    if (!nozzle_already_loaded && is_need_ramming(old_tool, new_tool, layer_id)) {
         double e_flow                   = nozzle_change_extrusion_flow(layer_height_par);
         double length                   = filament_change_length_val / e_flow;
         int    nozzle_change_line_count = std::ceil(length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width));
@@ -1755,6 +1759,7 @@ void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned in
     }
     WipeTowerInfo::ToolChange tool_change = WipeTowerInfo::ToolChange(old_tool, new_tool, depth, 0.f, 0.f, wipe_volume, length_to_extrude, purge_volume);
     tool_change.nozzle_change_depth       = nozzle_change_depth;
+    tool_change.nozzle_already_loaded     = nozzle_already_loaded;
     m_plan.back().tool_changes.push_back(tool_change);
 #endif
 }
@@ -1944,10 +1949,12 @@ WipeTower::ToolChangeResult WipeTower::merge_tcr(WipeTower::ToolChangeResult& fi
     if (first.is_tool_change) {
         out.is_tool_change = true;
         out.tool_change_start_pos = first.tool_change_start_pos;
+        out.nozzle_already_loaded = first.nozzle_already_loaded;
     }
     else if (second.is_tool_change) {
         out.is_tool_change = true;
         out.tool_change_start_pos = second.tool_change_start_pos;
+        out.nozzle_already_loaded = second.nozzle_already_loaded;
     }
     else {
         out.is_tool_change = false;
@@ -2012,13 +2019,39 @@ void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
 WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool solid_toolchange, bool solid_nozzlechange)
 {
     m_nozzle_change_result.gcode.clear();
-    // Use dynamic nozzle topology (BBL: is_need_ramming) instead of static
-    // m_filament_map comparison. The static map fails when external spool maps
-    // both filaments to the same extruder; is_need_ramming delegates to
-    // LayeredNozzleGroupResult::are_filaments_same_nozzle() which knows the
-    // actual nozzle assignments.
+
+    size_t old_tool = m_current_tool;
+    float wipe_depth          = 0.f;
+    float wipe_length         = 0.f;
+    float purge_volume        = 0.f;
+    float nozzle_change_depth = 0.f;
+    int   nozzle_change_line_count = 0;
+    bool  nozzle_already_loaded = false;  // H2C: propagated from plan entry
+
+    // Read from plan entry FIRST — the plan is authoritative for what this
+    // toolchange should do (including whether ramming is needed).
+    if (new_tool != (unsigned int) (-1)) {
+        for (const auto &b : m_layer_info->tool_changes)
+            if (b.new_tool == new_tool) {
+                wipe_length           = b.wipe_length;
+                wipe_depth            = b.required_depth;
+                purge_volume          = b.purge_volume;
+                nozzle_change_depth   = b.nozzle_change_depth;
+                nozzle_already_loaded = b.nozzle_already_loaded;
+                if (has_tpu_filament())
+                    nozzle_change_line_count = ((b.nozzle_change_depth + WT_EPSILON) / m_nozzle_change_perimeter_width) / 2;
+                else
+                    nozzle_change_line_count = (b.nozzle_change_depth + WT_EPSILON) / m_nozzle_change_perimeter_width;
+                break;
+            }
+    }
+
+    // H2C: only call ramming if the plan actually reserved nozzle_change_depth.
+    // When nozzle_already_loaded was true in plan_toolchange, nozzle_change_depth
+    // is 0 — meaning no physical filament change is needed.
     bool hotend_change = false;
-    if (is_need_ramming(static_cast<int>(m_current_tool),
+    if (nozzle_change_depth > 0.f &&
+        is_need_ramming(static_cast<int>(m_current_tool),
                         static_cast<int>(new_tool),
                         static_cast<int>(m_cur_layer_id))) {
         hotend_change = is_same_extruder(static_cast<int>(m_current_tool),
@@ -2030,27 +2063,6 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
                                          !hotend_change);
     }
 
-    size_t old_tool = m_current_tool;
-    float wipe_depth          = 0.f;
-    float wipe_length         = 0.f;
-    float purge_volume        = 0.f;
-    float nozzle_change_depth = 0.f;
-    int   nozzle_change_line_count = 0;
-
-    if (new_tool != (unsigned int) (-1)) {
-        for (const auto &b : m_layer_info->tool_changes)
-            if (b.new_tool == new_tool) {
-                wipe_length         = b.wipe_length;
-                wipe_depth          = b.required_depth;
-                purge_volume        = b.purge_volume;
-                nozzle_change_depth = b.nozzle_change_depth;
-                if (has_tpu_filament())
-                    nozzle_change_line_count = ((b.nozzle_change_depth + WT_EPSILON) / m_nozzle_change_perimeter_width) / 2;
-                else
-                    nozzle_change_line_count = (b.nozzle_change_depth + WT_EPSILON) / m_nozzle_change_perimeter_width;
-                break;
-            }
-    }
 
     bool interface_layer = solid_toolchange && m_enable_tower_interface_features;
     if (interface_layer && new_tool < m_filpar.size()) {
@@ -2175,7 +2187,9 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
     if (m_current_tool < m_used_filament_length.size())
         m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
-    return construct_tcr(writer, false, old_tool, false, true, purge_volume, interface_layer);
+    ToolChangeResult tcr_result = construct_tcr(writer, false, old_tool, false, true, purge_volume, interface_layer);
+    tcr_result.nozzle_already_loaded = nozzle_already_loaded;
+    return tcr_result;
 }
 
 //for extruder change and nozzle change

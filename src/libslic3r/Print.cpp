@@ -14,6 +14,7 @@
 #include "GCode.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
+#include "VortekWipeTower.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
@@ -3450,9 +3451,7 @@ void Print::_make_wipe_tower()
 
         unsigned int old_filament_id = m_wipe_tower_data.tool_ordering.first_extruder();
         if (group_result) {
-            auto nozzle_info = group_result->get_nozzle_for_filament(old_filament_id, layer_idx);
-            if (nozzle_info)
-                nozzle_recorder.set_nozzle_status(nozzle_info->group_id, old_filament_id);
+            Vortek::WipeTower::initialize_nozzle_status(nozzle_recorder, *group_result);
         }
 
         for (auto& layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
@@ -3481,6 +3480,14 @@ void Print::_make_wipe_tower()
                     }
                 }
 
+                // H2C: detect if the target nozzle already holds the correct filament.
+                // When true, no ramming or nozzle-change is needed — only a minimal
+                // toolchange entry (zero depth) should be generated. We pass this flag
+                // to plan_toolchange instead of skipping it entirely, because
+                // WipeTowerIntegration expects a 1:1 mapping between plan entries
+                // and tool_change() calls.
+                bool nozzle_already_loaded = group_result && (prev_nozzle_filament == (int)filament_id);
+
                 float volume_to_purge = 0;
 
                 if (!nozzle_recorder.is_nozzle_empty(nozzle_id) && (int)filament_id != prev_nozzle_filament) {
@@ -3507,8 +3514,29 @@ void Print::_make_wipe_tower()
                     wipe_volume_ec = 15.f;
                     wipe_volume_nc = 15.f;
                 }
+                Vortek::WipeTower::adjust_prime_volumes(prev_nozzle_filament, filament_id, wipe_volume_ec, wipe_volume_nc);
+
+                // H2C: when nozzle already loaded, zero out everything — no purge,
+                // no prime, no ramming needed.
+                if (nozzle_already_loaded) {
+                    wipe_volume_ec = 0.f;
+                    wipe_volume_nc = 0.f;
+                    volume_to_purge = 0.f;
+                }
+
+                BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] plan_toolchange:"
+                    << " old=" << old_filament_id
+                    << " new=" << filament_id
+                    << " prev_nozzle_filament=" << prev_nozzle_filament
+                    << " nozzle_already_loaded=" << nozzle_already_loaded
+                    << " wipe_ec=" << wipe_volume_ec
+                    << " wipe_nc=" << wipe_volume_nc
+                    << " purge=" << volume_to_purge
+                    << " nozzle_id=" << nozzle_id
+                    << " extruder_id=" << extruder_id;
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, old_filament_id, filament_id,
-                                           wipe_volume_ec, wipe_volume_nc, volume_to_purge);
+                                           wipe_volume_ec, wipe_volume_nc, volume_to_purge, nozzle_already_loaded);
+
                 old_filament_id = filament_id;
 
                 nozzle_recorder.set_nozzle_status(nozzle_id, filament_id);
