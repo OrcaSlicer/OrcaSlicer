@@ -3451,7 +3451,7 @@ void Print::_make_wipe_tower()
 
         unsigned int old_filament_id = m_wipe_tower_data.tool_ordering.first_extruder();
         if (group_result) {
-            Vortek::WipeTower::initialize_nozzle_status(nozzle_recorder, *group_result);
+            Vortek::WipeTower::initialize_nozzle_status(nozzle_recorder, *group_result, this);
         }
 
         for (auto& layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
@@ -3790,6 +3790,7 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 {
     try {
         GCodeProcessor processor;
+        processor.set_print(this);
         GCodeProcessor::s_IsBBLPrinter = is_BBL_printer();
         if (result && result->nozzle_group_result)
             processor.initialize_from_context(*result->nozzle_group_result);

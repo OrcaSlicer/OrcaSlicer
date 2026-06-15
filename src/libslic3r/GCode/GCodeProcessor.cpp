@@ -2783,7 +2783,7 @@ void GCodeProcessor::initialize_from_context(const MultiNozzleUtils::LayeredNozz
 {
     m_nozzle_group_result = std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(nozzle_group_result);
     m_result.nozzle_group_result = m_nozzle_group_result;
-    Vortek::WipeTower::initialize_nozzle_status(m_nozzle_status_recorder, *m_nozzle_group_result);
+    Vortek::WipeTower::initialize_nozzle_status(m_nozzle_status_recorder, *m_nozzle_group_result, m_print);
 }
 
 
