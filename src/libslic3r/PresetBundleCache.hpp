@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include <map>
@@ -12,7 +12,6 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 
-#include "Preset.hpp"
 #include "PrintConfig.hpp"
 
 namespace Slic3r {
@@ -30,7 +29,7 @@ struct CachedPrinterVariant {
 
 struct CachedPrinterModel {
     std::string id, name, model_id, family;
-    int         technology = 0; // PrinterTechnology enum
+    int         technology = 0;
     std::vector<CachedPrinterVariant> variants;
     std::vector<std::string>          default_materials;
     std::vector<std::string>          not_support_bed_types;
@@ -62,12 +61,12 @@ struct CachedVendorProfile {
     }
 };
 
-// ---- Per-preset cache entry (shared by system and per-file caches) ----
+// ---- Per-preset cache entry ----
 
 struct CachedPreset {
-    int         type = 0; // Preset::Type
+    int         type = 0;
     std::string name, alias, file, version;
-    std::string vendor_id;   // reconstruct Preset::vendor pointer (system only)
+    std::string vendor_id;
     std::string filament_id, setting_id, description;
     std::string base_id, user_id, sync_info;
     long long   updated_time = 0;
@@ -87,7 +86,9 @@ struct CachedPreset {
 };
 
 // ---- System preset cache ----
-// Stored next to vendor JSONs: <data_dir>/system/system_presets_cache.bin
+// Single blob at <data_dir>/system/system_presets_cache.cache
+// Covers all vendor profiles and system presets.
+// Invalidated when any vendor version string changes or config option count changes.
 
 struct SystemPresetsCache {
     static constexpr uint32_t FORMAT_VERSION = 2;
@@ -124,47 +125,6 @@ struct SystemPresetsCache {
     bool load(const std::string& path);
     void save(const std::string& path) const;
 };
-
-// ---- Per-file preset cache ----
-// Each <name>.json gets a sibling <name>.cache file.
-// Invalidated when json or info mtime changes, or when the app binary changes.
-
-struct PresetFileCache {
-    static constexpr uint32_t FORMAT_VERSION = 1;
-
-    uint32_t format_version      = FORMAT_VERSION;
-    size_t   config_options_count = 0;
-    int64_t  json_mtime           = 0; // last_write_time of .json file
-    int64_t  info_mtime           = 0; // last_write_time of .info file (0 = doesn't exist)
-    CachedPreset preset;
-
-    template<class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(format_version, config_options_count, json_mtime, info_mtime, preset);
-    }
-
-    // Returns the path of the .cache file sibling to json_path.
-    static std::string cache_path_for(const std::string& json_path);
-
-    // Returns true when the stored mtimes still match the current filesystem state.
-    bool is_valid(const std::string& json_path) const;
-};
-
-// Pre-load cached presets from all valid .cache files found in dir_path.
-// Presets are inserted into coll via load_preset() so that a subsequent
-// load_presets() call will skip them.  Returns the count of presets loaded.
-int preload_file_caches(PresetCollection& coll, const std::string& dir_path,
-                        const PresetOrigin& origin);
-
-// Write (or overwrite) .cache files for presets in coll whose json .file is
-// inside dir_path and whose existing .cache (if any) is stale or missing.
-void update_file_caches(const PresetCollection& coll, const std::string& dir_path);
-
-// Write (or overwrite) the .cache file for a single preset immediately after
-// its .json has been written to disk.  Safe to call from Preset::save().
-// Does nothing for system, default, or project-embedded presets.
-void write_file_cache(const Preset& preset);
 
 } // namespace PresetBundleCache
 } // namespace Slic3r
