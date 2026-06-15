@@ -3486,7 +3486,10 @@ void Print::_make_wipe_tower()
                 // to plan_toolchange instead of skipping it entirely, because
                 // WipeTowerIntegration expects a 1:1 mapping between plan entries
                 // and tool_change() calls.
-                bool nozzle_already_loaded = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) && group_result && (prev_nozzle_filament == (int)filament_id);
+                bool nozzle_already_loaded = false;
+                if (Vortek::WipeTower::is_h2c_printer(this)) {
+                    nozzle_already_loaded = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) && group_result && (prev_nozzle_filament == (int)filament_id);
+                }
 
                 float volume_to_purge = 0;
 

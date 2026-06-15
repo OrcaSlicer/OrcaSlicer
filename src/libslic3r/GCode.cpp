@@ -1038,10 +1038,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("flush_length", new ConfigOptionFloat(purge_length));
                 float flush_length_a0 = purge_length;
                 float flush_length_a1 = purge_length;
-                const bool is_h2c_multi_nozzle = gcodegen.m_print && gcodegen.m_print->is_BBL_printer() &&
-                    (gcodegen.m_print->config().nozzle_diameter.size() > 1) &&
-                    (gcodegen.m_print->config().extruder_max_nozzle_count.values.size() > 1) &&
-                    (gcodegen.m_print->config().extruder_max_nozzle_count.values[1] > 1);
+                const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(gcodegen.m_print);
                 if (is_h2c_multi_nozzle) {
                     int new_nozzle_id = -1;
                     if (gcodegen.m_print) {

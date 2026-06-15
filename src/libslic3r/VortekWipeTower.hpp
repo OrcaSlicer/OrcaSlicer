@@ -12,6 +12,7 @@
 
 namespace Slic3r {
     class PrintConfig;
+    class Print;
 }
 
 namespace Vortek {
@@ -26,6 +27,12 @@ namespace Vortek {
  */
 class WipeTower {
 public:
+    /**
+     * @brief Checks if the active printer configuration corresponds to the H2C multi-nozzle printer.
+     */
+    static bool is_h2c_printer(const Slic3r::Print* print);
+    static bool is_h2c_printer(const Slic3r::PrintConfig& config);
+
     /**
      * @brief Initializes the WipeTower parameters from the PrintConfig.
      * @param tower Host WipeTower instance to configure.
@@ -78,7 +85,8 @@ public:
      */
     static void initialize_nozzle_status(
         Slic3r::MultiNozzleUtils::NozzleStatusRecorder& recorder,
-        const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result
+        const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result,
+        const Slic3r::Print* print = nullptr
     );
 
     /**

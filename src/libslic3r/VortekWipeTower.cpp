@@ -8,6 +8,7 @@
 #include "VortekWipeTower.hpp"
 #include "GCode/WipeTowerWriter.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "GCode/GCodeProcessor.hpp"
 
@@ -16,6 +17,22 @@
 #include <algorithm>
 
 namespace Vortek {
+
+bool WipeTower::is_h2c_printer(const Slic3r::Print* print)
+{
+    if (!print) return false;
+    return print->is_BBL_printer() &&
+           (print->config().nozzle_diameter.size() > 1) &&
+           (print->config().extruder_max_nozzle_count.values.size() > 1) &&
+           (print->config().extruder_max_nozzle_count.values[1] > 1);
+}
+
+bool WipeTower::is_h2c_printer(const Slic3r::PrintConfig& config)
+{
+    return (config.nozzle_diameter.size() > 1) &&
+           (config.extruder_max_nozzle_count.values.size() > 1) &&
+           (config.extruder_max_nozzle_count.values[1] > 1);
+}
 
 /**
  * @brief Initializes WipeTower instance variables using values from the print configuration.
@@ -254,8 +271,11 @@ bool WipeTower::is_same_nozzle(const Slic3r::WipeTower& tower, int filament_id_1
 
 void WipeTower::initialize_nozzle_status(
     Slic3r::MultiNozzleUtils::NozzleStatusRecorder& recorder,
-    const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result)
+    const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& group_result,
+    const Slic3r::Print* print)
 {
+    if (!is_h2c_printer(print)) return;
+
     std::set<int> initialized_nozzles;
 
     // Collect filament IDs to seed from: prefer per-layer sequences, fall back to used_filaments.
