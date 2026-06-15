@@ -124,9 +124,14 @@ std::string SystemPresetsCache::bundled_cache_path()
 
 bool SystemPresetsCache::is_valid(const std::string& system_dir) const
 {
-    if (format_version != FORMAT_VERSION)
-        return false;
-    if (config_options_count != print_config_def.options.size())
+    std::set<std::string> dummy;
+    return get_dirty_vendors(system_dir, dummy) && dummy.empty();
+}
+
+bool SystemPresetsCache::get_dirty_vendors(const std::string& system_dir, std::set<std::string>& out_dirty) const
+{
+    out_dirty.clear();
+    if (format_version != FORMAT_VERSION || config_options_count != print_config_def.options.size())
         return false;
     std::map<std::string, std::string> current;
     try {
@@ -143,12 +148,15 @@ bool SystemPresetsCache::is_valid(const std::string& system_dir) const
         BOOST_LOG_TRIVIAL(warning) << "PresetBundleCache: directory scan failed: " << e.what();
         return false;
     }
-    if (current.size() != vendor_versions.size())
-        return false;
+    // A vendor was removed from disk — safest to force a full re-parse.
+    for (const auto& [name, ver] : vendor_versions)
+        if (current.find(name) == current.end())
+            return false;
+    // Collect vendors with changed or new version strings.
     for (const auto& [name, ver] : current) {
         auto it = vendor_versions.find(name);
         if (it == vendor_versions.end() || it->second != ver)
-            return false;
+            out_dirty.insert(name);
     }
     return true;
 }
@@ -235,8 +243,15 @@ void SystemPresetsCache::capture(const PresetBundle& bundle, const std::string& 
 
 void SystemPresetsCache::apply(PresetBundle& bundle) const
 {
+    apply_partial(bundle, {});
+}
+
+void SystemPresetsCache::apply_partial(PresetBundle& bundle, const std::set<std::string>& skip_vendor_ids) const
+{
     bundle.reset(false);
     for (const auto& cvp : vendor_profiles) {
+        if (skip_vendor_ids.count(cvp.id))
+            continue;
         VendorProfile vp(cvp.id);
         vp.name              = cvp.name;
         vp.config_update_url = cvp.config_update_url;
@@ -273,10 +288,12 @@ void SystemPresetsCache::apply(PresetBundle& bundle) const
         bundle.vendors.emplace(cvp.id, std::move(vp));
     }
 
-    auto apply_col = [&bundle](const std::vector<CachedPreset>& cached,
-                               PresetCollection&                coll,
-                               bool                             is_filaments) {
+    auto apply_col = [&](const std::vector<CachedPreset>& cached,
+                         PresetCollection&                coll,
+                         bool                             is_filaments) {
         for (const auto& cp : cached) {
+            if (skip_vendor_ids.count(cp.vendor_id))
+                continue;
             Semver version;
             if (!cp.version.empty()) {
                 auto v = Semver::parse(cp.version);
@@ -284,13 +301,13 @@ void SystemPresetsCache::apply(PresetBundle& bundle) const
             }
             DynamicPrintConfig config = cp.config;
             Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), /*select=*/false, version);
-            p.is_system               = true;
-            p.is_visible              = cp.is_visible;
-            p.alias                   = cp.alias;
-            p.renamed_from            = cp.renamed_from;
-            p.filament_id             = cp.filament_id;
-            p.setting_id              = cp.setting_id;
-            p.description             = cp.description;
+            p.is_system                = true;
+            p.is_visible               = cp.is_visible;
+            p.alias                    = cp.alias;
+            p.renamed_from             = cp.renamed_from;
+            p.filament_id              = cp.filament_id;
+            p.setting_id               = cp.setting_id;
+            p.description              = cp.description;
             p.m_from_orca_filament_lib = cp.m_from_orca_filament_lib;
             if (!cp.vendor_id.empty()) {
                 auto it = bundle.vendors.find(cp.vendor_id);
@@ -307,9 +324,12 @@ void SystemPresetsCache::apply(PresetBundle& bundle) const
     apply_col(sla_print_presets,    bundle.sla_prints,    false);
     apply_col(sla_material_presets, bundle.sla_materials, false);
 
+    // config_maps and filament_id_maps are derived from ORCA_FILAMENT_LIBRARY.
+    // If that vendor is in skip_vendor_ids it will be re-loaded from JSON and will
+    // overwrite these; otherwise the cached values are still valid.
     bundle.m_config_maps      = config_maps;
     bundle.m_filament_id_maps = filament_id_maps;
-    // Caller must invoke bundle.update_system_maps() after this (it is private to PresetBundle).
+    // Caller must invoke bundle.update_system_maps() after all loading is done.
 }
 
 bool SystemPresetsCache::load(const std::string& path)

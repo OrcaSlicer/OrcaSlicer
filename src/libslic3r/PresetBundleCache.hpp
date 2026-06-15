@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include <cstdint>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -121,8 +122,14 @@ struct SystemPresetsCache {
     static std::string cache_path();
     static std::string bundled_cache_path();
     bool is_valid(const std::string& system_dir) const;
+    // Returns false on structural mismatch (full re-parse required).
+    // On true, populates out_dirty with vendor IDs whose version strings changed.
+    // Empty out_dirty means fully valid (cache hit, no re-parse needed).
+    bool get_dirty_vendors(const std::string& system_dir, std::set<std::string>& out_dirty) const;
     void capture(const PresetBundle& bundle, const std::string& system_dir);
     void apply(PresetBundle& bundle) const;
+    // Same as apply() but skips vendors listed in skip_vendor_ids and their presets.
+    void apply_partial(PresetBundle& bundle, const std::set<std::string>& skip_vendor_ids) const;
     bool load(const std::string& path);
     void save(const std::string& path) const;
 };

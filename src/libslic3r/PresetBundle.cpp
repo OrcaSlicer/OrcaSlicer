@@ -2261,45 +2261,59 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         dir = (boost::filesystem::path(data_dir())).make_preferred();
 
     // Try loading from binary cache first (skips JSON parsing on cache hit).
+    // partial_dirty_vendors is non-empty when some vendors changed but others are still cached.
+    std::set<std::string> partial_dirty_vendors;
     if (!validation_mode) {
         const auto t0 = std::chrono::steady_clock::now();
         PresetBundleCache::SystemPresetsCache cache;
         const std::string cache_file = PresetBundleCache::SystemPresetsCache::cache_path();
-        if (cache.load(cache_file) && cache.is_valid(dir.string())) {
-            cache.apply(*this);
-            update_system_maps();
-            const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - t0).count();
-            BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from cache in " << ms << " ms";
-            return {PresetsConfigSubstitutions{}, ""};
-        }
-
-        // Try bundled cache shipped with the installer (first launch, before user cache exists).
-        // Validates against resources/profiles/ — the same directory it was generated from in CI.
-        {
-            const std::string bundled_dir =
-                (boost::filesystem::path(resources_dir()) / "profiles").make_preferred().string();
-            PresetBundleCache::SystemPresetsCache bundled;
-            if (bundled.load(PresetBundleCache::SystemPresetsCache::bundled_cache_path()) &&
-                bundled.is_valid(bundled_dir)) {
-                bundled.apply(*this);
-                update_system_maps();
-                // Promote to user cache so subsequent launches skip this check.
-                bundled.save(cache_file);
-                const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    std::chrono::steady_clock::now() - t0).count();
-                BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from bundled cache in " << ms << " ms";
-                return {PresetsConfigSubstitutions{}, ""};
+        if (cache.load(cache_file)) {
+            std::set<std::string> dirty;
+            if (cache.get_dirty_vendors(dir.string(), dirty)) {
+                if (dirty.empty()) {
+                    // Full hit — every vendor is unchanged.
+                    cache.apply(*this);
+                    update_system_maps();
+                    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - t0).count();
+                    BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from cache in " << ms << " ms";
+                    return {PresetsConfigSubstitutions{}, ""};
+                }
+                // Partial hit — restore clean vendors from cache, re-parse only dirty ones.
+                BOOST_LOG_TRIVIAL(info) << "PresetBundle: partial cache hit, " << dirty.size()
+                                        << " vendor(s) changed — re-parsing those only";
+                cache.apply_partial(*this, dirty);
+                partial_dirty_vendors = std::move(dirty);
             }
+            // else: structural mismatch (format version or option count changed) → full re-parse.
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cache miss, falling back to JSON load";
+        if (partial_dirty_vendors.empty()) {
+            // No partial hit — try bundled cache shipped with the installer (first launch).
+            {
+                const std::string bundled_dir =
+                    (boost::filesystem::path(resources_dir()) / "profiles").make_preferred().string();
+                PresetBundleCache::SystemPresetsCache bundled;
+                if (bundled.load(PresetBundleCache::SystemPresetsCache::bundled_cache_path()) &&
+                    bundled.is_valid(bundled_dir)) {
+                    bundled.apply(*this);
+                    update_system_maps();
+                    // Promote to user cache so subsequent launches skip this check.
+                    bundled.save(cache_file);
+                    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - t0).count();
+                    BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from bundled cache in " << ms << " ms";
+                    return {PresetsConfigSubstitutions{}, ""};
+                }
+            }
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cache miss, falling back to JSON load";
+        }
     }
 
     const auto json_load_t0 = std::chrono::steady_clock::now();
     PresetsConfigSubstitutions  substitutions;
     std::string                 errors_cummulative;
-    bool                        first = true;
+    bool                        first = partial_dirty_vendors.empty(); // false in partial mode: clean vendors already applied
     std::vector<std::string> vendor_names;
     // store all vendor names in vendor_names
     for (auto& dir_entry : boost::filesystem::directory_iterator(dir)) {
@@ -2321,6 +2335,9 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     std::vector<std::string> other_vendors;
     other_vendors.reserve(vendor_names.size());
     for (auto& vn : vendor_names) {
+        // In partial mode, skip vendors already loaded from cache.
+        if (!partial_dirty_vendors.empty() && !partial_dirty_vendors.count(vn))
+            continue;
         if (vn == ORCA_FILAMENT_LIBRARY)
             orca_lib_vendor = vn;
         else if (!(validation_mode && !vendor_to_validate.empty() && vn != vendor_to_validate))
