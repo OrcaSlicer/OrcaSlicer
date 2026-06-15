@@ -31,6 +31,7 @@
 #include <wx/filefn.h>
 #include <wx/secretstore.h>
 #include <wx/stdpaths.h>
+#include <wx/app.h>
 #include <wx/utils.h>
 #include <wx/app.h>
 
@@ -1417,6 +1418,10 @@ void OrcaCloudServiceAgent::persist_refresh_token(const std::string& token)
         }
 
         compute_fallback_path();
+        if (refresh_fallback_path.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: no refresh-token storage path available; skipping file persistence";
+            return;
+        }
         wxFileName path(wxString::FromUTF8(refresh_fallback_path.c_str()));
         path.Normalize();
         if (!wxFileName::DirExists(path.GetPath())) {
@@ -2221,7 +2226,7 @@ bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::s
 void OrcaCloudServiceAgent::compute_fallback_path()
 {
     if (!refresh_fallback_path.empty()) return;
-    if (wxApp::GetInstance() == nullptr) {
+    if (wxTheApp == nullptr) {
         std::string d_dir = Slic3r::data_dir();
         if (d_dir.empty()) {
             d_dir = ".";
