@@ -4621,6 +4621,7 @@ struct Plater::priv
     }
 
     void process_validation_warning(StringObjectException const &warning) const;
+    void process_validation_warnings(const std::vector<StringObjectException> &warnings) const;
 
     bool background_processing_enabled() const {
 #ifdef SUPPORT_BACKGROUND_PROCESSING
@@ -7945,6 +7946,15 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
     }
 }
 
+void Plater::priv::process_validation_warnings(const std::vector<StringObjectException> &warnings) const
+{
+    // ValidateWarning stacks by text (m_multiple_types), so clear the stale set before re-adding.
+    notification_manager->close_notification_of_type(NotificationType::ValidateWarning);
+    for (const StringObjectException &warning : warnings)
+        if (!warning.string.empty())
+            process_validation_warning(warning);
+}
+
 
 // Update background processing thread from the current config and Model.
 // Returns a bitmask of UpdateBackgroundProcessReturnState.
@@ -8025,14 +8035,14 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         // The state of the Print changed, and it is non-zero. Let's validate it and give the user feedback on errors.
 
         //BBS: add is_warning logic
-        StringObjectException warning;
+        std::vector<StringObjectException> warnings;
         //BBS: refine seq-print logic
         Polygons polygons;
         std::vector<std::pair<Polygon, float>> height_polygons;
-        StringObjectException err = background_process.validate(&warning, &polygons, &height_polygons);
+        StringObjectException err = background_process.validate(&warnings, &polygons, &height_polygons);
         // update string by type
         q->post_process_string_object_exception(err);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warning=%2%")%err.string%warning.string;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%")%err.string%warnings.size();
 
         if (err.string.empty()) {
             this->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -8043,9 +8053,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             if (invalidated != Print::APPLY_STATUS_UNCHANGED && background_processing_enabled())
                 return_state |= UPDATE_BACKGROUND_PROCESS_RESTART;
 
-            // Pass a warning from validation and either show a notification,
-            // or hide the old one.
-            process_validation_warning(warning);
+            process_validation_warnings(warnings);
             if (printer_technology == ptFFF) {
                 view3D->get_canvas3d()->reset_sequential_print_clearance();
                 view3D->get_canvas3d()->set_as_dirty();
@@ -8058,7 +8066,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             // Show error as notification.
             notification_manager->push_validate_error_notification(err);
             //also update the warnings
-            process_validation_warning(warning);
+            process_validation_warnings(warnings);
             return_state |= UPDATE_BACKGROUND_PROCESS_INVALID;
             if (printer_technology == ptFFF) {
                 const Print* print = background_process.fff_print();
@@ -17689,14 +17697,14 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
     if (p->printer_technology == ptFFF) {
         //std::string plater_text = _u8L("An object is laid over the boundary of plate or exceeds the height limit.\n"
         //            "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume.");;
-        StringObjectException warning;
+        std::vector<StringObjectException> warnings;
         Polygons polygons;
         std::vector<std::pair<Polygon, float>> height_polygons;
         p->background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
-        StringObjectException err = p->background_process.validate(&warning, &polygons, &height_polygons);
+        StringObjectException err = p->background_process.validate(&warnings, &polygons, &height_polygons);
         // update string by type
         post_process_string_object_exception(err);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warning=%2%, model_fits %3%")%err.string%warning.string %model_fits;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%, model_fits %3%")%err.string%warnings.size() %model_fits;
 
         if (err.string.empty()) {
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -17704,9 +17712,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
             p->notification_manager->close_notification_of_type(NotificationType::ValidateError);
             p->notification_manager->bbl_close_3mf_warn_notification();
 
-            // Pass a warning from validation and either show a notification,
-            // or hide the old one.
-            p->process_validation_warning(warning);
+            p->process_validation_warnings(warnings);
             p->view3D->get_canvas3d()->reset_sequential_print_clearance();
             p->view3D->get_canvas3d()->set_as_dirty();
             p->view3D->get_canvas3d()->request_extra_frame();
@@ -17716,7 +17722,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(true);
             // Show error as notification.
             p->notification_manager->push_validate_error_notification(err);
-            p->process_validation_warning(warning);
+            p->process_validation_warnings(warnings);
             //model_fits = false;
             validate_error = true;
             p->view3D->get_canvas3d()->set_sequential_print_clearance_visible(true);
