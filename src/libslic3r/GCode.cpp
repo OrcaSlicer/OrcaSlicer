@@ -3839,15 +3839,17 @@ void GCode::export_layer_filaments(GCodeProcessorResult* result)
     for (size_t idx = 0; idx < m_sorted_layer_filaments.size(); ++idx) {
         for (auto f : m_sorted_layer_filaments[idx]) {
             int extruder_idx = filament_map[f] - 1;
-            if (prev_filament[extruder_idx] != -1 && f != prev_filament[extruder_idx]) {
-                std::pair<int, int> from_to_pair = { prev_filament[extruder_idx],f };
-                auto iter = result->filament_change_count_map.find(from_to_pair);
-                if (iter == result->filament_change_count_map.end())
-                    result->filament_change_count_map.emplace(from_to_pair, 1);
-                else
-                    iter->second += 1;
+            if (extruder_idx >= 0 && extruder_idx < (int)prev_filament.size()) {
+                if (prev_filament[extruder_idx] != -1 && f != prev_filament[extruder_idx]) {
+                    std::pair<int, int> from_to_pair = { prev_filament[extruder_idx], f };
+                    auto iter = result->filament_change_count_map.find(from_to_pair);
+                    if (iter == result->filament_change_count_map.end())
+                        result->filament_change_count_map.emplace(from_to_pair, 1);
+                    else
+                        iter->second += 1;
+                }
+                prev_filament[extruder_idx] = f;
             }
-            prev_filament[extruder_idx] = f;
         }
 
         // now we do not need sorted data, so we sort the filaments in id order

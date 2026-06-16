@@ -2137,7 +2137,14 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     filament_map.resize(filament_count, config.master_extruder_id.value);
 
     for (size_t i = 0; i < filament_count; ++ i) {
-        m_extruder_offsets[i] = to_3d(config.extruder_offset.get_at(filament_map[i] - 1).cast<float>().eval(), 0.f);
+        int idx = filament_map[i] - 1;
+        if (idx < 0 || idx >= (int)config.extruder_offset.size()) {
+            idx = std::max(0, (int)config.master_extruder_id.value - 1);
+            if (idx >= (int)config.extruder_offset.size()) {
+                idx = 0;
+            }
+        }
+        m_extruder_offsets[i] = to_3d(config.extruder_offset.get_at(idx).cast<float>().eval(), 0.f);
         m_extruder_colors[i]            = static_cast<unsigned char>(i);
         m_filament_nozzle_temp_first_layer[i] = static_cast<int>(config.nozzle_temperature_initial_layer.get_at(i));
         m_filament_nozzle_temp[i]      = static_cast<int>(config.nozzle_temperature.get_at(i));
@@ -2203,7 +2210,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     auto filament_maps = config.option<ConfigOptionInts>("filament_map");
     if (filament_maps != nullptr) {
         m_filament_maps = filament_maps->values;
-        std::transform(m_filament_maps.begin(), m_filament_maps.end(), m_filament_maps.begin(), [](int value) {return value - 1; });
+        std::transform(m_filament_maps.begin(), m_filament_maps.end(), m_filament_maps.begin(), [](int value) {return std::max(0, value - 1); });
     }
     // H2C TODO
     // = config.filament_map_2.values;
@@ -2348,7 +2355,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     auto filament_maps = config.option<ConfigOptionInts>("filament_map");
     if (filament_maps != nullptr) {
         m_filament_maps = filament_maps->values;
-        std::transform(m_filament_maps.begin(), m_filament_maps.end(), m_filament_maps.begin(), [](int value) {return value - 1; });
+        std::transform(m_filament_maps.begin(), m_filament_maps.end(), m_filament_maps.begin(), [](int value) {return std::max(0, value - 1); });
     }
 
     auto config_idx_for_filament = config.option<ConfigOptionInts>("filament_map_2");
@@ -2727,7 +2734,11 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
             // Silently substitute unknown values by new ones for loading configurations from OrcaSlicer's own G-code.
             // Showing substitution log or errors may make sense, but we are not really reading many values from the G-code config,
             // thus a probability of incorrect substitution is low and the G-code viewer is a consumer-only anyways.
-            config.load_from_gcode_file(filename, ForwardCompatibilitySubstitutionRule::EnableSilent);
+            try {
+                config.load_from_gcode_file(filename, ForwardCompatibilitySubstitutionRule::EnableSilent);
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(warning) << "GCodeProcessor: failed to load config from gcode file: " << e.what();
+            }
 
             // Get the correct printer vendor based on the `printer_model` field
             auto printer_model_opt = config.opt<ConfigOptionString>("printer_model");

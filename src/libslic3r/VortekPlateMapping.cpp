@@ -451,7 +451,7 @@ void PlateMapping::handle_h2c_mapping_apply(
         
         auto opt_new_filament_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_map");
         if (opt_new_filament_map) {
-            std::fill(opt_new_filament_map->values.begin(), opt_new_filament_map->values.end(), 0);
+            std::fill(opt_new_filament_map->values.begin(), opt_new_filament_map->values.end(), 1);
         }
         auto opt_new_volume_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_volume_map");
         if (opt_new_volume_map) {
@@ -513,6 +513,18 @@ void PlateMapping::handle_h2c_mapping_apply(
             }
             for (size_t i = 0; i < opt_new_nozzle_map->values.size(); ++i) {
                 opt_new_nozzle_map->values[i] = i % nozzle_count;
+            }
+            auto opt_new_filament_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_map");
+            if (opt_new_filament_map) {
+                opt_new_filament_map->values.resize(opt_new_nozzle_map->values.size());
+                for (size_t i = 0; i < opt_new_nozzle_map->values.size(); ++i) {
+                    opt_new_filament_map->values[i] = (opt_new_nozzle_map->values[i] == 0) ? 1 : 2;
+                }
+            }
+            auto opt_new_volume_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_volume_map");
+            if (opt_new_volume_map) {
+                opt_new_volume_map->values.resize(opt_new_nozzle_map->values.size());
+                std::fill(opt_new_volume_map->values.begin(), opt_new_volume_map->values.end(), 0);
             }
             {
                 auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };

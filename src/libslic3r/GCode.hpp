@@ -107,8 +107,11 @@ public:
         // initialize with the extruder offset of master extruder id
         m_extruder_offsets.resize(print_config.filament_map.size(), print_config.extruder_offset.get_at(print_config.master_extruder_id.value - 1));
         const auto& filament_map = print_config.filament_map.values; // 1 based idx
-        for (size_t idx = 0; idx < filament_map.size(); ++idx)
-            m_extruder_offsets[idx] = print_config.extruder_offset.get_at(filament_map[idx] - 1);
+        for (size_t idx = 0; idx < filament_map.size(); ++idx) {
+            int ext_idx = filament_map[idx] - 1;
+            if (ext_idx >= 0 && ext_idx < (int)print_config.extruder_offset.size())
+                m_extruder_offsets[idx] = print_config.extruder_offset.get_at(ext_idx);
+        }
     }
 
     std::string prime(GCode &gcodegen);
