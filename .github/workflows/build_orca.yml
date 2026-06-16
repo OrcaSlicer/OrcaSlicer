@@ -419,9 +419,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $tool = Get-ChildItem -Recurse -Path build -Filter "generate_system_cache.exe" | Select-Object -First 1
           $profiles = Get-ChildItem -Recurse -Path build -Directory -Filter profiles |
             Where-Object { $_.FullName -match 'resources' } | Select-Object -First 1
-          .\build\src\Release\generate_system_cache.exe --path $profiles.FullName --log_level 2
+          & $tool.FullName --path $profiles.FullName --log_level 2
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
@@ -574,7 +575,8 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          ./build/src/Release/generate_system_cache --path build/package/resources/profiles --log_level 2
+          tool=$(find build -name generate_system_cache -type f | head -1)
+          "$tool" --path build/package/resources/profiles --log_level 2
           # Re-pack the AppImage so the cache is included
           appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
           chmod +x "$appimage"
