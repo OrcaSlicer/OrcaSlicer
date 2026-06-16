@@ -169,7 +169,7 @@ void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfi
     for (const std::string& chunk : model->values)
         raw_model += chunk;
 
-    wxString msg_text;
+    wxString msg_text = _L("Possible errors were found in the Adaptive Pressure Advance model.\nPlease check:\n");
     bool need_check = false;
     std::istringstream model_stream(raw_model);
     std::string line;
@@ -217,7 +217,6 @@ void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfi
     }
 
     if (need_check) {
-        msg_text += _L("Please check.\n");
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         is_msg_dlg_already_exist = true;
         dialog.ShowModal();
