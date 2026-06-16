@@ -3120,7 +3120,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // Orca: Integrate filament consumption for purging performed to an external device and controlled via macros
     // (eg. Happy Hare) in the filament consumption stats.
     if (boost::starts_with(comment, GCodeProcessor::External_Purge_Tag)) {
-        std::regex numberRegex(R"(\d+\.\d+)");
+        static const std::regex numberRegex(R"(\d+\.\d+)");
         std::smatch match;
         std::string line(comment);
         if (std::regex_search(line, match, numberRegex)) {
@@ -4976,7 +4976,7 @@ void GCodeProcessor::process_M572(const GCodeReader::GCodeLine &line)
 
 void GCodeProcessor::process_SET_PRESSURE_ADVANCE(const GCodeReader::GCodeLine& line)
 {
-    std::regex regex(R"(SET_PRESSURE_ADVANCE\s+(?:.*\s+)?ADVANCE\s*=\s*([\d.]+))");
+    static const std::regex regex(R"(SET_PRESSURE_ADVANCE\s+(?:.*\s+)?ADVANCE\s*=\s*([\d.]+))");
     std::smatch matches;
 
     if (std::regex_search(line.raw(), matches, regex) && matches.size() > 1) {
@@ -5198,9 +5198,9 @@ void GCodeProcessor::process_M205(const GCodeReader::GCodeLine& line)
 void GCodeProcessor::process_SET_VELOCITY_LIMIT(const GCodeReader::GCodeLine& line)
 {
     // handle SQUARE_CORNER_VELOCITY
-    std::regex pattern("\\sSQUARE_CORNER_VELOCITY\\s*=\\s*([0-9]*\\.*[0-9]*)");
+    static const std::regex square_corner_velocity_pattern("\\sSQUARE_CORNER_VELOCITY\\s*=\\s*([0-9]*\\.*[0-9]*)");
     std::smatch matches;
-    if (std::regex_search(line.raw(), matches, pattern) && matches.size() == 2) {
+    if (std::regex_search(line.raw(), matches, square_corner_velocity_pattern) && matches.size() == 2) {
         float _jerk = 0;
         try
         {
@@ -5213,8 +5213,8 @@ void GCodeProcessor::process_SET_VELOCITY_LIMIT(const GCodeReader::GCodeLine& li
         }
     }
 
-    pattern = std::regex("\\sACCEL\\s*=\\s*([0-9]*\\.*[0-9]*)");
-    if (std::regex_search(line.raw(), matches, pattern) && matches.size() == 2) {
+    static const std::regex accel_pattern("\\sACCEL\\s*=\\s*([0-9]*\\.*[0-9]*)");
+    if (std::regex_search(line.raw(), matches, accel_pattern) && matches.size() == 2) {
         float _accl = 0;
         try
         {
@@ -5227,8 +5227,8 @@ void GCodeProcessor::process_SET_VELOCITY_LIMIT(const GCodeReader::GCodeLine& li
         }
     }
 
-    pattern = std::regex("\\sVELOCITY\\s*=\\s*([0-9]*\\.*[0-9]*)");
-    if (std::regex_search(line.raw(), matches, pattern) && matches.size() == 2) {
+    static const std::regex velocity_pattern("\\sVELOCITY\\s*=\\s*([0-9]*\\.*[0-9]*)");
+    if (std::regex_search(line.raw(), matches, velocity_pattern) && matches.size() == 2) {
         float _speed = 0;
         try
         {
