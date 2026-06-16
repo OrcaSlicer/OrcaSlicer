@@ -2267,7 +2267,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         const auto t0 = std::chrono::steady_clock::now();
         PresetBundleCache::SystemPresetsCache cache;
         const std::string cache_file = PresetBundleCache::SystemPresetsCache::cache_path();
-        if (cache.load(cache_file)) {
+        if (cache.load(cache_file) && cache.is_plausible()) {
             std::set<std::string> dirty;
             if (cache.get_dirty_vendors(dir.string(), dirty)) {
                 if (dirty.empty()) {
@@ -2295,7 +2295,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
                     (boost::filesystem::path(resources_dir()) / "profiles").make_preferred().string();
                 PresetBundleCache::SystemPresetsCache bundled;
                 if (bundled.load(PresetBundleCache::SystemPresetsCache::bundled_cache_path()) &&
-                    bundled.is_valid(bundled_dir)) {
+                    bundled.is_valid(bundled_dir) && bundled.is_plausible()) {
                     bundled.apply(*this);
                     update_system_maps();
                     // Promote to user cache so subsequent launches skip this check.

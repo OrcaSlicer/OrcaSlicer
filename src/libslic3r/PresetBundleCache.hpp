@@ -122,6 +122,13 @@ struct SystemPresetsCache {
     static std::string cache_path();
     static std::string bundled_cache_path();
     bool is_valid(const std::string& system_dir) const;
+    // Rejects caches that loaded structurally but contain no data or are internally inconsistent
+    // (e.g. vendor_versions lists all vendors but vendor_profiles only captured some of them).
+    bool is_plausible() const {
+        return !vendor_profiles.empty() &&
+               !printer_presets.empty() &&
+               vendor_versions.size() == vendor_profiles.size();
+    }
     // Returns false on structural mismatch (full re-parse required).
     // On true, populates out_dirty with vendor IDs whose version strings changed.
     // Empty out_dirty means fully valid (cache hit, no re-parse needed).
