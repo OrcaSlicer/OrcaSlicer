@@ -434,6 +434,7 @@ struct ExtruderGroup : StaticGroup
     std::vector<AMSinfo> ams_4;
     std::vector<AMSinfo> ams_1;
     wxString          diameter;
+    bool              ams_enabled{true};
 
     void set_ams_count(int n4, int n1)
     {
@@ -647,7 +648,15 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
 
     extruder_dual_sizer->Show(isDual);
 
-    // NEEDFIX requires AMS check or any type of ???
+    // Hide AMS section in nozzle panels for printers without a material system (no AMS/MMU)
+    bool has_material_system = preset_bundle.is_bbl_vendor() || cfg.opt_bool("single_extruder_multi_material");
+    left_extruder->ams_enabled = has_material_system;
+    right_extruder->ams_enabled = has_material_system;
+    if (isDual) {
+        left_extruder->update_ams();
+        right_extruder->update_ams();
+    }
+
     // Single nozzle & non ams
     panel_nozzle_dia->Show(!isDual && preset_bundle.get_printer_extruder_count() < 2);
     extruder_single_sizer->Show(false);
@@ -1141,6 +1150,24 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
 
 void ExtruderGroup::update_ams()
 {
+    // Hide entire AMS section for printers without a material system
+    if (!ams_enabled) {
+        ams_not_installed_msg->Hide();
+        for (size_t i = 0; i < 4; ++i) ams[i]->Close();
+        btn_up->Hide();
+        btn_down->Hide();
+        while (hsizer_ams->GetItemCount() > 2) hsizer_ams->Remove(2);
+        hsizer_ams->Show(size_t(0), false);
+        if (btn_edit && hsizer_ams->GetItemCount() > 1) hsizer_ams->Show(size_t(1), false);
+        hsizer_ams->SetMinSize(0, 0);
+        sizer->Layout();
+        return;
+    }
+
+    // Restore AMS label visibility (may have been hidden when ams_enabled was false)
+    hsizer_ams->Show(size_t(0), true);
+    hsizer_ams->SetMinSize(0, ams[0]->GetMinHeight());
+
     static AMSinfo info4;
     static AMSinfo info1;
     if (info4.cans.empty()) {
@@ -2641,7 +2668,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
 
         bool is_dual_extruder = nozzle_diameter->size() == 2;
-        p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
+        p->layout_printer(preset_bundle.use_bbl_network(), is_dual_extruder);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
