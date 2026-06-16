@@ -16743,6 +16743,12 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         this->p->schedule_background_process();
         update_title_dirty_status();
         p->schedule_auto_reslice_if_needed();
+        
+        // If config change will cause view to revert to raw geometry,
+        // switch to Prepare tab to avoid confusing intermediate state
+        if (update_scheduled && is_preview_shown()) {
+            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+        }
     }
 }
 
