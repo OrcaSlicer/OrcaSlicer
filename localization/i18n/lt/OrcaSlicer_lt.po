@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-22 02:24+0800\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -16,8 +16,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && (n%100<11 || n%100>19) ? 0 : "
-"n%10>=2 && n%10<=9 && (n%100<11 || n%100>19) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && (n%100<11 || n%100>19) ? 0 : n"
+"%10>=2 && n%10<=9 && (n%100<11 || n%100>19) ? 1 : 2);\n"
 "X-Generator: Poedit 3.6\n"
 
 msgid "right"
@@ -197,6 +197,15 @@ msgstr "Atlikta"
 msgid "Support Generated"
 msgstr "Atramos sugeneruotos"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Patalpinti ant paviršiaus"
 
@@ -284,6 +293,15 @@ msgstr "Piešta naudojant: Gija %1%"
 msgid "To:"
 msgstr "To:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "Piešti grublėtą paviršių"
 
@@ -303,6 +321,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Enable painted fuzzy skin for this object"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "Perkelti"
@@ -694,6 +721,15 @@ msgstr "Pjovimas pagal liniją"
 
 msgid "Delete connector"
 msgstr "Ištrinti jungtį"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Figūros pavadinimas"
@@ -1564,6 +1600,12 @@ msgstr "Lygiagretus atstumas:"
 msgid "Flip by Face 2"
 msgstr "Apversti pagal paviršių 2"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Surinkti"
 
@@ -1599,6 +1641,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "Face and face assembly"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1848,6 +1896,17 @@ msgstr ""
 msgid "User logged out"
 msgstr "Naudotojas atsijungė"
 
+msgid ""
+"You are currently in Stealth Mode. To log into the Cloud, you need to "
+"disable Stealth Mode first."
+msgstr ""
+
+msgid "Stealth Mode"
+msgstr ""
+
+msgid "Quit Stealth Mode"
+msgstr ""
+
 msgid "new or open project file is not allowed during the slicing process!"
 msgstr ""
 "negalima kurti ar atidaryti naujo projekto failo, kai vyksta sluoksniavimo "
@@ -1863,21 +1922,38 @@ msgstr ""
 "OrcaSlicer versija yra pasenusi. Norint naudotis, reikia ją atnaujinti į "
 "naujausią versiją."
 
-#, c-format, boost-format
 msgid ""
-"Failed to connect to OrcaCloud.\n"
-"Please check your network connectivity\n"
-"(HTTP %u): %s"
+"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
-"Failed to connect to OrcaCloud.\n"
-"Please check your network connectivity\n"
-"(HTTP %u)"
+"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
 msgstr ""
 
-msgid "Cloud Error"
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+msgid "Resolve cloud sync conflict"
 msgstr ""
 
 msgid "Retrieving printer information, please try again later."
@@ -1935,7 +2011,7 @@ msgid "Privacy Policy Update"
 msgstr "Privatumo politikos atnaujinimas"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"
@@ -2184,6 +2260,9 @@ msgstr "Toras"
 
 msgid "Orca Cube"
 msgstr "Orca kubas"
+
+msgid "OrcaSliced Combo"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca tolerancijos testas"
@@ -3167,6 +3246,45 @@ msgstr "The maximum temperature cannot exceed "
 msgid "The minmum temperature should not be less than "
 msgstr "The minmum temperature should not be less than "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Visi"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Atšaukti visus"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "Advanced settings"
+
+msgid "Expert settings"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3446,6 +3564,9 @@ msgstr "Font doesn't have any shape for given text."
 
 msgid "There is no valid surface for text projection."
 msgstr "There is no valid surface for text projection."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Thermal Preconditioning for first layer optimization"
@@ -5545,6 +5666,9 @@ msgstr "Iškyšos"
 msgid "Outline"
 msgstr "Outline"
 
+msgid "Realistic View"
+msgstr ""
+
 msgid "Perspective"
 msgstr "Perspective"
 
@@ -5587,7 +5711,7 @@ msgstr "Tūris:"
 msgid "Size:"
 msgstr "Dydis:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5846,14 +5970,17 @@ msgstr "Nustatymų vedlys"
 msgid "Show Configuration Folder"
 msgstr "Rodyti konfigūravimo katalogą"
 
+msgid "Troubleshoot Center"
+msgstr ""
+
+msgid "Open Network Test"
+msgstr "Atidaryti tinklo testą"
+
 msgid "Show Tip of the Day"
 msgstr "Rodyti dienos patarimą"
 
 msgid "Check for Updates"
 msgstr "Tikrinti atnaujinimus"
-
-msgid "Open Network Test"
-msgstr "Atidaryti tinklo testą"
 
 #, c-format, boost-format
 msgid "&About %s"
@@ -7207,6 +7334,12 @@ msgstr "Sėkmingai eksportuota"
 msgid "Model file downloaded."
 msgstr "Modelio failas parsiųstas."
 
+msgid "Pull"
+msgstr ""
+
+msgid "Force push"
+msgstr ""
+
 msgid "Shared profiles may be available for this printer."
 msgstr ""
 
@@ -8229,6 +8362,12 @@ msgstr ""
 "Nepavyksta atlikti loginės operacijos su modelio figūromis. Eksportuojamos "
 "tik teigiamos dalys."
 
+msgid "Flashforge host is not available."
+msgstr ""
+
+msgid "Unable to log in to the Flashforge printer."
+msgstr ""
+
 msgid "Is the printer ready? Is the print sheet in place, empty and clean?"
 msgstr ""
 "Ar spausdintuvas pasiruošęs? Ar spausdinimo plokštuma yra vietoje, tuščia ir "
@@ -8606,9 +8745,6 @@ msgstr "Group user filament presets"
 msgid "Group user filament presets based on selection"
 msgstr "Group user filament presets based on selection"
 
-msgid "All"
-msgstr "Visi"
-
 msgid "By type"
 msgstr "By type"
 
@@ -8794,6 +8930,24 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Phong shading"
+msgstr ""
+
+msgid "Uses Phong shading inside realistic view."
+msgstr ""
+
+msgid "SSAO ambient occlusion"
+msgstr ""
+
+msgid "Applies SSAO in realistic view."
+msgstr ""
+
+msgid "Shadows"
+msgstr ""
+
+msgid "Renders cast shadows on the plate in realistic view."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr ""
 
@@ -8851,9 +9005,16 @@ msgid "Stealth mode"
 msgstr "Slaptas režimas"
 
 msgid ""
-"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
-"the transmission of data to Bambu's cloud services too. Users who don't use "
-"BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud features, including Orca Cloud profile syncing. "
+"Users who prefer to work entirely offline can enable this option.\n"
+"Note: When Stealth Mode is enabled, your user profiles will not be backed up "
+"to Orca Cloud."
+msgstr ""
+
+msgid "Hide login side panel"
+msgstr ""
+
+msgid "Hide the login side panel on the home page."
 msgstr ""
 
 msgid "Network test"
@@ -8958,6 +9119,14 @@ msgstr "Download Network Plug-in"
 msgid "Associate files to OrcaSlicer"
 msgstr "Susieti failus su Orca Slicer"
 
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
+
 #, fuzzy
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Susieti .3mf failus su Orca Slicer"
@@ -9014,6 +9183,14 @@ msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
 "changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
+msgstr ""
+
+msgid "Show unsupported presets"
+msgstr ""
+
+msgid ""
+"Show incompatible/unsupported presets in the printer and filament dropdown "
+"lists. These presets cannot be selected."
 msgstr ""
 
 msgid "Allow Abnormal Storage"
@@ -9809,6 +9986,9 @@ msgstr ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 
+msgid "Sending failed, please try again!"
+msgstr ""
+
 msgid "Slice ok."
 msgstr "Sluoksniavimas baigtas."
 
@@ -10132,8 +10312,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Įrašant pakadrinį vaizdo įrašą be spausdinimo galvutės judesių, "
 "rekomenduojama naudoti „Pakadrinio valymo bokštą“.\n"
@@ -10227,6 +10407,9 @@ msgstr "Linijos plotis"
 msgid "Precision"
 msgstr "Tikslumas"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Sienų generatorius"
 
@@ -10266,6 +10449,9 @@ msgstr "Vidinių ir išorinių tiltų greitis"
 
 msgid "Travel speed"
 msgstr "Judėjimo greitis"
+
+msgid "Junction Deviation"
+msgstr "Sujungimo nuokrypis"
 
 msgid "Jerk(XY)"
 msgstr "Pagreitis (XY)"
@@ -10630,13 +10816,11 @@ msgid "Retraction when switching material"
 msgstr "Įtraukimas keičiant medžiagą"
 
 msgid ""
-"The Wipe option is not available when using the Firmware Retraction mode.\n"
+"The Retract before wipe option could be only 100% when using the Firmware "
+"Retraction mode.\n"
 "\n"
-"Shall I disable it in order to enable Firmware Retraction?"
+"Shall I set it to 100% in order to enable Firmware Retraction?"
 msgstr ""
-"Parinktis \"Išvalyti\" negalima, kai naudojamas Firmware įtraukimo režimas.\n"
-"\n"
-"Ar turėčiau jį išjungti, kad įjungčiau Programinės įrangos įtraukimą?"
 
 msgid "Firmware Retraction"
 msgstr "Programinės aparatinės įrangos ištraukimas"
@@ -11153,9 +11337,6 @@ msgstr ""
 "And unused printer filaments will be automatically added to the end of the "
 "list."
 
-msgid "Advanced settings"
-msgstr "Advanced settings"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Add unused AMS filaments to filaments list."
 
@@ -11658,11 +11839,22 @@ msgstr "Yra naujas tinklo papildinys(%s), ar norite jį įdiegti?"
 msgid "New version of Orca Slicer"
 msgstr "Nauja \"Orca Slicer\" versija"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "Praleisti šią versiją"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Patvirtinti ir atnaujinti purkštuką"
@@ -11777,6 +11969,9 @@ msgstr "Pjovimo modulis"
 msgid "Auto Fire Extinguishing System"
 msgstr "Auto Fire Extinguishing System"
 
+msgid "Beta"
+msgstr ""
+
 msgid "Update firmware"
 msgstr "Atnaujinti programinę įrangą"
 
@@ -11815,8 +12010,8 @@ msgid ""
 msgstr ""
 "Įterptinės programinės įrangos versija yra nenormali. Prieš spausdinant "
 "reikia pataisyti ir atnaujinti. Ar norite atnaujinti dabar? Taip pat galite "
-"atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami "
-"\"Orca\"."
+"atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami \"Orca"
+"\"."
 
 msgid "Extension Board"
 msgstr "Išplėtimo plokštė"
@@ -12186,8 +12381,8 @@ msgid ""
 "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, "
 "RepRapFirmware and Repetier G-code flavors."
 msgstr ""
-"Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/"
-"Sprinter\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
+"Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/Sprinter"
+"\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
 
 msgid "The prime tower is not supported in \"By object\" print."
 msgstr "Pirminis bokštas nepalaikomas spausdinant \"Pagal objektą\"."
@@ -12317,6 +12512,19 @@ msgstr ""
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Sluoksnio aukštis negali viršyti purkštuko skersmens."
 
+msgid "Bridge line width must not exceed nozzle diameter"
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
 msgid ""
 "Relative extruder addressing requires resetting the extruder position at "
 "each layer to prevent loss of floating point accuracy. Add \"G92 E0\" to "
@@ -12327,18 +12535,14 @@ msgstr ""
 "padėtį. Pridėkite „G92 E0“ prie layer_gcode."
 
 msgid ""
-"\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
-"absolute extruder addressing."
+"\"G92 E0\" was found in before_layer_change_gcode, which is incompatible "
+"with absolute extruder addressing."
 msgstr ""
-"„G92 E0“ buvo rastas before_layer_gcode, kuris nesuderinamas su absoliučiu "
-"ekstruderio adresavimu."
 
 msgid ""
-"\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
-"extruder addressing."
+"\"G92 E0\" was found in layer_change_gcode, which is incompatible with "
+"absolute extruder addressing."
 msgstr ""
-"layer_gcode buvo rastas „G92 E0“, - tai nesuderinama su absoliučiu "
-"ekstruderio adresavimu."
 
 #, c-format, boost-format
 msgid "Plate %d: %s does not support filament %s"
@@ -12444,6 +12648,31 @@ msgstr "Spausdinama sritis"
 
 msgid "Extruder printable area"
 msgstr "Extruder printable area"
+
+msgid "Support parallel printheads"
+msgstr ""
+
+msgid ""
+"Enable printer settings for machines that can use multiple printheads in "
+"parallel."
+msgstr ""
+
+msgid "Parallel printheads count"
+msgstr ""
+
+msgid ""
+"Set the number of parallel printheads for machines like OrangeStorm Giga "
+"printer."
+msgstr ""
+
+msgid "Parallel printheads bed exclude areas"
+msgstr ""
+
+msgid ""
+"Ordered list of bed exclude areas by parallel printhead count. Item 1 "
+"applies to one printhead, item 2 to two printheads, and so on. Leave an item "
+"empty for no excluded area."
+msgstr ""
 
 msgid "Bed exclude area"
 msgstr "Nespausdinama pagrindo sritis"
@@ -12577,6 +12806,12 @@ msgid ""
 msgstr ""
 "\"Orca Slicer\" gali įkelti G-kodo failus į spausdintuvą. Šiame lauke turėtų "
 "būti nurodytas API raktas arba autentifikavimui reikalingas slaptažodis."
+
+msgid "Serial Number"
+msgstr ""
+
+msgid "Flashforge local API requires the printer serial number."
+msgstr ""
 
 msgid "Name of the printer."
 msgstr "Spausdintuvo pavadinimas."
@@ -12928,117 +13163,128 @@ msgstr "Išorinio tilto užpildymo kryptis"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Bridging angle override. If left to zero, the bridging angle will be "
-"calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180° for zero angle."
+"External Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
+"\n"
+"Use 180° for zero absolute angle."
 msgstr ""
-"Tilto kampo panaikinimas. Jei paliekama nulinė reikšmė, tilto kampas "
-"apskaičiuojamas automatiškai. Priešingu atveju išoriniams tilteliams bus "
-"naudojamas pateiktas kampas. Nuliniam kampui naudokite 180°."
 
 msgid "Internal bridge infill direction"
 msgstr "Vidinio tilto užpildymo kryptis"
 
 msgid ""
-"Internal bridging angle override. If left to zero, the bridging angle will "
-"be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180° for zero angle.\n"
+"Internal Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
 "\n"
-"It is recommended to leave it at 0 unless there is a specific model need not "
-"to."
+"Use 180° for zero absolute angle."
 msgstr ""
-"Vidinio pertvaros kampo panaikinimas. Jei paliekama nulinė reikšmė, tilto "
-"kampas apskaičiuojamas automatiškai. Priešingu atveju vidiniams tiltams bus "
-"naudojamas nurodytas kampas. Naudokite 180°, kad kampas būtų lygus nuliui.\n"
-"\n"
-"Rekomenduojama palikti 0, nebent yra konkretus modelio poreikis to nedaryti."
+
+msgid "Relative bridge angle"
+msgstr ""
+
+msgid ""
+"When enabled, the bridge angle values are added to the automatically "
+"calculated bridge direction instead of overriding it."
+msgstr ""
 
 msgid "External bridge density"
 msgstr "Išorinio tilto tankis"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
+"Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
+"extrusions to sag, 100% may not be sufficient.\n"
 "\n"
-"Lower density external bridges can help improve reliability as there is more "
-"space for air to circulate around the extruded bridge, improving its cooling "
-"speed. Minimum is 10%.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Produces smoother bridge surfaces, as overlapping lines provide "
+"additional support during printing.\n"
+"  - Cons: Can cause overextrusion, which may reduce lower and upper surface "
+"quality and increase the risk of warping.\n"
 "\n"
-"Higher densities can produce smoother bridge surfaces, as overlapping lines "
-"provide additional support during printing. Maximum is 120%.\n"
-"Note: Bridge density that is too high can cause warping or overextrusion."
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can create a string-like first layer. Faster and with better "
+"cooling because there is more space for air to circulate around the extruded "
+"bridge.\n"
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
-"\n"
-"Lower density external bridges can help improve reliability as there is more "
-"space for air to circulate around the extruded bridge, improving its cooling "
-"speed. Minimum is 10%.\n"
-"\n"
-"Higher densities can produce smoother bridge surfaces, as overlapping lines "
-"provide additional support during printing. Maximum is 120%.\n"
-"Note: Bridge density that is too high can cause warping or overextrusion."
 
 msgid "Internal bridge density"
 msgstr "Vidinių tiltų tankis"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of internal bridge lines.\n"
+"Internal bridges act as intermediate support between sparse infill and top "
+"solid infill and can strongly affect top surface quality.\n"
 "\n"
-"Lower density internal bridges can help reduce top surface pillowing and "
-"improve internal bridge reliability as there is more space for air to "
-"circulate around the extruded bridge, improving its cooling speed.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Improves internal bridge strength and support under top layers, "
+"reducing sagging and improving top-surface finish.\n"
+"  - Cons: Increases material use and print time; excessive density may cause "
+"overextrusion and internal stresses.\n"
+"\n"
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can reduce pillowing and improve cooling (more airflow through the "
+"bridge), and may speed up printing.\n"
+"  - Cons: May reduce internal support, increasing the risk of sagging and "
+"top surface defects.\n"
 "\n"
 "This option works particularly well when combined with the second internal "
-"bridge over infill option, further improving internal bridging structure "
-"before solid infill is extruded."
+"bridge over infill option to improve bridging further before solid infill is "
+"extruded."
 msgstr ""
-"Valdo vidinių tiltelių linijų tankį (atstumus). 100 % reiškia vientisą "
-"tiltą. Numatytoji reikšmė yra 100 %.\n"
-"\n"
-" Mažesnio tankio vidiniai tilteliai gali padėti sumažinti viršutinio "
-"paviršiaus iškilimą ir padidinti vidinio tiltelio patikimumą, nes aplink "
-"išspaustą tiltelį cirkuliuoja daugiau erdvės orui, todėl pagerėja jo "
-"aušinimo greitis.\n"
-"\n"
-"Ši parinktis ypač gerai veikia kartu su antrojo vidinio tiltelio virš "
-"užpildo parinktimi, dar labiau pagerinančia vidinio tiltelio struktūrą prieš "
-"išspaudžiant kietąjį užpildą."
 
 msgid "Bridge flow ratio"
 msgstr "Tilto srauto santykis"
 
 msgid ""
-"Decrease this value slightly (for example 0.9) to reduce the amount of "
-"material for bridge, to improve sag.\n"
+"This value governs the thickness of the external (visible) bridge layer.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
 "The actual bridge flow used is calculated by multiplying this value with the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Šiek tiek sumažinkite šią reikšmę (pvz., 0,9), kad sumažintumėte tilto "
-"medžiagos kiekį ir pagerintumėte įlinkį.\n"
+
+msgid ""
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
+"Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
-"Faktinis tiltelio srautas apskaičiuojamas padauginus šią reikšmę iš gijos "
-"srauto santykio ir, jei nustatyta, objekto srauto santykio."
+"The maximum value is 100% or the nozzle diameter.\n"
+"If set to 0, the line width will match the Internal solid infill width."
+msgstr ""
 
 msgid "Internal bridge flow ratio"
 msgstr "Vidinio tilto srauto koeficientas"
 
 msgid ""
 "This value governs the thickness of the internal bridge layer. This is the "
-"first layer over sparse infill. Decrease this value slightly (for example "
-"0.9) to improve surface quality over sparse infill.\n"
+"first layer over sparse infill so increasing it may increase strength and "
+"upper layer quality.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
-"The actual internal bridge flow used is calculated by multiplying this value "
-"with the bridge flow ratio, the filament flow ratio, and if set, the "
-"object's flow ratio."
+"The actual bridge flow used is calculated by multiplying this value with the "
+"filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Ši vertė lemia vidinio tilto sluoksnio storį. Tai yra pirmasis sluoksnis "
-"virš reto užpildo. Šiek tiek sumažinkite šią reikšmę (pavyzdžiui, 0,9), kad "
-"pagerintumėte paviršiaus kokybę virš reto užpildo.\n"
-"\n"
-"Faktinis naudojamas vidinio tiltelio srautas apskaičiuojamas padauginus šią "
-"vertę iš tiltelio srauto santykio, gijų srauto santykio ir, jei nustatyta, "
-"objekto srauto santykio."
 
 msgid "Top surface flow ratio"
 msgstr "Viršutinio paviršiaus srauto koeficientas"
@@ -13379,40 +13625,35 @@ msgstr "Sulėtinti greitį, jei perimetras yra vingiuotas"
 #, no-c-format, no-boost-format
 msgid ""
 "Enable this option to slow down printing in areas where perimeters may have "
-"curled upwards. For example, additional slowdown will be applied when "
-"printing overhangs on sharp corners like the front of the Benchy hull, "
-"reducing curling which compounds over multiple layers.\n"
+"curled upwards.\n"
+"For example, additional slowdown will be applied when printing overhangs on "
+"sharp corners like the front of the Benchy hull, reducing curling which "
+"compounds over multiple layers.\n"
 "\n"
 "It is generally recommended to have this option switched on unless your "
-"printer cooling is powerful enough or the print speed slow enough that "
-"perimeter curling does not happen. If printing with a high external "
-"perimeter speed, this parameter may introduce slight artifacts when slowing "
-"down due to the large variance in print speeds. If you notice artifacts, "
-"ensure your pressure advance is tuned correctly.\n"
+"printer cooling is powerful enough or the print speed is slow enough that "
+"perimeter curling does not happen. \n"
+"If printing with a high external perimeter speed, this parameter may "
+"introduce wall artifacts when slowing down, due to the potentially large "
+"variance in print speeds causing the extruder to be unable to keep up with "
+"the requested flow change.\n"
+"Root cause of these artifacts is most likely PA tuning being slightly off, "
+"especially when combined with a high PA smooth time.\n"
+"\n"
+"Recommendations when enabling this option:\n"
+"1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder "
+"reacts quickly to the speed changes.\n"
+"2. Increase the minimum print speeds to limit the magnitude of the slowdown "
+"and reduce the variance between fast and slow segments.\n"
+"3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to "
+"further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like "
 "overhangs, meaning the overhang speed is applied even if the overhanging "
-"perimeter is part of a bridge. For example, when the perimeters are 100% "
-"overhanging, with no wall supporting them from underneath, the 100% overhang "
-"speed will be applied."
+"perimeter is part of a bridge.\n"
+"For example, when the perimeters are 100% overhanging, with no wall "
+"supporting them from underneath, the 100% overhang speed will be applied."
 msgstr ""
-"Įjunkite šią parinktį, kad sulėtintumėte spausdinimą tose srityse, kuriose "
-"perimetras gali būti išlinkęs į viršų. Pavyzdžiui, papildomas sulėtinimas "
-"bus taikomas spausdinant iškyšas ant aštrių kampų, pavyzdžiui, „Benchy“ "
-"korpuso priekyje, sumažinant susisukimą, kuris susidaro per kelis "
-"sluoksnius.\n"
-"\n"
-" Paprastai rekomenduojama įjungti šią parinktį, nebent jūsų spausdintuvo "
-"aušinimas yra pakankamai galingas arba spausdinimo greitis pakankamai lėtas, "
-"kad perimetro susisukimas neįvyktų. Jei spausdinama dideliu išoriniu "
-"perimetro greičiu, šis parametras gali sukelti nedidelius artefaktus, kai "
-"sulėtėja dėl didelio spausdinimo greičio skirtumo. Jei pastebėsite "
-"artefaktus, įsitikinkite, kad išankstinis slėgis sureguliuotas teisingai.\n"
-"\n"
-"Pastaba: Kai ši parinktis įjungta, iškyšos perimetras traktuojamas kaip "
-"iškyša, t. y. iškyšos greitis taikomas net jei iškyšos perimetras yra tilto "
-"dalis. Pavyzdžiui, kai perimetrai yra 100 % išsikišę, o iš apačios jų "
-"nepalaiko jokia siena, bus taikomas 100 % išsikišimo greitis."
 
 msgid "mm/s or %"
 msgstr "mm/s arba %"
@@ -13681,25 +13922,25 @@ msgid "Thick external bridges"
 msgstr "Stori vidiniai tiltai"
 
 msgid ""
-"If enabled, bridges are more reliable, can bridge longer distances, but may "
-"look worse. If disabled, bridges look better but are reliable just for "
-"shorter bridged distances."
+"If enabled, bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases bridge strength and reliability, allowing longer spans, but "
+"may worsen appearance.\n"
+"If disabled, bridges may look better but are generally reliable only for "
+"shorter spans."
 msgstr ""
-"Jei įjungta, tiltai yra patikimesni, gali įveikti didesnius atstumus, tačiau "
-"gali atrodyti blogiau. Jei išjungta, tiltai atrodo geriau, bet yra patikimi "
-"tik trumpesniems atstumams."
 
 msgid "Thick internal bridges"
 msgstr "Stori vidiniai tiltai"
 
 msgid ""
-"If enabled, thick internal bridges will be used. It's usually recommended to "
-"have this feature turned on. However, consider turning it off if you are "
-"using large nozzles."
+"If enabled, internal bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases internal bridge strength and reliability when printed over "
+"sparse infill, but may worsen appearance.\n"
+"If disabled, internal bridges may look better but can be less reliable over "
+"sparse infill."
 msgstr ""
-"Jei įjungta, bus naudojami stori vidiniai tiltai. Paprastai rekomenduojama "
-"šią funkciją įjungti. Tačiau jei naudojate didelius antgalius, apsvarstykite "
-"galimybę ją išjungti."
 
 msgid "Extra bridge layers (beta)"
 msgstr "Papildomi tilto sluoksniai (beta)"
@@ -14942,14 +15183,11 @@ msgid "Align infill direction to model"
 msgstr "Suderinti užpildymo kryptį su modeliu"
 
 msgid ""
-"Aligns infill and surface fill directions to follow the model's orientation "
-"on the build plate. When enabled, fill directions rotate with the model to "
-"maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing and surface fill directions to follow the "
+"model's orientation on the build plate.\n"
+"When enabled, directions rotate with the model to maintain optimal strength "
+"characteristics."
 msgstr ""
-"Suderina užpildymo ir paviršiaus užpildymo kryptis, kad jos atitiktų modelio "
-"orientaciją ant spausdinimo plokštės. Kai ši funkcija įjungta, užpildymo "
-"kryptys pasisuka kartu su modeliu, kad būtų išlaikytos optimalios stiprumo "
-"charakteristikos."
 
 msgid "Insert solid layers"
 msgstr "Įterpti vientisus sluoksnius"
@@ -14978,6 +15216,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, c-format, boost-format
 msgid ""
 "Tightens the gyroid wave along the Z (vertical) axis at low infill density "
 "to shorten the effective vertical column length and improve Z-axis "
@@ -15076,6 +15315,27 @@ msgid ""
 "The angle of the infill angled lines. 60° will result in a pure honeycomb."
 msgstr "Užpildymo kampuoto linijų kampas. 60° kampas sukurs gryną korį."
 
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are "
+"pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
 msgid "Sparse infill anchor length"
 msgstr "Reto užpildo tvirtinimo ilgis"
 
@@ -15164,8 +15424,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² arba %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Retų užpildų pagreitis. Jei reikšmė išreikšta procentais (pvz., 100 %), ji "
 "bus apskaičiuota pagal numatytąjį pagreitį."
@@ -15209,9 +15469,6 @@ msgstr "\"Klipper\" max_accel_to_decel bus pakoreguotas pagal šį pagreičio %%
 
 msgid "Default jerk."
 msgstr "Numatytasis trūkčiojimas."
-
-msgid "Junction Deviation"
-msgstr "Sujungimo nuokrypis"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -15300,10 +15557,10 @@ msgstr "Visas ventiliatoriaus greitis sluoksnyje"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Ventiliatoriaus greitis bus didinamas tiesiškai nuo nulio sluoksnyje "
 "\"close_fan_the_first_x_layers\" iki maksimalaus sluoksnyje "
@@ -16098,8 +16355,10 @@ msgstr "Probing exclude area of clumping"
 msgid "Probing exclude area of clumping."
 msgstr "Probing exclude area of clumping."
 
-msgid "Filament to print internal sparse infill."
-msgstr "Gija, skirta spausdinti vidinį retą užpildą."
+msgid ""
+"Filament to print internal sparse infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal sparse infill. If expressed as a %, it will be "
@@ -16940,8 +17199,21 @@ msgstr ""
 "naudokite skirtingą spausdinimo greitį. Jei iškyša 100%%, naudojamas tilto "
 "greitis."
 
-msgid "Filament to print walls."
-msgstr "Gijos sienoms spausdinti."
+msgid "Outer walls"
+msgstr ""
+
+msgid ""
+"Filament to print outer walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid "Inner walls"
+msgstr ""
+
+msgid ""
+"Filament to print inner walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of inner wall. If expressed as a %, it will be computed over the "
@@ -17449,8 +17721,8 @@ msgid "Role base wipe speed"
 msgstr "Vaidmens pagrindo nuvalymo greitis"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17634,11 +17906,20 @@ msgstr ""
 "Reto užpildymo sritys, kurios yra mažesnės už šią ribinę vertę, pakeičiamos "
 "vidiniu vientisu užpildymu."
 
-msgid "Solid infill"
-msgstr "Vientisas užpildas"
+msgid ""
+"Filament to print internal solid infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
-msgid "Filament to print solid infill."
-msgstr "Filamentas vientisam užpildui spausdinti."
+msgid ""
+"Filament to print top surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid ""
+"Filament to print bottom surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal solid infill. If expressed as a %, it will be "
@@ -18023,11 +18304,10 @@ msgid "Support/raft base"
 msgstr "Atraminis ir (arba) platformos pagrindas"
 
 msgid ""
-"Filament to print support base and raft. \"Default\" means no specific "
-"filament for support and current filament is used."
+"Filament to print support base and raft.\n"
+"\"Default\" means no specific filament for support and current filament is "
+"used."
 msgstr ""
-"Gija, skirta spausdinti atraminį pagrindą ir platformą. \"Numatytoji\" "
-"reiškia, kad nėra konkrečios gijos atramai ir naudojama dabartinė gija."
 
 msgid "Avoid interface filament for base"
 msgstr "Venkite pagrindo sąsajos gijų"
@@ -18058,11 +18338,10 @@ msgid "Support/raft interface"
 msgstr "Atramų ir (arba) platformos sąsaja"
 
 msgid ""
-"Filament to print support interface. \"Default\" means no specific filament "
-"for support interface and current filament is used."
+"Filament to print support interface.\n"
+"\"Default\" means no specific filament for support interface and current "
+"filament is used."
 msgstr ""
-"Gija skirta spausdinti atramos sąsają. \"Numatytoji\" reiškia, kad atramos "
-"sąsajai nėra konkrečios gijos ir naudojama dabartinė gija."
 
 msgid "Top interface layers"
 msgstr "Viršutiniai sąsajos sluoksniai"
@@ -18383,8 +18662,8 @@ msgstr "Suaktyvinti temperatūros reguliavimą"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -19136,6 +19415,9 @@ msgstr "netinkama reikšmė "
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Netinkama reikšmė, kai įjungtas spiralinės vazos režimas: "
 
+msgid "Bridge line width must not exceed nozzle diameter: "
+msgstr ""
+
 msgid "too large line width "
 msgstr "per didelis linijos plotis "
 
@@ -19389,11 +19671,17 @@ msgid "Debug level"
 msgstr "Derinimo lygis"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "Nustato derinimo žurnalizavimo lygį. 0: mirtinas, 1: klaida, 2: įspėjimas, "
 "3: informacija, 4: derinimas, 5: sekimas\n"
+
+msgid "Log file"
+msgstr ""
+
+msgid "Redirects debug logging to file.\n"
+msgstr ""
 
 msgid "Enable timelapse for print"
 msgstr "Laiko intervalų spausdinimui įjungimas"
@@ -19858,9 +20146,6 @@ msgstr "Užpildomų regionų kūrimas"
 msgid "Generating infill toolpath"
 msgstr "Užpildymo įrankių trajektorijų generavimas"
 
-msgid "Z contouring"
-msgstr ""
-
 msgid "Detect overhangs for auto-lift"
 msgstr "Aptikti iškyšas automatiniam pakėlimui"
 
@@ -19936,13 +20221,13 @@ msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Nežinomas failo formatas. Įvesties failo plėtinys turi "
-"būti .stl, .obj, .amf(.xml)."
+"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .stl, .obj, ."
+"amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf "
-"arba .zip.amf."
+"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf arba .zip."
+"amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: nepavyko apdoroti"
@@ -20917,6 +21202,15 @@ msgstr ""
 msgid "Top Surface Pattern"
 msgstr ""
 
+msgid "Choose a slot for the selected color"
+msgstr ""
+
+msgid "Material in the material station"
+msgstr ""
+
+msgid "Only materials of the same type can be selected."
+msgstr ""
+
 msgid "Send G-code to printer host"
 msgstr "Siųsti G-kodą tinkliniam spausdintuvui"
 
@@ -20939,6 +21233,48 @@ msgstr "Įkėlimo failo pavadinimas nesibaigia „%s“. Ar norite tęsti?"
 
 msgid "Upload"
 msgstr "Įkelti"
+
+msgid "Leveling before print"
+msgstr ""
+
+msgid "Time-lapse"
+msgstr "Laiko intervalai"
+
+msgid "Enable IFS"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Detected %d IFS slots on printer."
+msgstr ""
+
+msgid "This printer does not report a material station."
+msgstr ""
+
+msgid "Unable to read IFS slots from printer."
+msgstr ""
+
+msgid "Loading IFS slots from printer..."
+msgstr ""
+
+msgid "Slice the plate first to get project material information."
+msgstr ""
+
+msgid ""
+"This plate uses multiple materials. Enable IFS and assign each tool to a "
+"printer slot."
+msgstr ""
+
+msgid "Each project material must be assigned to an IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must be assigned to a loaded IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must match the material loaded in the selected IFS "
+"slot."
+msgstr ""
 
 msgid "Print host upload queue"
 msgstr "Įkėlimo spausdinimui tinkle eilė"
@@ -20984,9 +21320,6 @@ msgstr ""
 "Pasirinktas pagrindo tipas neatitinka failo. Prieš pradėdami spausdinti, "
 "patvirtinkite."
 
-msgid "Time-lapse"
-msgstr "Laiko intervalai"
-
 msgid "Heated Bed Leveling"
 msgstr "Šildomo pagrindo išlyginimas"
 
@@ -20995,6 +21328,16 @@ msgstr "Tekstūruota pagrindo plokštė (A pusė)"
 
 msgid "Smooth Build Plate (Side B)"
 msgstr "Lygi pagrindo plokštė (B pusė)"
+
+#, c-format, boost-format
+msgid "Printer: %s"
+msgstr ""
+
+msgid "Calibrate before printing"
+msgstr ""
+
+msgid "Filament Mapping:"
+msgstr ""
 
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Nepavyksta atlikti loginės operacijos su pasirinktomis dalimis"
@@ -21180,8 +21523,8 @@ msgstr ""
 "Ar norite jį perrašyti?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Būtų galima pervadinti iš anksto nustatytus nustatymus į \"Pardavėjo tipo "
@@ -21266,9 +21609,6 @@ msgstr "Spausdintuvo nustatymai"
 
 msgid "Filament Preset Template"
 msgstr "Gijos nustatymų šablonas"
-
-msgid "Deselect All"
-msgstr "Atšaukti visus"
 
 msgid "Process Preset Template"
 msgstr "Proceso nustatymų šablonas"
@@ -21707,8 +22047,17 @@ msgstr ""
 "Select the network agent implementation for printer communication. Available "
 "agents are registered at startup."
 
+msgid "Select a Flashforge printer"
+msgstr ""
+
+msgid "Discovered Printers"
+msgstr ""
+
 msgid "Could not get a valid Printer Host reference"
 msgstr "Nepavyko gauti galiojančios tinklinio spausdintuvo nuorodos"
+
+msgid "Valid session not detected. Proceed with login to 3DPrinterOS?"
+msgstr ""
 
 msgid "Success!"
 msgstr "Pavyko!"
@@ -21755,6 +22104,42 @@ msgstr "Prisijungimas / bandymas"
 
 msgid "Connection to printers connected via the print host failed."
 msgstr "Nepavyko prisijungti prie spausdintuvų, prijungtų per tinklą."
+
+msgid "3DPrinterOS Cloud upload options"
+msgstr ""
+
+msgid "Single file"
+msgstr ""
+
+msgid "Project File"
+msgstr ""
+
+msgid "Project:"
+msgstr ""
+
+msgid "Printer type:"
+msgstr ""
+
+msgid "Printer type not found, please select manually."
+msgstr ""
+
+msgid "Authorizing..."
+msgstr ""
+
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
+msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -22013,9 +22398,9 @@ msgid ""
 "quality but much longer print time."
 msgstr ""
 "Palyginti su numatytuoju 0,4 mm purkštuko profiliu, jo sluoksnio aukštis "
-"mažesnis, greitis ir pagreitis mažesni, o retas užpildymo raštas yra "
-"\"Gyroid\". Taigi, dėl jo mažiau matomų sluoksnio linijų ir daug geresnė "
-"spausdinimo kokybė, tačiau daug ilgesnis spausdinimo laikas."
+"mažesnis, greitis ir pagreitis mažesni, o retas užpildymo raštas yra \"Gyroid"
+"\". Taigi, dėl jo mažiau matomų sluoksnio linijų ir daug geresnė spausdinimo "
+"kokybė, tačiau daug ilgesnis spausdinimo laikas."
 
 msgid ""
 "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer "
@@ -22536,11 +22921,125 @@ msgstr ""
 "\"SimplyPrint\" paskyra nesusieta. Eikite į Prisijungimo parinktis ir ją "
 "nustatykite."
 
+msgid "Flashforge returned an invalid JSON response."
+msgstr ""
+
+msgid "No Flashforge printers were discovered on the local network."
+msgstr ""
+
+msgid "Connected to Flashforge local API successfully."
+msgstr ""
+
 msgid "Serial connection to Flashforge is working correctly."
 msgstr "Nuoseklusis ryšys su „Flashforge“ veikia tinkamai."
 
+msgid "Could not connect to Flashforge local API"
+msgstr ""
+
 msgid "Could not connect to Flashforge via serial"
 msgstr "Nepavyko prisijungti prie „Flashforge“ per nuoseklųjį prievadą"
+
+msgid "Flashforge local API requires both serial number and access code."
+msgstr ""
+
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
 
 msgid "The provided state is not correct."
 msgstr "Pateikta būsena neteisinga."
@@ -22594,6 +23093,12 @@ msgstr "Krašto \"ausys\""
 msgid "Please select single object."
 msgstr "Pasirinkite vieną objektą."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "Zoom Out"
 
@@ -22602,6 +23107,9 @@ msgstr "Zoom In"
 
 msgid "Load skipping objects information failed. Please try again."
 msgstr "Load skipping objects information failed. Please try again."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -22753,6 +23261,100 @@ msgstr "Number of triangular facets"
 
 msgid "Calculating, please wait..."
 msgstr "Calculating, please wait..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -23164,6 +23766,227 @@ msgstr ""
 "Ar žinojote, kad spausdinant medžiagas, kurios linkusios deformuotis, "
 "pavyzdžiui, ABS, tinkamai padidinus kaitinimo pagrindo temperatūrą galima "
 "sumažinti deformavimosi tikimybę."
+
+#~ msgid ""
+#~ "The Wipe option is not available when using the Firmware Retraction "
+#~ "mode.\n"
+#~ "\n"
+#~ "Shall I disable it in order to enable Firmware Retraction?"
+#~ msgstr ""
+#~ "Parinktis \"Išvalyti\" negalima, kai naudojamas Firmware įtraukimo "
+#~ "režimas.\n"
+#~ "\n"
+#~ "Ar turėčiau jį išjungti, kad įjungčiau Programinės įrangos įtraukimą?"
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
+#~ "absolute extruder addressing."
+#~ msgstr ""
+#~ "„G92 E0“ buvo rastas before_layer_gcode, kuris nesuderinamas su "
+#~ "absoliučiu ekstruderio adresavimu."
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
+#~ "extruder addressing."
+#~ msgstr ""
+#~ "layer_gcode buvo rastas „G92 E0“, - tai nesuderinama su absoliučiu "
+#~ "ekstruderio adresavimu."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Bridging angle override. If left to zero, the bridging angle will be "
+#~ "calculated automatically. Otherwise the provided angle will be used for "
+#~ "external bridges. Use 180° for zero angle."
+#~ msgstr ""
+#~ "Tilto kampo panaikinimas. Jei paliekama nulinė reikšmė, tilto kampas "
+#~ "apskaičiuojamas automatiškai. Priešingu atveju išoriniams tilteliams bus "
+#~ "naudojamas pateiktas kampas. Nuliniam kampui naudokite 180°."
+
+#~ msgid ""
+#~ "Internal bridging angle override. If left to zero, the bridging angle "
+#~ "will be calculated automatically. Otherwise the provided angle will be "
+#~ "used for internal bridges. Use 180° for zero angle.\n"
+#~ "\n"
+#~ "It is recommended to leave it at 0 unless there is a specific model need "
+#~ "not to."
+#~ msgstr ""
+#~ "Vidinio pertvaros kampo panaikinimas. Jei paliekama nulinė reikšmė, tilto "
+#~ "kampas apskaičiuojamas automatiškai. Priešingu atveju vidiniams tiltams "
+#~ "bus naudojamas nurodytas kampas. Naudokite 180°, kad kampas būtų lygus "
+#~ "nuliui.\n"
+#~ "\n"
+#~ "Rekomenduojama palikti 0, nebent yra konkretus modelio poreikis to "
+#~ "nedaryti."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of external bridge lines. Default is "
+#~ "100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed. Minimum is 10%.\n"
+#~ "\n"
+#~ "Higher densities can produce smoother bridge surfaces, as overlapping "
+#~ "lines provide additional support during printing. Maximum is 120%.\n"
+#~ "Note: Bridge density that is too high can cause warping or overextrusion."
+#~ msgstr ""
+#~ "Controls the density (spacing) of external bridge lines. Default is "
+#~ "100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed. Minimum is 10%.\n"
+#~ "\n"
+#~ "Higher densities can produce smoother bridge surfaces, as overlapping "
+#~ "lines provide additional support during printing. Maximum is 120%.\n"
+#~ "Note: Bridge density that is too high can cause warping or overextrusion."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of internal bridge lines. 100% means solid "
+#~ "bridge. Default is 100%.\n"
+#~ "\n"
+#~ "Lower density internal bridges can help reduce top surface pillowing and "
+#~ "improve internal bridge reliability as there is more space for air to "
+#~ "circulate around the extruded bridge, improving its cooling speed.\n"
+#~ "\n"
+#~ "This option works particularly well when combined with the second "
+#~ "internal bridge over infill option, further improving internal bridging "
+#~ "structure before solid infill is extruded."
+#~ msgstr ""
+#~ "Valdo vidinių tiltelių linijų tankį (atstumus). 100 % reiškia vientisą "
+#~ "tiltą. Numatytoji reikšmė yra 100 %.\n"
+#~ "\n"
+#~ " Mažesnio tankio vidiniai tilteliai gali padėti sumažinti viršutinio "
+#~ "paviršiaus iškilimą ir padidinti vidinio tiltelio patikimumą, nes aplink "
+#~ "išspaustą tiltelį cirkuliuoja daugiau erdvės orui, todėl pagerėja jo "
+#~ "aušinimo greitis.\n"
+#~ "\n"
+#~ "Ši parinktis ypač gerai veikia kartu su antrojo vidinio tiltelio virš "
+#~ "užpildo parinktimi, dar labiau pagerinančia vidinio tiltelio struktūrą "
+#~ "prieš išspaudžiant kietąjį užpildą."
+
+#~ msgid ""
+#~ "Decrease this value slightly (for example 0.9) to reduce the amount of "
+#~ "material for bridge, to improve sag.\n"
+#~ "\n"
+#~ "The actual bridge flow used is calculated by multiplying this value with "
+#~ "the filament flow ratio, and if set, the object's flow ratio."
+#~ msgstr ""
+#~ "Šiek tiek sumažinkite šią reikšmę (pvz., 0,9), kad sumažintumėte tilto "
+#~ "medžiagos kiekį ir pagerintumėte įlinkį.\n"
+#~ "\n"
+#~ "Faktinis tiltelio srautas apskaičiuojamas padauginus šią reikšmę iš gijos "
+#~ "srauto santykio ir, jei nustatyta, objekto srauto santykio."
+
+#~ msgid ""
+#~ "This value governs the thickness of the internal bridge layer. This is "
+#~ "the first layer over sparse infill. Decrease this value slightly (for "
+#~ "example 0.9) to improve surface quality over sparse infill.\n"
+#~ "\n"
+#~ "The actual internal bridge flow used is calculated by multiplying this "
+#~ "value with the bridge flow ratio, the filament flow ratio, and if set, "
+#~ "the object's flow ratio."
+#~ msgstr ""
+#~ "Ši vertė lemia vidinio tilto sluoksnio storį. Tai yra pirmasis sluoksnis "
+#~ "virš reto užpildo. Šiek tiek sumažinkite šią reikšmę (pavyzdžiui, 0,9), "
+#~ "kad pagerintumėte paviršiaus kokybę virš reto užpildo.\n"
+#~ "\n"
+#~ "Faktinis naudojamas vidinio tiltelio srautas apskaičiuojamas padauginus "
+#~ "šią vertę iš tiltelio srauto santykio, gijų srauto santykio ir, jei "
+#~ "nustatyta, objekto srauto santykio."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enable this option to slow down printing in areas where perimeters may "
+#~ "have curled upwards. For example, additional slowdown will be applied "
+#~ "when printing overhangs on sharp corners like the front of the Benchy "
+#~ "hull, reducing curling which compounds over multiple layers.\n"
+#~ "\n"
+#~ "It is generally recommended to have this option switched on unless your "
+#~ "printer cooling is powerful enough or the print speed slow enough that "
+#~ "perimeter curling does not happen. If printing with a high external "
+#~ "perimeter speed, this parameter may introduce slight artifacts when "
+#~ "slowing down due to the large variance in print speeds. If you notice "
+#~ "artifacts, ensure your pressure advance is tuned correctly.\n"
+#~ "\n"
+#~ "Note: When this option is enabled, overhang perimeters are treated like "
+#~ "overhangs, meaning the overhang speed is applied even if the overhanging "
+#~ "perimeter is part of a bridge. For example, when the perimeters are 100% "
+#~ "overhanging, with no wall supporting them from underneath, the 100% "
+#~ "overhang speed will be applied."
+#~ msgstr ""
+#~ "Įjunkite šią parinktį, kad sulėtintumėte spausdinimą tose srityse, "
+#~ "kuriose perimetras gali būti išlinkęs į viršų. Pavyzdžiui, papildomas "
+#~ "sulėtinimas bus taikomas spausdinant iškyšas ant aštrių kampų, "
+#~ "pavyzdžiui, „Benchy“ korpuso priekyje, sumažinant susisukimą, kuris "
+#~ "susidaro per kelis sluoksnius.\n"
+#~ "\n"
+#~ " Paprastai rekomenduojama įjungti šią parinktį, nebent jūsų spausdintuvo "
+#~ "aušinimas yra pakankamai galingas arba spausdinimo greitis pakankamai "
+#~ "lėtas, kad perimetro susisukimas neįvyktų. Jei spausdinama dideliu "
+#~ "išoriniu perimetro greičiu, šis parametras gali sukelti nedidelius "
+#~ "artefaktus, kai sulėtėja dėl didelio spausdinimo greičio skirtumo. Jei "
+#~ "pastebėsite artefaktus, įsitikinkite, kad išankstinis slėgis "
+#~ "sureguliuotas teisingai.\n"
+#~ "\n"
+#~ "Pastaba: Kai ši parinktis įjungta, iškyšos perimetras traktuojamas kaip "
+#~ "iškyša, t. y. iškyšos greitis taikomas net jei iškyšos perimetras yra "
+#~ "tilto dalis. Pavyzdžiui, kai perimetrai yra 100 % išsikišę, o iš apačios "
+#~ "jų nepalaiko jokia siena, bus taikomas 100 % išsikišimo greitis."
+
+#~ msgid ""
+#~ "If enabled, bridges are more reliable, can bridge longer distances, but "
+#~ "may look worse. If disabled, bridges look better but are reliable just "
+#~ "for shorter bridged distances."
+#~ msgstr ""
+#~ "Jei įjungta, tiltai yra patikimesni, gali įveikti didesnius atstumus, "
+#~ "tačiau gali atrodyti blogiau. Jei išjungta, tiltai atrodo geriau, bet yra "
+#~ "patikimi tik trumpesniems atstumams."
+
+#~ msgid ""
+#~ "If enabled, thick internal bridges will be used. It's usually recommended "
+#~ "to have this feature turned on. However, consider turning it off if you "
+#~ "are using large nozzles."
+#~ msgstr ""
+#~ "Jei įjungta, bus naudojami stori vidiniai tiltai. Paprastai "
+#~ "rekomenduojama šią funkciją įjungti. Tačiau jei naudojate didelius "
+#~ "antgalius, apsvarstykite galimybę ją išjungti."
+
+#~ msgid ""
+#~ "Aligns infill and surface fill directions to follow the model's "
+#~ "orientation on the build plate. When enabled, fill directions rotate with "
+#~ "the model to maintain optimal strength characteristics."
+#~ msgstr ""
+#~ "Suderina užpildymo ir paviršiaus užpildymo kryptis, kad jos atitiktų "
+#~ "modelio orientaciją ant spausdinimo plokštės. Kai ši funkcija įjungta, "
+#~ "užpildymo kryptys pasisuka kartu su modeliu, kad būtų išlaikytos "
+#~ "optimalios stiprumo charakteristikos."
+
+#~ msgid "Filament to print internal sparse infill."
+#~ msgstr "Gija, skirta spausdinti vidinį retą užpildą."
+
+#~ msgid "Filament to print walls."
+#~ msgstr "Gijos sienoms spausdinti."
+
+#~ msgid "Solid infill"
+#~ msgstr "Vientisas užpildas"
+
+#~ msgid "Filament to print solid infill."
+#~ msgstr "Filamentas vientisam užpildui spausdinti."
+
+#~ msgid ""
+#~ "Filament to print support base and raft. \"Default\" means no specific "
+#~ "filament for support and current filament is used."
+#~ msgstr ""
+#~ "Gija, skirta spausdinti atraminį pagrindą ir platformą. \"Numatytoji\" "
+#~ "reiškia, kad nėra konkrečios gijos atramai ir naudojama dabartinė gija."
+
+#~ msgid ""
+#~ "Filament to print support interface. \"Default\" means no specific "
+#~ "filament for support interface and current filament is used."
+#~ msgstr ""
+#~ "Gija skirta spausdinti atramos sąsają. \"Numatytoji\" reiškia, kad "
+#~ "atramos sąsajai nėra konkrečios gijos ir naudojama dabartinė gija."
 
 #~ msgid "Erase all painting"
 #~ msgstr "Ištrinti visą piešinį"

@@ -20,6 +20,14 @@ namespace Slic3r {
 class AppConfig;
 struct BundleMetadata;
 
+// Outcome of a token-refresh attempt: decides whether a 401 should log the user
+// out (AuthRejected) or be treated as a recoverable condition (Transient).
+enum class RefreshResult {
+    Success,       // new tokens obtained
+    AuthRejected,  // server definitively rejected the refresh token -> logout is correct
+    Transient      // network/server problem -> keep the session and retry later
+};
+
 // Constants for OAuth loopback server
 namespace auth_constants {
     constexpr int LOOPBACK_PORT = 41172;
@@ -276,10 +284,10 @@ public:
     void clear_refresh_token();
 
     // Token refresh helpers
-    bool refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
-    bool refresh_from_storage(const std::string& reason, bool async = false);
-    bool refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
-    bool refresh_session_with_token(const std::string& refresh_token);
+    bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
+    RefreshResult refresh_from_storage(const std::string& reason, bool async = false);
+    RefreshResult refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
+    RefreshResult refresh_session_with_token(const std::string& refresh_token);
 
     // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
     bool set_user_session(const std::string& token,
@@ -292,6 +300,8 @@ public:
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
 
+    static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
+
 private:
     // Sync protocol helpers
     int sync_pull(
@@ -299,13 +309,28 @@ private:
         std::function<void(int http_code, const std::string& error)> on_error
     );
 
+    // Shared result of one HTTP attempt by the data methods (get/post/put/delete).
+    struct HttpResult {
+        bool         success{false};
+        unsigned int status{0};
+        std::string  body;
+    };
+
+    // Applies the "retry once on 401" policy for the data HTTP methods.
+    // `res` holds the first response; `perform` re-issues the request after a
+    // successful refresh. Returns true if the auth error should be SUPPRESSED
+    // (i.e. the session must be kept rather than logged out).
+    bool resolve_unauthorized(HttpResult& res,
+                              const std::function<HttpResult()>& perform,
+                              const std::string& reason);
+
     // HTTP request helpers
     int http_get(const std::string& path, std::string* response_body, unsigned int* http_code);
     int http_post(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
     int http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
     int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code);
     std::map<std::string, std::string> data_headers();
-    bool attempt_refresh_after_unauthorized(const std::string& reason);
+    RefreshResult attempt_refresh_after_unauthorized(const std::string& reason);
 
     // Auth HTTP helpers
     bool http_post_token(const std::string& body, std::string* response_body, unsigned int* http_code, const std::string& url = "");

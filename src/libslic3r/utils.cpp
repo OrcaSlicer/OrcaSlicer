@@ -392,6 +392,14 @@ void flush_logs()
 	return;
 }
 
+// ORCA
+boost::filesystem::path get_log_file_name()
+{
+    if (g_log_sink)
+        return g_log_sink->locked_backend()->get_current_file_name();
+    return {};
+}
+
 #ifdef _WIN32
 // The following helpers are borrowed from the LLVM project https://github.com/llvm
 namespace WindowsSupport

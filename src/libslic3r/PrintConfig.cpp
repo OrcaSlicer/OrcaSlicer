@@ -149,7 +149,8 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "flashforge",     htFlashforge },
     { "simplyprint",    htSimplyPrint },
     { "elegoolink",     htElegooLink },
-    { "3dprinteros",    ht3DPrinterOS }
+    { "3dprinteros",    ht3DPrinterOS },
+    { "moonraker",      htMoonraker }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -1283,15 +1284,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");
     def->category = L("Strength");
-    def->tooltip = L("Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+    def->tooltip = L("Controls the density (spacing) of external bridge lines.\n"
                      "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient.\n\n"
                      "- Higher than 100% density (Recommended Max 125%):\n"
                      "  - Pros: Produces smoother bridge surfaces, as overlapping lines provide additional support during printing.\n"
                      "  - Cons: Can cause overextrusion, which may reduce lower and upper surface quality and increase the risk of warping.\n\n"
                      "- Lower than 100% density (Min 10%):\n"
                      "  - Pros: Can create a string-like first layer. Faster and with better cooling because there is more space for air to circulate around the extruded bridge.\n"
-                     "  - Cons: May lead to sagging and poorer surface finish.\n\n"
-                     "Recommended range: Minimum 10% - Maximum 125%.");
+                     "  - Cons: May lead to sagging and poorer surface finish.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 125;
@@ -1301,7 +1301,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_bridge_density", coPercent);
     def->label = L("Internal bridge density");
     def->category = L("Strength");
-    def->tooltip = L("Controls the density (spacing) of internal bridge lines. Default is 100%. 100% means a solid internal bridge.\n\n"
+    def->tooltip = L("Controls the density (spacing) of internal bridge lines.\n"
                      "Internal bridges act as intermediate support between sparse infill and top solid infill and can strongly affect top surface quality.\n\n"
                      "- Higher than 100% density (Recommended Max 125%):\n"
                      "  - Pros: Improves internal bridge strength and support under top layers, reducing sagging and improving top-surface finish.\n"
@@ -1331,7 +1331,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_line_width", coFloatOrPercent);
     def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Bridge line width is expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter).\n"
+    def->tooltip = L("Line width of the Bridge. If expressed as a %, it will be computed over the nozzle diameter.\n"
                      "Recommended to use with a higher Bridge density or Bridge flow ratio.\n\n"
                      "The maximum value is 100% or the nozzle diameter.\n"
                      "If set to 0, the line width will match the Internal solid infill width.");
@@ -4882,6 +4882,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("simplyprint");
     def->enum_values.push_back("elegoolink");
     def->enum_values.push_back("3dprinteros");
+    def->enum_values.push_back("moonraker");
     def->enum_labels.push_back("PrusaLink");
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
@@ -4897,6 +4898,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("SimplyPrint");
     def->enum_labels.push_back("Elegoo Link");
     def->enum_labels.push_back("3DPrinterOS");
+    def->enum_labels.push_back("Moonraker (Klipper)");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -10273,7 +10275,19 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
                 int stride = 1;
                 if (key_set2.find(opt) != key_set2.end())
                     stride = 2;
-                opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
+                // set_only_diff() requires the base vector length to equal variant_index.size()*stride, where
+                // variant_index is sized from the parent's printer_extruder_variant list (or 1 when it has none).
+                // Legacy / multi-extruder / multi-variant presets can violate this in either direction when a key's
+                // stored length and the variant-list length were sized inconsistently - e.g. a Snapmaker U1 base
+                // (4 nozzles) whose stride-2 machine limits were length-extended to nozzles*2 while its
+                // printer_extruder_variant list is empty (variant_index == 1), so base length != variant_index*stride.
+                // Rather than throw (which is caught upstream and DELETES the user preset file), fall back to the
+                // child's explicit value, which is authoritative for its own extruder/variant layout.
+                if (opt_vec_src->size() != variant_index.size() * size_t(stride)) {
+                    opt_src->set(opt_target);
+                }
+                else
+                    opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
             }
         }
     }

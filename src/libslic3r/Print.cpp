@@ -1836,15 +1836,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                    }
                 }
             }
-
-            // Check junction deviation
-            // Orca: Only marlin FW supports max junction deviation. Dont display warning if firmware is not supporting it.
-            const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
-            if (warning_key.empty() && m_default_object_config.default_junction_deviation.value > max_junction_deviation && support_max_junction_deviation) {
+            // check junction deviation
+            else if (m_default_object_config.default_junction_deviation.value > max_junction_deviation) {
                 warning->string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
                                       "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
                                       "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
-                warning->opt_key = warning_key;
+                warning->opt_key = "default_junction_deviation";
             }
             
             // check acceleration
@@ -2635,7 +2632,8 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     gcode.do_export(this, path.c_str(), result, thumbnail_cb);
     gcode.export_layer_filaments(result);
     //BBS
-    result->conflict_result = m_conflict_result;
+    if (result != nullptr)
+        result->conflict_result = m_conflict_result;
     return path.c_str();
 }
 

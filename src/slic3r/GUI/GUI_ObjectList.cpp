@@ -514,6 +514,16 @@ void ObjectList::create_objects_ctrl()
         for (int cn = colName; cn < colCount; cn++)
             GetColumn(cn)->SetWidth(m_columns_width[cn] * em);
 #endif
+
+    // Force an explicit row height on all platforms so the object-list spacing is
+    // consistent and the filament colour badge (2*em tall, see
+    // get_extruder_color_icons()) always fits. This is required on macOS, where wx
+    // 3.3's native wxDataViewCtrl uses a fixed font-line-height row and does NOT
+    // grow it to fit custom renderers' GetSize() (badges would otherwise overflow
+    // and merge into adjacent rows); on Windows/Linux the generic control normally
+    // derives the height from the renderers, but we set it here too so all
+    // platforms match.
+    SetRowHeight(2 * em + FromDIP(2));
 }
 
 void ObjectList::get_selected_item_indexes(int& obj_idx, int& vol_idx, const wxDataViewItem& input_item/* = wxDataViewItem(nullptr)*/)
@@ -754,6 +764,10 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
                 if (!object->volumes[id]->config.has("extruder") ||
                     size_t(object->volumes[id]->config.extruder()) > filaments_count) {
                     extruder = wxString::Format("%d", object->config.extruder());
+                    // Clear the stale per-volume assignment so it falls back to the object's
+                    // extruder; otherwise the out-of-range index survives. Ported from
+                    // BambuStudio (STUDIO-15763).
+                    object->volumes[id]->config.erase("extruder");
                 }
                 else {
                     extruder = wxString::Format("%d", object->volumes[id]->config.extruder());
@@ -6336,6 +6350,11 @@ void ObjectList::msw_rescale()
 
     for (int cn = colName; cn < colCount; cn++)
         GetColumn(cn)->SetWidth(m_columns_width[cn] * em);
+
+    // Keep the explicit row height (see create_objects_ctrl) in sync with the
+    // rescaled em so the filament colour badge keeps fitting after a DPI or theme
+    // change.
+    SetRowHeight(2 * em + FromDIP(2));
 
     // rescale/update existing items with bitmaps
     m_objects_model->Rescale();

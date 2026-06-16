@@ -467,6 +467,7 @@ public:
     void            recreate_GUI(const wxString& message);
     void            system_info();
     void            keyboard_shortcuts();
+    void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
     void            import_model(wxWindow *parent, wxArrayString& input_files) const;
     void            import_zip(wxWindow* parent, wxString& input_file) const;
@@ -543,7 +544,7 @@ public:
 
     // Bundle subscription sync
     void            check_bundle_updates();
-    void            sync_bundle(std::string bundle_id, std::string version);
+    int             sync_bundle(std::string bundle_id, std::string version);
     bool            unsubscribe_bundle(const std::string& id);
     void            update_single_bundle(wxCommandEvent& evt);
 

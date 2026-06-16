@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-22 02:24+0800\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -197,6 +197,15 @@ msgstr "Tamamlandı"
 msgid "Support Generated"
 msgstr "Destek Oluşturuldu"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Yüzeye yerleştir"
 
@@ -284,6 +293,15 @@ msgstr "Şunlar kullanılarak boyanmıştır: Filament %1%"
 msgid "To:"
 msgstr "İle:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "Pütürlü yüzey boyama"
 
@@ -304,6 +322,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Bu nesne için boyalı pütürlü yüzeyi etkinleştir"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "Taşı"
@@ -508,7 +535,7 @@ msgid "Count"
 msgstr ""
 
 msgid "Gap"
-msgstr ""
+msgstr "Boşluk"
 
 msgid "Spacing"
 msgstr "Boşluk"
@@ -693,6 +720,15 @@ msgstr "Satıra göre kes"
 
 msgid "Delete connector"
 msgstr "Bağlayıcıyı sil"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Mesh adı"
@@ -1567,6 +1603,12 @@ msgstr "Paralel mesafe:"
 msgid "Flip by Face 2"
 msgstr "Yüzey 2’ye Göre Çevir"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Birleştir"
 
@@ -1603,6 +1645,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "Yüz ve yüz montajı"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1846,6 +1894,17 @@ msgstr ""
 msgid "User logged out"
 msgstr "Kullanıcı oturumu kapattı"
 
+msgid ""
+"You are currently in Stealth Mode. To log into the Cloud, you need to "
+"disable Stealth Mode first."
+msgstr ""
+
+msgid "Stealth Mode"
+msgstr ""
+
+msgid "Quit Stealth Mode"
+msgstr ""
+
 msgid "new or open project file is not allowed during the slicing process!"
 msgstr ""
 "dilimleme işlemi sırasında yeni veya açık proje dosyasına izin verilmez!"
@@ -1860,21 +1919,38 @@ msgstr ""
 "Orca Slicer'ın sürümü çok düşük ve normal şekilde kullanılabilmesi için en "
 "son sürüme güncellenmesi gerekiyor."
 
-#, c-format, boost-format
 msgid ""
-"Failed to connect to OrcaCloud.\n"
-"Please check your network connectivity\n"
-"(HTTP %u): %s"
+"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
-"Failed to connect to OrcaCloud.\n"
-"Please check your network connectivity\n"
-"(HTTP %u)"
+"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
 msgstr ""
 
-msgid "Cloud Error"
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+msgid "Resolve cloud sync conflict"
 msgstr ""
 
 msgid "Retrieving printer information, please try again later."
@@ -1930,7 +2006,7 @@ msgid "Privacy Policy Update"
 msgstr "Gizlilik Politikası Güncellemesi"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"
@@ -2179,6 +2255,9 @@ msgstr "Simit"
 
 msgid "Orca Cube"
 msgstr "Orca Küpü"
+
+msgid "OrcaSliced Combo"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca tolerans testi"
@@ -3143,6 +3222,45 @@ msgstr "Maksimum sıcaklık aşılamaz"
 msgid "The minmum temperature should not be less than "
 msgstr "Minimum sıcaklık,"
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Tümü"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Hiçbirini seçme"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "Gelişmiş ayarlar"
+
+msgid "Expert settings"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3423,6 +3541,9 @@ msgstr "Yazı tipinin verilen metin için herhangi bir şekli yoktur."
 
 msgid "There is no valid surface for text projection."
 msgstr "Metin yansıtma için geçerli bir yüzey yoktur."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "İlk katman optimizasyonu için Termal Ön Şartlandırma"
@@ -5252,7 +5373,7 @@ msgid "Filament change times"
 msgstr "Filament değişim süreleri"
 
 msgid "Tool changes"
-msgstr ""
+msgstr "Takım değişiklikleri"
 
 msgid "Color change"
 msgstr "Renk değişimi"
@@ -5520,6 +5641,9 @@ msgstr "Çıkıntılar"
 msgid "Outline"
 msgstr "Taslak"
 
+msgid "Realistic View"
+msgstr ""
+
 msgid "Perspective"
 msgstr "Perspektif"
 
@@ -5536,7 +5660,7 @@ msgid "Paint Toolbar"
 msgstr "Boyama Araç Çubuğu"
 
 msgid "part selection"
-msgstr ""
+msgstr "parça seçimi"
 
 msgid "Explosion Ratio"
 msgstr "Patlama Oranı"
@@ -5562,7 +5686,7 @@ msgstr "Hacim:"
 msgid "Size:"
 msgstr "Boyut:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5822,14 +5946,17 @@ msgstr "Kurulum sihirbazı"
 msgid "Show Configuration Folder"
 msgstr "Yapılandırma Klasörünü Göster"
 
+msgid "Troubleshoot Center"
+msgstr ""
+
+msgid "Open Network Test"
+msgstr "Ağ Testini Aç"
+
 msgid "Show Tip of the Day"
 msgstr "Günün İpucunu Göster"
 
 msgid "Check for Updates"
 msgstr "Güncellemeleri Kontrol Et"
-
-msgid "Open Network Test"
-msgstr "Ağ Testini Aç"
 
 #, c-format, boost-format
 msgid "&About %s"
@@ -7172,6 +7299,12 @@ msgstr "Başarıyla dışarı aktarıldı"
 msgid "Model file downloaded."
 msgstr "Model dosyası indirildi."
 
+msgid "Pull"
+msgstr ""
+
+msgid "Force push"
+msgstr ""
+
 msgid "Shared profiles may be available for this printer."
 msgstr ""
 
@@ -8199,6 +8332,12 @@ msgstr ""
 "Model ağlarında boole işlemi gerçekleştirilemiyor. Yalnızca pozitif parçalar "
 "ihraç edilecektir."
 
+msgid "Flashforge host is not available."
+msgstr ""
+
+msgid "Unable to log in to the Flashforge printer."
+msgstr ""
+
 msgid "Is the printer ready? Is the print sheet in place, empty and clean?"
 msgstr "Yazıcı hazır mı? Baskı plakası takılı, boş ve temiz mi?"
 
@@ -8571,9 +8710,6 @@ msgstr "Grup kullanıcı filament ön ayarları"
 msgid "Group user filament presets based on selection"
 msgstr "Kullanıcı filament ön ayarlarını seçime göre gruplandırın"
 
-msgid "All"
-msgstr "Tümü"
-
 msgid "By type"
 msgstr "Türe göre"
 
@@ -8764,6 +8900,24 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Phong shading"
+msgstr ""
+
+msgid "Uses Phong shading inside realistic view."
+msgstr ""
+
+msgid "SSAO ambient occlusion"
+msgstr ""
+
+msgid "Applies SSAO in realistic view."
+msgstr ""
+
+msgid "Shadows"
+msgstr ""
+
+msgid "Renders cast shadows on the plate in realistic view."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr ""
 
@@ -8821,9 +8975,16 @@ msgid "Stealth mode"
 msgstr "Gizli mod"
 
 msgid ""
-"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
-"the transmission of data to Bambu's cloud services too. Users who don't use "
-"BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud features, including Orca Cloud profile syncing. "
+"Users who prefer to work entirely offline can enable this option.\n"
+"Note: When Stealth Mode is enabled, your user profiles will not be backed up "
+"to Orca Cloud."
+msgstr ""
+
+msgid "Hide login side panel"
+msgstr ""
+
+msgid "Hide the login side panel on the home page."
 msgstr ""
 
 msgid "Network test"
@@ -8927,6 +9088,14 @@ msgstr "Ağ Eklentisini İndirin"
 msgid "Associate files to OrcaSlicer"
 msgstr "Dosyaları OrcaSlicer ile ilişkilendirin"
 
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
+
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf dosyalarını OrcaSlicer ile ilişkilendirin"
 
@@ -8979,6 +9148,14 @@ msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
 "changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
+msgstr ""
+
+msgid "Show unsupported presets"
+msgstr ""
+
+msgid ""
+"Show incompatible/unsupported presets in the printer and filament dropdown "
+"lists. These presets cannot be selected."
 msgstr ""
 
 msgid "Allow Abnormal Storage"
@@ -9782,6 +9959,9 @@ msgstr ""
 "destekleyip desteklemediğini kontrol edin veya yazıcının düzgün çalışıp "
 "çalışmadığını kontrol edin."
 
+msgid "Sending failed, please try again!"
+msgstr ""
+
 msgid "Slice ok."
 msgstr "Dilimleme tamam."
 
@@ -10107,8 +10287,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Araç başlığı olmadan timelapse kaydederken, bir \"Timelapse Wipe Tower\" "
 "eklenmesi önerilir.\n"
@@ -10196,6 +10376,9 @@ msgstr "Katman Genişliği"
 msgid "Precision"
 msgstr "Hassasiyet"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Duvar Türü"
 
@@ -10234,6 +10417,9 @@ msgstr "Harici ve dahili köprüler için hızı ayarlayın"
 
 msgid "Travel speed"
 msgstr "Seyahat Hızı"
+
+msgid "Junction Deviation"
+msgstr "Köşe sapması"
 
 msgid "Jerk(XY)"
 msgstr "Sarsıntı(XY)"
@@ -10591,13 +10777,11 @@ msgid "Retraction when switching material"
 msgstr "Malzemeyi Değiştirirken Geri Çekme"
 
 msgid ""
-"The Wipe option is not available when using the Firmware Retraction mode.\n"
+"The Retract before wipe option could be only 100% when using the Firmware "
+"Retraction mode.\n"
 "\n"
-"Shall I disable it in order to enable Firmware Retraction?"
+"Shall I set it to 100% in order to enable Firmware Retraction?"
 msgstr ""
-"Yazılımsal Geri Çekme modunu kullanırken Temizleme seçeneği kullanılamaz.\n"
-"\n"
-"Yazılımsal Geri Çekmeyi etkinleştirmek için bunu devre dışı bırakmalı mıyım?"
 
 msgid "Firmware Retraction"
 msgstr "Yazılımsal Geri Çekme"
@@ -11110,9 +11294,6 @@ msgstr ""
 "Kullanılmayan yazıcı filamentleri ise otomatik olarak listenin sonuna "
 "eklenecektir."
 
-msgid "Advanced settings"
-msgstr "Gelişmiş ayarlar"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Kullanılmayan AMS filamentlerini filament listesine ekleyin."
 
@@ -11384,16 +11565,16 @@ msgid "Global shortcuts"
 msgstr "Genel kısayollar"
 
 msgid "Pan View"
-msgstr ""
+msgstr "Pan Görünümü"
 
 msgid "Rotate View"
-msgstr ""
+msgstr "Görüntüyü döndür"
 
 msgid "Middle mouse button"
 msgstr ""
 
 msgid "Zoom View"
-msgstr ""
+msgstr "Zoom Görünümü"
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11613,11 +11794,22 @@ msgstr "Yeni bir Ağ eklentisi(%s) mevcut, Yüklemek istiyor musunuz?"
 msgid "New version of Orca Slicer"
 msgstr "Orca Slicer’ın yeni versiyonu"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "Bu versiyonu atla"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Nozulu Onaylayın ve Güncelleyin"
@@ -11732,6 +11924,9 @@ msgstr "Kesim Modülü"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Otomatik Yangın Söndürme Sistemi"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "Ürün yazılımını güncelle"
@@ -12075,8 +12270,8 @@ msgid ""
 "Please select \"By object\" print sequence to print multiple objects in "
 "spiral vase mode."
 msgstr ""
-"Birden fazla nesneyi spiral vazo modunda yazdırmak için lütfen \"Nesneye "
-"göre\" yazdırma sırasını seçin."
+"Birden fazla nesneyi spiral vazo modunda yazdırmak için lütfen \"Nesneye göre"
+"\" yazdırma sırasını seçin."
 
 msgid ""
 "The spiral vase mode does not work when an object contains more than one "
@@ -12267,6 +12462,19 @@ msgstr ""
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Katman yüksekliği nozul çapını aşamaz."
 
+msgid "Bridge line width must not exceed nozzle diameter"
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
 msgid ""
 "Relative extruder addressing requires resetting the extruder position at "
 "each layer to prevent loss of floating point accuracy. Add \"G92 E0\" to "
@@ -12277,18 +12485,14 @@ msgstr ""
 "Layer_gcode'a \"G92 E0\" ekleyin."
 
 msgid ""
-"\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
-"absolute extruder addressing."
+"\"G92 E0\" was found in before_layer_change_gcode, which is incompatible "
+"with absolute extruder addressing."
 msgstr ""
-"Before_layer_gcode'da \"G92 E0\" bulundu ve bu, mutlak ekstruder "
-"adreslemeyle uyumsuzdu."
 
 msgid ""
-"\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
-"extruder addressing."
+"\"G92 E0\" was found in layer_change_gcode, which is incompatible with "
+"absolute extruder addressing."
 msgstr ""
-"Layer_gcode'da mutlak ekstruder adreslemeyle uyumlu olmayan \"G92 E0\" "
-"bulundu."
 
 #, c-format, boost-format
 msgid "Plate %d: %s does not support filament %s"
@@ -12394,6 +12598,31 @@ msgstr "Yazdırılabilir alan"
 
 msgid "Extruder printable area"
 msgstr "Ekstruder yazdırılabilir alan"
+
+msgid "Support parallel printheads"
+msgstr ""
+
+msgid ""
+"Enable printer settings for machines that can use multiple printheads in "
+"parallel."
+msgstr ""
+
+msgid "Parallel printheads count"
+msgstr ""
+
+msgid ""
+"Set the number of parallel printheads for machines like OrangeStorm Giga "
+"printer."
+msgstr ""
+
+msgid "Parallel printheads bed exclude areas"
+msgstr ""
+
+msgid ""
+"Ordered list of bed exclude areas by parallel printhead count. Item 1 "
+"applies to one printhead, item 2 to two printheads, and so on. Leave an item "
+"empty for no excluded area."
+msgstr ""
 
 msgid "Bed exclude area"
 msgstr "Tablada hariç tutulan bölge"
@@ -12530,6 +12759,12 @@ msgstr ""
 "Orca Slicer, G kodu dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. "
 "Bu alan, kimlik doğrulama için gereken API Anahtarını veya şifreyi "
 "içermelidir."
+
+msgid "Serial Number"
+msgstr ""
+
+msgid "Flashforge local API requires the printer serial number."
+msgstr ""
 
 msgid "Name of the printer."
 msgstr "Yazıcı adı."
@@ -12874,119 +13109,128 @@ msgstr "Dış köprü dolgu yönü"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Bridging angle override. If left to zero, the bridging angle will be "
-"calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180° for zero angle."
+"External Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
+"\n"
+"Use 180° for zero absolute angle."
 msgstr ""
-"Köprüleme açısı geçersiz kılma. Sıfıra bırakılırsa köprüleme açısı otomatik "
-"olarak hesaplanacaktır. Aksi halde dış köprüler için sağlanan açı "
-"kullanılacaktır. Sıfır açı için 180°'yi kullanın."
 
 msgid "Internal bridge infill direction"
 msgstr "İç köprü dolgu yönü"
 
 msgid ""
-"Internal bridging angle override. If left to zero, the bridging angle will "
-"be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180° for zero angle.\n"
+"Internal Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
 "\n"
-"It is recommended to leave it at 0 unless there is a specific model need not "
-"to."
+"Use 180° for zero absolute angle."
 msgstr ""
-"İç köprüleme açısı geçersiz kılma. Sıfır olarak bırakılırsa, köprüleme açısı "
-"otomatik olarak hesaplanacaktır. Aksi takdirde sağlanan açı iç köprüler için "
-"kullanılacaktır. Sıfır açı için 180° kullanın.\n"
-"\n"
-"Belirli bir model ihtiyacı olmadığı sürece 0’da bırakılması önerilir."
+
+msgid "Relative bridge angle"
+msgstr ""
+
+msgid ""
+"When enabled, the bridge angle values are added to the automatically "
+"calculated bridge direction instead of overriding it."
+msgstr ""
 
 msgid "External bridge density"
 msgstr "Dış köprü yoğunluğu"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
+"Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
+"extrusions to sag, 100% may not be sufficient.\n"
 "\n"
-"Lower density external bridges can help improve reliability as there is more "
-"space for air to circulate around the extruded bridge, improving its cooling "
-"speed. Minimum is 10%.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Produces smoother bridge surfaces, as overlapping lines provide "
+"additional support during printing.\n"
+"  - Cons: Can cause overextrusion, which may reduce lower and upper surface "
+"quality and increase the risk of warping.\n"
 "\n"
-"Higher densities can produce smoother bridge surfaces, as overlapping lines "
-"provide additional support during printing. Maximum is 120%.\n"
-"Note: Bridge density that is too high can cause warping or overextrusion."
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can create a string-like first layer. Faster and with better "
+"cooling because there is more space for air to circulate around the extruded "
+"bridge.\n"
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
-"Harici köprü hatlarının yoğunluğunu (aralığını) kontrol eder. Varsayılan "
-"%100'dür.\n"
-"\n"
-"Daha düşük yoğunluklu harici köprüler, ekstrüzyonlu köprü çevresinde havanın "
-"dolaşımı için daha fazla alan olduğundan ve soğutma hızını arttırdığından "
-"güvenilirliğin artırılmasına yardımcı olabilir. Asgari %10'dur.\n"
-"\n"
-"Üst üste binen çizgiler yazdırma sırasında ek destek sağladığından, daha "
-"yüksek yoğunluklar daha düzgün köprü yüzeyleri üretebilir. Maksimum "
-"%120'dir.\n"
-"Not: Çok yüksek köprü yoğunluğu bükülmeye veya aşırı ekstrüzyona neden "
-"olabilir."
 
 msgid "Internal bridge density"
 msgstr "İç köprü yoğunluğu"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of internal bridge lines.\n"
+"Internal bridges act as intermediate support between sparse infill and top "
+"solid infill and can strongly affect top surface quality.\n"
 "\n"
-"Lower density internal bridges can help reduce top surface pillowing and "
-"improve internal bridge reliability as there is more space for air to "
-"circulate around the extruded bridge, improving its cooling speed.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Improves internal bridge strength and support under top layers, "
+"reducing sagging and improving top-surface finish.\n"
+"  - Cons: Increases material use and print time; excessive density may cause "
+"overextrusion and internal stresses.\n"
+"\n"
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can reduce pillowing and improve cooling (more airflow through the "
+"bridge), and may speed up printing.\n"
+"  - Cons: May reduce internal support, increasing the risk of sagging and "
+"top surface defects.\n"
 "\n"
 "This option works particularly well when combined with the second internal "
-"bridge over infill option, further improving internal bridging structure "
-"before solid infill is extruded."
+"bridge over infill option to improve bridging further before solid infill is "
+"extruded."
 msgstr ""
-"İç köprü çizgilerinin yoğunluğunu (aralığını) kontrol eder. 100 katı köprü "
-"anlamına gelir. Varsayılan değer %100’dür.\n"
-"\n"
-" Daha düşük yoğunluklu iç köprüler, üst yüzeydeki yastıklanmayı azaltmaya "
-"yardımcı olabilir ve ekstrüde köprünün etrafında havanın dolaşması için daha "
-"fazla alan olduğundan iç köprü güvenilirliğini artırarak soğutma hızını "
-"artırır.\n"
-"\n"
-"Bu seçenek, dolgu üzerine ikinci iç köprü seçeneği ile birleştirildiğinde "
-"özellikle iyi çalışır ve katı dolgu ekstrüde edilmeden önce iç köprüleme "
-"yapısını daha da iyileştirir."
 
 msgid "Bridge flow ratio"
 msgstr "Köprülerde akış oranı"
 
 msgid ""
-"Decrease this value slightly (for example 0.9) to reduce the amount of "
-"material for bridge, to improve sag.\n"
+"This value governs the thickness of the external (visible) bridge layer.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
 "The actual bridge flow used is calculated by multiplying this value with the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Köprü için malzeme miktarını azaltmak ve sarkmayı iyileştirmek amacıyla bu "
-"değeri biraz azaltın (örneğin 0,9).\n"
+
+msgid ""
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
+"Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
-"Kullanılan gerçek köprü akışı, bu değerin filament akış oranıyla ve "
-"ayarlandıysa nesnenin akış oranıyla çarpılmasıyla hesaplanır."
+"The maximum value is 100% or the nozzle diameter.\n"
+"If set to 0, the line width will match the Internal solid infill width."
+msgstr ""
 
 msgid "Internal bridge flow ratio"
 msgstr "İç köprü akış oranı"
 
 msgid ""
 "This value governs the thickness of the internal bridge layer. This is the "
-"first layer over sparse infill. Decrease this value slightly (for example "
-"0.9) to improve surface quality over sparse infill.\n"
+"first layer over sparse infill so increasing it may increase strength and "
+"upper layer quality.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
-"The actual internal bridge flow used is calculated by multiplying this value "
-"with the bridge flow ratio, the filament flow ratio, and if set, the "
-"object's flow ratio."
+"The actual bridge flow used is calculated by multiplying this value with the "
+"filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Bu değer iç köprü katmanının kalınlığını belirler. Bu, seyrek dolgunun "
-"üzerindeki ilk katmandır. Seyrek dolguya göre yüzey kalitesini iyileştirmek "
-"için bu değeri biraz azaltın (örneğin 0,9).\n"
-"\n"
-"Kullanılan gerçek iç köprü akışı, bu değerin köprü akış oranı, filament akış "
-"oranı ve ayarlandıysa nesnenin akış oranıyla çarpılmasıyla hesaplanır."
 
 msgid "Top surface flow ratio"
 msgstr "Üst katı dolgu akış oranı"
@@ -13324,40 +13568,35 @@ msgstr "Kıvrılmış dış duvarlarda hızı düşür"
 #, no-c-format, no-boost-format
 msgid ""
 "Enable this option to slow down printing in areas where perimeters may have "
-"curled upwards. For example, additional slowdown will be applied when "
-"printing overhangs on sharp corners like the front of the Benchy hull, "
-"reducing curling which compounds over multiple layers.\n"
+"curled upwards.\n"
+"For example, additional slowdown will be applied when printing overhangs on "
+"sharp corners like the front of the Benchy hull, reducing curling which "
+"compounds over multiple layers.\n"
 "\n"
 "It is generally recommended to have this option switched on unless your "
-"printer cooling is powerful enough or the print speed slow enough that "
-"perimeter curling does not happen. If printing with a high external "
-"perimeter speed, this parameter may introduce slight artifacts when slowing "
-"down due to the large variance in print speeds. If you notice artifacts, "
-"ensure your pressure advance is tuned correctly.\n"
+"printer cooling is powerful enough or the print speed is slow enough that "
+"perimeter curling does not happen. \n"
+"If printing with a high external perimeter speed, this parameter may "
+"introduce wall artifacts when slowing down, due to the potentially large "
+"variance in print speeds causing the extruder to be unable to keep up with "
+"the requested flow change.\n"
+"Root cause of these artifacts is most likely PA tuning being slightly off, "
+"especially when combined with a high PA smooth time.\n"
+"\n"
+"Recommendations when enabling this option:\n"
+"1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder "
+"reacts quickly to the speed changes.\n"
+"2. Increase the minimum print speeds to limit the magnitude of the slowdown "
+"and reduce the variance between fast and slow segments.\n"
+"3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to "
+"further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like "
 "overhangs, meaning the overhang speed is applied even if the overhanging "
-"perimeter is part of a bridge. For example, when the perimeters are 100% "
-"overhanging, with no wall supporting them from underneath, the 100% overhang "
-"speed will be applied."
+"perimeter is part of a bridge.\n"
+"For example, when the perimeters are 100% overhanging, with no wall "
+"supporting them from underneath, the 100% overhang speed will be applied."
 msgstr ""
-"Çevrelerin yukarıya doğru kıvrılmış olabileceği alanlarda yazdırmayı "
-"yavaşlatmak için bu seçeneği etkinleştirin. Örneğin, Benchy gövdesinin önü "
-"gibi keskin köşelerdeki çıkıntılara yazdırırken birden fazla katman üzerinde "
-"oluşan kıvrılmayı azaltacak şekilde ek yavaşlama uygulanacaktır.\n"
-"\n"
-" Yazıcınızın soğutması yeterince güçlü olmadığı veya yazdırma hızı çevre "
-"kıvrılmasını önleyecek kadar yavaş olmadığı sürece, genellikle bu seçeneğin "
-"açık olması önerilir. Yüksek harici çevre hızıyla yazdırılıyorsa, bu "
-"parametre, yazdırma hızlarındaki büyük farklılıklar nedeniyle yavaşlama "
-"sırasında hafif bozulmalara neden olabilir. Artefaktlar fark ederseniz "
-"basınç ilerlemenizin doğru şekilde ayarlandığından emin olun.\n"
-"\n"
-"Not: Bu seçenek etkinleştirildiğinde, çıkıntı çevreleri çıkıntılar gibi ele "
-"alınır; bu, çıkıntının çevresi bir köprünün parçası olsa bile çıkıntı "
-"hızının uygulandığı anlamına gelir. Örneğin, çevreler 100% çıkıntılı "
-"olduğunda ve onları alttan destekleyen bir duvar olmadığında 100% çıkıntı "
-"hızı uygulanacaktır."
 
 msgid "mm/s or %"
 msgstr "mm/s veya %"
@@ -13621,26 +13860,25 @@ msgid "Thick external bridges"
 msgstr "Kalın dış köprüler"
 
 msgid ""
-"If enabled, bridges are more reliable, can bridge longer distances, but may "
-"look worse. If disabled, bridges look better but are reliable just for "
-"shorter bridged distances."
+"If enabled, bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases bridge strength and reliability, allowing longer spans, but "
+"may worsen appearance.\n"
+"If disabled, bridges may look better but are generally reliable only for "
+"shorter spans."
 msgstr ""
-"Etkinleştirilirse köprüler daha güvenilir olur, daha uzun mesafeler arasında "
-"köprü kurabilir ancak daha kötü görünebilir. Devre dışı bırakıldığında "
-"köprüler daha iyi görünür ancak yalnızca daha kısa köprü mesafeleri için "
-"güvenilirdir."
 
 msgid "Thick internal bridges"
 msgstr "Kalın iç köprüler"
 
 msgid ""
-"If enabled, thick internal bridges will be used. It's usually recommended to "
-"have this feature turned on. However, consider turning it off if you are "
-"using large nozzles."
+"If enabled, internal bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases internal bridge strength and reliability when printed over "
+"sparse infill, but may worsen appearance.\n"
+"If disabled, internal bridges may look better but can be less reliable over "
+"sparse infill."
 msgstr ""
-"Etkinleştirilirse kalın iç köprüler kullanılacaktır. Genellikle bu özelliğin "
-"açık olması önerilir. Ancak büyük nozul uçları kullanıyorsanız kapatmayı "
-"düşünün."
 
 msgid "Extra bridge layers (beta)"
 msgstr "Ekstra köprü katmanları (beta)"
@@ -14878,13 +15116,11 @@ msgid "Align infill direction to model"
 msgstr "Dolgu yönünü modele hizalayın"
 
 msgid ""
-"Aligns infill and surface fill directions to follow the model's orientation "
-"on the build plate. When enabled, fill directions rotate with the model to "
-"maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing and surface fill directions to follow the "
+"model's orientation on the build plate.\n"
+"When enabled, directions rotate with the model to maintain optimal strength "
+"characteristics."
 msgstr ""
-"Dolgu ve yüzey dolgu yönlerini, modelin yapı plakasındaki yönünü takip "
-"edecek şekilde hizalar. Etkinleştirildiğinde, dolgu yönleri optimum "
-"dayanıklılık özelliklerini korumak için modelle birlikte döner."
 
 msgid "Insert solid layers"
 msgstr "Katı katmanlar ekle"
@@ -14913,6 +15149,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, c-format, boost-format
 msgid ""
 "Tightens the gyroid wave along the Z (vertical) axis at low infill density "
 "to shorten the effective vertical column length and improve Z-axis "
@@ -15009,6 +15246,27 @@ msgid ""
 "The angle of the infill angled lines. 60° will result in a pure honeycomb."
 msgstr "Dolgu açılı çizgilerinin açısı 60° ise saf petek görünümü elde edilir."
 
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are "
+"pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
 msgid "Sparse infill anchor length"
 msgstr "Dolgu uzunluğu"
 
@@ -15096,8 +15354,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² veya %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Seyrek dolgunun hızlandırılması. Değer yüzde olarak ifade edilirse (örn. "
 "%100), varsayılan ivmeye göre hesaplanacaktır."
@@ -15142,9 +15400,6 @@ msgstr ""
 
 msgid "Default jerk."
 msgstr "Varsayılan sarsıntı."
-
-msgid "Junction Deviation"
-msgstr "Köşe sapması"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -15229,17 +15484,16 @@ msgstr "Maksimum fan hızı"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Fan hızı, \"close_fan_the_first_x_layers\" katmanında sıfırdan "
 "\"ful_fan_speed_layer\" katmanında maksimuma doğrusal olarak artırılacaktır. "
 "\"full_fan_speed_layer\", \"close_fan_the_first_x_layers\" değerinden "
-"düşükse göz ardı edilecektir; bu durumda fan, "
-"\"close_fan_the_first_x_layers\" + 1 katmanında izin verilen maksimum hızda "
-"çalışacaktır."
+"düşükse göz ardı edilecektir; bu durumda fan, \"close_fan_the_first_x_layers"
+"\" + 1 katmanında izin verilen maksimum hızda çalışacaktır."
 
 msgid "layer"
 msgstr "katman"
@@ -15766,7 +16020,7 @@ msgid ""
 msgstr ""
 
 msgid "%"
-msgstr ""
+msgstr "%"
 
 msgid "Time cost"
 msgstr "Zaman maliyeti"
@@ -16024,8 +16278,10 @@ msgstr "Sondalama topaklanma alanını hariç tutar"
 msgid "Probing exclude area of clumping."
 msgstr "Sondalama, topaklanma alanını hariç tutar."
 
-msgid "Filament to print internal sparse infill."
-msgstr "İç seyrek dolguyu yazdırmak için filament."
+msgid ""
+"Filament to print internal sparse infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal sparse infill. If expressed as a %, it will be "
@@ -16247,7 +16503,7 @@ msgid ""
 msgstr ""
 
 msgid "°"
-msgstr ""
+msgstr "°/s"
 
 msgid "Don't alternate fill direction"
 msgstr ""
@@ -16675,7 +16931,7 @@ msgstr ""
 "etkinleştirin. G-code komut: M106 P2 S(0-255)"
 
 msgid "For the first"
-msgstr ""
+msgstr "İlk olarak"
 
 msgid "Set special auxiliary cooling fan for the first certain layers."
 msgstr ""
@@ -16865,8 +17121,21 @@ msgstr ""
 "Çizgi genişliğine göre çıkıntı yüzdesini tespit edin ve yazdırmak için "
 "farklı hızlar kullanın. %%100 çıkıntı için köprü hızı kullanılır."
 
-msgid "Filament to print walls."
-msgstr "Duvarları yazdırmak için filament."
+msgid "Outer walls"
+msgstr ""
+
+msgid ""
+"Filament to print outer walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid "Inner walls"
+msgstr ""
+
+msgid ""
+"Filament to print inner walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of inner wall. If expressed as a %, it will be computed over the "
@@ -17379,8 +17648,8 @@ msgid "Role base wipe speed"
 msgstr "Otomatik temizleme hızı"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17564,11 +17833,20 @@ msgstr ""
 "Eşik değerinden küçük olan seyrek dolgu alanı, yerini iç katı dolguya "
 "bırakmıştır."
 
-msgid "Solid infill"
-msgstr "Katı dolgu"
+msgid ""
+"Filament to print internal solid infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
-msgid "Filament to print solid infill."
-msgstr "Katı dolguyu yazdırmak için filament."
+msgid ""
+"Filament to print top surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid ""
+"Filament to print bottom surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal solid infill. If expressed as a %, it will be "
@@ -17943,12 +18221,10 @@ msgid "Support/raft base"
 msgstr "Destek/raft tabanı"
 
 msgid ""
-"Filament to print support base and raft. \"Default\" means no specific "
-"filament for support and current filament is used."
+"Filament to print support base and raft.\n"
+"\"Default\" means no specific filament for support and current filament is "
+"used."
 msgstr ""
-"Destek tabanını ve salı yazdırmak için filament. \"Varsayılan\", destek için "
-"belirli bir filamentin olmadığı ve mevcut filamentin kullanıldığı anlamına "
-"gelir."
 
 msgid "Avoid interface filament for base"
 msgstr "Taban için arayüz filamentini azaltın"
@@ -17979,11 +18255,10 @@ msgid "Support/raft interface"
 msgstr "Destek/raft arayüzü"
 
 msgid ""
-"Filament to print support interface. \"Default\" means no specific filament "
-"for support interface and current filament is used."
+"Filament to print support interface.\n"
+"\"Default\" means no specific filament for support interface and current "
+"filament is used."
 msgstr ""
-"Filament baskı desteği arayüzü. \"Varsayılan\", destek arayüzü için özel bir "
-"filamentin olmadığı ve mevcut filamentin kullanıldığı anlamına gelir."
 
 msgid "Top interface layers"
 msgstr "Üst arayüz katmanları"
@@ -18308,8 +18583,8 @@ msgstr "Sıcaklık kontrolünü etkinleştirin"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -19055,6 +19330,9 @@ msgstr "geçersiz değer "
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Spiral vazo modu etkinleştirildiğinde geçersiz değer: "
 
+msgid "Bridge line width must not exceed nozzle diameter: "
+msgstr ""
+
 msgid "too large line width "
 msgstr "çok büyük çizgi genişliği "
 
@@ -19314,11 +19592,17 @@ msgid "Debug level"
 msgstr "Hata ayıklama düzeyi"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "Hata ayıklama günlüğü düzeyini ayarlar. 0:önemli, 1:hata, 2:uyarı, 3:bilgi, "
 "4:hata ayıklama, 5:izleme\n"
+
+msgid "Log file"
+msgstr ""
+
+msgid "Redirects debug logging to file.\n"
+msgstr ""
 
 msgid "Enable timelapse for print"
 msgstr "Yazdırma için hızlandırılmış çekimi etkinleştir"
@@ -19788,9 +20072,6 @@ msgstr "Dolgu bölgeleri oluşturma"
 
 msgid "Generating infill toolpath"
 msgstr "Dolgu takım yolu oluşturma"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Otomatik kaldırma için çıkıntıları tespit edin"
@@ -20846,6 +21127,15 @@ msgstr ""
 msgid "Top Surface Pattern"
 msgstr ""
 
+msgid "Choose a slot for the selected color"
+msgstr ""
+
+msgid "Material in the material station"
+msgstr ""
+
+msgid "Only materials of the same type can be selected."
+msgstr ""
+
 msgid "Send G-code to printer host"
 msgstr "G Kodunu yazıcı ana bilgisayarına gönder"
 
@@ -20867,6 +21157,48 @@ msgstr "Yüklenen dosya adı \"%s\" ile bitmiyor. Devam etmek istiyor musunuz?"
 
 msgid "Upload"
 msgstr "Yükle"
+
+msgid "Leveling before print"
+msgstr ""
+
+msgid "Time-lapse"
+msgstr "Hızlandırılmış"
+
+msgid "Enable IFS"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Detected %d IFS slots on printer."
+msgstr ""
+
+msgid "This printer does not report a material station."
+msgstr ""
+
+msgid "Unable to read IFS slots from printer."
+msgstr ""
+
+msgid "Loading IFS slots from printer..."
+msgstr ""
+
+msgid "Slice the plate first to get project material information."
+msgstr ""
+
+msgid ""
+"This plate uses multiple materials. Enable IFS and assign each tool to a "
+"printer slot."
+msgstr ""
+
+msgid "Each project material must be assigned to an IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must be assigned to a loaded IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must match the material loaded in the selected IFS "
+"slot."
+msgstr ""
 
 msgid "Print host upload queue"
 msgstr "Ana yazıcıyükleme kuyruğunu yazdır"
@@ -20912,9 +21244,6 @@ msgstr ""
 "Seçilen plaka tipi dosyayla eşleşmiyor. Lütfen yazdırmaya başlamadan önce "
 "onaylayın."
 
-msgid "Time-lapse"
-msgstr "Hızlandırılmış"
-
 msgid "Heated Bed Leveling"
 msgstr "Isıtmalı Yatak Seviyeleme"
 
@@ -20923,6 +21252,16 @@ msgstr "Textured Build Plate (A Tarafı)"
 
 msgid "Smooth Build Plate (Side B)"
 msgstr "Smooth Build Plate (B Tarafı)"
+
+#, c-format, boost-format
+msgid "Printer: %s"
+msgstr ""
+
+msgid "Calibrate before printing"
+msgstr ""
+
+msgid "Filament Mapping:"
+msgstr ""
 
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Seçilen parçalarda bölme işlemi gerçekleştirilemiyor"
@@ -21105,8 +21444,8 @@ msgstr ""
 "Yeniden yazmak ister misin?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Ön ayarları şu şekilde yeniden adlandırırdık: \"Satıcı Türü Seçtiğiniz Seri "
@@ -21191,9 +21530,6 @@ msgstr "Yazıcı Ön Ayarı"
 
 msgid "Filament Preset Template"
 msgstr "Filament Ön Ayar Şablonu"
-
-msgid "Deselect All"
-msgstr "Hiçbirini seçme"
 
 msgid "Process Preset Template"
 msgstr "İşleme Ön Ayarı Şablonu"
@@ -21625,8 +21961,17 @@ msgstr ""
 "Yazıcı iletişimi için ağ aracısı uygulamasını seçin. Kullanılabilir aracılar "
 "başlangıçta kaydedilir."
 
+msgid "Select a Flashforge printer"
+msgstr ""
+
+msgid "Discovered Printers"
+msgstr ""
+
 msgid "Could not get a valid Printer Host reference"
 msgstr "Geçerli bir Yazıcı Ana Bilgisayarı referansı alınamadı"
+
+msgid "Valid session not detected. Proceed with login to 3DPrinterOS?"
+msgstr ""
 
 msgid "Success!"
 msgstr "Başarılı!"
@@ -21677,6 +22022,42 @@ msgid "Connection to printers connected via the print host failed."
 msgstr ""
 "Yazdırma ana bilgisayarı aracılığıyla bağlanan yazıcılara bağlantı başarısız "
 "oldu."
+
+msgid "3DPrinterOS Cloud upload options"
+msgstr ""
+
+msgid "Single file"
+msgstr ""
+
+msgid "Project File"
+msgstr ""
+
+msgid "Project:"
+msgstr ""
+
+msgid "Printer type:"
+msgstr ""
+
+msgid "Printer type not found, please select manually."
+msgstr ""
+
+msgid "Authorizing..."
+msgstr ""
+
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
+msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -22432,7 +22813,7 @@ msgid "Global settings"
 msgstr "Genel ayarlar"
 
 msgid "Video tutorial"
-msgstr ""
+msgstr "Öğretici Video"
 
 msgid "(Sync with printer)"
 msgstr "(Yazıcıyla senkronize edin)"
@@ -22474,11 +22855,125 @@ msgid "SimplyPrint account not linked. Go to Connect options to set it up."
 msgstr ""
 "SimplyPrint hesabı bağlı değil. Ayarlamak için Bağlantı seçeneklerine gidin."
 
+msgid "Flashforge returned an invalid JSON response."
+msgstr ""
+
+msgid "No Flashforge printers were discovered on the local network."
+msgstr ""
+
+msgid "Connected to Flashforge local API successfully."
+msgstr ""
+
 msgid "Serial connection to Flashforge is working correctly."
 msgstr "Flashforge'a seri bağlantı düzgün çalışıyor."
 
+msgid "Could not connect to Flashforge local API"
+msgstr ""
+
 msgid "Could not connect to Flashforge via serial"
 msgstr "Flashforge'a seri bağlantı yoluyla bağlanılamadı"
+
+msgid "Flashforge local API requires both serial number and access code."
+msgstr ""
+
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
 
 msgid "The provided state is not correct."
 msgstr "Sağlanan durum doğru değil."
@@ -22533,6 +23028,12 @@ msgstr "Kenar  kulakları"
 msgid "Please select single object."
 msgstr "Lütfen tek bir nesne seçin."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "Uzaklaştır"
 
@@ -22541,6 +23042,9 @@ msgstr "Yakınlaştır"
 
 msgid "Load skipping objects information failed. Please try again."
 msgstr "Nesne bilgilerinin atlanması yüklenemedi. Lütfen tekrar deneyin."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -22692,6 +23196,100 @@ msgstr "Üçgen yüzeylerin sayısı"
 
 msgid "Calculating, please wait..."
 msgstr "Hesaplanıyor, lütfen bekleyin..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -23105,6 +23703,231 @@ msgstr ""
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı "
 "sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını "
 "azaltabileceğini biliyor muydunuz?"
+
+#~ msgid ""
+#~ "The Wipe option is not available when using the Firmware Retraction "
+#~ "mode.\n"
+#~ "\n"
+#~ "Shall I disable it in order to enable Firmware Retraction?"
+#~ msgstr ""
+#~ "Yazılımsal Geri Çekme modunu kullanırken Temizleme seçeneği "
+#~ "kullanılamaz.\n"
+#~ "\n"
+#~ "Yazılımsal Geri Çekmeyi etkinleştirmek için bunu devre dışı bırakmalı "
+#~ "mıyım?"
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
+#~ "absolute extruder addressing."
+#~ msgstr ""
+#~ "Before_layer_gcode'da \"G92 E0\" bulundu ve bu, mutlak ekstruder "
+#~ "adreslemeyle uyumsuzdu."
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
+#~ "extruder addressing."
+#~ msgstr ""
+#~ "Layer_gcode'da mutlak ekstruder adreslemeyle uyumlu olmayan \"G92 E0\" "
+#~ "bulundu."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Bridging angle override. If left to zero, the bridging angle will be "
+#~ "calculated automatically. Otherwise the provided angle will be used for "
+#~ "external bridges. Use 180° for zero angle."
+#~ msgstr ""
+#~ "Köprüleme açısı geçersiz kılma. Sıfıra bırakılırsa köprüleme açısı "
+#~ "otomatik olarak hesaplanacaktır. Aksi halde dış köprüler için sağlanan "
+#~ "açı kullanılacaktır. Sıfır açı için 180°'yi kullanın."
+
+#~ msgid ""
+#~ "Internal bridging angle override. If left to zero, the bridging angle "
+#~ "will be calculated automatically. Otherwise the provided angle will be "
+#~ "used for internal bridges. Use 180° for zero angle.\n"
+#~ "\n"
+#~ "It is recommended to leave it at 0 unless there is a specific model need "
+#~ "not to."
+#~ msgstr ""
+#~ "İç köprüleme açısı geçersiz kılma. Sıfır olarak bırakılırsa, köprüleme "
+#~ "açısı otomatik olarak hesaplanacaktır. Aksi takdirde sağlanan açı iç "
+#~ "köprüler için kullanılacaktır. Sıfır açı için 180° kullanın.\n"
+#~ "\n"
+#~ "Belirli bir model ihtiyacı olmadığı sürece 0’da bırakılması önerilir."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of external bridge lines. Default is "
+#~ "100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed. Minimum is 10%.\n"
+#~ "\n"
+#~ "Higher densities can produce smoother bridge surfaces, as overlapping "
+#~ "lines provide additional support during printing. Maximum is 120%.\n"
+#~ "Note: Bridge density that is too high can cause warping or overextrusion."
+#~ msgstr ""
+#~ "Harici köprü hatlarının yoğunluğunu (aralığını) kontrol eder. Varsayılan "
+#~ "%100'dür.\n"
+#~ "\n"
+#~ "Daha düşük yoğunluklu harici köprüler, ekstrüzyonlu köprü çevresinde "
+#~ "havanın dolaşımı için daha fazla alan olduğundan ve soğutma hızını "
+#~ "arttırdığından güvenilirliğin artırılmasına yardımcı olabilir. Asgari "
+#~ "%10'dur.\n"
+#~ "\n"
+#~ "Üst üste binen çizgiler yazdırma sırasında ek destek sağladığından, daha "
+#~ "yüksek yoğunluklar daha düzgün köprü yüzeyleri üretebilir. Maksimum "
+#~ "%120'dir.\n"
+#~ "Not: Çok yüksek köprü yoğunluğu bükülmeye veya aşırı ekstrüzyona neden "
+#~ "olabilir."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of internal bridge lines. 100% means solid "
+#~ "bridge. Default is 100%.\n"
+#~ "\n"
+#~ "Lower density internal bridges can help reduce top surface pillowing and "
+#~ "improve internal bridge reliability as there is more space for air to "
+#~ "circulate around the extruded bridge, improving its cooling speed.\n"
+#~ "\n"
+#~ "This option works particularly well when combined with the second "
+#~ "internal bridge over infill option, further improving internal bridging "
+#~ "structure before solid infill is extruded."
+#~ msgstr ""
+#~ "İç köprü çizgilerinin yoğunluğunu (aralığını) kontrol eder. 100 katı "
+#~ "köprü anlamına gelir. Varsayılan değer %100’dür.\n"
+#~ "\n"
+#~ " Daha düşük yoğunluklu iç köprüler, üst yüzeydeki yastıklanmayı azaltmaya "
+#~ "yardımcı olabilir ve ekstrüde köprünün etrafında havanın dolaşması için "
+#~ "daha fazla alan olduğundan iç köprü güvenilirliğini artırarak soğutma "
+#~ "hızını artırır.\n"
+#~ "\n"
+#~ "Bu seçenek, dolgu üzerine ikinci iç köprü seçeneği ile birleştirildiğinde "
+#~ "özellikle iyi çalışır ve katı dolgu ekstrüde edilmeden önce iç köprüleme "
+#~ "yapısını daha da iyileştirir."
+
+#~ msgid ""
+#~ "Decrease this value slightly (for example 0.9) to reduce the amount of "
+#~ "material for bridge, to improve sag.\n"
+#~ "\n"
+#~ "The actual bridge flow used is calculated by multiplying this value with "
+#~ "the filament flow ratio, and if set, the object's flow ratio."
+#~ msgstr ""
+#~ "Köprü için malzeme miktarını azaltmak ve sarkmayı iyileştirmek amacıyla "
+#~ "bu değeri biraz azaltın (örneğin 0,9).\n"
+#~ "\n"
+#~ "Kullanılan gerçek köprü akışı, bu değerin filament akış oranıyla ve "
+#~ "ayarlandıysa nesnenin akış oranıyla çarpılmasıyla hesaplanır."
+
+#~ msgid ""
+#~ "This value governs the thickness of the internal bridge layer. This is "
+#~ "the first layer over sparse infill. Decrease this value slightly (for "
+#~ "example 0.9) to improve surface quality over sparse infill.\n"
+#~ "\n"
+#~ "The actual internal bridge flow used is calculated by multiplying this "
+#~ "value with the bridge flow ratio, the filament flow ratio, and if set, "
+#~ "the object's flow ratio."
+#~ msgstr ""
+#~ "Bu değer iç köprü katmanının kalınlığını belirler. Bu, seyrek dolgunun "
+#~ "üzerindeki ilk katmandır. Seyrek dolguya göre yüzey kalitesini "
+#~ "iyileştirmek için bu değeri biraz azaltın (örneğin 0,9).\n"
+#~ "\n"
+#~ "Kullanılan gerçek iç köprü akışı, bu değerin köprü akış oranı, filament "
+#~ "akış oranı ve ayarlandıysa nesnenin akış oranıyla çarpılmasıyla "
+#~ "hesaplanır."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enable this option to slow down printing in areas where perimeters may "
+#~ "have curled upwards. For example, additional slowdown will be applied "
+#~ "when printing overhangs on sharp corners like the front of the Benchy "
+#~ "hull, reducing curling which compounds over multiple layers.\n"
+#~ "\n"
+#~ "It is generally recommended to have this option switched on unless your "
+#~ "printer cooling is powerful enough or the print speed slow enough that "
+#~ "perimeter curling does not happen. If printing with a high external "
+#~ "perimeter speed, this parameter may introduce slight artifacts when "
+#~ "slowing down due to the large variance in print speeds. If you notice "
+#~ "artifacts, ensure your pressure advance is tuned correctly.\n"
+#~ "\n"
+#~ "Note: When this option is enabled, overhang perimeters are treated like "
+#~ "overhangs, meaning the overhang speed is applied even if the overhanging "
+#~ "perimeter is part of a bridge. For example, when the perimeters are 100% "
+#~ "overhanging, with no wall supporting them from underneath, the 100% "
+#~ "overhang speed will be applied."
+#~ msgstr ""
+#~ "Çevrelerin yukarıya doğru kıvrılmış olabileceği alanlarda yazdırmayı "
+#~ "yavaşlatmak için bu seçeneği etkinleştirin. Örneğin, Benchy gövdesinin "
+#~ "önü gibi keskin köşelerdeki çıkıntılara yazdırırken birden fazla katman "
+#~ "üzerinde oluşan kıvrılmayı azaltacak şekilde ek yavaşlama "
+#~ "uygulanacaktır.\n"
+#~ "\n"
+#~ " Yazıcınızın soğutması yeterince güçlü olmadığı veya yazdırma hızı çevre "
+#~ "kıvrılmasını önleyecek kadar yavaş olmadığı sürece, genellikle bu "
+#~ "seçeneğin açık olması önerilir. Yüksek harici çevre hızıyla "
+#~ "yazdırılıyorsa, bu parametre, yazdırma hızlarındaki büyük farklılıklar "
+#~ "nedeniyle yavaşlama sırasında hafif bozulmalara neden olabilir. "
+#~ "Artefaktlar fark ederseniz basınç ilerlemenizin doğru şekilde "
+#~ "ayarlandığından emin olun.\n"
+#~ "\n"
+#~ "Not: Bu seçenek etkinleştirildiğinde, çıkıntı çevreleri çıkıntılar gibi "
+#~ "ele alınır; bu, çıkıntının çevresi bir köprünün parçası olsa bile çıkıntı "
+#~ "hızının uygulandığı anlamına gelir. Örneğin, çevreler 100% çıkıntılı "
+#~ "olduğunda ve onları alttan destekleyen bir duvar olmadığında 100% çıkıntı "
+#~ "hızı uygulanacaktır."
+
+#~ msgid ""
+#~ "If enabled, bridges are more reliable, can bridge longer distances, but "
+#~ "may look worse. If disabled, bridges look better but are reliable just "
+#~ "for shorter bridged distances."
+#~ msgstr ""
+#~ "Etkinleştirilirse köprüler daha güvenilir olur, daha uzun mesafeler "
+#~ "arasında köprü kurabilir ancak daha kötü görünebilir. Devre dışı "
+#~ "bırakıldığında köprüler daha iyi görünür ancak yalnızca daha kısa köprü "
+#~ "mesafeleri için güvenilirdir."
+
+#~ msgid ""
+#~ "If enabled, thick internal bridges will be used. It's usually recommended "
+#~ "to have this feature turned on. However, consider turning it off if you "
+#~ "are using large nozzles."
+#~ msgstr ""
+#~ "Etkinleştirilirse kalın iç köprüler kullanılacaktır. Genellikle bu "
+#~ "özelliğin açık olması önerilir. Ancak büyük nozul uçları kullanıyorsanız "
+#~ "kapatmayı düşünün."
+
+#~ msgid ""
+#~ "Aligns infill and surface fill directions to follow the model's "
+#~ "orientation on the build plate. When enabled, fill directions rotate with "
+#~ "the model to maintain optimal strength characteristics."
+#~ msgstr ""
+#~ "Dolgu ve yüzey dolgu yönlerini, modelin yapı plakasındaki yönünü takip "
+#~ "edecek şekilde hizalar. Etkinleştirildiğinde, dolgu yönleri optimum "
+#~ "dayanıklılık özelliklerini korumak için modelle birlikte döner."
+
+#~ msgid "Filament to print internal sparse infill."
+#~ msgstr "İç seyrek dolguyu yazdırmak için filament."
+
+#~ msgid "Filament to print walls."
+#~ msgstr "Duvarları yazdırmak için filament."
+
+#~ msgid "Solid infill"
+#~ msgstr "Katı dolgu"
+
+#~ msgid "Filament to print solid infill."
+#~ msgstr "Katı dolguyu yazdırmak için filament."
+
+#~ msgid ""
+#~ "Filament to print support base and raft. \"Default\" means no specific "
+#~ "filament for support and current filament is used."
+#~ msgstr ""
+#~ "Destek tabanını ve salı yazdırmak için filament. \"Varsayılan\", destek "
+#~ "için belirli bir filamentin olmadığı ve mevcut filamentin kullanıldığı "
+#~ "anlamına gelir."
+
+#~ msgid ""
+#~ "Filament to print support interface. \"Default\" means no specific "
+#~ "filament for support interface and current filament is used."
+#~ msgstr ""
+#~ "Filament baskı desteği arayüzü. \"Varsayılan\", destek arayüzü için özel "
+#~ "bir filamentin olmadığı ve mevcut filamentin kullanıldığı anlamına gelir."
 
 #~ msgid "Erase all painting"
 #~ msgstr "Tüm boyamayı sil"
