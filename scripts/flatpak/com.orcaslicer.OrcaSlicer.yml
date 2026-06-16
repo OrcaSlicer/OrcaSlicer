@@ -1,6 +1,6 @@
 app-id: com.orcaslicer.OrcaSlicer
 runtime: org.gnome.Platform
-runtime-version: "49"
+runtime-version: "50"
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.llvm21
@@ -24,6 +24,11 @@ finish-args:
   - --filesystem=xdg-run/gvfs
   - --filesystem=/run/media
   - --filesystem=/media
+  # Network shares (CIFS/NFS) are commonly mounted under /mnt, which the default
+  # finish-args don't grant; without it, opening a model from such a share fails
+  # with "The file does not contain any geometry data."
+  # https://github.com/flathub/com.orcaslicer.OrcaSlicer/issues/2
+  - --filesystem=/mnt
   - --filesystem=/run/spnav.sock:ro
   # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
   - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
@@ -35,12 +40,13 @@ finish-args:
 
 modules:
 
-  # JPEG codec for the liveview
+  # JPEG codec and GTK video sink (Wayland liveview) for the liveview
   - name: gst-plugins-good
     buildsystem: meson
     config-opts:
       - -Dauto_features=disabled
       - -Djpeg=enabled
+      - -Dgtk3=enabled
       - -Ddoc=disabled
       - -Dexamples=disabled
       - -Dtests=disabled
@@ -114,7 +120,12 @@ modules:
       - -DwxUSE_ZLIB=sys
       - -DwxUSE_LIBJPEG=sys
       - -DwxUSE_LIBTIFF=OFF
+      # sys, not builtin (unlike the static deps build): wxWidgets installs the
+      # builtin libwxwebp*.so only for static builds, so a shared build leaves
+      # them missing at runtime. The GNOME runtime provides libwebp.
+      - -DwxUSE_LIBWEBP=sys
       - -DwxUSE_EXPAT=sys
+      - -DwxUSE_NANOSVG=OFF
       - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
       - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
       - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
@@ -168,6 +179,12 @@ modules:
         url: https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.gz
         sha256: 4d27e9efed0f6f152dc28db6430b9d3dfb40c0345da7342eaa5a987dde57bd95
         dest: external-packages/Boost
+
+      # Eigen 5.0.1
+      - type: file
+        url: https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.zip
+        sha256: 0dbb1f9e3aaad66f352c03227d8c983f6f0b49e0b07e71a7300f4abcc01aee12
+        dest: external-packages/Eigen
 
       # TBB v2021.5.0
       - type: file

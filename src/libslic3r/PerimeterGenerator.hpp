@@ -21,6 +21,10 @@ struct FuzzySkinConfig
     int           noise_octaves;
     double        noise_persistence;
     FuzzySkinMode mode;
+    int           ripples_per_layer;
+    double        ripple_offset;
+    int           layers_between_ripple_offset;
+    int           layer_id;
 
     bool operator==(const FuzzySkinConfig& r) const
     {
@@ -32,7 +36,10 @@ struct FuzzySkinConfig
             && noise_scale == r.noise_scale
             && noise_octaves == r.noise_octaves
             && noise_persistence == r.noise_persistence
-            && mode == r.mode;
+            && mode == r.mode
+            && ripples_per_layer == r.ripples_per_layer
+            && ripple_offset == r.ripple_offset
+            && layers_between_ripple_offset == r.layers_between_ripple_offset;
     }
 
     bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
@@ -52,6 +59,10 @@ template<> struct hash<Slic3r::FuzzySkinConfig>
         boost::hash_combine(seed, std::hash<double>{}(c.noise_scale));
         boost::hash_combine(seed, std::hash<int>{}(c.noise_octaves));
         boost::hash_combine(seed, std::hash<double>{}(c.noise_persistence));
+        boost::hash_combine(seed, std::hash<Slic3r::FuzzySkinMode>{}(c.mode));
+        boost::hash_combine(seed, std::hash<int>{}(c.ripples_per_layer));
+        boost::hash_combine(seed, std::hash<double>{}(c.ripple_offset));
+        boost::hash_combine(seed, std::hash<int>{}(c.layers_between_ripple_offset));
         return seed;
     }
 };
@@ -92,7 +103,8 @@ public:
 
     bool                                            has_fuzzy_skin = false;
     bool                                            has_fuzzy_hole = false;
-    std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
+    // Preserve construction order so overlap precedence remains deterministic.
+    std::vector<std::pair<FuzzySkinConfig, ExPolygons>> regions_by_fuzzify;
     
     PerimeterGenerator(
         // Input:
@@ -105,6 +117,7 @@ public:
         const PrintObjectConfig*    object_config,
         const PrintConfig*          print_config,
         const bool                  spiral_mode,
+        const double                model_rotation_rad,
         // Output:
         // Loops with the external thin walls
         ExtrusionEntityCollection*  loops,
@@ -120,6 +133,7 @@ public:
             config(config), object_config(object_config), print_config(print_config),
             m_spiral_vase(spiral_mode),
             m_scaled_resolution(scaled<double>(print_config->resolution.value > EPSILON ? print_config->resolution.value : EPSILON)),
+            m_model_rotation_rad(model_rotation_rad),
             loops(loops), gap_fill(gap_fill), fill_surfaces(fill_surfaces), fill_no_overlap(fill_no_overlap),
             m_ext_mm3_per_mm(-1), m_mm3_per_mm(-1), m_mm3_per_mm_overhang(-1), m_ext_mm3_per_mm_smaller_width(-1)
         {}
@@ -145,6 +159,7 @@ private:
 private:
     bool        m_spiral_vase;
     double      m_scaled_resolution;
+    double      m_model_rotation_rad;
     double      m_ext_mm3_per_mm;
     double      m_mm3_per_mm;
     double      m_mm3_per_mm_overhang;

@@ -61,10 +61,10 @@ static const std::map<int, std::string> error_messages = {
     {SendToPrinterDialog::SEND_ERR, L("File upload failed, please try again.")}
 };
 
-static std::string ParseErrorCode(int errorcde)
+static wxString ParseErrorCode(int errorcde)
 {
     auto it = error_messages.find(errorcde);
-    if (it != error_messages.end()) { return it->second; }
+    if (it != error_messages.end()) { return _L(it->second); }
     return "";
 }
 
@@ -367,7 +367,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, _L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -1013,12 +1013,13 @@ void SendToPrinterDialog::clear_ip_address_config(wxCommandEvent& e)
 void SendToPrinterDialog::update_user_machine_list()
 {
     NetworkAgent* m_agent = wxGetApp().getAgent();
-    if (m_agent && m_agent->is_user_login()) {
-        boost::thread get_print_info_thread = Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token)] {
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
+    if (m_agent && m_agent->is_user_login(provider)) {
+        boost::thread get_print_info_thread = Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token), provider] {
             NetworkAgent* agent = wxGetApp().getAgent();
             unsigned int http_code;
             std::string body;
-            int result = agent->get_user_print_info(&http_code, &body);
+            int result = agent->get_user_print_info(&http_code, &body, provider);
             CallAfter([token, this, result, body] {
                 if (token.expired()) {return;}
                 if (result == 0) {
@@ -1224,11 +1225,12 @@ void SendToPrinterDialog::update_show_status()
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!agent) return;
     if (!dev) return;
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
     MachineObject* obj_ = dev->get_my_machine(m_printer_last_select);
 
     if (!obj_) {
         if (agent) {
-            if (agent->is_user_login()) {
+            if (agent->is_user_login(provider)) {
                 show_status(PrintDialogStatus::PrintStatusInvalidPrinter);
             }
         }
@@ -1237,7 +1239,7 @@ void SendToPrinterDialog::update_show_status()
 
     /* check cloud machine connections */
     if (!obj_->is_lan_mode_printer()) {
-        if (!agent->is_server_connected()) {
+        if (!agent->is_server_connected(provider)) {
             show_status(PrintDialogStatus::PrintStatusConnectingServer);
             reset_timeout();
             return;
@@ -1564,7 +1566,7 @@ void SendToPrinterDialog::set_default()
 
     NetworkAgent* agent = wxGetApp().getAgent();
     if (agent) {
-        if (agent->is_user_login()) {
+        if (agent->is_user_login(wxGetApp().get_printer_cloud_provider())) {
             show_status(PrintDialogStatus::PrintStatusInit);
         }
     }
@@ -1980,7 +1982,7 @@ void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::s
             if (ParseErrorCode(resp_ec) != "")
                 update_print_status_msg(ParseErrorCode(resp_ec), false, true);
             else
-                update_print_status_msg("Sending failed, please try again!", false, true);
+                update_print_status_msg(_L("Sending failed, please try again!"), false, true);
             m_filetransfer_uploadfile_job.reset();
             m_filetransfer_uploadfile_job = nullptr;
         }

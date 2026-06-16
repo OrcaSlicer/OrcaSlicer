@@ -15,6 +15,8 @@
 #include <wx/time.h>
 
 #include <string>
+#include <functional>
+#include <utility>
 #include <vector>
 #include <deque>
 #include <unordered_set>
@@ -161,6 +163,9 @@ enum class NotificationType
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
+    OrcaSharedProfilesAvailable,
+	OrcaCloudAPIError,
+    OrcaSyncConflict,
     NotificationTypeCount
 
 };
@@ -218,6 +223,7 @@ public:
 	void upload_job_notification_show_canceled(int id, const std::string& filename, const std::string& host);
 	void upload_job_notification_show_error(int id, const std::string& filename, const std::string& host);
     void push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelObject const *> objs);
+    void push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelInstance const *> insts);
     void close_slicing_serious_warning_notification(const std::string &text);
 	// Creates Slicing Error notification with a custom text and no fade out.
     void push_slicing_error_notification(const std::string &text, std::vector<ModelObject const *> objs);
@@ -269,6 +275,13 @@ public:
 	// Exporting finished, show this information with path, button to open containing folder and if ejectable - eject button
 	void push_exporting_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
 	void push_import_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
+
+	// Shared profiles available for selected printer
+	void push_shared_profiles_notification(const std::string& explore_url);
+	void push_orca_sync_conflict_notification(const std::string& text,
+		int conflict_code,
+		std::function<bool(wxEvtHandler*)> pull_callback,
+		std::function<bool(wxEvtHandler*)> force_push_callback);
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -486,6 +499,11 @@ private:
 			                          const float text_x, const float text_y,
 		                              const std::string text,
 		                              bool more = false);
+		// Renders an underlined, hyperlink-style clickable label backed by an invisible button.
+		// on_click runs when pressed; the callback itself decides whether to close().
+		void render_hyperlink_action(ImGuiWrapper& imgui, float text_x, float text_y,
+		                             const std::string& text, const char* button_id,
+		                             const std::function<void()>& on_click);
 		virtual void bbl_render_block_notif_text(ImGuiWrapper& imgui,
 			const float win_size_x, const float win_size_y,
 			const float win_pos_x, const float win_pos_y);
@@ -538,6 +556,7 @@ private:
         ImVec4     m_TextColor;
 
 		ImVec4     m_HyperTextColor;
+		ImVec4     m_HyperTextColorHover;
 
         ImVec4     m_ErrorColor;
         ImVec4     m_WarnColor;
@@ -857,6 +876,55 @@ private:
 	};
 
 	// in SlicingProgressNotification.hpp
+
+	class SharedProfilesNotification : public PopNotification
+	{
+	public:
+		SharedProfilesNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			const std::string& explore_url)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_explore_url(explore_url)
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		bool on_text_click() override;
+		void render_hypertext(ImGuiWrapper& imgui,
+			const float text_x, const float text_y,
+			const std::string text, bool more = false) override;
+
+		std::string m_explore_url;
+		bool m_dont_show_clicked{ false };
+	};
+
+	class OrcaSyncConflictNotification : public PopNotification
+	{
+	public:
+		OrcaSyncConflictNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			std::function<bool(wxEvtHandler*)> pull_callback,
+			std::function<bool(wxEvtHandler*)> force_push_callback,
+			int conflict_code)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_pull_callback(std::move(pull_callback))
+			, m_force_push_callback(std::move(force_push_callback))
+			, conflict_code(conflict_code)
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+
+		std::function<bool(wxEvtHandler*)> m_pull_callback;
+		std::function<bool(wxEvtHandler*)> m_force_push_callback;
+		int conflict_code;
+	};
 	class SlicingProgressNotification;
 
 	// in HintNotification.hpp

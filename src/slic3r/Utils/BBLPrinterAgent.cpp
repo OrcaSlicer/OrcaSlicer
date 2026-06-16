@@ -209,6 +209,54 @@ int BBLPrinterAgent::set_user_selected_machine(std::string dev_id)
 }
 
 // ============================================================================
+// Subscriptions
+// ============================================================================
+
+int BBLPrinterAgent::start_subscribe(std::string module)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_start_subscribe();
+    if (func && agent) {
+        return func(agent, module);
+    }
+    return -1;
+}
+
+int BBLPrinterAgent::stop_subscribe(std::string module)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_stop_subscribe();
+    if (func && agent) {
+        return func(agent, module);
+    }
+    return -1;
+}
+
+int BBLPrinterAgent::add_subscribe(std::vector<std::string> dev_list)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_add_subscribe();
+    if (func && agent) {
+        return func(agent, dev_list);
+    }
+    return -1;
+}
+
+int BBLPrinterAgent::del_subscribe(std::vector<std::string> dev_list)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_del_subscribe();
+    if (func && agent) {
+        return func(agent, dev_list);
+    }
+    return -1;
+}
+
+// ============================================================================
 // Agent Information
 // ============================================================================
 AgentInfo BBLPrinterAgent::get_agent_info_static()

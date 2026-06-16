@@ -1,0 +1,43 @@
+{
+	"type": "process",
+	"name": "0.20mm Speed @LH Stinger",
+	"inherits": "fdm_process_lh_common",
+	"from": "system",
+	"setting_id": "LHS_P_speed",
+	"instantiation": "true",
+	"compatible_printers": [
+		"LH Stinger 0.4 nozzle",
+		"LH Stinger MMU 0.4 nozzle"
+	],
+	"bridge_acceleration": "15000",
+	"default_acceleration": "30000",
+	"filter_out_gap_fill": "10",
+	"infill_wall_overlap": "10%",
+	"initial_layer_speed": "90",
+	"inner_wall_acceleration": "30000",
+	"inner_wall_speed": "600",
+	"internal_solid_infill_acceleration": "30000",
+	"internal_solid_infill_speed": "600",
+	"outer_wall_acceleration": "15000",
+	"outer_wall_speed": "600",
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"raft_first_layer_density": "80%",
+	"sparse_infill_acceleration": "30000",
+	"sparse_infill_pattern": "rectilinear",
+	"sparse_infill_speed": "600",
+	"support_bottom_z_distance": "0.15",
+	"support_expansion": "2",
+	"support_interface_top_layers": "3",
+	"support_object_xy_distance": "0.25",
+	"top_surface_acceleration": "15000",
+	"top_surface_speed": "300",
+	"travel_acceleration": "30000",
+	"sparse_infill_density": "15%",
+	"gap_fill_target": "nowhere",
+	"travel_speed": "600"
+}
