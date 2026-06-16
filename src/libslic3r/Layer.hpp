@@ -99,6 +99,10 @@ public:
 
     // Is there any valid extrusion assigned to this LayerRegion?
     bool    has_extrusions() const { return ! this->perimeters.entities.empty() || ! this->fills.entities.empty(); }
+
+    // True when this region/layer should use spiral vase slicing (global spiral_mode or per-height-range range_spiral_mode).
+    // Global spiral respects bottom_shell_layers below the spiral; per-range spiral does not inside the band.
+    bool    is_spiral_vase_active() const;
     //BBS
     void    simplify_infill_extrusion_entity() { simplify_entity_collection(&fills); }
     void    simplify_wall_extrusion_entity() { simplify_entity_collection(&perimeters); }
@@ -187,6 +191,9 @@ public:
 
     // Whether two regions can be printed in a continues perimeter
     static bool             is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b);
+
+    // True if any region on this layer is in spiral vase mode (global or per-height-range).
+    bool                    any_spiral_vase_active() const;
     void                    make_perimeters();
     // Phony version of make_fills() without parameters for Perl integration only.
     void                    make_fills() { this->make_fills(nullptr, nullptr); }

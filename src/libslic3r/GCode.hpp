@@ -165,11 +165,23 @@ public:
     static const std::vector<std::string>& get() { return Colors; }
 };
 
+struct SpiralVaseLayerParams
+{
+    bool  smooth_spiral            { false };
+    float max_xy_smoothing         { 0.f };
+    float starting_flow_ratio      { 0.f };
+    float finishing_flow_ratio     { 0.f };
+    bool  filter_short_extrusions  { false };
+};
+
 struct LayerResult {
     std::string gcode;
     size_t      layer_id;
     // Is spiral vase post processing enabled for this layer?
     bool        spiral_vase_enable { false };
+    SpiralVaseLayerParams spiral_params;
+    // Last layer of a spiral vase height-range zone (flow ramp-out), not necessarily the object's last layer.
+    bool        spiral_vase_zone_last { false };
     // Should the cooling buffer content be flushed at the end of this layer?
     bool        cooling_buffer_flush { false };
 	// Is indicating if this LayerResult should be processed, or it is just inserted artificial LayerResult.
@@ -547,6 +559,9 @@ private:
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;
     TimelapsePosPicker                  m_timelapse_pos_picker;
     bool                                m_enable_loop_clipping;
+    bool                                m_spiral_vase_layer { false };
+    bool                                m_range_spiral_vase_loop_end_valid { false };
+    Point                               m_range_spiral_vase_loop_end;
     //resonance avoidance
     bool                                m_resonance_avoidance; 
     // If enabled, the G-code generator will put following comments at the ends

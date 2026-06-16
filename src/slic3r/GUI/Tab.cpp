@@ -3516,6 +3516,36 @@ TabPrintLayer::TabPrintLayer(ParamsPanel* parent) :
     m_parent_tab = wxGetApp().get_model_tab();
 }
 
+void TabPrintLayer::build()
+{
+    TabPrintModel::build();
+
+    const auto others_page_it = std::find_if(m_pages.begin(), m_pages.end(), [](const PageShp &p) {
+        return p->title() == L("Others");
+    });
+    if (others_page_it == m_pages.end())
+        return;
+
+    PageShp page = *others_page_it;
+    ConfigOptionsGroupShp optgroup = page->get_optgroup(L("Special mode"));
+    if (!optgroup) {
+        optgroup = page->new_optgroup(L("Special mode"), L"param_special");
+        const auto fuzzy_it = std::find_if(page->m_optgroups.begin(), page->m_optgroups.end(),
+            [](const ConfigOptionsGroupShp &og) { return og->title == L("Fuzzy Skin"); });
+        if (fuzzy_it != page->m_optgroups.end() && fuzzy_it + 1 != page->m_optgroups.end()) {
+            ConfigOptionsGroupShp special_mode = page->m_optgroups.back();
+            page->m_optgroups.pop_back();
+            page->m_optgroups.insert(fuzzy_it, special_mode);
+        }
+    }
+    optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+    optgroup->append_single_option_line("range_spiral_mode", "others_settings_special_mode#spiral-vase");
+    optgroup->append_single_option_line("range_spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
+    optgroup->append_single_option_line("range_spiral_max_xy_smoothing", "others_settings_special_mode#max-xy-smoothing");
+    optgroup->append_single_option_line("range_spiral_starting_flow_ratio", "others_settings_special_mode#spiral-starting-flow-ratio");
+    optgroup->append_single_option_line("range_spiral_finishing_flow_ratio", "others_settings_special_mode#spiral-finishing-flow-ratio");
+}
+
 void TabPrintLayer::notify_changed(ObjectBase * object)
 {
     for (auto config : m_object_configs) {

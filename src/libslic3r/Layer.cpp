@@ -34,6 +34,39 @@ LayerRegion* Layer::add_region(const PrintRegion *print_region)
     return m_regions.back();
 }
 
+bool LayerRegion::is_spiral_vase_active() const
+{
+    const PrintConfig       &print_config  = this->layer()->object()->print()->config();
+    const PrintRegionConfig &region_config = this->region().config();
+    if (print_config.spiral_mode)
+        return this->layer()->id() >= size_t(region_config.bottom_shell_layers.value) &&
+               this->layer()->print_z >= region_config.bottom_shell_thickness - EPSILON;
+    if (!region_config.range_spiral_mode)
+        return false;
+
+    const PrintObjectRegions *shared_regions = this->layer()->object()->shared_regions();
+    if (shared_regions == nullptr)
+        return false;
+
+    const double z = this->layer()->print_z;
+    for (const PrintObjectRegions::LayerRangeRegions &layer_range : shared_regions->layer_ranges) {
+        if (!layer_z_in_height_range(z, layer_range.layer_height_range))
+            continue;
+        if (!dynamic_config_range_spiral_mode(layer_range.config))
+            continue;
+        return true;
+    }
+    return false;
+}
+
+bool Layer::any_spiral_vase_active() const
+{
+    for (const LayerRegion *layerm : m_regions)
+        if (layerm->is_spiral_vase_active())
+            return true;
+    return false;
+}
+
 // merge all regions' slices to get islands
 void Layer::make_slices()
 {

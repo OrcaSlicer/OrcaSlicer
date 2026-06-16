@@ -560,6 +560,9 @@ public:
 	//BBS: GUI refactor
 	TabPrintLayer(ParamsPanel* parent);
 	~TabPrintLayer() {}
+
+	void build() override;
+
 protected:
 	virtual void    notify_changed(ObjectBase* object) override;
 	virtual void    update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;

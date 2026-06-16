@@ -141,6 +141,15 @@ static inline bool model_volume_needs_slicing(const ModelVolume &mv)
     return type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER;
 }
 
+// Global spiral_mode only: bottom_shell_layers are sliced in normal mode, then spiral above.
+static void apply_spiral_vase_slicing_params(MeshSlicingParamsEx &params, const PrintRegionConfig &region_config, const std::vector<float> &zs)
+{
+    params.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
+    params.slicing_mode_normal_below_layer = size_t(region_config.bottom_shell_layers.value);
+    for (; params.slicing_mode_normal_below_layer < zs.size() && zs[params.slicing_mode_normal_below_layer] < region_config.bottom_shell_thickness - EPSILON;
+         ++params.slicing_mode_normal_below_layer) {}
+}
+
 // Slice printable volumes, negative volumes and modifier volumes, sorted by ModelVolume::id().
 // Apply closing radius.
 // Apply positive XY compensation to ModelVolumeType::MODEL_PART and ModelVolumeType::PARAMETER_MODIFIER, not to ModelVolumeType::NEGATIVE_VOLUME.
@@ -196,13 +205,7 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                     if (model_volume->is_model_part() && print_config.spiral_mode) {
                         auto it = std::find_if(layer_range.volume_regions.begin(), layer_range.volume_regions.end(),
                             [model_volume](const auto &slice){ return model_volume == slice.model_volume; });
-                        params.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
-                        // Slice the bottom layers with SlicingMode::Regular.
-                        // This needs to be in sync with LayerRegion::make_perimeters() spiral_mode!
-                        const PrintRegionConfig &region_config = it->region->config();
-                        params.slicing_mode_normal_below_layer = size_t(region_config.bottom_shell_layers.value);
-                        for (; params.slicing_mode_normal_below_layer < zs.size() && zs[params.slicing_mode_normal_below_layer] < region_config.bottom_shell_thickness - EPSILON;
-                            ++ params.slicing_mode_normal_below_layer);
+                        apply_spiral_vase_slicing_params(params, it->region->config(), zs);
                     }
                     out.push_back({
                         model_volume->id(),
@@ -210,16 +213,49 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                     });
                 }
             } else {
-                assert(! print_config.spiral_mode);
                 slicing_ranges.clear();
+                bool per_range_spiral = false;
                 for (const PrintObjectRegions::LayerRangeRegions &layer_range : layer_ranges)
-                    if (layer_range.has_volume(model_volume->id()))
+                    if (layer_range.has_volume(model_volume->id())) {
                         slicing_ranges.emplace_back(layer_range.layer_height_range);
-                if (! slicing_ranges.empty())
-                    out.push_back({
-                        model_volume->id(),
-                        slice_volume(*model_volume, zs, slicing_ranges, params, throw_on_cancel_callback)
-                    });
+                        if (model_volume->is_model_part() && (print_config.spiral_mode || dynamic_config_range_spiral_mode(layer_range.config)))
+                            per_range_spiral = true;
+                    }
+                if (! slicing_ranges.empty()) {
+                    if (per_range_spiral && !print_config.spiral_mode) {
+                        std::vector<ExPolygons> layers_out(zs.size());
+                        for (const PrintObjectRegions::LayerRangeRegions &layer_range : layer_ranges) {
+                            if (!layer_range.has_volume(model_volume->id()))
+                                continue;
+                            std::vector<float> z_range;
+                            for (size_t i = 0; i < zs.size(); ++i)
+                                if (layer_z_in_height_range(zs[i], layer_range.layer_height_range))
+                                    z_range.push_back(zs[i]);
+                            if (z_range.empty())
+                                continue;
+                            MeshSlicingParamsEx params_range = params;
+                            if (model_volume->is_model_part() && dynamic_config_range_spiral_mode(layer_range.config)) {
+                                params_range.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
+                                // Entire height band is spiral; no normal bottom layers inside the modifier.
+                                params_range.slicing_mode_normal_below_layer = 0;
+                            }
+                            std::vector<ExPolygons> range_slices = slice_volume(*model_volume, z_range, params_range, throw_on_cancel_callback);
+                            size_t j = 0;
+                            for (size_t i = 0; i < zs.size(); ++i)
+                                if (layer_z_in_height_range(zs[i], layer_range.layer_height_range)) {
+                                    if (j < range_slices.size())
+                                        layers_out[i] = std::move(range_slices[j++]);
+                                }
+                        }
+                        out.push_back({ model_volume->id(), std::move(layers_out) });
+                    } else {
+                        assert(!print_config.spiral_mode);
+                        out.push_back({
+                            model_volume->id(),
+                            slice_volume(*model_volume, zs, slicing_ranges, params, throw_on_cancel_callback)
+                        });
+                    }
+                }
             }
             if (! out.empty() && out.back().slices.empty())
                 out.pop_back();
