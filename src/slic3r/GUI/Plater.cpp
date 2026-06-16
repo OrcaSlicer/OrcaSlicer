@@ -16743,6 +16743,13 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         this->p->schedule_background_process();
         update_title_dirty_status();
         p->schedule_auto_reslice_if_needed();
+        
+        // If auto-slice is disabled and user is on Preview tab,
+        // switch to Prepare to avoid confusing intermediate state
+        AppConfig* cfg = wxGetApp().app_config;
+        if (cfg && !cfg->get_bool("auto_slice_after_change") && is_preview_shown()) {
+            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+        }
     }
 }
 
