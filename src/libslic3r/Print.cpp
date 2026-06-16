@@ -25,6 +25,7 @@
 #include <limits>
 #include <numeric>
 #include <unordered_set>
+#include <sstream>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -1924,6 +1925,23 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             // check wall sequence and precise outer wall
             if (m_default_region_config.precise_outer_wall && m_default_region_config.wall_sequence != WallSequence::InnerOuter)
                 warn(L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."), "precise_outer_wall");
+
+            // check adaptive pressure advance model
+            for (unsigned int extruder_id : extruders) {
+                if (m_config.adaptive_pressure_advance.get_at(extruder_id) && 
+                    m_config.enable_pressure_advance.get_at(extruder_id)) {
+                    
+                    const std::string pa_model = m_config.adaptive_pressure_advance_model.get_at(extruder_id);
+                    if (!pa_model.empty()) {
+                        std::string validation_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
+                        if (!validation_error.empty()) {
+                            warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                                 "adaptive_pressure_advance_model");
+                            break;
+                        }
+                    }
+                }
+            }
 
         } catch (std::exception& e) {
             BOOST_LOG_TRIVIAL(warning) << "Orca: validate motion ability failed: " << e.what() << std::endl;

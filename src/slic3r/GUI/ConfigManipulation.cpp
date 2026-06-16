@@ -9,6 +9,7 @@
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
 #include <sstream>
@@ -169,54 +170,10 @@ void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfi
     for (const std::string& chunk : model->values)
         raw_model += chunk;
 
-    wxString msg_text = _L("Possible errors were found in the Adaptive Pressure Advance model.\nPlease check:\n");
-    bool need_check = false;
-    std::istringstream model_stream(raw_model);
-    std::string line;
-    int line_number = 0;
-
-    while (std::getline(model_stream, line)) {
-        ++line_number;
-
-        const std::string trimmed_line = trim_copy(line);
-        if (trimmed_line.empty())
-            continue;
-
-        std::vector<std::string> values;
-        std::istringstream line_stream(trimmed_line);
-        std::string value;
-        while (std::getline(line_stream, value, ','))
-            values.emplace_back(trim_copy(value));
-
-        if (values.size() != 3) {
-            msg_text += wxString::Format(_L("Line %d must contain exactly 3 comma-separated values.\n"), line_number);
-            need_check = true;
-            continue;
-        }
-
-        try {
-            const double pa = std::stod(values[0]);
-            const double flow = std::stod(values[1]);
-            const double accel = std::stod(values[2]);
-            if (pa > 2.0) {
-                msg_text += wxString::Format(_L("Line %d cannot have a PA value greater than 2.0.\n"), line_number);
-                need_check = true;
-            }
-            if (flow < pa) {
-                msg_text += wxString::Format(_L("Line %d must have a flow value greater than the PA value.\n"), line_number);
-                need_check = true;
-            }
-            if (accel < flow) {
-                msg_text += wxString::Format(_L("Line %d must have an acceleration value greater than the flow value.\n"), line_number);
-                need_check = true;
-            }
-        } catch (const std::exception&) {
-            msg_text += wxString::Format(_L("Line %d contains an invalid numeric value.\n"), line_number);
-            need_check = true;
-        }
-    }
-
-    if (need_check) {
+    std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(raw_model);
+    if (!error.empty()) {
+        wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
+        msg_text += from_u8(error);
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         is_msg_dlg_already_exist = true;
         dialog.ShowModal();
