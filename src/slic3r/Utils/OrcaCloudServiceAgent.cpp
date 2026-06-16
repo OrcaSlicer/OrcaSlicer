@@ -525,7 +525,6 @@ static bool parse_stored_secret(const std::string& secret, std::string& out_refr
         user_session.user_id       = get_json_string_field(secret_json, "user_id");
         user_session.user_name     = get_json_string_field(secret_json, "username");
         user_session.user_nickname = get_json_string_field(secret_json, "nickname");
-        user_session.user_avatar   = get_json_string_field(secret_json, "avatar");
         user_session.logged_in     = true;
         // User session, must at least contains refresh token and user id
         if (user_session.refresh_token.empty() || user_session.user_id.empty()) {
@@ -1783,7 +1782,6 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
         sec["user_id"]       = user_id;
         sec["username"]      = username;
         sec["nickname"]      = nickname;
-        sec["avatar"]        = avatar;
         persist_user_secret(sec.dump());
     }
 
