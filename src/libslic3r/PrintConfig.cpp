@@ -818,6 +818,14 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("use_3mf", coBool);
+    def->label = L("Use 3MF instead of G-code");
+    def->tooltip = L("Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer "
+                     "sends the sliced file as a .gcode.3mf, instead of a plain .gcode file.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("printer_agent", coString);
     def->label = L("Printer Agent");
     def->tooltip = L("Select the network agent implementation for printer communication.");
@@ -4380,7 +4388,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Reduce the height of top-surface perimeters to match the model edge height.\n"
                       "Affects perimeters with a slope less than this angle (degrees).\n"
                       "A reasonable value is 35. Set to 0 to disable.");
-    def->sidetext = L("°");
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 0;
     def->max      = 90;
     def->mode     = comExpert;
@@ -4394,7 +4402,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("zaa_min_z", coFloat);
-    def->label    = L("Minimum z height");
+    def->label    = L("Minimum Z height");
     def->category = L("Quality");
     def->tooltip  = L("Minimum Z-layer height.\n"
                       "Also controls the slicing plane.");
