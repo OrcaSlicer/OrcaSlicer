@@ -3560,51 +3560,6 @@ void PrintObject::bridge_over_infill()
 
 } // void PrintObject::bridge_over_infill()
 
-// Collect the footprint of a layer that is NOT solidly supported from below, i.e.
-// the area a bridge perimeter on the layer ABOVE would span over.  This is the
-// union of the layer's bridge fill surfaces and the footprint of its bridge
-// perimeters (already tagged erBridgePerimeter by PerimeterGenerator).  Perimeter
-// centerlines are expanded by half their extrusion width to recover the strip of
-// material they cover.
-static void append_bridge_perimeter_footprint(const ExtrusionEntity *entity, Polygons &out)
-{
-    if (entity == nullptr)
-        return;
-    if (entity->is_collection()) {
-        for (const ExtrusionEntity *child : static_cast<const ExtrusionEntityCollection *>(entity)->entities)
-            append_bridge_perimeter_footprint(child, out);
-        return;
-    }
-    auto append_path = [&out](const ExtrusionPath &path) {
-        if (path.role() != erBridgePerimeter)
-            return;
-        // path.width is in mm; offset() takes scaled coordinates.
-        const float half_w = std::max<float>(scaled<float>(0.05), scaled<float>(0.5f * path.width));
-        polygons_append(out, offset(path.polyline.to_polyline(), half_w));
-    };
-    if (entity->is_loop()) {
-        for (const ExtrusionPath &path : static_cast<const ExtrusionLoop *>(entity)->paths)
-            append_path(path);
-    } else if (auto *mp = dynamic_cast<const ExtrusionMultiPath *>(entity)) {
-        for (const ExtrusionPath &path : mp->paths)
-            append_path(path);
-    } else if (auto *p = dynamic_cast<const ExtrusionPath *>(entity)) {
-        append_path(*p);
-    }
-}
-
-static Polygons layer_unsupported_footprint(const Layer *layer)
-{
-    Polygons unsupported;
-    for (const LayerRegion *region : layer->regions()) {
-        for (const Surface &surface : region->fill_surfaces.surfaces)
-            if (surface.surface_type == stBottomBridge || surface.surface_type == stInternalBridge)
-                polygons_append(unsupported, to_polygons(surface.expolygon));
-        for (const ExtrusionEntity *entity : region->perimeters.entities)
-            append_bridge_perimeter_footprint(entity, unsupported);
-    }
-    return unsupported;
-}
 
 // Split a perimeter entity against the supported region.  Portions that fall
 // outside `support` (i.e. over a bridged void below) are re-tagged
@@ -3665,32 +3620,55 @@ static void split_perimeter_over_void(ExtrusionEntity *entity, const Polygons &s
 //
 // PerimeterGenerator only tags a perimeter as erBridgePerimeter where it is
 // geometrically unsupported by the layer directly below.  An extra bridge layer
-// sits on the first bridge layer (which is solid at its own Z), so its span
-// perimeters look "supported" and are missed.  This pass runs after the bridge
-// surfaces (and extra bridge layers) have been classified: for every layer whose
-// layer below is itself partly bridging, it re-derives the supported region as
-// (lower solid - lower unsupported footprint) and splits this layer's perimeters
-// against it, so perimeters continuing over the bridged void are tagged and
-// re-flowed exactly like the first bridge layer's were.
+// sits on the first bridge layer, whose cross-section is solid at its own Z, so
+// the extra layer's span perimeters look "supported" and are missed.
+//
+// To recover the true support we propagate it up the stack: the genuinely
+// supported region of a layer is the part of its cross-section that has a solid
+// column all the way down to a non-bridging base —
+//     supported(0) = lslices(0)
+//     supported(L) = lslices(L) ∩ grow(supported(L-1))
+// A perimeter on layer L is then a bridge perimeter exactly where it falls
+// outside grow(supported(L-1)) — identical to PerimeterGenerator's test, but
+// using the propagated support instead of the raw (bridge-filled) lower slices.
+// For the first bridge layer this reduces to PerimeterGenerator's own result
+// (idempotent); for the second and any further stacked bridge layers it carries
+// the void upward so their perimeters are tagged and re-flowed consistently.
 void PrintObject::tag_extra_bridge_perimeters()
 {
     BOOST_LOG_TRIVIAL(info) << "Tagging extra bridge perimeters - Start" << log_memory_info();
 
-    const float half_nozzle = 0.5f * float(m_print->config().nozzle_diameter.get_at(0));
+    if (m_layers.empty())
+        return;
+
+    const float grow = scaled<float>(0.5f * float(m_print->config().nozzle_diameter.get_at(0)));
+
+    // Bottom-up: propagate the solidly-supported footprint of each layer.
+    std::vector<Polygons> supported(m_layers.size());
+    {
+        Polygons prev;
+        for (const ExPolygon &ex : m_layers.front()->lslices)
+            polygons_append(prev, to_polygons(ex));
+        supported.front() = prev;
+        for (size_t i = 1; i < m_layers.size(); ++i) {
+            Polygons lslices;
+            for (const ExPolygon &ex : m_layers[i]->lslices)
+                polygons_append(lslices, to_polygons(ex));
+            supported[i] = intersection(lslices, offset(supported[i - 1], grow));
+            m_print->throw_if_canceled();
+        }
+    }
 
     tbb::parallel_for(
         tbb::blocked_range<size_t>(1, m_layers.size()),
-        [this, half_nozzle](const tbb::blocked_range<size_t> &range) {
+        [this, grow, &supported](const tbb::blocked_range<size_t> &range) {
             for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
                 m_print->throw_if_canceled();
                 Layer *layer = m_layers[layer_idx];
-                Layer *lower = m_layers[layer_idx - 1];
 
-                // Only act on stacked (extra) bridge layers: this layer must
-                // itself carry bridge fill, AND the layer below must also be
-                // bridging.  A first bridge layer (bridge fill here, solid
-                // below) is already handled by PerimeterGenerator, and a plain
-                // layer resting on a single bridge stays supported.
+                // Limit work to bridge layers (the feature's scope).  On the
+                // first bridge layer this is a no-op (PerimeterGenerator already
+                // split those loops); on stacked bridge layers it does the work.
                 bool this_layer_bridges = false;
                 for (const LayerRegion *region : layer->regions()) {
                     for (const Surface &surface : region->fill_surfaces.surfaces)
@@ -3704,20 +3682,11 @@ void PrintObject::tag_extra_bridge_perimeters()
                 if (! this_layer_bridges)
                     continue;
 
-                Polygons lower_unsupported = layer_unsupported_footprint(lower);
-                if (lower_unsupported.empty())
-                    continue;
-
-                Polygons lower_solid;
-                for (const ExPolygon &ex : lower->lslices)
-                    polygons_append(lower_solid, to_polygons(ex));
-
-                // Supported region = lower solid that is not itself bridging,
-                // grown by half a nozzle to match PerimeterGenerator's tolerance.
-                Polygons support = diff(lower_solid, lower_unsupported);
+                // Support seen by this layer's perimeters = grown propagated
+                // support of the layer below.  Anything outside it bridges a void.
+                Polygons support = offset(supported[layer_idx - 1], grow);
                 if (support.empty())
                     continue;
-                support = offset(support, scaled<float>(half_nozzle));
 
                 for (LayerRegion *region : layer->regions()) {
                     const Flow overhang_flow = region->bridging_flow(frPerimeter, this->config().thick_bridges);
