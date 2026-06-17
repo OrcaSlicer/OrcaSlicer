@@ -105,10 +105,73 @@ inline bool contains_erInternalBridgeInfill(const std::vector<ExtrusionRole> &ro
     return false;
 }
 
+/// Return true if the role vector contains erExternalPerimeter.
+inline bool contains_erExternalPerimeter(const std::vector<ExtrusionRole> &roles)
+{
+    for (auto role : roles)
+        if (role == erExternalPerimeter)
+            return true;
+    return false;
+}
+
+/// Return true if the role vector contains erPerimeter.
+inline bool contains_erPerimeter(const std::vector<ExtrusionRole> &roles)
+{
+    for (auto role : roles)
+        if (role == erPerimeter)
+            return true;
+    return false;
+}
+
+/// Return true if every role in the vector is erBridgePerimeter.
+inline bool all_roles_are_bridge_perimeter(const std::vector<ExtrusionRole> &roles)
+{
+    if (roles.empty()) return false;
+    for (auto role : roles)
+        if (role != erBridgePerimeter)
+            return false;
+    return true;
+}
+
 /// Return a set of unique roles for diagnostic purposes.
 inline std::set<ExtrusionRole> unique_roles(const std::vector<ExtrusionRole> &roles)
 {
     return {roles.begin(), roles.end()};
+}
+
+/// Recursively collect the extrusion widths (mm) of all perimeter paths that
+/// carry a given role.
+inline void collect_widths_for_role(const ExtrusionEntity &entity, ExtrusionRole target,
+                                    std::vector<float> &out)
+{
+    if (entity.is_collection()) {
+        for (const ExtrusionEntity *child : static_cast<const ExtrusionEntityCollection &>(entity).entities)
+            if (child != nullptr)
+                collect_widths_for_role(*child, target, out);
+        return;
+    }
+    if (entity.is_loop()) {
+        for (const ExtrusionPath &path : static_cast<const ExtrusionLoop &>(entity).paths)
+            if (path.role() == target)
+                out.push_back(path.width);
+        return;
+    }
+}
+
+/// Collect widths (mm) of perimeter paths with a given role at a Z height.
+inline std::vector<float>
+collect_perimeter_widths_for_role_at_z(const Print &print, double z, ExtrusionRole role,
+                                       double tolerance = 0.02)
+{
+    std::vector<float> widths;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                collect_widths_for_role(region->perimeters, role, widths);
+        }
+    return widths;
 }
 
 // ---------------------------------------------------------------------------

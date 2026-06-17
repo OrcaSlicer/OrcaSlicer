@@ -260,6 +260,30 @@ SCENARIO("Extra bridge layer perimeters are promoted to bridge roles", "[Bridge]
             {
                 REQUIRE(contains_erBridgePerimeter(roles));
             }
+
+            THEN("Not all extra-layer perimeters are bridge perimeters (only spanning ones)")
+            {
+                // The slab's short edges over the pillar tops are still
+                // supported and must keep a normal role.
+                REQUIRE_FALSE(all_roles_are_bridge_perimeter(roles));
+            }
+
+            THEN("Extra-layer bridge perimeters are re-flowed, not just relabeled")
+            {
+                // The post-pass re-flows the spanning perimeters with the
+                // bridging flow.  Guard the regression where supported walls
+                // were relabeled "Bridge wall" while keeping their normal
+                // inner/outer-wall flow: every extra-layer bridge perimeter must
+                // carry a width distinct from the normal external-perimeter
+                // width on the same model.
+                auto extra_bridge_w = collect_perimeter_widths_for_role_at_z(print, extra_z, erBridgePerimeter);
+                auto ext_w          = collect_perimeter_widths_for_role_at_z(print, bridge_z, erExternalPerimeter);
+                REQUIRE_FALSE(extra_bridge_w.empty());
+                REQUIRE_FALSE(ext_w.empty());
+                const float normal_w = ext_w.front();
+                for (float w : extra_bridge_w)
+                    REQUIRE(w != Catch::Approx(normal_w).margin(1e-4));
+            }
         }
     }
 }
@@ -529,6 +553,68 @@ SCENARIO("Extra bridge layer with internal_bridge_only mode", "[Bridge][ExtraBri
                 } else {
                     SUCCEED("No internal bridges in this geometry — cannot test extra layer");
                 }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Scenario 13: Only bridge-spanning perimeters are retagged (partial tagging)
+// ============================================================================
+//
+// Regression test for the over-tagging bug: the original implementation grew
+// the bridge fill region by the full perimeter stack width, causing EVERY
+// perimeter on a bridge layer to be tagged as erBridgePerimeter — including
+// the supported pillar walls that have solid material below them.
+//
+// The bridge mesh has two solid pillars (X: 0-5 and X: 45-50) and a span
+// between them.  At the bridge layer the pillar perimeters are fully supported
+// by the pillar walls below; only the span perimeters cross over the void.
+// After the fix, the bridge layer must contain BOTH erBridgePerimeter (span)
+// AND erExternalPerimeter / erPerimeter (pillars).
+
+SCENARIO("Bridge perimeter tagging is partial: supported walls keep normal roles", "[Bridge][Perimeter][Partial]")
+{
+    GIVEN("A bridge mesh sliced with default settings")
+    {
+        Slic3r::Print print;
+
+        TriangleMesh bridge_mesh = Slic3r::Test::mesh(TestMesh::bridge);
+        bridge_mesh.align_to_origin();
+
+        Slic3r::Test::init_and_process_print({bridge_mesh}, print, {
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "bottom_shell_layers",        1 },
+            { "top_shell_layers",           0 },
+            { "sparse_infill_density",      0 },
+        });
+
+        WHEN("Inspecting perimeter roles on the bridge layer")
+        {
+            double bridge_z = find_first_bridge_z(print);
+            INFO("Bridge Z: " << bridge_z);
+            REQUIRE(bridge_z > 0.0);
+
+            auto roles = collect_perimeter_roles_at_z(print, bridge_z);
+            for (auto r : unique_roles(roles))
+                INFO("Role present: " << (int)r);
+
+            THEN("Spanning perimeters are tagged erBridgePerimeter")
+            {
+                REQUIRE(contains_erBridgePerimeter(roles));
+            }
+
+            THEN("Supported pillar perimeters keep their normal role")
+            {
+                bool has_normal = contains_erExternalPerimeter(roles)
+                               || contains_erPerimeter(roles);
+                REQUIRE(has_normal);
+            }
+
+            THEN("NOT all perimeters on the bridge layer are erBridgePerimeter")
+            {
+                REQUIRE_FALSE(all_roles_are_bridge_perimeter(roles));
             }
         }
     }
