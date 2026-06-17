@@ -2258,7 +2258,7 @@ msgstr "可打印的"
 msgid "Auto Drop"
 msgstr "自动落板"
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr "自动将选中的对象落到打印板上"
 
 #, fuzzy
@@ -2554,7 +2554,7 @@ msgstr "更换耗材丝"
 msgid "Set Filament for selected items"
 msgstr "设置所选项的耗材丝"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr "自动将选中的对象吸附到打印板上"
 
 msgid "Unlock"
@@ -10794,12 +10794,12 @@ msgstr "set_accel_and_jerk() 仅受 Klipper 支持"
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Marlin < 2.1.2 不支持输入整形。\n"
 "请检查您的固件版本，并将 G-code 风格更新为 ´Marlin 2´"
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "输入整形仅受 Klipper、RepRapFirmware 和 Marlin 2 支持"
 
 msgid "Grouping error: "

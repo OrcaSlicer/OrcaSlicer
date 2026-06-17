@@ -2251,7 +2251,7 @@ msgstr "พิมพ์ได้"
 msgid "Auto Drop"
 msgstr "ดรอปอัตโนมัติ"
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr "วางวัตถุที่เลือกลงในเพลตฐานพิมพ์โดยอัตโนมัติ"
 
 #, fuzzy
@@ -2547,7 +2547,7 @@ msgstr "เปลี่ยนเส้นพลาสติก"
 msgid "Set Filament for selected items"
 msgstr "ตั้งค่า เส้นพลาสติก สำหรับรายการที่เลือก"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr "ยึดวัตถุที่เลือกเข้ากับฐานรองพิมพ์โดยอัตโนมัติ"
 
 msgid "Unlock"
@@ -10806,12 +10806,12 @@ msgstr "set_accel_and_jerk() รองรับโดย Klipper เท่าน
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Marlin < 2.1.2 ไม่รองรับการสร้างรูปร่างอินพุต\n"
 "ตรวจสอบเวอร์ชันเฟิร์มแวร์ของคุณและอัปเดตรสชาติ G-code ของคุณเป็น 'Marlin 2'"
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "รูปร่างอินพุตรองรับเฉพาะ Klipper, RepRapFirmware และ Marlin 2 เท่านั้น"
 
 msgid "Grouping error: "

@@ -2246,7 +2246,7 @@ msgstr "Nyomtatható"
 msgid "Auto Drop"
 msgstr "Automatikus leejtés"
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr "A kiválasztott objektumot automatikusan az építőlemezre ejti"
 
 #, fuzzy
@@ -2542,7 +2542,7 @@ msgstr "Filament csere"
 msgid "Set Filament for selected items"
 msgstr "Filament beállítása a kiválasztott tárgyakhoz"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr "A kiválasztott objektumot automatikusan az építőlemezre illeszti"
 
 msgid "Unlock"
@@ -10821,12 +10821,12 @@ msgstr "set_accel_and_jerk() csak Klipperen támogatott"
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "A rezgéskompenzációt a Marlin < 2.1.2 nem támogatja.\n"
 "Ellenőrizd a firmware verzióját és állítsd a G-kód változatot „Marlin 2”-re"
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "A rezgéskompenzációt csak a Klipper, a RepRapFirmware és a Marlin 2 támogatja"
 
 msgid "Grouping error: "

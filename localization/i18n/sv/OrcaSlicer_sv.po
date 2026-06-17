@@ -2205,7 +2205,7 @@ msgstr "Utskriftsbar"
 msgid "Auto Drop"
 msgstr ""
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr ""
 
 #, fuzzy
@@ -2501,7 +2501,7 @@ msgstr "Byta Filament"
 msgid "Set Filament for selected items"
 msgstr "Välj Filament för valda delar"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr ""
 
 msgid "Unlock"
@@ -10638,10 +10638,10 @@ msgstr ""
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr ""
 
 msgid "Grouping error: "

@@ -2260,7 +2260,7 @@ msgstr "Imprimible"
 msgid "Auto Drop"
 msgstr "Dejar caer automáticamente"
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr "Deja caer automáticamente el objeto seleccionado sobre la cama de impresión."
 
 #, fuzzy
@@ -2556,7 +2556,7 @@ msgstr "Cambiar el filamento"
 msgid "Set Filament for selected items"
 msgstr "Cambiar el filamento para los elementos seleccionados"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr "Acopla automáticamente el objeto seleccionado sobre la cama de impresión."
 
 msgid "Unlock"
@@ -10843,12 +10843,12 @@ msgstr "La función `set_accel_and_jerk()` solo es compatible con Klipper"
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Input shaping no es compatible con versiones de Marlin menores a 2.1.2.\n"
 "Comprueba la versión de tu firmware y actualiza tu tipo de G-code a «Marlin 2»."
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping solo es compatible con Klipper, RepRapFirmware y Marlin 2"
 
 msgid "Grouping error: "
@@ -15944,7 +15944,7 @@ msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Valor no válido cuando está activado el modo jarrón espiral: "
 
 msgid "Bridge line width must not exceed nozzle diameter: "
-msgstr "El ancho de la línea del puente no debe superar el diámetro de la boquilla:"
+msgstr "El ancho de la línea del puente no debe superar el diámetro de la boquilla: "
 
 msgid "too large line width "
 msgstr "ancho de línea excesivo "
@@ -19377,8 +19377,7 @@ msgstr ""
 "Divide tus impresiones en camas\n"
 "¿Sabías que puedes dividir un modelo con muchas piezas en camas individuales listas para imprimir? Esto simplificará el proceso de seguimiento de todas las piezas."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 #, fuzzy
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
@@ -19455,8 +19454,7 @@ msgstr ""
 "Mejorar la resistencia\n"
 "¿Sabías que puedes utilizar más bucles de perímetro y mayor densidad de relleno de baja densidad para mejorar la resistencia del modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"

@@ -2260,7 +2260,7 @@ msgstr "Druckbar"
 msgid "Auto Drop"
 msgstr "Automatisch ablegen"
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr "Legt das ausgewählte Objekt automatisch auf die Bauplatte"
 
 #, fuzzy
@@ -2556,7 +2556,7 @@ msgstr "Filament wechseln"
 msgid "Set Filament for selected items"
 msgstr "Filament für ausgewählte Elemente festlegen"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr "Legt das ausgewählte Objekt automatisch auf die Bauplatte"
 
 msgid "Unlock"
@@ -10839,12 +10839,12 @@ msgstr "set_accel_and_jerk() wird nur von Klipper unterstützt"
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 "Input Shaping wird von Marlin < 2.1.2 nicht unterstützt.\n"
 "Überprüfen Sie Ihre Firmware-Version und aktualisieren Sie Ihren G-Code-Flavour auf 'Marlin 2'"
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input Shaping wird nur von Klipper, RepRapFirmware und Marlin 2 unterstützt"
 
 msgid "Grouping error: "

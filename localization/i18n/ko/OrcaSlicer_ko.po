@@ -2249,7 +2249,7 @@ msgstr "출력 가능"
 msgid "Auto Drop"
 msgstr ""
 
-msgid "Automatically drops the selected object to the build plate"
+msgid "Automatically drops the selected object to the build plate."
 msgstr ""
 
 #, fuzzy
@@ -2545,7 +2545,7 @@ msgstr "필라멘트 변경"
 msgid "Set Filament for selected items"
 msgstr "선택한 항목의 필라멘트로 설정"
 
-msgid "Automatically snaps the selected object to the build plate"
+msgid "Automatically snaps the selected object to the build plate."
 msgstr ""
 
 msgid "Unlock"
@@ -10766,10 +10766,10 @@ msgstr ""
 
 msgid ""
 "Input shaping is not supported by Marlin < 2.1.2.\n"
-"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´."
 msgstr ""
 
-msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr ""
 
 msgid "Grouping error: "
