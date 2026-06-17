@@ -279,9 +279,9 @@ public:
     const PkceBundle& pkce();
     void regenerate_pkce();
 
-    void persist_refresh_token(const std::string& token);
-    bool load_refresh_token(std::string& out_token);
-    void clear_refresh_token();
+    void persist_user_secret(const std::string& secret);
+    bool load_user_secret(std::string& out_secret);
+    void clear_user_secret();
 
     // Token refresh helpers
     bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
@@ -295,7 +295,8 @@ public:
                           const std::string& username,
                           const std::string& nickname,
                           const std::string& avatar,
-                          const std::string& refresh_token = "");
+                          const std::string& refresh_token = "",
+                          bool persist = true);
     // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
@@ -363,7 +364,7 @@ private:
 
     // Member variables - auth state
     PkceBundle pkce_bundle;
-    std::string refresh_fallback_path;
+    std::string secret_fallback_path;
     SessionHandler session_handler;
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
