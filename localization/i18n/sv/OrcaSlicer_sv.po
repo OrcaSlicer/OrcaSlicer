@@ -3471,7 +3471,7 @@ msgid "Sending G-code file over LAN"
 msgstr "Skickar G-kod fil över LAN"
 
 msgid "Sending G-code file to SD card"
-msgstr "Skickar G-kod fil till MicroSD-kort"
+msgstr "Skickar G-kod fil till SD-kort"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -24333,7 +24333,7 @@ msgstr ""
 #~ msgstr "Laddar fortfarande"
 
 #~ msgid "Can't start this without SD card."
-#~ msgstr "Kan inte starta utan MicroSD-kort."
+#~ msgstr "Kan inte starta utan SD-kort."
 
 #~ msgid "Update"
 #~ msgstr "Uppdatera"
@@ -24482,14 +24482,14 @@ msgstr ""
 #~ "grund av ytan."
 
 #~ msgid "Send to Printer SD card"
-#~ msgstr "Skicka till skrivarens MicroSD-kort"
+#~ msgstr "Skicka till skrivarens SD-kort"
 
 #~ msgid "An SD card needs to be inserted before send to printer SD card."
-#~ msgstr "Ett MicroSD-kort måste sättas i innan du skickar till skrivaren."
+#~ msgstr "Ett SD-kort måste sättas i innan du skickar till skrivaren."
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr ""
-#~ "Skrivaren har inte stöd för att skicka till skrivarens MicroSD kort."
+#~ "Skrivaren har inte stöd för att skicka till skrivarens SD kort."
 
 #~ msgid "Auto-Calc"
 #~ msgstr "Autoberäkna"
@@ -24686,16 +24686,16 @@ msgstr ""
 #~ msgstr "0"
 
 #~ msgid "SD Card"
-#~ msgstr "MicroSD-kort"
+#~ msgstr "SD-kort"
 
 #~ msgid "100%"
 #~ msgstr "100%"
 
 #~ msgid "No SD Card"
-#~ msgstr "Inget MicroSD-kort"
+#~ msgstr "Inget SD-kort"
 
 #~ msgid "SD Card Abnormal"
-#~ msgstr "MicroSD-kortet är onormalt"
+#~ msgstr "SD-kortet är onormalt"
 
 #, c-format, boost-format
 #~ msgid "Ejecting of device %s(%s) has failed."

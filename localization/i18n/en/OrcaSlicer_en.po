@@ -3328,7 +3328,7 @@ msgid "Sending G-code file over LAN"
 msgstr ""
 
 msgid "Sending G-code file to SD card"
-msgstr "Sending G-code file to MicroSD card"
+msgstr "Sending G-code file to SD card"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -21109,10 +21109,10 @@ msgstr ""
 #~ msgstr "Advanced"
 
 #~ msgid "An SD card needs to be inserted before printing via LAN."
-#~ msgstr "A MicroSD card needs to be inserted before printing via LAN."
+#~ msgstr "A SD card needs to be inserted before printing via LAN."
 
 #~ msgid "An SD card needs to be inserted before sending to printer."
-#~ msgstr "A MicroSD card needs to be inserted before sending to printer."
+#~ msgstr "A SD card needs to be inserted before sending to printer."
 
 #~ msgid ""
 #~ "If there are two identical filaments in AMS, AMS filament backup will be "
@@ -21143,7 +21143,7 @@ msgstr ""
 #~ msgstr "Storage unavailable, insert Micro SD card."
 
 #~ msgid "Can't start this without SD card."
-#~ msgstr "Can't start without MicroSD card."
+#~ msgstr "Can't start without SD card."
 
 #~ msgid ""
 #~ "Already did a synchronization, do you want to sync only changes or resync "
@@ -21164,10 +21164,10 @@ msgstr ""
 #~ msgstr "If enabled, auto-calculate every time filament is changed"
 
 #~ msgid "An SD card needs to be inserted before printing."
-#~ msgstr "A MicroSD card needs to be inserted before printing."
+#~ msgstr "A SD card needs to be inserted before printing."
 
 #~ msgid "An SD card needs to be inserted to record timelapse."
-#~ msgstr "A MicroSD card needs to be inserted to record a timelapse."
+#~ msgstr "A SD card needs to be inserted to record a timelapse."
 
 #~ msgid ""
 #~ "Your nozzle diameter in sliced file is not consistent with memorized "
@@ -21179,14 +21179,14 @@ msgstr ""
 #~ "Parts to change settings."
 
 #~ msgid "Send to Printer SD card"
-#~ msgstr "Send to Printer MicroSD card"
+#~ msgstr "Send to Printer SD card"
 
 #~ msgid "An SD card needs to be inserted before send to printer SD card."
 #~ msgstr ""
-#~ "A MicroSD card needs to be inserted before sending to the printer SD card."
+#~ "A SD card needs to be inserted before sending to the printer SD card."
 
 #~ msgid "The printer does not support sending to printer SD card."
-#~ msgstr "The printer does not support sending to printer MicroSD card."
+#~ msgstr "The printer does not support sending to printer SD card."
 
 #~ msgid " is too close to others, there may be collisions when printing."
 #~ msgstr " is too close to others; there may be collisions when printing."
@@ -21227,13 +21227,13 @@ msgstr ""
 #~ msgstr "Color scheme"
 
 #~ msgid "SD Card"
-#~ msgstr "MicroSD Card"
+#~ msgstr "SD Card"
 
 #~ msgid "No SD Card"
-#~ msgstr "No MicroSD Card"
+#~ msgstr "No SD Card"
 
 #~ msgid "SD Card Abnormal"
-#~ msgstr "MicroSD Card Abnormal"
+#~ msgstr "SD Card Abnormal"
 
 #~ msgid ""
 #~ "Bed temperature when the Cool Plate Supertack is installed. A value of 0 "

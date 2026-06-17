@@ -26279,7 +26279,7 @@ msgstr ""
 
 #~ msgid "An SD card needs to be inserted before send to printer SD card."
 #~ msgstr ""
-#~ "Il est nécessaire d'insérer une carte MicroSD avant d'envoyer les données "
+#~ "Il est nécessaire d'insérer une carte SD avant d'envoyer les données "
 #~ "vers l'imprimante."
 
 #~ msgid "The printer does not support sending to printer SD card."

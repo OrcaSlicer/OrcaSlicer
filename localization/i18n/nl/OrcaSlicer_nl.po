@@ -3491,7 +3491,7 @@ msgid "Sending G-code file over LAN"
 msgstr "G-codebestand verzenden via LAN"
 
 msgid "Sending G-code file to SD card"
-msgstr "G-codebestand naar microSD-kaart verzenden"
+msgstr "G-codebestand naar SD-kaart verzenden"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -24407,12 +24407,12 @@ msgstr ""
 
 #~ msgid "An SD card needs to be inserted before printing via LAN."
 #~ msgstr ""
-#~ "Er moet een MicroSD-kaart worden geplaatst voordat er via LAN kan worden "
+#~ "Er moet een SD-kaart worden geplaatst voordat er via LAN kan worden "
 #~ "afgedrukt."
 
 #~ msgid "An SD card needs to be inserted before sending to printer."
 #~ msgstr ""
-#~ "Een MicroSD-kaart moet worden geplaatst voordat er iets naar de printer "
+#~ "Een SD-kaart moet worden geplaatst voordat er iets naar de printer "
 #~ "wordt gestuurd."
 
 #~ msgid ""
@@ -24543,7 +24543,7 @@ msgstr ""
 #~ msgstr "Laad nog steeds"
 
 #~ msgid "Can't start this without SD card."
-#~ msgstr "Kan niet starten zonder microSD-kaart."
+#~ msgstr "Kan niet starten zonder SD-kaart."
 
 #~ msgid "Update"
 #~ msgstr "Updaten"
@@ -24675,11 +24675,11 @@ msgstr ""
 
 #~ msgid "An SD card needs to be inserted before printing."
 #~ msgstr ""
-#~ "Er moet een MicroSD-kaart worden geplaatst voordat u kunt afdrukken."
+#~ "Er moet een SD-kaart worden geplaatst voordat u kunt afdrukken."
 
 #~ msgid "An SD card needs to be inserted to record timelapse."
 #~ msgstr ""
-#~ "Er moet een MicroSD-kaart worden geplaatst om een timelapse op te nemen."
+#~ "Er moet een SD-kaart worden geplaatst om een timelapse op te nemen."
 
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.1f %s"
@@ -24716,11 +24716,11 @@ msgstr ""
 #~ "mislukken vanwege het verstrooide oppervlak."
 
 #~ msgid "Send to Printer SD card"
-#~ msgstr "Verzenden naar de MicroSD-kaart in de printer"
+#~ msgstr "Verzenden naar de SD-kaart in de printer"
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr ""
-#~ "De printer biedt geen ondersteuning voor het verzenden naar de microSD-"
+#~ "De printer biedt geen ondersteuning voor het verzenden naar de SD-"
 #~ "kaart van de printer."
 
 #~ msgid "Auto-Calc"
@@ -24923,16 +24923,16 @@ msgstr ""
 #~ msgstr "0"
 
 #~ msgid "SD Card"
-#~ msgstr "MicroSD-kaart"
+#~ msgstr "SD-kaart"
 
 #~ msgid "100%"
 #~ msgstr "100%"
 
 #~ msgid "No SD Card"
-#~ msgstr "Geen microSD-kaart"
+#~ msgstr "Geen SD-kaart"
 
 #~ msgid "SD Card Abnormal"
-#~ msgstr "MicroSD Kaart Abnormaal"
+#~ msgstr "SD Kaart Abnormaal"
 
 #, c-format, boost-format
 #~ msgid "Ejecting of device %s(%s) has failed."

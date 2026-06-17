@@ -3514,7 +3514,7 @@ msgid "Sending G-code file over LAN"
 msgstr "G-kód fájl küldése LAN-on keresztül"
 
 msgid "Sending G-code file to SD card"
-msgstr "G-kód fájl küldése MicroSD-kártyára"
+msgstr "G-kód fájl küldése SD-kártyára"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"

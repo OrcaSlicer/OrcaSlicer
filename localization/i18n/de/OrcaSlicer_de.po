@@ -25892,7 +25892,7 @@ msgstr ""
 #~ msgstr "Filament zuführen"
 
 #~ msgid "An SD card needs to be inserted before printing via LAN."
-#~ msgstr "Vor dem Drucken über LAN muss eine MicroSD-Karte eingelegt werden."
+#~ msgstr "Vor dem Drucken über LAN muss eine SD-Karte eingelegt werden."
 
 #~ msgid "An SD card needs to be inserted before sending to printer."
 #~ msgstr "Vor dem Senden an den Drucker muss eine SD-Karte eingelegt werden."
@@ -26054,24 +26054,24 @@ msgstr ""
 #~ "Browsing file in SD card is not supported in current firmware. Please "
 #~ "update the printer firmware."
 #~ msgstr ""
-#~ "Das Durchsuchen von Dateien auf der MicroSD-Karte wird in der aktuellen "
+#~ "Das Durchsuchen von Dateien auf der SD-Karte wird in der aktuellen "
 #~ "Firmware nicht unterstützt. Bitte aktualisieren Sie die Drucker-Firmware."
 
 #~ msgid ""
 #~ "Please check if the SD card is inserted into the printer.\n"
 #~ "If it still cannot be read, you can try formatting the SD card."
 #~ msgstr ""
-#~ "Bitte überprüfen Sie, ob die MicroSD-Karte in den Drucker eingelegt ist.\n"
+#~ "Bitte überprüfen Sie, ob die SD-Karte in den Drucker eingelegt ist.\n"
 #~ "Wenn sie immer noch nicht gelesen werden kann, können Sie versuchen, die "
-#~ "MicroSD-Karte zu formatieren."
+#~ "SD-Karte zu formatieren."
 
 #~ msgid "Browsing file in SD card is not supported in LAN Only Mode."
 #~ msgstr ""
-#~ "Das durchsuchen von Dateien auf der MicroSD-Karte wird im LAN-Only-Modus "
+#~ "Das durchsuchen von Dateien auf der SD-Karte wird im LAN-Only-Modus "
 #~ "nicht unterstützt."
 
 #~ msgid "Storage unavailable, insert SD card."
-#~ msgstr "Speicher nicht verfügbar, MicroSD-Karte einlegen."
+#~ msgstr "Speicher nicht verfügbar, SD-Karte einlegen."
 
 #~ msgid "Cham"
 #~ msgstr "Cham"
@@ -26083,7 +26083,7 @@ msgstr ""
 #~ msgstr "Lade immer noch"
 
 #~ msgid "Can't start this without SD card."
-#~ msgstr "Kann ohne MicroSD-Karte nicht gestartet werden."
+#~ msgstr "Kann ohne SD-Karte nicht gestartet werden."
 
 #~ msgid "Update"
 #~ msgstr "Update"
@@ -26241,11 +26241,11 @@ msgstr ""
 #~ "Filament => AMS-Slot."
 
 #~ msgid "An SD card needs to be inserted before printing."
-#~ msgstr "Vor dem Drucken muss eine MicroSD-Karte eingelegt werden."
+#~ msgstr "Vor dem Drucken muss eine SD-Karte eingelegt werden."
 
 #~ msgid "An SD card needs to be inserted to record timelapse."
 #~ msgstr ""
-#~ "Für die Aufnahme eines Zeitraffers muss eine MicroSD-Karte eingelegt "
+#~ "Für die Aufnahme eines Zeitraffers muss eine SD-Karte eingelegt "
 #~ "werden."
 
 #, c-format, boost-format
@@ -26289,7 +26289,7 @@ msgstr ""
 #~ msgstr "Automatische Flusskalibrierung mit Micro Lidar"
 
 #~ msgid "Send to Printer SD card"
-#~ msgstr "An MicroSD-Karte des Druckers senden"
+#~ msgstr "An SD-Karte des Druckers senden"
 
 #~ msgid "An SD card needs to be inserted before send to printer SD card."
 #~ msgstr ""
@@ -26298,7 +26298,7 @@ msgstr ""
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr ""
-#~ "Der Drucker unterstützt nicht das Senden an die MicroSD-Karte des "
+#~ "Der Drucker unterstützt nicht das Senden an die SD-Karte des "
 #~ "Druckers."
 
 #, c-format, boost-format
@@ -26641,13 +26641,13 @@ msgstr ""
 #~ msgstr "0"
 
 #~ msgid "SD Card"
-#~ msgstr "MicroSD-Karte"
+#~ msgstr "SD-Karte"
 
 #~ msgid "100%"
 #~ msgstr "100%"
 
 #~ msgid "No SD Card"
-#~ msgstr "Keine MicroSD-Karte"
+#~ msgstr "Keine SD-Karte"
 
 #~ msgid "SD Card Abnormal"
 #~ msgstr "SD-Karte fehlerhaft"
@@ -27015,7 +27015,7 @@ msgstr ""
 
 #~ msgid "Initialize failed (Storage unavailable, insert SD card.)!"
 #~ msgstr ""
-#~ "Initialisierung fehlgeschlagen (Speicher nicht verfügbar, MicroSD-Karte "
+#~ "Initialisierung fehlgeschlagen (Speicher nicht verfügbar, SD-Karte "
 #~ "einlegen.)!"
 
 #, c-format, boost-format
