@@ -250,7 +250,7 @@ msgid "Reset"
 msgstr "초기화"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "단축키 "
@@ -865,19 +865,19 @@ msgid "Emboss"
 msgstr "양각"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
-msgstr "SMALL"
+msgstr ""
 
 msgid "ITALIC"
-msgstr "ITALIC"
+msgstr ""
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "첫 번째 글꼴"
@@ -1460,7 +1460,7 @@ msgid "Restart selection"
 msgstr "다시 선택"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "종료할 때까지 기능 취소"
@@ -2137,13 +2137,13 @@ msgstr "보이기"
 
 # 단축키
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "선택된 객체 삭제"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "불러오기..."
@@ -3507,7 +3507,7 @@ msgid "The input value should be greater than %1% and less than %2%"
 msgstr "입력 값은 %1%보다 크고 %2%보다 작아야 합니다"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "동적 압출량 교정 계수"
@@ -4643,7 +4643,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "잘못된 형식입니다. 필요한 벡터 형식: \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "선택"
@@ -4664,7 +4664,7 @@ msgid "Acceleration"
 msgstr "가속도"
 
 msgid "Jerk"
-msgstr ""
+msgstr "Jerk"
 
 msgid "Fan Speed"
 msgstr "팬 속도"
@@ -4790,7 +4790,7 @@ msgid "Acceleration: "
 msgstr ""
 
 msgid "Jerk: "
-msgstr ""
+msgstr "Jerk: "
 
 msgid "PA: "
 msgstr "PA: "
@@ -4934,7 +4934,7 @@ msgid "Acceleration (mm/s²)"
 msgstr ""
 
 msgid "Jerk (mm/s)"
-msgstr ""
+msgstr "Jerk (mm/s)"
 
 #, fuzzy
 msgid "Fan speed (%)"
@@ -6215,7 +6215,7 @@ msgid "Invert Roll axis"
 msgstr "종축을 중심으로 반전"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "검색"
@@ -7994,7 +7994,7 @@ msgid "Quality level for Draco export"
 msgstr ""
 
 msgid "bits"
-msgstr ""
+msgstr "bits"
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -8132,7 +8132,7 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
-msgstr ""
+msgstr "Anti-aliasing"
 
 msgid "MSAA Multiplier"
 msgstr ""
@@ -8160,7 +8160,7 @@ msgid ""
 msgstr ""
 
 msgid "FPS"
-msgstr ""
+msgstr "FPS"
 
 msgid "FPS cap"
 msgstr ""
@@ -9335,7 +9335,7 @@ msgid "Travel speed"
 msgstr "이동 속도"
 
 msgid "Junction Deviation"
-msgstr ""
+msgstr "Junction Deviation"
 
 msgid "Jerk(XY)"
 msgstr "저크(XY)"
@@ -10037,7 +10037,7 @@ msgstr ""
 " 을 선택하여 계속하거나 수동으로 조정할 수 있습니다."
 
 msgid "—> "
-msgstr ""
+msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10196,7 +10196,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr ""
 
 msgid "ms"
-msgstr ""
+msgstr "ms"
 
 msgid "Total ramming"
 msgstr ""
@@ -10654,7 +10654,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "자동 화재 진압 시스템"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "펌웨어 업데이트"
@@ -12882,10 +12882,10 @@ msgid "Cross Hatch"
 msgstr "크로스 해치"
 
 msgid "TPMS-D"
-msgstr ""
+msgstr "TPMS-D"
 
 msgid "TPMS-FK"
-msgstr ""
+msgstr "TPMS-FK"
 
 msgid "Gyroid"
 msgstr "자이로이드"
@@ -13236,7 +13236,7 @@ msgid "Voronoi"
 msgstr "보로노이"
 
 msgid "Ripple"
-msgstr ""
+msgstr "Ripple"
 
 msgid "Fuzzy skin feature size"
 msgstr "퍼지 스킨 피처 크기"
@@ -13977,40 +13977,40 @@ msgid ""
 msgstr ""
 
 msgid "MZV"
-msgstr ""
+msgstr "MZV"
 
 msgid "ZV"
-msgstr ""
+msgstr "ZV"
 
 msgid "ZVD"
-msgstr ""
+msgstr "ZVD"
 
 msgid "ZVDD"
-msgstr ""
+msgstr "ZVDD"
 
 msgid "ZVDDD"
-msgstr ""
+msgstr "ZVDDD"
 
 msgid "EI"
-msgstr ""
+msgstr "EI"
 
 msgid "EI2"
-msgstr ""
+msgstr "EI2"
 
 msgid "2HUMP_EI"
-msgstr ""
+msgstr "2HUMP_EI"
 
 msgid "EI3"
-msgstr ""
+msgstr "EI3"
 
 msgid "3HUMP_EI"
-msgstr ""
+msgstr "3HUMP_EI"
 
 msgid "DAA"
-msgstr ""
+msgstr "DAA"
 
 msgid "X"
-msgstr ""
+msgstr "X"
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -14020,7 +14020,7 @@ msgid ""
 msgstr ""
 
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -14802,7 +14802,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "압출기가 작동하지 않을 때 적용되는 온도차입니다. 필라멘트 설정의 'idle_temp'가 0이 아닌 값으로 설정된 경우 해당 값은 사용되지 않습니다."
 
 msgid "∆℃"
-msgstr ""
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "예열시간"
@@ -16703,7 +16703,7 @@ msgid "Printing Parameters"
 msgstr "출력 매개변수"
 
 msgid "- ℃"
-msgstr ""
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "노즐 및 AMS 정보 동기화"
@@ -17041,7 +17041,7 @@ msgid "Frequency settings"
 msgstr ""
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
@@ -17092,7 +17092,7 @@ msgid "Cornering test"
 msgstr ""
 
 msgid "SCV-V2"
-msgstr ""
+msgstr "SCV-V2"
 
 msgid "Start: "
 msgstr ""

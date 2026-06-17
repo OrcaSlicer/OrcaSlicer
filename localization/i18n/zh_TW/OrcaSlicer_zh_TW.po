@@ -252,7 +252,7 @@ msgid "Reset"
 msgstr "重設"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "快捷鍵 "
@@ -874,13 +874,13 @@ msgid "ITALIC"
 msgstr "斜體"
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
-msgstr "First font"
+msgstr ""
 
 msgid "Default font"
 msgstr "預設字型"
@@ -1458,7 +1458,7 @@ msgid "Restart selection"
 msgstr "重新開始選取"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "在退出前取消功能"
@@ -2151,7 +2151,7 @@ msgid "Delete the selected object"
 msgstr "刪除所選物件"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "載入..."
@@ -2535,7 +2535,7 @@ msgid "Center"
 msgstr "居中"
 
 msgid "Drop"
-msgstr "Drop"
+msgstr ""
 
 msgid "Edit Process Settings"
 msgstr "編輯列印參數"
@@ -2944,7 +2944,7 @@ msgid "Check the status of current system services"
 msgstr "請檢查目前系統服務狀態"
 
 msgid "code"
-msgstr "code"
+msgstr ""
 
 msgid "Failed to connect to cloud service"
 msgstr "無法連接到雲端服務"
@@ -3469,7 +3469,7 @@ msgid "Orca Slicer is based on PrusaSlicer and BambuStudio"
 msgstr "Orca Slicer 基於 PrusaSlicer 與 BambuStudio"
 
 msgid "Libraries"
-msgstr "Libraries"
+msgstr ""
 
 msgid "This software uses open source components whose copyright and other proprietary rights belong to their respective owners"
 msgstr "本軟體採用了開源組件，其版權及相關專有權歸屬於各自的所有者"
@@ -4679,7 +4679,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無效格式，應該是「%1%」這種格式"
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "選取"
@@ -4778,7 +4778,7 @@ msgid "Gap infill"
 msgstr "填縫"
 
 msgid "Skirt"
-msgstr "Skirt"
+msgstr ""
 
 msgid "Support interface"
 msgstr "支撐面"
@@ -18093,7 +18093,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Printing %1s material with %2s nozzle may cause nozzle damage."
+msgstr ""
 
 msgid "Need select printer"
 msgstr "需要選擇列印設備"

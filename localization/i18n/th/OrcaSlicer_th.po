@@ -1458,7 +1458,7 @@ msgid "Restart selection"
 msgstr "เริ่มการเลือกใหม่"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "ยกเลิกคุณลักษณะจนกว่าจะออก"
@@ -7752,7 +7752,7 @@ msgid "isometric"
 msgstr "มีมิติเท่ากัน"
 
 msgid "top_front"
-msgstr "top_front"
+msgstr ""
 
 msgid "top"
 msgstr "สูงสุด"
@@ -10697,7 +10697,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "ระบบดับเพลิงอัตโนมัติ"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "อัพเดตเฟิร์มแวร์"

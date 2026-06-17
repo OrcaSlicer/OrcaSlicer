@@ -249,7 +249,7 @@ msgid "Reset"
 msgstr "重置"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "快捷键 "
@@ -1454,7 +1454,7 @@ msgid "Restart selection"
 msgstr "重新选择"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "取消一个特征直到退出"
@@ -1810,7 +1810,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "选择一个文件（GCODE/3MF）："
 
 msgid "Ext"
-msgstr "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
@@ -2818,7 +2818,7 @@ msgid "Plate"
 msgstr "盘"
 
 msgid "Brim"
-msgstr "Brim"
+msgstr ""
 
 msgid "Object/Part Settings"
 msgstr "对象/零件设置"
@@ -4031,11 +4031,11 @@ msgstr "热床形状"
 
 #, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
-msgstr "A minimum temperature above %d℃ is recommended for %s.\n"
+msgstr ""
 
 #, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
-msgstr "A maximum temperature below %d℃ is recommended for %s.\n"
+msgstr ""
 
 msgid "The recommended minimum temperature cannot be higher than the recommended maximum temperature.\n"
 msgstr "推荐最低温度不能大于推荐最高温度。\n"
@@ -4637,7 +4637,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "无效格式，应该是\"%1%\"这种数组格式"
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "选择"
@@ -12879,7 +12879,7 @@ msgid "Filament price, for statistical purposes only."
 msgstr "耗材丝的价格。只用于统计信息。"
 
 msgid "money/kg"
-msgstr "money/kg"
+msgstr ""
 
 msgid "Vendor"
 msgstr "供应商"
@@ -18046,7 +18046,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Printing %1s material with %2s nozzle may cause nozzle damage."
+msgstr ""
 
 msgid "Need select printer"
 msgstr "需要选择打印机"

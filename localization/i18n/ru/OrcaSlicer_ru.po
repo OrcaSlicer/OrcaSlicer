@@ -262,7 +262,7 @@ msgid "Reset"
 msgstr "Сброс"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Горячая клавиша "
@@ -888,19 +888,19 @@ msgid "Emboss"
 msgstr "Рельефный текст"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
-msgstr "SMALL"
+msgstr ""
 
 msgid "ITALIC"
-msgstr "ITALIC"
+msgstr ""
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "Первый шрифт"
@@ -1497,7 +1497,7 @@ msgid "Restart selection"
 msgstr "Выбрать заново"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Отменить выбор до выхода"
@@ -2195,13 +2195,13 @@ msgid "Show"
 msgstr "Показать"
 
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Удаление выбранных моделей"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "Загрузить…"
@@ -4800,7 +4800,7 @@ msgid "Acceleration"
 msgstr "Ускорение"
 
 msgid "Jerk"
-msgstr ""
+msgstr "Jerk"
 
 msgid "Fan Speed"
 msgstr "Охлаждение"
@@ -4932,7 +4932,7 @@ msgid "Acceleration: "
 msgstr ""
 
 msgid "Jerk: "
-msgstr ""
+msgstr "Jerk: "
 
 msgid "PA: "
 msgstr "PA: "
@@ -5098,7 +5098,7 @@ msgid "Acceleration (mm/s²)"
 msgstr ""
 
 msgid "Jerk (mm/s)"
-msgstr ""
+msgstr "Jerk (mm/s)"
 
 #, fuzzy
 msgid "Fan speed (%)"
@@ -6423,7 +6423,7 @@ msgid "Invert Roll axis"
 msgstr "Инвертировать ось крена (Z)"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Поиск"
@@ -7397,7 +7397,7 @@ msgstr "Свернуть боковую панель"
 # Название кнопки на клавиатуре, на момент 2.3.2 используется в 5 местах в
 # значении названия кнопки
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -8412,7 +8412,7 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
-msgstr ""
+msgstr "Anti-aliasing"
 
 msgid "MSAA Multiplier"
 msgstr ""
@@ -8440,7 +8440,7 @@ msgid ""
 msgstr ""
 
 msgid "FPS"
-msgstr ""
+msgstr "FPS"
 
 msgid "FPS cap"
 msgstr ""
@@ -8815,7 +8815,7 @@ msgstr "Выбранный профиль пуст!"
 
 # ?????? не переводим, пока #6970 не исправят
 msgid "End"
-msgstr "End"
+msgstr ""
 
 msgid "Customize"
 msgstr "Настроить"
@@ -10815,7 +10815,7 @@ msgstr "Переключение между подготовкой и просм
 
 # ??? Plater – это название библиотеки.
 msgid "Plater"
-msgstr "Plater"
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "Перемещение: Фиксация перемещения на 1 мм"
@@ -11011,7 +11011,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Автоматическая система пожаротушения"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Обновить прошивку"
@@ -13844,7 +13844,7 @@ msgid "Voronoi"
 msgstr "Шум Вороного"
 
 msgid "Ripple"
-msgstr ""
+msgstr "Ripple"
 
 # Размер шероховатости
 msgid "Fuzzy skin feature size"
@@ -14638,40 +14638,40 @@ msgid ""
 msgstr ""
 
 msgid "MZV"
-msgstr ""
+msgstr "MZV"
 
 msgid "ZV"
-msgstr ""
+msgstr "ZV"
 
 msgid "ZVD"
-msgstr ""
+msgstr "ZVD"
 
 msgid "ZVDD"
-msgstr ""
+msgstr "ZVDD"
 
 msgid "ZVDDD"
-msgstr ""
+msgstr "ZVDDD"
 
 msgid "EI"
-msgstr ""
+msgstr "EI"
 
 msgid "EI2"
-msgstr ""
+msgstr "EI2"
 
 msgid "2HUMP_EI"
-msgstr ""
+msgstr "2HUMP_EI"
 
 msgid "EI3"
-msgstr ""
+msgstr "EI3"
 
 msgid "3HUMP_EI"
-msgstr ""
+msgstr "3HUMP_EI"
 
 msgid "DAA"
-msgstr ""
+msgstr "DAA"
 
 msgid "X"
-msgstr ""
+msgstr "X"
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -14681,7 +14681,7 @@ msgid ""
 msgstr ""
 
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"

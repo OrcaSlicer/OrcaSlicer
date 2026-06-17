@@ -219,10 +219,10 @@ msgid "Edge detection"
 msgstr "Détection des contours"
 
 msgid "Triangles"
-msgstr "Triangles"
+msgstr ""
 
 msgid "Filaments"
-msgstr "Filaments"
+msgstr ""
 
 msgid "Brush"
 msgstr "Pinceau"
@@ -255,16 +255,16 @@ msgid "Shortcut Key "
 msgstr "Raccourci "
 
 msgid "Triangle"
-msgstr "Triangle"
+msgstr ""
 
 msgid "Height Range"
 msgstr "Plage de hauteur"
 
 msgid "Vertical"
-msgstr "Vertical"
+msgstr ""
 
 msgid "Horizontal"
-msgstr "Horizontal"
+msgstr ""
 
 msgid "Remove painted color"
 msgstr "Supprimer la couleur peinte"
@@ -435,7 +435,7 @@ msgid "Dovetail"
 msgstr "Queue d’aronde"
 
 msgid "Auto"
-msgstr "Auto"
+msgstr ""
 
 msgid "Manual"
 msgstr "Manuel"
@@ -474,10 +474,10 @@ msgid "Connectors"
 msgstr "Connecteurs"
 
 msgid "Type"
-msgstr "Type"
+msgstr ""
 
 msgid "Style"
-msgstr "Style"
+msgstr ""
 
 msgid "Shape"
 msgstr "Forme"
@@ -492,7 +492,7 @@ msgstr "Profondeur"
 #. Angle between Y axis and text line direction.
 #. TRN - Input label. Be short as possible
 msgid "Rotation"
-msgstr "Rotation"
+msgstr ""
 
 msgid "Groove"
 msgstr "Rainure"
@@ -550,7 +550,7 @@ msgid "Move cut plane"
 msgstr "Déplacer le plan de coupe"
 
 msgid "Mode"
-msgstr "Mode"
+msgstr ""
 
 msgid "Change cut mode"
 msgstr "Changer le mode de coupe"
@@ -755,7 +755,7 @@ msgstr "Très bas"
 
 #, c-format, boost-format
 msgid "%d triangles"
-msgstr "%d triangles"
+msgstr ""
 
 msgid "Show wireframe"
 msgstr "Afficher le maillage"
@@ -807,7 +807,7 @@ msgid "Text Gap"
 msgstr "Espacement du texte"
 
 msgid "Angle"
-msgstr "Angle"
+msgstr ""
 
 #, fuzzy
 msgid "Embedded depth"
@@ -819,7 +819,7 @@ msgid "Input text"
 msgstr "Texte entré"
 
 msgid "Surface"
-msgstr "Surface"
+msgstr ""
 
 msgid "Horizontal text"
 msgstr "Texte horizontal"
@@ -866,7 +866,7 @@ msgid "Emboss"
 msgstr "Embosser"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
 msgstr "PETIT"
@@ -967,7 +967,7 @@ msgid "Name has to be unique."
 msgstr "Le nom doit être unique."
 
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Rename style"
 msgstr "Renommer le style"
@@ -1116,7 +1116,7 @@ msgstr "Rétablir l’alignement."
 
 #. TRN EmbossGizmo: font units
 msgid "points"
-msgstr "points"
+msgstr ""
 
 msgid "Revert gap between characters"
 msgstr "Rétablir l’écart entre les caractères"
@@ -1242,7 +1242,7 @@ msgstr "Continuer"
 #. Some Font file contain multiple fonts inside and
 #. this is numerical selector of font inside font collections
 msgid "Collection"
-msgstr "Collection"
+msgstr ""
 
 #. TRN - Title in Undo/Redo stack after rotate with SVG around emboss axe
 msgid "SVG rotate"
@@ -1507,13 +1507,13 @@ msgstr ""
 " spécifier la distance qui les sépare."
 
 msgid "Face"
-msgstr "Face"
+msgstr ""
 
 msgid " (Fixed)"
 msgstr " (Fixé)"
 
 msgid "Point"
-msgstr "Point"
+msgstr ""
 
 msgid ""
 "Feature 1 has been reset, \n"
@@ -1529,13 +1529,13 @@ msgid "Perpendicular distance"
 msgstr "Distance perpendiculaire"
 
 msgid "Distance"
-msgstr "Distance"
+msgstr ""
 
 msgid "Direct distance"
 msgstr "Distance directe"
 
 msgid "Distance XYZ"
-msgstr "Distance XYZ"
+msgstr ""
 
 msgid "Parallel"
 msgstr "Parallèle"
@@ -1633,10 +1633,10 @@ msgid "Process"
 msgstr "Traitement"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
-msgstr "Machine"
+msgstr ""
 
 #, fuzzy
 msgid "The configuration package was loaded, but some values were not recognized."
@@ -1689,7 +1689,7 @@ msgid "SVG files"
 msgstr "Fichiers SVG"
 
 msgid "Texture"
-msgstr "Texture"
+msgstr ""
 
 msgid "Masked SLA files"
 msgstr "Fichiers SLA masqués"
@@ -1771,7 +1771,7 @@ msgid "This is the newest version."
 msgstr "Il s'agit de la version la plus récente."
 
 msgid "Info"
-msgstr "Info"
+msgstr ""
 
 msgid "Loading printer & filament profiles"
 msgstr "Chargement des profils d’imprimante et de filament"
@@ -1819,7 +1819,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "Choisir un fichier (GCODE/3MF) :"
 
 msgid "Ext"
-msgstr "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "Certains préréglages sont modifiés."
@@ -2160,7 +2160,7 @@ msgid "Load..."
 msgstr "Charger…"
 
 msgid "Cube"
-msgstr "Cube"
+msgstr ""
 
 msgid "Cylinder"
 msgstr "Cylindre"
@@ -2178,7 +2178,7 @@ msgid "Orca Cube"
 msgstr "Cube Orca"
 
 msgid "OrcaSliced Combo"
-msgstr "OrcaSliced Combo"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Test de tolérance Orca"
@@ -2211,7 +2211,7 @@ msgstr ""
 "Non - Ne pas modifier ces paramètres pour moi"
 
 msgid "Suggestion"
-msgstr "Suggestion"
+msgstr ""
 
 msgid "Text"
 msgstr "Texte"
@@ -2308,7 +2308,7 @@ msgstr "Défaut"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "courant"
@@ -2572,7 +2572,7 @@ msgid "Name"
 msgstr "Nom"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2864,7 +2864,7 @@ msgid "Color"
 msgstr "Couleur"
 
 msgid "Pause"
-msgstr "Pause"
+msgstr ""
 
 msgid "Template"
 msgstr "Modèle"
@@ -2873,7 +2873,7 @@ msgid "Custom"
 msgstr "Personnalisé"
 
 msgid "Pause:"
-msgstr "Pause:"
+msgstr ""
 
 msgid "Custom Template:"
 msgstr "Modèle personnalisé :"
@@ -2914,7 +2914,7 @@ msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Insérer un G-code personnalisé au début de cette couche."
 
 msgid "Filament "
-msgstr "Filament "
+msgstr ""
 
 msgid "Change filament at the beginning of this layer."
 msgstr "Changez le filament au début de cette couche."
@@ -2947,7 +2947,7 @@ msgid "Check the status of current system services"
 msgstr "Vérifiez l'état des services système actuels"
 
 msgid "code"
-msgstr "code"
+msgstr ""
 
 msgid "Failed to connect to cloud service"
 msgstr "Impossible de se connecter au service cloud"
@@ -3064,7 +3064,7 @@ msgid "Parts"
 msgstr "Pièces"
 
 msgid "Aux"
-msgstr "Aux"
+msgstr ""
 
 msgid "Nozzle1"
 msgstr "Buse 1"
@@ -3492,7 +3492,7 @@ msgid "Today, OrcaSlicer is the most widely used and actively developed open-sou
 msgstr "Aujourd’hui, OrcaSlicer est le slicer open-source le plus utilisé et le plus activement développé de la communauté de l’impression 3D. Beaucoup de ses innovations ont été adoptées par d’autres slicers, ce qui en fait une force motrice pour toute l’industrie."
 
 msgid "Version"
-msgstr "Version"
+msgstr ""
 
 msgid "AMS Materials Setting"
 msgstr "Réglage des matériaux AMS"
@@ -3511,10 +3511,10 @@ msgstr ""
 "de la buse"
 
 msgid "max"
-msgstr "max"
+msgstr ""
 
 msgid "min"
-msgstr "min"
+msgstr ""
 
 #, boost-format
 msgid "The input value should be greater than %1% and less than %2%"
@@ -3860,7 +3860,7 @@ msgid "File"
 msgstr "Fichier"
 
 msgid "Calibration"
-msgstr "Calibration"
+msgstr ""
 
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "Échec du téléchargement du plug-in. Veuillez vérifier les paramètres de votre pare-feu et votre logiciel VPN puis réessayer."
@@ -4568,7 +4568,7 @@ msgid "Objects Info"
 msgstr "Informations sur les objets"
 
 msgid "Dimensions"
-msgstr "Dimensions"
+msgstr ""
 
 msgid "Temperatures"
 msgstr "Températures"
@@ -4657,7 +4657,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Format invalide. Format vectoriel attendu : \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "Sélectionner"
@@ -4849,7 +4849,7 @@ msgid "Tower"
 msgstr "Tour"
 
 msgid "Total"
-msgstr "Total"
+msgstr ""
 
 #, fuzzy
 msgid "Total estimation"
@@ -4971,7 +4971,7 @@ msgid "Filament changes"
 msgstr "Changements de filaments"
 
 msgid "Options"
-msgstr "Options"
+msgstr ""
 
 msgid "Extruder"
 msgstr "Extrudeur"
@@ -5232,10 +5232,10 @@ msgid "Realistic View"
 msgstr "Vue réaliste"
 
 msgid "Perspective"
-msgstr "Perspective"
+msgstr ""
 
 msgid "Axes"
-msgstr "Axes"
+msgstr ""
 
 msgid "Gridlines"
 msgstr "Quadrillage"
@@ -5846,7 +5846,7 @@ msgid "Quit %s"
 msgstr "Quitter %s"
 
 msgid "&File"
-msgstr "&File"
+msgstr ""
 
 msgid "&View"
 msgstr "&Voir"
@@ -6005,7 +6005,7 @@ msgid "Network unreachable"
 msgstr "Réseau inaccessible"
 
 msgid "Information"
-msgstr "Information"
+msgstr ""
 
 msgid "Playing..."
 msgstr "En cours…"
@@ -6213,7 +6213,7 @@ msgid "Zoom"
 msgstr "Zoom"
 
 msgid "Translation/Zoom"
-msgstr "Translation/Zoom"
+msgstr ""
 
 msgid "3Dconnexion settings"
 msgstr "Paramètres 3Dconnexion"
@@ -6240,7 +6240,7 @@ msgid "Invert Roll axis"
 msgstr "Inverser l’axe de roulis"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Rechercher"
@@ -6456,10 +6456,10 @@ msgid "Silent"
 msgstr "Silencieux"
 
 msgid "Standard"
-msgstr "Standard"
+msgstr ""
 
 msgid "Sport"
-msgstr "Sport"
+msgstr ""
 
 msgid "Ludicrous"
 msgstr "Insensé"
@@ -6526,7 +6526,7 @@ msgstr ""
 "\n"
 
 msgid "info"
-msgstr "info"
+msgstr ""
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "Synchronisation des résultats d’impression. Veuillez réessayer dans quelques secondes."
@@ -6908,14 +6908,14 @@ msgid "Open Door Detection"
 msgstr "Détection d'ouverture de porte"
 
 msgid "Notification"
-msgstr "Notification"
+msgstr ""
 
 msgid "Pause printing"
 msgstr "Mettre en pause l'impression"
 
 msgctxt "Nozzle Type"
 msgid "Type"
-msgstr "Type"
+msgstr ""
 
 msgctxt "Nozzle Diameter"
 msgid "Diameter"
@@ -6959,7 +6959,7 @@ msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr "Arrête le chauffage automatiquement après 5 minutes d'inactivité pour assurer la sécurité."
 
 msgid "Global"
-msgstr "Global"
+msgstr ""
 
 msgid "Objects"
 msgstr "Objets"
@@ -7069,7 +7069,7 @@ msgid "Switch diameter"
 msgstr "Changer le diamètre"
 
 msgid "Configuration incompatible"
-msgstr "Configuration incompatible"
+msgstr ""
 
 msgid "Sync printer information"
 msgstr "Synchroniser les informations de l'imprimante"
@@ -7118,7 +7118,7 @@ msgid "Search plate, object and part."
 msgstr "Recherche de plaque, d'objet et de pièce."
 
 msgid "Pellets"
-msgstr "Pellets"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -7183,7 +7183,7 @@ msgid "Collapse sidebar"
 msgstr "Réduire la barre latérale"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7439,7 +7439,7 @@ msgid "Do you want to replace it"
 msgstr "Voulez-vous le remplacer"
 
 msgid "Message"
-msgstr "Message"
+msgstr ""
 
 msgid "Reload from:"
 msgstr "Recharger depuis :"
@@ -7537,7 +7537,7 @@ msgid "Importing to Orca Slicer failed. Please download the file and manually im
 msgstr "L’importation vers OrcaSlicer a échoué. Veuillez télécharger le fichier et l’importer manuellement."
 
 msgid "INFO:"
-msgstr "INFO:"
+msgstr ""
 
 msgid "No accelerations provided for calibration. Use default acceleration value "
 msgstr "Aucune accélération n’est fournie pour l’étalonnage. Utiliser la valeur d’accélération par défaut "
@@ -7809,7 +7809,7 @@ msgid "China"
 msgstr "Chine"
 
 msgid "Europe"
-msgstr "Europe"
+msgstr ""
 
 msgid "North America"
 msgstr "Amérique du Nord"
@@ -7998,7 +7998,7 @@ msgid "Optimize filaments area height for..."
 msgstr "Optimiser la hauteur de la zone de filaments pour…"
 
 msgid "filaments"
-msgstr "filaments"
+msgstr ""
 
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "Optimise la hauteur maximale de la zone de filaments selon le nombre de filaments choisi."
@@ -8570,7 +8570,7 @@ msgid "Empty"
 msgstr "Vide"
 
 msgid "Incompatible"
-msgstr "Incompatible"
+msgstr ""
 
 msgid "The selected preset is null!"
 msgstr "Le préréglage sélectionné est invalide !"
@@ -9425,7 +9425,7 @@ msgid "Post-processing Scripts"
 msgstr "Scripts de post-traitement"
 
 msgid "Notes"
-msgstr "Notes"
+msgstr ""
 
 msgid "Frequent"
 msgstr "Fréquent"
@@ -9635,7 +9635,7 @@ msgid "Motion ability"
 msgstr "Capacité de mouvement"
 
 msgid "Normal"
-msgstr "Normal"
+msgstr ""
 
 msgid "Resonance Compensation"
 msgstr "Compensation de résonance"
@@ -10106,7 +10106,7 @@ msgid "Reset mapped extruders."
 msgstr "Réinitialiser les extrudeurs assignés."
 
 msgid "Note"
-msgstr "Note"
+msgstr ""
 
 msgid ""
 "The color has been selected, you can choose OK \n"
@@ -10127,7 +10127,7 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr "Original"
+msgstr ""
 
 msgid "After mapping"
 msgstr "Après le mappage"
@@ -10256,7 +10256,7 @@ msgstr "Couleur et type de filament synchronisés avec succès depuis l'impriman
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Ramming customization"
 msgstr "Personnalisation du pilonnage"
@@ -10281,7 +10281,7 @@ msgid "Total ramming"
 msgstr "Bourrage total"
 
 msgid "Volume"
-msgstr "Volume"
+msgstr ""
 
 msgid "Ramming line"
 msgstr "Ligne de bourrage"
@@ -10550,7 +10550,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Support/Peinture couleur : ajuster la position de la section"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Définir le numéro d'extrudeur pour les objets et les pièces"
@@ -10721,10 +10721,10 @@ msgid "Air Pump"
 msgstr "Pompe à air"
 
 msgid "Laser 10W"
-msgstr "Laser 10W"
+msgstr ""
 
 msgid "Laser 40W"
-msgstr "Laser 40W"
+msgstr ""
 
 msgid "Cutting Module"
 msgstr "Module de découpe"
@@ -12103,7 +12103,7 @@ msgid "upward compatible machine"
 msgstr "machine à compatibilité ascendante"
 
 msgid "Condition"
-msgstr "Condition"
+msgstr ""
 
 #, fuzzy
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
@@ -13066,7 +13066,7 @@ msgid "Support Cubic"
 msgstr "Support Cubique"
 
 msgid "Lightning"
-msgstr "Lightning"
+msgstr ""
 
 msgid "Honeycomb"
 msgstr "Nid d'abeille"
@@ -13364,7 +13364,7 @@ msgid "Painted only"
 msgstr "Peint uniquement"
 
 msgid "Contour"
-msgstr "Contour"
+msgstr ""
 
 msgid "Hole"
 msgstr "Trou"
@@ -13417,7 +13417,7 @@ msgid "Displacement"
 msgstr "Déplacement"
 
 msgid "Extrusion"
-msgstr "Extrusion"
+msgstr ""
 
 msgid "Combined"
 msgstr "Combiné"
@@ -13718,7 +13718,7 @@ msgid "Enable this option if you want to use multiple bed types."
 msgstr "Activez cette option si vous souhaitez utiliser plusieurs types de plateaux"
 
 msgid "Label objects"
-msgstr "Label Objects"
+msgstr ""
 
 msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
 msgstr "Permet d’ajouter des commentaires dans le G-code sur les mouvements d’impression de l’objet auquel ils appartiennent, ce qui est utile pour le plug-in Octoprint CancelObject. Ce paramètre n’est PAS compatible avec la configuration multi-matériaux avec un seul extrudeur et Essuyer dans l’objet / Essuyer dans le remplissage."
@@ -15120,10 +15120,10 @@ msgid "Choose the wipe tower implementation for multi-material prints. Type 1 is
 msgstr "Choisir l'implémentation de la tour de purge pour les impressions multi-matériaux. Le Type 1 est recommandé pour les imprimantes Bambu et Qidi avec un coupeur de filament. Le Type 2 offre une meilleure compatibilité avec les imprimantes multi-outils et MMU et une meilleure compatibilité globale."
 
 msgid "Type 1"
-msgstr "Type 1"
+msgstr ""
 
 msgid "Type 2"
-msgstr "Type 2"
+msgstr ""
 
 msgid "Purge in prime tower"
 msgstr "Purge dans la tour d’amorçage"
@@ -15190,7 +15190,7 @@ msgid "Normal (auto) and Tree (auto) are used to generate support automatically.
 msgstr "Les options Normal (auto) et Arbre (auto) sont utilisées pour générer automatiquement des supports. Si l’option Normal (manuel) ou Arbre (manuel) est sélectionnée, seuls les forceurs de supports sont générés"
 
 msgid "Normal (auto)"
-msgstr "Normal (auto)"
+msgstr ""
 
 msgid "Tree (auto)"
 msgstr "Arbre (auto)"
@@ -15713,7 +15713,7 @@ msgstr ""
 "3. Nervure : Ajoute quatre nervures à la paroi de la tour pour une stabilité améliorée."
 
 msgid "Rectangle"
-msgstr "Rectangle"
+msgstr ""
 
 msgid "Rib"
 msgstr "Nervure"
@@ -16496,7 +16496,7 @@ msgid "Hour"
 msgstr "Heure"
 
 msgid "Minute"
-msgstr "Minute"
+msgstr ""
 
 msgid "Second"
 msgstr "Seconde"
@@ -16670,7 +16670,7 @@ msgid "Prev"
 msgstr "Précédent"
 
 msgid "Recalibration"
-msgstr "Recalibration"
+msgstr ""
 
 msgid "Calibrate"
 msgstr "Calibrations"
@@ -17073,7 +17073,7 @@ msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Actualisation de historique des calibrations dynamiques du débit"
 
 msgid "Action"
-msgstr "Action"
+msgstr ""
 
 #, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
@@ -17306,7 +17306,7 @@ msgstr ""
 "Le mouvement à temps fixe n'est pas encore implémenté."
 
 msgid "Klipper version => 0.9.0"
-msgstr "Klipper version => 0.9.0"
+msgstr ""
 
 msgid ""
 "RepRap firmware version => 3.4.0\n"
@@ -17590,7 +17590,7 @@ msgid "Difference"
 msgstr "Soustraction"
 
 msgid "Intersection"
-msgstr "Intersection"
+msgstr ""
 
 msgid "Source Volume"
 msgstr "Volume d’origine"
@@ -17644,7 +17644,7 @@ msgid "Test OrcaSlicer (GitHub):"
 msgstr "OrcaSlicer Test (GitHub) :"
 
 msgid "Test bing.com"
-msgstr "Test bing.com"
+msgstr ""
 
 msgid "Test bing.com:"
 msgstr "Test bing.com :"
@@ -18640,7 +18640,7 @@ msgid "Task Name"
 msgstr "Nom de la tâche"
 
 msgid "Actions"
-msgstr "Actions"
+msgstr ""
 
 msgid "Task Status"
 msgstr "État de la tâche"

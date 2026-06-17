@@ -793,13 +793,13 @@ msgstr "Видалити виділення"
 
 #, fuzzy
 msgid "Entering seam painting"
-msgstr "Entering seam painting"
+msgstr ""
 
 msgid "Leaving Seam painting"
 msgstr ""
 
 msgid "Paint-on seam editing"
-msgstr "Paint-on seam editing"
+msgstr ""
 
 #. TRN - Input label. Be short as possible
 #. Select look of letter shape
@@ -1458,13 +1458,13 @@ msgid "Select point"
 msgstr "Виберіть точку"
 
 msgid "Delete"
-msgstr "Delete"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Вибрати заново"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Скасувати функцію до виходу"
@@ -2173,7 +2173,7 @@ msgid "3DBenchy"
 msgstr "3DBenchy"
 
 msgid "Cali Cat"
-msgstr ""
+msgstr "Cali Cat"
 
 msgid "Autodesk FDM Test"
 msgstr "Autodesk FDM Test"
@@ -3063,7 +3063,7 @@ msgid "Parts"
 msgstr "Part"
 
 msgid "Aux"
-msgstr "Aux"
+msgstr ""
 
 msgid "Nozzle1"
 msgstr "Сопло1"
@@ -4669,7 +4669,7 @@ msgid "Acceleration"
 msgstr "Прискорення"
 
 msgid "Jerk"
-msgstr ""
+msgstr "Jerk"
 
 msgid "Fan Speed"
 msgstr "Швидкість вентилятора"
@@ -4690,7 +4690,7 @@ msgid "Layer Time (log)"
 msgstr "Час шару (журнал)"
 
 msgid "Pressure Advance"
-msgstr ""
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr ""
@@ -4711,7 +4711,7 @@ msgid "Color Change"
 msgstr "Зміна Кольору"
 
 msgid "Pause Print"
-msgstr "Pause Print"
+msgstr ""
 
 msgid "Travel"
 msgstr "Переміщення"
@@ -4795,10 +4795,10 @@ msgid "Acceleration: "
 msgstr ""
 
 msgid "Jerk: "
-msgstr ""
+msgstr "Jerk: "
 
 msgid "PA: "
-msgstr ""
+msgstr "PA: "
 
 msgid "mm/s"
 msgstr "мм/с"
@@ -4939,7 +4939,7 @@ msgid "Acceleration (mm/s²)"
 msgstr ""
 
 msgid "Jerk (mm/s)"
-msgstr ""
+msgstr "Jerk (mm/s)"
 
 #, fuzzy
 msgid "Fan speed (%)"
@@ -5797,7 +5797,7 @@ msgid "Input Shaping Damping/zeta factor"
 msgstr ""
 
 msgid "Input Shaping"
-msgstr ""
+msgstr "Input Shaping"
 
 msgid "VFA"
 msgstr "Вертикальні дрібні артефакти (VFA)"
@@ -6229,7 +6229,7 @@ msgid "Invert Roll axis"
 msgstr "Інвертувати вісь Roll"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Пошук"
@@ -6864,7 +6864,7 @@ msgid "Pausing Sensitivity:"
 msgstr ""
 
 msgid "Spaghetti Detection"
-msgstr "Spaghetti Detection"
+msgstr ""
 
 msgid "Detect spaghetti failures (scattered lose filament)."
 msgstr ""
@@ -8017,7 +8017,7 @@ msgid "Quality level for Draco export"
 msgstr ""
 
 msgid "bits"
-msgstr ""
+msgstr "bits"
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -8155,7 +8155,7 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
-msgstr ""
+msgstr "Anti-aliasing"
 
 msgid "MSAA Multiplier"
 msgstr ""
@@ -8183,7 +8183,7 @@ msgid ""
 msgstr ""
 
 msgid "FPS"
-msgstr ""
+msgstr "FPS"
 
 msgid "FPS cap"
 msgstr ""
@@ -8408,7 +8408,7 @@ msgid "Reload Failed"
 msgstr ""
 
 msgid "Debug"
-msgstr "Debug"
+msgstr ""
 
 msgid "Sync settings"
 msgstr "Налаштування синхронізації"
@@ -9350,7 +9350,7 @@ msgid "Travel speed"
 msgstr "Швидкість переміщення"
 
 msgid "Junction Deviation"
-msgstr ""
+msgstr "Junction Deviation"
 
 msgid "Jerk(XY)"
 msgstr "Ривок (XY)"
@@ -10067,7 +10067,7 @@ msgid ""
 msgstr ""
 
 msgid "—> "
-msgstr ""
+msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10220,7 +10220,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "Для постійної об'ємної витрати утримуйте натиснутою клавішу %1% під час перетягування."
 
 msgid "ms"
-msgstr ""
+msgstr "ms"
 
 msgid "Total ramming"
 msgstr ""
@@ -10495,7 +10495,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Підтримка/кольорове фарбування: регулювання положення секцій"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Встановіть номер екструдера для об'єктів та деталей"
@@ -10678,7 +10678,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr ""
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Оновити прошивку"
@@ -12915,10 +12915,10 @@ msgid "Cross Hatch"
 msgstr "Перехресний штрих"
 
 msgid "TPMS-D"
-msgstr ""
+msgstr "TPMS-D"
 
 msgid "TPMS-FK"
-msgstr ""
+msgstr "TPMS-FK"
 
 msgid "Gyroid"
 msgstr "Гіроїд"
@@ -13268,7 +13268,7 @@ msgid "Voronoi"
 msgstr "Вороного"
 
 msgid "Ripple"
-msgstr ""
+msgstr "Ripple"
 
 msgid "Fuzzy skin feature size"
 msgstr "Розмір деталізації Шорсткої Поверхні"
@@ -14011,37 +14011,37 @@ msgid ""
 msgstr ""
 
 msgid "MZV"
-msgstr ""
+msgstr "MZV"
 
 msgid "ZV"
-msgstr ""
+msgstr "ZV"
 
 msgid "ZVD"
-msgstr ""
+msgstr "ZVD"
 
 msgid "ZVDD"
-msgstr ""
+msgstr "ZVDD"
 
 msgid "ZVDDD"
-msgstr ""
+msgstr "ZVDDD"
 
 msgid "EI"
-msgstr ""
+msgstr "EI"
 
 msgid "EI2"
-msgstr ""
+msgstr "EI2"
 
 msgid "2HUMP_EI"
-msgstr ""
+msgstr "2HUMP_EI"
 
 msgid "EI3"
-msgstr ""
+msgstr "EI3"
 
 msgid "3HUMP_EI"
-msgstr ""
+msgstr "3HUMP_EI"
 
 msgid "DAA"
-msgstr ""
+msgstr "DAA"
 
 msgid "X"
 msgstr "X"
@@ -14497,7 +14497,7 @@ msgid "Top and Bottom"
 msgstr "Зверху та знизу"
 
 msgid "Direct Drive"
-msgstr ""
+msgstr "Direct Drive"
 
 msgid "Bowden"
 msgstr "Боуден"
@@ -14837,7 +14837,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "Різниця температури, яка застосовується, коли екструдер не активний. Значення не використовується, якщо в налаштуваннях філаменту параметр 'idle_temperature' встановлений на ненульове значення."
 
 msgid "∆℃"
-msgstr ""
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "Час підігріву"
@@ -17075,7 +17075,7 @@ msgid "Frequency settings"
 msgstr ""
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
@@ -17126,7 +17126,7 @@ msgid "Cornering test"
 msgstr ""
 
 msgid "SCV-V2"
-msgstr ""
+msgstr "SCV-V2"
 
 msgid "Start: "
 msgstr ""

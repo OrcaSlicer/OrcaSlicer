@@ -79,7 +79,7 @@ msgid "Idle"
 msgstr "Boşta"
 
 msgid "Model:"
-msgstr "Model:"
+msgstr ""
 
 msgid "Serial:"
 msgstr "Seri:"
@@ -246,7 +246,7 @@ msgid "Reset"
 msgstr "Sıfırla"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Kısayol tuşu "
@@ -863,7 +863,7 @@ msgid "Emboss"
 msgstr "Kabartma"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
 msgstr "KÜÇÜK"
@@ -872,10 +872,10 @@ msgid "ITALIC"
 msgstr "YATIK"
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "İlk yazı tipi"
@@ -1456,7 +1456,7 @@ msgid "Restart selection"
 msgstr "Seçimi sıfırla"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "İptal et"
@@ -1627,7 +1627,7 @@ msgid "Process"
 msgstr "İşlem"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
 msgstr "Makine"
@@ -2139,7 +2139,7 @@ msgid "Delete the selected object"
 msgstr "Seçilen nesneyi sil"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "Yükle..."
@@ -2293,7 +2293,7 @@ msgstr "Varsayılan"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "geçerli"
@@ -2557,7 +2557,7 @@ msgid "Name"
 msgstr "İsim"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2899,7 +2899,7 @@ msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Bu katmanın başlangıcına şablon özel G kodunu ekleyin."
 
 msgid "Filament "
-msgstr "Filament "
+msgstr ""
 
 msgid "Change filament at the beginning of this layer."
 msgstr "Bu katmanın başlangıcında filamenti değiştirin."
@@ -3061,7 +3061,7 @@ msgid "Heat"
 msgstr "Sıcaklık"
 
 msgid "Fan"
-msgstr "Fan"
+msgstr ""
 
 msgid "Idling..."
 msgstr "Rölantide Çalışıyor..."
@@ -3507,7 +3507,7 @@ msgid "The input value should be greater than %1% and less than %2%"
 msgstr "Giriş değeri %1%'den büyük ve %2%'den küçük olmalıdır"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Akış Dinamiği Kalibrasyonunun Faktörleri"
@@ -3621,7 +3621,7 @@ msgid "%s does not support %s"
 msgstr "%s, %s'yi desteklemiyor"
 
 msgid "Step"
-msgstr "Step"
+msgstr ""
 
 msgid "Unmapped"
 msgstr "Eşlenmemiş"
@@ -4003,7 +4003,7 @@ msgid "Not found:"
 msgstr "Bulunamadı:"
 
 msgid "Model"
-msgstr "Model"
+msgstr ""
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "Yatak şeklini içe aktarmak için bir STL dosyası seçin:"
@@ -4643,7 +4643,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Geçersiz format. Beklenen vektör formatı: \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "Seç"
@@ -4664,7 +4664,7 @@ msgid "Acceleration"
 msgstr "Hızlanma"
 
 msgid "Jerk"
-msgstr ""
+msgstr "Jerk"
 
 msgid "Fan Speed"
 msgstr "Fan hızı"
@@ -4772,7 +4772,7 @@ msgid "Flow: "
 msgstr "Akış: "
 
 msgid "Fan: "
-msgstr "Fan: "
+msgstr ""
 
 msgid "Temperature: "
 msgstr "Sıcaklık: "
@@ -4790,7 +4790,7 @@ msgid "Acceleration: "
 msgstr ""
 
 msgid "Jerk: "
-msgstr ""
+msgstr "Jerk: "
 
 msgid "PA: "
 msgstr "PA:"
@@ -4934,7 +4934,7 @@ msgid "Acceleration (mm/s²)"
 msgstr ""
 
 msgid "Jerk (mm/s)"
-msgstr ""
+msgstr "Jerk (mm/s)"
 
 #, fuzzy
 msgid "Fan speed (%)"
@@ -4991,7 +4991,7 @@ msgid "Total Filament"
 msgstr "Toplam filament"
 
 msgid "Model Filament"
-msgstr "Model filament"
+msgstr ""
 
 msgid "Prepare time"
 msgstr "Hazırlık süresi"
@@ -5388,7 +5388,7 @@ msgid "Show \"Live Video\" guide page."
 msgstr "\"Canlı Video\" kılavuz sayfasını gösterin."
 
 msgid "Connect Printer (LAN)"
-msgstr "Connect Printer (LAN)"
+msgstr ""
 
 msgid "Please input the printer access code:"
 msgstr "Lütfen yazıcı erişim kodunu girin:"
@@ -6019,7 +6019,7 @@ msgid "Switch to timelapse files."
 msgstr "Timelapse dosyalarına geç."
 
 msgid "Video"
-msgstr "Video"
+msgstr ""
 
 msgid "Switch to video files."
 msgstr "Video dosyalarına geç."
@@ -6221,7 +6221,7 @@ msgid "Invert Roll axis"
 msgstr "Silindir eksenini ters çevir"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Ara"
@@ -6346,7 +6346,7 @@ msgid "Control"
 msgstr "Kontrol"
 
 msgid "Printer Parts"
-msgstr "Printer Parts"
+msgstr ""
 
 msgid "Print Options"
 msgstr "Yazdırma Seçenekleri"
@@ -7162,7 +7162,7 @@ msgid "Collapse sidebar"
 msgstr "Kenar çubuğunu daralt"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -8139,7 +8139,7 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
-msgstr ""
+msgstr "Anti-aliasing"
 
 msgid "MSAA Multiplier"
 msgstr ""
@@ -8167,7 +8167,7 @@ msgid ""
 msgstr ""
 
 msgid "FPS"
-msgstr ""
+msgstr "FPS"
 
 msgid "FPS cap"
 msgstr ""
@@ -8207,7 +8207,7 @@ msgid "Network test"
 msgstr "Ağ testi"
 
 msgid "Test"
-msgstr "Test"
+msgstr ""
 
 msgid "Cloud Providers"
 msgstr ""
@@ -8689,7 +8689,7 @@ msgid "Task canceled"
 msgstr "Görev iptal edildi"
 
 msgid "Bambu Cool Plate"
-msgstr "Bambu Cool Plate"
+msgstr ""
 
 msgid "PLA Plate"
 msgstr "PLA Plaka"
@@ -8873,16 +8873,16 @@ msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr "Filament yumuşamasını önlemek için takım başlığı geliştirilmiş soğutma fanını takın."
 
 msgid "Smooth Cool Plate"
-msgstr "Smooth Cool Plate"
+msgstr ""
 
 msgid "Engineering Plate"
-msgstr "Engineering Plate"
+msgstr ""
 
 msgid "Smooth High Temp Plate"
-msgstr "Smooth High Temp Plate"
+msgstr ""
 
 msgid "Textured PEI Plate"
-msgstr "Textured PEI Plate"
+msgstr ""
 
 msgid "Cool Plate (SuperTack)"
 msgstr "Cool Plate (SuperTack)"
@@ -9354,7 +9354,7 @@ msgid "Jerk(XY)"
 msgstr "Sarsıntı(XY)"
 
 msgid "Raft"
-msgstr "Raft"
+msgstr ""
 
 #, fuzzy
 msgid "Filament for Supports"
@@ -9446,7 +9446,7 @@ msgid "This is the bed temperature when the Cool Plate is installed. A value of 
 msgstr "Cool Plate takıldığında yatak sıcaklığı. 0 değeri, filamentin Cool Plate üzerine yazdırmayı desteklemediği anlamına gelir."
 
 msgid "Textured Cool Plate"
-msgstr "Textured Cool Plate"
+msgstr ""
 
 #, fuzzy
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
@@ -9457,7 +9457,7 @@ msgid "This is the bed temperature when the engineering plate is installed. A va
 msgstr "Engineering Plate takıldığında yatak sıcaklığı. Değer 0, filamentin Engineering Plate yazdırmayı desteklemediği anlamına gelir."
 
 msgid "Smooth PEI Plate / High Temp Plate"
-msgstr "Smooth PEI Plate / High Temp Plate"
+msgstr ""
 
 #, fuzzy
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
@@ -9598,7 +9598,7 @@ msgid "Motion ability"
 msgstr "Hareket"
 
 msgid "Normal"
-msgstr "Normal"
+msgstr ""
 
 msgid "Resonance Compensation"
 msgstr ""
@@ -10489,7 +10489,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Destek/Renkli Boyama: bölüm konumunu ayarlayın"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Nesneler ve parçalar için ekstruder numarasını ayarlayın"
@@ -10672,7 +10672,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Otomatik Yangın Söndürme Sistemi"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Ürün yazılımını güncelle"
@@ -12192,7 +12192,7 @@ msgid "This is the line pattern for top surface infill."
 msgstr "Üst yüzey dolgusunun çizgi deseni."
 
 msgid "Monotonic"
-msgstr "Monotonic"
+msgstr ""
 
 msgid "Monotonic line"
 msgstr "Monotonik çizgi"
@@ -12886,10 +12886,10 @@ msgid "Zig Zag"
 msgstr "Zig zag"
 
 msgid "Cross Zag"
-msgstr "Cross zag"
+msgstr ""
 
 msgid "Locked Zag"
-msgstr "Locked zag"
+msgstr ""
 
 msgid "Line"
 msgstr "Çizgi"
@@ -13287,13 +13287,13 @@ msgid "Billow"
 msgstr "Billow"
 
 msgid "Ridged Multifractal"
-msgstr "Ridged multifractal"
+msgstr ""
 
 msgid "Voronoi"
 msgstr "Voronoi"
 
 msgid "Ripple"
-msgstr ""
+msgstr "Ripple"
 
 msgid "Fuzzy skin feature size"
 msgstr "Pütürlü yüzey özellik boyutu"
@@ -14034,40 +14034,40 @@ msgid ""
 msgstr ""
 
 msgid "MZV"
-msgstr ""
+msgstr "MZV"
 
 msgid "ZV"
-msgstr ""
+msgstr "ZV"
 
 msgid "ZVD"
-msgstr ""
+msgstr "ZVD"
 
 msgid "ZVDD"
-msgstr ""
+msgstr "ZVDD"
 
 msgid "ZVDDD"
-msgstr ""
+msgstr "ZVDDD"
 
 msgid "EI"
-msgstr ""
+msgstr "EI"
 
 msgid "EI2"
-msgstr ""
+msgstr "EI2"
 
 msgid "2HUMP_EI"
-msgstr ""
+msgstr "2HUMP_EI"
 
 msgid "EI3"
-msgstr ""
+msgstr "EI3"
 
 msgid "3HUMP_EI"
-msgstr ""
+msgstr "3HUMP_EI"
 
 msgid "DAA"
-msgstr ""
+msgstr "DAA"
 
 msgid "X"
-msgstr ""
+msgstr "X"
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -14077,7 +14077,7 @@ msgid ""
 msgstr ""
 
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -14478,7 +14478,7 @@ msgid "Slope"
 msgstr "Eğim"
 
 msgid "Spiral"
-msgstr "Spiral"
+msgstr ""
 
 msgid "Traveling angle"
 msgstr "Seyahat açısı"
@@ -15166,7 +15166,7 @@ msgid "Default (Grid/Organic)"
 msgstr "Varsayılan (Izgara/Organik)"
 
 msgid "Snug"
-msgstr "Snug"
+msgstr ""
 
 msgid "Organic"
 msgstr "Organik"
@@ -16028,7 +16028,7 @@ msgid "MakerLab name to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab adı."
 
 msgid "MakerLab version"
-msgstr "MakerLab version"
+msgstr ""
 
 msgid "MakerLab version to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab sürümü."
@@ -16272,7 +16272,7 @@ msgid "String containing current time in yyyyMMdd-hhmmss format."
 msgstr "Geçerli saati yyyyMMdd-hhmmss biçiminde içeren dize."
 
 msgid "Day"
-msgstr "Day"
+msgstr ""
 
 msgid "Hour"
 msgstr "Saat"
@@ -16942,7 +16942,7 @@ msgid "Accelerations: "
 msgstr "İvmeler: "
 
 msgid "Speeds: "
-msgstr "Speeds: "
+msgstr ""
 
 msgid "Print numbers"
 msgstr "Sayıları yazdır"
@@ -17068,7 +17068,7 @@ msgid "Input shaping Frequency test"
 msgstr "Input shaping frekans testi"
 
 msgid "Test model"
-msgstr "Test model"
+msgstr ""
 
 msgid "Ringing Tower"
 msgstr "Titreşim Test Kulesi"
@@ -17112,7 +17112,7 @@ msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "RepRap ürün yazılımı her iki eksen için aynı frekans aralığını kullanır."
 
 msgid "Damp: "
-msgstr "Damp: "
+msgstr ""
 
 msgid ""
 "Recommended: Set Damp to 0.\n"
@@ -17141,7 +17141,7 @@ msgid "Frequency: "
 msgstr "Sıklık:"
 
 msgid "Damp"
-msgstr "Damp"
+msgstr ""
 
 msgid "RepRap firmware uses the same frequency for both axes."
 msgstr "RepRap ürün yazılımı her iki eksen için de aynı frekansı kullanır."
@@ -17309,7 +17309,7 @@ msgid "Progress"
 msgstr "İlerleme"
 
 msgid "Host"
-msgstr "Host"
+msgstr ""
 
 msgctxt "OfFile"
 msgid "Size"
@@ -17365,7 +17365,7 @@ msgid "Mesh Boolean"
 msgstr "Mesh Bölme"
 
 msgid "Union"
-msgstr "Union"
+msgstr ""
 
 msgid "Difference"
 msgstr "Fark"
@@ -18074,7 +18074,7 @@ msgid "Unknown error occurred"
 msgstr "Bilinmeyen hata oluştu"
 
 msgid "Wrong password"
-msgstr "Wrong password"
+msgstr ""
 
 msgid "Could not get resources to create a new connection"
 msgstr "Yeni bir bağlantı oluşturmak için kaynaklar alınamadı"

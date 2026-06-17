@@ -80,7 +80,7 @@ msgid "Idle"
 msgstr "Bezczynny"
 
 msgid "Model:"
-msgstr "Model:"
+msgstr ""
 
 msgid "Serial:"
 msgstr "Seria:"
@@ -434,7 +434,7 @@ msgid "Dovetail"
 msgstr "Jaskółczy ogon"
 
 msgid "Auto"
-msgstr "Auto"
+msgstr ""
 
 msgid "Manual"
 msgstr "Ręczne"
@@ -867,19 +867,19 @@ msgid "Emboss"
 msgstr "Tekst"
 
 msgid "NORMAL"
-msgstr "NORMAL"
+msgstr ""
 
 msgid "SMALL"
-msgstr "SMALL"
+msgstr ""
 
 msgid "ITALIC"
-msgstr "ITALIC"
+msgstr ""
 
 msgid "SWISS"
-msgstr "SWISS"
+msgstr ""
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "Pierwsza czcionka"
@@ -968,7 +968,7 @@ msgid "Name has to be unique."
 msgstr "Nazwa musi być unikalna."
 
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Rename style"
 msgstr "Zmien nazwe stylu"
@@ -1461,7 +1461,7 @@ msgid "Restart selection"
 msgstr "Restartuj wybór"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Anuluj funkcję przed wyjściem"
@@ -1632,7 +1632,7 @@ msgid "Process"
 msgstr "Proces"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
 msgstr "Drukarka"
@@ -2130,7 +2130,7 @@ msgid "Show"
 msgstr "Pokaż"
 
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Usuń wybrany obiekt"
@@ -2154,7 +2154,7 @@ msgid "Disc"
 msgstr "Tarcza"
 
 msgid "Torus"
-msgstr "Torus"
+msgstr ""
 
 msgid "Orca Cube"
 msgstr "Sześcian Orca"
@@ -2169,7 +2169,7 @@ msgid "3DBenchy"
 msgstr "3DBenchy"
 
 msgid "Cali Cat"
-msgstr ""
+msgstr "Cali Cat"
 
 msgid "Autodesk FDM Test"
 msgstr "Test FDM Autodesk"
@@ -2290,7 +2290,7 @@ msgstr "Domyślny"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "bieżący"
@@ -2554,7 +2554,7 @@ msgid "Name"
 msgstr "Nazwa"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2814,7 +2814,7 @@ msgid "Plate"
 msgstr "Płyta"
 
 msgid "Brim"
-msgstr "Brim"
+msgstr ""
 
 msgid "Object/Part Settings"
 msgstr ""
@@ -3046,7 +3046,7 @@ msgid "Left(Aux)"
 msgstr "Lewy (Aux)"
 
 msgid "Hotend"
-msgstr ""
+msgstr "Hotend"
 
 msgid "Parts"
 msgstr "Wydruk"
@@ -3502,10 +3502,10 @@ msgstr ""
 "dyszy"
 
 msgid "max"
-msgstr "max"
+msgstr ""
 
 msgid "min"
-msgstr "min"
+msgstr ""
 
 #, boost-format
 msgid "The input value should be greater than %1% and less than %2%"
@@ -4007,7 +4007,7 @@ msgid "Not found:"
 msgstr "Nie znaleziono:"
 
 msgid "Model"
-msgstr "Model"
+msgstr ""
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "Wybierz plik STL, aby zaimportować kształt stołu z:"
@@ -4641,7 +4641,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Nieprawidłowy format. Oczekiwano formatu wektorowego: „%1%”"
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr ""
@@ -4662,7 +4662,7 @@ msgid "Acceleration"
 msgstr "Przyspieszenie"
 
 msgid "Jerk"
-msgstr ""
+msgstr "Jerk"
 
 msgid "Fan Speed"
 msgstr "Prędkość wentylatora"
@@ -4683,7 +4683,7 @@ msgid "Layer Time (log)"
 msgstr "Czas warstwy (logarytmicznie)"
 
 msgid "Pressure Advance"
-msgstr ""
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr ""
@@ -4740,7 +4740,7 @@ msgid "Gap infill"
 msgstr "Wypełnienie szczelin"
 
 msgid "Skirt"
-msgstr "Skirt"
+msgstr ""
 
 msgid "Support interface"
 msgstr "Warstwa łącząca"
@@ -4788,10 +4788,10 @@ msgid "Acceleration: "
 msgstr ""
 
 msgid "Jerk: "
-msgstr ""
+msgstr "Jerk: "
 
 msgid "PA: "
-msgstr ""
+msgstr "PA: "
 
 msgid "mm/s"
 msgstr "mm/s"
@@ -4932,7 +4932,7 @@ msgid "Acceleration (mm/s²)"
 msgstr ""
 
 msgid "Jerk (mm/s)"
-msgstr ""
+msgstr "Jerk (mm/s)"
 
 #, fuzzy
 msgid "Fan speed (%)"
@@ -5793,7 +5793,7 @@ msgid "Input Shaping Damping/zeta factor"
 msgstr ""
 
 msgid "Input Shaping"
-msgstr ""
+msgstr "Input Shaping"
 
 msgid "VFA"
 msgstr "Test VFA"
@@ -6225,7 +6225,7 @@ msgid "Invert Roll axis"
 msgstr "Odwróć oś obrotu (Roll)"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Szukaj"
@@ -6237,7 +6237,7 @@ msgid "Other Device"
 msgstr "Inne urządzenie"
 
 msgid "Online"
-msgstr "Online"
+msgstr ""
 
 msgid "Input access code"
 msgstr "Wprowadź kod dostępu"
@@ -6250,7 +6250,7 @@ msgid "Log out successful."
 msgstr "Wylogowanie powiodło się."
 
 msgid "Offline"
-msgstr "Offline"
+msgstr ""
 
 msgid "Busy"
 msgstr "Zajęty"
@@ -6441,10 +6441,10 @@ msgid "Silent"
 msgstr "Cichy"
 
 msgid "Standard"
-msgstr "Standard"
+msgstr ""
 
 msgid "Sport"
-msgstr "Sport"
+msgstr ""
 
 msgid "Ludicrous"
 msgstr "Szalony"
@@ -6511,7 +6511,7 @@ msgstr ""
 "\n"
 
 msgid "info"
-msgstr "info"
+msgstr ""
 
 msgid "Synchronizing the printing results. Please retry a few seconds later."
 msgstr "Synchronizowanie wyników drukowania. Proszę spróbować ponownie za kilka sekund."
@@ -6560,7 +6560,7 @@ msgid "click to add machine"
 msgstr ""
 
 msgid "Status"
-msgstr "Status"
+msgstr ""
 
 msgctxt "Firmware"
 msgid "Update"
@@ -6604,7 +6604,7 @@ msgstr "%s ma ostrzeżenie"
 
 #, c-format, boost-format
 msgid "%s info"
-msgstr "%s info"
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s information"
@@ -7525,7 +7525,7 @@ msgid "Importing to Orca Slicer failed. Please download the file and manually im
 msgstr "Importowanie do Orca Slicer nie powiodło się. Proszę pobrać plik i zaimportować go ręcznie."
 
 msgid "INFO:"
-msgstr "INFO:"
+msgstr ""
 
 msgid "No accelerations provided for calibration. Use default acceleration value "
 msgstr "Brak wartości przyspieszenia do kalibracji. Użyj wartości domyślnej."
@@ -8007,7 +8007,7 @@ msgid "Quality level for Draco export"
 msgstr ""
 
 msgid "bits"
-msgstr ""
+msgstr "bits"
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -8145,7 +8145,7 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
-msgstr ""
+msgstr "Anti-aliasing"
 
 msgid "MSAA Multiplier"
 msgstr ""
@@ -8173,7 +8173,7 @@ msgid ""
 msgstr ""
 
 msgid "FPS"
-msgstr ""
+msgstr "FPS"
 
 msgid "FPS cap"
 msgstr ""
@@ -8213,7 +8213,7 @@ msgid "Network test"
 msgstr "Test sieci"
 
 msgid "Test"
-msgstr "Test"
+msgstr ""
 
 msgid "Cloud Providers"
 msgstr ""
@@ -8688,7 +8688,7 @@ msgid "Task canceled"
 msgstr "Zadanie anulowane"
 
 msgid "Bambu Cool Plate"
-msgstr "Bambu Cool Plate"
+msgstr ""
 
 msgid "PLA Plate"
 msgstr "Płyta PLA"
@@ -8706,7 +8706,7 @@ msgid "Bambu Textured PEI Plate"
 msgstr ""
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr ""
+msgstr "Bambu Cool Plate SuperTack"
 
 msgid "Send print job"
 msgstr "Zainicjuj zadanie druku"
@@ -8874,16 +8874,16 @@ msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr "Zainstaluj wentylator chłodzący głowicę o zwiększonej wydajności, aby zapobiec mięknięciu filamentu."
 
 msgid "Smooth Cool Plate"
-msgstr "Smooth Cool Plate"
+msgstr ""
 
 msgid "Engineering Plate"
-msgstr "Engineering Plate"
+msgstr ""
 
 msgid "Smooth High Temp Plate"
-msgstr "Smooth High Temp Plate"
+msgstr ""
 
 msgid "Textured PEI Plate"
-msgstr "Textured PEI Plate"
+msgstr ""
 
 msgid "Cool Plate (SuperTack)"
 msgstr "Cool Plate (SuperTack)"
@@ -9345,7 +9345,7 @@ msgid "Travel speed"
 msgstr "Szybkość przemieszczania"
 
 msgid "Junction Deviation"
-msgstr ""
+msgstr "Junction Deviation"
 
 msgid "Jerk(XY)"
 msgstr "Jerk (XY)"
@@ -9446,7 +9446,7 @@ msgid "This is the bed temperature when the Cool Plate is installed. A value of 
 msgstr "Temperatura stołu, gdy zainstalowana jest Cool Plate. Wartość 0 oznacza, że filament nie jest przystosowany do druku na Cool Plate"
 
 msgid "Textured Cool Plate"
-msgstr "Textured Cool Plate"
+msgstr ""
 
 #, fuzzy
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
@@ -9457,7 +9457,7 @@ msgid "This is the bed temperature when the engineering plate is installed. A va
 msgstr "Temperatura stołu, gdy zainstalowana jest Engineering Plate. Wartość 0 oznacza, że filament nie jest przystosowany do druku na Engineering Plate"
 
 msgid "Smooth PEI Plate / High Temp Plate"
-msgstr "Smooth PEI Plate / High Temp Plate"
+msgstr ""
 
 #, fuzzy
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
@@ -10057,7 +10057,7 @@ msgstr ""
 "lub dostosuj go ręcznie."
 
 msgid "—> "
-msgstr ""
+msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10197,7 +10197,7 @@ msgstr "Pomyślnie zsynchronizowano kolor i typ filamnentu z drukarką."
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Ramming customization"
 msgstr "Dostosowanie wyciskania"
@@ -10216,7 +10216,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "Aby uzyskać stałe natężenie przepływu, przytrzymaj %1% podczas przeciągania."
 
 msgid "ms"
-msgstr ""
+msgstr "ms"
 
 msgid "Total ramming"
 msgstr ""
@@ -10674,7 +10674,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Automatyczny system gaśniczy"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Aktualizuj oprogramowanie"
@@ -11307,7 +11307,7 @@ msgid "API key"
 msgstr "Klucz API"
 
 msgid "HTTP digest"
-msgstr "HTTP digest"
+msgstr ""
 
 msgid "Avoid crossing walls"
 msgstr "Unikanie ruchów nad obrysami"
@@ -12901,10 +12901,10 @@ msgid "Cross Hatch"
 msgstr "Krzyżowy podparty"
 
 msgid "TPMS-D"
-msgstr ""
+msgstr "TPMS-D"
 
 msgid "TPMS-FK"
-msgstr ""
+msgstr "TPMS-FK"
 
 msgid "Gyroid"
 msgstr "Gyroidalny"
@@ -13251,7 +13251,7 @@ msgid "Voronoi"
 msgstr "Voronoi"
 
 msgid "Ripple"
-msgstr ""
+msgstr "Ripple"
 
 msgid "Fuzzy skin feature size"
 msgstr "Rozmiar cechy skóry fuzzy"
@@ -13968,13 +13968,13 @@ msgid ""
 msgstr ""
 
 msgid "Min"
-msgstr "Min"
+msgstr ""
 
 msgid "Minimum speed of resonance avoidance."
 msgstr ""
 
 msgid "Max"
-msgstr "Max"
+msgstr ""
 
 msgid "Maximum speed of resonance avoidance."
 msgstr ""
@@ -13997,40 +13997,40 @@ msgid ""
 msgstr ""
 
 msgid "MZV"
-msgstr ""
+msgstr "MZV"
 
 msgid "ZV"
-msgstr ""
+msgstr "ZV"
 
 msgid "ZVD"
-msgstr ""
+msgstr "ZVD"
 
 msgid "ZVDD"
-msgstr ""
+msgstr "ZVDD"
 
 msgid "ZVDDD"
-msgstr ""
+msgstr "ZVDDD"
 
 msgid "EI"
-msgstr ""
+msgstr "EI"
 
 msgid "EI2"
-msgstr ""
+msgstr "EI2"
 
 msgid "2HUMP_EI"
-msgstr ""
+msgstr "2HUMP_EI"
 
 msgid "EI3"
-msgstr ""
+msgstr "EI3"
 
 msgid "3HUMP_EI"
-msgstr ""
+msgstr "3HUMP_EI"
 
 msgid "DAA"
-msgstr ""
+msgstr "DAA"
 
 msgid "X"
-msgstr ""
+msgstr "X"
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -14040,7 +14040,7 @@ msgid ""
 msgstr ""
 
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -14694,7 +14694,7 @@ msgid "Limits the skirt/draft shield loops to one wall after the first layer. Th
 msgstr ""
 
 msgid "Draft shield"
-msgstr "Draft shield"
+msgstr ""
 
 msgid ""
 "A draft shield is useful to protect an ABS or ASA print from warping and detaching from print bed due to wind draft. It is usually needed only with open frame printers, i.e. without an enclosure.\n"
@@ -14825,7 +14825,7 @@ msgid "Temperature difference to be applied when an extruder is not active. The 
 msgstr "Różnica temperatur, która ma być zastosowana, gdy ekstruder nie jest aktywny. Wartość nie będzie użyta, gdy „temperatura w bezczynności” w ustawieniach filamentu jest wartość inną niż zero."
 
 msgid "∆℃"
-msgstr ""
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "Czas wstępnego podgrzewania"
@@ -14943,13 +14943,13 @@ msgid "Normal (auto) and Tree (auto) are used to generate support automatically.
 msgstr "Opcje Normal (auto) i Drzewo (auto) służą do automatycznego generowania podpór. Jeśli wybrane zostaną Normal (manual) lub Drzewo (manual), generowane są tylko wymuszone podpry."
 
 msgid "Normal (auto)"
-msgstr "Normal (auto)"
+msgstr ""
 
 msgid "Tree (auto)"
 msgstr "Drzewo (auto)"
 
 msgid "Normal (manual)"
-msgstr "Normal (manual)"
+msgstr ""
 
 msgid "Tree (manual)"
 msgstr "Drzewo (manual)"
@@ -15733,7 +15733,7 @@ msgid "Export the objects as multiple STLs to directory."
 msgstr "Eksportuj obiekty jako wiele plików STL do katalogu."
 
 msgid "Slice"
-msgstr "Slice"
+msgstr ""
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Slice podłoża: 0-wszystkie podłoża, i-podłoże i, inne-nieważne"
@@ -16717,7 +16717,7 @@ msgid "Printing Parameters"
 msgstr "Parametry drukowania"
 
 msgid "- ℃"
-msgstr ""
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "Synchronizuj informacje o dyszy i AMS"
@@ -17055,7 +17055,7 @@ msgid "Frequency settings"
 msgstr ""
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
@@ -17106,7 +17106,7 @@ msgid "Cornering test"
 msgstr ""
 
 msgid "SCV-V2"
-msgstr ""
+msgstr "SCV-V2"
 
 msgid "Start: "
 msgstr ""
@@ -17244,7 +17244,7 @@ msgid "Progress"
 msgstr "Postęp"
 
 msgid "Host"
-msgstr "Host"
+msgstr ""
 
 msgctxt "OfFile"
 msgid "Size"
@@ -17354,16 +17354,16 @@ msgid "DNS Server:"
 msgstr "Serwer DNS:"
 
 msgid "Test OrcaSlicer (GitHub)"
-msgstr "Test OrcaSlicer (GitHub)"
+msgstr ""
 
 msgid "Test OrcaSlicer (GitHub):"
-msgstr "Test OrcaSlicer (GitHub):"
+msgstr ""
 
 msgid "Test bing.com"
-msgstr "Test bing.com"
+msgstr ""
 
 msgid "Test bing.com:"
-msgstr "Test bing.com:"
+msgstr ""
 
 msgid "Log Info"
 msgstr "Informacje o logu"

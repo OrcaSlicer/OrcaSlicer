@@ -24,7 +24,7 @@ msgid "left extruder"
 msgstr "bal extruder"
 
 msgid "extruder"
-msgstr "extruder"
+msgstr ""
 
 msgid "TPU is not supported by AMS."
 msgstr "Az AMS nem támogatja a TPU-t."
@@ -243,7 +243,7 @@ msgid "Reset"
 msgstr "Visszaállítás"
 
 msgid "Enter"
-msgstr "Enter"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Gyorsgomb "
@@ -429,7 +429,7 @@ msgid "Dovetail"
 msgstr "Fecskefarok"
 
 msgid "Auto"
-msgstr "Auto"
+msgstr ""
 
 msgid "Manual"
 msgstr "Manuális"
@@ -872,7 +872,7 @@ msgid "SWISS"
 msgstr "SVÁJCI"
 
 msgid "MODERN"
-msgstr "MODERN"
+msgstr ""
 
 msgid "First font"
 msgstr "Első betűtípus"
@@ -961,7 +961,7 @@ msgid "Name has to be unique."
 msgstr "A névnek egyedinek kell lennie."
 
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Rename style"
 msgstr "Stílus átnevezése"
@@ -1453,7 +1453,7 @@ msgid "Restart selection"
 msgstr "Kijelölés újrakezdése"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Jellemző visszavonása kilépésig"
@@ -1501,10 +1501,10 @@ msgstr ""
 "és add meg köztük a távolságot."
 
 msgid "Face"
-msgstr "Face"
+msgstr ""
 
 msgid " (Fixed)"
-msgstr " (Fixed)"
+msgstr ""
 
 msgid "Point"
 msgstr "Pont"
@@ -1624,7 +1624,7 @@ msgid "Process"
 msgstr "Folyamat"
 
 msgid "Filament"
-msgstr "Filament"
+msgstr ""
 
 msgid "Machine"
 msgstr "Gép"
@@ -2134,7 +2134,7 @@ msgid "Show"
 msgstr "Megjelenítés"
 
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Kiválasztott objektum törlése"
@@ -2294,7 +2294,7 @@ msgstr "Alapértelmezett"
 
 #, c-format, boost-format
 msgid "Filament %d"
-msgstr "Filament %d"
+msgstr ""
 
 msgid "current"
 msgstr "jelenlegi"
@@ -2558,7 +2558,7 @@ msgid "Name"
 msgstr "Név"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2901,7 +2901,7 @@ msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Sablon szerinti egyéni G-kód beszúrása ennek a rétegnek az elejére."
 
 msgid "Filament "
-msgstr "Filament "
+msgstr ""
 
 msgid "Change filament at the beginning of this layer."
 msgstr "Filament cseréje ennek a rétegnek az elején."
@@ -3051,7 +3051,7 @@ msgid "Parts"
 msgstr "Alkatrészek"
 
 msgid "Aux"
-msgstr "Aux"
+msgstr ""
 
 msgid "Nozzle1"
 msgstr "Fúvóka1"
@@ -3499,17 +3499,17 @@ msgstr ""
 "Hőmérséklet"
 
 msgid "max"
-msgstr "max"
+msgstr ""
 
 msgid "min"
-msgstr "min"
+msgstr ""
 
 #, boost-format
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "A megadott értéknek nagyobbnak kell lennie, mint %1% és kisebbnek, mint %2%"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Anyagáramlás kalibrálásának faktorai"
@@ -3593,7 +3593,7 @@ msgstr "mm³"
 
 #, fuzzy
 msgid "Start"
-msgstr "Start"
+msgstr ""
 
 msgid "Next"
 msgstr "Következő"
@@ -3773,10 +3773,10 @@ msgstr ""
 "*Azonos filament: azonos márka, típus és szín."
 
 msgid "DRY"
-msgstr "DRY"
+msgstr ""
 
 msgid "WET"
-msgstr "WET"
+msgstr ""
 
 msgid "AMS Settings"
 msgstr "AMS beállítások"
@@ -4644,7 +4644,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Érvénytelen formátum. Elvárt vektor formátum: \"%1%\""
 
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 msgid "Pick"
 msgstr "Kiválasztás"
@@ -4961,7 +4961,7 @@ msgid "Options"
 msgstr "Opciók"
 
 msgid "Extruder"
-msgstr "Extruder"
+msgstr ""
 
 msgid "Cost"
 msgstr "Költség"
@@ -5438,7 +5438,7 @@ msgid "Device"
 msgstr "Nyomtató"
 
 msgid "Multi-device"
-msgstr "Multi-device"
+msgstr ""
 
 msgid "Project"
 msgstr "Projekt"
@@ -6025,7 +6025,7 @@ msgid "Switch to timelapse files."
 msgstr "Váltás timelapse fájlokra."
 
 msgid "Video"
-msgstr "Video"
+msgstr ""
 
 msgid "Switch to video files."
 msgstr "Váltás a videófájlokra."
@@ -6227,7 +6227,7 @@ msgid "Invert Roll axis"
 msgstr "Roll tengely invertálása"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Keresés"
@@ -6239,7 +6239,7 @@ msgid "Other Device"
 msgstr "Egyéb eszköz"
 
 msgid "Online"
-msgstr "Online"
+msgstr ""
 
 msgid "Input access code"
 msgstr "Add meg a hozzáférési kódot"
@@ -6252,7 +6252,7 @@ msgid "Log out successful."
 msgstr "Sikeres kijelentkezés."
 
 msgid "Offline"
-msgstr "Offline"
+msgstr ""
 
 msgid "Busy"
 msgstr "Elfoglalt"
@@ -6410,7 +6410,7 @@ msgstr "Felhőszeletelés..."
 
 #, fuzzy, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
-msgstr "In Cloud Slicing Queue, there are %s tasks ahead of you."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Layer: %s"
@@ -6447,7 +6447,7 @@ msgid "Standard"
 msgstr "Normál"
 
 msgid "Sport"
-msgstr "Sport"
+msgstr ""
 
 msgid "Ludicrous"
 msgstr "Őrült"
@@ -7171,7 +7171,7 @@ msgid "Collapse sidebar"
 msgstr "&Az oldalsáv összecsukása"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7340,8 +7340,6 @@ msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
 msgstr ""
-"The file %s already exists.\n"
-"Do you want to replace it?"
 
 msgid "Confirm Save As"
 msgstr "Mentés másként megerősítése"
@@ -7522,7 +7520,7 @@ msgid "Importing to Orca Slicer failed. Please download the file and manually im
 msgstr "Az Orca Slicerbe importálás sikertelen. Töltsd le a fájlt és manuálisan importáljad."
 
 msgid "INFO:"
-msgstr "INFO:"
+msgstr ""
 
 msgid "No accelerations provided for calibration. Use default acceleration value "
 msgstr "Nincs megadva gyorsulás a kalibráláshoz. Alapértelmezett gyorsulási érték használata "
@@ -8398,7 +8396,7 @@ msgid "warning"
 msgstr "figyelmeztetés"
 
 msgid "debug"
-msgstr "debug"
+msgstr ""
 
 msgid "trace"
 msgstr "követés"
@@ -8474,7 +8472,7 @@ msgid "PRE host: api-pre.bambu-lab.com/v1"
 msgstr "PRE host: api-pre.bambu-lab.com/v1"
 
 msgid "Product host"
-msgstr "Product host"
+msgstr ""
 
 msgid "Debug save button"
 msgstr "debug mentés gomb"
@@ -8602,16 +8600,16 @@ msgid "First layer filament sequence"
 msgstr "Kezdőréteg filament sorrendje"
 
 msgid "By Layer"
-msgstr "By Layer"
+msgstr ""
 
 msgid "By Object"
-msgstr "By Object"
+msgstr ""
 
 msgid "Accept"
-msgstr "Accept"
+msgstr ""
 
 msgid "Log Out"
-msgstr "Log Out"
+msgstr ""
 
 #, fuzzy
 msgid "Slice all plates to obtain time and filament estimation"
@@ -8806,7 +8804,7 @@ msgstr "A kiválasztott nyomtató (%s) nem kompatibilis a nyomtatási fájl konf
 
 #, fuzzy
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
-msgstr "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
+msgstr ""
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Az aktuális nyomtató nem támogatja az időfelvételt hagyományos módban, ha a nyomtatás objektumonként történik."
@@ -9460,14 +9458,14 @@ msgid "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 
 msgstr "Asztalhőmérséklet a Cool Plate SuperTack használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate SuperTack-re történő nyomtatást."
 
 msgid "Cool Plate"
-msgstr "Cool Plate"
+msgstr ""
 
 #, fuzzy
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Asztalhőmérséklet a hideg tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
 msgid "Textured Cool Plate"
-msgstr "Textured Cool Plate"
+msgstr ""
 
 #, fuzzy
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
@@ -10237,7 +10235,7 @@ msgstr "A filament színének és típusának szinkronizálása a nyomtatóról 
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Ramming customization"
 msgstr "Tömörítés testreszabása"
@@ -10531,7 +10529,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Támasz/Színfestés: metszet pozíciójának beállítása"
 
 msgid "Gizmo"
-msgstr "Gizmo"
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Extruder szám beállítása az objektumok és tárgyak számára"
@@ -10714,7 +10712,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Automatikus tűzoltó rendszer"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Firmware frissítése"
@@ -11356,7 +11354,7 @@ msgid "API key"
 msgstr "API-kulcs"
 
 msgid "HTTP digest"
-msgstr "HTTP digest"
+msgstr ""
 
 msgid "Avoid crossing walls"
 msgstr "Kerülje a falak keresztezését"
@@ -12995,7 +12993,7 @@ msgid "TPMS-FK"
 msgstr "TPMS-FK"
 
 msgid "Gyroid"
-msgstr "Gyroid"
+msgstr ""
 
 msgid "Lateral lattice angle 1"
 msgstr "Oldalsó rács 1. szöge"
@@ -14092,13 +14090,13 @@ msgstr ""
 "Kérlek, a rezonanciacsíkok tesztelésekor kapcsold ki ezt az opciót."
 
 msgid "Min"
-msgstr "Min"
+msgstr ""
 
 msgid "Minimum speed of resonance avoidance."
 msgstr "A rezonanciaelkerülés minimális sebessége."
 
 msgid "Max"
-msgstr "Max"
+msgstr ""
 
 msgid "Maximum speed of resonance avoidance."
 msgstr "A rezonanciaelkerülés maximális sebessége."
@@ -15529,7 +15527,7 @@ msgstr ""
 
 #, fuzzy
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
+msgstr ""
 
 msgid "Internal ribs"
 msgstr "Belső bordák"
@@ -16563,7 +16561,7 @@ msgid "Result can be read by human eyes."
 msgstr "Az eredmények könnyen átláthatóak és megérthetőek."
 
 msgid "Auto-Calibration"
-msgstr "Auto-Calibration"
+msgstr ""
 
 msgid "We would use Lidar to read the calibration result"
 msgstr "A Lidar segítségével olvassuk le a kalibrálás eredményét"
@@ -17604,11 +17602,11 @@ msgstr "Létrehoz"
 
 #, fuzzy
 msgid "Vendor is not selected; please reselect vendor."
-msgstr "Vendor is not selected; please reselect vendor."
+msgstr ""
 
 #, fuzzy
 msgid "Custom vendor missing; please input custom vendor."
-msgstr "Custom vendor missing; please input custom vendor."
+msgstr ""
 
 msgid "\"Bambu\" or \"Generic\" cannot be used as a Vendor for custom filaments."
 msgstr "A \"Bambu\" vagy \"Generic\" nem használható gyártóként egyedi filamentek esetében."
@@ -17618,11 +17616,11 @@ msgstr "A filament típusa nem lett kiválasztva, kérlek, válaszd ki a típust
 
 #, fuzzy
 msgid "Filament serial missing; please input serial."
-msgstr "Filament serial missing; please input serial."
+msgstr ""
 
 #, fuzzy
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
+msgstr ""
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Az egyedi gyártó vagy sorozat értéke üres. Kérlek, írd be újra."
@@ -17682,7 +17680,7 @@ msgstr "Típus létrehozása"
 
 #, fuzzy
 msgid "The model was not found; please reselect vendor."
-msgstr "The model was not found; please reselect vendor."
+msgstr ""
 
 msgid "Select Printer"
 msgstr "Válassz nyomtatót"
@@ -17730,11 +17728,11 @@ msgstr "A nyomtató modellje nem található, kérlek, válaszd ki újra."
 
 #, fuzzy
 msgid "The nozzle diameter was not found; please reselect."
-msgstr "The nozzle diameter was not found; please reselect."
+msgstr ""
 
 #, fuzzy
 msgid "The printer preset was not found; please reselect."
-msgstr "The printer preset was not found; please reselect."
+msgstr ""
 
 msgid "Printer Preset"
 msgstr "Nyomtatóbeállítás"
@@ -17759,10 +17757,6 @@ msgid ""
 "and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
-"The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
-"\tCancel: Do not create a preset; return to the creation interface."
 
 msgid "You need to select at least one filament preset."
 msgstr "Ki kell választanod legalább egy filamentbeállítást."
@@ -17832,7 +17826,7 @@ msgid "Printer Created Successfully"
 msgstr "Nyomtató sikeresen létrehozva"
 
 msgid "Filament Created Successfully"
-msgstr "Filament Created Successfully"
+msgstr ""
 
 msgid "Printer Created"
 msgstr "Nyomtató létrehozva"
@@ -17903,8 +17897,6 @@ msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
 msgstr ""
-"The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
-"If not, a time suffix will be added, and you can modify the name after creation."
 
 #, c-format, boost-format
 msgid ""
@@ -18019,7 +18011,7 @@ msgstr "Beállítás módosítása"
 
 #, fuzzy
 msgid "For more information, please check out our Wiki"
-msgstr "For more information, please check out our Wiki"
+msgstr ""
 
 msgid "Wiki"
 msgstr "Wiki"

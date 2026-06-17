@@ -432,7 +432,7 @@ msgid "Dovetail"
 msgstr "A coda di rondine"
 
 msgid "Auto"
-msgstr "Auto"
+msgstr ""
 
 msgid "Manual"
 msgstr "Manuale"
@@ -516,7 +516,7 @@ msgid "Count"
 msgstr ""
 
 msgid "Gap"
-msgstr "Gap"
+msgstr ""
 
 msgid "Spacing"
 msgstr "Spaziatura"
@@ -964,7 +964,7 @@ msgid "Name has to be unique."
 msgstr "Il nome deve essere univoco."
 
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Rename style"
 msgstr "Rinomina lo stile"
@@ -1456,7 +1456,7 @@ msgid "Restart selection"
 msgstr "Riavvio della selezione"
 
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Annulla un elemento fino all'uscita"
@@ -2142,7 +2142,7 @@ msgid "Delete the selected object"
 msgstr "Elimina l'oggetto selezionato"
 
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "Carica..."
@@ -2560,7 +2560,7 @@ msgid "Name"
 msgstr "Nome"
 
 msgid "Fila."
-msgstr "Fila."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -3499,17 +3499,17 @@ msgstr ""
 "Temperatura"
 
 msgid "max"
-msgstr "max"
+msgstr ""
 
 msgid "min"
-msgstr "min"
+msgstr ""
 
 #, boost-format
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "Il valore immesso deve essere maggiore di %1% e minore di %2%"
 
 msgid "SN"
-msgstr "SN"
+msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Fattori di calibrazione della dinamica del flusso"
@@ -3845,7 +3845,7 @@ msgid "AMS ID will be reset. If you want a specific ID sequence, disconnect all 
 msgstr "L'ID AMS verrà reimpostato. Se si desidera una sequenza ID specifica, scollegare tutti gli AMS prima del ripristino e ricollegarli nell'ordine desiderato dopo il ripristino."
 
 msgid "File"
-msgstr "File"
+msgstr ""
 
 msgid "Calibration"
 msgstr "Calibrazione"
@@ -5253,7 +5253,7 @@ msgid "Assembly Info"
 msgstr "Informazioni sul montaggio"
 
 msgid "Volume:"
-msgstr "Volume:"
+msgstr ""
 
 msgid "Size:"
 msgstr "Dimensione:"
@@ -5447,7 +5447,7 @@ msgid "Yes"
 msgstr "Sì"
 
 msgid "No"
-msgstr "No"
+msgstr ""
 
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "verrà chiuso prima di creare un nuovo modello. Vuoi continuare?"
@@ -5833,7 +5833,7 @@ msgid "Quit %s"
 msgstr "Chiudi %s"
 
 msgid "&File"
-msgstr "&File"
+msgstr ""
 
 msgid "&View"
 msgstr "&Vista"
@@ -6025,7 +6025,7 @@ msgid "Switch to timelapse files."
 msgstr "Passa ai file timelapse."
 
 msgid "Video"
-msgstr "Video"
+msgstr ""
 
 msgid "Switch to video files."
 msgstr "Passare ai file video."
@@ -6227,7 +6227,7 @@ msgid "Invert Roll axis"
 msgstr "Inverti asse di rollio"
 
 msgid "(LAN)"
-msgstr "(LAN)"
+msgstr ""
 
 msgid "Search"
 msgstr "Cerca"
@@ -6361,7 +6361,7 @@ msgid "Safety Options"
 msgstr "Opzioni di sicurezza"
 
 msgid "Lamp"
-msgstr "Lamp"
+msgstr ""
 
 msgid "Bed"
 msgstr "Piatto"
@@ -6443,7 +6443,7 @@ msgid "Silent"
 msgstr "Silenzioso"
 
 msgid "Standard"
-msgstr "Standard"
+msgstr ""
 
 msgid "Sport"
 msgstr "Sportivo"
@@ -7170,7 +7170,7 @@ msgid "Collapse sidebar"
 msgstr "Riduci barra laterale"
 
 msgid "Tab"
-msgstr "Tab"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7735,11 +7735,11 @@ msgstr "Dimensioni: %1% x %2% x %3% mm\n"
 
 #, boost-format
 msgid "Volume: %1% in³\n"
-msgstr "Volume: %1% in³\n"
+msgstr ""
 
 #, boost-format
 msgid "Volume: %1% mm³\n"
-msgstr "Volume: %1% mm³\n"
+msgstr ""
 
 #, boost-format
 msgid "Triangles: %1%\n"
@@ -7812,7 +7812,7 @@ msgid "Region selection"
 msgstr "Selezione Regione"
 
 msgid "sec"
-msgstr "sec"
+msgstr ""
 
 msgid "The period of backup in seconds."
 msgstr "Periodo di backup in secondi."
@@ -8147,7 +8147,7 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
-msgstr ""
+msgstr "Anti-aliasing"
 
 msgid "MSAA Multiplier"
 msgstr ""
@@ -8175,7 +8175,7 @@ msgid ""
 msgstr ""
 
 msgid "FPS"
-msgstr ""
+msgstr "FPS"
 
 msgid "FPS cap"
 msgstr ""
@@ -8383,7 +8383,7 @@ msgid "warning"
 msgstr "avviso"
 
 msgid "debug"
-msgstr "debug"
+msgstr ""
 
 msgid "trace"
 msgstr "traccia"
@@ -8404,7 +8404,7 @@ msgid "Reload Failed"
 msgstr "Ricaricamento fallito"
 
 msgid "Debug"
-msgstr "Debug"
+msgstr ""
 
 msgid "Sync settings"
 msgstr "Impostazioni sincronizzazione"
@@ -10213,7 +10213,7 @@ msgstr "Colore e tipo di filamento sincronizzati con successo dalla stampante."
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 msgid "Ramming customization"
 msgstr "Personalizzazione modellazione del filamento"
@@ -10238,7 +10238,7 @@ msgid "Total ramming"
 msgstr "Spinta totale"
 
 msgid "Volume"
-msgstr "Volume"
+msgstr ""
 
 msgid "Ramming line"
 msgstr "Linea di spinta"
@@ -10678,10 +10678,10 @@ msgid "Air Pump"
 msgstr "Pompa d'aria"
 
 msgid "Laser 10W"
-msgstr "Laser 10W"
+msgstr ""
 
 msgid "Laser 40W"
-msgstr "Laser 40W"
+msgstr ""
 
 msgid "Cutting Module"
 msgstr "Modulo di taglio"
@@ -10690,7 +10690,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Sistema antincendio automatico"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Aggiorna firmware"
@@ -11313,7 +11313,7 @@ msgid "User"
 msgstr "Utente"
 
 msgid "Password"
-msgstr "Password"
+msgstr ""
 
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Ignora i controlli di revoca dei certificati HTTPS"
@@ -12921,10 +12921,10 @@ msgid "Zig Zag"
 msgstr "Zig Zag"
 
 msgid "Cross Zag"
-msgstr "Cross Zag"
+msgstr ""
 
 msgid "Locked Zag"
-msgstr "Locked Zag"
+msgstr ""
 
 msgid "Line"
 msgstr "Linea"
@@ -17390,7 +17390,7 @@ msgid "Progress"
 msgstr "Progresso"
 
 msgid "Host"
-msgstr "Host"
+msgstr ""
 
 msgctxt "OfFile"
 msgid "Size"
@@ -18579,7 +18579,7 @@ msgid "Global settings"
 msgstr "Impostazioni globali"
 
 msgid "Video tutorial"
-msgstr "Video tutorial"
+msgstr ""
 
 msgid "(Sync with printer)"
 msgstr "(Sincronizza con stampante)"
