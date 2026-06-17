@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Marble @Elegoo Giga",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"setting_id": "EPLAMARBLEEOSG00",
+	"instantiation": "true",
+	"fan_min_speed": [
+		"80"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"220"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"compatible_printers": [
+		"Elegoo OrangeStorm Giga 0.4 nozzle",
+		"Elegoo OrangeStorm Giga 0.6 nozzle",
+		"Elegoo OrangeStorm Giga 0.8 nozzle",
+		"Elegoo OrangeStorm Giga 1.0 nozzle"
+	],
+	"renamed_from": "Elegoo PLA Marble @EOS Giga"
+}

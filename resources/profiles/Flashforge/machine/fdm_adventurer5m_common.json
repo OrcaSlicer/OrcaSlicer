@@ -118,5 +118,6 @@
 	],
 	"extruder_clearance_height_to_lid": [
 		"150"
-	]
+	],
+	"use_3mf": "1"
 }

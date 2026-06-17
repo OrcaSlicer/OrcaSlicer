@@ -279,12 +279,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         });
         m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
         m_mode_view = new ModeSwitchButton(m_top_panel);
-        if (wxGetApp().get_mode() == comDevelop) {
-            m_mode_view->SetSelection(mode_to_selection(comExpert));
-            m_mode_view->Enable(false);
-        } else {
-            m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
-        }
+        bool isDevMode = wxGetApp().get_mode() == comDevelop;
+        m_mode_view->SetSelection(mode_to_selection(isDevMode ? comExpert : wxGetApp().get_saved_mode()));
+        m_mode_view->SetDevMode(isDevMode);
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -653,17 +650,25 @@ void ParamsPanel::update_mode()
 
         if (app_mode == comDevelop) {
             mode_view->SetSelection(mode_to_selection(comExpert));
-            mode_view->Enable(false);
+            mode_view->SetDevMode(true);
             return;
         }
 
         mode_view->SetSelection(mode_to_selection(Slic3r::GUI::wxGetApp().get_saved_mode()));
-        if (!mode_view->IsEnabled())
-            mode_view->Enable();
+        if (mode_view->GetDevMode())
+            mode_view->SetDevMode(false);
     };
 
     sync_mode_view(m_mode_view);
     sync_mode_view(m_current_tab ? dynamic_cast<Tab*>(m_current_tab)->m_mode_view : nullptr);
+
+    auto sync_mode_icon = [&](ScalableButton* mode_icon) {
+        if (mode_icon == nullptr)
+            return;
+        mode_icon->Show(app_mode != comDevelop);
+    };
+    sync_mode_icon(m_mode_icon);
+    sync_mode_icon(m_current_tab ? dynamic_cast<Tab*>(m_current_tab)->m_mode_icon : nullptr);
 }
 
 void ParamsPanel::msw_rescale()

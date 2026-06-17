@@ -177,11 +177,7 @@ ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
         wxSize pSize = FromDIP(wxSize(650, 840));
         SetSize(pSize);
 
-        int     screenheight = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y, NULL);
-        int     screenwidth  = wxSystemSettings::GetMetric(wxSYS_SCREEN_X, NULL);
-        int     MaxY         = (screenheight - pSize.y) > 0 ? (screenheight - pSize.y) / 2 : 0;
-        wxPoint tmpPT((screenwidth - pSize.x) / 2, MaxY);
-        Move(tmpPT);
+        CentreOnParent();
     }
     wxGetApp().UpdateDlgDarkUI(this);
 }

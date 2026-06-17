@@ -73,7 +73,7 @@ if (USE_SYS_LIBS AND md4c_FOUND)
 else()
     add_subdirectory(md4c)
 endif()
-
+add_subdirectory(mdns)
 add_subdirectory(miniz)
 add_subdirectory(minilzo)
 add_subdirectory(qhull)

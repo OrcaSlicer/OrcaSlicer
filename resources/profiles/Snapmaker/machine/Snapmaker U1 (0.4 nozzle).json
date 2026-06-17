@@ -8,7 +8,7 @@
 	"printer_model": "Snapmaker U1",
 	"printer_variant": "0.4",
 	"auxiliary_fan": "1",
-	"change_filament_gcode": ";===== date: 20251213=====================\n; Change Tool[previous_extruder] -> Tool[next_extruder] (layer [layer_num])\n{\nlocal max_speed_toolchange = 350.0;\nlocal wait_for_extruder_temp = true;\nposition[2] = position[2] + 2.0;\nlocal speed_toolchange = max_speed_toolchange;\nif travel_speed < max_speed_toolchange then\n      speed_toolchange = travel_speed;\nendif\n\"G91\nG1 Z1.5 F1800\nG90\n\";\n\"G1 F\" + (speed_toolchange * 60) + \"\n\";\nif wait_for_extruder_temp and not((layer_num < 0) and (next_extruder == initial_tool)) then\n      \"\n\";\n      \"; \" + layer_num + \"\n\";\n      if layer_num == 0 then\n            \"M109 S\" + first_layer_temperature[next_extruder] + \" T\" + next_extruder + \"\n\";\n      else\n            \"M109 S\" + temperature[next_extruder] + \" T\" + next_extruder + \"\n\";\n      endif\nendif\n\"M400\" + \"\n\";\n\"T\" + next_extruder + \"\n\";\nif filament_type[next_extruder] == \"PVA\" then\n\"SET_VELOCITY_LIMIT ACCEL=3000\n\";\nelse\nendif\nif previous_extruder != next_extruder and initial_extruder != next_extruder then\n\"SM_PRINT_PREEXTRUDE_FILAMENT INDEX=\" + next_extruder + \"\n\";\nendif\n\"G90\n\";\n}\n",
+	"change_filament_gcode": ";===== date: 20260607 =====================\n; Change Tool[previous_extruder] -> Tool[next_extruder] (layer [layer_num])\n; max_layer_z [max_layer_z]\n; max_print_height [max_print_height]\n; print_sequence [print_sequence]\n\n{\nlocal move_z = 1.5;\nlocal max_speed_toolchange = 350.0;\nlocal wait_for_extruder_temp = true;\nposition[2] = position[2] + 2.0;\nlocal speed_toolchange = max_speed_toolchange;\n\nif travel_speed < max_speed_toolchange then\n      speed_toolchange = travel_speed;\nendif\n\nif print_sequence == \"by object\" then\n\n    if max_layer_z < ((max_print_height - z_offset) - 2) then\n        move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\n    endif\n\nendif\n\n\"G91\nG1 Z\" + move_z + \" F600\nG90\n\";\n\"G1 F\" + (speed_toolchange * 60) + \"\n\";\nif wait_for_extruder_temp and not((layer_num < 0) and (next_extruder == initial_tool)) then\n      \"\n\";\n      \"; \" + layer_num + \"\n\";\n      if layer_num == 0 then\n            \"M109 S\" + first_layer_temperature[next_extruder] + \" T\" + next_extruder + \"\n\";\n      else\n            \"M109 S\" + temperature[next_extruder] + \" T\" + next_extruder + \"\n\";\n      endif\nendif\n\"M400\" + \"\n\";\n\"T\" + next_extruder + \"\n\";\nif filament_type[next_extruder] == \"PVA\" then\n\"SET_VELOCITY_LIMIT ACCEL=3000\n\";\nelse\nendif\nif previous_extruder != next_extruder and initial_extruder != next_extruder then\n\"SM_PRINT_PREEXTRUDE_FILAMENT INDEX=\" + next_extruder + \"\n\";\nendif\n\"G90\n\";\n}\n",
 	"extruder_colour": [
 		"#FCE94F",
 		"#FCE94F",
@@ -28,7 +28,7 @@
 		"0",
 		"0"
 	],
-	"machine_end_gcode": " PRINT_END\nTIMELAPSE_STOP",
+	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n",
 	"machine_max_acceleration_extruding": [
 		"25000",
 		"25000"
@@ -223,9 +223,8 @@
 		"Auto Lift"
 	],
 	"enable_filament_ramming": "0",
-	"extruder_clearance_height_to_rod": "60",
-	"extruder_clearance_height_to_lid": "130",
-	"extruder_clearance_radius": "80",
+	"extruder_clearance_height_to_rod": "27.5",
+	"extruder_clearance_radius": "72.5",
 	"machine_load_filament_time": "0",
 	"machine_unload_filament_time": "0",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\nTIMELAPSE_TAKE_FRAME\nDEFECT_DETECTION_DETECT",

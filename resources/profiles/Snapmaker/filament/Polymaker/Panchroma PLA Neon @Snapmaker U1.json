@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Panchroma PLA Neon @Snapmaker U1",
+	"renamed_from": "Panchroma PLA Neon @U1",
+	"inherits": "Panchroma PLA Neon @Snapmaker U1 base",
+	"from": "system",
+	"setting_id": "GFSPM013_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	]
+}
