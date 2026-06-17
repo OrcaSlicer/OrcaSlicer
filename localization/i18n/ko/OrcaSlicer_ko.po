@@ -10518,8 +10518,8 @@ msgstr[0] "다음 사전 설정은 이 사전 설정을 상속합니다."
 msgid "%1% Preset"
 msgstr "사전 설정 %1%"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "다음 사전 설정도 삭제됩니다."
 
 msgid ""

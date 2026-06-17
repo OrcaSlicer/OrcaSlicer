@@ -10947,8 +10947,8 @@ msgstr[1] "A következő profil örökli ezt a profilt."
 msgid "%1% Preset"
 msgstr "%1% beállítás"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "A következő beállítás szintén törlődni fog."
 msgstr[1] "A következő beállítások szintén törlődni fognak."
 

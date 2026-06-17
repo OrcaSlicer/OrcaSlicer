@@ -10816,8 +10816,8 @@ msgstr[1] "Aşağıdaki ön ayar bu ön ayarı devralır."
 msgid "%1% Preset"
 msgstr "%1% Ön Ayar"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Aşağıdaki ön ayar da silinecektir."
 msgstr[1] "Aşağıdaki ön ayarlar da silinecektir."
 

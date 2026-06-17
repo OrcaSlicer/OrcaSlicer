@@ -9922,8 +9922,8 @@ msgstr[1] ""
 msgid "%1% Preset"
 msgstr ""
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] ""
 msgstr[1] ""
 

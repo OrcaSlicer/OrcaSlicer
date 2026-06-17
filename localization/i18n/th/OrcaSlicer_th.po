@@ -10496,8 +10496,8 @@ msgstr[0] "พรีเซ็ตต่อไปนี้สืบทอดจา
 msgid "%1% Preset"
 msgstr "%1% ที่ตั้งไว้ล่วงหน้า"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "พรีเซ็ตต่อไปนี้จะถูกลบด้วย"
 
 msgid ""

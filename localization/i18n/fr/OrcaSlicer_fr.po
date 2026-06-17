@@ -11195,8 +11195,8 @@ msgstr[1] "Le préréglage suivant hérite de ce préréglage."
 msgid "%1% Preset"
 msgstr "%1% Préréglage"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Le préréglage suivant sera également supprimé."
 msgstr[1] "Les préréglages suivants seront également supprimés."
 

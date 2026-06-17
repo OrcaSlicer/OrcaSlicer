@@ -11121,8 +11121,8 @@ msgstr[2] "Профили, указанные ниже, наследуются �
 msgid "%1% Preset"
 msgstr "%1% профиль"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Следующий профиль также будет удалён."
 msgstr[1] "Следующие профили также будут удалены."
 msgstr[2] "Следующие профили также будут удалены."

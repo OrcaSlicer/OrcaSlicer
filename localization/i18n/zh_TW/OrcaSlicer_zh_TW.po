@@ -10382,8 +10382,8 @@ msgstr[0] "以下預設繼承了此預設。"
 msgid "%1% Preset"
 msgstr "%1% 預設"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "以下預設將一起被刪除。"
 
 msgid ""

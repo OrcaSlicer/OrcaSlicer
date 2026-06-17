@@ -10851,8 +10851,8 @@ msgstr[1] "De volgende voorinstelling erft van deze voorinstelling."
 msgid "%1% Preset"
 msgstr "%1% Voorinstelling"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "De volgende voorinstelling zal ook verwijderd worden@"
 msgstr[1] "De volgende voorinstelling zal ook verwijderd worden@"
 

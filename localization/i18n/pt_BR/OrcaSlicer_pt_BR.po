@@ -11009,8 +11009,8 @@ msgstr[1] "A seguinte predefinição herda esta predefinição."
 msgid "%1% Preset"
 msgstr "%1% Predefinição"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "A seguinte predefinição também será excluída."
 msgstr[1] "As seguintes predefinições também serão excluídas."
 

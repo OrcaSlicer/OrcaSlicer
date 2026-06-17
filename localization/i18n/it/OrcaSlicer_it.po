@@ -11033,8 +11033,8 @@ msgstr[1] "I seguentii profili ereditano questi profili."
 msgid "%1% Preset"
 msgstr "%1% Profilo"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Verrà eliminato anche il seguente profilo."
 msgstr[1] "Verranno eliminati anche i seguenti profili."
 

@@ -10671,8 +10671,8 @@ msgstr[0] "Các preset sau kế thừa preset này."
 msgid "%1% Preset"
 msgstr "Preset %1%"
 
-msgid "Following preset will be deleted too."
-msgid_plural "Following presets will be deleted too."
+msgid "Following preset will be deleted too:"
+msgid_plural "Following presets will be deleted too:"
 msgstr[0] "Các preset sau cũng sẽ bị xóa."
 
 msgid ""

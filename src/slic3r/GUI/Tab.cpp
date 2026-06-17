@@ -6861,7 +6861,7 @@ void Tab::delete_preset()
         //                            "Note, that these printers will be deleted after deleting the selected preset.", ph_printers_only.size()) + "\n\n";
         //}
         if (!ph_printers.empty() || !ph_printers_only.empty()) {
-            msg += _L_PLURAL("Following preset will be deleted too.", "Following presets will be deleted too.", ph_printers.size() + ph_printers_only.size());
+            msg += _L_PLURAL("Following preset will be deleted too:", "Following presets will be deleted too:", ph_printers.size() + ph_printers_only.size());
             for (const std::string &printer : ph_printers) msg += "\n    \"" + from_u8(printer) + "\",";
             for (const std::string &printer : ph_printers_only) msg += "\n    \"" + from_u8(printer) + "\",";
             msg.RemoveLast();
