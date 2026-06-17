@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Rosa",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "filament_id": "FILAR0043",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#E07A9B"
+    ]
+}

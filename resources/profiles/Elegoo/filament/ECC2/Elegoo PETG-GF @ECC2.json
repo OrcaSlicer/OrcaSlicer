@@ -6,7 +6,10 @@
 	"setting_id": "EPETGFECC2",
 	"instantiation": "true",
 	"pressure_advance": [
-		"0.024"
+		"0.052"
+	],
+	"enable_pressure_advance": [
+		"1"
 	],
 	"filament_density": [
 		"1.26"
@@ -24,7 +27,7 @@
 		"5"
 	],
 	"filament_max_volumetric_speed": [
-		"12"
+		"10"
 	],
 	"nozzle_temperature_range_low": [
 		"240"
@@ -36,6 +39,7 @@
 		"6"
 	],
 	"compatible_printers": [
+		"Elegoo Centauri Carbon 2 0.2 nozzle",
 		"Elegoo Centauri Carbon 2 0.4 nozzle",
 		"Elegoo Centauri Carbon 2 0.6 nozzle",
 		"Elegoo Centauri Carbon 2 0.8 nozzle"

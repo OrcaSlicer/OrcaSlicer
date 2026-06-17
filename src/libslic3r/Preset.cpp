@@ -1005,6 +1005,9 @@ static std::vector<std::string> s_Preset_print_options{
     "lateral_lattice_angle_1",
     "lateral_lattice_angle_2",
     "infill_overhang_angle",
+    "lightning_overhang_angle",
+    "lightning_prune_angle",
+    "lightning_straightening_angle",
     "top_surface_pattern",
     "bottom_surface_pattern",
     "infill_direction",
@@ -1069,10 +1072,13 @@ static std::vector<std::string> s_Preset_print_options{
     "print_order",
     "support_remove_small_overhang",
     "filename_format",
-    "wall_filament",
+    "outer_wall_filament_id",
+    "inner_wall_filament_id",
     "support_bottom_z_distance",
-    "sparse_infill_filament",
-    "solid_infill_filament",
+    "sparse_infill_filament_id",
+    "internal_solid_filament_id",
+    "top_surface_filament_id",
+    "bottom_surface_filament_id",
     "support_filament",
     "support_interface_filament",
     "support_interface_not_for_body",
@@ -1094,6 +1100,7 @@ static std::vector<std::string> s_Preset_print_options{
     "infill_wall_overlap",
     "top_bottom_infill_wall_overlap",
     "bridge_flow",
+    "bridge_line_width",
     "internal_bridge_flow",
     "elefant_foot_compensation",
     "elefant_foot_compensation_layers",
@@ -1158,6 +1165,7 @@ static std::vector<std::string> s_Preset_print_options{
     "small_perimeter_threshold",
     "bridge_angle",
     "internal_bridge_angle",
+    "relative_bridge_angle",
     "filter_out_gap_fill",
     "travel_acceleration",
     "inner_wall_acceleration",
@@ -1318,7 +1326,7 @@ static std::vector<std::string> s_Preset_machine_limits_options {
 
 static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
-    "printable_area", "extruder_printable_area", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "gcode_flavor",
+    "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "gcode_flavor",
     "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
     "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
@@ -1329,7 +1337,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "scan_first_layer", "enable_power_loss_recovery", "wrapping_detection_layers", "wrapping_exclude_area", "machine_load_filament_time", "machine_unload_filament_time", "machine_tool_change_time", "time_cost", "machine_pause_gcode", "template_custom_gcode",
     "nozzle_type", "nozzle_hrc","auxiliary_fan", "nozzle_volume","upward_compatible_machine", "z_hop_types", "travel_slope", "retract_lift_enforce","support_chamber_temp_control","support_air_filtration","printer_structure",
     "best_object_pos", "head_wrap_detect_zone",
-    "host_type", "print_host", "printhost_apikey", "bbl_use_printhost", "printer_agent",
+    "host_type", "print_host", "printhost_apikey", "flashforge_serial_number", "bbl_use_printhost", "printer_agent",
     "print_host_webui",
     "printhost_cafile","printhost_port","printhost_authorization_type",
     "printhost_user", "printhost_password", "printhost_ssl_ignore_revoke", "thumbnails", "thumbnails_format",
@@ -1338,7 +1346,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "cooling_tube_retraction",
     "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower",
     "z_offset",
-    "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
+    "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset"
     };
 
@@ -2354,6 +2362,10 @@ bool PresetCollection::validate_preset(const std::string &preset_name, std::stri
             const std::string canonical_inherit_name = this->canonical_preset_name(inherit_name);
             it    = this->find_preset_internal(canonical_inherit_name);
             found = it != m_presets.end() && it->name == canonical_inherit_name && is_trusted(*it);
+            if (!found) {
+                it    = this->find_preset_renamed(canonical_inherit_name);
+                found = it != m_presets.end() && is_trusted(*it);
+            }
             if (found)
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": preset_name %1%, inherit_name %2%, found inherit in list")%preset_name %inherit_name;
             else
@@ -2445,7 +2457,9 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
 
     if (!inherits.empty() && (different_settings_list.size() > 0)) {
         auto iter = this->find_preset_internal(inherits);
-        if (iter != m_presets.end() && iter->name == inherits) {
+        if (iter == m_presets.end() || iter->name != inherits)
+            iter = this->find_preset_renamed(inherits);
+        if (iter != m_presets.end()) {
             //std::vector<std::string> dirty_options = cfg.diff(iter->config);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": change preset %1% inherit %2% 's value to %3% 's values")%original_name %inherits %path;
             cfg.update_non_diff_values_to_base_config(iter->config, keys, different_settings_list, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
@@ -2497,7 +2511,9 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         // and override its settings with the loaded ones.
         assert(it == m_presets.end());
         it    = this->find_preset_internal(inherits);
-        found = it != m_presets.end() && it->name == inherits;
+        if (it == m_presets.end() || it->name != inherits)
+            it = this->find_preset_renamed(inherits);
+        found = it != m_presets.end();
         if (found && profile_print_params_same(it->config, cfg)) {
             // The system preset exists and it matches the values stored inside config.
             if (select == LoadAndSelect::Always)
@@ -3839,6 +3855,7 @@ static std::vector<std::string> s_PhysicalPrinter_opts {
     "print_host",
     "print_host_webui",
     "printhost_apikey",
+    "flashforge_serial_number",
     "printhost_cafile",
     "printhost_port",
     "printhost_authorization_type",

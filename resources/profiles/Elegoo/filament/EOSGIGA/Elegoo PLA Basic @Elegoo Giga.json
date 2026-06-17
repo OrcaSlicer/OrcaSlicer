@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Basic @Elegoo Giga",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"setting_id": "EPLABASICEOSG00",
+	"instantiation": "true",
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"filament_max_volumetric_speed": [
+		"21"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"compatible_printers": [
+		"Elegoo OrangeStorm Giga 0.4 nozzle",
+		"Elegoo OrangeStorm Giga 0.6 nozzle",
+		"Elegoo OrangeStorm Giga 0.8 nozzle",
+		"Elegoo OrangeStorm Giga 1.0 nozzle"
+	],
+	"renamed_from": "Elegoo PLA Basic @EOS Giga"
+}

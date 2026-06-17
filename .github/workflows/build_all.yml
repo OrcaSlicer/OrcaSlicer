@@ -14,6 +14,8 @@ on:
      - 'resources/**'
      - ".github/workflows/build_*.yml"
      - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
+     - 'tests/**'
 
   pull_request:
     branches:
@@ -30,6 +32,8 @@ on:
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
+     - 'tests/**'
 
 
   schedule:

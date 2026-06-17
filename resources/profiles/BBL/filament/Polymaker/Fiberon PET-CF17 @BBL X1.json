@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+	"name": "Fiberon PET-CF17 @BBL X1",
+	"inherits": "Fiberon PET-CF17 @base",
+	"from": "system",
+	"setting_id": "GFSL60_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab X1 0.4 nozzle",
+		"Bambu Lab X1 Carbon 0.4 nozzle",
+		"Bambu Lab P1S 0.4 nozzle",
+		"Bambu Lab X1E 0.4 nozzle"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"supertack_plate_temp": [
+		"80"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"80"
+	],
+	"filament_adhesiveness_category": [
+		"800"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	]
+}

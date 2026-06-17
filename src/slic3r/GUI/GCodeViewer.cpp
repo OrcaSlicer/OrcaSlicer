@@ -1344,18 +1344,26 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
-    // ORCA: Only show filament/color print preview if more than one tool/extruder is actually used in the toolpaths.
-    // Only reset back to Toolpaths (FeatureType) if we are currently in ColorPrint and this load is single-tool.
-    if (m_viewer.get_used_extruders_count() > 1) {
-        auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint);
-        if (it != view_type_items.end())
-            m_view_type_sel = std::distance(view_type_items.begin(), it);
-        set_view_type(libvgcode::EViewType::ColorPrint);
-    } else if (get_view_type() == libvgcode::EViewType::ColorPrint) {
-        auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-        if (it != view_type_items.end())
-            m_view_type_sel = std::distance(view_type_items.begin(), it);
-        set_view_type(libvgcode::EViewType::FeatureType);
+    // ORCA: Apply smart default view type when extruder count changes.
+    // Multi-color: ColorPrint (Filament), Single-color: FeatureType (Line Type).
+    // User selections persist within same extruder count, defaults reapply on count change.
+    int current_count = m_viewer.get_used_extruders_count();
+    if (current_count > 1) {
+        if (m_last_extruder_count_default_applied != 2) {
+            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint);
+            if (it != view_type_items.end())
+                m_view_type_sel = std::distance(view_type_items.begin(), it);
+            set_view_type(libvgcode::EViewType::ColorPrint);
+            m_last_extruder_count_default_applied = 2;
+        }
+    } else {
+        if (m_last_extruder_count_default_applied != 1) {
+            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
+            if (it != view_type_items.end())
+                m_view_type_sel = std::distance(view_type_items.begin(), it);
+            set_view_type(libvgcode::EViewType::FeatureType);
+            m_last_extruder_count_default_applied = 1;
+        }
     }
 
     // BBS: data for rendering color arrangement recommendation
@@ -1453,18 +1461,6 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         if (time == 0.0f ||
             short_time(get_time_dhms(time)) == short_time(get_time_dhms(m_print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].time)))
             m_viewer.set_time_mode(libvgcode::convert(PrintEstimatedStatistics::ETimeMode::Normal));
-    }
-
-    // set to color print by default if use multi extruders
-    if (m_viewer.get_used_extruders_count() > 1) {
-        for (int i = 0; i < view_type_items.size(); i++) {
-            if (view_type_items[i] == libvgcode::EViewType::ColorPrint) {
-                m_view_type_sel = i;
-                break;
-            }
-        }
-
-        set_view_type(libvgcode::EViewType::ColorPrint);
     }
 
     bool only_gcode_3mf = false;
@@ -2639,8 +2635,14 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         {
             auto plate_print_statistics = plate->get_slice_result()->print_statistics;
             auto plate_extruders = plate->get_extruders(true);
+            auto max_extruders_colors = wxGetApp().plater()->get_extruders_colors().size();
             for (size_t extruder_id : plate_extruders) {
                 extruder_id -= 1;
+                // Skip stale/overflow extruder indices (e.g. from object assignments that outlived a
+                // filament-count change) so downstream per-extruder lookups stay in range. Ported
+                // from BambuStudio (STUDIO-15763).
+                if (extruder_id >= max_extruders_colors)
+                    continue;
                 if (plate_print_statistics.model_volumes_per_extruder.find(extruder_id) == plate_print_statistics.model_volumes_per_extruder.end())
                     model_volume_of_extruders_all_plates[extruder_id] += 0;
                 else {

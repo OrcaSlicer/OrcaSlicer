@@ -1,0 +1,122 @@
+{
+    "type": "filament",
+    "name": "Soleyin Basic PETG @SPARKX i7-all",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "complete_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "cool_plate_temp": [
+        "80"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "80"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "80"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "80"
+    ],
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "filament_cost": [
+        "15.9"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_deretraction_speed": [
+        "40"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_retract_before_wipe": [
+        "100%"
+    ],
+    "filament_retraction_minimum_travel": [
+        "2"
+    ],
+    "filament_retraction_speed": [
+        "40"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_vendor": [
+        "Creality"
+    ],
+    "filament_wipe_distance": [
+        "2"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "slow_down_layer_time": [
+        "14"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "temperature_vitrification": [
+        "90"
+    ],
+    "textured_plate_temp": [
+        "80"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "80"
+    ],
+    "customized_plate_temp": "80",
+    "customized_plate_temp_initial_layer": "80",
+    "enable_pressure_advance": "1",
+    "epoxy_resin_plate_temp": "70",
+    "epoxy_resin_plate_temp_initial_layer": "70",
+    "filament_retract_lift_above": "nil",
+    "filament_retract_lift_below": "nil",
+    "filament_retract_lift_enforce": "nil",
+    "material_flow_temp_graph": "[[0.6,240],[1.2,250]]",
+    "pressure_advance": "0.054",
+    "default_filament_colour": "\"\"",
+    "compatible_printers": [
+        "Creality SPARKX i7 0.4 nozzle"
+    ],
+    "filament_id": "06005"
+}

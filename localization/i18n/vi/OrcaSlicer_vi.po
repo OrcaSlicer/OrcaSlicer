@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-22 02:24+0800\n"
+"POT-Creation-Date: 2026-06-17 18:00+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -192,6 +192,15 @@ msgstr "Hoàn thành"
 msgid "Support Generated"
 msgstr "Đã tạo support"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo - Đặt lên mặt"
 
@@ -279,6 +288,15 @@ msgstr "Vẽ bằng: Filament %1%"
 msgid "To:"
 msgstr "To:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "Tô fuzzy skin"
 
@@ -298,6 +316,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Enable painted fuzzy skin for this object"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "Di chuyển"
@@ -684,6 +711,15 @@ msgstr "Cắt bằng đường"
 
 msgid "Delete connector"
 msgstr "Xóa connector"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Tên mesh"
@@ -1547,6 +1583,12 @@ msgstr "Khoảng cách song song:"
 msgid "Flip by Face 2"
 msgstr "Lật theo mặt 2"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Lắp ráp"
 
@@ -1572,16 +1614,19 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "Cảnh báo: vui lòng chọn đặc trưng điểm hoặc đường tròn."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"It is recommended to assemble objects first,\n"
+"because they are restricted to the bed \n"
 "and only parts can be lifted."
 msgstr ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
-"and only parts can be lifted."
 
 msgid "Face and face assembly"
-msgstr "Face and face assembly"
+msgstr ""
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1641,8 +1686,8 @@ msgstr "AMF files"
 msgid "3MF files"
 msgstr "3MF files"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF files"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF files"
 
 msgid "G-code files"
 msgstr "G-code files"
@@ -1823,6 +1868,17 @@ msgstr ""
 msgid "User logged out"
 msgstr "Người dùng đã đăng xuất"
 
+msgid ""
+"You are currently in Stealth Mode. To log into the Cloud, you need to "
+"disable Stealth Mode first."
+msgstr ""
+
+msgid "Stealth Mode"
+msgstr "Chế độ ẩn danh"
+
+msgid "Quit Stealth Mode"
+msgstr ""
+
 msgid "new or open project file is not allowed during the slicing process!"
 msgstr "không được tạo hoặc mở file dự án trong quá trình slice!"
 
@@ -1836,21 +1892,38 @@ msgstr ""
 "Phiên bản Orca Slicer quá cũ và cần được cập nhật lên phiên bản mới nhất "
 "trước khi có thể sử dụng bình thường."
 
-#, c-format, boost-format
 msgid ""
-"Failed to connect to OrcaCloud.\n"
-"Please check your network connectivity\n"
-"(HTTP %u): %s"
+"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
-"Failed to connect to OrcaCloud.\n"
-"Please check your network connectivity\n"
-"(HTTP %u)"
+"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
 msgstr ""
 
-msgid "Cloud Error"
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+msgid "Resolve cloud sync conflict"
 msgstr ""
 
 msgid "Retrieving printer information, please try again later."
@@ -1908,7 +1981,7 @@ msgid "Privacy Policy Update"
 msgstr "Cập nhật chính sách bảo mật"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"
@@ -2157,6 +2230,9 @@ msgstr "Hình xuyến"
 
 msgid "Orca Cube"
 msgstr "Orca Cube"
+
+msgid "OrcaSliced Combo"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca Tolerance Test"
@@ -3116,6 +3192,52 @@ msgstr "The maximum temperature cannot exceed "
 msgid "The minmum temperature should not be less than "
 msgstr "The minmum temperature should not be less than "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Tất cả"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Bỏ chọn tất cả"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "Advanced settings"
+
+msgid "Expert settings"
+msgstr ""
+
+#, fuzzy
+msgid "Developer mode"
+msgstr "Chế độ phát triển"
+
+msgid "Launch troubleshoot center"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3385,6 +3507,9 @@ msgstr "Font doesn't have any shape for given text."
 
 msgid "There is no valid surface for text projection."
 msgstr "There is no valid surface for text projection."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Thermal Preconditioning for first layer optimization"
@@ -5289,10 +5414,7 @@ msgstr "Tăng/giảm vùng chỉnh sửa"
 msgid "Sequence"
 msgstr "Trình tự"
 
-msgid "Object Selection"
-msgstr ""
-
-msgid "Part Selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
@@ -5463,6 +5585,9 @@ msgstr "Phần nhô"
 msgid "Outline"
 msgstr "Outline"
 
+msgid "Realistic View"
+msgstr ""
+
 msgid "Perspective"
 msgstr "Perspective"
 
@@ -5477,9 +5602,6 @@ msgstr "Labels"
 
 msgid "Paint Toolbar"
 msgstr "Thanh công cụ vẽ"
-
-msgid "part selection"
-msgstr "chọn phần"
 
 msgid "Explosion Ratio"
 msgstr "Tỷ lệ nổ"
@@ -5734,11 +5856,11 @@ msgstr "In plate"
 msgid "Export G-code file"
 msgstr "Xuất file G-code"
 
-msgid "Send"
-msgstr "Gửi"
-
 msgid "Export plate sliced file"
 msgstr "Xuất file plate đã slice"
+
+msgid "Send"
+msgstr "Gửi"
 
 msgid "Export all sliced file"
 msgstr "Xuất tất cả file đã slice"
@@ -5764,14 +5886,17 @@ msgstr "Trình hướng dẫn thiết lập"
 msgid "Show Configuration Folder"
 msgstr "Hiện thư mục cấu hình"
 
+msgid "Troubleshoot Center"
+msgstr ""
+
+msgid "Open Network Test"
+msgstr "Mở kiểm tra mạng"
+
 msgid "Show Tip of the Day"
 msgstr "Hiện mẹo trong ngày"
 
 msgid "Check for Updates"
 msgstr "Kiểm tra cập nhật"
-
-msgid "Open Network Test"
-msgstr "Mở kiểm tra mạng"
 
 #, c-format, boost-format
 msgid "&About %s"
@@ -7097,6 +7222,12 @@ msgstr "Xuất thành công"
 msgid "Model file downloaded."
 msgstr "File model đã được tải xuống."
 
+msgid "Pull"
+msgstr ""
+
+msgid "Force push"
+msgstr ""
+
 msgid "Shared profiles may be available for this printer."
 msgstr ""
 
@@ -7815,7 +7946,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "Đối tượng đã chọn không thể được tách."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 
 msgid "Object with floating parts was detected"
@@ -8115,6 +8246,12 @@ msgid ""
 msgstr ""
 "Không thể thực hiện thao tác boolean trên mesh model. Chỉ các phần dương sẽ "
 "được xuất."
+
+msgid "Flashforge host is not available."
+msgstr ""
+
+msgid "Unable to log in to the Flashforge printer."
+msgstr ""
 
 msgid "Is the printer ready? Is the print sheet in place, empty and clean?"
 msgstr "Máy in đã sẵn sàng chưa? Bàn in đã đúng vị trí, trống và sạch chưa?"
@@ -8486,9 +8623,6 @@ msgstr "Group user filament presets"
 msgid "Group user filament presets based on selection"
 msgstr "Group user filament presets based on selection"
 
-msgid "All"
-msgstr "Tất cả"
-
 msgid "By type"
 msgstr "By type"
 
@@ -8672,6 +8806,24 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Phong shading"
+msgstr ""
+
+msgid "Uses Phong shading inside realistic view."
+msgstr ""
+
+msgid "SSAO ambient occlusion"
+msgstr ""
+
+msgid "Applies SSAO in realistic view."
+msgstr ""
+
+msgid "Shadows"
+msgstr ""
+
+msgid "Renders cast shadows on the plate in realistic view."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr ""
 
@@ -8729,9 +8881,16 @@ msgid "Stealth mode"
 msgstr "Stealth mode"
 
 msgid ""
-"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
-"the transmission of data to Bambu's cloud services too. Users who don't use "
-"BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud features, including Orca Cloud profile syncing. "
+"Users who prefer to work entirely offline can enable this option.\n"
+"Note: When Stealth Mode is enabled, your user profiles will not be backed up "
+"to Orca Cloud."
+msgstr ""
+
+msgid "Hide login side panel"
+msgstr ""
+
+msgid "Hide the login side panel on the home page."
 msgstr ""
 
 msgid "Network test"
@@ -8834,6 +8993,14 @@ msgstr "Download Network Plug-in"
 msgid "Associate files to OrcaSlicer"
 msgstr "Liên kết file với OrcaSlicer"
 
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
+
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Liên kết file 3MF với OrcaSlicer"
 
@@ -8866,10 +9033,6 @@ msgstr "Liên kết liên kết web với OrcaSlicer"
 msgid "Developer"
 msgstr "Developer"
 
-#, fuzzy
-msgid "Developer mode"
-msgstr "Chế độ phát triển"
-
 msgid "Skip AMS blacklist check"
 msgstr "Bỏ qua kiểm tra danh sách đen AMS"
 
@@ -8880,6 +9043,14 @@ msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
 "changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
+msgstr ""
+
+msgid "Show unsupported presets"
+msgstr ""
+
+msgid ""
+"Show incompatible/unsupported presets in the printer and filament dropdown "
+"lists. These presets cannot be selected."
 msgstr ""
 
 msgid "Allow Abnormal Storage"
@@ -9655,6 +9826,9 @@ msgstr ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 
+msgid "Sending failed, please try again!"
+msgstr ""
+
 msgid "Slice ok."
 msgstr "Slice hoàn tất."
 
@@ -10058,6 +10232,9 @@ msgstr "Độ rộng đường"
 msgid "Precision"
 msgstr "Độ chính xác"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Trình tạo thành"
 
@@ -10096,6 +10273,9 @@ msgstr "Đặt tốc độ cho cầu bên ngoài và bên trong"
 
 msgid "Travel speed"
 msgstr "Tốc độ di chuyển"
+
+msgid "Junction Deviation"
+msgstr "Junction Deviation"
 
 msgid "Jerk(XY)"
 msgstr "Giật(XY)"
@@ -10449,13 +10629,11 @@ msgid "Retraction when switching material"
 msgstr "Rút khi chuyển vật liệu"
 
 msgid ""
-"The Wipe option is not available when using the Firmware Retraction mode.\n"
+"The Retract before wipe option could be only 100% when using the Firmware "
+"Retraction mode.\n"
 "\n"
-"Shall I disable it in order to enable Firmware Retraction?"
+"Shall I set it to 100% in order to enable Firmware Retraction?"
 msgstr ""
-"Tùy chọn lau không khả dụng khi sử dụng chế độ rút firmware.\n"
-"\n"
-"Tôi có nên tắt nó để bật rút firmware?"
 
 msgid "Firmware Retraction"
 msgstr "Rút firmware"
@@ -10961,9 +11139,6 @@ msgstr ""
 "And unused printer filaments will be automatically added to the end of the "
 "list."
 
-msgid "Advanced settings"
-msgstr "Advanced settings"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Add unused AMS filaments to filaments list."
 
@@ -11459,11 +11634,22 @@ msgstr "Có plug-in mạng mới (%s). Bạn có muốn cài đặt nó?"
 msgid "New version of Orca Slicer"
 msgstr "Phiên bản mới của Orca Slicer"
 
-msgid "Check on Github"
+msgid "Check on Microsoft Store"
+msgstr ""
+
+msgid "Check on GitHub"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "Bỏ qua phiên bản này"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Xác nhận và cập nhật đầu phun"
@@ -11577,6 +11763,9 @@ msgstr "Module cắt"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Auto Fire Extinguishing System"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "Cập nhật firmware"
@@ -12101,6 +12290,19 @@ msgstr ""
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Chiều cao lớp không thể vượt quá đường kính đầu phun."
 
+msgid "Bridge line width must not exceed nozzle diameter"
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
 msgid ""
 "Relative extruder addressing requires resetting the extruder position at "
 "each layer to prevent loss of floating point accuracy. Add \"G92 E0\" to "
@@ -12110,18 +12312,14 @@ msgstr ""
 "ngăn mất độ chính xác số thực dấu phẩy động. Thêm \"G92 E0\" vào layer_gcode."
 
 msgid ""
-"\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
-"absolute extruder addressing."
+"\"G92 E0\" was found in before_layer_change_gcode, which is incompatible "
+"with absolute extruder addressing."
 msgstr ""
-"\"G92 E0\" được tìm thấy trong before_layer_gcode, không tương thích với địa "
-"chỉ extruder tuyệt đối."
 
 msgid ""
-"\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
-"extruder addressing."
+"\"G92 E0\" was found in layer_change_gcode, which is incompatible with "
+"absolute extruder addressing."
 msgstr ""
-"\"G92 E0\" được tìm thấy trong layer_gcode, không tương thích với địa chỉ "
-"extruder tuyệt đối."
 
 #, c-format, boost-format
 msgid "Plate %d: %s does not support filament %s"
@@ -12226,6 +12424,31 @@ msgstr "Vùng có thể in"
 msgid "Extruder printable area"
 msgstr "Extruder printable area"
 
+msgid "Support parallel printheads"
+msgstr ""
+
+msgid ""
+"Enable printer settings for machines that can use multiple printheads in "
+"parallel."
+msgstr ""
+
+msgid "Parallel printheads count"
+msgstr ""
+
+msgid ""
+"Set the number of parallel printheads for machines like OrangeStorm Giga "
+"printer."
+msgstr ""
+
+msgid "Parallel printheads bed exclude areas"
+msgstr ""
+
+msgid ""
+"Ordered list of bed exclude areas by parallel printhead count. Item 1 "
+"applies to one printhead, item 2 to two printheads, and so on. Leave an item "
+"empty for no excluded area."
+msgstr ""
+
 msgid "Bed exclude area"
 msgstr "Vùng loại trừ bàn in"
 
@@ -12313,6 +12536,15 @@ msgstr "Sử dụng máy chủ in bên thứ ba"
 msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "Cho phép điều khiển máy in BambuLab thông qua máy chủ in bên thứ ba."
 
+msgid "Use 3MF instead of G-code"
+msgstr ""
+
+msgid ""
+"Enable this if the printer accepts a 3MF file as the print job. When "
+"enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a "
+"plain .gcode file."
+msgstr ""
+
 msgid "Printer Agent"
 msgstr "Printer Agent"
 
@@ -12353,6 +12585,12 @@ msgid ""
 msgstr ""
 "Orca Slicer có thể tải file G-code lên máy chủ máy in. Trường này nên chứa "
 "khóa API hoặc mật khẩu cần thiết để xác thực."
+
+msgid "Serial Number"
+msgstr ""
+
+msgid "Flashforge local API requires the printer serial number."
+msgstr ""
 
 msgid "Name of the printer."
 msgstr "Tên của máy in."
@@ -12686,120 +12924,130 @@ msgstr ""
 msgid "External bridge infill direction"
 msgstr "Hướng infill cầu bên ngoài"
 
-#, fuzzy, no-c-format, no-boost-format
+#, no-c-format, no-boost-format
 msgid ""
-"Bridging angle override. If left to zero, the bridging angle will be "
-"calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180° for zero angle."
+"External Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
+"\n"
+"Use 180° for zero absolute angle."
 msgstr ""
-"Ghi đè góc bắc cầu. Nếu để là không, góc bắc cầu sẽ được tính tự động. Nếu "
-"không, góc được cung cấp sẽ được sử dụng cho cầu bên ngoài. Sử dụng 180° cho "
-"góc không."
 
 msgid "Internal bridge infill direction"
 msgstr "Hướng infill cầu bên trong"
 
-#, fuzzy
 msgid ""
-"Internal bridging angle override. If left to zero, the bridging angle will "
-"be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180° for zero angle.\n"
+"Internal Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
 "\n"
-"It is recommended to leave it at 0 unless there is a specific model need not "
-"to."
+"Use 180° for zero absolute angle."
 msgstr ""
-"Ghi đè góc bắc cầu bên trong. Nếu để là không, góc bắc cầu sẽ được tính tự "
-"động. Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên trong. Sử "
-"dụng 180° cho góc không.\n"
-"\n"
-"Khuyến nghị để ở 0 trừ khi có nhu cầu model cụ thể không cần."
+
+msgid "Relative bridge angle"
+msgstr ""
+
+msgid ""
+"When enabled, the bridge angle values are added to the automatically "
+"calculated bridge direction instead of overriding it."
+msgstr ""
 
 msgid "External bridge density"
 msgstr "Mật độ cầu bên ngoài"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
+"Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
+"extrusions to sag, 100% may not be sufficient.\n"
 "\n"
-"Lower density external bridges can help improve reliability as there is more "
-"space for air to circulate around the extruded bridge, improving its cooling "
-"speed. Minimum is 10%.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Produces smoother bridge surfaces, as overlapping lines provide "
+"additional support during printing.\n"
+"  - Cons: Can cause overextrusion, which may reduce lower and upper surface "
+"quality and increase the risk of warping.\n"
 "\n"
-"Higher densities can produce smoother bridge surfaces, as overlapping lines "
-"provide additional support during printing. Maximum is 120%.\n"
-"Note: Bridge density that is too high can cause warping or overextrusion."
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can create a string-like first layer. Faster and with better "
+"cooling because there is more space for air to circulate around the extruded "
+"bridge.\n"
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
-"\n"
-"Lower density external bridges can help improve reliability as there is more "
-"space for air to circulate around the extruded bridge, improving its cooling "
-"speed. Minimum is 10%.\n"
-"\n"
-"Higher densities can produce smoother bridge surfaces, as overlapping lines "
-"provide additional support during printing. Maximum is 120%.\n"
-"Note: Bridge density that is too high can cause warping or overextrusion."
 
 msgid "Internal bridge density"
 msgstr "Mật độ cầu bên trong"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of internal bridge lines.\n"
+"Internal bridges act as intermediate support between sparse infill and top "
+"solid infill and can strongly affect top surface quality.\n"
 "\n"
-"Lower density internal bridges can help reduce top surface pillowing and "
-"improve internal bridge reliability as there is more space for air to "
-"circulate around the extruded bridge, improving its cooling speed.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Improves internal bridge strength and support under top layers, "
+"reducing sagging and improving top-surface finish.\n"
+"  - Cons: Increases material use and print time; excessive density may cause "
+"overextrusion and internal stresses.\n"
+"\n"
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can reduce pillowing and improve cooling (more airflow through the "
+"bridge), and may speed up printing.\n"
+"  - Cons: May reduce internal support, increasing the risk of sagging and "
+"top surface defects.\n"
 "\n"
 "This option works particularly well when combined with the second internal "
-"bridge over infill option, further improving internal bridging structure "
-"before solid infill is extruded."
+"bridge over infill option to improve bridging further before solid infill is "
+"extruded."
 msgstr ""
-"Điều khiển mật độ (khoảng cách) của các đường cầu bên trong. 100% có nghĩa "
-"là cầu đặc. Mặc định là 100%.\n"
-"\n"
-"Cầu bên trong mật độ thấp hơn có thể giúp giảm hiện tượng gối trên bề mặt "
-"trên và cải thiện độ tin cậy cầu bên trong vì có nhiều không gian hơn để "
-"không khí lưu thông xung quanh cầu được đùn, cải thiện tốc độ làm mát của "
-"nó.\n"
-"\n"
-"Tùy chọn này hoạt động đặc biệt tốt khi kết hợp với tùy chọn cầu bên trong "
-"thứ hai trên infill, cải thiện thêm cấu trúc bắc cầu bên trong trước khi "
-"infill đặc được đùn."
 
 msgid "Bridge flow ratio"
 msgstr "Tỷ lệ lưu lượng cầu"
 
 msgid ""
-"Decrease this value slightly (for example 0.9) to reduce the amount of "
-"material for bridge, to improve sag.\n"
+"This value governs the thickness of the external (visible) bridge layer.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
 "The actual bridge flow used is calculated by multiplying this value with the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Giảm giá trị này một chút (ví dụ 0.9) để giảm lượng vật liệu cho cầu, để cải "
-"thiện độ võng.\n"
+
+msgid ""
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
+"Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
-"Lưu lượng cầu thực tế được sử dụng được tính bằng cách nhân giá trị này với "
-"tỷ lệ lưu lượng filament, và nếu được đặt, tỷ lệ lưu lượng của đối tượng."
+"The maximum value is 100% or the nozzle diameter.\n"
+"If set to 0, the line width will match the Internal solid infill width."
+msgstr ""
 
 msgid "Internal bridge flow ratio"
 msgstr "Tỷ lệ lưu lượng cầu bên trong"
 
 msgid ""
 "This value governs the thickness of the internal bridge layer. This is the "
-"first layer over sparse infill. Decrease this value slightly (for example "
-"0.9) to improve surface quality over sparse infill.\n"
+"first layer over sparse infill so increasing it may increase strength and "
+"upper layer quality.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
-"The actual internal bridge flow used is calculated by multiplying this value "
-"with the bridge flow ratio, the filament flow ratio, and if set, the "
-"object's flow ratio."
+"The actual bridge flow used is calculated by multiplying this value with the "
+"filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Giá trị này điều chỉnh độ dày của lớp cầu bên trong. Đây là lớp đầu tiên "
-"trên infill thưa. Giảm giá trị này một chút (ví dụ 0.9) để cải thiện chất "
-"lượng bề mặt trên infill thưa.\n"
-"\n"
-"Lưu lượng cầu bên trong thực tế được sử dụng được tính bằng cách nhân giá "
-"trị này với tỷ lệ lưu lượng cầu, tỷ lệ lưu lượng filament, và nếu được đặt, "
-"tỷ lệ lưu lượng của đối tượng."
 
 msgid "Top surface flow ratio"
 msgstr "Tỷ lệ lưu lượng bề mặt trên"
@@ -13134,37 +13382,35 @@ msgstr "Giảm tốc cho chu vi cong"
 #, no-c-format, no-boost-format
 msgid ""
 "Enable this option to slow down printing in areas where perimeters may have "
-"curled upwards. For example, additional slowdown will be applied when "
-"printing overhangs on sharp corners like the front of the Benchy hull, "
-"reducing curling which compounds over multiple layers.\n"
+"curled upwards.\n"
+"For example, additional slowdown will be applied when printing overhangs on "
+"sharp corners like the front of the Benchy hull, reducing curling which "
+"compounds over multiple layers.\n"
 "\n"
 "It is generally recommended to have this option switched on unless your "
-"printer cooling is powerful enough or the print speed slow enough that "
-"perimeter curling does not happen. If printing with a high external "
-"perimeter speed, this parameter may introduce slight artifacts when slowing "
-"down due to the large variance in print speeds. If you notice artifacts, "
-"ensure your pressure advance is tuned correctly.\n"
+"printer cooling is powerful enough or the print speed is slow enough that "
+"perimeter curling does not happen. \n"
+"If printing with a high external perimeter speed, this parameter may "
+"introduce wall artifacts when slowing down, due to the potentially large "
+"variance in print speeds causing the extruder to be unable to keep up with "
+"the requested flow change.\n"
+"Root cause of these artifacts is most likely PA tuning being slightly off, "
+"especially when combined with a high PA smooth time.\n"
+"\n"
+"Recommendations when enabling this option:\n"
+"1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder "
+"reacts quickly to the speed changes.\n"
+"2. Increase the minimum print speeds to limit the magnitude of the slowdown "
+"and reduce the variance between fast and slow segments.\n"
+"3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to "
+"further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like "
 "overhangs, meaning the overhang speed is applied even if the overhanging "
-"perimeter is part of a bridge. For example, when the perimeters are 100% "
-"overhanging, with no wall supporting them from underneath, the 100% overhang "
-"speed will be applied."
+"perimeter is part of a bridge.\n"
+"For example, when the perimeters are 100% overhanging, with no wall "
+"supporting them from underneath, the 100% overhang speed will be applied."
 msgstr ""
-"Bật tùy chọn này để giảm tốc độ in trong vùng mà chu vi có thể cong lên "
-"trên. Ví dụ, giảm tốc bổ sung sẽ được áp dụng khi in phần nhô trên góc sắc "
-"như phía trước thân Benchy, giảm độ cong tích lũy qua nhiều lớp.\n"
-"\n"
-"Thông thường khuyến nghị bật tùy chọn này trừ khi làm mát máy in của bạn đủ "
-"mạnh hoặc tốc độ in đủ chậm để chu vi không cong. Nếu in với tốc độ chu vi "
-"bên ngoài cao, tham số này có thể tạo ra khuyết điểm nhỏ khi giảm tốc do sự "
-"chênh lệch lớn về tốc độ in. Nếu bạn nhận thấy khuyết điểm, hãy đảm bảo áp "
-"suất nâng cao của bạn được điều chỉnh đúng.\n"
-"\n"
-"Lưu ý: Khi tùy chọn này được bật, chu vi nhô được coi như phần nhô, nghĩa là "
-"tốc độ nhô được áp dụng ngay cả khi chu vi nhô là một phần của cầu. Ví dụ, "
-"khi chu vi nhô 100% , không có thành hỗ trợ chúng từ bên dưới, tốc độ nhô "
-"100% sẽ được áp dụng."
 
 msgid "mm/s or %"
 msgstr "mm/s hoặc %"
@@ -13424,24 +13670,25 @@ msgid "Thick external bridges"
 msgstr "Cầu bên ngoài dày"
 
 msgid ""
-"If enabled, bridges are more reliable, can bridge longer distances, but may "
-"look worse. If disabled, bridges look better but are reliable just for "
-"shorter bridged distances."
+"If enabled, bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases bridge strength and reliability, allowing longer spans, but "
+"may worsen appearance.\n"
+"If disabled, bridges may look better but are generally reliable only for "
+"shorter spans."
 msgstr ""
-"Nếu được bật, cầu đáng tin cậy hơn, có thể bắc cầu khoảng cách dài hơn, "
-"nhưng có thể trông xấu hơn. Nếu bị tắt, cầu trông đẹp hơn nhưng chỉ đáng tin "
-"cậy cho khoảng cách bắc cầu ngắn hơn."
 
 msgid "Thick internal bridges"
 msgstr "Cầu bên trong dày"
 
 msgid ""
-"If enabled, thick internal bridges will be used. It's usually recommended to "
-"have this feature turned on. However, consider turning it off if you are "
-"using large nozzles."
+"If enabled, internal bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases internal bridge strength and reliability when printed over "
+"sparse infill, but may worsen appearance.\n"
+"If disabled, internal bridges may look better but can be less reliable over "
+"sparse infill."
 msgstr ""
-"Nếu được bật, cầu bên trong dày sẽ được sử dụng. Thường khuyến nghị bật tính "
-"năng này. Tuy nhiên, hãy cân nhắc tắt nó nếu bạn đang sử dụng đầu phun lớn."
 
 msgid "Extra bridge layers (beta)"
 msgstr "Lớp cầu bổ sung (beta)"
@@ -14650,13 +14897,11 @@ msgid "Align infill direction to model"
 msgstr "Căn chỉnh hướng infill với model"
 
 msgid ""
-"Aligns infill and surface fill directions to follow the model's orientation "
-"on the build plate. When enabled, fill directions rotate with the model to "
-"maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing and surface fill directions to follow the "
+"model's orientation on the build plate.\n"
+"When enabled, directions rotate with the model to maintain optimal strength "
+"characteristics."
 msgstr ""
-"Căn chỉnh hướng infill và lấp bề mặt để theo định hướng của model trên bàn "
-"in. Khi được bật, hướng lấp xoay theo model để duy trì đặc tính độ bền tối "
-"ưu."
 
 msgid "Insert solid layers"
 msgstr "Chèn lớp đặc"
@@ -14775,6 +15020,27 @@ msgstr "Góc nhô infill"
 msgid ""
 "The angle of the infill angled lines. 60° will result in a pure honeycomb."
 msgstr "Góc của các đường infill góc. 60° sẽ tạo ra tổ ong thuần túy."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are "
+"pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
 
 msgid "Sparse infill anchor length"
 msgstr "Độ dài neo infill thưa"
@@ -14910,9 +15176,6 @@ msgstr ""
 
 msgid "Default jerk."
 msgstr "Giật mặc định."
-
-msgid "Junction Deviation"
-msgstr "Junction Deviation"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -15772,8 +16035,10 @@ msgstr "Probing exclude area of clumping"
 msgid "Probing exclude area of clumping."
 msgstr "Probing exclude area of clumping."
 
-msgid "Filament to print internal sparse infill."
-msgstr "Filament để in infill thưa bên trong."
+msgid ""
+"Filament to print internal sparse infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal sparse infill. If expressed as a %, it will be "
@@ -15989,16 +16254,13 @@ msgid ""
 "A reasonable value is 35. Set to 0 to disable."
 msgstr ""
 
-msgid "°"
-msgstr "°"
-
 msgid "Don't alternate fill direction"
 msgstr ""
 
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr ""
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr ""
 
 msgid ""
@@ -16596,8 +16858,21 @@ msgstr ""
 "Phát hiện phần trăm nhô tương đối với độ rộng đường và sử dụng tốc độ khác "
 "nhau để in. Đối với phần nhô 100%%, tốc độ cầu được sử dụng."
 
-msgid "Filament to print walls."
-msgstr "Filament để in thành."
+msgid "Outer walls"
+msgstr ""
+
+msgid ""
+"Filament to print outer walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid "Inner walls"
+msgstr ""
+
+msgid ""
+"Filament to print inner walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of inner wall. If expressed as a %, it will be computed over the "
@@ -17274,11 +17549,20 @@ msgstr ""
 "Vùng infill thưa nhỏ hơn giá trị ngưỡng được thay thế bằng infill đặc bên "
 "trong."
 
-msgid "Solid infill"
-msgstr "Infill đặc"
+msgid ""
+"Filament to print internal solid infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
-msgid "Filament to print solid infill."
-msgstr "Filament để in infill đặc."
+msgid ""
+"Filament to print top surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid ""
+"Filament to print bottom surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal solid infill. If expressed as a %, it will be "
@@ -17648,11 +17932,10 @@ msgid "Support/raft base"
 msgstr "Đế support/raft"
 
 msgid ""
-"Filament to print support base and raft. \"Default\" means no specific "
-"filament for support and current filament is used."
+"Filament to print support base and raft.\n"
+"\"Default\" means no specific filament for support and current filament is "
+"used."
 msgstr ""
-"Filament để in đế support và raft. \"Mặc định\" có nghĩa là không có "
-"filament cụ thể cho support và filament hiện tại được sử dụng."
 
 msgid "Avoid interface filament for base"
 msgstr "Tránh filament giao diện cho đế"
@@ -17679,11 +17962,10 @@ msgid "Support/raft interface"
 msgstr "Giao diện support/raft"
 
 msgid ""
-"Filament to print support interface. \"Default\" means no specific filament "
-"for support interface and current filament is used."
+"Filament to print support interface.\n"
+"\"Default\" means no specific filament for support interface and current "
+"filament is used."
 msgstr ""
-"Filament để in giao diện support. \"Mặc định\" có nghĩa là không có filament "
-"cụ thể cho giao diện support và filament hiện tại được sử dụng."
 
 msgid "Top interface layers"
 msgstr "Lớp giao diện trên"
@@ -18728,6 +19010,9 @@ msgstr "giá trị không hợp lệ "
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Giá trị không hợp lệ khi chế độ bình xoắn ốc được bật: "
 
+msgid "Bridge line width must not exceed nozzle diameter: "
+msgstr ""
+
 msgid "too large line width "
 msgstr "độ rộng đường quá lớn "
 
@@ -18983,6 +19268,12 @@ msgid ""
 msgstr ""
 "Đặt mức ghi log gỡ lỗi. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
 "5:trace\n"
+
+msgid "Log file"
+msgstr ""
+
+msgid "Redirects debug logging to file.\n"
+msgstr ""
 
 msgid "Enable timelapse for print"
 msgstr "Bật timelapse cho in"
@@ -19447,9 +19738,6 @@ msgstr "Đang tạo vùng infill"
 
 msgid "Generating infill toolpath"
 msgstr "Đang tạo đường dẫn công cụ infill"
-
-msgid "Z contouring"
-msgstr ""
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Phát hiện phần nhô để tự động nâng"
@@ -20494,6 +20782,15 @@ msgstr ""
 msgid "Top Surface Pattern"
 msgstr ""
 
+msgid "Choose a slot for the selected color"
+msgstr ""
+
+msgid "Material in the material station"
+msgstr ""
+
+msgid "Only materials of the same type can be selected."
+msgstr ""
+
 msgid "Send G-code to printer host"
 msgstr "Gửi G-code đến máy chủ máy in"
 
@@ -20516,6 +20813,48 @@ msgstr ""
 
 msgid "Upload"
 msgstr "Tải lên"
+
+msgid "Leveling before print"
+msgstr ""
+
+msgid "Time-lapse"
+msgstr "Timelapse"
+
+msgid "Enable IFS"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Detected %d IFS slots on printer."
+msgstr ""
+
+msgid "This printer does not report a material station."
+msgstr ""
+
+msgid "Unable to read IFS slots from printer."
+msgstr ""
+
+msgid "Loading IFS slots from printer..."
+msgstr ""
+
+msgid "Slice the plate first to get project material information."
+msgstr ""
+
+msgid ""
+"This plate uses multiple materials. Enable IFS and assign each tool to a "
+"printer slot."
+msgstr ""
+
+msgid "Each project material must be assigned to an IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must be assigned to a loaded IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must match the material loaded in the selected IFS "
+"slot."
+msgstr ""
 
 msgid "Print host upload queue"
 msgstr "Hàng đợi tải lên máy chủ in"
@@ -20560,9 +20899,6 @@ msgid ""
 msgstr ""
 "Loại bàn đã chọn không khớp với file. Vui lòng xác nhận trước khi bắt đầu in."
 
-msgid "Time-lapse"
-msgstr "Timelapse"
-
 msgid "Heated Bed Leveling"
 msgstr "San bằng bàn nóng"
 
@@ -20571,6 +20907,16 @@ msgstr "Bàn in có kết cấu (Mặt A)"
 
 msgid "Smooth Build Plate (Side B)"
 msgstr "Bàn in mịn (Mặt B)"
+
+#, c-format, boost-format
+msgid "Printer: %s"
+msgstr ""
+
+msgid "Calibrate before printing"
+msgstr ""
+
+msgid "Filament Mapping:"
+msgstr ""
 
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Không thể thực hiện thao tác boolean trên các phần đã chọn"
@@ -20841,9 +21187,6 @@ msgstr "Cài đặt sẵn máy in"
 
 msgid "Filament Preset Template"
 msgstr "Mẫu cài đặt sẵn filament"
-
-msgid "Deselect All"
-msgstr "Bỏ chọn tất cả"
 
 msgid "Process Preset Template"
 msgstr "Mẫu cài đặt sẵn quy trình"
@@ -21265,8 +21608,17 @@ msgstr ""
 "Select the network agent implementation for printer communication. Available "
 "agents are registered at startup."
 
+msgid "Select a Flashforge printer"
+msgstr ""
+
+msgid "Discovered Printers"
+msgstr ""
+
 msgid "Could not get a valid Printer Host reference"
 msgstr "Không thể có tham chiếu máy chủ máy in hợp lệ"
+
+msgid "Valid session not detected. Proceed with login to 3DPrinterOS?"
+msgstr ""
 
 msgid "Success!"
 msgstr "Thành công!"
@@ -21313,6 +21665,42 @@ msgstr "Đăng nhập/Kiểm tra"
 
 msgid "Connection to printers connected via the print host failed."
 msgstr "Kết nối với máy in được kết nối qua máy chủ in thất bại."
+
+msgid "3DPrinterOS Cloud upload options"
+msgstr ""
+
+msgid "Single file"
+msgstr ""
+
+msgid "Project File"
+msgstr ""
+
+msgid "Project:"
+msgstr ""
+
+msgid "Printer type:"
+msgstr ""
+
+msgid "Printer type not found, please select manually."
+msgstr ""
+
+msgid "Authorizing..."
+msgstr ""
+
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
+msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -22081,11 +22469,125 @@ msgid "SimplyPrint account not linked. Go to Connect options to set it up."
 msgstr ""
 "Tài khoản SimplyPrint chưa được liên kết. Đến tùy chọn Kết nối để thiết lập."
 
+msgid "Flashforge returned an invalid JSON response."
+msgstr ""
+
+msgid "No Flashforge printers were discovered on the local network."
+msgstr ""
+
+msgid "Connected to Flashforge local API successfully."
+msgstr ""
+
 msgid "Serial connection to Flashforge is working correctly."
 msgstr "Kết nối serial với Flashforge hoạt động chính xác."
 
+msgid "Could not connect to Flashforge local API"
+msgstr ""
+
 msgid "Could not connect to Flashforge via serial"
 msgstr "Không thể kết nối với Flashforge qua serial"
+
+msgid "Flashforge local API requires both serial number and access code."
+msgstr ""
+
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
 
 msgid "The provided state is not correct."
 msgstr "Trạng thái được cung cấp không chính xác."
@@ -22140,6 +22642,12 @@ msgstr "Tai vành"
 msgid "Please select single object."
 msgstr "Vui lòng chọn một đối tượng duy nhất."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "Zoom Out"
 
@@ -22148,6 +22656,9 @@ msgstr "Zoom In"
 
 msgid "Load skipping objects information failed. Please try again."
 msgstr "Load skipping objects information failed. Please try again."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -22299,6 +22810,100 @@ msgstr "Number of triangular facets"
 
 msgid "Calculating, please wait..."
 msgstr "Calculating, please wait..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - "
+"boost::filesystem::canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -22708,6 +23313,227 @@ msgstr ""
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn "
 "nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
+#~ msgid "part selection"
+#~ msgstr "chọn phần"
+
+#~ msgid "°"
+#~ msgstr "°"
+
+#~ msgid ""
+#~ "The Wipe option is not available when using the Firmware Retraction "
+#~ "mode.\n"
+#~ "\n"
+#~ "Shall I disable it in order to enable Firmware Retraction?"
+#~ msgstr ""
+#~ "Tùy chọn lau không khả dụng khi sử dụng chế độ rút firmware.\n"
+#~ "\n"
+#~ "Tôi có nên tắt nó để bật rút firmware?"
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
+#~ "absolute extruder addressing."
+#~ msgstr ""
+#~ "\"G92 E0\" được tìm thấy trong before_layer_gcode, không tương thích với "
+#~ "địa chỉ extruder tuyệt đối."
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
+#~ "extruder addressing."
+#~ msgstr ""
+#~ "\"G92 E0\" được tìm thấy trong layer_gcode, không tương thích với địa chỉ "
+#~ "extruder tuyệt đối."
+
+#, fuzzy, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Bridging angle override. If left to zero, the bridging angle will be "
+#~ "calculated automatically. Otherwise the provided angle will be used for "
+#~ "external bridges. Use 180° for zero angle."
+#~ msgstr ""
+#~ "Ghi đè góc bắc cầu. Nếu để là không, góc bắc cầu sẽ được tính tự động. "
+#~ "Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên ngoài. Sử dụng "
+#~ "180° cho góc không."
+
+#, fuzzy
+#~ msgid ""
+#~ "Internal bridging angle override. If left to zero, the bridging angle "
+#~ "will be calculated automatically. Otherwise the provided angle will be "
+#~ "used for internal bridges. Use 180° for zero angle.\n"
+#~ "\n"
+#~ "It is recommended to leave it at 0 unless there is a specific model need "
+#~ "not to."
+#~ msgstr ""
+#~ "Ghi đè góc bắc cầu bên trong. Nếu để là không, góc bắc cầu sẽ được tính "
+#~ "tự động. Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên trong. "
+#~ "Sử dụng 180° cho góc không.\n"
+#~ "\n"
+#~ "Khuyến nghị để ở 0 trừ khi có nhu cầu model cụ thể không cần."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of external bridge lines. Default is "
+#~ "100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed. Minimum is 10%.\n"
+#~ "\n"
+#~ "Higher densities can produce smoother bridge surfaces, as overlapping "
+#~ "lines provide additional support during printing. Maximum is 120%.\n"
+#~ "Note: Bridge density that is too high can cause warping or overextrusion."
+#~ msgstr ""
+#~ "Controls the density (spacing) of external bridge lines. Default is "
+#~ "100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed. Minimum is 10%.\n"
+#~ "\n"
+#~ "Higher densities can produce smoother bridge surfaces, as overlapping "
+#~ "lines provide additional support during printing. Maximum is 120%.\n"
+#~ "Note: Bridge density that is too high can cause warping or overextrusion."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of internal bridge lines. 100% means solid "
+#~ "bridge. Default is 100%.\n"
+#~ "\n"
+#~ "Lower density internal bridges can help reduce top surface pillowing and "
+#~ "improve internal bridge reliability as there is more space for air to "
+#~ "circulate around the extruded bridge, improving its cooling speed.\n"
+#~ "\n"
+#~ "This option works particularly well when combined with the second "
+#~ "internal bridge over infill option, further improving internal bridging "
+#~ "structure before solid infill is extruded."
+#~ msgstr ""
+#~ "Điều khiển mật độ (khoảng cách) của các đường cầu bên trong. 100% có "
+#~ "nghĩa là cầu đặc. Mặc định là 100%.\n"
+#~ "\n"
+#~ "Cầu bên trong mật độ thấp hơn có thể giúp giảm hiện tượng gối trên bề mặt "
+#~ "trên và cải thiện độ tin cậy cầu bên trong vì có nhiều không gian hơn để "
+#~ "không khí lưu thông xung quanh cầu được đùn, cải thiện tốc độ làm mát của "
+#~ "nó.\n"
+#~ "\n"
+#~ "Tùy chọn này hoạt động đặc biệt tốt khi kết hợp với tùy chọn cầu bên "
+#~ "trong thứ hai trên infill, cải thiện thêm cấu trúc bắc cầu bên trong "
+#~ "trước khi infill đặc được đùn."
+
+#~ msgid ""
+#~ "Decrease this value slightly (for example 0.9) to reduce the amount of "
+#~ "material for bridge, to improve sag.\n"
+#~ "\n"
+#~ "The actual bridge flow used is calculated by multiplying this value with "
+#~ "the filament flow ratio, and if set, the object's flow ratio."
+#~ msgstr ""
+#~ "Giảm giá trị này một chút (ví dụ 0.9) để giảm lượng vật liệu cho cầu, để "
+#~ "cải thiện độ võng.\n"
+#~ "\n"
+#~ "Lưu lượng cầu thực tế được sử dụng được tính bằng cách nhân giá trị này "
+#~ "với tỷ lệ lưu lượng filament, và nếu được đặt, tỷ lệ lưu lượng của đối "
+#~ "tượng."
+
+#~ msgid ""
+#~ "This value governs the thickness of the internal bridge layer. This is "
+#~ "the first layer over sparse infill. Decrease this value slightly (for "
+#~ "example 0.9) to improve surface quality over sparse infill.\n"
+#~ "\n"
+#~ "The actual internal bridge flow used is calculated by multiplying this "
+#~ "value with the bridge flow ratio, the filament flow ratio, and if set, "
+#~ "the object's flow ratio."
+#~ msgstr ""
+#~ "Giá trị này điều chỉnh độ dày của lớp cầu bên trong. Đây là lớp đầu tiên "
+#~ "trên infill thưa. Giảm giá trị này một chút (ví dụ 0.9) để cải thiện chất "
+#~ "lượng bề mặt trên infill thưa.\n"
+#~ "\n"
+#~ "Lưu lượng cầu bên trong thực tế được sử dụng được tính bằng cách nhân giá "
+#~ "trị này với tỷ lệ lưu lượng cầu, tỷ lệ lưu lượng filament, và nếu được "
+#~ "đặt, tỷ lệ lưu lượng của đối tượng."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enable this option to slow down printing in areas where perimeters may "
+#~ "have curled upwards. For example, additional slowdown will be applied "
+#~ "when printing overhangs on sharp corners like the front of the Benchy "
+#~ "hull, reducing curling which compounds over multiple layers.\n"
+#~ "\n"
+#~ "It is generally recommended to have this option switched on unless your "
+#~ "printer cooling is powerful enough or the print speed slow enough that "
+#~ "perimeter curling does not happen. If printing with a high external "
+#~ "perimeter speed, this parameter may introduce slight artifacts when "
+#~ "slowing down due to the large variance in print speeds. If you notice "
+#~ "artifacts, ensure your pressure advance is tuned correctly.\n"
+#~ "\n"
+#~ "Note: When this option is enabled, overhang perimeters are treated like "
+#~ "overhangs, meaning the overhang speed is applied even if the overhanging "
+#~ "perimeter is part of a bridge. For example, when the perimeters are 100% "
+#~ "overhanging, with no wall supporting them from underneath, the 100% "
+#~ "overhang speed will be applied."
+#~ msgstr ""
+#~ "Bật tùy chọn này để giảm tốc độ in trong vùng mà chu vi có thể cong lên "
+#~ "trên. Ví dụ, giảm tốc bổ sung sẽ được áp dụng khi in phần nhô trên góc "
+#~ "sắc như phía trước thân Benchy, giảm độ cong tích lũy qua nhiều lớp.\n"
+#~ "\n"
+#~ "Thông thường khuyến nghị bật tùy chọn này trừ khi làm mát máy in của bạn "
+#~ "đủ mạnh hoặc tốc độ in đủ chậm để chu vi không cong. Nếu in với tốc độ "
+#~ "chu vi bên ngoài cao, tham số này có thể tạo ra khuyết điểm nhỏ khi giảm "
+#~ "tốc do sự chênh lệch lớn về tốc độ in. Nếu bạn nhận thấy khuyết điểm, hãy "
+#~ "đảm bảo áp suất nâng cao của bạn được điều chỉnh đúng.\n"
+#~ "\n"
+#~ "Lưu ý: Khi tùy chọn này được bật, chu vi nhô được coi như phần nhô, nghĩa "
+#~ "là tốc độ nhô được áp dụng ngay cả khi chu vi nhô là một phần của cầu. Ví "
+#~ "dụ, khi chu vi nhô 100% , không có thành hỗ trợ chúng từ bên dưới, tốc độ "
+#~ "nhô 100% sẽ được áp dụng."
+
+#~ msgid ""
+#~ "If enabled, bridges are more reliable, can bridge longer distances, but "
+#~ "may look worse. If disabled, bridges look better but are reliable just "
+#~ "for shorter bridged distances."
+#~ msgstr ""
+#~ "Nếu được bật, cầu đáng tin cậy hơn, có thể bắc cầu khoảng cách dài hơn, "
+#~ "nhưng có thể trông xấu hơn. Nếu bị tắt, cầu trông đẹp hơn nhưng chỉ đáng "
+#~ "tin cậy cho khoảng cách bắc cầu ngắn hơn."
+
+#~ msgid ""
+#~ "If enabled, thick internal bridges will be used. It's usually recommended "
+#~ "to have this feature turned on. However, consider turning it off if you "
+#~ "are using large nozzles."
+#~ msgstr ""
+#~ "Nếu được bật, cầu bên trong dày sẽ được sử dụng. Thường khuyến nghị bật "
+#~ "tính năng này. Tuy nhiên, hãy cân nhắc tắt nó nếu bạn đang sử dụng đầu "
+#~ "phun lớn."
+
+#~ msgid ""
+#~ "Aligns infill and surface fill directions to follow the model's "
+#~ "orientation on the build plate. When enabled, fill directions rotate with "
+#~ "the model to maintain optimal strength characteristics."
+#~ msgstr ""
+#~ "Căn chỉnh hướng infill và lấp bề mặt để theo định hướng của model trên "
+#~ "bàn in. Khi được bật, hướng lấp xoay theo model để duy trì đặc tính độ "
+#~ "bền tối ưu."
+
+#~ msgid "Filament to print internal sparse infill."
+#~ msgstr "Filament để in infill thưa bên trong."
+
+#~ msgid "Filament to print walls."
+#~ msgstr "Filament để in thành."
+
+#~ msgid "Solid infill"
+#~ msgstr "Infill đặc"
+
+#~ msgid "Filament to print solid infill."
+#~ msgstr "Filament để in infill đặc."
+
+#~ msgid ""
+#~ "Filament to print support base and raft. \"Default\" means no specific "
+#~ "filament for support and current filament is used."
+#~ msgstr ""
+#~ "Filament để in đế support và raft. \"Mặc định\" có nghĩa là không có "
+#~ "filament cụ thể cho support và filament hiện tại được sử dụng."
+
+#~ msgid ""
+#~ "Filament to print support interface. \"Default\" means no specific "
+#~ "filament for support interface and current filament is used."
+#~ msgstr ""
+#~ "Filament để in giao diện support. \"Mặc định\" có nghĩa là không có "
+#~ "filament cụ thể cho giao diện support và filament hiện tại được sử dụng."
+
 #~ msgid "Erase all painting"
 #~ msgstr "Xóa tất cả vẽ"
 
@@ -22831,9 +23657,6 @@ msgstr ""
 
 #~ msgid "Mouse wheel:"
 #~ msgstr "Con lăn chuột:"
-
-#~ msgid "Object selection"
-#~ msgstr "chọn vật thể"
 
 #~ msgid "Pass 1"
 #~ msgstr "Lần 1"
@@ -23481,9 +24304,6 @@ msgstr ""
 
 #~ msgid "Login Region"
 #~ msgstr "Khu vực đăng nhập"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Chế độ ẩn danh"
 
 #~ msgid "Use legacy network plugin (Takes effect after restarting Orca)"
 #~ msgstr "Sử dụng plugin mạng cũ (Có hiệu lực sau khi khởi động lại Orca)"
