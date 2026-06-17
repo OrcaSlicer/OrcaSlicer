@@ -736,7 +736,7 @@ qhull(1)                                                 qhull(1)
               Geomview displays the precise plane (no merging) or
               both inner  and  output  planes  (merging).   Under
               merging,  Geomview does not display the inner plane
-              if the the difference between inner  and  outer  is
+              if the difference between inner  and  outer  is
               too small.
 
        Go     Display  outer  planes  in  2-d and 3-d.  The outer

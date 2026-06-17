@@ -1451,7 +1451,7 @@ extern "C" void preproc(
     // for 2 reasons:
     // 1)   the input meshes may not be in "general position"
     // 2)   the resulting intersection between the input meshes may
-    //      produce "floating polygons" (an input mesh intersects a face of the the other in such a way that none of the edges of this face are severed).
+    //      produce "floating polygons" (an input mesh intersects a face of the other in such a way that none of the edges of this face are severed).
     //
     // For each reason, we need to modify the input(s) in order to have a valid (proper intersection-permitting) configuration.
     // If general position is violated, then we apply numerical perturbation of the cut-mesh.

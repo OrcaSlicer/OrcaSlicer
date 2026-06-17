@@ -2729,12 +2729,12 @@ msgstr "ป้อนชื่อใหม่"
 msgid "Renaming"
 msgstr "กำลังเปลี่ยนชื่อ"
 
-msgid "Following model object has been repaired"
-msgid_plural "Following model objects have been repaired"
+msgid "The following model object has been repaired"
+msgid_plural "The following model objects have been repaired"
 msgstr[0] "ซ่อมแซมวัตถุโมเดลต่อไปนี้แล้ว"
 
-msgid "Failed to repair following model object"
-msgid_plural "Failed to repair following model objects"
+msgid "Failed to repair the following model object"
+msgid_plural "Failed to repair the following model objects"
 msgstr[0] "ล้มเหลวในการซ่อมแซมวัตถุโมเดลต่อไปนี้"
 
 msgid "Repairing was canceled"
@@ -9408,10 +9408,10 @@ msgstr "บ่อย"
 #, c-format, boost-format
 msgid ""
 "Following line %s contains reserved keywords.\n"
-"Please remove it, or will beat G-code visualization and printing time estimation."
+"Please remove it, or G-code visualization and print time estimation will be broken."
 msgid_plural ""
 "Following lines %s contain reserved keywords.\n"
-"Please remove them, or will beat G-code visualization and printing time estimation."
+"Please remove them, or G-code visualization and print time estimation will be broken."
 msgstr[0] ""
 
 msgid "Reserved keywords found"
@@ -9704,8 +9704,8 @@ msgstr[0] "พรีเซ็ตต่อไปนี้สืบทอดจา
 msgid "%1% Preset"
 msgstr "%1% ที่ตั้งไว้ล่วงหน้า"
 
-msgid "Following preset will be deleted too:"
-msgid_plural "Following presets will be deleted too:"
+msgid "The following preset will be deleted too:"
+msgid_plural "The following presets will be deleted too:"
 msgstr[0] "พรีเซ็ตต่อไปนี้จะถูกลบด้วย"
 
 msgid ""

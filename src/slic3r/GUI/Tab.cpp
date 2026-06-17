@@ -3553,8 +3553,8 @@ bool Tab::validate_custom_gcode(const wxString& title, const std::string& gcode)
         for (const std::string& keyword : tags)
             lines += ";" + keyword + "\n";
         wxString reports = format_wxstr(
-            _L_PLURAL("Following line %s contains reserved keywords.\nPlease remove it, or will beat G-code visualization and printing time estimation.",
-                      "Following lines %s contain reserved keywords.\nPlease remove them, or will beat G-code visualization and printing time estimation.",
+            _L_PLURAL("Following line %s contains reserved keywords.\nPlease remove it, or G-code visualization and print time estimation will be broken.",
+                      "Following lines %s contain reserved keywords.\nPlease remove them, or G-code visualization and print time estimation will be broken.",
                       tags.size()),
             lines);
         //wxMessageDialog dialog(wxGetApp().mainframe, reports, _L("Found reserved keywords in") + " " + _(title), wxICON_WARNING | wxOK);
@@ -6857,7 +6857,7 @@ void Tab::delete_preset()
         //                            "Note, that these printers will be deleted after deleting the selected preset.", ph_printers_only.size()) + "\n\n";
         //}
         if (!ph_printers.empty() || !ph_printers_only.empty()) {
-            msg += _L_PLURAL("Following preset will be deleted too:", "Following presets will be deleted too:", ph_printers.size() + ph_printers_only.size());
+            msg += _L_PLURAL("The following preset will be deleted too:", "The following presets will be deleted too:", ph_printers.size() + ph_printers_only.size());
             for (const std::string &printer : ph_printers) msg += "\n    \"" + from_u8(printer) + "\",";
             for (const std::string &printer : ph_printers_only) msg += "\n    \"" + from_u8(printer) + "\",";
             msg.RemoveLast();

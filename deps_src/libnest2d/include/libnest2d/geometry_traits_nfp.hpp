@@ -219,7 +219,7 @@ template<class RawBox, class RawShape, class Ratio = double> inline NfpResult<Ra
  * The "trivial" Cuninghame-Green implementation of NFP for convex polygons.
  *
  * You can use this even if you provide implementations for the more complex
- * cases (Through specializing the the NfpImpl struct). Currently, no other
+ * cases (Through specializing the NfpImpl struct). Currently, no other
  * cases are covered in the library.
  *
  * Complexity should be no more than nlogn (std::sort) in the number of edges
