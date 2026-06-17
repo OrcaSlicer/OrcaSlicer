@@ -1542,6 +1542,12 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 {
 	bool invalidated = Inherited::invalidate_step(step);
 
+    // The Magma tube map is an output of prepare_infill; drop it whenever that
+    // step (or an upstream step) is invalidated, so the slice preview stops
+    // showing a stale injection after the infill config changes.
+    if (step == posSlice || step == posPerimeters || step == posPrepareInfill)
+        m_magma_tube_map.reset();
+
     // propagate to dependent steps
     if (step == posPerimeters) {
 		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
