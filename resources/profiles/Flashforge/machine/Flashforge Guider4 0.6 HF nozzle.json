@@ -49,6 +49,7 @@
 	"head_wrap_detect_zone": [],
 	"high_current_on_filament_swap": "0",
 	"host_type": "octoprint",
+	"use_3mf": "1",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
 	"long_retractions_when_cut": [
 		"0"

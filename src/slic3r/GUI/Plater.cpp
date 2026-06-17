@@ -2474,7 +2474,11 @@ void Sidebar::update_all_preset_comboboxes()
         else
             p->m_bpButton_ams_filament->Hide();
 
-        auto print_btn_type = MainFrame::PrintSelectType::eExportGcode;
+        // Orca: with "Support 3MF as gcode" (use_3mf) the local export is a .gcode.3mf bundle, so when no
+        // printer host/IP is configured the default action is "Export plate sliced file" (mirrors the
+        // print dropdown) instead of "Export G-code file".
+        auto print_btn_type = cfg.opt_bool("use_3mf") ? MainFrame::PrintSelectType::eExportSlicedFile
+                                                      : MainFrame::PrintSelectType::eExportGcode;
         wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
         wxString apikey;
         if(url.empty())
@@ -10229,7 +10233,7 @@ void Plater::priv::on_action_print_plate(SimpleEvent&)
         m_select_machine_dlg->prepare(partplate_list.get_curr_plate_index());
         m_select_machine_dlg->ShowModal();
     } else {
-        q->send_gcode_legacy(PLATE_CURRENT_IDX, nullptr, true);
+        q->send_gcode_legacy(PLATE_CURRENT_IDX, nullptr);
     }
 }
 
@@ -10330,7 +10334,7 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
         m_select_machine_dlg->prepare(PLATE_ALL_IDX);
         m_select_machine_dlg->ShowModal();
     } else {
-        q->send_gcode_legacy(PLATE_ALL_IDX, nullptr, true);
+        q->send_gcode_legacy(PLATE_ALL_IDX, nullptr);
     }
 }
 
@@ -16093,7 +16097,7 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
     // and let the background processing start.
     this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
 }
-void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool use_3mf)
+void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
 {
     // if physical_printer is selected, send gcode for this printer
     // DynamicPrintConfig* physical_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
@@ -16105,17 +16109,9 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
     if (upload_job.empty())
         return;
 
-    const auto  host_type_opt = physical_printer_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
-    const auto  host_type     = host_type_opt != nullptr ? host_type_opt->value : htElegooLink;
-    const auto* ff_serial_opt = physical_printer_config->option<ConfigOptionString>("flashforge_serial_number");
-    const auto* ff_code_opt   = physical_printer_config->option<ConfigOptionString>("printhost_apikey");
-    const bool  flashforge_local_api =
-        host_type == htFlashforge &&
-        ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
-        ff_code_opt != nullptr && !ff_code_opt->value.empty();
-
-    if (flashforge_local_api)
-        use_3mf = true;
+    // Orca: the use_3mf printer option makes us send a .gcode.3mf to the printer
+    const auto* use_3mf_opt = physical_printer_config->option<ConfigOptionBool>("use_3mf");
+    const bool  use_3mf     = use_3mf_opt != nullptr && use_3mf_opt->value;
 
     upload_job.upload_data.use_3mf = use_3mf;
 
@@ -16139,7 +16135,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
     }
     default_output_file = fs::path(Slic3r::fold_utf8_to_ascii(default_output_file.string()));
     if (use_3mf) {
-        default_output_file.replace_extension("3mf");
+        // Orca: a gcode-in-3mf bundle is named ".gcode.3mf" (matching "Export plate sliced file")
+        default_output_file.replace_extension(".gcode.3mf");
     }
 
     // Repetier specific: Query the server for the list of file groups.
@@ -16165,6 +16162,13 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
     {
         auto        preset_bundle = wxGetApp().preset_bundle;
         auto        config        = get_app_config();
+
+        const auto host_type_opt        = physical_printer_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
+        const auto host_type            = host_type_opt != nullptr ? host_type_opt->value : htElegooLink;
+        const auto* ff_serial_opt       = physical_printer_config->option<ConfigOptionString>("flashforge_serial_number");
+        const auto* ff_code_opt         = physical_printer_config->option<ConfigOptionString>("printhost_apikey");
+        const bool flashforge_local_api = host_type == htFlashforge && ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
+                                          ff_code_opt != nullptr && !ff_code_opt->value.empty();
 
         std::unique_ptr<PrintHostSendDialog> pDlg;
         if (host_type == htElegooLink) {

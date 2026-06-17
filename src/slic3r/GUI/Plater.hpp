@@ -522,7 +522,7 @@ public:
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_3mf = false);
+    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);

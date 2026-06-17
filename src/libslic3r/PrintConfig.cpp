@@ -818,6 +818,14 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("use_3mf", coBool);
+    def->label = L("Use 3MF instead of G-code");
+    def->tooltip = L("Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer "
+                     "sends the sliced file as a .gcode.3mf, instead of a plain .gcode file.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("printer_agent", coString);
     def->label = L("Printer Agent");
     def->tooltip = L("Select the network agent implementation for printer communication.");
