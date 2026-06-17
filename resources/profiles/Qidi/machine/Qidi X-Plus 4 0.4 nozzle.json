@@ -99,6 +99,5 @@
 	"default_filament_profile": [
 		"Qidi Generic PLA @Qidi X-Plus 4 0.4 nozzle"
 	],
-	"printer_agent": "qidi",
-	"use_3mf": "1"
+	"printer_agent": "qidi"
 }
