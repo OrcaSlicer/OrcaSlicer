@@ -7,6 +7,7 @@
 
 #include "VortekWipeTower.hpp"
 #include "GCode/WipeTowerWriter.hpp"
+#include "GCode/ToolOrdering.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
@@ -390,6 +391,15 @@ void WipeTower::adjust_prime_volumes(
         wipe_volume_ec = 0.f;
         wipe_volume_nc = 0.f;
     }
+}
+
+bool WipeTower::has_wipe_tower(const Slic3r::Print& print, const Slic3r::ToolOrdering& tool_ordering)
+{
+    bool base_has_wt = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
+    if (is_h2c_printer(&print)) {
+        return base_has_wt && !print.wipe_tower_data().tool_changes.empty();
+    }
+    return base_has_wt;
 }
 
 } // namespace Vortek

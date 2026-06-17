@@ -3552,13 +3552,10 @@ void Print::_make_wipe_tower()
                     wipe_volume_nc = 15.f;
                 }
 
-                // H2C: when nozzle already loaded, zero out everything — no purge,
-                // no prime, no ramming needed.
-                if (nozzle_already_loaded) {
-                    wipe_volume_ec = 0.f;
-                    wipe_volume_nc = 0.f;
-                    volume_to_purge = 0.f;
-                }
+                // H2C: nozzle_already_loaded is passed directly to plan_toolchange which
+                // already skips ramming/nozzle_change when true (line 1773 in WipeTower.cpp).
+                // wipe_volume_ec/nc must NOT be zeroed — the tower still needs the infill
+                // depth for structural validity. volume_to_purge is zero when same filament.
 
                 BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] plan_toolchange:"
                     << " old=" << old_filament_id

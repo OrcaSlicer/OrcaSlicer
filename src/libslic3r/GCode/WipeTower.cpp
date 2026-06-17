@@ -1806,7 +1806,7 @@ void WipeTower::plan_tower()
         if (m_enable_timelapse_print && max_depth < EPSILON)
             max_depth = min_wipe_tower_depth;
 
-        if (max_depth + EPSILON < min_wipe_tower_depth && !has_tpu_filament())
+        if (max_depth > EPSILON && max_depth + EPSILON < min_wipe_tower_depth && !has_tpu_filament())
             m_extra_spacing = min_wipe_tower_depth / max_depth;
         else
             m_extra_spacing = 1.f;
@@ -1887,6 +1887,18 @@ void WipeTower::plan_tower()
         for (int i = int(m_plan.size()) - 1; i >= 0; i--) {
             m_plan[i].depth = max_depth_for_all;
         }
+    }
+
+    // H2C Saving mode: if all toolchanges have nozzle_already_loaded=true,
+    // every toolchange has depth=0 → m_wipe_tower_depth stays 0 →
+    // generate_rib_polygon/generate_rectange_polygon get a degenerate zero-depth
+    // box → union_().front() on empty vector → crash.
+    // Enforce the structural minimum derived from tower height so geometry is valid.
+    if (m_wipe_tower_depth < EPSILON && !m_plan.empty()) {
+        m_wipe_tower_depth = min_wipe_tower_depth + m_perimeter_width;
+        for (auto& layer : m_plan)
+            if (layer.depth < EPSILON)
+                layer.depth = min_wipe_tower_depth;
     }
 }
 
@@ -3285,10 +3297,10 @@ void WipeTower::plan_tower_new()
                 float length_to_extrude   = toolchange.wipe_length;
                 float depth               = std::ceil(length_to_extrude / width) * m_perimeter_width;
                 float nozzle_change_depth = 0;
-                if (is_need_ramming(toolchange.old_tool, toolchange.new_tool, static_cast<int>(m_cur_layer_id))) {
+                if (!toolchange.nozzle_already_loaded && is_need_ramming(toolchange.old_tool, toolchange.new_tool, idx)) {
                     float filament_change_len = 0.f;
                     if (toolchange.old_tool < m_filaments_change_length.first.size()) {
-                        filament_change_len = !is_same_extruder(toolchange.old_tool, toolchange.new_tool, static_cast<int>(m_cur_layer_id))
+                        filament_change_len = !is_same_extruder(toolchange.old_tool, toolchange.new_tool, idx)
                             ? m_filaments_change_length.first[toolchange.old_tool]
                             : (toolchange.old_tool < m_filaments_change_length.second.size()
                                 ? m_filaments_change_length.second[toolchange.old_tool]

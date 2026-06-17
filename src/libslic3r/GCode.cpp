@@ -2936,7 +2936,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Use the extruder IDs collected from Regions.
         this->set_extruders(print.extruders());
 
-        has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
+        has_wipe_tower = Vortek::WipeTower::has_wipe_tower(print, tool_ordering);
     } else {
         // Find tool ordering for all the objects at once, and the initial extruder ID.
         // If the tool ordering has been pre-calculated by Print class for wipe tower already, reuse it.
@@ -2948,7 +2948,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         if (tool_ordering.all_extruders().empty())
             // No object to print was found, cancel the G-code export.
             throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
-        has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
+        has_wipe_tower = Vortek::WipeTower::has_wipe_tower(print, tool_ordering);
         // Orca: support all extruder priming
         initial_extruder_id = (wipe_tower_type == WipeTowerType::Type2 && has_wipe_tower && !print.config().single_extruder_multi_material_priming) ?
             // The priming towers will be skipped.

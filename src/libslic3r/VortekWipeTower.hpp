@@ -17,6 +17,7 @@ namespace Slic3r {
     class PrintConfig;
     class Print;
     class DynamicConfig;
+    class ToolOrdering;
 }
 
 namespace Vortek {
@@ -127,6 +128,8 @@ public:
         float& wipe_volume_ec,
         float& wipe_volume_nc
     );
+
+    static bool has_wipe_tower(const Slic3r::Print& print, const Slic3r::ToolOrdering& tool_ordering);
 };
 
 } // namespace Vortek
