@@ -246,7 +246,7 @@ msgid "Reset"
 msgstr "Reiniciar"
 
 msgid "Enter"
-msgstr ""
+msgstr "Enter"
 
 msgid "Shortcut Key "
 msgstr "Tecla de acceso directo "
@@ -258,10 +258,10 @@ msgid "Height Range"
 msgstr "Rango de altura"
 
 msgid "Vertical"
-msgstr ""
+msgstr "Vertical"
 
 msgid "Horizontal"
-msgstr ""
+msgstr "Horizontal"
 
 msgid "Remove painted color"
 msgstr "Eliminar color pintado"
@@ -435,7 +435,7 @@ msgid "Auto"
 msgstr "Automático"
 
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 msgid "Plug"
 msgstr "Conectar"
@@ -733,7 +733,7 @@ msgid "Simplification is currently only allowed when a single part is selected"
 msgstr "La simplificación por el momento sólo se permite cuando se selecciona una sola pieza"
 
 msgid "Error"
-msgstr ""
+msgstr "Error"
 
 msgid "Extra high"
 msgstr "Extra alto"
@@ -863,7 +863,7 @@ msgid "Emboss"
 msgstr "Relieve"
 
 msgid "NORMAL"
-msgstr ""
+msgstr "NORMAL"
 
 msgid "SMALL"
 msgstr "PEQUEÑA"
@@ -964,7 +964,7 @@ msgid "Name has to be unique."
 msgstr "El nombre debe ser único."
 
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 msgid "Rename style"
 msgstr "Renombrar estilo"
@@ -1456,7 +1456,7 @@ msgid "Restart selection"
 msgstr "Reiniciar selección"
 
 msgid "Esc"
-msgstr ""
+msgstr "Esc"
 
 msgid "Cancel a feature until exit"
 msgstr "Cancelar una característica hasta salir"
@@ -1815,7 +1815,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "Escoja un archivo (GCODE/3MF):"
 
 msgid "Ext"
-msgstr ""
+msgstr "Ext"
 
 msgid "Some presets are modified."
 msgstr "Algunos perfiles fueron modificados."
@@ -2572,7 +2572,7 @@ msgid "Name"
 msgstr "Nombre"
 
 msgid "Fila."
-msgstr ""
+msgstr "Fila."
 
 #, c-format, boost-format
 msgid "%1$d error repaired"
@@ -2861,7 +2861,7 @@ msgid "Open documentation in web browser"
 msgstr "Abrir la Documentación en el navegador."
 
 msgid "Color"
-msgstr ""
+msgstr "Color"
 
 msgid "Pause"
 msgstr "Pausa"
@@ -3064,7 +3064,7 @@ msgid "Parts"
 msgstr "Partes"
 
 msgid "Aux"
-msgstr ""
+msgstr "Aux"
 
 msgid "Nozzle1"
 msgstr "Boquilla1"
@@ -3511,17 +3511,17 @@ msgstr ""
 "Temperatura"
 
 msgid "max"
-msgstr ""
+msgstr "max"
 
 msgid "min"
-msgstr ""
+msgstr "min"
 
 #, boost-format
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "El valor de entrada debe ser mayor que %1% y menor que %2%"
 
 msgid "SN"
-msgstr ""
+msgstr "SN"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factores de calibración de dinámicas de flujo"
@@ -3999,10 +3999,10 @@ msgid "Diameter of the print bed. It is assumed that origin (0,0) is located in 
 msgstr "Diámetro de la cama de impresión. Se asume que el origen (0,0) está ubicado en el centro."
 
 msgid "Rectangular"
-msgstr ""
+msgstr "Rectangular"
 
 msgid "Circular"
-msgstr ""
+msgstr "Circular"
 
 msgid "Load shape from STL..."
 msgstr "Cargar forma desde STL..."
@@ -4659,7 +4659,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formato inválido. Formato de vector esperado: \"%1%\""
 
 msgid "N/A"
-msgstr ""
+msgstr "N/A"
 
 msgid "Pick"
 msgstr "Seleccionar"
@@ -4800,7 +4800,7 @@ msgid "Tool: "
 msgstr "Herramienta: "
 
 msgid "Color: "
-msgstr ""
+msgstr "Color: "
 
 msgid "Acceleration: "
 msgstr "Aceleración: "
@@ -4851,7 +4851,7 @@ msgid "Tower"
 msgstr "Torre"
 
 msgid "Total"
-msgstr ""
+msgstr "Total"
 
 #, fuzzy
 msgid "Total estimation"
@@ -5462,7 +5462,7 @@ msgid "Yes"
 msgstr "Sí"
 
 msgid "No"
-msgstr ""
+msgstr "No"
 
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "se cerrará antes de crear un nuevo modelo. ¿Quiere continuar?"
@@ -6364,7 +6364,7 @@ msgid "Switch Camera View"
 msgstr "Cambiar vista de cámara"
 
 msgid "Control"
-msgstr ""
+msgstr "Control"
 
 msgid "Printer Parts"
 msgstr "Partes de la Impresora"
@@ -6605,7 +6605,7 @@ msgstr "Más tarde"
 
 #, c-format, boost-format
 msgid "%s error"
-msgstr ""
+msgstr "%s error"
 
 #, c-format, boost-format
 msgid "%s has encountered an error"
@@ -6621,7 +6621,7 @@ msgstr "%s tiene un aviso"
 
 #, c-format, boost-format
 msgid "%s info"
-msgstr ""
+msgstr "%s info"
 
 #, c-format, boost-format
 msgid "%s information"
@@ -6747,7 +6747,7 @@ msgstr[0] "%1$d objeto se cargó con pintura de piel difusa."
 msgstr[1] "%1$d objetos se cargaron con pintura de piel difusa."
 
 msgid "ERROR"
-msgstr ""
+msgstr "ERROR"
 
 msgid "COMPLETED"
 msgstr "COMPLETADO"
@@ -6762,7 +6762,7 @@ msgid "Jump to"
 msgstr "Ir a"
 
 msgid "Error:"
-msgstr ""
+msgstr "Error:"
 
 msgid "Warning:"
 msgstr "Advertencia:"
@@ -6961,7 +6961,7 @@ msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr "Detiene el calentamiento automáticamente tras 5 minutos de inactividad para garantizar la seguridad."
 
 msgid "Global"
-msgstr ""
+msgstr "Global"
 
 msgid "Objects"
 msgstr "Objetos"
@@ -7120,7 +7120,7 @@ msgid "Search plate, object and part."
 msgstr "Buscar cama, objeto y parte."
 
 msgid "Pellets"
-msgstr ""
+msgstr "Pellets"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -7539,7 +7539,7 @@ msgid "Importing to Orca Slicer failed. Please download the file and manually im
 msgstr "La importación a Orca Slicer ha fallado. Descargue el archivo e impórtelo manualmente."
 
 msgid "INFO:"
-msgstr ""
+msgstr "INFO:"
 
 msgid "No accelerations provided for calibration. Use default acceleration value "
 msgstr "No se proporcionaron aceleraciones para la calibración. Usar valor de aceleración por defecto "
@@ -7877,7 +7877,7 @@ msgid "Current Instance Path: "
 msgstr "Ruta de Instancia Actual: "
 
 msgid "General"
-msgstr ""
+msgstr "General"
 
 msgid "Metric"
 msgstr "Métrico"
@@ -8246,7 +8246,7 @@ msgid "Network test"
 msgstr "Prueba de red"
 
 msgid "Test"
-msgstr ""
+msgstr "Test"
 
 msgid "Cloud Providers"
 msgstr "Proveedores de servicios en la nube"
@@ -8407,10 +8407,10 @@ msgid "Log Level"
 msgstr "Nivel de registro"
 
 msgid "fatal"
-msgstr ""
+msgstr "fatal"
 
 msgid "error"
-msgstr ""
+msgstr "error"
 
 msgid "warning"
 msgstr "advertencia"
@@ -8574,7 +8574,7 @@ msgid "Empty"
 msgstr "Vacío"
 
 msgid "Incompatible"
-msgstr ""
+msgstr "Incompatible"
 
 msgid "The selected preset is null!"
 msgstr "¡El ajuste seleccionado es nulo!"
@@ -9406,7 +9406,7 @@ msgid "Tree supports"
 msgstr "Soportes de árbol"
 
 msgid "Multimaterial"
-msgstr ""
+msgstr "Multimaterial"
 
 msgid "Filament for Features"
 msgstr "Filamento para Características"
@@ -9637,7 +9637,7 @@ msgid "Motion ability"
 msgstr "Capacidad de movimiento"
 
 msgid "Normal"
-msgstr ""
+msgstr "Normal"
 
 msgid "Resonance Compensation"
 msgstr "Compensación de resonancia"
@@ -10129,7 +10129,7 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr ""
+msgstr "Original"
 
 msgid "After mapping"
 msgstr "Después del mapeo"
@@ -14181,13 +14181,13 @@ msgstr ""
 "Desactive esta opción cuando compruebe los zumbidos."
 
 msgid "Min"
-msgstr ""
+msgstr "Min"
 
 msgid "Minimum speed of resonance avoidance."
 msgstr "Velocidad mínima para la prevención de resonancia."
 
 msgid "Max"
-msgstr ""
+msgstr "Max"
 
 msgid "Maximum speed of resonance avoidance."
 msgstr "Velocidad máxima para la prevención de resonancia."
@@ -15180,13 +15180,13 @@ msgid "Normal (auto) and Tree (auto) are used to generate support automatically.
 msgstr "Normal (auto) y Árbol (auto) se utilizan para generar los soportes automáticamente. Si se selecciona Normal (manual) o Árbol (manual), sólo se generan los soportes forzados."
 
 msgid "Normal (auto)"
-msgstr ""
+msgstr "Normal (auto)"
 
 msgid "Tree (auto)"
 msgstr "Árbol (auto)"
 
 msgid "Normal (manual)"
-msgstr ""
+msgstr "Normal (manual)"
 
 msgid "Tree (manual)"
 msgstr "Árbol (manual)"
@@ -17521,7 +17521,7 @@ msgid "Progress"
 msgstr "Progreso"
 
 msgid "Host"
-msgstr ""
+msgstr "Host"
 
 msgctxt "OfFile"
 msgid "Size"
@@ -18983,7 +18983,7 @@ msgstr "El Plug-in de Bambu Network es necesario para las funciones en la nube, 
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr ""
+msgstr "Error: %s"
 
 msgid "Show details"
 msgstr "Mostrar detalles"
