@@ -205,7 +205,7 @@ msgid ""
 msgstr ""
 
 msgid "Color Painting"
-msgstr "Color painting"
+msgstr ""
 
 msgid "Brush shape"
 msgstr ""
