@@ -808,28 +808,58 @@ void SendToPrinterDialog::on_cancel(wxCloseEvent &event)
 
 void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 {
-    BOOST_LOG_TRIVIAL(info) << "print_job: on_ok to send !";
     m_is_canceled = false;
     Enable_Send_Button(false);
-    if (m_is_in_sending_mode)
+    if (m_is_in_sending_mode) {
         return;
+    }
 
     int result = 0;
     if (m_printer_last_select.empty()) {
+        MessageDialog dlg(this, _L("No printer selected. Please select a printer first."), _L("Send Error"), wxICON_ERROR | wxOK);
+        dlg.ShowModal();
+        Enable_Send_Button(true);
         return;
     }
 
     DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return;
+    if (!dev) {
+        MessageDialog dlg(this, _L("Device manager is not available. Please restart the application."), _L("Internal Error"), wxICON_ERROR | wxOK);
+        dlg.ShowModal();
+        Enable_Send_Button(true);
+        return;
+    }
 
     MachineObject *obj_ = dev->get_selected_machine();
 
     if (obj_ == nullptr) {
-        m_printer_last_select = "";
-        m_comboBox_printer->SetTextLabel("");
-        return;
+        // Try to recover: set the selected machine from m_printer_last_select
+        MachineObject *recovery_obj = dev->get_my_machine(m_printer_last_select);
+        if (recovery_obj) {
+            dev->set_selected_machine(m_printer_last_select);
+            obj_ = dev->get_selected_machine();
+        }
+        if (!obj_) {
+            m_printer_last_select = "";
+            m_comboBox_printer->SetTextLabel("");
+            MessageDialog dlg(this, _L("The selected printer is not available. Please re-select the printer from the list."), _L("Printer Not Found"), wxICON_ERROR | wxOK);
+            dlg.ShowModal();
+            Enable_Send_Button(true);
+            return;
+        }
     }
     assert(obj_->get_dev_id() == m_printer_last_select);
+
+    if (!obj_->is_info_ready()) {
+        MessageDialog dlg(this, _L("The printer status has not been synchronized yet. Do you want to synchronize now?"), _L("Synchronization Required"), wxICON_WARNING | wxYES | wxNO);
+        if (dlg.ShowModal() == wxID_YES) {
+            obj_->command_get_version();
+            obj_->command_request_push_all(true);
+            show_status(PrintDialogStatus::PrintStatusReading);
+            timeout_count = 0;
+        }
+        return;
+    }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", print_job: for send task, current printer id =  " << m_printer_last_select << std::endl;
     show_status(PrintDialogStatus::PrintStatusSending);
@@ -857,8 +887,7 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     });
 
     if (m_is_canceled) {
-        BOOST_LOG_TRIVIAL(info) << "send_job: m_is_canceled";
-        //m_status_bar->set_status_text(task_canceled_text);
+        prepare_mode();
         return;
     }
 
@@ -880,16 +909,15 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
      }
 
     if (m_is_canceled || m_export_3mf_cancel) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": send progress 10";
-        BOOST_LOG_TRIVIAL(info) << "send_job: m_export_3mf_cancel or m_is_canceled";
-        //m_status_bar->set_status_text(task_canceled_text);
+        prepare_mode();
         return;
     }
 
     if (result < 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Abnormal print file data. Please slice again";
         wxString msg = _L("Abnormal print file data. Please slice again");
-        m_status_bar->set_status_text(msg);
+        MessageDialog dlg(this, msg, _L("Send Error"), wxICON_ERROR | wxOK);
+        dlg.ShowModal();
+        prepare_mode();
         return;
     }
 
@@ -897,15 +925,16 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     if(!wxGetApp().plater()->using_exported_file() && !obj_->is_lan_mode_printer()) {
             result = m_plater->export_config_3mf(m_print_plate_idx);
             if (result < 0) {
-                BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
+                MessageDialog dlg(this, _L("Failed to export print configuration. Please try again."), _L("Send Error"), wxICON_ERROR | wxOK);
+                dlg.ShowModal();
+                prepare_mode();
                 return;
             }
         }
 
 
     if (m_is_canceled || m_export_3mf_cancel) {
-        BOOST_LOG_TRIVIAL(info) << "send_job: m_export_3mf_cancel or m_is_canceled";
-        //m_status_bar->set_status_text(task_canceled_text);
+        prepare_mode();
         return;
     }
 
@@ -1200,13 +1229,14 @@ void SendToPrinterDialog::on_selection_changed(wxCommandEvent &event)
         }
     }
 
-    if (obj && !obj->get_lan_mode_connection_state()) {
-        obj->command_get_version();
-        obj->command_request_push_all();
+    if (obj) {
+        if (!obj->get_lan_mode_connection_state()) {
+            obj->command_get_version();
+            obj->command_request_push_all();
+        }
         if (!dev->get_selected_machine()) {
             dev->set_selected_machine(m_printer_last_select);
-
-        }else if (dev->get_selected_machine()->get_dev_id() != m_printer_last_select) {
+        } else if (dev->get_selected_machine()->get_dev_id() != m_printer_last_select) {
             update_storage_list(std::vector<std::string>());
             dev->set_selected_machine(m_printer_last_select);
         }
