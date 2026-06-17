@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-17 18:00+0800\n"
-"PO-Revision-Date: 2026-03-22 17:15-0300\n"
+"PO-Revision-Date: 2026-06-17 10:29-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -376,7 +376,7 @@ msgid "mm"
 msgstr "mm"
 
 msgid "Part selection"
-msgstr "Seleção de Peça"
+msgstr "Seleção de peça"
 
 msgid "Fixed step drag"
 msgstr "Arrasto de passo fixo"
@@ -1783,7 +1783,7 @@ msgid "Untitled"
 msgstr "Sem título"
 
 msgid "Reloading network plug-in..."
-msgstr "Recarregando o plug-in de rede..."
+msgstr "Recarregando o plug-in de rede…"
 
 msgid "Downloading Network Plug-in"
 msgstr "Baixando o Plug-in de Rede"
@@ -1909,12 +1909,14 @@ msgid ""
 "You are currently in Stealth Mode. To log into the Cloud, you need to "
 "disable Stealth Mode first."
 msgstr ""
+"Você está atualmente no Modo Furtivo. Para acessar a Nuvem, você precisa "
+"desativar o Modo Furtivo primeiro."
 
 msgid "Stealth Mode"
-msgstr ""
+msgstr "Modo Furtivo"
 
 msgid "Quit Stealth Mode"
-msgstr ""
+msgstr "Sair do Modo Furtivo"
 
 msgid "new or open project file is not allowed during the slicing process!"
 msgstr ""
@@ -3261,10 +3263,10 @@ msgid "All"
 msgstr "Todos"
 
 msgid "No selected items..."
-msgstr ""
+msgstr "Nenhum item selecionado…"
 
 msgid "All items selected..."
-msgstr ""
+msgstr "Todos os itens selecionados…"
 
 msgid "No matching items..."
 msgstr ""
@@ -3273,28 +3275,28 @@ msgid "Deselect All"
 msgstr "Desselecionar Tudo"
 
 msgid "Select visible"
-msgstr ""
+msgstr "Selecionar visíveis"
 
 msgid "Deselect visible"
-msgstr ""
+msgstr "Desselecionar visíveis"
 
 msgid "Filter selected"
-msgstr ""
+msgstr "Filtrar selecionados"
 
 msgid "Filter nonSelected"
-msgstr ""
+msgstr "Filtrar não selecionados"
 
 msgid "Simple settings"
-msgstr ""
+msgstr "Definições simples"
 
 msgid "Advanced settings"
 msgstr "Definições avançadas"
 
 msgid "Expert settings"
-msgstr ""
+msgstr "Definições especializadas"
 
 msgid "Developer mode"
-msgstr "Modo de Desenvolvedor"
+msgstr "Modo de desenvolvedor"
 
 msgid "Launch troubleshoot center"
 msgstr ""
@@ -3583,13 +3585,13 @@ msgid "There is no valid surface for text projection."
 msgstr "Não existe uma superfície válida para projeção de texto."
 
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "Ocorreu um erro inesperado"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Pré-condicionamento térmico para otimização da primeira camada"
 
 msgid "Remaining time: Calculating..."
-msgstr "Tempo restante: Calculando..."
+msgstr "Tempo restante: Calculando…"
 
 msgid ""
 "The heated bed's thermal preconditioning helps optimize the first layer "
@@ -5133,7 +5135,7 @@ msgid "Acceleration"
 msgstr "Aceleração"
 
 msgid "Jerk"
-msgstr ""
+msgstr "Jerk"
 
 msgid "Fan Speed"
 msgstr "Velocidade do Ventilador"
@@ -5259,7 +5261,7 @@ msgid "Acceleration: "
 msgstr "Aceleração: "
 
 msgid "Jerk: "
-msgstr ""
+msgstr "Jerk: "
 
 msgid "PA: "
 msgstr "AP: "
@@ -5424,7 +5426,7 @@ msgid "Acceleration (mm/s²)"
 msgstr "Aceleração (mm/s²)"
 
 msgid "Jerk (mm/s)"
-msgstr ""
+msgstr "Jerk (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Velocidade do Ventilador (%)"
@@ -5549,7 +5551,7 @@ msgid "Sequence"
 msgstr "Sequência"
 
 msgid "Object selection"
-msgstr "Seleção de Objeto"
+msgstr "Seleção de objeto"
 
 msgid "number keys"
 msgstr "teclas numéricas"
@@ -5721,7 +5723,7 @@ msgid "Outline"
 msgstr "Contorno"
 
 msgid "Realistic View"
-msgstr ""
+msgstr "Visualização Realista"
 
 msgid "Perspective"
 msgstr "Perspectiva"
@@ -8649,7 +8651,7 @@ msgid "Changing the region will log out your account.\n"
 msgstr "Mudar a região fará logout da sua conta.\n"
 
 msgid "Region selection"
-msgstr "Seleção de Região"
+msgstr "Seleção de região"
 
 msgid "sec"
 msgstr "seg"
@@ -8850,7 +8852,7 @@ msgid "By vendor"
 msgstr "Por fornecedor"
 
 msgid "Optimize filaments area height for..."
-msgstr "Otimiza a altura da area de filamentos para..."
+msgstr "Otimiza a altura da area de filamentos para…"
 
 msgid "filaments"
 msgstr "filamentos"
@@ -8902,7 +8904,7 @@ msgid "Behaviour"
 msgstr "Comportamento"
 
 msgid "Auto flush after changing..."
-msgstr "Auto purga depois da troca..."
+msgstr "Auto purga depois da troca…"
 
 msgid "Auto calculate flushing volumes when selected values changed"
 msgstr ""
@@ -9007,7 +9009,7 @@ msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Defina a ação que arrastar com o botão direito do mouse deve executar."
 
 msgid "Clear my choice on..."
-msgstr "Limpar minha escolha em..."
+msgstr "Limpar minha escolha em…"
 
 msgid "Unsaved projects"
 msgstr "Projetos não salvos"
@@ -9031,25 +9033,25 @@ msgstr ""
 "carregar o arquivo."
 
 msgid "Graphics"
-msgstr ""
+msgstr "Gráfico"
 
 msgid "Phong shading"
-msgstr ""
+msgstr "Sombreamento Phong"
 
 msgid "Uses Phong shading inside realistic view."
-msgstr ""
+msgstr "Usa sombreamento Phong em uma visualização realista."
 
 msgid "SSAO ambient occlusion"
-msgstr ""
+msgstr "Oclusão de ambiente SSAO"
 
 msgid "Applies SSAO in realistic view."
-msgstr ""
+msgstr "Aplica SSAO em uma visualização realista."
 
 msgid "Shadows"
-msgstr ""
+msgstr "Sombras"
 
 msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
+msgstr "Renderiza sombras na placa em uma visualização realista."
 
 msgid "Anti-aliasing"
 msgstr "Antisserrilhamento"
@@ -9122,7 +9124,7 @@ msgid "Login region"
 msgstr "Região de login"
 
 msgid "Stealth mode"
-msgstr "Modo oculto"
+msgstr "Modo furtivo"
 
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. "
@@ -9130,6 +9132,11 @@ msgid ""
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up "
 "to Orca Cloud."
 msgstr ""
+"Isso desativa todos os recursos da nuvem, incluindo a sincronização de "
+"perfis do Orca Cloud. Usuários que preferem trabalhar totalmente offline "
+"podem ativar esta opção.\n"
+"Observação: quando o Modo Furtivo está ativado, seus perfis de usuário não "
+"serão copiados para o Orca Cloud."
 
 msgid "Hide login side panel"
 msgstr ""
@@ -9945,7 +9952,7 @@ msgid "Cool Plate (SuperTack)"
 msgstr "Placa Fria (SuperTack)"
 
 msgid "Click here if you can't connect to the printer"
-msgstr "Clique aqui se não conseguir conectar-se à impressora"
+msgstr "Clique aqui se não conseguir conectar à impressora"
 
 msgid "No login account, only printers in LAN mode are displayed."
 msgstr "Sem conta de login, apenas as impressoras em modo LAN são mostradas."
@@ -10267,7 +10274,7 @@ msgstr "Por favor, faça login primeiro."
 
 msgid "There was a problem connecting to the printer. Please try again."
 msgstr ""
-"Houve um problema ao conectar-se à impressora. Por favor, tente novamente."
+"Houve um problema ao conectar à impressora. Por favor, tente novamente."
 
 msgid "Failed to log out."
 msgstr "Falha ao desconectar."
@@ -12025,6 +12032,7 @@ msgstr "Pular esta versão"
 msgid ""
 "New version available: %s. Please update OrcaSlicer from the Microsoft Store."
 msgstr ""
+"Nova versão disponível: %s. Atualize o OrcaSlicer da Microsoft Store."
 
 msgid "Confirm and Update Nozzle"
 msgstr "Confirmar e Atualizar Bico"
@@ -12143,7 +12151,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Sistema Automático de Extinção de Incêndio"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Atualizar firmware"
@@ -13016,10 +13024,10 @@ msgstr ""
 "campo deve conter a Chave da API ou a senha necessária para autenticação."
 
 msgid "Serial Number"
-msgstr ""
+msgstr "Número de Série"
 
 msgid "Flashforge local API requires the printer serial number."
-msgstr ""
+msgstr "A API local Flashforge exige o número de série da impressora."
 
 msgid "Name of the printer."
 msgstr "Nome da impressora."
@@ -16695,6 +16703,8 @@ msgid ""
 "Filament to print internal sparse infill.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
+"Filamento para imprimir o preenchimento esparso interno.\n"
+"\"Padrão\" usa o filamento do objeto/peça."
 
 msgid ""
 "Line width of internal sparse infill. If expressed as a %, it will be "
@@ -17576,20 +17586,24 @@ msgstr ""
 "100%%, a velocidade de ponte é usada."
 
 msgid "Outer walls"
-msgstr ""
+msgstr "Paredes externas"
 
 msgid ""
 "Filament to print outer walls.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
+"Filamento para imprimir paredes externas.\n"
+"\"Padrão\" usa o filamento do objeto/peça."
 
 msgid "Inner walls"
-msgstr ""
+msgstr "Paredes internas"
 
 msgid ""
 "Filament to print inner walls.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
+"Filamento para imprimir paredes internas.\n"
+"\"Padrão\" usa o filamento do objeto/peça."
 
 msgid ""
 "Line width of inner wall. If expressed as a %, it will be computed over the "
@@ -18298,16 +18312,22 @@ msgid ""
 "Filament to print internal solid infill.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
+"Filamento para imprimir o preenchimento sólido interno.\n"
+"\"Padrão\" usa o filamento do objeto/peça."
 
 msgid ""
 "Filament to print top surface.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
+"Filamento para imprimir a superfície superior.\n"
+"\"Padrão\" usa o filamento do objeto/peça."
 
 msgid ""
 "Filament to print bottom surface.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
+"Filamento para imprimir a superfície inferior.\n"
+"\"Padrão\" usa o filamento do objeto/peça."
 
 msgid ""
 "Line width of internal solid infill. If expressed as a %, it will be "
@@ -18702,6 +18722,9 @@ msgid ""
 "\"Default\" means no specific filament for support and current filament is "
 "used."
 msgstr ""
+"Filamento para imprimir a base de suporte e a jangada.\n"
+"\"Padrão\" significa nenhum filamento específico para suporte e o filamento "
+"atual será usado."
 
 msgid "Avoid interface filament for base"
 msgstr "Evitar o filamento da interface para a base"
@@ -18736,6 +18759,9 @@ msgid ""
 "\"Default\" means no specific filament for support interface and current "
 "filament is used."
 msgstr ""
+"Filamento para imprimir a interface de suporte.\n"
+"\"Padrão\" significa nenhum filamento específico para a interface de suporte "
+"e o filamento atual é usado."
 
 msgid "Top interface layers"
 msgstr "Camadas de interface superior"
@@ -21666,7 +21692,7 @@ msgid "Upload"
 msgstr "Enviar"
 
 msgid "Leveling before print"
-msgstr ""
+msgstr "Nivelamento antes da impressão"
 
 msgid "Time-lapse"
 msgstr "Timelapse"
@@ -21762,13 +21788,13 @@ msgstr "Placa de Impressão Lisa (Lado B)"
 
 #, c-format, boost-format
 msgid "Printer: %s"
-msgstr ""
+msgstr "Impressora: %s"
 
 msgid "Calibrate before printing"
-msgstr ""
+msgstr "Calibrar antes da impressão"
 
 msgid "Filament Mapping:"
-msgstr ""
+msgstr "Mapeamnto de Filamnto:"
 
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Não é possível realizar operação booleana nas peças selecionadas"
@@ -22563,22 +22589,22 @@ msgid "Project File"
 msgstr ""
 
 msgid "Project:"
-msgstr ""
+msgstr "Projeto:"
 
 msgid "Printer type:"
-msgstr ""
+msgstr "Tipo de impressora:"
 
 msgid "Printer type not found, please select manually."
 msgstr ""
 
 msgid "Authorizing..."
-msgstr ""
+msgstr "Autorizando…"
 
 msgid "Error. Can't get api token for authorization"
 msgstr ""
 
 msgid "Could not parse server response."
-msgstr ""
+msgstr "Não foi possível decifrar a resposta do servidor."
 
 msgid "Error saving session to file"
 msgstr ""
@@ -22597,7 +22623,7 @@ msgid "Connection to AstroBox is working correctly."
 msgstr "A conexão com o AstroBox funciona corretamente."
 
 msgid "Could not connect to AstroBox"
-msgstr "Não foi possível conectar-se ao AstroBox"
+msgstr "Não foi possível conectar ao AstroBox"
 
 msgid "Note: AstroBox version 1.1.0 or higher is required."
 msgstr "Nota: AstroBox versão 1.1.0 ou maior é necessário."
@@ -22606,7 +22632,7 @@ msgid "Connection to Duet is working correctly."
 msgstr "A conexão com o Duet funciona corretamente."
 
 msgid "Could not connect to Duet"
-msgstr "Não foi possível conectar-se ao Duet"
+msgstr "Não foi possível conectar ao Duet"
 
 msgid "Unknown error occurred"
 msgstr "Ocorreu um erro desconhecido"
@@ -22625,7 +22651,7 @@ msgstr ""
 "A conexão com o FlashAir funciona corretamente e o upload está ativado."
 
 msgid "Could not connect to FlashAir"
-msgstr "Não foi possível conectar-se ao FlashAir"
+msgstr "Não foi possível conectar ao FlashAir"
 
 msgid ""
 "Note: FlashAir with firmware 2.00.02 or newer and activated upload function "
@@ -22638,13 +22664,13 @@ msgid "Connection to MKS is working correctly."
 msgstr "A conexão com o MKS funciona corretamente."
 
 msgid "Could not connect to MKS"
-msgstr "Não foi possível conectar-se ao MKS"
+msgstr "Não foi possível conectar ao MKS"
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "A conexão com o OctoPrint funciona corretamente."
 
 msgid "Could not connect to OctoPrint"
-msgstr "Não foi possível conectar-se ao OctoPrint"
+msgstr "Não foi possível conectar ao OctoPrint"
 
 msgid "Note: OctoPrint version 1.1.0 or higher is required."
 msgstr "Nota: OctoPrint versão 1.1.0 ou maior é necessário."
@@ -22653,13 +22679,13 @@ msgid "Connection to Prusa SL1 / SL1S is working correctly."
 msgstr "A Conexão com Prusa SL1 / SL1S funciona corretamente."
 
 msgid "Could not connect to Prusa SLA"
-msgstr "Não foi possível conectar-se ao Prusa SLA"
+msgstr "Não foi possível conectar ao Prusa SLA"
 
 msgid "Connection to PrusaLink is working correctly."
 msgstr "A conexão com PrusaLink funciona corretamente."
 
 msgid "Could not connect to PrusaLink"
-msgstr "Não foi possível conectar-se ao PrusaLink"
+msgstr "Não foi possível conectar ao PrusaLink"
 
 msgid "Storages found"
 msgstr "Armazenamento encontrado"
@@ -22683,13 +22709,13 @@ msgid "Connection to Prusa Connect is working correctly."
 msgstr "A conexão com o Prusa Connect funciona corretamente."
 
 msgid "Could not connect to Prusa Connect"
-msgstr "Não foi possível conectar-se ao Prusa Connect"
+msgstr "Não foi possível conectar ao Prusa Connect"
 
 msgid "Connection to Repetier is working correctly."
 msgstr "A conexão com o Repetier funciona corretamente."
 
 msgid "Could not connect to Repetier"
-msgstr "Não foi possível conectar-se ao Repetier"
+msgstr "Não foi possível conectar ao Repetier"
 
 msgid "Note: Repetier version 0.90.0 or higher is required."
 msgstr "Nota: Repetier versão 0.90.0 ou maior é necessário."
@@ -23366,13 +23392,13 @@ msgid "Connected to Obico successfully!"
 msgstr "Conectado ao Obico com sucesso!"
 
 msgid "Could not connect to Obico"
-msgstr "Não é possível conectar a Obico"
+msgstr "Não foi possível conectar ao Obico"
 
 msgid "Connected to SimplyPrint successfully!"
 msgstr "Conectado ao SimplyPrint com sucesso!"
 
 msgid "Could not connect to SimplyPrint"
-msgstr "Não é possível conectar a SimplyPrint"
+msgstr "Não foi possível conectar ao SimplyPrint"
 
 msgid "Internal error"
 msgstr "Erro interno"
@@ -23386,34 +23412,36 @@ msgstr ""
 "la."
 
 msgid "Flashforge returned an invalid JSON response."
-msgstr ""
+msgstr "O Flashforge retonou uma resposta JSON inválida."
 
 msgid "No Flashforge printers were discovered on the local network."
-msgstr ""
+msgstr "Nenhuma impressora Flashforge foi descoberta na rede local."
 
 msgid "Connected to Flashforge local API successfully."
-msgstr ""
+msgstr "Conectado à API local Flashforge com sucesso."
 
 msgid "Serial connection to Flashforge is working correctly."
 msgstr "A conexão serial com a Flashforge está funcionando corretamente."
 
 msgid "Could not connect to Flashforge local API"
-msgstr ""
+msgstr "Não foi possível conectar à API local Flashforge"
 
 msgid "Could not connect to Flashforge via serial"
-msgstr "Não foi possível conectar via serial com a Flashforge"
+msgstr "Não foi possível conectar via serial à Flashforge"
 
 msgid "Flashforge local API requires both serial number and access code."
 msgstr ""
+"A API local Flashforge exige o número de série da impressora e o código "
+"de acesso."
 
 msgid "Printer returned an error"
-msgstr ""
+msgstr "A impressora retornou um erro"
 
 msgid "Missing system_info in response"
-msgstr ""
+msgstr "Falta o system_info na resposta"
 
 msgid "Missing printer serial number in response"
-msgstr ""
+msgstr "Falta o número de série da impressora na resposta"
 
 msgid "Error parsing response"
 msgstr ""
@@ -23431,14 +23459,14 @@ msgid "Connection to ElegooLink is working correctly."
 msgstr ""
 
 msgid "Could not connect to ElegooLink"
-msgstr ""
+msgstr "Não foi possível conectar ao ElegooLink"
 
 #, boost-format
 msgid "Error code: %1%"
-msgstr ""
+msgstr "Código de erro: %1%"
 
 msgid "Upload failed"
-msgstr ""
+msgstr "Falha no envio"
 
 msgid ""
 "The file has been transferred, but some unknown errors occurred. Please "
@@ -23487,10 +23515,10 @@ msgid "Start print failed"
 msgstr ""
 
 msgid "Connected to CrealityPrint successfully!"
-msgstr ""
+msgstr "Conectado ao CrealityPrint com sucesso!"
 
 msgid "Could not connect to CrealityPrint"
-msgstr ""
+msgstr "Não foi possível conectar ao CrealityPrint"
 
 msgid ""
 "Connection timed out. Please check if the printer and computer network are "
@@ -23815,13 +23843,13 @@ msgstr ""
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
-msgstr ""
+msgstr "Não é possível criar arquivo em %1%"
 
 msgid "Archive preview"
-msgstr ""
+msgstr "Arquivar pré-visualização"
 
 msgid "Open File"
-msgstr ""
+msgstr "Abrir Arquivo"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -24247,15 +24275,9 @@ msgstr ""
 #~ "because the objects is restriced to bed \n"
 #~ "and only parts can be lifted."
 #~ msgstr ""
-#~ "Recomenda-se montar os objetos primeiro,\n"
+#~ "Recomenda-se montar objetos primeiro,\n"
 #~ "porque os objetos ficam restritos à mesa \n"
 #~ "e apenas algumas partes podem ser levantadas."
-
-#~ msgid "part selection"
-#~ msgstr "seleção de peça"
-
-#~ msgid "°"
-#~ msgstr "°"
 
 #, c-format, boost-format
 #~ msgid ""
@@ -24503,21 +24525,6 @@ msgstr ""
 
 #~ msgid "Filament to print solid infill."
 #~ msgstr "Filamento para imprimir o preenchimento sólido."
-
-#~ msgid ""
-#~ "Filament to print support base and raft. \"Default\" means no specific "
-#~ "filament for support and current filament is used."
-#~ msgstr ""
-#~ "Filamento para imprimir base de suporte e jangada. \"Padrão\" significa "
-#~ "nenhum filamento específico para suporte e o filamento atual será usado."
-
-#~ msgid ""
-#~ "Filament to print support interface. \"Default\" means no specific "
-#~ "filament for support interface and current filament is used."
-#~ msgstr ""
-#~ "Filamento para imprimir a interface de suporte. \"Padrão\" significa "
-#~ "nenhum filamento específico para a interface de suporte e o filamento "
-#~ "atual é usado."
 
 #~ msgid "Erase all painting"
 #~ msgstr "Apagar toda a pintura"
