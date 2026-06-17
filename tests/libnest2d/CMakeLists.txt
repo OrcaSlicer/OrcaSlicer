@@ -3,6 +3,7 @@ add_executable(${_TEST_NAME}_tests
   ${_TEST_NAME}_tests.cpp
   test_geometry.cpp
   test_nfp.cpp
+  test_nfp_placer.cpp
   printer_parts.cpp
   printer_parts.hpp
   libnest2d_test_utils.hpp
