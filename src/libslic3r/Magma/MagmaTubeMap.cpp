@@ -239,7 +239,8 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     map->m_window_spec = WindowSpec::from_config(
         static_cast<float>(config.magma_window_height_mm.value),
         map->m_interior_width,
-        map->m_line_width
+        map->m_line_width,
+        map->m_layer_height
     );
 
     // Min tube height: window height (×2 for solid wall above+below) plus 2 layers of padding.

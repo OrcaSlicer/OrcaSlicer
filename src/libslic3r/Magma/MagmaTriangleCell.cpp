@@ -51,7 +51,7 @@ double calculate_auto_interior_width_from_od(double nozzle_od, double line_width
     //              = (IW + lw) * 2/√3 - lw * √3
     //   → IW = (inset_side + lw * √3) * √3 / 2 - lw
 
-    constexpr double buffer = 0.2;  // mm safety margin
+    constexpr double buffer = 0.0;  // size to the reported nozzle flat directly (report a slightly conservative flat for sealing margin)
     double effective_od = nozzle_od - buffer;
     if (effective_od <= 0)
         return 0.1;
@@ -82,22 +82,27 @@ static double calculate_auto_window_height_mm(double interior_width, double line
     double inset_side = side - line_width * SQRT3;
     if (inset_side <= 0)
         return 0.1;
-    // 20% safety margin: window opening should exceed tube cross-section
-    // to ensure plastic can flow freely between the two tube halves.
-    double window_height_mm = 1.2 * tube_area / inset_side;
+    // Geometric "calculated" window height: cross-section equals the tube
+    // interior. The caller (from_config) adds a layer-height cushion on top so
+    // the window reliably spans a full printed layer.
+    double window_height_mm = tube_area / inset_side;
     return std::max(0.1, window_height_mm);
 }
 
 WindowSpec WindowSpec::from_config(
     float config_window_height_mm,
     float interior_width,
-    float line_width)
+    float line_width,
+    float layer_height)
 {
     WindowSpec spec;
 
-    // Window height: auto-calculate if 0, otherwise use config value.
+    // Window height: auto-calculate if 0, otherwise use the config value as-is.
+    // Auto adds one layer height above the geometric value so the window
+    // reliably spans a full printed layer despite layer-registration accuracy.
     if (config_window_height_mm <= 0)
-        spec.window_height_mm = calculate_auto_window_height_mm(interior_width, line_width);
+        spec.window_height_mm = calculate_auto_window_height_mm(interior_width, line_width)
+                                + std::max(0.0f, layer_height);
     else
         spec.window_height_mm = config_window_height_mm;
 

@@ -209,6 +209,16 @@ std::string generate_injection_gcode(
     double feedrate_mms = vol_speed / filament_area;
     double feedrate_mmmin = feedrate_mms * 60.0;
 
+    // Z move speed for the injection slam/lift/hop moves. Inherit the printer's
+    // Z travel speed (same fallback as GCodeWriter::_travel_to_z); the firmware
+    // caps it at max_z_velocity. A hardcoded feedrate left the nozzle lingering
+    // on the hot tube top.
+    double z_speed_mms = config.travel_speed_z.value;
+    if (z_speed_mms <= 0.)
+        z_speed_mms = config.travel_speed.value;
+    int z_feedrate = (int)(z_speed_mms * 60.0);
+    if (z_feedrate < 60) z_feedrate = 60;
+
     // --- Injection loop ---
     // Temperature and fan markers are managed by the caller (GCode.cpp
     // injection phase) so that multiple objects share one heat/cool cycle.
@@ -227,7 +237,7 @@ std::string generate_injection_gcode(
         // Return from injection z-hop to layer height.
         // (Manual Z because built-in lift doesn't support custom heights.)
         if (inj_z_hop > 0) {
-            sprintf(buf, "G1 Z%.3f F600 ; injection z-hop down\n", layer_z);
+            sprintf(buf, "G1 Z%.3f F%d ; injection z-hop down\n", layer_z, z_feedrate);
             gcode += buf;
         }
 
@@ -237,7 +247,7 @@ std::string generate_injection_gcode(
 
         // Z-slam: lower nozzle into surface to seal against hole
         if (slam_depth > 0) {
-            sprintf(buf, "G1 Z%.3f F600 ; z-slam seal\n", layer_z - slam_depth);
+            sprintf(buf, "G1 Z%.3f F%d ; z-slam seal\n", layer_z - slam_depth, z_feedrate);
             gcode += buf;
         }
 
@@ -310,13 +320,13 @@ std::string generate_injection_gcode(
 
         // Z-slam release: return to normal layer height
         if (slam_depth > 0) {
-            sprintf(buf, "G1 Z%.3f F600 ; z-slam release\n", layer_z);
+            sprintf(buf, "G1 Z%.3f F%d ; z-slam release\n", layer_z, z_feedrate);
             gcode += buf;
         }
 
         // Post-injection Z-hop to clear nozzle from ooze blob
         if (inj_z_hop > 0) {
-            sprintf(buf, "G1 Z%.3f F600 ; injection z-hop\n", layer_z + inj_z_hop);
+            sprintf(buf, "G1 Z%.3f F%d ; injection z-hop\n", layer_z + inj_z_hop, z_feedrate);
             gcode += buf;
         }
     }
