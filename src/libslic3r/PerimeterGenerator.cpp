@@ -1267,7 +1267,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
 
 void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const ExPolygon &island_region)
 {
-    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && this->config->extra_perimeters_on_overhangs &&
+    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && (this->config->extra_perimeters_on_overhangs || this->config->wo_enabled) &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
         std::vector<ExtrusionPaths> extra_perimeters;
         Polygons filled_area;

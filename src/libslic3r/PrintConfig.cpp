@@ -646,8 +646,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrimeVolumeMode)
 //Orca
 static t_config_enum_values s_keys_map_WaveOverhangPattern {
     { "monotonic", int(WaveOverhangPattern::Monotonic) },
-    { "zigzag", int(WaveOverhangPattern::ZigZag) },
-    { "repeating", int(WaveOverhangPattern::Repeat) }
+    { "zigzag", int(WaveOverhangPattern::ZigZag) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangPattern)
 
@@ -5563,16 +5562,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wo_pattern", coEnum);
     def->label = L("Wave pattern");
     def->category = L("Quality");
-    def->tooltip = L("The pattern to use when printing wave overhangs. Repeating monotonic will start each wave from the end that has spent the most time cooling.");
+    def->tooltip = L("The pattern to use when printing wave overhangs. Monotonic will start each wave from the end that has spent the most time cooling.");
     def->enum_keys_map = &ConfigOptionEnum<WaveOverhangPattern>::get_enum_values();
     def->enum_values.push_back("monotonic");
     def->enum_values.push_back("zigzag");
-    def->enum_values.push_back("repeat");
     def->enum_labels.push_back(L("Monotonic"));
     def->enum_labels.push_back(L("Zigzag"));
-    def->enum_labels.push_back(L("Repeat"));
     def->mode = comExpert;
-    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Repeat));
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Monotonic));
 
     def = this->add("outer_wall_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
