@@ -173,130 +173,122 @@ struct PresetBundleMetadata
     }
 };
 
-// ---- Per-vendor binary preset cache ----------------------------------------
-// One file per vendor:
-//   Bundled (CI-generated): resources/profiles/<vendor_id>.cache
-//   User (runtime):        data_dir/system/<vendor_id>.cache
-
-struct CachedPrinterVariant {
-    std::string name;
-    template<class Archive> void serialize(Archive& ar) { ar(name); }
-};
-
-struct CachedPrinterModel {
-    std::string id, name, model_id, family;
-    int         technology = 0;
-    std::vector<CachedPrinterVariant> variants;
-    std::vector<std::string>          default_materials;
-    std::vector<std::string>          not_support_bed_types;
-    std::string bed_model, bed_texture, image_bed_type;
-    std::string bottom_texture_end_name, use_double_extruder_default_texture;
-    std::string bottom_texture_rect, middle_texture_rect, hotend_model;
-
-    template<class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(id, name, model_id, family, technology, variants, default_materials,
-           not_support_bed_types, bed_model, bed_texture, image_bed_type,
-           bottom_texture_end_name, use_double_extruder_default_texture,
-           bottom_texture_rect, middle_texture_rect, hotend_model);
-    }
-};
-
-struct CachedVendorProfile {
-    std::string id, name, config_version, config_update_url, changelog_url;
-    std::vector<CachedPrinterModel> models;
-    std::vector<std::string>        default_filaments;
-    std::vector<std::string>        default_sla_materials;
-
-    template<class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(id, name, config_version, config_update_url, changelog_url,
-           models, default_filaments, default_sla_materials);
-    }
-};
-
-struct CachedPreset {
-    int         type = 0;
-    std::string name, alias, file, version;
-    std::string vendor_id;
-    std::string filament_id, setting_id, description;
-    std::string base_id, user_id, sync_info;
-    long long   updated_time = 0;
-    std::vector<std::string> renamed_from;
-    bool        is_system               = true;
-    bool        is_visible              = true;
-    bool        m_from_orca_filament_lib = false;
-    DynamicPrintConfig config;
-
-    template<class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(type, name, alias, file, version, vendor_id, filament_id, setting_id,
-           description, base_id, user_id, sync_info, updated_time, renamed_from,
-           is_system, is_visible, m_from_orca_filament_lib, config);
-    }
-};
-
-struct VendorCache {
-    static constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
-    static constexpr uint32_t CACHE_VERSION = 3;
-
-    uint32_t    cache_version        = CACHE_VERSION;
-    size_t      config_options_count = 0;
-    std::string vendor_json_version; // Semver string, or "" for version-less vendors
-
-    CachedVendorProfile          profile;
-    std::vector<CachedPreset>    print_presets;
-    std::vector<CachedPreset>    filament_presets;
-    std::vector<CachedPreset>    printer_presets;
-    std::vector<CachedPreset>    sla_print_presets;
-    std::vector<CachedPreset>    sla_material_presets;
-
-    // Only populated for the ORCA_FILAMENT_LIBRARY vendor.
-    std::map<std::string, DynamicPrintConfig> config_maps;
-    std::map<std::string, std::string>        filament_id_maps;
-
-    template<class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(cache_version, config_options_count, vendor_json_version,
-           profile,
-           print_presets, filament_presets, printer_presets,
-           sla_print_presets, sla_material_presets,
-           config_maps, filament_id_maps);
-    }
-
-    // True when this cache entry is current and can be used without re-parsing JSON.
-    bool is_valid(const std::string& current_vendor_json_version) const
-    {
-        return cache_version        == CACHE_VERSION
-            && config_options_count == print_config_def.options.size()
-            && vendor_json_version  == current_vendor_json_version;
-    }
-
-    static std::string user_path(const std::string& vendor_id);    // data_dir/system/<id>.cache
-    static std::string bundled_path(const std::string& vendor_id); // resources/profiles/<id>.cache
-
-    bool load(const std::string& path);
-    void save(const std::string& path) const;
-
-    // Capture one vendor's data from an already-loaded PresetBundle.
-    // Set capture_filament_maps=true only for the ORCA_FILAMENT_LIBRARY vendor.
-    void capture(const PresetBundle& bundle,
-                 const std::string&  vendor_id,
-                 const std::string&  vendor_json_version,
-                 bool                capture_filament_maps);
-
-    // Apply this vendor's data into bundle (additive — does NOT reset the bundle).
-    void apply(PresetBundle& bundle) const;
-};
-
 // Bundle of Print + Filament + Printer presets.
 class PresetBundle
 {
 public:
+    // ---- Per-vendor binary preset cache ------------------------------------
+    // One file per vendor:
+    //   Bundled (CI-generated): resources/profiles/<vendor_id>.cache
+    //   User (runtime):        data_dir/system/<vendor_id>.cache
+
+    struct CachedPrinterModel {
+        std::string id, name, model_id, family;
+        int         technology = 0;
+        std::vector<std::string> variants; // nozzle diameter strings
+        std::vector<std::string> default_materials;
+        std::vector<std::string> not_support_bed_types;
+        std::string bed_model, bed_texture, image_bed_type;
+        std::string bottom_texture_end_name, use_double_extruder_default_texture;
+        std::string bottom_texture_rect, middle_texture_rect, hotend_model;
+
+        template<class Archive>
+        void serialize(Archive& ar)
+        {
+            ar(id, name, model_id, family, technology, variants, default_materials,
+               not_support_bed_types, bed_model, bed_texture, image_bed_type,
+               bottom_texture_end_name, use_double_extruder_default_texture,
+               bottom_texture_rect, middle_texture_rect, hotend_model);
+        }
+    };
+
+    struct CachedVendorProfile {
+        std::string id, name, config_version, config_update_url, changelog_url;
+        std::vector<CachedPrinterModel> models;
+        std::vector<std::string>        default_filaments;
+        std::vector<std::string>        default_sla_materials;
+
+        template<class Archive>
+        void serialize(Archive& ar)
+        {
+            ar(id, name, config_version, config_update_url, changelog_url,
+               models, default_filaments, default_sla_materials);
+        }
+    };
+
+    struct CachedPreset {
+        int         type = 0;
+        std::string name, alias, file, version;
+        std::string vendor_id;
+        std::string filament_id, setting_id, description;
+        std::string base_id, user_id, sync_info;
+        long long   updated_time = 0;
+        std::vector<std::string> renamed_from;
+        bool        is_system                = true;
+        bool        is_visible               = true;
+        bool        m_from_orca_filament_lib = false;
+        DynamicPrintConfig config;
+
+        template<class Archive>
+        void serialize(Archive& ar)
+        {
+            ar(type, name, alias, file, version, vendor_id, filament_id, setting_id,
+               description, base_id, user_id, sync_info, updated_time, renamed_from,
+               is_system, is_visible, m_from_orca_filament_lib, config);
+        }
+    };
+
+    struct VendorCache {
+        static constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
+        static constexpr uint32_t CACHE_VERSION = 3;
+
+        uint32_t    cache_version        = CACHE_VERSION;
+        size_t      config_options_count = 0;
+        std::string vendor_json_version; // Semver string, or "" for version-less vendors
+
+        CachedVendorProfile          profile;
+        std::vector<CachedPreset>    print_presets;
+        std::vector<CachedPreset>    filament_presets;
+        std::vector<CachedPreset>    printer_presets;
+        std::vector<CachedPreset>    sla_print_presets;
+        std::vector<CachedPreset>    sla_material_presets;
+
+        // Only populated for the ORCA_FILAMENT_LIBRARY vendor.
+        std::map<std::string, DynamicPrintConfig> config_maps;
+        std::map<std::string, std::string>        filament_id_maps;
+
+        template<class Archive>
+        void serialize(Archive& ar)
+        {
+            ar(cache_version, config_options_count, vendor_json_version,
+               profile,
+               print_presets, filament_presets, printer_presets,
+               sla_print_presets, sla_material_presets,
+               config_maps, filament_id_maps);
+        }
+
+        bool is_valid(const std::string& current_vendor_json_version) const
+        {
+            return cache_version        == CACHE_VERSION
+                && config_options_count == print_config_def.options.size()
+                && vendor_json_version  == current_vendor_json_version;
+        }
+
+        static std::string user_path(const std::string& vendor_id);    // data_dir/system/<id>.cache
+        static std::string bundled_path(const std::string& vendor_id); // resources/profiles/<id>.cache
+
+        bool load(const std::string& path);
+        void save(const std::string& path) const;
+
+        void capture(const PresetBundle& bundle,
+                     const std::string&  vendor_id,
+                     const std::string&  vendor_json_version,
+                     bool                capture_filament_maps);
+
+        void apply(PresetBundle& bundle) const;
+    };
+
+
     static DynamicPrintConfig construct_full_config(Preset                         &in_printer_preset,
                                                     Preset                         &in_print_preset,
                                                     const DynamicPrintConfig       &project_config,

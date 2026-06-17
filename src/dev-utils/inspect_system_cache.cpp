@@ -13,7 +13,7 @@ static void print_bar(char c, int n) { std::cout << std::string(n, c) << "\n"; }
 
 static void inspect_one(const std::string& path, const po::variables_map& vm)
 {
-    Slic3r::VendorCache vc;
+    Slic3r::PresetBundle::VendorCache vc;
     if (!vc.load(path)) {
         std::cerr << "Failed to load cache: " << path << "\n"
                   << "  (wrong format version, truncated file, CRC mismatch, or not a .cache file)\n";

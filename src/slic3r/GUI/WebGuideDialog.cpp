@@ -1397,7 +1397,7 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
             const Semver ver = get_version_from_json(json_path.string());
             const std::string ver_str = ver.valid() ? ver.to_string() : "";
 
-            VendorCache vc;
+            PresetBundle::VendorCache vc;
             if (!vc.load(cache_path.string()) || !vc.is_valid(ver_str))
                 continue;
 

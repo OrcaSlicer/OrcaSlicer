@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
         const std::string ver_str = ver.valid() ? ver.to_string() : "";
 
         const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
-        Slic3r::VendorCache vc;
+        Slic3r::PresetBundle::VendorCache vc;
         vc.capture(*preset_bundle, vendor_name, ver_str, is_orca_lib);
 
         const std::string cache_path =
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
         vc.save(cache_path);
 
         // Verify the file was written and can be reloaded.
-        Slic3r::VendorCache verify;
+        Slic3r::PresetBundle::VendorCache verify;
         if (!verify.load(cache_path) || !verify.is_valid(ver_str)) {
             std::cerr << "WARNING: verification failed for " << cache_path << "\n";
             ++failed;

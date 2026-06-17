@@ -6111,8 +6111,8 @@ static void save_blob(const std::string& path, const T& obj)
             return;
         }
         CacheFileHeader hdr;
-        hdr.magic     = VendorCache::CACHE_MAGIC;
-        hdr.version   = VendorCache::CACHE_VERSION;
+        hdr.magic     = PresetBundle::VendorCache::CACHE_MAGIC;
+        hdr.version   = PresetBundle::VendorCache::CACHE_VERSION;
         hdr.data_size = static_cast<uint64_t>(blob.size());
         hdr.crc32     = crc.checksum();
         ofs.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
@@ -6132,7 +6132,7 @@ static bool load_blob(const std::string& path, T& obj)
         CacheFileHeader hdr;
         if (!ifs.read(reinterpret_cast<char*>(&hdr), sizeof(hdr)))
             return false;
-        if (hdr.magic != VendorCache::CACHE_MAGIC || hdr.version != VendorCache::CACHE_VERSION)
+        if (hdr.magic != PresetBundle::VendorCache::CACHE_MAGIC || hdr.version != PresetBundle::VendorCache::CACHE_VERSION)
             return false;
         if (hdr.data_size == 0 || hdr.data_size > 512u * 1024u * 1024u)
             return false;
@@ -6157,29 +6157,29 @@ static bool load_blob(const std::string& path, T& obj)
 
 } // anonymous namespace
 
-std::string VendorCache::user_path(const std::string& vendor_id)
+std::string PresetBundle::VendorCache::user_path(const std::string& vendor_id)
 {
     return (boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR / (vendor_id + ".cache"))
                .make_preferred().string();
 }
 
-std::string VendorCache::bundled_path(const std::string& vendor_id)
+std::string PresetBundle::VendorCache::bundled_path(const std::string& vendor_id)
 {
     return (boost::filesystem::path(resources_dir()) / "profiles" / (vendor_id + ".cache"))
                .make_preferred().string();
 }
 
-bool VendorCache::load(const std::string& path)
+bool PresetBundle::VendorCache::load(const std::string& path)
 {
     return load_blob(path, *this);
 }
 
-void VendorCache::save(const std::string& path) const
+void PresetBundle::VendorCache::save(const std::string& path) const
 {
     save_blob(path, *this);
 }
 
-void VendorCache::capture(const PresetBundle& bundle,
+void PresetBundle::VendorCache::capture(const PresetBundle& bundle,
                            const std::string&  vendor_id,
                            const std::string&  vendor_json_ver,
                            bool                capture_filament_maps)
@@ -6214,7 +6214,7 @@ void VendorCache::capture(const PresetBundle& bundle,
             cm.family     = model.family;
             cm.technology = static_cast<int>(model.technology);
             for (const auto& v : model.variants)
-                cm.variants.push_back({v.name});
+                cm.variants.push_back(v.name);
             cm.default_materials                   = model.default_materials;
             cm.not_support_bed_types               = model.not_support_bed_types;
             cm.bed_model                           = model.bed_model;
@@ -6270,7 +6270,7 @@ void VendorCache::capture(const PresetBundle& bundle,
     }
 }
 
-void VendorCache::apply(PresetBundle& bundle) const
+void PresetBundle::VendorCache::apply(PresetBundle& bundle) const
 {
     // Restore vendor profile (additive — does not reset the bundle)
     {
@@ -6290,7 +6290,7 @@ void VendorCache::apply(PresetBundle& bundle) const
             model.family     = cm.family;
             model.technology = static_cast<PrinterTechnology>(cm.technology);
             for (const auto& v : cm.variants)
-                model.variants.emplace_back(v.name);
+                model.variants.emplace_back(v);
             model.default_materials                   = cm.default_materials;
             model.not_support_bed_types               = cm.not_support_bed_types;
             model.bed_model                           = cm.bed_model;
