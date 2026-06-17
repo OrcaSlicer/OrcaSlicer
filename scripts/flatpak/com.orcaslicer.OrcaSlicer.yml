@@ -31,7 +31,7 @@ finish-args:
   - --filesystem=/mnt
   - --filesystem=/run/spnav.sock:ro
   # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
-  - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
+  - --filesystem=~/.var/app/io.github.softfever.OrcaSlicer:ro
   # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
   - --talk-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
   - --own-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
