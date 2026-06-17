@@ -256,6 +256,11 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                         if(m_config.gcode_comments) output << "; APA: Interpolation failed, using fallback pressure advance value\n";
                     }
                 }
+                // Round predicted PA to nearest 0.01 to reduce meaningless adjustments.
+                // Prusa printers have to wait for planner sync to change PA, causing a delay.
+                if (predicted_pa > 0.04) {
+                    predicted_pa = std::round(predicted_pa * 100.0) / 100.0;
+                }
                 if(m_config.gcode_comments) {
                     // Output debug GCode comments
                     output << pa_change_line << '\n'; // Output PA change command tag
