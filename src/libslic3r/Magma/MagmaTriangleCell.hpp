@@ -237,7 +237,8 @@ struct WindowSpec {
     static WindowSpec from_config(
         float config_window_height_mm,      // 0 = auto-calculate
         float interior_width,               // for auto window height calc
-        float line_width                    // for auto window height calc
+        float line_width,                   // for auto window height calc
+        float layer_height                  // auto adds 1 layer above the calculated height
     );
 
 };

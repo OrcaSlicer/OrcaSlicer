@@ -5540,7 +5540,8 @@ void PrintConfigDef::init_fff_params()
                      "print surface. Measure it with calipers across the widest part of the "
                      "nozzle tip flat.\n\n"
                      "The tube width is automatically sized so the largest triangle that fits "
-                     "inside this circle (with 0.2mm safety buffer) becomes the tube opening. "
+                     "inside this circle becomes the tube opening (report a slightly conservative "
+                     "flat for extra sealing margin). "
                      "This ensures the nozzle can fully seal each tube during injection.\n\n"
                      "Set to 0 to fall back to 3x nozzle bore diameter (conservative estimate).");
     def->sidetext = L("mm");
@@ -5566,8 +5567,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Window height");
     def->category = L("Strength");
     def->tooltip = L("Height of window gaps in mm. 0 = auto-calculate from tube geometry "
-                     "(recommended). Auto-calculation ensures window cross-sectional area "
-                     "approximately matches tube interior for optimal injection flow.");
+                     "(recommended). Auto sizes the window cross-section to match the tube "
+                     "interior plus one layer height, so it reliably spans a full printed layer.");
     def->sidetext = L("mm");
     def->min = 0;  // 0 = auto
     def->max = 10.0;
