@@ -357,6 +357,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_extra_spacing"
             || opt_key == "wipe_tower_max_purge_speed"
             || opt_key == "wipe_tower_wall_type"
+            || opt_key == "prime_volume_mode"
             || opt_key == "wipe_tower_extra_rib_length"
             || opt_key == "wipe_tower_rib_width"
             || opt_key == "wipe_tower_fillet_wall"
@@ -1342,6 +1343,39 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 warningtemp.is_warning = true;
                 *warning               = warningtemp;
                 break;
+            }
+        }
+
+        BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: enable_prime_tower=" << m_config.enable_prime_tower
+                                << " nozzles=" << nozzles
+                                << " wall_type=" << (int)m_config.wipe_tower_wall_type.value
+                                << " extruders_size=" << extruders.size();
+
+        if (this->has_wipe_tower() && nozzles > 1 && m_config.prime_volume_mode.value == PrimeVolumeMode::pvmSaving) {
+            int min_temp = std::numeric_limits<int>::max();
+            int max_temp = 0;
+            BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: printing " << extruders.size() << " extruders details:";
+            for (unsigned int extruder_id : extruders) {
+                int temp = m_config.nozzle_temperature.get_at(extruder_id);
+                BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: extruder_id=" << extruder_id << " temp=" << temp;
+                if (temp > 0) {
+                    min_temp = std::min(min_temp, temp);
+                    max_temp = std::max(max_temp, temp);
+                }
+            }
+            BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: min_temp=" << min_temp << " max_temp=" << max_temp << " delta=" << (max_temp - min_temp);
+
+            if (max_temp > min_temp && (max_temp - min_temp) >= 20) {
+                if (warning != nullptr) {
+                    StringObjectException warningtemp;
+                    warningtemp.string = (boost::format(
+                        L("You are printing filaments with a significant temperature difference (%1%°C) in Prime Saving purge mode. This is not recommended due to poor interlayer adhesion and risk of tower collapse. Please use Standard purge mode instead.")) 
+                        % (max_temp - min_temp)).str();
+                    warningtemp.opt_key    = "prime_volume_mode";
+                    warningtemp.is_warning = true;
+                    warningtemp.type       = STRING_EXCEPT_PRIME_TOWER_TEMP_DIFFERENCE;
+                    *warning               = warningtemp;
+                }
             }
         }
     } else {

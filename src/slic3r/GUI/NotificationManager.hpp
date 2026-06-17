@@ -75,6 +75,7 @@ enum class NotificationType
 	ValidateError,
 	// Notification emitted by Print::validate
 	ValidateWarning,
+	ValidateWarningPrimeTowerTempDiff,
 	// Slicing error produced by BackgroundSlicingProcess::validate() or by the BackgroundSlicingProcess background
 	// thread thowing a SlicingError exception.
 	SlicingError,

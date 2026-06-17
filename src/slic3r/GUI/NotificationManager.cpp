@@ -3187,8 +3187,9 @@ void NotificationManager::set_in_preview(bool preview)
             notification->hide(preview);
 		if (m_in_preview && notification->get_type() == NotificationType::DidYouKnowHint)
 			notification->close();
-        if (notification->get_type() == NotificationType::ValidateWarning) 
-			notification->hide(preview);
+        if (notification->get_type() == NotificationType::ValidateWarning) {
+            notification->hide(preview);
+        }
     }
 }
 

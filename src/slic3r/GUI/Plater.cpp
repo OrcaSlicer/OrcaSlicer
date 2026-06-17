@@ -8546,79 +8546,108 @@ void Plater::priv::update_print_volume_state()
 
 void Plater::priv::process_validation_warning(StringObjectException const &warning) const
 {
-    if (warning.string.empty())
+    if (warning.string.empty()) {
         notification_manager->close_notification_of_type(NotificationType::ValidateWarning);
+        notification_manager->close_notification_of_type(NotificationType::ValidateWarningPrimeTowerTempDiff);
+    }
     else {
+        notification_manager->close_notification_of_type(NotificationType::ValidateWarning);
+        notification_manager->close_notification_of_type(NotificationType::ValidateWarningPrimeTowerTempDiff);
+
         std::string text = warning.string;
         auto po = dynamic_cast<PrintObjectBase const *>(warning.object);
         auto mo = po ? po->model_object() : dynamic_cast<ModelObject const *>(warning.object);
         //ORCA: Update process_validation_warning to handle ModelInstance selection and include fallback
         auto mi = dynamic_cast<ModelInstance const *>(warning.object);
 
-        auto action_fn = (mo || mi || !warning.opt_key.empty()) ? [id = mo ? mo->id() : (mi ? mi->id() : 0),
-             parent_id = mi ? mi->get_object()->id() : 0,
-             is_inst = (mi != nullptr),
-             opt = warning.opt_key](wxEvtHandler *) {
-		    auto & objects = wxGetApp().model().objects;
-
-            if (is_inst) {
-                 bool selected = false;
-                 auto iter = std::find_if(objects.begin(), objects.end(), [parent_id](auto o) { return o->id() == parent_id; });
-                 if (iter != objects.end()) {
-                      ModelObject* obj = *iter;
-                      int inst_idx = -1;
-                      for(size_t i=0; i<obj->instances.size(); ++i) {
-                          if (obj->instances[i]->id() == id) {
-                              inst_idx = i;
-                              break;
-                          }
-                      }
-
-                      wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
-
-                      if (inst_idx != -1) {
-                         auto* model = wxGetApp().obj_list()->GetModel();
-                         wxDataViewItem item;
-                         wxDataViewItem objItem = model->GetObjectItem(obj);
-                         if (objItem.IsOk()) {
-                             int vm_obj_idx = model->GetIdByItem(objItem);
-                             if (vm_obj_idx != -1) {
-                                 item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
-                             }
-                         }
-                         if (item.IsOk()) {
-                             wxDataViewItemArray sel_items;
-                             sel_items.Add(item);
-                             wxGetApp().obj_list()->select_items(sel_items);
-                             wxGetApp().obj_list()->update_selections_on_canvas();
-                             selected = true;
-                         }
-                      }
-
-                      if (!selected) {
-                           wxGetApp().obj_list()->select_items({ {obj, nullptr} });
-                           wxGetApp().obj_list()->update_selections_on_canvas();
-                      }
-                 }
-            } else {
-		        auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
-                if (iter != objects.end()) {
-                    wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
-			        wxGetApp().obj_list()->select_items({{*iter, nullptr}});
-                    wxGetApp().obj_list()->update_selections_on_canvas();
+        std::function<bool(wxEvtHandler *)> action_fn;
+        if (warning.type == StringExceptionType::STRING_EXCEPT_PRIME_TOWER_TEMP_DIFFERENCE) {
+            action_fn = [plater = this->q](wxEvtHandler *) {
+                auto& project_config = wxGetApp().preset_bundle->project_config;
+                auto current_mode = project_config.opt_enum<PrimeVolumeMode>("prime_volume_mode");
+                PurgeModeDialog dlg(plater, current_mode);
+                if (dlg.ShowModal() == wxID_OK) {
+                    project_config.set_key_value("prime_volume_mode", new ConfigOptionEnum<PrimeVolumeMode>(dlg.get_mode()));
+                    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+                    wxGetApp().plater()->update_project_dirty_from_presets();
+                    wxPostEvent(plater, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, plater));
+                    plater->get_view3D_canvas3D()->reload_scene(true);
+                    plater->update();
                 }
-            }
-            if (!opt.empty()) {
-                if ((!is_inst && id.id) || (is_inst && parent_id.id))
-				    wxGetApp().params_panel()->switch_to_object();
-                wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
-		    }
-		    return false;
-	    } : std::function<bool(wxEvtHandler *)>();
+                return true;
+            };
+        } else {
+            action_fn = (mo || mi || !warning.opt_key.empty()) ? [id = mo ? mo->id() : (mi ? mi->id() : 0),
+                 parent_id = mi ? mi->get_object()->id() : 0,
+                 is_inst = (mi != nullptr),
+                 opt = warning.opt_key](wxEvtHandler *) {
+                    auto & objects = wxGetApp().model().objects;
+
+                if (is_inst) {
+                     bool selected = false;
+                     auto iter = std::find_if(objects.begin(), objects.end(), [parent_id](auto o) { return o->id() == parent_id; });
+                     if (iter != objects.end()) {
+                          ModelObject* obj = *iter;
+                          int inst_idx = -1;
+                          for(size_t i=0; i<obj->instances.size(); ++i) {
+                              if (obj->instances[i]->id() == id) {
+                                  inst_idx = i;
+                                  break;
+                              }
+                          }
+
+                          wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+
+                          if (inst_idx != -1) {
+                             auto* model = wxGetApp().obj_list()->GetModel();
+                             wxDataViewItem item;
+                             wxDataViewItem objItem = model->GetObjectItem(obj);
+                             if (objItem.IsOk()) {
+                                 int vm_obj_idx = model->GetIdByItem(objItem);
+                                 if (vm_obj_idx != -1) {
+                                     item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
+                                 }
+                             }
+                             if (item.IsOk()) {
+                                 wxDataViewItemArray sel_items;
+                                 sel_items.Add(item);
+                                 wxGetApp().obj_list()->select_items(sel_items);
+                                 wxGetApp().obj_list()->update_selections_on_canvas();
+                                 selected = true;
+                             }
+                          }
+
+                          if (!selected) {
+                               wxGetApp().obj_list()->select_items({ {obj, nullptr} });
+                               wxGetApp().obj_list()->update_selections_on_canvas();
+                          }
+                     }
+                } else {
+                    auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
+                    if (iter != objects.end()) {
+                        wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+                        wxGetApp().obj_list()->select_items({{*iter, nullptr}});
+                        wxGetApp().obj_list()->update_selections_on_canvas();
+                    }
+                }
+                if (!opt.empty()) {
+                    if ((!is_inst && id.id) || (is_inst && parent_id.id))
+                        wxGetApp().params_panel()->switch_to_object();
+                    wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
+                }
+                return false;
+            } : std::function<bool(wxEvtHandler *)>();
+        }
         auto hypertext = (mo || mi || !warning.opt_key.empty()) ? _u8L("Jump to") : "";
         if (mo) hypertext += std::string(" [") + mo->name + "]";
         if (mi) hypertext += std::string(" [") + mi->get_object()->name + "]";
-        if (!warning.opt_key.empty()) hypertext += std::string(" (") + warning.opt_key + ")";
+        if (!warning.opt_key.empty()) {
+            if (warning.type == StringExceptionType::STRING_EXCEPT_PRIME_TOWER_TEMP_DIFFERENCE) {
+                hypertext += std::string(" (") + _u8L("Purge mode") + ")";
+            } else {
+                hypertext += std::string(" (") + warning.opt_key + ")";
+            }
+        }
 
         // BBS disable support enforcer
         //if (text == "_SUPPORTS_OFF") {
@@ -8638,8 +8667,13 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
         //    };
         //}
 
+        NotificationType notif_type = NotificationType::ValidateWarning;
+        if (warning.type == StringExceptionType::STRING_EXCEPT_PRIME_TOWER_TEMP_DIFFERENCE) {
+            notif_type = NotificationType::ValidateWarningPrimeTowerTempDiff;
+        }
+
         notification_manager->push_notification(
-            NotificationType::ValidateWarning,
+            notif_type,
             NotificationManager::NotificationLevel::WarningNotificationLevel,
             _u8L("WARNING:") + "\n" + text, hypertext, action_fn
         );
