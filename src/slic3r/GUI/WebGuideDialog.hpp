@@ -30,6 +30,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 
+#include <atomic>
 #include <unordered_map>
 
 #include <nlohmann/json.hpp>
@@ -78,6 +79,8 @@ public:
     int LoadProfileData();
     int SaveProfileData();
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
+    void init_guide_paths();
+    void on_profile_loaded();
     bool BuildProfileDataFromPresetBundle();
     bool BuildProfileDataFromBundledCache();
     bool try_load_guide_cache();
@@ -116,7 +119,7 @@ private:
 
     //First Load
     bool bFirstComplete{false};
-    bool m_destroy{false};
+    std::atomic<bool> m_destroy{false};
     boost::thread* m_load_task{ nullptr };
 
     // User Config
@@ -127,6 +130,7 @@ private:
     bool InstallNetplugin;
     bool network_plugin_ready {false};
 
+    json m_ProfileJson;
     json m_OrcaFilaList;
     std::string m_OrcaFilaLibPath;
 

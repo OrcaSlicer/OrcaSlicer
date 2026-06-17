@@ -1,9 +1,16 @@
 #include <cassert>
 #include <chrono>
 #include <ctime>
+#include <sstream>
 
 #include "PresetBundle.hpp"
-#include "PresetBundleCache.hpp"
+
+#include <boost/crc.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
 #include "PrintConfig.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
@@ -2260,60 +2267,84 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     if (validation_mode)
         dir = (boost::filesystem::path(data_dir())).make_preferred();
 
-    // Try loading from binary cache first (skips JSON parsing on cache hit).
-    // partial_dirty_vendors is non-empty when some vendors changed but others are still cached.
-    std::set<std::string> partial_dirty_vendors;
+    // Per-vendor binary cache: try user cache, then bundled cache, then JSON parse.
+    // Vendors that hit a cache are applied immediately; misses go through JSON parsing below.
+    std::set<std::string> cache_miss_vendors;
+    std::map<std::string, std::string> vendor_json_versions; // vendor_id → version string on disk
+
     if (!validation_mode) {
         const auto t0 = std::chrono::steady_clock::now();
-        PresetBundleCache::SystemPresetsCache cache;
-        const std::string cache_file = PresetBundleCache::SystemPresetsCache::cache_path();
-        if (cache.load(cache_file) && cache.is_plausible()) {
-            std::set<std::string> dirty;
-            if (cache.get_dirty_vendors(dir.string(), dirty)) {
-                if (dirty.empty()) {
-                    // Full hit — every vendor is unchanged.
-                    cache.apply(*this);
-                    update_system_maps();
-                    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now() - t0).count();
-                    BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from cache in " << ms << " ms";
-                    return {PresetsConfigSubstitutions{}, ""};
-                }
-                // Partial hit — restore clean vendors from cache, re-parse only dirty ones.
-                BOOST_LOG_TRIVIAL(info) << "PresetBundle: partial cache hit, " << dirty.size()
-                                        << " vendor(s) changed — re-parsing those only";
-                cache.apply_partial(*this, dirty);
-                partial_dirty_vendors = std::move(dirty);
+        this->reset(false);
+        bool all_from_cache = true;
+
+        // Collect all vendor names from the system directory.
+        std::vector<std::string> all_vendor_names;
+        try {
+            for (const auto& e : boost::filesystem::directory_iterator(dir)) {
+                if (Slic3r::is_json_file(e.path().string()))
+                    all_vendor_names.push_back(e.path().stem().string());
             }
-            // else: structural mismatch (format version or option count changed) → full re-parse.
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << "PresetBundle: cannot scan system dir: " << ex.what();
         }
 
-        if (partial_dirty_vendors.empty()) {
-            // No partial hit — try bundled cache shipped with the installer (first launch).
-            {
-                const std::string bundled_dir =
-                    (boost::filesystem::path(resources_dir()) / "profiles").make_preferred().string();
-                PresetBundleCache::SystemPresetsCache bundled;
-                if (bundled.load(PresetBundleCache::SystemPresetsCache::bundled_cache_path()) &&
-                    bundled.is_valid(bundled_dir) && bundled.is_plausible()) {
-                    bundled.apply(*this);
-                    update_system_maps();
-                    // Promote to user cache so subsequent launches skip this check.
-                    bundled.save(cache_file);
-                    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now() - t0).count();
-                    BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from bundled cache in " << ms << " ms";
-                    return {PresetsConfigSubstitutions{}, ""};
-                }
+        // Load ORCA_FILAMENT_LIBRARY first (other vendors' filaments inherit from it).
+        // Then load remaining vendors from per-vendor caches.
+        auto try_vendor_cache = [&](const std::string& vendor_name) -> bool {
+            const std::string json_path = (dir / (vendor_name + ".json")).string();
+            const Semver      ver       = get_version_from_json(json_path);
+            const std::string ver_str   = ver.valid() ? ver.to_string() : "";
+            vendor_json_versions[vendor_name] = ver_str;
+
+            VendorCache vc;
+            // 1. User per-vendor cache
+            if (vc.load(VendorCache::user_path(vendor_name)) && vc.is_valid(ver_str)) {
+                vc.apply(*this);
+                return true;
             }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cache miss, falling back to JSON load";
+            // 2. Bundled per-vendor cache (ships with installer)
+            if (vc.load(VendorCache::bundled_path(vendor_name)) && vc.is_valid(ver_str)) {
+                vc.apply(*this);
+                vc.save(VendorCache::user_path(vendor_name)); // promote
+                return true;
+            }
+            return false;
+        };
+
+        // Sort: ORCA_FILAMENT_LIBRARY goes first, rest alphabetical.
+        std::sort(all_vendor_names.begin(), all_vendor_names.end(),
+                  [](const std::string& a, const std::string& b) {
+                      if (a == ORCA_FILAMENT_LIBRARY) return true;
+                      if (b == ORCA_FILAMENT_LIBRARY) return false;
+                      return a < b;
+                  });
+
+        for (const auto& name : all_vendor_names) {
+            if (!try_vendor_cache(name)) {
+                cache_miss_vendors.insert(name);
+                all_from_cache = false;
+            }
         }
+
+        if (all_from_cache && !all_vendor_names.empty()) {
+            update_system_maps();
+            const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - t0).count();
+            BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from per-vendor cache in " << ms << " ms";
+            return {PresetsConfigSubstitutions{}, ""};
+        }
+        if (!cache_miss_vendors.empty())
+            BOOST_LOG_TRIVIAL(info) << "PresetBundle: " << cache_miss_vendors.size()
+                                    << " vendor(s) need JSON parse: "
+                                    << [&]{ std::string s; for (auto& v : cache_miss_vendors) s += v + " "; return s; }();
     }
 
     const auto json_load_t0 = std::chrono::steady_clock::now();
     PresetsConfigSubstitutions  substitutions;
     std::string                 errors_cummulative;
-    bool                        first = partial_dirty_vendors.empty(); // false in partial mode: clean vendors already applied
+    // first = true means no vendor has been loaded yet (from cache or JSON).
+    // false = at least one vendor was applied from the per-vendor cache above.
+    bool first = validation_mode || cache_miss_vendors.size() == vendor_json_versions.size();
     std::vector<std::string> vendor_names;
     // store all vendor names in vendor_names
     for (auto& dir_entry : boost::filesystem::directory_iterator(dir)) {
@@ -2335,8 +2366,8 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     std::vector<std::string> other_vendors;
     other_vendors.reserve(vendor_names.size());
     for (auto& vn : vendor_names) {
-        // In partial mode, skip vendors already loaded from cache.
-        if (!partial_dirty_vendors.empty() && !partial_dirty_vendors.count(vn))
+        // Skip vendors already loaded from the per-vendor cache.
+        if (!validation_mode && !cache_miss_vendors.count(vn))
             continue;
         if (vn == ORCA_FILAMENT_LIBRARY)
             orca_lib_vendor = vn;
@@ -2424,15 +2455,20 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from JSON in " << json_ms << " ms";
     }
 
-    // Persist a binary cache so the next startup can skip JSON parsing.
-    if (!validation_mode && errors_cummulative.empty()) {
+    // Save per-vendor binary caches for vendors that had to be parsed from JSON.
+    if (!validation_mode && !cache_miss_vendors.empty() && errors_cummulative.empty()) {
         const auto save_t0 = std::chrono::steady_clock::now();
-        PresetBundleCache::SystemPresetsCache cache;
-        cache.capture(*this, dir.string());
-        cache.save(PresetBundleCache::SystemPresetsCache::cache_path());
+        for (const auto& vendor_name : cache_miss_vendors) {
+            const bool is_orca_lib = (vendor_name == ORCA_FILAMENT_LIBRARY);
+            const std::string ver_str = vendor_json_versions.count(vendor_name)
+                                        ? vendor_json_versions.at(vendor_name) : "";
+            VendorCache vc;
+            vc.capture(*this, vendor_name, ver_str, is_orca_lib);
+            vc.save(VendorCache::user_path(vendor_name));
+        }
         const auto save_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - save_t0).count();
-        BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets cache saved in " << save_ms << " ms";
+        BOOST_LOG_TRIVIAL(info) << "PresetBundle: per-vendor caches saved in " << save_ms << " ms";
     }
 
     //BBS: add config related logs
@@ -6042,4 +6078,277 @@ bool BundleMetadata::save_to_json(const std::string& path) const
         return false;
     }
 }
+// ---- VendorCache implementation -----------------------------------------
+
+namespace {
+
+#pragma pack(push, 1)
+struct CacheFileHeader {
+    uint32_t magic;
+    uint32_t version;
+    uint64_t data_size;
+    uint32_t crc32;
+};
+#pragma pack(pop)
+static_assert(sizeof(CacheFileHeader) == 20, "CacheFileHeader must be 20 bytes");
+
+template<class T>
+static void save_blob(const std::string& path, const T& obj)
+{
+    std::ostringstream oss;
+    {
+        cereal::BinaryOutputArchive ar(oss);
+        ar(obj);
+    }
+    const std::string blob = oss.str();
+    boost::crc_32_type crc;
+    crc.process_bytes(blob.data(), blob.size());
+    try {
+        boost::filesystem::create_directories(boost::filesystem::path(path).parent_path());
+        boost::nowide::ofstream ofs(path, std::ios::binary | std::ios::trunc);
+        if (!ofs.is_open()) {
+            BOOST_LOG_TRIVIAL(warning) << "VendorCache: cannot open for writing: " << path;
+            return;
+        }
+        CacheFileHeader hdr;
+        hdr.magic     = VendorCache::CACHE_MAGIC;
+        hdr.version   = VendorCache::CACHE_VERSION;
+        hdr.data_size = static_cast<uint64_t>(blob.size());
+        hdr.crc32     = crc.checksum();
+        ofs.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
+        ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "VendorCache: write failed (" << path << "): " << e.what();
+    }
+}
+
+template<class T>
+static bool load_blob(const std::string& path, T& obj)
+{
+    try {
+        boost::nowide::ifstream ifs(path, std::ios::binary);
+        if (!ifs.is_open())
+            return false;
+        CacheFileHeader hdr;
+        if (!ifs.read(reinterpret_cast<char*>(&hdr), sizeof(hdr)))
+            return false;
+        if (hdr.magic != VendorCache::CACHE_MAGIC || hdr.version != VendorCache::CACHE_VERSION)
+            return false;
+        if (hdr.data_size == 0 || hdr.data_size > 512u * 1024u * 1024u)
+            return false;
+        std::string blob(hdr.data_size, '\0');
+        if (!ifs.read(&blob[0], static_cast<std::streamsize>(hdr.data_size)))
+            return false;
+        boost::crc_32_type crc;
+        crc.process_bytes(blob.data(), blob.size());
+        if (crc.checksum() != hdr.crc32) {
+            BOOST_LOG_TRIVIAL(warning) << "VendorCache: CRC mismatch: " << path;
+            return false;
+        }
+        std::istringstream iss(blob);
+        cereal::BinaryInputArchive ar(iss);
+        ar(obj);
+        return true;
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "VendorCache: load failed (" << path << "): " << e.what();
+        return false;
+    }
+}
+
+} // anonymous namespace
+
+std::string VendorCache::user_path(const std::string& vendor_id)
+{
+    return (boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR / (vendor_id + ".cache"))
+               .make_preferred().string();
+}
+
+std::string VendorCache::bundled_path(const std::string& vendor_id)
+{
+    return (boost::filesystem::path(resources_dir()) / "profiles" / (vendor_id + ".cache"))
+               .make_preferred().string();
+}
+
+bool VendorCache::load(const std::string& path)
+{
+    return load_blob(path, *this);
+}
+
+void VendorCache::save(const std::string& path) const
+{
+    save_blob(path, *this);
+}
+
+void VendorCache::capture(const PresetBundle& bundle,
+                           const std::string&  vendor_id,
+                           const std::string&  vendor_json_ver,
+                           bool                capture_filament_maps)
+{
+    cache_version        = CACHE_VERSION;
+    config_options_count = print_config_def.options.size();
+    vendor_json_version  = vendor_json_ver;
+
+    print_presets.clear();
+    filament_presets.clear();
+    printer_presets.clear();
+    sla_print_presets.clear();
+    sla_material_presets.clear();
+    config_maps.clear();
+    filament_id_maps.clear();
+
+    // Vendor profile
+    auto vp_it = bundle.vendors.find(vendor_id);
+    if (vp_it != bundle.vendors.end()) {
+        const VendorProfile& vp = vp_it->second;
+        profile.id                = vp.id;
+        profile.name              = vp.name;
+        profile.config_version    = vp.config_version.valid() ? vp.config_version.to_string() : "";
+        profile.config_update_url = vp.config_update_url;
+        profile.changelog_url     = vp.changelog_url;
+        profile.models.clear();
+        for (const auto& model : vp.models) {
+            CachedPrinterModel cm;
+            cm.id         = model.id;
+            cm.name       = model.name;
+            cm.model_id   = model.model_id;
+            cm.family     = model.family;
+            cm.technology = static_cast<int>(model.technology);
+            for (const auto& v : model.variants)
+                cm.variants.push_back({v.name});
+            cm.default_materials                   = model.default_materials;
+            cm.not_support_bed_types               = model.not_support_bed_types;
+            cm.bed_model                           = model.bed_model;
+            cm.bed_texture                         = model.bed_texture;
+            cm.image_bed_type                      = model.image_bed_type;
+            cm.bottom_texture_end_name             = model.bottom_texture_end_name;
+            cm.use_double_extruder_default_texture = model.use_double_extruder_default_texture;
+            cm.bottom_texture_rect                 = model.bottom_texture_rect;
+            cm.middle_texture_rect                 = model.middle_texture_rect;
+            cm.hotend_model                        = model.hotend_model;
+            profile.models.push_back(std::move(cm));
+        }
+        profile.default_filaments.clear();
+        for (const auto& f : vp.default_filaments)
+            profile.default_filaments.push_back(f);
+        profile.default_sla_materials.clear();
+        for (const auto& m : vp.default_sla_materials)
+            profile.default_sla_materials.push_back(m);
+    }
+
+    // Presets — only those belonging to this vendor
+    auto capture_col = [&](const PresetCollection& coll, std::vector<CachedPreset>& out) {
+        for (const Preset& p : coll()) {
+            if (!p.is_system) continue;
+            if (p.vendor == nullptr || p.vendor->id != vendor_id) continue;
+            CachedPreset cp;
+            cp.type                     = static_cast<int>(p.type);
+            cp.name                     = p.name;
+            cp.alias                    = p.alias;
+            cp.file                     = p.file;
+            cp.version                  = p.version.valid() ? p.version.to_string() : "";
+            cp.vendor_id                = vendor_id;
+            cp.filament_id              = p.filament_id;
+            cp.setting_id               = p.setting_id;
+            cp.description              = p.description;
+            cp.renamed_from             = p.renamed_from;
+            cp.is_system                = p.is_system;
+            cp.is_visible               = p.is_visible;
+            cp.m_from_orca_filament_lib = p.m_from_orca_filament_lib;
+            cp.config                   = p.config;
+            out.push_back(std::move(cp));
+        }
+    };
+    capture_col(bundle.prints,        print_presets);
+    capture_col(bundle.filaments,     filament_presets);
+    capture_col(bundle.printers,      printer_presets);
+    capture_col(bundle.sla_prints,    sla_print_presets);
+    capture_col(bundle.sla_materials, sla_material_presets);
+
+    if (capture_filament_maps) {
+        config_maps      = bundle.m_config_maps;
+        filament_id_maps = bundle.m_filament_id_maps;
+    }
+}
+
+void VendorCache::apply(PresetBundle& bundle) const
+{
+    // Restore vendor profile (additive — does not reset the bundle)
+    {
+        VendorProfile vp(profile.id);
+        vp.name              = profile.name;
+        vp.config_update_url = profile.config_update_url;
+        vp.changelog_url     = profile.changelog_url;
+        if (!profile.config_version.empty()) {
+            auto v = Semver::parse(profile.config_version);
+            if (v) vp.config_version = *v;
+        }
+        for (const auto& cm : profile.models) {
+            VendorProfile::PrinterModel model;
+            model.id         = cm.id;
+            model.name       = cm.name;
+            model.model_id   = cm.model_id;
+            model.family     = cm.family;
+            model.technology = static_cast<PrinterTechnology>(cm.technology);
+            for (const auto& v : cm.variants)
+                model.variants.emplace_back(v.name);
+            model.default_materials                   = cm.default_materials;
+            model.not_support_bed_types               = cm.not_support_bed_types;
+            model.bed_model                           = cm.bed_model;
+            model.bed_texture                         = cm.bed_texture;
+            model.image_bed_type                      = cm.image_bed_type;
+            model.bottom_texture_end_name             = cm.bottom_texture_end_name;
+            model.use_double_extruder_default_texture = cm.use_double_extruder_default_texture;
+            model.bottom_texture_rect                 = cm.bottom_texture_rect;
+            model.middle_texture_rect                 = cm.middle_texture_rect;
+            model.hotend_model                        = cm.hotend_model;
+            vp.models.push_back(std::move(model));
+        }
+        for (const auto& f : profile.default_filaments)
+            vp.default_filaments.insert(f);
+        for (const auto& m : profile.default_sla_materials)
+            vp.default_sla_materials.insert(m);
+        bundle.vendors.emplace(profile.id, std::move(vp));
+    }
+
+    // Restore presets
+    auto apply_col = [&](const std::vector<CachedPreset>& cached,
+                          PresetCollection&                coll,
+                          bool                             is_filaments) {
+        for (const auto& cp : cached) {
+            Semver version;
+            if (!cp.version.empty()) {
+                auto v = Semver::parse(cp.version);
+                if (v) version = *v;
+            }
+            DynamicPrintConfig config = cp.config;
+            Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), /*select=*/false, version);
+            p.is_system                = true;
+            p.is_visible               = cp.is_visible;
+            p.alias                    = cp.alias;
+            p.renamed_from             = cp.renamed_from;
+            p.filament_id              = cp.filament_id;
+            p.setting_id               = cp.setting_id;
+            p.description              = cp.description;
+            p.m_from_orca_filament_lib = cp.m_from_orca_filament_lib;
+            if (!cp.vendor_id.empty()) {
+                auto it = bundle.vendors.find(cp.vendor_id);
+                if (it != bundle.vendors.end())
+                    p.vendor = &it->second;
+            }
+            if (is_filaments)
+                coll.set_printer_hold_alias(p.alias, p);
+        }
+    };
+    apply_col(print_presets,        bundle.prints,        false);
+    apply_col(filament_presets,     bundle.filaments,     true);
+    apply_col(printer_presets,      bundle.printers,      false);
+    apply_col(sla_print_presets,    bundle.sla_prints,    false);
+    apply_col(sla_material_presets, bundle.sla_materials, false);
+
+    if (!config_maps.empty()) {
+        bundle.m_config_maps      = config_maps;
+        bundle.m_filament_id_maps = filament_id_maps;
+    }
+}
+
 } // namespace Slic3r
