@@ -295,7 +295,8 @@ public:
                           const std::string& username,
                           const std::string& nickname,
                           const std::string& avatar,
-                          const std::string& refresh_token = "");
+                          const std::string& refresh_token = "",
+                          bool persist = true);
     // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();

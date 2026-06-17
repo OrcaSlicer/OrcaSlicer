@@ -535,12 +535,11 @@ static bool parse_stored_secret(const std::string& secret, std::string& out_refr
         out_refresh_token = user_session.refresh_token;
         out_session       = std::move(user_session);
         return true;
-    } catch (const std::exception& _) {
+    } catch (const std::exception&) {
         BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: parse_stored_secret exception, force re-authentication";
         return false;
     }
 }
-
 
 int OrcaCloudServiceAgent::start()
 {
@@ -556,9 +555,11 @@ int OrcaCloudServiceAgent::start()
         SessionInfo stored_session;
         if (parse_stored_secret(stored_secret, refresh_token, stored_session)) {
             if (stored_session.logged_in) {
-                // We have a previously saved user session, use it
+                // We have a previously saved user session, use it. Skip re-persisting: the secret was
+                // just loaded from disk, so writing the identical bytes back is wasted startup I/O.
                 set_user_session(stored_session.access_token, stored_session.user_id, stored_session.user_name,
-                                 stored_session.user_nickname, stored_session.user_avatar, stored_session.refresh_token);
+                                 stored_session.user_nickname, stored_session.user_avatar, stored_session.refresh_token,
+                                 /*persist=*/false);
             }
             refresh_now(refresh_token, "refresh token", stored_session.logged_in);
         }
@@ -1755,7 +1756,8 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
                                      const std::string& username,
                                      const std::string& nickname,
                                      const std::string& avatar,
-                                     const std::string& refresh_token)
+                                     const std::string& refresh_token,
+                                     bool persist)
 {
     std::chrono::system_clock::time_point exp_tp{};
     decode_jwt_expiry(token, exp_tp);
@@ -1772,7 +1774,7 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
         session.logged_in = true;
     }
 
-    {
+    if (persist) {
         // Store user session on disk to not block use from using
         // an already logged in account if internet is not available.
         // Don't store access token though, we should always refresh it
