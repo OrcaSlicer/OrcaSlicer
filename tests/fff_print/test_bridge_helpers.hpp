@@ -158,6 +158,18 @@ inline void collect_widths_for_role(const ExtrusionEntity &entity, ExtrusionRole
     }
 }
 
+/// Count perimeter paths carrying a given role at a Z height.
+inline size_t count_perimeter_role_at_z(const Print &print, double z, ExtrusionRole role,
+                                        double tolerance = 0.02)
+{
+    auto roles = collect_perimeter_roles_at_z(print, z, tolerance);
+    size_t n = 0;
+    for (auto r : roles)
+        if (r == role)
+            ++n;
+    return n;
+}
+
 /// Collect widths (mm) of perimeter paths with a given role at a Z height.
 inline std::vector<float>
 collect_perimeter_widths_for_role_at_z(const Print &print, double z, ExtrusionRole role,

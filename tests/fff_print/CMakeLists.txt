@@ -3,6 +3,8 @@ add_executable(${_TEST_NAME}_tests
 	${_TEST_NAME}_tests.cpp
 	test_bridge_helpers.hpp
 	test_bridge.cpp
+	test_bridge_perimeter_fan.cpp
+	test_extra_bridge_fan.cpp
 	test_data.cpp
 	test_data.hpp
 	test_extrusion_entity.cpp

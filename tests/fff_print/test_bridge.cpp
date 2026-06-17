@@ -625,3 +625,73 @@ SCENARIO("Bridge perimeter tagging is partial: supported walls keep normal roles
 // segfault in G-code export that is unrelated to bridge perimeter retagging.
 // Bridge perimeter fan/speed behaviour is verified via the perimeter role
 // tests above — the G-code exporter respects erBridgePerimeter natively.
+
+// ============================================================================
+// Scenario 14: Second bridge layer perimeters have parity with the first
+// ============================================================================
+//
+// Regression test for the "extra bridge layer" perimeter promotion.  When an
+// extra (second) bridging layer is generated above a bridge, its perimeters
+// that continue over the bridged void must also be promoted to
+// erBridgePerimeter — with coverage comparable to the first bridge layer
+// directly below.  The real-world failure (opengrid model) was that the first
+// bridge layer got N bridge perimeters while the second layer above it got 0.
+//
+// Uses bridge_with_hole, whose bridge contains a supported island, so the layer
+// has BOTH spanning perimeters (which must be promoted) and supported
+// perimeters around the hole (which must stay normal) — closer to a multi-cell
+// topology than the single-span `bridge` mesh.
+
+SCENARIO("Second bridge layer perimeters reach parity with the first", "[Bridge][ExtraBridge][Perimeter][Parity]")
+{
+    GIVEN("A bridge_with_hole mesh with extra bridge layers enabled")
+    {
+        Slic3r::Print print;
+
+        TriangleMesh mesh = Slic3r::Test::mesh(TestMesh::bridge_with_hole);
+        mesh.align_to_origin();
+
+        Slic3r::Test::init_and_process_print({mesh}, print, {
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "enable_extra_bridge_layer",  "apply_to_all" },
+            { "bottom_shell_layers",        1 },
+            { "top_shell_layers",           0 },
+            { "sparse_infill_density",      0 },
+            { "thick_bridges",              false },
+        });
+
+        WHEN("Comparing bridge-perimeter coverage of the first and second bridge layers")
+        {
+            double bridge_z = find_first_bridge_z(print);
+            INFO("First bridge Z: " << bridge_z);
+            REQUIRE(bridge_z > 0.0);
+
+            double extra_z = bridge_z + 0.2;
+            INFO("Second bridge layer Z: " << extra_z);
+
+            const size_t first_bp = count_perimeter_role_at_z(print, bridge_z, erBridgePerimeter);
+            const size_t extra_bp = count_perimeter_role_at_z(print, extra_z, erBridgePerimeter);
+            INFO("First-layer bridge perimeters: " << first_bp);
+            INFO("Second-layer bridge perimeters: " << extra_bp);
+
+            THEN("The first bridge layer has bridge perimeters")
+            {
+                REQUIRE(first_bp > 0);
+            }
+
+            THEN("The second bridge layer also has bridge perimeters (no status-quo gap)")
+            {
+                REQUIRE(extra_bp > 0);
+            }
+
+            THEN("Second-layer bridge-perimeter coverage is comparable to the first")
+            {
+                // Allow some slack for geometry differences between layers, but
+                // the second layer must not collapse to a tiny fraction (the
+                // observed failure was first=N, second=0).
+                REQUIRE(extra_bp * 2 >= first_bp);
+            }
+        }
+    }
+}
