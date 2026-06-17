@@ -791,7 +791,6 @@ msgstr "Малювання шва"
 msgid "Remove selection"
 msgstr "Видалити виділення"
 
-#, fuzzy
 msgid "Entering seam painting"
 msgstr ""
 

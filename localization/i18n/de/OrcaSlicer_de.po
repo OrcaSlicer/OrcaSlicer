@@ -2084,7 +2084,6 @@ msgstr "Untere Flächendichte"
 msgid "Ironing"
 msgstr "Glätten"
 
-#, fuzzy
 msgid "Fuzzy skin"
 msgstr ""
 
@@ -8527,7 +8526,6 @@ msgstr "Mein Drucker"
 msgid "Left filaments"
 msgstr "linke Filamente"
 
-#, fuzzy
 msgid "AMS filament"
 msgstr ""
 

@@ -3591,7 +3591,6 @@ msgstr "Asztalhőmérséklet"
 msgid "mm³"
 msgstr "mm³"
 
-#, fuzzy
 msgid "Start"
 msgstr ""
 
@@ -6408,7 +6407,7 @@ msgstr "Letöltés..."
 msgid "Cloud Slicing..."
 msgstr "Felhőszeletelés..."
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr ""
 
@@ -7335,7 +7334,7 @@ msgstr "Fájl mentése mint:"
 msgid "Export OBJ file:"
 msgstr "OBJ fájl exportálása:"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -8802,7 +8801,6 @@ msgstr "A filament típusa nem egyezik az AMS-férőhelyben találhatóval. Kér
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "A kiválasztott nyomtató (%s) nem kompatibilis a nyomtatási fájl konfigurációjával (%s). Állítsd be a nyomtató-előbeállítást az előkészítés oldalon, vagy válassz ezen az oldalon kompatibilis nyomtatót."
 
-#, fuzzy
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr ""
 
@@ -15525,7 +15523,6 @@ msgstr ""
 "\n"
 "Ha az alábbi \"visszahúzási mennyiség törlés előtt\" beállításban értéket adsz meg, akkor az esetleges többletvisszahúzás a törlés előtt történik meg, különben utána."
 
-#, fuzzy
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr ""
 
@@ -17600,11 +17597,9 @@ msgstr "Filamentbeállítás"
 msgid "Create"
 msgstr "Létrehoz"
 
-#, fuzzy
 msgid "Vendor is not selected; please reselect vendor."
 msgstr ""
 
-#, fuzzy
 msgid "Custom vendor missing; please input custom vendor."
 msgstr ""
 
@@ -17614,11 +17609,9 @@ msgstr "A \"Bambu\" vagy \"Generic\" nem használható gyártóként egyedi fila
 msgid "Filament type is not selected, please reselect type."
 msgstr "A filament típusa nem lett kiválasztva, kérlek, válaszd ki a típust."
 
-#, fuzzy
 msgid "Filament serial missing; please input serial."
 msgstr ""
 
-#, fuzzy
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr ""
 
@@ -17678,7 +17671,6 @@ msgstr "Beállítás importálása"
 msgid "Create Type"
 msgstr "Típus létrehozása"
 
-#, fuzzy
 msgid "The model was not found; please reselect vendor."
 msgstr ""
 
@@ -17726,11 +17718,9 @@ msgstr "Útvonal nem található. Kérlek, válaszd ki újra a gyártót."
 msgid "The printer model was not found, please reselect."
 msgstr "A nyomtató modellje nem található, kérlek, válaszd ki újra."
 
-#, fuzzy
 msgid "The nozzle diameter was not found; please reselect."
 msgstr ""
 
-#, fuzzy
 msgid "The printer preset was not found; please reselect."
 msgstr ""
 
@@ -17750,7 +17740,6 @@ msgstr "Még nem választottad ki, hogy melyik nyomtató beállításai alapján
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Tiltott karakter került be az első oldalon a nyomtatási terület részbe. Kérlek, csak számokat használj."
 
-#, fuzzy
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17892,7 +17881,7 @@ msgstr "zip-fájl írása sikertelen"
 msgid "Export successful"
 msgstr "Sikeres exportálás!"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18009,7 +17998,6 @@ msgstr "[Törlés szükséges]"
 msgid "Edit Preset"
 msgstr "Beállítás módosítása"
 
-#, fuzzy
 msgid "For more information, please check out our Wiki"
 msgstr ""
 

@@ -15094,7 +15094,6 @@ msgid ""
 "Setting a value in the retract amount before wipe setting below will perform any excess retraction before the wipe, else it will be performed after."
 msgstr ""
 
-#, fuzzy
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr ""
 
@@ -15468,14 +15467,12 @@ msgstr ""
 msgid "mtcpp"
 msgstr "mtcpp"
 
-#, fuzzy
 msgid "max triangle count per plate for slicing"
 msgstr ""
 
 msgid "mstpp"
 msgstr "mstpp"
 
-#, fuzzy
 msgid "max slicing time per plate in seconds"
 msgstr ""
 
@@ -17230,7 +17227,6 @@ msgstr "どのプリンタプリセットに基づいて作成するかはまだ
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "印刷可能領域のセクション（1ページ目）に許可されていない文字が入力されています。数字のみを使用してください。"
 
-#, fuzzy
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"

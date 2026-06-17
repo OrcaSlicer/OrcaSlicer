@@ -2061,7 +2061,6 @@ msgstr "Mật độ bề mặt dưới"
 msgid "Ironing"
 msgstr ""
 
-#, fuzzy
 msgid "Fuzzy skin"
 msgstr ""
 
@@ -7830,7 +7829,6 @@ msgstr ""
 msgid "Set the page opened on startup."
 msgstr "Đặt trang được mở khi khởi động."
 
-#, fuzzy
 msgid "Enable dark Mode"
 msgstr ""
 
@@ -8282,7 +8280,6 @@ msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định 
 msgid "Associate web links to OrcaSlicer"
 msgstr "Liên kết liên kết web với OrcaSlicer"
 
-#, fuzzy
 msgid "Developer"
 msgstr ""
 

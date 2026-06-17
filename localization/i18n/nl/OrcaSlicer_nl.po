@@ -802,7 +802,6 @@ msgstr "Tekstruimte"
 msgid "Angle"
 msgstr "Hoek"
 
-#, fuzzy
 msgid "Embedded depth"
 msgstr ""
 
@@ -3211,7 +3210,6 @@ msgstr "Inloggen mislukt"
 msgid "Please check the printer network connection."
 msgstr "Controleer de netwerkverbinding van de printer."
 
-#, fuzzy
 msgid "Abnormal print file data: please slice again."
 msgstr ""
 
@@ -3538,7 +3536,6 @@ msgstr "De temperatuur van het mondstuk en de maximale volumetrische snelheid zi
 msgid "Nozzle Diameter"
 msgstr "Mondstukdiameter"
 
-#, fuzzy
 msgid "Plate Type"
 msgstr ""
 
@@ -3560,7 +3557,6 @@ msgstr "Printbed temperatuur"
 msgid "mm³"
 msgstr "mm³"
 
-#, fuzzy
 msgid "Start"
 msgstr ""
 
@@ -4927,7 +4923,6 @@ msgstr "Kleur veranderen"
 msgid "Print"
 msgstr ""
 
-#, fuzzy
 msgid "Printer"
 msgstr ""
 
@@ -7148,7 +7143,6 @@ msgstr ""
 msgid "Invalid values found in the 3MF:"
 msgstr ""
 
-#, fuzzy
 msgid "Please correct them in the Param tabs"
 msgstr ""
 
@@ -8468,7 +8462,6 @@ msgstr "Voer de laagwaarde in (>= 2)."
 msgid "Plate name"
 msgstr "Plaat naam"
 
-#, fuzzy
 msgid "Same as Global Plate Type"
 msgstr ""
 
@@ -14091,7 +14084,6 @@ msgstr "Terugtrek (retraction) lengte"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr ""
 
-#, fuzzy
 msgid "Long retraction when cut (beta)"
 msgstr ""
 
@@ -17027,11 +17019,9 @@ msgstr "Filament voorinstelling"
 msgid "Create"
 msgstr "Creëren"
 
-#, fuzzy
 msgid "Vendor is not selected; please reselect vendor."
 msgstr ""
 
-#, fuzzy
 msgid "Custom vendor missing; please input custom vendor."
 msgstr ""
 
@@ -17041,11 +17031,9 @@ msgstr "\"Bambu\" of \"Generic\" kan niet worden gebruikt als leverancier voor a
 msgid "Filament type is not selected, please reselect type."
 msgstr "Het type draad is niet geselecteerd, selecteer het type opnieuw."
 
-#, fuzzy
 msgid "Filament serial missing; please input serial."
 msgstr ""
 
-#, fuzzy
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr ""
 
@@ -17103,7 +17091,6 @@ msgstr "Preset importeren"
 msgid "Create Type"
 msgstr "Type maken"
 
-#, fuzzy
 msgid "The model was not found; please reselect vendor."
 msgstr ""
 
@@ -17155,7 +17142,6 @@ msgstr "Het printermodel is niet gevonden, selecteer opnieuw."
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "De diameter van het mondstuk is niet gevonden. Selecteer opnieuw."
 
-#, fuzzy
 msgid "The printer preset was not found; please reselect."
 msgstr ""
 
@@ -17175,7 +17161,6 @@ msgstr "Je hebt nog niet gekozen op basis van welke preset je de printer wilt ma
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "U hebt een niet toegestaan teken ingevoerd in het gedeelte van het afdrukbare gebied op de eerste pagina. Gebruik alleen cijfers."
 
-#, fuzzy
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17309,7 +17294,7 @@ msgstr "open zip geschreven mislukt"
 msgid "Export successful"
 msgstr "Exporteren is gelukt"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -17425,7 +17410,6 @@ msgstr "[Verwijderen vereist]"
 msgid "Edit Preset"
 msgstr "Preset bewerken"
 
-#, fuzzy
 msgid "For more information, please check out our Wiki"
 msgstr ""
 

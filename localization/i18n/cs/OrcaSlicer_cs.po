@@ -2074,7 +2074,6 @@ msgstr "Hustota spodního povrchu"
 msgid "Ironing"
 msgstr "Vyhlazování"
 
-#, fuzzy
 msgid "Fuzzy skin"
 msgstr ""
 

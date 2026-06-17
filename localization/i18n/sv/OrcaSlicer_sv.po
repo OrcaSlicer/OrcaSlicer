@@ -390,7 +390,6 @@ msgstr "Ställ in Skala"
 msgid "Reset position"
 msgstr "Återställ Position"
 
-#, fuzzy
 msgid "Reset rotation"
 msgstr ""
 
@@ -7056,7 +7055,6 @@ msgstr "Tidigare osparat projekt upptäckt, återställa det?"
 msgid "Restore"
 msgstr "Återställ"
 
-#, fuzzy
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr ""
 
@@ -7246,7 +7244,7 @@ msgstr "Spara fil som:"
 msgid "Export OBJ file:"
 msgstr "Exportera OBJ-fil:"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -11736,14 +11734,12 @@ msgstr "uppåt kompatibel maskin"
 msgid "Condition"
 msgstr "Villkor"
 
-#, fuzzy
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr ""
 
 msgid "Select profiles"
 msgstr ""
 
-#, fuzzy
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr ""
 
@@ -12349,7 +12345,6 @@ msgstr ""
 msgid "Unloading speed"
 msgstr ""
 
-#, fuzzy
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr ""
 
@@ -14061,7 +14056,6 @@ msgstr "Retraktions längd"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr ""
 
-#, fuzzy
 msgid "Long retraction when cut (beta)"
 msgstr ""
 
@@ -14751,7 +14745,6 @@ msgstr "Basens mönster mellanrum"
 msgid "This determines the spacing between support lines."
 msgstr "Mellanrum mellan support linjer"
 
-#, fuzzy
 msgid "Normal support expansion"
 msgstr ""
 
@@ -16997,11 +16990,9 @@ msgstr "Filament inställning"
 msgid "Create"
 msgstr "Skapa"
 
-#, fuzzy
 msgid "Vendor is not selected; please reselect vendor."
 msgstr ""
 
-#, fuzzy
 msgid "Custom vendor missing; please input custom vendor."
 msgstr ""
 
@@ -17011,11 +17002,9 @@ msgstr "\"Bambu\" eller \"Generic\" kan inte användas som leverantör för anpa
 msgid "Filament type is not selected, please reselect type."
 msgstr "Filament typ är inte vald, vänligen välj typ igen."
 
-#, fuzzy
 msgid "Filament serial missing; please input serial."
 msgstr ""
 
-#, fuzzy
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr ""
 
@@ -17073,7 +17062,6 @@ msgstr "Importera inställning"
 msgid "Create Type"
 msgstr "Skapa typ"
 
-#, fuzzy
 msgid "The model was not found; please reselect vendor."
 msgstr ""
 
@@ -17121,11 +17109,9 @@ msgstr "Inställd sökväg hittades inte; vänligen välj leverantör igen."
 msgid "The printer model was not found, please reselect."
 msgstr "Printer modellen hittades inte, välj igen."
 
-#, fuzzy
 msgid "The nozzle diameter was not found; please reselect."
 msgstr ""
 
-#, fuzzy
 msgid "The printer preset was not found; please reselect."
 msgstr ""
 
@@ -17145,7 +17131,6 @@ msgstr "Du har ännu inte valt vilken printer inställning du vill skapa baserat
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Du har angett ett otillåtet tecken i det utskrivbara området på första sidan. Använd endast siffror."
 
-#, fuzzy
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17275,7 +17260,7 @@ msgstr "öppna zip skripten misslyckades"
 msgid "Export successful"
 msgstr "Export lyckades"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -17391,7 +17376,6 @@ msgstr "[Radera krävs]"
 msgid "Edit Preset"
 msgstr "Redigera inställningar"
 
-#, fuzzy
 msgid "For more information, please check out our Wiki"
 msgstr ""
 
