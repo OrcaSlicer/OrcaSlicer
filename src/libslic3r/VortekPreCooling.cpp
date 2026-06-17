@@ -6,6 +6,7 @@
 // ============================================================================
 
 #include "VortekPreCooling.hpp"
+#include "VortekWipeTower.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "GCodeReader.hpp"
 #include <algorithm>
@@ -291,18 +292,24 @@ void PreCooling::inject_cooling_heating_command(
     };
 
     constexpr float room_temperature = 25.f;
+    float reuse_cool_floor = room_temperature;
+    if (block.last_filament_id >= 0 && block.last_filament_id < (int)filament_pre_cooling_temps.size()) {
+        float f_cool_temp = filament_pre_cooling_temps[block.last_filament_id];
+        if (f_cool_temp > room_temperature)
+            reuse_cool_floor = f_cool_temp;
+    }
 
     if (apply_cooling_when_partial_free) {
         float max_cooling_temp = std::min(curr_temp, std::min(get_partial_free_cooling_thres(block.last_filament_id), partial_free_time_gap * ext_cooling_rate));
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": partial cooling for %1% %2%") % max_cooling_temp % curr_temp;
-        curr_temp = std::max(room_temperature, curr_temp - max_cooling_temp);
+        curr_temp = std::max(reuse_cool_floor, curr_temp - max_cooling_temp);
         add_M104_lines(block.partial_free_lower_id, extruder_id, curr_temp, block.last_filament_id, false, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreCooling, "Multi extruder pre cooling in post extrusion");
     }
 
     if (pre_cooling && !pre_heating) {
         if (target_temp >= curr_temp)
             return;
-        int clamped_target = std::max((int)room_temperature, (int)target_temp);
+        int clamped_target = std::max((int)reuse_cool_floor, (int)target_temp);
         add_M104_lines(block.free_lower_gcode_id, extruder_id, clamped_target, block.last_filament_id, false, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreCooling, "Multi extruder pre cooling");
         return;
     }
@@ -322,7 +329,7 @@ void PreCooling::inject_cooling_heating_command(
         return;
     }
     // perform cooling first and then perform heating
-    float mid_temp = std::max(room_temperature, (curr_temp * ext_heating_rate + target_temp * ext_cooling_rate - complete_free_time_gap * ext_cooling_rate * ext_heating_rate) / (ext_cooling_rate + ext_heating_rate));
+    float mid_temp = std::max(reuse_cool_floor, (curr_temp * ext_heating_rate + target_temp * ext_cooling_rate - complete_free_time_gap * ext_cooling_rate * ext_heating_rate) / (ext_cooling_rate + ext_heating_rate));
     float heating_temp = target_temp - mid_temp;
     float heating_start_time = move_iter_upper->time[valid_machine_id] - heating_temp / ext_heating_rate;
     auto heating_move_iter = std::upper_bound(move_iter_lower, move_iter_upper + 1, heating_start_time, [valid_machine_id = this->valid_machine_id](float time, const Slic3r::GCodeProcessorResult::MoveVertex& a) {return time < a.time[valid_machine_id]; });
@@ -336,7 +343,7 @@ void PreCooling::inject_cooling_heating_command(
     int real_delta_temp = std::min((int)(real_cooling_time * ext_cooling_rate), (int)curr_temp);
     if (real_delta_temp == 0)
         return;
-    int cooling_temp = std::max((int)room_temperature, (int)curr_temp - real_delta_temp);
+    int cooling_temp = std::max((int)reuse_cool_floor, (int)curr_temp - real_delta_temp);
     add_M104_lines(block.free_lower_gcode_id, extruder_id, cooling_temp, block.last_filament_id, false, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreCooling, "Multi extruder pre cooling");
     add_M104_lines(heating_move_iter->gcode_id, extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
 }
@@ -443,6 +450,7 @@ void PreCooling::build_by_extruder_blocks(const std::vector<Slic3r::ExtruderPreH
 void PreCooling::apply_config(const Slic3r::PrintConfig& config, size_t filament_count, Slic3r::GCodeProcessor& processor)
 {
     processor.m_enable_pre_heating = config.enable_pre_heating.value;
+    processor.m_inject_time_threshold = WipeTower::is_h2c_printer(config) ? 0.f : 30.f;
     {
         processor.m_cooling_rate.resize(filament_count, 2.0);
         processor.m_heating_rate.resize(filament_count, 2.0);
@@ -651,8 +659,18 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
     std::vector<int> filament_nozzle_temps_fl_int(processor.m_filament_nozzle_temp_first_layer.begin(), processor.m_filament_nozzle_temp_first_layer.end());
     std::vector<std::pair<unsigned int, unsigned int>> skippable_blocks;
 
+    std::vector<Slic3r::GCodeProcessorResult::MoveVertex> cumulative_moves = processor.m_result.moves;
+    std::array<float, static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Count)> running_time;
+    running_time.fill(0.f);
+    for (auto& move : cumulative_moves) {
+        for (size_t i = 0; i < running_time.size(); ++i) {
+            running_time[i] += move.time[i];
+            move.time[i] = running_time[i];
+        }
+    }
+
     auto pre_cooling_injector = std::make_unique<PreCooling>(
-        processor.m_result.moves,
+        cumulative_moves,
         processor.m_filament_types,
         *processor.m_nozzle_group_result,
         filament_nozzle_temps_int,

@@ -1169,7 +1169,16 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         // do unretract after setting current extruder_id
-        std::string toolchange_unretract_str = gcodegen.unretract();
+        float filament_tower_interface_pre_extrusion_length = gcodegen.m_config.filament_tower_interface_pre_extrusion_length.values[tcr.new_tool];
+        bool is_contact_pre_extrusion = tcr.is_contact && gcodegen.m_config.enable_tower_interface_features;
+        const auto* has_fts_opt = gcodegen.config().option<ConfigOptionBool>("has_filament_switcher");
+        bool is_petg_pre_extrusion    = !is_contact_pre_extrusion && gcodegen.config().filament_type.get_at(tcr.new_tool) == "PETG" && has_fts_opt && has_fts_opt->value;
+        float extra_unretract = 0.f;
+        if (is_contact_pre_extrusion)
+            extra_unretract = filament_tower_interface_pre_extrusion_length;
+        else if (is_petg_pre_extrusion)
+            extra_unretract = 2.f;
+        std::string toolchange_unretract_str = (extra_unretract > 0.f) ? gcodegen.unretract(extra_unretract) : gcodegen.unretract();
         check_add_eol(toolchange_unretract_str);
 
         gcodegen.placeholder_parser().set("current_extruder", new_filament_id);
@@ -1346,7 +1355,16 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 Vec3d position{gcodegen.writer().get_position()};
                 position.z() = z;
                 gcodegen.writer().set_position(position);
-                deretraction_str += gcodegen.unretract();
+                float filament_tower_interface_pre_extrusion_length = gcodegen.m_config.filament_tower_interface_pre_extrusion_length.values[tcr.new_tool];
+                bool is_contact_pre_extrusion = tcr.is_contact && gcodegen.m_config.enable_tower_interface_features;
+                const auto* has_fts_opt = gcodegen.config().option<ConfigOptionBool>("has_filament_switcher");
+                bool is_petg_pre_extrusion    = !is_contact_pre_extrusion && gcodegen.config().filament_type.get_at(tcr.new_tool) == "PETG" && has_fts_opt && has_fts_opt->value;
+                float extra_unretract = 0.f;
+                if (is_contact_pre_extrusion)
+                    extra_unretract = filament_tower_interface_pre_extrusion_length;
+                else if (is_petg_pre_extrusion)
+                    extra_unretract = 2.f;
+                deretraction_str += gcodegen.unretract(extra_unretract);
             }
         }
 

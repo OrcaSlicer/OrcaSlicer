@@ -57,6 +57,10 @@
 	"filament_change_length_nc": [
 		"4"
 	],
+	"filament_flush_temp": [
+		"240",
+		"240"
+	],
 	"nozzle_temperature": [
 		"240",
 		"240"
@@ -92,6 +96,11 @@
 		"1",
 		"1"
 	],
+	"retraction_distances_when_ec": [
+		"10",
+		"10"
+	],
+
 	"counter_coef_2": [
 		"0.0036"
 	],

@@ -4163,8 +4163,8 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_tower_interface_print_temp", "material_multimaterial#multimaterial-wipe-tower-parameters");
         
         optgroup = page->new_optgroup(L("Multi Filament"));
-        // optgroup->append_single_option_line("filament_flush_temp", "", 0);
-        // optgroup->append_single_option_line("filament_flush_volumetric_speed", "", 0);
+        optgroup->append_single_option_line("filament_flush_temp", "", 0);
+        optgroup->append_single_option_line("filament_flush_volumetric_speed", "", 0);
         optgroup->append_single_option_line("long_retractions_when_ec", "material_multimaterial#multi-filament" , 0);
         optgroup->append_single_option_line("retraction_distances_when_ec", "material_multimaterial#multi-filament" , 0);
 

@@ -47,6 +47,10 @@
 	"filament_change_length_nc": [
 		"4"
 	],
+	"filament_flush_temp": [
+		"265",
+		"265"
+	],
 	"nozzle_temperature": [
 		"265",
 		"265"

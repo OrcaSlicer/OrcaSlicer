@@ -1246,7 +1246,7 @@ void GCodeProcessor::run_post_process()
     // add lines M73 to exported gcode
     auto process_line_move = [
         // Lambdas, mostly for string formatting, all with an empty capture block.
-        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,format_line_exhaust_fan_control,
+        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,
         &self = std::as_const(m_time_processor),
         // Caches, to be modified
         &g1_times_cache_it, &last_exported_main, &last_exported_stop,

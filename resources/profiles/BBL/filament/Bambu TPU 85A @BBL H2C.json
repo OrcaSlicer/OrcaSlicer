@@ -96,6 +96,10 @@
 	"nozzle_temperature_range_high": [
 		"250"
 	],
+	"filament_flush_temp": [
+		"225",
+		"225"
+	],
 	"nozzle_temperature": [
 		"225",
 		"225"

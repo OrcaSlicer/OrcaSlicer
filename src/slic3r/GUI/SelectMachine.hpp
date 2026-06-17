@@ -317,6 +317,7 @@ private:
     std::vector<MachineObject*>         m_list;
     std::vector<FilamentInfo>           m_filaments;
     std::vector<FilamentInfo>           m_ams_mapping_result;
+    std::unordered_map<int, int>        m_nozzle_mapping_result;
     std::vector<int>                    m_filaments_map;
     std::shared_ptr<BBLStatusBarPrint>  m_status_bar;
     std::unique_ptr<Worker>             m_worker;
@@ -490,6 +491,9 @@ public:
     bool can_support_pa_auto_cali();
     bool is_same_printer_model();
     bool is_blocking_printing(MachineObject* obj_);
+    bool CheckErrorSyncNozzleMappingResultV1(MachineObject* obj);
+    bool CheckErrorSyncNozzleMappingResultV0(MachineObject* obj);
+    bool CheckErrorDynamicSwitchNozzle(MachineObject* obj_);
     bool is_nozzle_hrc_matched(const DevExtder* extruder, std::string& filament_type) const;
     bool check_sdcard_for_timelpase(MachineObject* obj);
     bool is_timeout();

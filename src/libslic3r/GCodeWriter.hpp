@@ -83,7 +83,15 @@ public:
     std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
-    std::string unretract();
+    // ── BBL port: extra_retract parameter ─────────────────────────────────────────────────────
+    // Original OrcaSlicer unretract() had no arguments and always used filament()->E() as the
+    // absolute E target (i.e. exactly reverse the retraction, nothing more).
+    // BBL added `extra_retract` (default 0) to allow an additional forward E push on top of the
+    // normal unretraction. Called with extra_retract > 0 from GCode.cpp when:
+    //   - enable_tower_interface_features=true (contact layer): extra = pre_extrusion_length mm
+    //   - PETG + has_filament_switcher=true (FTS path):         extra = 2.0 mm (BBL constant)
+    // See GCodeWriter::unretract() implementation in GCodeWriter.cpp for details.
+    std::string unretract(double extra_retract = 0.);
     double get_extruder_retracted_length(const int filament_id);
     // do lift instantly
     std::string eager_lift(const LiftType type);

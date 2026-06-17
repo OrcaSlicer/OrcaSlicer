@@ -761,7 +761,8 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_tower_framework(config.prime_tower_enable_framework.value),
     m_flat_ironing(config.prime_tower_flat_ironing.value),
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
-    m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
+    m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value),
+    m_has_filament_switcher(config.has("has_filament_switcher") ? config.option<ConfigOptionBool>("has_filament_switcher")->value : false)
 {
     // H2C patches: change-length tables, max speed, multi-nozzle detection using Vortek::WipeTower::init_ctor
     Vortek::WipeTower::init_ctor(*this, config);
@@ -881,6 +882,7 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].retract_speed  = config.retraction_speed.get_at(idx);
     m_filpar[idx].wipe_dist      = config.wipe_distance.get_at(idx);
     m_filpar[idx].filament_cooling_before_tower = config.filament_cooling_before_tower.get_at(idx);
+    m_filpar[idx].filament_petg_pre_extrusion_offset_dist = config.filament_tower_interface_pre_extrusion_dist.get_at(idx);
 
     //set extruder change and nozzle change ramming speed
     {
@@ -981,6 +983,27 @@ Vec2f WipeTower::get_next_pos(const WipeTower::box_coordinates &cleaning_box, fl
         res = offset+cleaning_box.ld + pos_offset + Vec2f(0, y_offset);
         break;
     default: break;
+    }
+
+    bool is_contact_pre_extrusion = interface_layer && m_enable_tower_interface_features;
+    bool is_petg_pre_extrusion   = !is_contact_pre_extrusion && is_petg_filament(interface_tool) && m_has_filament_switcher;
+    if (is_contact_pre_extrusion || is_petg_pre_extrusion) {
+        Vec2f        stop_pos                                    = res;
+        float        filament_tower_interface_pre_extrusion_dist = is_petg_pre_extrusion
+                                                                       ? m_filpar[interface_tool].filament_petg_pre_extrusion_offset_dist
+                                                                       : m_filpar[interface_tool].tower_interface_pre_extrusion_dist;
+        if (stop_pos.x() < m_wipe_tower_width / 2.f)
+            stop_pos = Vec2f(stop_pos.x() - filament_tower_interface_pre_extrusion_dist, stop_pos.y());
+        else
+            stop_pos = Vec2f(stop_pos.x() + filament_tower_interface_pre_extrusion_dist, stop_pos.y());
+        if (!m_shared_print_bed.empty()) {
+            auto printer_bbx_base = unscaled(get_extents(m_shared_print_bed));
+            BoundingBoxf printer_bbx(printer_bbx_base.min, printer_bbx_base.max);
+            printer_bbx.translate((-m_wipe_tower_pos - m_rib_offset).cast<double>());
+            if (stop_pos.x() < printer_bbx.min[0]) stop_pos.x() = printer_bbx.min[0];
+            if (stop_pos.x() > printer_bbx.max[0]) stop_pos.x() = printer_bbx.max[0];
+        }
+        res = stop_pos;
     }
     return res;
 }
@@ -1900,6 +1923,11 @@ void WipeTower::save_on_last_wipe()
 bool WipeTower::is_tpu_filament(int filament_id) const
 {
     return m_filpar[filament_id].material == "TPU";
+}
+
+bool WipeTower::is_petg_filament(int filament_id) const
+{
+    return m_filpar[filament_id].material == "PETG";
 }
 
 // BBS: consider both soluable and support properties

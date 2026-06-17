@@ -1061,7 +1061,7 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
     return gcode;
 }
 
-std::string GCodeWriter::unretract()
+std::string GCodeWriter::unretract(double extra_retract)
 {
     std::string gcode;
 
@@ -1077,7 +1077,8 @@ std::string GCodeWriter::unretract()
             //BBS
             // use G1 instead of G0 because G0 will blend the restart with the previous travel move
             GCodeG1Formatter w;
-            w.emit_e(filament()->E());
+            // BBL port: add extra_retract to the absolute E target for contact-layer / PETG+FTS paths
+            w.emit_e(filament()->E() + extra_retract);
             w.emit_f(filament()->deretract_speed() * 60.);
             //BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");

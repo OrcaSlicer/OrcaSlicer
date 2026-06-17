@@ -353,6 +353,15 @@ public:
         float               wipe_dist;
         float               tower_interface_pre_extrusion_dist = 0.f;
         float               tower_interface_pre_extrusion_length = 0.f;
+        // ── BBL port: PETG-specific pre-extrusion offset (FTS path) ────────────────────────
+        // Ported from BambuStudio WipeTower::FilamentParameters (line 345).
+        // Distinct from `tower_interface_pre_extrusion_dist` — this field is ALWAYS populated
+        // from filament_tower_interface_pre_extrusion_dist config, even when
+        // enable_tower_interface_features=false. It is used by the PETG+FTS code path
+        // in get_next_pos() to offset the wipe-tower start position outside the tower,
+        // reducing the risk of ooze blobs on the first PETG layer after a tool change.
+        // Value: 0 disables the shift; typically set to 2–4 mm in filament profiles.
+        float               filament_petg_pre_extrusion_offset_dist = 0.f;
         float               tower_ironing_area = 4.f;
         float               tower_interface_purge_length = 0.f;
         std::pair<int,int>    precool_target_temp;
@@ -502,6 +511,15 @@ private:
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
     bool                      m_is_multiple_nozzle = false;
+    // ── BBL port: Filament Track Switcher flag ───────────────────────────────────────────
+    // Ported from BambuStudio PrintConfig (GCodeConfig section):
+    //   ((ConfigOptionBool, has_filament_switcher))
+    // In BambuStudio, PrintConfig is a StaticConfig with a direct .has_filament_switcher member;
+    // in OrcaSlicer, the field is added dynamically, so we access it via
+    //   config.option<ConfigOptionBool>("has_filament_switcher")
+    // and cache the bool result here at construction time.
+    // When true, enables PETG-specific pre-extrusion position shift in get_next_pos().
+    bool                      m_has_filament_switcher = false;
     // BBL parity: acceleration/arc/heating members
     std::vector<unsigned int> m_normal_accels;
     std::vector<unsigned int> m_first_layer_normal_accels;
@@ -578,6 +596,7 @@ private:
     void save_on_last_wipe();
 
 	bool is_tpu_filament(int filament_id) const;
+	bool is_petg_filament(int filament_id) const;
 
 	bool is_need_reverse_travel(int filament, bool extruder_change) const;
 	// BBS

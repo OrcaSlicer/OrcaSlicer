@@ -46,6 +46,10 @@
 	"filament_tower_ironing_area": [
 		"8"
 	],
+	"filament_flush_temp": [
+		"245",
+		"245"
+	],
 	"nozzle_temperature": [
 		"245",
 		"245"
@@ -93,6 +97,11 @@
 		"1",
 		"1"
 	],
+	"retraction_distances_when_ec": [
+		"10",
+		"10"
+	],
+
 	"counter_coef_2": [
 		"0.0058"
 	],

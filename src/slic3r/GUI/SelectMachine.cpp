@@ -26,6 +26,7 @@
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
+#include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevStorage.h"
 
 #include <wx/progdlg.h>
@@ -1933,6 +1934,138 @@ void SelectMachineDialog::show_errors(wxString &info)
     confirm_dlg.on_show();
 }
 
+static time_t s_nozzle_mapping_last_request_time = 0;
+
+bool SelectMachineDialog::CheckErrorDynamicSwitchNozzle(MachineObject* obj_)
+{
+    return true;
+}
+
+bool SelectMachineDialog::CheckErrorSyncNozzleMappingResultV1(MachineObject* obj_)
+{
+    if (m_print_type != FROM_NORMAL) {
+        return true;
+    }
+    if (!obj_) {
+        return true;
+    }
+    if (!obj_->GetNozzleRack()->IsSupported()) {
+        return true;
+    }
+    if (!use_dynamic_nozzle_map()) {
+        return true;
+    }
+
+    const auto& obj_nozzle_mapping_ptr = obj_->get_nozzle_mapping_result();
+    if (!obj_nozzle_mapping_ptr->HasResult()) {
+        if (time(nullptr) - s_nozzle_mapping_last_request_time > 10) {
+            int rtn = obj_nozzle_mapping_ptr->CtrlGetAutoNozzleMappingV1(m_plater);
+            if (rtn == 0) {
+                s_nozzle_mapping_last_request_time = time(nullptr);
+            } else {
+                const auto& err_msg = wxString::Format(_L("Failed to send nozzle auto-mapping request to printer { code: %d }. Please try to refresh the printer information."), rtn);
+                show_status(PrintDialogStatus::PrintStatusRackNozzleMappingWaiting, { err_msg });
+                return false;
+            }
+        }
+
+        show_status(PrintDialogStatus::PrintStatusRackNozzleMappingWaiting, { _L("The printer is calculating nozzle mapping.") + " " + _L("Please wait a moment...") });
+        return false;
+    }
+
+    if (obj_nozzle_mapping_ptr->GetResultStr() == "failed") {
+        const auto& err_msg = wxString::Format(_L("Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."), obj_nozzle_mapping_ptr->GetMqttReason());
+        show_status(PrintDialogStatus::PrintStatusRackNozzleMappingError, { err_msg });
+        return false;
+    }
+
+    if (obj_nozzle_mapping_ptr->GetResultStr() == "fail") {
+        const wxString& err_msg = wxString::Format(_L("The printer failed to build the nozzle auto-mapping table { code: %d }. Please refresh nozzle information."), obj_nozzle_mapping_ptr->GetErrno());
+        show_status(PrintDialogStatus::PrintStatusRackNozzleMappingError, { err_msg });
+        return false;
+    }
+
+    const auto& mapping_map = obj_->get_nozzle_mapping_result()->GetNozzleMappingMap();
+    if (!mapping_map.empty()) {
+        if (m_nozzle_mapping_result != mapping_map) {
+            m_nozzle_mapping_result = mapping_map;
+            sync_ams_mapping_result(m_ams_mapping_result);
+        }
+        return true;
+    }
+
+    const wxString& err_msg = wxString::Format(_L("Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."), "empty table");
+    show_status(PrintDialogStatus::PrintStatusRackNozzleMappingError, { err_msg });
+    return true;
+}
+
+bool SelectMachineDialog::CheckErrorSyncNozzleMappingResultV0(MachineObject* obj_)
+{
+    if (!obj_)  {
+        return true;
+    }
+    if (!obj_->GetNozzleRack()->IsSupported()){
+        return true;
+    }
+    if (m_print_type != FROM_NORMAL) {
+        return true;
+    }
+    if (use_dynamic_nozzle_map()) {
+        return true;
+    }
+
+    auto nozzle_group_res = DevUtilBackend::GetNozzleGroupResult(m_plater);
+    if (nozzle_group_res && nozzle_group_res->get_used_nozzles_in_extruder(LOGIC_R_EXTRUDER_ID).empty()) {
+        return true;
+    }
+
+    const auto& obj_nozzle_mapping_ptr = obj_->get_nozzle_mapping_result();
+    if (!obj_nozzle_mapping_ptr->HasResult()) {
+        if (time(nullptr) - s_nozzle_mapping_last_request_time > 10) {
+            int flow_cali_val = 2;
+            if (m_checkbox_list.find("flow_cali") != m_checkbox_list.end()) {
+                flow_cali_val = m_checkbox_list["flow_cali"]->getValueInt();
+            }
+            int rtn = obj_nozzle_mapping_ptr->CtrlGetAutoNozzleMappingV0(m_plater, m_ams_mapping_result, flow_cali_val, 1);
+            if (rtn == 0) {
+                s_nozzle_mapping_last_request_time = time(nullptr);
+            } else {
+                const auto& err_msg = wxString::Format(_L("Failed to send nozzle auto-mapping request to printer { code: %d }. Please try to refresh the printer information."), rtn);
+                show_status(PrintDialogStatus::PrintStatusRackNozzleMappingWaiting, { err_msg });
+                return false;
+            }
+        }
+
+        show_status(PrintDialogStatus::PrintStatusRackNozzleMappingWaiting, { _L("The printer is calculating nozzle mapping.") + " " + _L("Please wait a moment...")});
+        return false;
+    }
+
+    if (obj_nozzle_mapping_ptr->GetResultStr() == "failed") {
+        const auto& err_msg = wxString::Format(_L("Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."), obj_nozzle_mapping_ptr->GetMqttReason());
+        show_status(PrintDialogStatus::PrintStatusRackNozzleMappingError, { err_msg });
+        return false;
+    }
+
+    if (obj_nozzle_mapping_ptr->GetResultStr() == "fail") {
+        const wxString& err_msg = wxString::Format(_L("The printer failed to build the nozzle auto-mapping table { code: %d }. Please refresh nozzle information."), obj_nozzle_mapping_ptr->GetErrno());
+        show_status(PrintDialogStatus::PrintStatusRackNozzleMappingError, { err_msg });
+        return false;
+    }
+
+    const auto& mapping_map = obj_->get_nozzle_mapping_result()->GetNozzleMappingMap();
+    if (!mapping_map.empty()) {
+        if (m_nozzle_mapping_result != mapping_map) {
+            m_nozzle_mapping_result = mapping_map;
+            sync_ams_mapping_result(m_ams_mapping_result);
+        }
+        return true;
+    }
+
+    const wxString& err_msg = wxString::Format(_L("Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."), "empty table");
+    show_status(PrintDialogStatus::PrintStatusRackNozzleMappingError, { err_msg });
+    return true;
+}
+
 void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
 {
     bool has_slice_warnings = false;
@@ -1942,6 +2075,16 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
     if (!dev) return;
     MachineObject* obj_ = dev->get_selected_machine();
     if (!obj_) return;
+
+    if (!CheckErrorDynamicSwitchNozzle(obj_)) {
+        return;
+    }
+    if (!CheckErrorSyncNozzleMappingResultV1(obj_)) {
+        return;
+    }
+    if (!CheckErrorSyncNozzleMappingResultV0(obj_)) {
+        return;
+    }
 
     std::vector<ConfirmBeforeSendInfo> confirm_text;
 
