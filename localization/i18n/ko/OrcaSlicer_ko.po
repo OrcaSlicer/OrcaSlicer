@@ -94,11 +94,10 @@ msgstr "버전:"
 msgid "Latest version"
 msgstr "최신 버전"
 
+#, fuzzy
+#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "서포트 칠하기"
-
-msgid "Perform"
-msgstr "수행"
 
 msgid "On highlighted overhangs only"
 msgstr "강조된 오버행에만 칠하기"
@@ -106,7 +105,9 @@ msgstr "강조된 오버행에만 칠하기"
 msgid "Erase all"
 msgstr ""
 
-msgid "Highlight overhang areas"
+#, fuzzy
+#| msgid "Highlight overhang areas"
+msgid "Highlight overhangs"
 msgstr "오버행 영역 강조"
 
 msgid "Tool type"
@@ -176,7 +177,9 @@ msgstr "자동 서포트 비활성"
 msgid "Done"
 msgstr "완료"
 
-msgid "Support Generated"
+#, fuzzy
+#| msgid "Support Generated"
+msgid "Support generated"
 msgstr "서포트 생성됨"
 
 msgid "Entering Paint-on supports"
@@ -191,13 +194,17 @@ msgstr ""
 msgid "Gizmo-Place on Face"
 msgstr "변형도구 - 면에 배치"
 
-msgid "Lay on face"
+#, fuzzy
+#| msgid "Lay on face"
+msgid "Lay on Face"
 msgstr "바닥면 선택"
 
 #, boost-format
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "필라멘트 수가 페인팅 도구가 지원하는 최대 수를 초과합니다. 첫 번째 %1% 필라멘트만 페인팅 도구에서 사용할 수 있습니다."
 
+#, fuzzy
+#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "색 칠하기"
 
@@ -325,6 +332,8 @@ msgstr "변형도구 - 회전"
 msgid "Optimize orientation"
 msgstr "방향 최적화"
 
+#, fuzzy
+#| msgid "Apply"
 msgid "Apply"
 msgstr "적용"
 
@@ -367,29 +376,38 @@ msgstr "회전 (상대)"
 msgid "Scale ratios"
 msgstr "배율비"
 
-msgid "Object Operations"
+#, fuzzy
+#| msgid "Object Operations"
+msgid "Object operations"
 msgstr "객체 작업"
 
-msgid "Volume Operations"
+#, fuzzy
+#| msgid "Volume Operations"
+msgid "Volume operations"
 msgstr "용량 작업"
 
 msgid "Translate"
 msgstr "번역"
 
-msgid "Group Operations"
+#, fuzzy
+#| msgid "Group Operations"
+msgid "Group operations"
 msgstr "그룹 작업"
 
-msgid "Set Orientation"
+#, fuzzy
+#| msgid "Set Orientation"
+msgid "Set orientation"
 msgstr "방향 설정"
 
-msgid "Set Scale"
+#, fuzzy
+#| msgid "Set Scale"
+msgid "Set scale"
 msgstr "배율 설정"
 
-msgid "Reset Position"
+#, fuzzy
+#| msgid "Reset Position"
+msgid "Reset position"
 msgstr "위치 초기화"
-
-msgid "Reset Rotation"
-msgstr "회전 초기화"
 
 msgid "Object coordinates"
 msgstr "객체 좌표"
@@ -680,7 +698,9 @@ msgstr "커넥터"
 msgid "Cut by Plane"
 msgstr "평면으로 자르기"
 
-msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
+#, fuzzy
+#| msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "절단 도구로 인해 메인폴드가 아닌 가장자리가 발생했는데 지금 수정하시겠습니까?"
 
 msgid "Repairing model object"
@@ -748,7 +768,9 @@ msgstr "%d 삼각형"
 msgid "Show wireframe"
 msgstr "와이어프레임 보기"
 
-msgid "Can't apply when processing preview."
+#, fuzzy
+#| msgid "Can't apply when processing preview."
+msgid "Unable to apply when processing preview"
 msgstr "미리 보기 진행 시 적용할 수 없습니다."
 
 msgid "Operation already cancelling. Please wait a few seconds."
@@ -772,7 +794,9 @@ msgstr "재봉선 칠하기"
 msgid "Remove selection"
 msgstr "선택 삭제"
 
-msgid "Entering Seam painting"
+#, fuzzy
+#| msgid "Entering Seam painting"
+msgid "Entering seam painting"
 msgstr "재봉선 칠하기 입력"
 
 msgid "Leaving Seam painting"
@@ -795,9 +819,11 @@ msgstr "글자 간격"
 msgid "Angle"
 msgstr "각도"
 
-msgid ""
-"Embedded\n"
-"depth"
+#, fuzzy
+#| msgid ""
+#| "Embedded\n"
+#| "depth"
+msgid "Embedded depth"
 msgstr ""
 "내장\n"
 "깊이"
@@ -1372,6 +1398,8 @@ msgstr "SVG 중심에서 모델 표면까지의 거리입니다."
 msgid "Reset distance"
 msgstr "거리 재설정"
 
+#, fuzzy
+#| msgid "Reset rotation"
 msgid "Reset rotation"
 msgstr "회전 재설정"
 
@@ -1604,6 +1632,8 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "공지사항"
 
+#, fuzzy
+#| msgid "Undef"
 msgid "Undefined"
 msgstr "정의되지 않음"
 
@@ -1626,11 +1656,14 @@ msgstr "필라멘트"
 msgid "Machine"
 msgstr "장치"
 
-msgid "Configuration package was loaded, but some values were not recognized."
+#, fuzzy
+#| msgid "Configuration package was loaded, but some values were not recognized."
+msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "구성 패키지가 로드되었지만, 일부 값이 인식되지 않았습니다."
 
-#, boost-format
-msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+#, boost-format, fuzzy
+#| msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "구성 파일 \"%1%\"가 로드되었지만 일부 값이 인식되지 않았습니다."
 
 msgid "Loading configuration"
@@ -1812,7 +1845,9 @@ msgstr "외부"
 msgid "Some presets are modified."
 msgstr "일부 사전 설정이 수정 되었습니다."
 
-msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+#, fuzzy
+#| msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
+msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "수정된 사전 설정을 새 프로젝트에 유지하거나, 변경 내용을 삭제 또는 새 사전 설정으로 저장할 수 있습니다."
 
 msgid "User logged out"
@@ -2009,8 +2044,9 @@ msgstr "이름 변경"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Orca Slicer GUI 초기화 실패"
 
-#, boost-format
-msgid "Fatal error, exception caught: %1%"
+#, boost-format, fuzzy
+#| msgid "Fatal error, exception caught: %1%"
+msgid "Fatal error, exception: %1%"
 msgstr "치명적 오류, 예외 발견: %1%"
 
 msgid "Quality"
@@ -2034,19 +2070,22 @@ msgstr "속도"
 msgid "Strength"
 msgstr "강도"
 
-msgid "Top Solid Layers"
-msgstr "상부 꽉찬 레이어"
-
-msgid "Top Minimum Shell Thickness"
+#, fuzzy
+#| msgid "Top Minimum Shell Thickness"
+msgid "Top minimum shell thickness"
 msgstr "상단 최소 쉘 두께"
 
 msgid "Top Surface Density"
 msgstr "상단 표면 밀도"
 
-msgid "Bottom Solid Layers"
+#, fuzzy
+#| msgid "Bottom Solid Layers"
+msgid "Bottom solid layers"
 msgstr "하단 꽉찬 레이어"
 
-msgid "Bottom Minimum Shell Thickness"
+#, fuzzy
+#| msgid "Bottom Minimum Shell Thickness"
+msgid "Bottom minimum shell thickness"
 msgstr "하단 최소 쉘 두께"
 
 msgid "Bottom Surface Density"
@@ -2055,13 +2094,17 @@ msgstr "하단 표면 밀도"
 msgid "Ironing"
 msgstr "다림질"
 
-msgid "Fuzzy Skin"
+#, fuzzy
+#| msgid "Fuzzy Skin"
+msgid "Fuzzy skin"
 msgstr "퍼지 스킨"
 
 msgid "Extruders"
 msgstr "압출기"
 
-msgid "Extrusion Width"
+#, fuzzy
+#| msgid "Extrusion Width"
+msgid "Extrusion width"
 msgstr "압출 너비"
 
 msgid "Wipe options"
@@ -2070,19 +2113,24 @@ msgstr "노즐 청소 옵션"
 msgid "Bed adhesion"
 msgstr "베드 안착"
 
-msgid "Add part"
+#, fuzzy
+#| msgid "Add part"
+msgid "Add Part"
 msgstr "부품 추가"
 
-msgid "Add negative part"
+#, fuzzy
+#| msgid "Add negative part"
+msgid "Add Negative Part"
 msgstr "비우기 부품 추가"
 
-msgid "Add modifier"
-msgstr "수정자 추가"
-
-msgid "Add support blocker"
+#, fuzzy
+#| msgid "Add support blocker"
+msgid "Add Support Blocker"
 msgstr "서포트 차단기 추가"
 
-msgid "Add support enforcer"
+#, fuzzy
+#| msgid "Add support enforcer"
+msgid "Add Support Enforcer"
 msgstr "서포트 강제기 추가"
 
 msgid "Add text"
@@ -2182,13 +2230,19 @@ msgstr "제안"
 msgid "Text"
 msgstr "텍스트"
 
-msgid "Height range Modifier"
+#, fuzzy
+#| msgid "Height range Modifier"
+msgid "Height Range Modifier"
 msgstr "높이 범위 수정자"
 
-msgid "Add settings"
+#, fuzzy
+#| msgid "Add settings"
+msgid "Add Settings"
 msgstr "설정 추가"
 
-msgid "Change type"
+#, fuzzy
+#| msgid "Change type"
+msgid "Change Type"
 msgstr "유형 변경"
 
 msgid "Negative Part"
@@ -2203,10 +2257,14 @@ msgstr "서포트 강제기"
 msgid "Change part type"
 msgstr "부품 유형 변경"
 
-msgid "Set as an individual object"
+#, fuzzy
+#| msgid "Set as an individual object"
+msgid "Set as An Individual Object"
 msgstr "개별 객체로 설정"
 
-msgid "Set as individual objects"
+#, fuzzy
+#| msgid "Set as individual objects"
+msgid "Set as Individual Objects"
 msgstr "개별 객체로 설정"
 
 msgid "Fill bed with copies"
@@ -2224,7 +2282,9 @@ msgstr ""
 msgid "Automatically drops the selected object to the build plate"
 msgstr ""
 
-msgid "Fix model"
+#, fuzzy
+#| msgid "Fix model"
+msgid "Fix Model"
 msgstr "모델 수리"
 
 msgid "Export as one STL"
@@ -2294,16 +2354,24 @@ msgstr "객체의 서포트에서 버리기"
 msgid "Edit in Parameter Table"
 msgstr "객체/부품 설정에서 편집"
 
-msgid "Convert from inches"
+#, fuzzy
+#| msgid "Convert from inches"
+msgid "Convert from Inches"
 msgstr "인치에서 변환"
 
-msgid "Restore to inches"
+#, fuzzy
+#| msgid "Restore to inches"
+msgid "Restore to Inch"
 msgstr "인치로 복원"
 
-msgid "Convert from meters"
+#, fuzzy
+#| msgid "Convert from meters"
+msgid "Convert from Meters"
 msgstr "미터에서 변환"
 
-msgid "Restore to meters"
+#, fuzzy
+#| msgid "Restore to meters"
+msgid "Restore to Meter"
 msgstr "미터로 복원"
 
 msgid "Assemble the selected objects into an object with multiple parts"
@@ -2318,24 +2386,38 @@ msgstr "메시 합집합/차집합/교집합"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "합집합과 차집합을 포함한 메시 부울 연산"
 
-msgid "Along X axis"
+#, fuzzy
+#| msgid "Along X axis"
+msgid "Along X Axis"
 msgstr "X축"
 
-msgid "Mirror along the X axis"
+#, fuzzy
+#| msgid "Mirror along the X axis"
+msgid "Mirror along the X Axis"
 msgstr "X축을 따라 반전"
 
-msgid "Along Y axis"
+#, fuzzy
+#| msgid "Along Y axis"
+msgid "Along Y Axis"
 msgstr "Y축"
 
-msgid "Mirror along the Y axis"
+#, fuzzy
+#| msgid "Mirror along the Y axis"
+msgid "Mirror along the Y Axis"
 msgstr "Y축을 따라 반전"
 
-msgid "Along Z axis"
+#, fuzzy
+#| msgid "Along Z axis"
+msgid "Along Z Axis"
 msgstr "Z축"
 
-msgid "Mirror along the Z axis"
+#, fuzzy
+#| msgid "Mirror along the Z axis"
+msgid "Mirror along the Z Axis"
 msgstr "Z축을 따라 반전"
 
+#, fuzzy
+#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "객체 반전"
 
@@ -2366,13 +2448,17 @@ msgstr "모델 추가"
 msgid "Show Labels"
 msgstr "이름표 보기"
 
-msgid "To objects"
+#, fuzzy
+#| msgid "To objects"
+msgid "To Objects"
 msgstr "객체로"
 
 msgid "Split the selected object into multiple objects"
 msgstr "선택한 객체를 여러 객체로 분할"
 
-msgid "To parts"
+#, fuzzy
+#| msgid "To parts"
+msgid "To Parts"
 msgstr "부품으로"
 
 msgid "Split the selected object into multiple parts"
@@ -2399,6 +2485,8 @@ msgstr "병합"
 msgid "Delete this filament"
 msgstr "이 필라멘트 삭제"
 
+#, fuzzy
+#| msgid "Select all"
 msgid "Select All"
 msgstr "모두 선택"
 
@@ -2411,6 +2499,8 @@ msgstr "모든 플레이트 선택"
 msgid "Select all objects on all plates"
 msgstr "모든 플레이트의 모든 객체 선택"
 
+#, fuzzy
+#| msgid "Delete all"
 msgid "Delete All"
 msgstr "모두 삭제"
 
@@ -2540,22 +2630,30 @@ msgstr[0] "%1$d 비다양체 가장자리"
 msgid "Click the icon to repair model object"
 msgstr "아이콘을 클릭하여 모델 객체를 수리하세요"
 
-msgid "Right button click the icon to drop the object settings"
+#, fuzzy
+#| msgid "Right button click the icon to drop the object settings"
+msgid "Right click the icon to drop the object settings"
 msgstr "아이콘을 마우스 우클릭하여 객체 설정을 드롭합니다"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "아이콘을 클릭하여 객체의 모든 설정을 초기화합니다"
 
-msgid "Right button click the icon to drop the object printable property"
+#, fuzzy
+#| msgid "Right button click the icon to drop the object printable property"
+msgid "Right click the icon to drop the object printable property"
 msgstr "아이콘을 마우스 우클릭하여 객체 출력 가능 속성을 드롭합니다"
 
-msgid "Click the icon to toggle printable property of the object"
+#, fuzzy
+#| msgid "Click the icon to toggle printable property of the object"
+msgid "Click the icon to toggle printable properties of the object"
 msgstr "아이콘을 쿨릭하여 객체의 출력 가능한 속성을 전환합니다"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "아이콘을 클릭하여 객체의 서포트 칠하기를 편집합니다"
 
-msgid "Click the icon to edit color painting of the object"
+#, fuzzy
+#| msgid "Click the icon to edit color painting of the object"
+msgid "Click the icon to edit color painting for the object"
 msgstr "아이콘을 클릭하여 객체의 색상 칠하기를 편집합니다"
 
 msgid "Click the icon to shift this object to the bed"
@@ -2573,6 +2671,8 @@ msgstr "현재 파일에서 모델의 데이터를 가져오지 못했습니다.
 msgid "Generic"
 msgstr "일반"
 
+#, fuzzy
+#| msgid "Add Modifier"
 msgid "Add Modifier"
 msgstr "수정자 추가"
 
@@ -2597,9 +2697,15 @@ msgstr "잘라내기의 일부인 객체에서 음수 비우기 용량 삭제"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "잘라내기 연결을 저장하기 위해 모든 관련 객체에서 모든 커넥터를 삭제할 수 있습니다."
 
+#, fuzzy
+#| msgid ""
+#| "This action will break a cut correspondence.\n"
+#| "After that model consistency can't be guaranteed.\n"
+#| "\n"
+#| "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgid ""
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed.\n"
+"After that, model consistency can't be guaranteed.\n"
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
@@ -2629,13 +2735,19 @@ msgstr "객체 조작"
 msgid "Group manipulation"
 msgstr "그룹 조작"
 
-msgid "Object Settings to modify"
+#, fuzzy
+#| msgid "Object Settings to modify"
+msgid "Object Settings to Modify"
 msgstr "수정할 객체 설정"
 
-msgid "Part Settings to modify"
+#, fuzzy
+#| msgid "Part Settings to modify"
+msgid "Part Settings to Modify"
 msgstr "수정할 부품 설정"
 
-msgid "Layer range Settings to modify"
+#, fuzzy
+#| msgid "Layer range Settings to modify"
+msgid "Layer Range Settings to Modify"
 msgstr "수정할 레이어 범위 설정"
 
 msgid "Part manipulation"
@@ -2662,7 +2774,9 @@ msgstr "첫 번째로 선택한 항목이 객체이면 두 번째 항목도 객�
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "첫 번째로 선택한 항목이 부품이면 두 번째 항목은 동일한 객체의 부품이어야 합니다."
 
-msgid "The type of the last solid object part is not to be changed."
+#, fuzzy
+#| msgid "The type of the last solid object part is not to be changed."
+msgid "The type of the last solid object part cannot be changed."
 msgstr "마지막 꽉찬 객체 부품의 유형은 변경되지 않습니다."
 
 msgid "Type:"
@@ -2779,16 +2893,24 @@ msgstr "선 유형"
 msgid "1x1 Grid: %d mm"
 msgstr "1x1 그리드: %d mm"
 
+#, fuzzy
+#| msgid "Detail."
 msgid "More"
 msgstr "더보기"
 
-msgid "Open Preferences."
+#, fuzzy
+#| msgid "Open Preferences."
+msgid "Open Preferences"
 msgstr "기본 설정 열기."
 
-msgid "Open next tip."
+#, fuzzy
+#| msgid "Open next tip."
+msgid "Open next tip"
 msgstr "다음 팁 열기."
 
-msgid "Open Documentation in web browser."
+#, fuzzy
+#| msgid "Open Documentation in web browser."
+msgid "Open documentation in web browser"
 msgstr "웹 브라우저에서 문서 열기."
 
 msgid "Color"
@@ -2818,10 +2940,14 @@ msgstr "사용자 정의 Gcode"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "현재 레이어에 사용될 사용자 정의 Gcode 입력:"
 
-msgid "Jump to Layer"
+#, fuzzy
+#| msgid "Jump to Layer"
+msgid "Jump to layer"
 msgstr "다음 레이어로 이동"
 
-msgid "Please enter the layer number"
+#, fuzzy
+#| msgid "Please enter the layer number"
+msgid "Please enter the layer number."
 msgstr "레이어 번호를 입력하세요"
 
 msgid "Add Pause"
@@ -2899,13 +3025,17 @@ msgstr "연결 중..."
 msgid "Auto Refill"
 msgstr "자동 리필"
 
+#, fuzzy
+#| msgid "Load Filament"
 msgid "Load"
 msgstr "불러오기"
 
 msgid "Unload"
 msgstr "언로드"
 
-msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
+#, fuzzy
+#| msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
+msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "AMS 슬롯을 선택한 다음 '로드' 또는 '언로드' 버튼을 누르면 필라멘트를 자동으로 로드하거나 언로드할 수 있습니다."
 
 msgid "Filament type is unknown which is required to perform this action. Please set target filament's informations."
@@ -3014,7 +3144,9 @@ msgstr "노즐 가열"
 msgid "Cut filament"
 msgstr "필라멘트 자르기"
 
-msgid "Pull back current filament"
+#, fuzzy
+#| msgid "Pull back current filament"
+msgid "Pull back the current filament"
 msgstr "현재 필라멘트를 뒤로 당깁니다"
 
 msgid "Push new filament into extruder"
@@ -3053,6 +3185,8 @@ msgstr ""
 msgid "No matching items..."
 msgstr ""
 
+#, fuzzy
+#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "모두 선택 해제"
 
@@ -3110,7 +3244,9 @@ msgstr "정렬 중"
 msgid "Arranging canceled."
 msgstr "정렬 취소됨."
 
-msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
+#, fuzzy
+#| msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
+msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "정렬은 완료되었지만 배치가 안 된 항목이 있습니다. 간격을 줄이고 다시 시도하세요."
 
 msgid "Arranging done."
@@ -3177,7 +3313,9 @@ msgstr "로그인 실패"
 msgid "Please check the printer network connection."
 msgstr "프린터 네트워크 연결을 확인하세요."
 
-msgid "Abnormal print file data. Please slice again."
+#, fuzzy
+#| msgid "Abnormal print file data. Please slice again."
+msgid "Abnormal print file data: please slice again."
 msgstr "비정상적인 출력 파일 데이터: 다시 슬라이스하세요."
 
 msgid "Task canceled."
@@ -3189,7 +3327,9 @@ msgstr "업로드 작업 시간이 초과되었습니다.네트워크 상태를 
 msgid "Cloud service connection failed. Please try again."
 msgstr "클라우드 서비스 연결에 실패했습니다. 다시 시도하세요."
 
-msgid "Print file not found. Please slice again."
+#, fuzzy
+#| msgid "Print file not found. Please slice again."
+msgid "Print file not found; please slice again."
 msgstr "출력파일을 찾을 수 없습니다. 다시 슬라이스하세요."
 
 msgid "The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again."
@@ -3201,16 +3341,22 @@ msgstr "출력 작업을 전송하지 못했습니다. 다시 시도하세요."
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "파일을 ftp에 업로드하지 못했습니다. 다시 시도해 주세요."
 
-msgid "Check the current status of the bambu server by clicking on the link above."
+#, fuzzy
+#| msgid "Check the current status of the bambu server by clicking on the link above."
+msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "위의 링크를 클릭하여 뱀부랩 서버의 현재 상태를 확인하세요."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "출력 파일의 크기가 너무 큽니다. 파일 크기를 조정한 후 다시 시도하세요."
 
-msgid "Print file not found, please slice it again and send it for printing."
+#, fuzzy
+#| msgid "Print file not found, please slice it again and send it for printing."
+msgid "Print file not found; please slice it again and send it for printing."
 msgstr "출력 파일을 찾을 수 없습니다. 다시 슬라이스하여 출력전송하세요."
 
-msgid "Failed to upload print file to FTP. Please check the network status and try again."
+#, fuzzy
+#| msgid "Failed to upload print file to FTP. Please check the network status and try again."
+msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "출력 파일을 FTP에 업로드하지 못했습니다. 네트워크 상태를 확인하신 후 다시 시도해 주세요."
 
 msgid "Sending print job over LAN"
@@ -3261,6 +3407,8 @@ msgstr "저장 장치 상태에서 알 수 없는 오류가 발생했습니다. 
 msgid "Sending G-code file over LAN"
 msgstr "LAN을 통해 Gcode 파일 전송 중"
 
+#, fuzzy
+#| msgid "Sending G-code file to SD card"
 msgid "Sending G-code file to SD card"
 msgstr "SD 카드로 Gcode 파일 전송 중"
 
@@ -3331,7 +3479,9 @@ msgstr "남은 시간: %d분%d초"
 msgid "Importing SLA archive"
 msgstr "SLA 압축파일 가져오는 중"
 
-msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+#, fuzzy
+#| msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
+msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "SLA 압축파일에 사전 설정이 없습니다. 해당 SLA 압축파일를 가져오기 전에 먼저 일부 SLA 프린터 사전 설정을 활성화하세요."
 
 msgid "Importing canceled."
@@ -3343,7 +3493,9 @@ msgstr "가져오기가 완료되었습니다."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "가져온 SLA 압축파일에 사전 설정이 없습니다. 현재 SLA 사전 설정이 예비로 사용되었습니다."
 
-msgid "You cannot load SLA project with a multi-part object on the bed"
+#, fuzzy
+#| msgid "You cannot load SLA project with a multi-part object on the bed"
+msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "베드에 다중 부품 객체가 있는 SLA 프로젝트를 로드할 수 없습니다"
 
 msgid "Please check your object list before preset changing."
@@ -3370,7 +3522,9 @@ msgstr "설치 중"
 msgid "Install failed"
 msgstr "설치 실패"
 
-msgid "Portions copyright"
+#, fuzzy
+#| msgid "Portions copyright"
+msgid "License Info"
 msgstr "일부 저작권"
 
 msgid "Copyright"
@@ -3487,6 +3641,8 @@ msgstr "기타 색상"
 msgid "Custom Color"
 msgstr "사용자 정의 색상"
 
+#, fuzzy
+#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "동적 압출량 교정"
 
@@ -3495,9 +3651,6 @@ msgstr "노즐 온도와 최대 압출 속도는 교정 결과에 영향을 미�
 
 msgid "Nozzle Diameter"
 msgstr "노즐 직경"
-
-msgid "Bed Type"
-msgstr "베드 유형"
 
 msgid "Nozzle temperature"
 msgstr "노즐 온도"
@@ -3517,7 +3670,9 @@ msgstr "베드 온도"
 msgid "mm³"
 msgstr "mm³"
 
-msgid "Start calibration"
+#, fuzzy
+#| msgid "Start calibration"
+msgid "Start"
 msgstr "교정 시작"
 
 msgid "Next"
@@ -3528,9 +3683,6 @@ msgstr "교정이 완료되었습니다. 당신의 고온 베드에서 아래 �
 
 msgid "Save"
 msgstr "저장"
-
-msgid "Last Step"
-msgstr "마지막 단계"
 
 msgid "Example"
 msgstr "예시"
@@ -3545,9 +3697,6 @@ msgstr "교정 완료"
 #, c-format, boost-format
 msgid "%s does not support %s"
 msgstr "%s 은(는) %s 을(를) 지원하지 않습니다"
-
-msgid "Dynamic flow Calibration"
-msgstr "동적 압출량 교정"
 
 msgid "Step"
 msgstr "단계"
@@ -3629,16 +3778,22 @@ msgstr "참고: 필라멘트가 로드된 슬롯만 선택할 수 있습니다."
 msgid "Enable AMS"
 msgstr "AMS 사용"
 
-msgid "Print with filaments in the AMS"
+#, fuzzy
+#| msgid "Print with filaments in the AMS"
+msgid "Print with filament in the AMS"
 msgstr "AMS의 필라멘트로 출력"
 
 msgid "Disable AMS"
 msgstr "AMS 미사용"
 
-msgid "Print with the filament mounted on the back of chassis"
+#, fuzzy
+#| msgid "Print with the filament mounted on the back of chassis"
+msgid "Print with filament on external spool"
 msgstr "섀시 뒷면에 필라멘트를 장착한 상태에서 출력"
 
-msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
+#, fuzzy
+#| msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
+msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "건조제가 너무 젖으면 교체하세요. 뚜껑이 열려 있거나 건조제 팩을 교체한 경우, 습기를 흡수하는 데 몇 시간이 걸리는 경우, 낮은 온도로 인해 공정이 느려지는 경우 등에는 표시기가 정확하게 표시되지 않을 수 있습니다."
 
 msgid "Configure which AMS slot should be used for a filament used in the print job."
@@ -3656,14 +3811,15 @@ msgstr "클릭하여 AMS 슬롯을 수동으로 선택합니다"
 msgid "Do not Enable AMS"
 msgstr "AMS 비활성"
 
-msgid "Print using materials mounted on the back of the case"
+#, fuzzy
+#| msgid "Print using materials mounted on the back of the case"
+msgid "Print using filament on external spool."
 msgstr "케이스 뒷면에 장착된 재료를 사용하여 출력"
 
-msgid "Print with filaments in AMS"
+#, fuzzy
+#| msgid "Print with filaments in AMS"
+msgid "Print with filament in AMS"
 msgstr "AMS의 필라멘트로 출력"
-
-msgid "Print with filaments mounted on the back of the chassis"
-msgstr "섀시 뒷면에 필라멘트를 장착하여 출력"
 
 msgid "Left"
 msgstr "왼쪽"
@@ -3686,7 +3842,9 @@ msgstr "현재 재료가 다 떨어지면 프린터는 동일한 필라멘트를
 msgid "The printer does not currently support auto refill."
 msgstr "프린터는 현재 자동 리필을 지원하지 않습니다."
 
-msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
+#, fuzzy
+#| msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
+msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "AMS 필라멘트 백업이 활성화되지 않았습니다. AMS 설정에서 활성화하세요."
 
 msgid ""
@@ -3708,7 +3866,9 @@ msgstr "AMS 설정"
 msgid "Insertion update"
 msgstr "삽입 업데이트"
 
-msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
+#, fuzzy
+#| msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
+msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "AMS는 새 뱀부랩 필라멘트를 삽입할 때 필라멘트 정보를 자동으로 읽습니다. 이 작업은 약 20초 정도 걸립니다."
 
 msgid "Note: if a new filament is inserted during printing, the AMS will not automatically read any information until printing is completed."
@@ -3717,10 +3877,14 @@ msgstr "참고: 출력 중에 새 필라멘트를 삽입하면 출력가 완료�
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "새 필라멘트를 삽입할 때 AMS는 정보를 자동으로 읽지 않고 사용자가 수동으로 입력할 수 있도록 비워 둡니다."
 
-msgid "Power on update"
+#, fuzzy
+#| msgid "Power on update"
+msgid "Update on startup"
 msgstr "업데이트 전원 유지"
 
-msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
+#, fuzzy
+#| msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
+msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "AMS는 시동 시 삽입된 필라멘트의 정보를 자동으로 읽습니다. 1분 정도 걸립니다. 판독 프로세스는 필라멘트 스풀을 롤링합니다."
 
 msgid "The AMS will not automatically read information from inserted filament during startup and will continue to use the information recorded before the last shutdown."
@@ -3774,7 +3938,9 @@ msgstr "교정"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "플러그인을 다운로드하지 못했습니다. 방화벽 설정 및 VPN 소프트웨어를 확인하고 확인한 후 다시 시도하세요."
 
-msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
+#, fuzzy
+#| msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
+msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr ""
 
 msgid "Click here to see more info"
@@ -3795,17 +3961,23 @@ msgstr ")을 클릭하여 툴헤드의 위치를 찾습니다. 이렇게 하면 
 msgid "Go Home"
 msgstr "홈으로"
 
-msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+#, fuzzy
+#| msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
+msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "오류가 발생했습니다. 시스템 메모리가 부족하거나 프로그램의 버그일 수 있습니다"
 
 #, boost-format
 msgid "A fatal error occurred: \"%1%\""
 msgstr "치명적인 오류가 발생했습니다: “%1%”"
 
-msgid "Please save project and restart the program."
+#, fuzzy
+#| msgid "Please save project and restart the program."
+msgid "Please save your project and restart the application."
 msgstr "프로젝트를 저장하고 프로그램을 다시 시작하세요."
 
-msgid "Processing G-code from Previous file..."
+#, fuzzy
+#| msgid "Processing G-code from Previous file..."
+msgid "Processing G-Code from previous file…"
 msgstr "이전 파일의 Gcode를 처리하는 중..."
 
 msgid "Slicing complete"
@@ -3869,7 +4041,9 @@ msgstr "임시 Gcode 복사가 완료되었지만 복사 확인 중에 내보낸
 msgid "G-code file exported to %1%"
 msgstr "%1%로 내보낸 Gcode 파일"
 
-msgid "Unknown error when exporting G-code."
+#, fuzzy
+#| msgid "Unknown error when exporting G-code."
+msgid "Unknown error with G-code export"
 msgstr "Gcode를 내보낼 때 알 수 없는 오류가 발생했습니다."
 
 #, boost-format
@@ -3882,7 +4056,9 @@ msgstr ""
 "오류 메시지: %1%.\n"
 "원본 파일 %2%."
 
-msgid "Copying of the temporary G-code to the output G-code failed"
+#, fuzzy
+#| msgid "Copying of the temporary G-code to the output G-code failed"
+msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "출력 Gcode에 임시 Gcode를 복사하지 못했습니다"
 
 #, boost-format
@@ -3928,13 +4104,17 @@ msgstr "베드 모양을 불러올 STL 파일 선택:"
 msgid "Invalid file format."
 msgstr "잘못된 파일 형식입니다."
 
-msgid "Error! Invalid model"
+#, fuzzy
+#| msgid "Error! Invalid model"
+msgid "Error: invalid model"
 msgstr "오류! 잘못된 모델입니다"
 
 msgid "The selected file contains no geometry."
 msgstr "선택한 파일에 형상이 없습니다."
 
-msgid "The selected file contains several disjoint areas. This is not supported."
+#, fuzzy
+#| msgid "The selected file contains several disjoint areas. This is not supported."
+msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "선택한 파일에 여러 개의 분리된 영역이 있습니다. 지원되지 않습니다."
 
 msgid "Choose a file to import bed texture from (PNG/SVG):"
@@ -3960,9 +4140,14 @@ msgstr "권장 최저 온도는 권장 최고 온도보다 높을 수 없습니�
 msgid "Please check.\n"
 msgstr "확인해 보세요.\n"
 
+#, fuzzy
+#| msgid ""
+#| "Nozzle may be blocked when the temperature is out of recommended range.\n"
+#| "Please make sure whether to use the temperature to print.\n"
+#| "\n"
 msgid ""
-"Nozzle may be blocked when the temperature is out of recommended range.\n"
-"Please make sure whether to use the temperature to print.\n"
+"The nozzle may become clogged when the temperature is out of the recommended range.\n"
+"Please make sure whether to use this temperature to print.\n"
 "\n"
 msgstr ""
 "온도가 권장 범위를 벗어나면 노즐이 막힐 수 있습니다.\n"
@@ -3973,27 +4158,40 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "이 필라멘트 유형의 권장 노즐 온도는 [%d, %d]°C입니다"
 
+#, fuzzy
+#| msgid ""
+#| "Too small max volumetric speed.\n"
+#| "Reset to 0.5."
 msgid ""
 "Too small max volumetric speed.\n"
-"Reset to 0.5."
+"Value was reset to 0.5"
 msgstr ""
 "최대 압출 속도가 너무 작습니다.\n"
 "0.5로 재설정"
 
-#, c-format, boost-format
-msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+#, boost-format, c-format, fuzzy
+#| msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "현재 챔버 온도가 재료의 안전 온도보다 높으므로 재료가 부드러워지고 막힐 수 있습니다. 재료의 최대 안전 온도는 %d입니다"
 
+#, fuzzy
+#| msgid ""
+#| "Too small layer height.\n"
+#| "Reset to 0.2."
 msgid ""
-"Too small layer height.\n"
-"Reset to 0.2."
+"Layer height too small\n"
+"It has been reset to 0.2"
 msgstr ""
 "레이어 높이가 너무 작습니다.\n"
 "0.2로 재설정"
 
+#, fuzzy
+#| msgid ""
+#| "Too small ironing spacing.\n"
+#| "Reset to 0.1."
 msgid ""
-"Too small ironing spacing.\n"
-"Reset to 0.1."
+"Ironing spacing too small\n"
+"It has been reset to 0.1"
 msgstr ""
 "다림질 간격이 너무 작습니다.\n"
 "0.1로 재설정"
@@ -4007,10 +4205,16 @@ msgstr ""
 "\n"
 "첫 번째 레이어 높이가 0.2로 재설정됩니다."
 
+#, fuzzy
+#| msgid ""
+#| "This setting is only used for model size tunning with small value in some cases.\n"
+#| "For example, when model size has small error and hard to be assembled.\n"
+#| "For large size tuning, please use model scale function.\n"
+#| "\n"
+#| "The value will be reset to 0."
 msgid ""
-"This setting is only used for model size tunning with small value in some cases.\n"
-"For example, when model size has small error and hard to be assembled.\n"
-"For large size tuning, please use model scale function.\n"
+"This setting is only used for tuning model size by small amounts.\n"
+"For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
 "\n"
 "The value will be reset to 0."
 msgstr ""
@@ -4020,10 +4224,17 @@ msgstr ""
 "\n"
 "값이 0으로 재설정됩니다."
 
+#, fuzzy
+#| msgid ""
+#| "Too large elephant foot compensation is unreasonable.\n"
+#| "If really have serious elephant foot effect, please check other settings.\n"
+#| "For example, whether bed temperature is too high.\n"
+#| "\n"
+#| "The value will be reset to 0."
 msgid ""
-"Too large elephant foot compensation is unreasonable.\n"
-"If really have serious elephant foot effect, please check other settings.\n"
-"For example, whether bed temperature is too high.\n"
+"The elephant foot compensation value is too large.\n"
+"If there are significant elephant foot issues, please check other settings.\n"
+"The bed temperature may be too high, for example.\n"
 "\n"
 "The value will be reset to 0."
 msgstr ""
@@ -4111,10 +4322,15 @@ msgstr "나선형 모드는 벽 루프가 1이고, 서포트가 비활성화되�
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " 그러나 I3 구조의 장치는 타임랩스 비디오를 생성하지 않습니다."
 
+#, fuzzy
+#| msgid ""
+#| "Change these settings automatically?\n"
+#| "Yes - Change these settings and enable spiral mode automatically\n"
+#| "No  - Give up using spiral mode this time"
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings and enable spiral mode automatically\n"
-"No  - Give up using spiral mode this time"
+"Yes - Change these settings and enable spiral/vase mode automatically\n"
+"No  - Cancel enabling spiral mode"
 msgstr ""
 "이 설정을 자동으로 변경하시겠습니까?\n"
 "예 - 이 설정을 변경하고 나선 모드를 자동으로 활성화합니다\n"
@@ -4386,9 +4602,6 @@ msgstr "아직 압출되지 않았습니다. 다시 시도하세요"
 msgid "Finished, Continue"
 msgstr "완료, 계속"
 
-msgid "Load Filament"
-msgstr "필라멘트 넣기"
-
 msgid "Filament Loaded, Resume"
 msgstr "필라멘트 로드됨, 재개"
 
@@ -4485,6 +4698,8 @@ msgstr "사전 설정"
 msgid "Print settings"
 msgstr "프린터 설정"
 
+#, fuzzy
+#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "필라멘트 설정"
 
@@ -4509,8 +4724,9 @@ msgstr "빈 문자열"
 msgid "Value is out of range."
 msgstr "값이 범위를 벗어났습니다."
 
-#, c-format, boost-format
-msgid "%s can't be a percentage"
+#, boost-format, c-format, fuzzy
+#| msgid "%s can't be a percentage"
+msgid "%s can’t be a percentage"
 msgstr "%s 는 백분율일 수 없습니다"
 
 #, c-format, boost-format
@@ -4749,7 +4965,9 @@ msgstr "타워"
 msgid "Total"
 msgstr "합계"
 
-msgid "Total Estimation"
+#, fuzzy
+#| msgid "Total Estimation"
+msgid "Total estimation"
 msgstr "추정치 합계"
 
 msgid "Total time"
@@ -4827,10 +5045,14 @@ msgstr "부터"
 msgid "Usage"
 msgstr "사용량"
 
-msgid "Layer Height (mm)"
+#, fuzzy
+#| msgid "Layer Height (mm)"
+msgid "Layer height (mm)"
 msgstr "레이어 높이(mm)"
 
-msgid "Line Width (mm)"
+#, fuzzy
+#| msgid "Line Width (mm)"
+msgid "Line width (mm)"
 msgstr "선 너비(mm)"
 
 msgid "Speed (mm/s)"
@@ -4845,7 +5067,9 @@ msgstr ""
 msgid "Jerk (mm/s)"
 msgstr ""
 
-msgid "Fan Speed (%)"
+#, fuzzy
+#| msgid "Fan Speed (%)"
+msgid "Fan speed (%)"
 msgstr "팬 속도 (%)"
 
 msgid "Temperature (°C)"
@@ -4859,9 +5083,6 @@ msgstr "실제 체적 유량 (mm³/s)"
 
 msgid "Seams"
 msgstr "재봉선"
-
-msgid "Filament Changes"
-msgstr "필라멘트 변경"
 
 msgid "Options"
 msgstr "옵션"
@@ -4884,6 +5105,8 @@ msgstr "색 변경"
 msgid "Print"
 msgstr "출력"
 
+#, fuzzy
+#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "프린터"
 
@@ -5001,19 +5224,22 @@ msgstr "왼쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "오른쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-msgid "Mirror Object"
-msgstr "객체 반전"
-
-msgid "Tool Move"
+#, fuzzy
+#| msgid "Tool Move"
+msgid "Tool move"
 msgstr "툴 이동"
 
 msgid "Tool Rotate"
 msgstr "툴 회전"
 
-msgid "Move Object"
+#, fuzzy
+#| msgid "Move Object"
+msgid "Move object"
 msgstr "객체 이동"
 
-msgid "Auto Orientation options"
+#, fuzzy
+#| msgid "Auto Orientation options"
+msgid "Auto orientation options"
 msgstr "자동 방향 지정 옵션"
 
 msgid "Enable rotation"
@@ -5144,7 +5370,9 @@ msgstr "분해 비율"
 msgid "Section View"
 msgstr "단면도"
 
-msgid "Assemble Control"
+#, fuzzy
+#| msgid "Assemble Control"
+msgid "Assembly Control"
 msgstr "조립 제어"
 
 msgid "Selection Mode"
@@ -5172,7 +5400,9 @@ msgstr "객체가 플레이트 경계 위에 놓여 있습니다."
 msgid "A G-code path goes beyond the max print height."
 msgstr "Gcode 경로가 출력 최대 높이를 넘어갑니다."
 
-msgid "A G-code path goes beyond the plate boundaries."
+#, fuzzy
+#| msgid "A G-code path goes beyond the plate boundaries."
+msgid "A G-code path goes beyond plate boundaries."
 msgstr "Gcode 경로가 플레이트 경계를 넘어갑니다."
 
 msgid "Not support printing 2 or more TPU filaments."
@@ -5232,6 +5462,8 @@ msgstr "교정 단계 선택"
 msgid "Micro lidar calibration"
 msgstr "마이크로 라이다 교정"
 
+#, fuzzy
+#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "베드 레벨링"
 
@@ -5306,7 +5538,9 @@ msgid ""
 "on the printer, as shown in the figure:"
 msgstr "프린터의 \"설정 > 설정 > LAN 전용 > 액세스 코드\"에서 확인할 수 있습니다. 그림 참조:"
 
-msgid "Invalid input."
+#, fuzzy
+#| msgid "Invalid input."
+msgid "Invalid input"
 msgstr "잘못된 입력입니다."
 
 msgid "New Window"
@@ -5315,7 +5549,9 @@ msgstr "새로운 창"
 msgid "Open a new window"
 msgstr "새로운 창 열기"
 
-msgid "Application is closing"
+#, fuzzy
+#| msgid "Application is closing"
+msgid "Closing application"
 msgstr "응용 프로그램 닫는 중"
 
 msgid "Closing Application while some presets are modified."
@@ -5563,19 +5799,20 @@ msgstr "붙여넣기"
 msgid "Paste clipboard"
 msgstr "클립보드 붙여넣기"
 
-msgid "Delete selected"
+#, fuzzy
+#| msgid "Delete selected"
+msgid "Delete Selected"
 msgstr "선택된 항목 지우기"
 
 msgid "Deletes the current selection"
 msgstr "현재 선택 삭제"
 
-msgid "Delete all"
-msgstr "모두 삭제"
-
 msgid "Deletes all objects"
 msgstr "모든 객체 삭제"
 
-msgid "Clone selected"
+#, fuzzy
+#| msgid "Clone selected"
+msgid "Clone Selected"
 msgstr "선택된 객체 복제"
 
 msgid "Clone copies of selections"
@@ -5587,14 +5824,8 @@ msgstr "현재 플레이트 복제"
 msgid "Duplicate the current plate"
 msgstr "현재 플레이트 복제"
 
-msgid "Select all"
-msgstr "모두 선택"
-
 msgid "Selects all objects"
 msgstr "모든 객체 선택"
-
-msgid "Deselect all"
-msgstr "모든 선택 취소"
 
 msgid "Deselects all objects"
 msgstr "모든 객체 선택 취소"
@@ -5744,12 +5975,14 @@ msgstr "시점 (&V)"
 msgid "&Help"
 msgstr "도움말 (&H)"
 
-#, c-format, boost-format
-msgid "A file exists with the same name: %s, do you want to overwrite it?"
+#, boost-format, c-format, fuzzy
+#| msgid "A file exists with the same name: %s, do you want to overwrite it?"
+msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "같은 이름을 가진 파일이 존재합니다: %s, 덮어 쓰시겠습니까?"
 
-#, c-format, boost-format
-msgid "A config exists with the same name: %s, do you want to overwrite it?"
+#, boost-format, c-format, fuzzy
+#| msgid "A config exists with the same name: %s, do you want to overwrite it?"
+msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "같은 이름을 가진 설정이 존재합니다: %s, 덮어 쓰시겠습니까?"
 
 msgid "Overwrite file"
@@ -5772,7 +6005,9 @@ msgid "There is %d config exported. (Only non-system configs)"
 msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "%d개의 설정을 내보냈습니다. (비 시스템 설정만 해당)"
 
-msgid "Export result"
+#, fuzzy
+#| msgid "Export result"
+msgid "Export Result"
 msgstr "결과 내보내기"
 
 msgid "Select profile to load:"
@@ -5799,9 +6034,6 @@ msgstr "파일이 없습니다"
 msgid "The project is no longer available."
 msgstr "프로젝트를 더 이상 사용할 수 없습니다."
 
-msgid "Filament Settings"
-msgstr "필라멘트 설정"
-
 msgid ""
 "Do you want to synchronize your personal data from Orca Cloud?\n"
 "It contains the following information:\n"
@@ -5819,7 +6051,9 @@ msgstr "장치에서 더 많은 대화를 처리할 수 없습니다. 나중에 
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "플레이어가 오작동합니다. 시스템 플레이어를 다시 설치하세요."
 
-msgid "The player is not loaded, please click \"play\" button to retry."
+#, fuzzy
+#| msgid "The player is not loaded, please click \"play\" button to retry."
+msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "플레이어가 로드되지 않았습니다. 다시 시도하려면 '재생' 버튼을 클릭하세요."
 
 msgid "The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize."
@@ -5840,7 +6074,9 @@ msgstr "문제가 발생했습니다. 프린터 펌웨어를 업데이트하고 
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "LAN 전용 라이브뷰가 꺼져 있습니다. 프린터 화면에서 라이브뷰를 켜십시오."
 
-msgid "Please enter the IP of printer to connect."
+#, fuzzy
+#| msgid "Please enter the IP of printer to connect."
+msgid "Please enter the IP of the printer to connect."
 msgstr "연결할 프린터의 IP를 입력하세요."
 
 msgid "Initializing..."
@@ -6140,7 +6376,9 @@ msgstr "온라인"
 msgid "Input access code"
 msgstr "액세스 코드 입력"
 
-msgid "Can't find my devices?"
+#, fuzzy
+#| msgid "Can't find my devices?"
+msgid "Can't find devices?"
 msgstr "내 장치를 찾을 수 없습니까?"
 
 msgid "Log out successful."
@@ -6164,13 +6402,19 @@ msgstr "잘못된 문자:"
 msgid "illegal suffix:"
 msgstr "잘못된 접미사:"
 
-msgid "The name is not allowed to be empty."
+#, fuzzy
+#| msgid "The name is not allowed to be empty."
+msgid "The name field is not allowed to be empty."
 msgstr "이름은 비워 둘 수 없습니다."
 
-msgid "The name is not allowed to start with space character."
+#, fuzzy
+#| msgid "The name is not allowed to start with space character."
+msgid "The name is not allowed to start with a space."
 msgstr "이름은 공백으로 시작할 수 없습니다."
 
-msgid "The name is not allowed to end with space character."
+#, fuzzy
+#| msgid "The name is not allowed to end with space character."
+msgid "The name is not allowed to end with a space."
 msgstr "이름은 공백으로 끝날 수 없습니다."
 
 msgid "The name is not allowed to exceed 32 characters."
@@ -6192,7 +6436,9 @@ msgstr "전환 중..."
 msgid "Switching failed"
 msgstr "전환 실패"
 
-msgid "Printing Progress"
+#, fuzzy
+#| msgid "Printing Progress"
+msgid "Printing progress"
 msgstr "출력 진행률"
 
 msgid "Parts Skip"
@@ -6210,9 +6456,13 @@ msgstr "열 사전 조건 설명을 보려면 클릭하세요"
 msgid "Clear"
 msgstr "지우기"
 
+#, fuzzy
+#| msgid ""
+#| "You have completed printing the mall model, \n"
+#| "but the synchronization of rating information has failed."
 msgid ""
 "You have completed printing the mall model, \n"
-"but the synchronization of rating information has failed."
+"but synchronizing rating information has failed."
 msgstr ""
 "쇼핑몰 모델 출력이 완료되었으나,\n"
 "등급 정보 동기화에 실패했습니다."
@@ -6298,8 +6548,9 @@ msgstr "다운로드 중..."
 msgid "Cloud Slicing..."
 msgstr "클라우드 슬라이싱..."
 
-#, c-format, boost-format
-msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+#, boost-format, c-format, fuzzy
+#| msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "클라우드 슬라이싱 대기열에는 %s개의 작업이 앞에 있습니다."
 
 #, c-format, boost-format
@@ -6323,7 +6574,9 @@ msgstr "챔버 온도가 40℃를 초과하면 시스템이 자동으로 가열 
 msgid "Please select an AMS slot before calibration"
 msgstr "교정하기 전에 AMS 슬롯을 선택하세요"
 
-msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
+#, fuzzy
+#| msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
+msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "필라멘트 정보를 읽을 수 없음: 필라멘트가 툴 헤드에 로드되었습니다. 필라멘트를 언로드하고 다시 시도하세요."
 
 msgid "This only takes effect during printing"
@@ -6558,11 +6811,10 @@ msgstr "이 대화 상자를 다시 표시하지 마세요."
 msgid "3D Mouse disconnected."
 msgstr "3D 마우스가 분리됨."
 
-msgid "Configuration can update now."
+#, fuzzy
+#| msgid "Configuration can update now."
+msgid "A new configuration is available. Update now?"
 msgstr "구성을 지금 업데이트할 수 있습니다."
-
-msgid "Detail."
-msgstr "세부 사항."
 
 msgid "Integration was successful."
 msgstr "통합에 성공했습니다."
@@ -6585,13 +6837,19 @@ msgstr "새로운 프린터 구성을 사용할 수 있습니다."
 msgid "Undo integration failed."
 msgstr "통합 실행 취소에 실패했습니다."
 
-msgid "Exporting."
+#, fuzzy
+#| msgid "Exporting."
+msgid "Exporting"
 msgstr "내보내는중."
 
-msgid "Software has New version."
+#, fuzzy
+#| msgid "Software has New version."
+msgid "An update is available!"
 msgstr "새 버전의 소프트웨어가 있습니다."
 
-msgid "Goto download page."
+#, fuzzy
+#| msgid "Goto download page."
+msgid "Go to download page"
 msgstr "다운로드 페이지로 이동합니다."
 
 msgid "Open Folder."
@@ -6677,12 +6935,6 @@ msgstr "모델에 서포트가 필요합니다! 서포트를 활성화하세요.
 msgid "G-code path overlap"
 msgstr "Gcode 경로 겹침"
 
-msgid "Support painting"
-msgstr "서포트 칠하기"
-
-msgid "Color painting"
-msgstr "색 칠하기"
-
 msgid "Cut connectors"
 msgstr "잘라내기 커넥터"
 
@@ -6720,7 +6972,9 @@ msgstr "하부"
 msgid "Enable detection of build plate position"
 msgstr "빌드 플레이트 위치 감지 활성화"
 
-msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
+#, fuzzy
+#| msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
+msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "빌드 플레이트의 현지화 태그가 감지되고 태그가 사전 설정된 범위를 벗어나면 출력이 일시 정지됩니다."
 
 msgid "Build Plate Detection"
@@ -6765,7 +7019,9 @@ msgstr "노즐 막힘이나 필라멘트 마모로 인한 에어 인쇄를 감�
 msgid "First Layer Inspection"
 msgstr "첫 레이어 검사"
 
-msgid "Auto-recovery from step loss"
+#, fuzzy
+#| msgid "Auto-recovery from step loss"
+msgid "Auto-recover from step loss"
 msgstr "손실 단계부터 자동 복구"
 
 msgid "Store Sent Files on External Storage"
@@ -6777,7 +7033,9 @@ msgstr "Bambu Studio, Bambu Handy 및 MakerWorld에서 시작된 인쇄 파일�
 msgid "Allow Prompt Sound"
 msgstr "프롬프트 소리 허용"
 
-msgid "Filament Tangle Detect"
+#, fuzzy
+#| msgid "Filament Tangle Detect"
+msgid "Filament Tangle Detection"
 msgstr "필라멘트 엉킴 감지"
 
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
@@ -6929,6 +7187,8 @@ msgstr "재료 사용"
 msgid "Estimated time"
 msgstr "추정 시간"
 
+#, fuzzy
+#| msgid "Filament changes"
 msgid "Filament changes"
 msgstr "필라멘트 변경"
 
@@ -7035,16 +7295,22 @@ msgstr "성공적으로 마운트 해제되었습니다. 이제 %s (%s) 장치�
 msgid "Ejecting of device %s (%s) has failed."
 msgstr ""
 
-msgid "Previous unsaved project detected, do you want to restore it?"
+#, fuzzy
+#| msgid "Previous unsaved project detected, do you want to restore it?"
+msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "저장되지 않은 이전 프로젝트가 감지되었습니다. 복원하시겠습니까?"
 
 msgid "Restore"
 msgstr "복원"
 
-msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
+#, fuzzy
+#| msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
+msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "현재 베드 온도가 상대적으로 높습니다. 닫힌 공간에서 이 필라멘트를 출력할 때 노즐이 막힐 수 있습니다. 전면 도어를 열거나 상단 유리를 제거하세요."
 
-msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
+#, fuzzy
+#| msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
+msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "필라멘트에 필요한 노즐 경도가 프린터의 기본 노즐 경도보다 높습니다. \"경화강\" 노즐을 사용하거나 필라멘트를 교체하세요. 그렇지 않으면 노즐이 마모되거나 손상됩니다."
 
 msgid "Enabling traditional timelapse photography may cause surface imperfections. It is recommended to change to smooth mode."
@@ -7097,7 +7363,9 @@ msgstr ""
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "3mf의 버전 %s이(가) %s의 버전 %s보다 높습니다. 다음 키를 인식할 수 없습니다:"
 
-msgid "You'd better upgrade your software.\n"
+#, fuzzy
+#| msgid "You'd better upgrade your software.\n"
+msgid "You should update your software.\n"
 msgstr "소프트웨어를 업그레이드하는 것이 좋습니다.\n"
 
 #, fuzzy, c-format, boost-format
@@ -7118,7 +7386,9 @@ msgstr ""
 msgid "Invalid values found in the 3MF:"
 msgstr "3mf에서 잘못된 값이 발견됨:"
 
-msgid "Please correct them in the param tabs"
+#, fuzzy
+#| msgid "Please correct them in the param tabs"
+msgid "Please correct them in the Param tabs"
 msgstr "매개변수 탭에서 수정하세요"
 
 msgid "The 3MF has the following modified G-code in filament or printer presets:"
@@ -7140,10 +7410,13 @@ msgid "Customized Preset"
 msgstr "사용자 정의 프리셋"
 
 #, fuzzy
-msgid "Name of components inside STEP file is not UTF8 format!"
+#| msgid "Name of components inside STEP file is not UTF8 format!"
+msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "단계 파일 내의 구성 요소 이름이 UTF8 형식이 아닙니다!"
 
-msgid "The name may show garbage characters!"
+#, fuzzy
+#| msgid "The name may show garbage characters!"
+msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "이름에 알 수 없는 문자가 표시될 수 있습니다!"
 
 msgid "Remember my choice."
@@ -7159,9 +7432,12 @@ msgstr "부피가 0인 객체가 제거됨"
 msgid "The volume of the object is zero"
 msgstr "물체의 부피는 0입니다"
 
-#, c-format, boost-format
+#, boost-format, c-format, fuzzy
+#| msgid ""
+#| "The object from file %s is too small, and maybe in meters or inches.\n"
+#| " Do you want to scale to millimeters?"
 msgid ""
-"The object from file %s is too small, and maybe in meters or inches.\n"
+"The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
 msgstr ""
 "%s 파일의 객체가 너무 작습니다. 단위가 미터나 인치일 수 있습니다.\n"
@@ -7170,10 +7446,15 @@ msgstr ""
 msgid "Object too small"
 msgstr "객체가 너무 작음"
 
+#, fuzzy
+#| msgid ""
+#| "This file contains several objects positioned at multiple heights.\n"
+#| "Instead of considering them as multiple objects, should \n"
+#| "the file be loaded as a single object having multiple parts?"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object having multiple parts?"
+"the file be loaded as a single object with multiple parts?"
 msgstr ""
 "이 파일에는 여러 높이에 배치된 여러 객체가 포함되어 있습니다.\n"
 "여러 객체로 간주하는 대신\n"
@@ -7185,7 +7466,9 @@ msgstr "여러 부품으로 구성된 객체 감지됨"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "이 파일을 여러 부품이 있는 단일 객체로 로드하시겠습니까?\n"
 
-msgid "Object with multiple parts was detected"
+#, fuzzy
+#| msgid "Object with multiple parts was detected"
+msgid "An object with multiple parts was detected"
 msgstr "여러 부품으로 구성된 객체가 감지되었습니다"
 
 msgid "Auto-Drop"
@@ -7219,15 +7502,20 @@ msgstr ""
 msgid "Export AMF file:"
 msgstr "AMF 파일 내보내기:"
 
-msgid "Save file as:"
+#, fuzzy
+#| msgid "Save file as:"
+msgid "Save file as"
 msgstr "파일을 다른 이름으로 저장:"
 
 msgid "Export OBJ file:"
 msgstr "OBJ 파일 내보내기:"
 
-#, c-format, boost-format
+#, boost-format, c-format, fuzzy
+#| msgid ""
+#| "The file %s already exists\n"
+#| "Do you want to replace it?"
 msgid ""
-"The file %s already exists\n"
+"The file %s already exists.\n"
 "Do you want to replace it?"
 msgstr ""
 "파일 %s가 이미 존재합니다.\n"
@@ -7239,10 +7527,15 @@ msgstr "다른 이름으로 저장 확인"
 msgid "Delete object which is a part of cut object"
 msgstr "잘라낸 객체의 일부인 객체 삭제"
 
+#, fuzzy
+#| msgid ""
+#| "You try to delete an object which is a part of a cut object.\n"
+#| "This action will break a cut correspondence.\n"
+#| "After that model consistency can't be guaranteed."
 msgid ""
-"You try to delete an object which is a part of a cut object.\n"
+"You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
-"After that model consistency can't be guaranteed."
+"After that, model consistency can't be guaranteed."
 msgstr ""
 "잘라낸 객체의 일부인 객체를 삭제하려고 합니다.\n"
 "이 작업을 수행하면 잘라낸 객체간 연결이 끊어집니다.\n"
@@ -7263,7 +7556,9 @@ msgstr "다른 내보내기 작업이 실행 중입니다."
 msgid "Unable to replace with more than one volume"
 msgstr "한 개 이상의 볼륨으로 교체할 수 없습니다"
 
-msgid "Error during replace"
+#, fuzzy
+#| msgid "Error during replace"
+msgid "Error during replacement"
 msgstr "교체 중 오류 발생"
 
 msgid "Replace from:"
@@ -7272,7 +7567,9 @@ msgstr "다음에서 교체:"
 msgid "Select a new file"
 msgstr "새 파일 선택"
 
-msgid "File for the replace wasn't selected"
+#, fuzzy
+#| msgid "File for the replace wasn't selected"
+msgid "File for the replacement wasn't selected"
 msgstr "대체할 파일이 선택되지 않았습니다"
 
 msgid "Select folder to replace from"
@@ -7359,7 +7656,9 @@ msgstr ""
 msgid "Sync now"
 msgstr "지금 동기화"
 
-msgid "You can keep the modified presets to the new project or discard them"
+#, fuzzy
+#| msgid "You can keep the modified presets to the new project or discard them"
+msgid "You can keep the modified presets for the new project or discard them"
 msgstr "수정된 사전 설정을 새 프로젝트에 유지하거나 삭제할 수 있습니다"
 
 msgid "Creating a new project"
@@ -7368,9 +7667,13 @@ msgstr "새 프로젝트 생성"
 msgid "Load project"
 msgstr "프로젝트 불러오기"
 
+#, fuzzy
+#| msgid ""
+#| "Failed to save the project.\n"
+#| "Please check whether the folder exists online or if other programs open the project file."
 msgid ""
 "Failed to save the project.\n"
-"Please check whether the folder exists online or if other programs open the project file."
+"Please check whether the folder exists online or if other programs have the project file open."
 msgstr ""
 "프로젝트를 저장하지 못했습니다.\n"
 "폴더가 온라인에 존재하는지 또는 다른 프로그램이 프로젝트 파일을 사용 중인지 확인하세요."
@@ -7385,13 +7688,17 @@ msgstr "모델 가져오는 중"
 msgid "Preparing 3MF file..."
 msgstr "3mf 파일 준비..."
 
-msgid "Download failed, unknown file format."
+#, fuzzy
+#| msgid "Download failed, unknown file format."
+msgid "Download failed; unknown file format."
 msgstr "다운로드에 실패했습니다. 파일 형식을 알 수 없습니다."
 
 msgid "Downloading project..."
 msgstr "프로젝트 다운로드 중 ..."
 
-msgid "Download failed, File size exception."
+#, fuzzy
+#| msgid "Download failed, File size exception."
+msgid "Download failed; File size exception."
 msgstr "다운로드에 실패했습니다. 파일 크기 예외입니다."
 
 #, c-format, boost-format
@@ -7416,10 +7723,14 @@ msgstr "SLA 압축파일 가져오기"
 msgid "The selected file"
 msgstr "선택한 파일"
 
-msgid "does not contain valid G-code."
+#, fuzzy
+#| msgid "does not contain valid G-code."
+msgid "Does not contain valid G-code."
 msgstr "유효한 Gcode를 포함하지 않습니다."
 
-msgid "Error occurs while loading G-code file"
+#, fuzzy
+#| msgid "Error occurs while loading G-code file"
+msgid "An Error has occurred while loading the G-code file."
 msgstr "Gcode 파일을 로드하는 중 오류가 발생했습니다"
 
 #. TRN %1% is archive path
@@ -7448,22 +7759,30 @@ msgstr "프로젝트로 열기"
 msgid "Import geometry only"
 msgstr "형상만 가져오기"
 
-msgid "Only one G-code file can be opened at the same time."
+#, fuzzy
+#| msgid "Only one G-code file can be opened at the same time."
+msgid "Only one G-code file can be opened at a time."
 msgstr "동시에 하나의 Gcode 파일만 열 수 있습니다."
 
 msgid "G-code loading"
 msgstr "Gcode 불러오는 중"
 
-msgid "G-code files cannot be loaded with models together!"
+#, fuzzy
+#| msgid "G-code files cannot be loaded with models together!"
+msgid "G-code files and models cannot be loaded together!"
 msgstr "Gcode 파일은 모델과 함께 로드할 수 없습니다!"
 
-msgid "Cannot add models when in preview mode!"
+#, fuzzy
+#| msgid "Cannot add models when in preview mode!"
+msgid "Unable to add models in preview mode"
 msgstr "미리보기 모드에서는 모델을 추가할 수 없습니다!"
 
 msgid "All objects will be removed, continue?"
 msgstr "모든 객체가 제거됩니다. 계속하시겠습니까?"
 
-msgid "The current project has unsaved changes, save it before continue?"
+#, fuzzy
+#| msgid "The current project has unsaved changes, save it before continue?"
+msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "현재 프로젝트에 저장되지 않은 변경 사항이 있습니다. 계속하기 전에 저장하시겠습니까?"
 
 msgid "Number of copies:"
@@ -7534,9 +7853,13 @@ msgstr "업로드 및 출력"
 msgid "Abnormal print file data. Please slice again"
 msgstr "비정상적인 출력 파일 데이터입니다. 다시 슬라이스하세요"
 
+#, fuzzy
+#| msgid ""
+#| "Print By Object: \n"
+#| "Suggest to use auto-arrange to avoid collisions when printing."
 msgid ""
 "Print By Object: \n"
-"Suggest to use auto-arrange to avoid collisions when printing."
+"We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "객체별 출력:\n"
 "출력 시 충돌을 방지하기 위해 자동 정렬을 사용할 것을 제안합니다."
@@ -7619,8 +7942,9 @@ msgstr "삼각형: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
 
-#, c-format, boost-format
-msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+#, boost-format, c-format, fuzzy
+#| msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "%d: %s플레이트는 %s(%s)필라멘트를 출력하는데 사용하지 않는 것이 좋습니다. 이 출력을 계속하려면 이 필라멘트의 베드 온도를 0이 아닌 값으로 설정하세요."
 
 msgid "Currently, the object configuration form cannot be used with a multiple-extruder printer."
@@ -7647,7 +7971,9 @@ msgstr "앞"
 msgid "rear"
 msgstr "뒤"
 
-msgid "Switching the language requires application restart.\n"
+#, fuzzy
+#| msgid "Switching the language requires application restart.\n"
+msgid "Switching languages requires the application to restart.\n"
 msgstr "언어를 전환하려면 애플리케이션을 다시 시작해야 합니다.\n"
 
 msgid "Do you want to continue?"
@@ -7674,7 +8000,9 @@ msgstr "북아메리카"
 msgid "Others"
 msgstr "기타"
 
-msgid "Changing the region will log out your account.\n"
+#, fuzzy
+#| msgid "Changing the region will log out your account.\n"
+msgid "Changing the region will log you out of your account.\n"
 msgstr "지역을 변경하면 계정에서 로그아웃됩니다.\n"
 
 msgid "Region selection"
@@ -7749,7 +8077,9 @@ msgstr "기본 페이지"
 msgid "Set the page opened on startup."
 msgstr "시작 시 열리는 페이지를 설정합니다."
 
-msgid "Enable dark mode"
+#, fuzzy
+#| msgid "Enable dark mode"
+msgid "Enable dark Mode"
 msgstr "다크 모드 사용"
 
 msgid "Allow only one OrcaSlicer instance"
@@ -7824,7 +8154,9 @@ msgstr ""
 msgid "Auto backup"
 msgstr "자동 백업"
 
-msgid "Backup your project periodically for restoring from the occasional crash."
+#, fuzzy
+#| msgid "Backup your project periodically for restoring from the occasional crash."
+msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "간헐적인 충돌로부터 복원하기 위해 주기적으로 프로젝트를 백업하세요."
 
 msgid "Preset"
@@ -8099,7 +8431,9 @@ msgstr "안정적인 업데이트만 확인"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "사용자 사전 설정 자동 동기화(프린터/필라멘트/프로세스)"
 
-msgid "Update built-in Presets automatically."
+#, fuzzy
+#| msgid "Update built-in Presets automatically."
+msgid "Update built-in presets automatically."
 msgstr "기본 제공 사전 설정을 자동으로 업데이트합니다."
 
 msgid "Use encrypted file for token storage"
@@ -8172,7 +8506,9 @@ msgstr ""
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf 파일을 OrcaSlicer에 연결"
 
-msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
+#, fuzzy
+#| msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
+msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "활성화된 경우 OrcaSlicer를 기본 응용 프로그램으로 설정하여 .3mf 파일을 엽니다"
 
 msgid "Associate DRC files to OrcaSlicer"
@@ -8186,7 +8522,8 @@ msgid "Associate STL files to OrcaSlicer"
 msgstr ".stl 파일을 OrcaSlicer에 연결"
 
 #, fuzzy
-msgid "If enabled, sets OrcaSlicer as default application to open STL files."
+#| msgid "If enabled, sets OrcaSlicer as default application to open STL files."
+msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "활성화된 경우 OrcaSlicer를 기본 응용 프로그램으로 설정하여 .stl 파일을 엽니다"
 
 #, fuzzy
@@ -8194,7 +8531,8 @@ msgid "Associate STEP files to OrcaSlicer"
 msgstr ".step/.stp 파일을 OrcaSlicer에 연결"
 
 #, fuzzy
-msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
+#| msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
+msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "활성화된 경우 OrcaSlicer를 기본 응용 프로그램으로 설정하여 .step 파일을 엽니다"
 
 msgid "Associate web links to OrcaSlicer"
@@ -8291,7 +8629,9 @@ msgstr "시점 확대/축소"
 msgid "Other"
 msgstr "기타"
 
-msgid "Mouse wheel reverses when zooming"
+#, fuzzy
+#| msgid "Mouse wheel reverses when zooming"
+msgid "Reverse scroll direction while zooming"
 msgstr "확대/축소 시 마우스 휠이 반전됩니다"
 
 msgid "Enable SSL(MQTT)"
@@ -8324,10 +8664,14 @@ msgstr "디버그 저장 버튼"
 msgid "Save debug settings"
 msgstr "디버그 설정 저장"
 
-msgid "DEBUG settings have been saved successfully!"
+#, fuzzy
+#| msgid "DEBUG settings have been saved successfully!"
+msgid "Debug settings have been saved successfully!"
 msgstr "디버그 설정이 성공적으로 저장되었습니다!"
 
-msgid "Cloud environment switched, please login again!"
+#, fuzzy
+#| msgid "Cloud environment switched, please login again!"
+msgid "Cloud environment switched; please login again!"
 msgstr "클라우드 환경 전환, 다시 로그인해주세요!"
 
 msgid "System presets"
@@ -8345,7 +8689,9 @@ msgstr "내 프린터"
 msgid "Left filaments"
 msgstr "왼쪽 필라멘트"
 
-msgid "AMS filaments"
+#, fuzzy
+#| msgid "AMS filaments"
+msgid "AMS filament"
 msgstr "AMS 필라멘트"
 
 msgid "Right filaments"
@@ -8378,7 +8724,9 @@ msgstr "지원되지 않는 사전 설정"
 msgid "Unsupported"
 msgstr "지원되지 않음"
 
-msgid "Add/Remove filaments"
+#, fuzzy
+#| msgid "Add/Remove filaments"
+msgid "Add/Remove filament"
 msgstr "필라멘트 추가/제거"
 
 msgid "Add/Remove materials"
@@ -8414,6 +8762,8 @@ msgstr "레이어 값(>= 2)을 입력하세요."
 msgid "Plate name"
 msgstr "플레이트 이름"
 
+#, fuzzy
+#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "글로벌 플레이트 타입과 동일"
 
@@ -8438,9 +8788,6 @@ msgstr "나선형 꽃병 모드"
 msgid "First layer filament sequence"
 msgstr "첫 번째 레이어 필라멘트 순서"
 
-msgid "Same as Global Bed Type"
-msgstr "글로벌 베드유형과 동일"
-
 msgid "By Layer"
 msgstr "레이어별"
 
@@ -8453,7 +8800,9 @@ msgstr "수락"
 msgid "Log Out"
 msgstr "로그 아웃"
 
-msgid "Slice all plate to obtain time and filament estimation"
+#, fuzzy
+#| msgid "Slice all plate to obtain time and filament estimation"
+msgid "Slice all plates to obtain time and filament estimation"
 msgstr "시간 및 필라멘트 추정치를 얻기 위해 모든 플레이트를 슬라이스합니다"
 
 msgid "Packing project data into 3MF file"
@@ -8514,7 +8863,8 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr "%1% 사전 설정이 이미 있으며 현재 프린터와 호환되지 않습니다."
 
 #, fuzzy
-msgid "Please note that saving will overwrite this preset."
+#| msgid "Please note that saving will overwrite this preset."
+msgid "Please note that saving will overwrite the current preset."
 msgstr "저장 작업이 이 사전 설정을 대체합니다"
 
 msgid "The name cannot be the same as a preset alias name."
@@ -8643,7 +8993,9 @@ msgstr "필라멘트가 AMS 슬롯의 필라멘트와 일치하지 않습니다.
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "선택한 프린터(%s)가 출력 파일 구성(%s)과 호환되지 않습니다. 준비 페이지에서 프린터 사전 설정을 조정하거나 이 페이지에서 호환되는 프린터를 선택하세요."
 
-msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+#, fuzzy
+#| msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
+msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "나선형 꽃병 모드를 활성화하면 I3 구조의 장치는 타임랩스 비디오를 생성하지 않습니다."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
@@ -8663,7 +9015,9 @@ msgstr ""
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Gcode를 생성할 때 선택한 프린터 유형이 현재 선택한 프린터와 일치하지 않습니다. 슬라이싱에 동일한 프린터 유형을 사용하는 것이 좋습니다."
 
-msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+#, fuzzy
+#| msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
+msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS 매핑에 알 수 없는 필라멘트가 있습니다. 필요한 필라멘트인지 확인해주세요. 정상이면 \"확인\"을 눌러 출력을 시작하세요."
 
 msgid "Please check the following:"
@@ -8794,7 +9148,9 @@ msgstr ""
 msgid "Storage needs to be inserted before printing."
 msgstr "출력하기 전에 저장소를 삽입해야 합니다."
 
-msgid "Cannot send the print job to a printer whose firmware is required to get updated."
+#, fuzzy
+#| msgid "Cannot send the print job to a printer whose firmware is required to get updated."
+msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "펌웨어를 업데이트해야 하는 프린터로 출력 작업을 보낼 수 없습니다."
 
 msgid "Cannot send a print job for an empty plate."
@@ -8848,7 +9204,9 @@ msgstr "연결 시간이 초과되었습니다. 네트워크를 확인해 주세
 msgid "Connection failed. Click the icon to retry"
 msgstr "연결에 실패했습니다. 아이콘을 클릭하여 다시 시도하세요."
 
-msgid "Cannot send the print task when the upgrade is in progress"
+#, fuzzy
+#| msgid "Cannot send the print task when the upgrade is in progress"
+msgid "Cannot send print tasks when an update is in progress"
 msgstr "업그레이드가 진행 중일 때 출력 작업을 보낼 수 없습니다"
 
 msgid "The selected printer is incompatible with the chosen printer presets."
@@ -8857,7 +9215,9 @@ msgstr "선택한 프린터가 선택한 프린터 사전 설정과 호환되지
 msgid "Storage needs to be inserted before send to printer."
 msgstr "프린터로 보내기 전에 저장소를 삽입해야 합니다."
 
-msgid "The printer is required to be in the same LAN as Orca Slicer."
+#, fuzzy
+#| msgid "The printer is required to be in the same LAN as Orca Slicer."
+msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "프린터는 Orca Slicer와 동일한 네트워크에 있어야 합니다."
 
 msgid "The printer does not support sending to printer storage."
@@ -8872,7 +9232,9 @@ msgstr "파일 업로드 시간이 초과되었습니다. 펌웨어 버전이 �
 msgid "Sending failed, please try again!"
 msgstr ""
 
-msgid "Slice ok."
+#, fuzzy
+#| msgid "Slice ok."
+msgid "Slice complete"
 msgstr "슬라이스 완료."
 
 msgid "View all Daily tips"
@@ -8887,10 +9249,14 @@ msgstr "소켓 연결 실패"
 msgid "Failed to publish login request"
 msgstr "로그인 요청 게시에 실패했습니다."
 
-msgid "Get ticket from device timeout"
+#, fuzzy
+#| msgid "Get ticket from device timeout"
+msgid "Timeout getting ticket from device"
 msgstr "기기에서 티켓 가져오는데 시간 초과"
 
-msgid "Get ticket from server timeout"
+#, fuzzy
+#| msgid "Get ticket from server timeout"
+msgid "Timeout getting ticket from server"
 msgstr "서버에서 티켓 가져오기 시간 초과"
 
 msgid "Failed to post ticket to server"
@@ -8996,7 +9362,9 @@ msgstr "사전 설정에서 찾기"
 msgid "Click to reset all settings to the last saved preset."
 msgstr "모든 설정을 마지막으로 저장한 사전 설정으로 되돌립니다."
 
-msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+#, fuzzy
+#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "유연모드 타임랩스를 위해서는 프라임 타워가 필요합니다. 프라임 타워가 없는 모델에는 결함이 있을 수 있습니다. 프라임 타워를 사용하지 않도록 설정하시겠습니까?"
 
 msgid "A prime tower is required for clumping detection. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
@@ -9011,7 +9379,9 @@ msgstr ""
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr ""
 
-msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
+#, fuzzy
+#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
+msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "유연모드 타임랩스를 위해서는 프라임 타워가 필요합니다. 프라임 타워가 없는 모델에는 결함이 있을 수 있습니다. 프라임 타워를 사용하지 않도록 설정하시겠습니까?"
 
 msgid "Still print by object?"
@@ -9030,10 +9400,15 @@ msgstr ""
 "지원 인터페이스에 대한 지원 자료를 사용할 때 다음 설정을 권장합니다.\n"
 "0 상단 z 거리, 0 인터페이스 간격, 인터레이스된 직선 패턴 및 독립 지지 레이어 높이 비활성화"
 
+#, fuzzy
+#| msgid ""
+#| "Change these settings automatically?\n"
+#| "Yes - Change these settings automatically\n"
+#| "No  - Do not change these settings for me"
 msgid ""
 "Change these settings automatically?\n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"Yes - Change these settings automatically.\n"
+"No  - Do not change these settings for me."
 msgstr ""
 "이 설정을 자동으로 변경하시겠습니까?\n"
 "예 - 이 설정을 자동으로 변경합니다\n"
@@ -9177,6 +9552,8 @@ msgstr "벽"
 msgid "Top/bottom shells"
 msgstr "상단/하단 쉘"
 
+#, fuzzy
+#| msgid "First layer speed"
 msgid "First layer speed"
 msgstr "초기 레이어 속도"
 
@@ -9204,7 +9581,9 @@ msgstr "저크(XY)"
 msgid "Raft"
 msgstr "라프트"
 
-msgid "Support filament"
+#, fuzzy
+#| msgid "Support filament"
+msgid "Filament for Supports"
 msgstr "서포트 필라멘트"
 
 msgid "Support ironing"
@@ -9263,7 +9642,9 @@ msgstr "기본 정보"
 msgid "Recommended nozzle temperature"
 msgstr "권장 노즐 온도"
 
-msgid "Recommended nozzle temperature range of this filament. 0 means no set"
+#, fuzzy
+#| msgid "Recommended nozzle temperature range of this filament. 0 means no set"
+msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "이 필라멘트의 권장 노즐 온도 범위. 0은 설정하지 않음을 의미합니다"
 
 msgid "Flow ratio and Pressure Advance"
@@ -9284,25 +9665,35 @@ msgstr ""
 msgid "Cool Plate"
 msgstr "쿨 플레이트"
 
-msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
+#, fuzzy
+#| msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
+msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "쿨 플레이트 설치 시 베드 온도. 값 0은 필라멘트가 쿨 플레이트에 출력하는 것을 지원하지 않음을 의미합니다."
 
 msgid "Textured Cool Plate"
 msgstr "텍스처 쿨 플레이트"
 
-msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+#, fuzzy
+#| msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "쿨 플레이트가 설치되었을 때의 베드 온도입니다. 값 0은 필라멘트가 텍스처드 쿨 플레이트에서 출력를 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
+#, fuzzy
+#| msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
+msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "엔지니어링 플레이트가 설치 시 베드 온도. 값 0은 필라멘트가 엔지니어링 플레이트에 출력하는 것을 지원하지 않음을 의미합니다"
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "부드러운 PEI 플레이트 / 고온 플레이트"
 
-msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
+#, fuzzy
+#| msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
+msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "부드러운 PEI 플레이트/고온 플레이트 설치 시 베드 온도. 값 0은 필라멘트가 부드러운 PEI 플레이트/고온 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+#, fuzzy
+#| msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "텍스처 PEI 플레이트가 설치된 경우 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이트에 출력하는 것을 지원하지 않음을 의미합니다."
 
 msgid "Volumetric speed limitation"
@@ -9317,13 +9708,17 @@ msgstr "출력물 냉각 팬"
 msgid "Min fan speed threshold"
 msgstr "팬 최소 속도 임계값"
 
-msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+#, fuzzy
+#| msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
+msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "출력물 냉각 팬 속도는 예상 레이어 시간이 설정한 레이어 시간보다 짧으면 최소 속도로 작동됩니다. 레이어 시간이 임계값보다 짧은 경우 팬 속도는 레이어 출력 시간에 따라 최소 팬 속도와 최대 팬 속도 사이에 보간됩니다.(Interpolated)"
 
 msgid "Max fan speed threshold"
 msgstr "팬 최대 속도 임계값"
 
-msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+#, fuzzy
+#| msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
+msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "예상 레이어 시간이 설정 값보다 짧을 때 출력물 냉각 팬 속도가 최대가 됩니다"
 
 msgid "Auxiliary part cooling fan"
@@ -9544,8 +9939,9 @@ msgstr ""
 "선택한 사전 설정을 삭제하시겠습니까?\n"
 "프리셋이 현재 프린터에서 사용 중인 필라멘트와 일치하는 경우,해당 슬롯의 필라멘트 정보를 재설정해 주세요."
 
-#, boost-format
-msgid "Are you sure to %1% the selected preset?"
+#, boost-format, fuzzy
+#| msgid "Are you sure to %1% the selected preset?"
+msgid "Are you sure you want to %1% the selected preset?"
 msgstr "선택한 사전 설정을 %1%로 설정하시겠습니까?"
 
 #, c-format, boost-format
@@ -9580,6 +9976,8 @@ msgstr ""
 msgid "Continue"
 msgstr "계속"
 
+#, fuzzy
+#| msgid "Back"
 msgid "Back"
 msgstr "뒷면"
 
@@ -9597,22 +9995,25 @@ msgstr "오른쪽: %s"
 msgid "Click to reset current value and attach to the global value."
 msgstr "현재 값을 재설정하고 전역 값에 연결하려면 클릭합니다."
 
-msgid "Click to drop current modify and reset to saved value."
+#, fuzzy
+#| msgid "Click to drop current modify and reset to saved value."
+msgid "Click to drop current modifications and reset to saved value."
 msgstr "현재 수정 내용을 삭제하고 저장된 값으로 재설정하려면 클릭하세요."
 
 msgid "Process Settings"
 msgstr "프로세스 설정"
 
-msgid "Undef"
-msgstr "정의되지 않음"
-
-msgid "Unsaved Changes"
+#, fuzzy
+#| msgid "Unsaved Changes"
+msgid "unsaved changes"
 msgstr "저장되지 않은 변경 사항"
 
 msgid "Transfer or discard changes"
 msgstr "변경 사항 폐기 또는 유지"
 
-msgid "Old Value"
+#, fuzzy
+#| msgid "Old Value"
+msgid "Old value"
 msgstr "이전 값"
 
 msgid "New Value"
@@ -9656,7 +10057,9 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "마우스 오른쪽 버튼을 클릭하여 전체 텍스트를 표시합니다."
 
-msgid "All changes will not be saved"
+#, fuzzy
+#| msgid "All changes will not be saved"
+msgid "No changes will be saved."
 msgstr "모든 변경 사항이 저장되지 않습니다"
 
 msgid "All changes will be discarded."
@@ -10204,30 +10607,42 @@ msgstr "사각형으로 객체 선택"
 msgid "Arrow Up"
 msgstr "화살표 위로"
 
-msgid "Move selection 10 mm in positive Y direction"
+#, fuzzy
+#| msgid "Move selection 10 mm in positive Y direction"
+msgid "Move selection 10mm in positive Y direction"
 msgstr "선택 항목을 +Y 방향으로 10mm 이동"
 
 msgid "Arrow Down"
 msgstr "화살표 아래로"
 
-msgid "Move selection 10 mm in negative Y direction"
+#, fuzzy
+#| msgid "Move selection 10 mm in negative Y direction"
+msgid "Move selection 10mm in negative Y direction"
 msgstr "선택 항목을 -Y 방향으로 10mm 이동"
 
 msgid "Arrow Left"
 msgstr "화살표 왼쪽으로"
 
-msgid "Move selection 10 mm in negative X direction"
+#, fuzzy
+#| msgid "Move selection 10 mm in negative X direction"
+msgid "Move selection 10mm in negative X direction"
 msgstr "선택 항목을 -X 방향으로 10mm 이동"
 
 msgid "Arrow Right"
 msgstr "화살표 오른쪽으로"
 
-msgid "Move selection 10 mm in positive X direction"
+#, fuzzy
+#| msgid "Move selection 10 mm in positive X direction"
+msgid "Move selection 10mm in positive X direction"
 msgstr "선택 항목을 +X 방향으로 10mm 이동"
 
-msgid "Movement step set to 1 mm"
+#, fuzzy
+#| msgid "Movement step set to 1 mm"
+msgid "Movement step set to 1mm"
 msgstr "1mm로 이동"
 
+#, fuzzy
+#| msgid "Keyboard 1-9: set filament for object/part"
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "키보드 1-9: 객체/부품에 필라멘트 할당"
 
@@ -10324,6 +10739,8 @@ msgstr "변형도구"
 msgid "Set extruder number for the objects and parts"
 msgstr "객체 및 부품에 대한 압출기 번호 설정"
 
+#, fuzzy
+#| msgid "Delete objects, parts, modifiers"
 msgid "Delete objects, parts, modifiers"
 msgstr "객체, 부품, 수정자 삭제"
 
@@ -10376,7 +10793,9 @@ msgstr "버전 %s 업데이트 정보 :"
 msgid "Network plug-in update"
 msgstr "네트워크 플러그인 업데이트"
 
-msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
+#, fuzzy
+#| msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
+msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "다음 Orca Slicer를 시작할 때 네트워크 플러그인을 업데이트하려면 확인을 클릭합니다."
 
 #, c-format, boost-format
@@ -10520,10 +10939,14 @@ msgstr "업데이트 성공"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "업데이트하시겠습니까? 약 10분 정도 소요됩니다. 프린터가 업데이트되는 동안에는 전원을 끄지 마십시오."
 
-msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
+#, fuzzy
+#| msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
+msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "중요한 업데이트가 감지되었으며 출력을 계속하려면 먼저 업데이트해야 합니다. 지금 업데이트하시겠습니까? '펌웨어 업그레이드'에서 나중에 업데이트할 수도 있습니다."
 
-msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
+#, fuzzy
+#| msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
+msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "펌웨어 버전이 비정상입니다. 출력하기 전에 수리 및 업데이트가 필요합니다. 지금 업데이트하시겠습니까? 나중에 프린터에서 업데이트하거나 다음에 스튜디오를 시작할 때 업데이트할 수도 있습니다."
 
 msgid "Extension Board"
@@ -10536,8 +10959,10 @@ msgstr ""
 msgid "Repair finished"
 msgstr "수리 완료"
 
+#, fuzzy
+#| msgid "Repair failed."
 msgid "Repair failed"
-msgstr ""
+msgstr "수리에 실패하였습니다."
 
 msgid "Repair canceled"
 msgstr "수리 취소됨"
@@ -10546,7 +10971,9 @@ msgstr "수리 취소됨"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "파일 %1%를 %2%으로 복사 실패: %3%"
 
-msgid "Need to check the unsaved changes before configuration updates."
+#, fuzzy
+#| msgid "Need to check the unsaved changes before configuration updates."
+msgid "Please check any unsaved changes before updating the configuration."
 msgstr "구성 업데이트 전에 저장되지 않은 변경 사항을 확인해야 합니다."
 
 msgid "Configuration package: "
@@ -10561,15 +10988,18 @@ msgstr "Gcode 파일 열기:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "객체 하나에 초기 레이어가 비어 있어 출력할 수 없습니다. 바닥을 자르거나 서포트를 활성화하세요."
 
-#, boost-format
-msgid "Object can't be printed for empty layer between %1% and %2%."
+#, boost-format, fuzzy
+#| msgid "Object can't be printed for empty layer between %1% and %2%."
+msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "%1%에서 %2% 사이의 빈 레이어에 대해 객체를 출력할 수 없습니다."
 
 #, boost-format
 msgid "Object: %1%"
 msgstr "객체: %1%"
 
-msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+#, fuzzy
+#| msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
+msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "이 높이에 있는 객체의 일부가 너무 얇거나 객체에 결함이 있는 메시가 있을 수 있습니다"
 
 msgid "Process change extrusion role G-code"
@@ -10578,7 +11008,9 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-msgid "No object can be printed. Maybe too small"
+#, fuzzy
+#| msgid "No object can be printed. Maybe too small"
+msgid "No object can be printed. It may be too small."
 msgstr "객체를 출력할 수 없습니다. 너무 작을 수 있습니다"
 
 msgid "Your print is very close to the priming regions. Make sure there is no collision."
@@ -10621,8 +11053,9 @@ msgstr " 에 배치할 수 없습니다"
 msgid "Internal Bridge"
 msgstr "내부 브릿지"
 
-#, boost-format
-msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+#, boost-format, fuzzy
+#| msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "%1%의 선 너비를 계산하지 못했습니다. \"%2%\"의 값을 가져올 수 없습니다 "
 
 msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width"
@@ -10634,7 +11067,9 @@ msgstr "정의되지 않은 오류"
 msgid "too many files"
 msgstr "파일이 너무 많습니다"
 
-msgid "file too large"
+#, fuzzy
+#| msgid "file too large"
+msgid "File too large"
 msgstr "파일이 너무 큽니다"
 
 msgid "unsupported method"
@@ -10655,7 +11090,9 @@ msgstr "ZIP 형식의 압축파일이 아닙니다"
 msgid "invalid header or corrupted"
 msgstr "잘못된 헤더이거나 손상됨"
 
-msgid "unsupported multidisk"
+#, fuzzy
+#| msgid "unsupported multidisk"
+msgid "Saving to RAID is not supported."
 msgstr "지원되지 않는 멀티디스크"
 
 msgid "decompression failed"
@@ -10703,7 +11140,9 @@ msgstr "잘못된 매개 변수"
 msgid "invalid filename"
 msgstr "잘못된 파일 이름"
 
-msgid "buffer too small"
+#, fuzzy
+#| msgid "buffer too small"
+msgid "Buffer too small"
 msgstr "버퍼가 너무 작음"
 
 msgid "internal error"
@@ -10712,7 +11151,9 @@ msgstr "내부 오류"
 msgid "file not found"
 msgstr "파일을 찾을 수 없습니다"
 
-msgid "archive too large"
+#, fuzzy
+#| msgid "archive too large"
+msgid "Archive too large"
 msgstr "압축파일이 너무 큽니다"
 
 msgid "validation failed"
@@ -10721,8 +11162,9 @@ msgstr "검증에 실패했습니다"
 msgid "write callback failed"
 msgstr "쓰기 호출 실패"
 
-#, boost-format
-msgid "%1% is too close to exclusion area, there may be collisions when printing."
+#, boost-format, fuzzy
+#| msgid "%1% is too close to exclusion area, there may be collisions when printing."
+msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% 이(가) 제외 영역에 너무 가깝습니다. 출력 시 충돌이 발생 할 수 있습니다."
 
 #, boost-format
@@ -10745,7 +11187,9 @@ msgstr "프라임 타워"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " 이(가) 다른 객체와 너무 가까워 출력 시 충돌이 발생 할 수 있습니다.\n"
 
-msgid " is too close to exclusion area, and collisions will be caused.\n"
+#, fuzzy
+#| msgid " is too close to exclusion area, and collisions will be caused.\n"
+msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " 이(가) 제외 영역에 너무 가깝습니다. 출력 시 충돌이 발생 할 수 있습니다.\n"
 
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
@@ -10778,7 +11222,9 @@ msgstr ""
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "나선형 꽃병 모드에서 여러 객체를 출력하려면 \"객체별\" 출력 순서를 선택하세요."
 
-msgid "The spiral vase mode does not work when an object contains more than one materials."
+#, fuzzy
+#| msgid "The spiral vase mode does not work when an object contains more than one materials."
+msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "객체에 둘 이상의 재료가 포함된 경우 나선형 꽃병 모드가 작동하지 않습니다."
 
 #, boost-format
@@ -10811,25 +11257,37 @@ msgstr "흘러내림 방지는 'single_extruder_multi_material'이 꺼져 있을
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "프라임 타워는 현재 Marlin, RepRap/Sprinter, RepRapFirmware 및 Repetier Gcode 유형에서만 지원됩니다."
 
-msgid "The prime tower is not supported in \"By object\" print."
+#, fuzzy
+#| msgid "The prime tower is not supported in \"By object\" print."
+msgid "A prime tower is not supported in “By object” print."
 msgstr "프라임 타워는 \"객체별\" 출력에서 지원되지 않습니다."
 
-msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
+#, fuzzy
+#| msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
+msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "적응형 레이어 높이가 켜져 있으면 프라임 타워가 지원되지 않습니다. 모든 객체의 레이어 높이가 동일해야 합니다."
 
-msgid "The prime tower requires \"support gap\" to be multiple of layer height."
+#, fuzzy
+#| msgid "The prime tower requires \"support gap\" to be multiple of layer height."
+msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "프라임 타워는 \"서포트 간격\"이 레이어 높이의 배수여야 합니다"
 
-msgid "The prime tower requires that all objects have the same layer heights."
+#, fuzzy
+#| msgid "The prime tower requires that all objects have the same layer heights."
+msgid "A prime tower requires that all objects have the same layer height."
 msgstr "프라임 타워는 모든 객체의 레이어 높이가 동일해야 합니다"
 
-msgid "The prime tower requires that all objects are printed over the same number of raft layers."
+#, fuzzy
+#| msgid "The prime tower requires that all objects are printed over the same number of raft layers."
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "프라임 타워는 모든 객체가 동일한 수의 라프트 레이어 위에 출력되어야 합니다"
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "프라임 타워는 여러 오브젝트가 동일한 support_top_z_distance로 출력된 경우에만 지원됩니다"
 
-msgid "The prime tower requires that all objects are sliced with the same layer heights."
+#, fuzzy
+#| msgid "The prime tower requires that all objects are sliced with the same layer heights."
+msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "프라임 타워는 모든 객체가 동일한 레이어 높이로 슬라이스되어야 합니다."
 
 msgid "The prime tower is only supported if all objects have the same variable layer height."
@@ -10838,16 +11296,22 @@ msgstr "프라임 타워는 모든 객체의 가변 레이어 높이가 동일�
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "하나 이상의 객체에 프린터에 없는 압출기가 할당되었습니다."
 
-msgid "Too small line width"
+#, fuzzy
+#| msgid "Too small line width"
+msgid "Line width too small"
 msgstr "선 너비가 너무 작습니다"
 
-msgid "Too large line width"
+#, fuzzy
+#| msgid "Too large line width"
+msgid "Line width too large"
 msgstr "선 너비가 너무 큽니다"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "노즐 직경이 다른 여러 개의 압출기로 출력. 현재 필라멘트를 사용하여 서포트를 출하려면(support_filament == 0 또는 support_interface_ilament == 0) 모든 노즐의 직경이 같아야 합니다."
 
-msgid "The prime tower requires that support has the same layer height with object."
+#, fuzzy
+#| msgid "The prime tower requires that support has the same layer height with object."
+msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "프라임 타워는 서포트가 객체와 동일한 레이어 높이를 갖도록 요구합니다."
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
@@ -10871,6 +11335,8 @@ msgstr ""
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "서포트 강제기가 사용되지만 서포트가 활성화되지 않습니다. 서포트를 활성화하세요."
 
+#, fuzzy
+#| msgid "Layer height cannot exceed nozzle diameter."
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "레이어 높이는 노즐 직경을 초과할 수 없습니다"
 
@@ -10947,7 +11413,9 @@ msgstr "Gcode 내보내는 중"
 msgid "Generating G-code"
 msgstr "Gcode 생성 중"
 
-msgid "Failed processing of the filename_format template."
+#, fuzzy
+#| msgid "Failed processing of the filename_format template."
+msgid "Processing of the filename_format template failed."
 msgstr "파일 이름 형식 템플릿 처리에 실패했습니다."
 
 msgid "Printer technology"
@@ -10977,7 +11445,9 @@ msgstr ""
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr ""
 
-msgid "Bed exclude area"
+#, fuzzy
+#| msgid "Bed exclude area"
+msgid "Excluded bed area"
 msgstr "베드 제외 구역"
 
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as polygon by points in following format: \"XxY, XxY, ...\""
@@ -10992,7 +11462,9 @@ msgstr "사용자 정의 베드 모델"
 msgid "Elephant foot compensation"
 msgstr "코끼리 발 보정"
 
-msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
+#, fuzzy
+#| msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
+msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "코끼리 발 효과를 보정하기 위해 빌드 플레이트에 닿는 첫 레이어를 축소합니다"
 
 msgid "Elephant foot compensation layers"
@@ -11010,13 +11482,17 @@ msgid ""
 "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers."
 msgstr ""
 
-msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
+#, fuzzy
+#| msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
+msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "각 레이어에 대한 슬라이스 높이입니다. 레이어 높이가 작다는 것은 더 정확하고 더 많은 출력 시간을 의미합니다"
 
 msgid "Printable height"
 msgstr "출력 가능 높이"
 
-msgid "Maximum printable height which is limited by mechanism of printer."
+#, fuzzy
+#| msgid "Maximum printable height which is limited by mechanism of printer."
+msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "프린터 기계장치에 의해 제한되는 출력 가능한 최대 높이"
 
 msgid "Extruder printable height"
@@ -11094,7 +11570,9 @@ msgstr "비밀번호"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "HTTPS 인증서 해지 검사 무시"
 
-msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
+#, fuzzy
+#| msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
+msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "배포 지점이 없거나 오프라인인 경우 HTTPS 인증서 해지 검사를 무시합니다. 연결이 실패할 경우 자체 서명된 인증서에 대해 이 옵션을 사용할 수 있습니다."
 
 msgid "Names of presets related to the physical printer."
@@ -11112,13 +11590,17 @@ msgstr "HTTP 다이제스트"
 msgid "Avoid crossing walls"
 msgstr "벽 가로지름 방지"
 
-msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
+#, fuzzy
+#| msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
+msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "벽을 가로질러 이동하지 않고 우회하여 표면에 방울 발생을 방지합니다"
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "벽 가로지름 방지 - 최대 우회 길이"
 
-msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
+#, fuzzy
+#| msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
+msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "벽 가로지름 방지를 위한 최대 우회 거리. 우회 거리가 이 값보다 크면 우회하지 않습니다. 우회 길이는 절대값 또는 직접 이동 경로의 백분율(예: 50%)로 지정할 수 있습니다. 값 0으로 비활성화할 수 있습니다"
 
 msgid "mm or %"
@@ -11130,46 +11612,74 @@ msgstr "다른 레이어"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr ""
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
+#, fuzzy
+#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 쿨 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+#, fuzzy
+#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도입니다. 값 0은 필라멘트가 텍스처드 쿨 플레이트에서 출력를 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
+#, fuzzy
+#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 엔지니어링 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
+#, fuzzy
+#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 고온 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+#, fuzzy
+#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이트 출력을 지원하지 않음을 의미합니다."
 
+#, fuzzy
+#| msgid "First layer"
 msgid "First layer"
 msgstr "초기 레이어"
 
+#, fuzzy
+#| msgid "First layer bed temperature"
 msgid "First layer bed temperature"
 msgstr "초기 레이어 베드 온도"
 
-msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 쿨 플레이트(슈퍼택)에 출력할 수 없음을 의미합니다."
 
-msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
+#, fuzzy
+#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
+msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "초기 레이어의 베드 온도. 값 0은 필라멘트가 쿨 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+#, fuzzy
+#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 텍스처드 쿨 플레이트에 출력할 수 없음을 의미합니다."
 
-msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
+#, fuzzy
+#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
+msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "초기 레이어의 베드 온도. 값 0은 필라멘트가 쿨 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
+#, fuzzy
+#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
+msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 고온 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+#, fuzzy
+#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "초기 레이어의 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Bed types supported by the printer."
+#, fuzzy
+#| msgid "Bed types supported by the printer."
+msgid "Plate types supported by the printer"
 msgstr "프린터가 지원하는 베드 유형"
 
 msgid "Default bed type"
@@ -11202,7 +11712,9 @@ msgstr "하단 표면을 포함한 하단 쉘의 꽉찬 레이어 수입니다. 
 msgid "Bottom shell thickness"
 msgstr "하단 쉘 두께"
 
-msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
+#, fuzzy
+#| msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
+msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "하단 쉘 레이어로 계산된 두께가 이 값보다 얇은 경우 슬라이싱할 때 하단 꽉찬 레이어의 수가 증가합니다. 이렇게 하면 레이어 높이가 작을 때 쉘이 너무 얇아지는 것을 방지할 수 있습니다. 0은 이 설정이 비활성화되고 하단 쉘의 두께가 절대적으로 하단 쉘 레이어에 의해 결정됨을 의미합니다"
 
 msgid "Apply gap fill"
@@ -11581,10 +12093,14 @@ msgstr ""
 "값이 0이면 모든 짝수 레이어에 관계없이 반전이 활성화됩니다.\n"
 "돌출 벽 감지가 활성화되지 않은 경우 이 옵션은 무시되고 모든 짝수 레이어에서 반전이 수행됩니다."
 
-msgid "Slow down for overhang"
+#, fuzzy
+#| msgid "Slow down for overhang"
+msgid "Slow down for overhangs"
 msgstr "오버행에서 감속"
 
-msgid "Enable this option to slow printing down for different overhang degree."
+#, fuzzy
+#| msgid "Enable this option to slow printing down for different overhang degree."
+msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "오버행 정도에 따라 출력 속도를 낮추려면 이 옵션을 활성화합니다"
 
 msgid "Slow down for curled perimeters"
@@ -11629,7 +12145,9 @@ msgstr "내부 브릿지의 속도. 값을 백분율로 표현하면 bridge_spee
 msgid "Brim width"
 msgstr "브림 너비"
 
-msgid "Distance from model to the outermost brim line."
+#, fuzzy
+#| msgid "Distance from model to the outermost brim line."
+msgid "This is the distance from the model to the outermost brim line."
 msgstr "모델과 가장 바깥쪽 브림 선까지의 거리"
 
 msgid "Brim type"
@@ -11641,7 +12159,9 @@ msgstr "모델의 외부 그리고/또는 내부에서 브림의 생성을 제�
 msgid "Brim-object gap"
 msgstr "브림-객체 간격"
 
-msgid "A gap between innermost brim line and object can make brim be removed more easily."
+#, fuzzy
+#| msgid "A gap between innermost brim line and object can make brim be removed more easily."
+msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "가장 안쪽 브림 라인과 객체 사이에 간격을 주어 쉽게 브림을 제거 할 수 있게 합니다"
 
 msgid "Brim flow ratio"
@@ -11655,9 +12175,17 @@ msgid ""
 "Note: The resulting value will not be affected by the first-layer flow ratio."
 msgstr ""
 
+#, fuzzy
+#| msgid "Brim follows compensated outline"
 msgid "Brim follows compensated outline"
 msgstr "브림는 보상된 아웃라인을 따릅니다."
 
+#, fuzzy
+#| msgid ""
+#| "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
+#| "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
+#| "\n"
+#| "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -11712,16 +12240,22 @@ msgstr "상향 호환 장치"
 msgid "Condition"
 msgstr ""
 
-msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
+#, fuzzy
+#| msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
+msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "활성 프린터 프로필의 구성 값을 사용하는 불리언 표현식입니다. 이 표현식이 true로 평가되면 이 프로필은 활성 프린터 프로필과 호환되는 것으로 간주됩니다."
 
 msgid "Select profiles"
 msgstr ""
 
-msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
+#, fuzzy
+#| msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
+msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "활성 출력 프로필의 구성 값을 사용하는 불리언 표현식입니다. 이 표현식이 true로 평가되면 이 프로필은 활성 출력 프로필과 호환되는 것으로 간주됩니다."
 
-msgid "Print sequence, layer by layer or object by object."
+#, fuzzy
+#| msgid "Print sequence, layer by layer or object by object."
+msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "출력순서, 레이어별 또는 객체별"
 
 msgid "By layer"
@@ -11742,13 +12276,17 @@ msgstr "객체 목록으로"
 msgid "Slow printing down for better layer cooling"
 msgstr "레이어 냉각 향상을 위한 감속"
 
-msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
+#, fuzzy
+#| msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
+msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "이 옵션을 활성화하여 최종 레이어 시간이 \"최대 팬 속도 임계값\" 의 \"레이어 시간\" 임계값보다 짧지 않도록 출력 속도를 낮추어 레이어를 더 오랫동안 냉각할 수 있습니다. 바늘 모양이나 작은 출력물의 냉각 품질을 향상 시킬 수 있습니다"
 
 msgid "Normal printing"
 msgstr "일반 출력"
 
-msgid "The default acceleration of both normal printing and travel except initial layer."
+#, fuzzy
+#| msgid "The default acceleration of both normal printing and travel except initial layer."
+msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "초기 레이어를 제외한 모든 일반 출력 및 이동의 기본 가속"
 
 msgid "Default filament profile"
@@ -11793,7 +12331,9 @@ msgstr "빌드 플레이트의 접착력 향상을 위해 첫 레이어부터 �
 msgid "Don't support bridges"
 msgstr "브릿지에서 서포트 사용안함"
 
-msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
+#, fuzzy
+#| msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
+msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "서포트를 크게 만드는 전체 브릿지 영역에 서포트를 사용하지 않습니다. 브릿지는 일반적으로 매우 길지 않은 경우 서포트 없이 직접 출력할 수 있습니다."
 
 msgid "Thick external bridges"
@@ -11886,13 +12426,17 @@ msgstr "필터링 없음"
 msgid "Max bridge length"
 msgstr "최대 브릿지 길이"
 
-msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
+#, fuzzy
+#| msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
+msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "서포트가 필요하지 않은 브릿지의 최대 길이. 모든 브릿지에 서포트를 생성하려면 0으로 설정하고 브릿지에 서포트를 생성하지 않으려면 매우 큰 값으로 설정합니다."
 
 msgid "End G-code"
 msgstr "종료 Gcode"
 
-msgid "End G-code when finishing the entire print."
+#, fuzzy
+#| msgid "End G-code when finishing the entire print."
+msgid "Add end G-Code when finishing the entire print."
 msgstr "출력이 종료될 때의 Gcode"
 
 msgid "Between Object G-code"
@@ -11901,7 +12445,9 @@ msgstr "객체 사이의 Gcode"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "객체 사이에 Gcode를 삽입하세요. 이 매개변수는 객체별 출력을 사용할 때만 적용됩니다"
 
-msgid "End G-code when finishing the printing of this filament."
+#, fuzzy
+#| msgid "End G-code when finishing the printing of this filament."
+msgid "Add end G-code when finishing the printing of this filament."
 msgstr "이 필라멘트의 출력이 끝날때의 종료 Gcode"
 
 msgid "Ensure vertical shell thickness"
@@ -11931,7 +12477,9 @@ msgstr "보통"
 msgid "Top surface pattern"
 msgstr "상단 표면 패턴"
 
-msgid "Line pattern of top surface infill."
+#, fuzzy
+#| msgid "Line pattern of top surface infill."
+msgid "This is the line pattern for top surface infill."
 msgstr "상단 표면 채우기의 선 패턴"
 
 msgid "Monotonic"
@@ -11961,7 +12509,9 @@ msgstr "팔각 나선형"
 msgid "Bottom surface pattern"
 msgstr "하단 표면 패턴"
 
-msgid "Line pattern of bottom surface infill, not bridge infill."
+#, fuzzy
+#| msgid "Line pattern of bottom surface infill, not bridge infill."
+msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "브릿지 채우기가 아닌 바닥면 채우기의 선 패턴"
 
 msgid "Internal solid infill pattern"
@@ -11973,7 +12523,9 @@ msgstr "꽉찬 내부 채우기의 선 패턴. 좁은 꽉찬 내부 채우기 �
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "외벽의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
+#, fuzzy
+#| msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
+msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "가장 바깥쪽의 눈에 보이는 외벽의 속도. 더 나은 품질을 얻기 위해 내벽 속도보다 느리게 사용됩니다."
 
 msgid "Small perimeters"
@@ -12048,16 +12600,22 @@ msgstr "시계방향"
 msgid "Height to rod"
 msgstr "레일까지의 높이"
 
-msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
+#, fuzzy
+#| msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
+msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "노즐 끝에서 하부 레일까지의 거리. 객체별 출력에서 충돌 방지에 사용됩니다."
 
 msgid "Height to lid"
 msgstr "덮개까지의 높이"
 
-msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
+#, fuzzy
+#| msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
+msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "노즐 끝에서 덮개까지의 거리. 객체별 출력에서 충돌 방지에 사용됩니다."
 
-msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
+#, fuzzy
+#| msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
+msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "압출기 주변의 회피 반경. 객체별 출력에서 충돌 방지에 사용됩니다."
 
 msgid "Nozzle height"
@@ -12192,7 +12750,9 @@ msgstr "다른 선 너비가 0으로 설정된 경우 기본 선 너비입니다
 msgid "Keep fan always on"
 msgstr "팬 상시 가동"
 
-msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
+#, fuzzy
+#| msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
+msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "이 설정을 활성화하면 출력물 냉각 팬이 정지되지 않으며 팬을 최소 속도로 가동하여 시동 및 정지 빈도를 줄입니다"
 
 msgid "Don't slow down outer walls"
@@ -12212,7 +12772,9 @@ msgstr ""
 msgid "Layer time"
 msgstr "레이어 시간"
 
-msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
+#, fuzzy
+#| msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
+msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "예상 시간이 이 값보다 짧은 레이어에 대해 출력물 냉각 팬이 활성화됩니다. 팬 속도는 레이어 출력 시간에 따라 최소 및 최대 팬 속도 사이에서 보간됩니다"
 
 msgid "s"
@@ -12235,7 +12797,9 @@ msgstr "여기에 필라멘트에 관한 메모를 할 수 있습니다."
 msgid "Required nozzle HRC"
 msgstr "필수 노즐 HRC"
 
-msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
+#, fuzzy
+#| msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
+msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "필라멘트 출력에 필요한 노즐의 최소 HRC. 0은 노즐의 록웰 경도를 확인하지 않음을 의미합니다."
 
 msgid "Filament map to extruder"
@@ -12274,7 +12838,9 @@ msgstr "플러시 체적 속도"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr ""
 
-msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+#, fuzzy
+#| msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
+msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "이 설정은 초당 얼마나 많은 양의 필라멘트를 녹이고 압출할 수 있는지를 나타냅니다. 너무 높고 부적절한 속도 설정의 경우 출력 속도는 최대 압출 속도에 의해 제한됩니다. 0이 될 수 없습니다"
 
 msgid "Filament load time"
@@ -12307,7 +12873,9 @@ msgstr "By 첫 번째 필라멘트"
 msgid "By Highest Temp"
 msgstr "최고 온도 기준"
 
-msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
+#, fuzzy
+#| msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
+msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "필라멘트 직경은 Gcode에서 압출량을 계산하는데 사용되므로 중요하며 정확해야 합니다."
 
 msgid "Pellet flow coefficient"
@@ -12375,6 +12943,8 @@ msgstr "압출 단계 초기에 사용되는 속도입니다."
 msgid "Unloading speed"
 msgstr "언로드 속도"
 
+#, fuzzy
+#| msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "프라임 타워에 필라멘트를 빼는 데 사용되는 속도(채워넣기 직후 빼기 초기 부분에는 영향을 미치지 않음)"
 
@@ -12492,13 +13062,17 @@ msgstr "툴 체인지 전에 필라멘트를 채워넣기에 사용되는 압출
 msgid "Density"
 msgstr "밀도"
 
-msgid "Filament density. For statistics only."
+#, fuzzy
+#| msgid "Filament density. For statistics only."
+msgid "Filament density, for statistical purposes only."
 msgstr "필라멘트 밀도. 통계 전용"
 
 msgid "g/cm³"
 msgstr "g/cm³"
 
-msgid "The material type of filament."
+#, fuzzy
+#| msgid "The material type of filament."
+msgid "Filament material type"
 msgstr "필라멘트의 재료 유형"
 
 msgid "Soluble material"
@@ -12528,13 +13102,17 @@ msgstr ""
 msgid "Softening temperature"
 msgstr "연화 온도"
 
-msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
+#, fuzzy
+#| msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
+msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "이 온도에서는 재료가 부드러워지므로 베드 온도가 이 온도 이상일 경우 막힘을 방지하기 위해 전면 도어를 열거나 상단 유리를 제거하는 것이 좋습니다."
 
 msgid "Price"
 msgstr "가격"
 
-msgid "Filament price. For statistics only."
+#, fuzzy
+#| msgid "Filament price. For statistics only."
+msgid "Filament price, for statistical purposes only."
 msgstr "필라멘트 가격. 통계 전용"
 
 msgid "money/kg"
@@ -12552,7 +13130,9 @@ msgstr "(정의되지 않음)"
 msgid "Sparse infill direction"
 msgstr "드문 채우기 방향"
 
-msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
+#, fuzzy
+#| msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
+msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "선의 시작 또는 주 방향을 제어하는 드문 채우기 패턴에 대한 각도"
 
 msgid "Solid infill direction"
@@ -12598,7 +13178,9 @@ msgstr ""
 msgid "Sparse infill pattern"
 msgstr "드문 채우기 패턴"
 
-msgid "Line pattern for internal sparse infill."
+#, fuzzy
+#| msgid "Line pattern for internal sparse infill."
+msgid "This is the line pattern for internal sparse infill."
 msgstr "드문 내부 채우기의 선 패턴"
 
 msgid "Zig Zag"
@@ -12732,10 +13314,14 @@ msgstr "내벽의 가속도"
 msgid "Acceleration of travel moves."
 msgstr "이동 가속도"
 
-msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
+#, fuzzy
+#| msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
+msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "상단 표면 가속도. 낮은 값을 사용하면 상단 표면 품질이 향상될 수 있습니다"
 
-msgid "Acceleration of outer wall. Using a lower value can improve quality."
+#, fuzzy
+#| msgid "Acceleration of outer wall. Using a lower value can improve quality."
+msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "외벽의 가속도. 낮은 값을 사용하면 품질이 향상 될 수 있습니다"
 
 msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
@@ -12750,7 +13336,9 @@ msgstr "드문 채우기 가속도. 값이 백분율 (예. 100%)로 표시되면
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "꽉찬 내부 채우기 가속도. 값이 백분율 (예. 100%)로 표시되면 기본 가속도를 기준으로 계산됩니다."
 
-msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
+#, fuzzy
+#| msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
+msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "초기 레이어 가속도. 낮은 값을 사용하면 빌드 플레이트 안착률을 높일 수 있습니다"
 
 msgid "First layer travel"
@@ -12806,20 +13394,29 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "초기 레이어의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
+#, fuzzy
+#| msgid "First layer height"
 msgid "First layer height"
 msgstr "초기 레이어 높이"
 
 #, fuzzy
-msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+#| msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "초기 레이어의 높이입니다. 초기 레이어 높이를 약간 두껍게 하면 빌드 플레이트 접착력을 향상시킬 수 있습니다"
 
-msgid "Speed of the first layer except the solid infill part."
+#, fuzzy
+#| msgid "Speed of the first layer except the solid infill part."
+msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "꽉찬 채우기 부분을 제외한 초기 레이어 속도"
 
+#, fuzzy
+#| msgid "First layer infill"
 msgid "First layer infill"
 msgstr "초기 레이어 채우기"
 
-msgid "Speed of solid infill part of the first layer."
+#, fuzzy
+#| msgid "Speed of solid infill part of the first layer."
+msgid "This is the speed for solid infill parts of the first layer."
 msgstr "초기 레이어의 꽉찬 채우기 속도"
 
 msgid "First layer travel speed"
@@ -12828,16 +13425,22 @@ msgstr "초기 레이어 이동 속도"
 msgid "Travel speed of the first layer."
 msgstr "초기 레이어 이동 속도"
 
-msgid "Number of slow layers"
+#, fuzzy
+#| msgid "Number of slow layers"
+msgid "This is the number of top interface layers."
 msgstr "저속 레이어 수"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "처음 몇 개의 레이어는 평소보다 느리게 출력됩니다. 속도는 지정된 레이어 수에 걸쳐 선형 방식으로 점차 증가합니다."
 
+#, fuzzy
+#| msgid "First layer nozzle temperature"
 msgid "First layer nozzle temperature"
 msgstr "초기 레이어 노즐 온도"
 
-msgid "Nozzle temperature for printing the first layer when using this filament."
+#, fuzzy
+#| msgid "Nozzle temperature for printing the first layer when using this filament."
+msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "이 필라멘트를 사용할 때 초기 레이어를 출력하기 위한 노즐 온도"
 
 msgid "Full fan speed at layer"
@@ -12905,7 +13508,9 @@ msgstr "다림질 속도"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr ""
 
-msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
+#, fuzzy
+#| msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
+msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "벽을 출력하는 동안 무작위로 지터가 발생하여 표면이 거칠게 보입니다. 이 설정은 퍼지 위치를 제어합니다"
 
 msgid "Painted only"
@@ -12926,7 +13531,9 @@ msgstr "모든 벽"
 msgid "Fuzzy skin thickness"
 msgstr "퍼지 스킨 두께"
 
-msgid "The width within which to jitter. It's advised to be below outer wall line width."
+#, fuzzy
+#| msgid "The width within which to jitter. It's advised to be below outer wall line width."
+msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "임의로 움직일 너비입니다. 외벽 선 너비 보다 얇게 하는 것이 좋습니다"
 
 msgid "Fuzzy skin point distance"
@@ -13049,7 +13656,9 @@ msgstr "레이어와 윤곽선"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "지정된 임계값(mm 단위)보다 길이가 작은 간격 채우기를 출력하지 마십시오. 이 설정은 상단, 하단 및 솔리드 채우기에 적용되며, 클래식 주변 생성기를 사용하는 경우 벽 간격 채우기에 적용됩니다."
 
-msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
+#, fuzzy
+#| msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
+msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "간격 채우기 속도. 간격은 일반적으로 선 너비가 불규칙하므로 더 천천히 출력해야 합니다"
 
 msgid "Precise Z height"
@@ -13079,7 +13688,9 @@ msgstr "각 Gcode 라인의 시작 부분에 라인 번호(Nx)를 추가하려�
 msgid "Scan first layer"
 msgstr "첫 레이어 스캔"
 
-msgid "Enable this to enable the camera on printer to check the quality of first layer."
+#, fuzzy
+#| msgid "Enable this to enable the camera on printer to check the quality of first layer."
+msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "프린터의 카메라가 첫 레이어의 품질을 확인할 수 있도록 하려면 이 옵션을 활성화하세요"
 
 msgid "Power Loss Recovery"
@@ -13094,11 +13705,10 @@ msgstr ""
 msgid "Nozzle type"
 msgstr "노즐 유형"
 
-msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
+#, fuzzy
+#| msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
+msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "노즐의 금속 재질. 노즐의 내마모성을 결정하고 어떤 종류의 필라멘트를 출력할 수 있는지를 결정합니다"
-
-msgid "Undefine"
-msgstr "알 수 없음"
 
 msgid "Hardened steel"
 msgstr "경화강"
@@ -13112,7 +13722,9 @@ msgstr "텅스텐 카바이드"
 msgid "Nozzle HRC"
 msgstr "노즐 HRC"
 
-msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
+#, fuzzy
+#| msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
+msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "노즐의 경도. 0은 슬라이스하는 동안 노즐의 경도를 확인하지 않음을 의미합니다."
 
 msgid "HRC"
@@ -13195,7 +13807,9 @@ msgstr "시간당 프린터 비용"
 msgid "money/h"
 msgstr "비용/시간"
 
-msgid "Support control chamber temperature"
+#, fuzzy
+#| msgid "Support control chamber temperature"
+msgid "Support controlling chamber temperature"
 msgstr "챔버 온도 제어 지원"
 
 msgid ""
@@ -13260,7 +13874,9 @@ msgstr "주석이 달린 Gcode 파일을 가져오려면 이 기능을 활성화
 msgid "Infill combination"
 msgstr "채우기 결합"
 
-msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
+#, fuzzy
+#| msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
+msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "여러 레이어의 드문 채우기를 자동으로 결합 후 함께 출력하여 시간을 단축합니다. 벽은 여전히 설정된 레이어 높이로 출력됩니다."
 
 msgid "Infill shift step"
@@ -13366,11 +13982,14 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "드문 내부 채우기의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Infill/Wall overlap"
+#, fuzzy
+#| msgid "Infill/Wall overlap"
+msgid "Infill/wall overlap"
 msgstr "채우기/벽 겹치기"
 
-#, no-c-format, no-boost-format
-msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+#, fuzzy, no-boost-format, no-c-format
+#| msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "채우기 영역은 더 나은 접착을 위해 벽과 겹치도록 약간 확대됩니다. 백분율 값은 희박한 채우기의 선 너비를 기준으로 합니다. 거친 상단 표면을 초래하는 재료의 압출 및 축적 가능성을 최소화하려면 이 값을 ~10-15%로 설정하십시오."
 
 msgid "Top/Bottom solid infill/wall overlap"
@@ -13380,7 +13999,9 @@ msgstr "상하단 솔리드 채우기/벽 겹침"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "상단 솔리드 채우기 영역은 더 나은 접착을 위해 벽과 겹치도록 약간 확대되고 상단 채우기가 벽과 만나는 핀홀의 모양을 최소화합니다. 25-30%의 값은 핀홀의 모양을 최소화하는 좋은 출발점입니다. 백분율 값은 희박한 채우기의 선 너비를 기준으로 합니다"
 
-msgid "Speed of internal sparse infill."
+#, fuzzy
+#| msgid "Speed of internal sparse infill."
+msgid "This is the speed for internal sparse infill."
 msgstr "내부 드문 채우기 속도"
 
 msgid "Inherits profile"
@@ -13398,7 +14019,9 @@ msgstr "인접한 재료/압출 사이에 꽉찬 쉘을 강제로 생성합니�
 msgid "Maximum width of a segmented region"
 msgstr "분할된 영역의 최대 너비"
 
-msgid "Maximum width of a segmented region. Zero disables this feature."
+#, fuzzy
+#| msgid "Maximum width of a segmented region. Zero disables this feature."
+msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "분할된 영역의 최대 너비입니다. 0은 이 기능을 비활성화합니다."
 
 msgid "Interlocking depth of a segmented region"
@@ -13443,19 +14066,27 @@ msgstr "맞물림 방지 거리"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "모델의 외벽으로부터 맞물림 구조를 생성하기 시작할 거리를 설정합니다."
 
-msgid "Ironing Type"
+#, fuzzy
+#| msgid "Ironing Type"
+msgid "Ironing type"
 msgstr "다림질 유형"
 
-msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
+#, fuzzy
+#| msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
+msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "다림질은 평평한 표면을 더 부드럽게 만들기 위해 같은 높이의 표면에 소량의 압출로 다시 출력하는 것입니다. 이 설정은 다림질 레이어를 제어합니다"
 
 msgid "No ironing"
 msgstr "사용안함"
 
-msgid "Top surfaces"
+#, fuzzy
+#| msgid "Top surfaces"
+msgid "All top surfaces"
 msgstr "상단 표면"
 
-msgid "Topmost surface"
+#, fuzzy
+#| msgid "Topmost surface"
+msgid "Topmost surface only"
 msgstr "최상단 표면"
 
 #, fuzzy
@@ -13468,16 +14099,22 @@ msgstr "다림질 패턴"
 msgid "The pattern that will be used when ironing."
 msgstr "다림질할 때 사용할 패턴"
 
-msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
+#, fuzzy
+#| msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
+msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "다림질 중에 압출할 재료의 양입니다. 정상 레이어 높이의 압출량에 상대적입니다. 값이 너무 높으면 표면에 과다 압출이 발생합니다"
 
-msgid "The distance between the lines of ironing."
+#, fuzzy
+#| msgid "The distance between the lines of ironing."
+msgid "This is the distance between the lines used for ironing."
 msgstr "다림질 선 간격"
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "가장자리로부터 유지할 거리입니다. 값이 0이면 노즐 직경의 절반으로 설정됩니다."
 
-msgid "Print speed of ironing lines."
+#, fuzzy
+#| msgid "Print speed of ironing lines."
+msgid "This is the print speed for ironing lines."
 msgstr "다림질 선의 출력 속도"
 
 msgid "Ironing angle offset"
@@ -13533,10 +14170,14 @@ msgstr "이 Gcode는 Z올리기 이후 모든 레이어 변경에 삽입됩니�
 msgid "Clumping detection G-code"
 msgstr "뭉침 감지 G-code"
 
-msgid "Supports silent mode"
+#, fuzzy
+#| msgid "Supports silent mode"
+msgid "Silent Mode"
 msgstr "무음 모드 지원"
 
-msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+#, fuzzy
+#| msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
+msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "기기가 낮은 가속도를 사용하여 출력하는 무음 모드 지원 여부"
 
 msgid "Emit limits to G-code"
@@ -13782,7 +14423,9 @@ msgid ""
 "To disable input shaping, use the Disable type."
 msgstr ""
 
-msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
+#, fuzzy
+#| msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
+msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "자동 냉각이 활성화되면 출력물 냉각 팬 속도가 증가할 수 있습니다. 이는 출력물 냉각 팬의 최대 속도 제한입니다"
 
 msgid "The highest printable layer height for the extruder. Used to limit the maximum layer height when enable adaptive layer height."
@@ -13897,7 +14540,9 @@ msgstr "Orca Slicer은 Gcode 파일을 프린터 호스트에 업로드할 수 �
 msgid "Nozzle volume"
 msgstr "노즐 부피"
 
-msgid "Volume of nozzle between the cutter and the end of nozzle."
+#, fuzzy
+#| msgid "Volume of nozzle between the cutter and the end of nozzle."
+msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "커터와 노즐 끝단 사이의 노즐 부피"
 
 msgid "Cooling tube position"
@@ -13933,12 +14578,16 @@ msgstr "0으로 설정하면 압출 중에 필라멘트가 파킹 위치에서 �
 msgid "Start end points"
 msgstr "시작점과 끝점"
 
-msgid "The start and end points which is from cutter area to garbage can."
+#, fuzzy
+#| msgid "The start and end points which is from cutter area to garbage can."
+msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "절단 영역에서 버릴 영역까지의 시작점과 끝점."
 
 msgid "Reduce infill retraction"
 msgstr "채우기 후퇴 감소"
 
+#, fuzzy
+#| msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 
@@ -13948,7 +14597,9 @@ msgstr "이 옵션은 비활성 압출기의 온도를 낮추어 스며드는 �
 msgid "Filename format"
 msgstr "파일 이름 형식"
 
-msgid "Users can define the project file name when exporting."
+#, fuzzy
+#| msgid "Users can define the project file name when exporting."
+msgid "Users can decide project file names when exporting."
 msgstr "사용자가 내보낼 파일 이름을 자체 정의할 수 있습니다"
 
 msgid "Make overhangs printable"
@@ -13973,8 +14624,9 @@ msgstr "원뿔형 재료로 채워지기 전에 모델 베이스에 있는 구�
 msgid "Detect overhang walls"
 msgstr "오버행 벽 감지"
 
-#, c-format, boost-format
-msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+#, boost-format, c-format, fuzzy
+#| msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "선 너비에 비례하여 오버행 백분율을 감지하고 다른 속도를 사용하여 출력합니다. 100%% 오버행의 경우 브릿지 속도가 사용됩니다."
 
 msgid "Outer walls"
@@ -13996,10 +14648,14 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "내벽의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Speed of inner wall."
+#, fuzzy
+#| msgid "Speed of inner wall."
+msgid "This is the speed for inner walls."
 msgstr "내벽 속도"
 
-msgid "Number of walls of every layer."
+#, fuzzy
+#| msgid "Number of walls of every layer."
+msgid "This is the number of walls per layer."
 msgstr "모든 레이어의 벽 수"
 
 msgid "Alternate extra wall"
@@ -14045,25 +14701,37 @@ msgstr "프린터 변형"
 msgid "Raft contact Z distance"
 msgstr "라프트 접점 Z 거리"
 
+#, fuzzy
+#| msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "래프트와 객체 사이의 Z 간격. 서포트 상단 Z 거리가 0이면 이 값은 무시되고 객체는 래프트에 직접 접촉하여 출력됩니다(간격 없음)."
 
 msgid "Raft expansion"
 msgstr "라프트 확장"
 
-msgid "Expand all raft layers in XY plane."
+#, fuzzy
+#| msgid "Expand all raft layers in XY plane."
+msgid "This expands all raft layers in XY plane."
 msgstr "XY 평면에서 모든 라프트 레이어 확장"
 
+#, fuzzy
+#| msgid "First layer density"
 msgid "First layer density"
 msgstr "초기 레이어 밀도"
 
-msgid "Density of the first raft or support layer."
+#, fuzzy
+#| msgid "Density of the first raft or support layer."
+msgid "This is the density of the first raft or support layer."
 msgstr "첫 번째 라프트 또는 서포트의 밀도"
 
+#, fuzzy
+#| msgid "First layer expansion"
 msgid "First layer expansion"
 msgstr "초기 레이어 확장"
 
-msgid "Expand the first raft or support layer to improve bed plate adhesion."
+#, fuzzy
+#| msgid "Expand the first raft or support layer to improve bed plate adhesion."
+msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "베드 플레이트 안착을 향상시키기 위해 첫 번째 라프트 또는 서포트 확장"
 
 msgid "Raft layers"
@@ -14072,7 +14740,9 @@ msgstr "라프트 레이어"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "객체를 이 레이어 수 많큼 들어올립니다. 이 기능을 사용하여 ABS 출력 시 뒤틀림(워핑)을 방지합니다"
 
-msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
+#, fuzzy
+#| msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
+msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "Gcode 경로는 너무 많은 점과 Gcode 선을 피하기 위해 모델의 윤곽을 단순화한 후 생성됩니다. 값이 작을수록 해상도가 높아지고 슬라이스에 더 많은 시간이 소요됩니다."
 
 msgid "Travel distance threshold"
@@ -14084,21 +14754,31 @@ msgstr "이동 거리가 이 임계값보다 긴 경우에만 후퇴를 실행�
 msgid "Retract amount before wipe"
 msgstr "노즐 청소 전 후퇴량"
 
-msgid "The length of fast retraction before wipe, relative to retraction length."
+#, fuzzy
+#| msgid "The length of fast retraction before wipe, relative to retraction length."
+msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "후퇴 길이에 비례한 노즐 청소 전 후퇴량(노즐 청소를 시작하기 전에 일부 필라멘트를 후퇴시키면 노즐 끝에 녹아있는 소량의 필라멘트만 남게되어 추가 누수 위험이 줄어들 수 있습니다)"
 
-msgid "Retract when change layer"
+#, fuzzy
+#| msgid "Retract when change layer"
+msgid "Retract on layer change"
 msgstr "레이어 변경 시 후퇴"
 
-msgid "Force a retraction when changes layer."
+#, fuzzy
+#| msgid "Force a retraction when changes layer."
+msgid "This forces a retraction on layer changes."
 msgstr "레이어 변경 시 강제로 후퇴를 실행합니다"
 
 msgid "Retraction Length"
 msgstr "후퇴 길이"
 
+#, fuzzy
+#| msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
-msgstr ""
+msgstr "긴 이동 중에 필라멘트가 흘러나오는 것을 방지하기 위해 압출기의 일정량의 재료를 뒤로 당깁니다. 후퇴를 비활성화하려면 0을 설정하세요"
 
+#, fuzzy
+#| msgid "Long retraction when cut (beta)"
 msgid "Long retraction when cut (beta)"
 msgstr "절단 시 긴 후퇴(실험적)"
 
@@ -14120,7 +14800,9 @@ msgstr "압출기 교체 시 수축 거리"
 msgid "Z-hop height"
 msgstr "Z올리기 높이"
 
-msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+#, fuzzy
+#| msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "후퇴가 완료될 때마다 노즐이 약간 올라가서 노즐과 출력물 사이에 간격이 생깁니다. 이동 시 노즐이 출력물에 닿는 것을 방지합니다. 나선형 선을 사용하여 z를 들어 올리면 스트링 현상을 방지할 수 있습니다"
 
 msgid "Z-hop lower boundary"
@@ -14198,13 +14880,17 @@ msgstr "이동 후 후퇴가 보상되면 압출기는 이 추가 양의 필라�
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "툴 체인지 후 후퇴가 보상되면 압출기는 이 추가 양의 필라멘트를 밀어냅니다."
 
-msgid "Retraction Speed"
+#, fuzzy
+#| msgid "Retraction Speed"
+msgid "Retraction speed"
 msgstr "후퇴 속도"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr ""
 
-msgid "De-retraction Speed"
+#, fuzzy
+#| msgid "De-retraction Speed"
+msgid "Deretraction speed"
 msgstr "후퇴 복귀 속도"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
@@ -14228,7 +14914,9 @@ msgstr "M73 생성 비활성화: 최종 Gcode에 남은 출력 시간을 설정�
 msgid "Seam position"
 msgstr "재봉선 위치"
 
-msgid "The start position to print each part of outer wall."
+#, fuzzy
+#| msgid "The start position to print each part of outer wall."
+msgid "This is the starting position for each part of the outer wall."
 msgstr "외벽 각 부분의 출력 시작 위치"
 
 msgid "Nearest"
@@ -14367,7 +15055,9 @@ msgstr "노즐 청소 속도는 이 구성에 지정된 속도 설정에 따라 
 msgid "Skirt distance"
 msgstr "스커트 거리"
 
-msgid "The distance from the skirt to the brim or the object."
+#, fuzzy
+#| msgid "The distance from the skirt to the brim or the object."
+msgid "This is the distance from the skirt to the brim or the object."
 msgstr "스커트와 브림 또는 객체와의 거리"
 
 msgid "Skirt start point"
@@ -14379,7 +15069,9 @@ msgstr "객체 중심에서 스커트 시작점까지의 각도입니다. 0은 �
 msgid "Skirt height"
 msgstr "스커트 높이"
 
-msgid "How many layers of skirt. Usually only one layer."
+#, fuzzy
+#| msgid "How many layers of skirt. Usually only one layer."
+msgid "Number of skirt layers: usually only one"
 msgstr "얼마나 많은 스커트 레이어를 생성할지 결정합니다. 일반적으로 한개의 레이어를 사용합니다"
 
 msgid "Single loop after first layer"
@@ -14417,7 +15109,9 @@ msgstr "객체당"
 msgid "Skirt loops"
 msgstr "스커트 루프"
 
-msgid "Number of loops for the skirt. Zero means disabling skirt."
+#, fuzzy
+#| msgid "Number of loops for the skirt. Zero means disabling skirt."
+msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "스커트의 루프 수입니다. 0은 스커트 비활성화를 의미합니다"
 
 msgid "Skirt speed"
@@ -14447,7 +15141,8 @@ msgid "Minimum sparse infill threshold"
 msgstr "최소 드문 채우기 임계값"
 
 #, fuzzy
-msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
+#| msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
+msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "임계값보다 작은 드문 채우기 영역은 꽉찬 내부 채우기로 대체됩니다"
 
 msgid ""
@@ -14468,10 +15163,14 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "꽉찬 내부 채우기 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Speed of internal solid infill, not the top and bottom surface."
+#, fuzzy
+#| msgid "Speed of internal solid infill, not the top and bottom surface."
+msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "상단 및 하단 표면을 제외한 꽉찬 내부 채우기 속도"
 
-msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
+#, fuzzy
+#| msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
+msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "나선형은 외부 윤곽선의 z 이동을 부드럽게 합니다. 그리고 객체를 꽉찬 하단 레이어가 있는 단일 벽으로 출력합니다. 최종 생성된 출력물에는 재봉선가 없습니다"
 
 msgid "Smooth Spiral"
@@ -14501,7 +15200,9 @@ msgstr "나선형 종료 유량비"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "나선형을 끝내는 동안 마무리 압출량을 설정합니다. 일반적으로 나선형 전환은 마지막 루프 동안 압출량 비율을 100% 에서 0% 로 스케일링하므로 경우에 따라 나선형 끝에서 압출이 미달될 수 있습니다."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
+#, fuzzy
+#| msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
+msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "유연 또는 기존 모드를 선택한 경우 각 출력에 대해 타임랩스 비디오가 생성됩니다. 각 레이어가 출력된 후 챔버 카메라로 스냅샷을 찍습니다. 이 모든 스냅샷은 출력이 완료되면 타임랩스 비디오로 구성됩니다. 유연 모드를 선택하면 각 레이어가 출력된 후 툴 헤드가 여유 공간으로 이동한 다음 스냅샷을 찍습니다. 스냅샷을 찍는 과정에서 노즐에서 녹은 필라멘트가 새어 나올 수 있기 때문에 유연 모드에서 노즐을 닦으려면 프라임 타워가 필요합니다."
 
 msgid "Traditional"
@@ -14535,10 +15236,14 @@ msgstr ""
 msgid "Start G-code"
 msgstr "시작 Gcode"
 
-msgid "Start G-code when starting the entire print."
+#, fuzzy
+#| msgid "Start G-code when starting the entire print."
+msgid "G-code added when starting a print."
 msgstr "출력을 시작할 때의 Gcode"
 
-msgid "Start G-code when starting the printing of this filament."
+#, fuzzy
+#| msgid "Start G-code when starting the printing of this filament."
+msgid "G-code added when the printer starts using this filament"
 msgstr "이 필라멘트의 출력을 시작할 때의 시작 Gcode"
 
 msgid "Single Extruder Multi Material"
@@ -14571,8 +15276,10 @@ msgstr "프라임 타워에서 청소"
 msgid "Purge remaining filament into prime tower."
 msgstr "남은 필라멘트를 프라임 타워에서 제거"
 
+#, fuzzy
+#| msgid "Enable filament ramming."
 msgid "Enable filament ramming"
-msgstr ""
+msgstr "필라멘트 채워넣기 활성화"
 
 msgid "Tool change on wipe tower"
 msgstr ""
@@ -14622,7 +15329,9 @@ msgstr "이 값은 출력 Gcode의 모든 Z 좌표에 더해지거나 뺍니다.
 msgid "Enable support"
 msgstr "서포트 사용"
 
-msgid "Enable support generation."
+#, fuzzy
+#| msgid "Enable support generation."
+msgid "This enables support generation."
 msgstr "서포트 생성을 활성화 합니다."
 
 msgid "Normal (auto) and Tree (auto) are used to generate support automatically. If Normal (manual) or Tree (manual) is selected, only support enforcers are generated."
@@ -14643,7 +15352,9 @@ msgstr "트리(수동)"
 msgid "Support/object XY distance"
 msgstr "서포트/객체 XY 거리"
 
-msgid "XY separation between an object and its support."
+#, fuzzy
+#| msgid "XY separation between an object and its support."
+msgid "This controls the XY separation between an object and its support."
 msgstr "객체와 서포트를 분리하는 XY 간격"
 
 msgid "Support/object first layer gap"
@@ -14661,7 +15372,9 @@ msgstr "이 설정을 사용하여 수평면에서 서포트 패턴을 회전합
 msgid "On build plate only"
 msgstr "빌드 플레이트에만 생성"
 
-msgid "Don't create support on model surface, only on build plate."
+#, fuzzy
+#| msgid "Don't create support on model surface, only on build plate."
+msgid "This setting only generates supports that begin on the build plate."
 msgstr "모델 표면에 서포트를 생성하지 않고 빌드 플레이트에만 생성합니다"
 
 msgid "Support critical regions only"
@@ -14679,22 +15392,28 @@ msgstr ""
 msgid "Top Z distance"
 msgstr "상단 Z 거리"
 
+#, fuzzy
+#| msgid "Z gap between the support's top and object."
 msgid "Z gap between the support's top and object."
 msgstr "서포트 상단과 객체 사이의 Z 간격."
 
 msgid "Bottom Z distance"
 msgstr "하단 Z 거리"
 
+#, fuzzy
+#| msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "객체와 서포트 하단 사이의 Z 간격. 서포트 상단 Z 거리가 0이고 하단에 인터페이스 레이어가 있으면 이 값은 무시되고 서포트가 객체에 직접 접촉하여 출력됩니다(간격 없음)."
 
 msgid "Support/raft base"
 msgstr "서포트/라프트 기본"
 
+#, fuzzy
+#| msgid "Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used."
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
-msgstr ""
+msgstr "기본 서포트 및 라프트를 출력하기 위한 필라멘트. \"기본값\"은 지원을 위한 특정 필라멘트가 없으며 현재 필라멘트가 사용됨을 의미합니다"
 
 msgid "Avoid interface filament for base"
 msgstr "베이스용 인터페이스 필라멘트 줄이기"
@@ -14705,25 +15424,28 @@ msgstr "서포트 베이스를 프린트하기 위해 서포트 인터페이스 
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "서포트의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Interface use loop pattern"
+#, fuzzy
+#| msgid "Interface use loop pattern"
+msgid "Loop pattern interface"
 msgstr "접점에서 루프 패턴 사용"
 
-msgid "Cover the top contact layer of the supports with loops. Disabled by default."
+#, fuzzy
+#| msgid "Cover the top contact layer of the supports with loops. Disabled by default."
+msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "서포트 상단 접촉 레이어를 루프로 덮습니다. 기본적으로 비활성화되어 있습니다."
 
 msgid "Support/raft interface"
 msgstr "서포트/라프트 접점"
 
+#, fuzzy
+#| msgid "Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used."
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
-msgstr ""
+msgstr "서포트 및 라프트 접점을 출력하기 위한 필라멘트. \"기본값\"은 지원을 위한 특정 필라멘트가 없으며 현재 필라멘트가 사용됨을 의미합니다"
 
 msgid "Top interface layers"
 msgstr "상단 접점 레이어"
-
-msgid "Number of top interface layers."
-msgstr "상단 접점 레이어 수"
 
 msgid "Bottom interface layers"
 msgstr "하단 접점 레이어"
@@ -14745,10 +15467,14 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "하단 접점 선 간격"
 
-msgid "Spacing of bottom interface lines. Zero means solid interface."
+#, fuzzy
+#| msgid "Spacing of bottom interface lines. Zero means solid interface."
+msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "하단 접점 선의 간격. 0은 꽉찬 접점을 의미합니다"
 
-msgid "Speed of support interface."
+#, fuzzy
+#| msgid "Speed of support interface."
+msgid "This is the speed for support interfaces."
 msgstr "서포트 접점 속도"
 
 msgid "Base pattern"
@@ -14771,7 +15497,9 @@ msgstr "공동"
 msgid "Interface pattern"
 msgstr "접점 패턴"
 
-msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
+#, fuzzy
+#| msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
+msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "서포트 접점의 선 패턴. 비가용성 서포트 접점의 기본 패턴은 직선인 반면 가용성 서포트 접점의 기본 패턴은 동심입니다"
 
 msgid "Rectilinear Interlaced"
@@ -14780,16 +15508,22 @@ msgstr "엇갈린 직선"
 msgid "Base pattern spacing"
 msgstr "기본 패턴 간격"
 
-msgid "Spacing between support lines."
+#, fuzzy
+#| msgid "Spacing between support lines."
+msgid "This determines the spacing between support lines."
 msgstr "서포트 선 사이의 간격"
 
-msgid "Normal Support expansion"
+#, fuzzy
+#| msgid "Normal Support expansion"
+msgid "Normal support expansion"
 msgstr "일반 서포트 확장"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "일반 서포트의 수평 범위를 확대(+) 또는 축소(-)합니다"
 
-msgid "Speed of support."
+#, fuzzy
+#| msgid "Speed of support."
+msgid "This is the speed for support."
 msgstr "서포트 속도"
 
 msgid ""
@@ -14826,6 +15560,10 @@ msgstr "서포트 레이어는 객체 레이어와 독립적인 레이어 높이
 msgid "Threshold angle"
 msgstr "임계값 각도"
 
+#, fuzzy
+#| msgid ""
+#| "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+#| "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -14958,7 +15696,9 @@ msgstr ""
 "\n"
 "활성화된 경우 이 매개변수는 원하는 챔버 온도를 출력 시작 매크로 또는 PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temp]와 같은 열 흡수 매크로에 전달하는 데 사용할 수 있는 Chamber_temp라는 Gcode 변수도 설정합니다. 이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
 
-msgid "Nozzle temperature for layers after the initial one."
+#, fuzzy
+#| msgid "Nozzle temperature for layers after the initial one."
+msgid "Nozzle temperature after the first layer"
 msgstr "초기 레이어 이후의 노즐 온도"
 
 #, fuzzy
@@ -14966,7 +15706,8 @@ msgid "Detect thin walls"
 msgstr "얇은 벽 감지"
 
 #, fuzzy
-msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
+#| msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
+msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "두개의 선 너비를 포함할 수 없는 얇은 벽을 감지합니다. 그리고 한 선으로 출력합니다. 폐쇄 루프가 아니기 때문에 출력이 잘 되지 않을 수 있습니다"
 
 msgid "This G-code is inserted when filament is changed, including T commands to trigger tool change."
@@ -14984,22 +15725,30 @@ msgstr ""
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "상단 표면의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Speed of top surface infill which is solid."
+#, fuzzy
+#| msgid "Speed of top surface infill which is solid."
+msgid "This is the speed for solid top surface infill."
 msgstr "꽉찬 상단 표면 채우기 속도"
 
 msgid "Top shell layers"
 msgstr "상단 쉘 레이어"
 
-msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+#, fuzzy
+#| msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
+msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "상단 표면을 포함한 상단 쉘의 꽉찬 레이어 수입니다. 이 값으로 계산한 두께가 상단 쉘 두께보다 얇으면 상단 쉘 레이어가 증가합니다"
 
+#, fuzzy
+#| msgid "Top solid layers"
 msgid "Top solid layers"
 msgstr "상부 꽉찬 레이어"
 
 msgid "Top shell thickness"
 msgstr "상단 쉘 두께"
 
-msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+#, fuzzy
+#| msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
+msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "상단 쉘 레이어로 계산된 두께가 이 값보다 얇은 경우 슬라이싱할 때 상단 꽉찬 레이어의 수가 증가합니다. 이렇게 하면 레이어 높이가 작을 때 쉘이 너무 얇아지는 것을 방지할 수 있습니다. 0은 이 설정이 비활성화되고 상단 쉘의 두께가 절대적으로 상단 쉘 레이어에 의해 결정됨을 의미합니다"
 
 msgid "Top surface density"
@@ -15016,16 +15765,22 @@ msgid ""
 "WARNING: Lowering this value may negatively affect bed adhesion."
 msgstr ""
 
-msgid "Speed of travel which is faster and without extrusion."
+#, fuzzy
+#| msgid "Speed of travel which is faster and without extrusion."
+msgid "This is the speed at which traveling is done."
 msgstr "압출이 없을 때의 이동 속도"
 
 msgid "Wipe while retracting"
 msgstr "후퇴 시 노즐 청소"
 
-msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
+#, fuzzy
+#| msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
+msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "노즐에서 흘러내린된 재료를 청소하기 위해 후퇴할 때 마지막 압출 경로를 따라 노즐을 이동합니다. 이동 후 출력을 시작할 때 방울을 최소화할 수 있습니다."
 
-msgid "Wipe Distance"
+#, fuzzy
+#| msgid "Wipe Distance"
+msgid "Wipe distance"
 msgstr "노즐 청소 거리"
 
 msgid ""
@@ -15041,7 +15796,9 @@ msgstr ""
 "\n"
 "아래의 와이프 전 후퇴량 설정에서 값을 설정하면 와이프 전에 초과 후퇴가 수행되고, 그렇지 않으면 와이프 후에 수행됩니다."
 
-msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+#, fuzzy
+#| msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
+msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "프라임 타워는 객체를 출력할 때 외관 결함을 방지하기 위해 노즐의 잔류물을 청소하고 노즐 내부의 압력을 안정화하는 데 사용할 수 있습니다."
 
 msgid "Internal ribs"
@@ -15056,16 +15813,22 @@ msgstr "버리기 볼륨"
 msgid "Flush multiplier"
 msgstr "버리기 승수"
 
-msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
+#, fuzzy
+#| msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
+msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "실제 버리기 볼륨은 버리기 승수에 테이블의 버리기 볼륨을 곱한 것과 같습니다."
 
 msgid "Prime volume"
 msgstr "프라임양"
 
-msgid "The volume of material to prime extruder on tower."
+#, fuzzy
+#| msgid "The volume of material to prime extruder on tower."
+msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "탑에서 압출을 실행할 재료의 부피."
 
-msgid "Width of the prime tower."
+#, fuzzy
+#| msgid "Width of the prime tower."
+msgid "This is the width of prime towers."
 msgstr "프라임 타워의 너비"
 
 msgid "Wipe tower rotation angle"
@@ -15174,10 +15937,14 @@ msgstr "인필 갭"
 msgid "Infill gap."
 msgstr ""
 
-msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
+#, fuzzy
+#| msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
+msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "필라멘트 교체 후 버리기는 객체의 채우기 내부에서 수행됩니다. 이렇게 하면 낭비되는 양이 줄어들고 출력 시간이 단축될 수 있습니다. 벽이 투명 필라멘트로 출력된 경우 혼합 색상 충전재가 외부에 보입니다. 프라임 타워가 활성화되지 않으면 적용되지 않습니다."
 
-msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
+#, fuzzy
+#| msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
+msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "필라멘트 변경 후 버리기는 객체의 서포트 내부에서 수행됩니다. 이렇게 하면 낭비되는 양이 줄어들고 출력 시간이 단축될 수 있습니다. 프라임 타워가 활성화되지 않으면 적용되지 않습니다."
 
 msgid "This object will be used to purge the nozzle after a filament change to save filament and decrease the print time. Colors of the objects will be mixed as a result. It will not take effect unless the prime tower is enabled."
@@ -15211,14 +15978,16 @@ msgid "X-Y hole compensation"
 msgstr "X-Y 구멍 보정"
 
 #, fuzzy
-msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
+#| msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
+msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "객체의 구멍은 구성된 값에 의해 XY 평면에서 커지거나 줄어듭니다. 양수 값은 구멍을 더 크게 만듭니다. 음수 값은 구멍을 더 작게 만듭니다. 이 기능은 개체의 조립 문제가 있을 때 크기를 약간 조정하는 데 사용됩니다"
 
 msgid "X-Y contour compensation"
 msgstr "X-Y 윤곽 보상"
 
 #, fuzzy
-msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
+#| msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
+msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "객체의 윤곽은 구성된 값에 의해 XY 평면에서 커지거나 줄어듭니다. 양수 값은 윤곽선을 더 크게 만듭니다. 음수 값은 윤곽선을 더 작게 만듭니다. 이 기능은 객체의 조립 문제가 있을 때 크기를 약간 조정하는 데 사용됩니다"
 
 msgid "Convert holes to polyholes"
@@ -15268,7 +16037,9 @@ msgstr "상대적 E 거리 사용"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "\"label_objects\" 옵션을 사용할 때는 상대 압출을 권장합니다. 일부 압출기는 이 옵션을 선택하지 않은 경우(절대 압출 모드) 더 잘 작동합니다. 와이프 타워는 상대 모드와만 호환됩니다. 대부분의 프린터에 권장됩니다. 기본값이 선택되어 있습니다"
 
-msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
+#, fuzzy
+#| msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
+msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "클래식 벽 생성기는 돌출 폭이 일정한 벽을 생성하며 매우 얇은 영역에는 간격 채움이 사용됩니다. 아라크네 엔진은 압출 폭이 가변적인 벽을 생성합니다."
 
 msgid "Arachne"
@@ -15277,14 +16048,18 @@ msgstr "아라크네"
 msgid "Wall transition length"
 msgstr "벽 변환 길이"
 
+#, fuzzy
+#| msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "부품이 얇아짐에 따라 벽의 수가 변화하는 경우, 벽 구간을 분할하거나 결합하기 위해 일정한 공간이 할당됩니다. 이는 노즐 지름을 기준으로 한 백분율로 표현됩니다"
 
 msgid "Wall transitioning filter margin"
 msgstr "벽 변환 필터 마진"
 
+#, fuzzy
+#| msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter"
 msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr ""
+msgstr "출력물의 벽 두께를 한 번 두껍게 한 다음 다시 한 번 더 얇게 하는 것을 방지합니다. 이 마진은 다음의 범위로 압출 너비를 확장합니다: [최소 벽 너비 - 마진, 2 * 최소 벽 너비 + 마진]. 이 마진이 증가하면 변환 횟수가 줄어들어 압출 시작/중지 횟수와 이동 시간이 줄어듭니다. 그러나, 큰 압출 너비 변동은 압출 과다 또는 압출 과소 문제를 일으킬 수 있습니다. 노즐 직경을 기준으로 백분율로 표시됩니다"
 
 msgid "Wall transitioning threshold angle"
 msgstr "벽 변환 임계값"
@@ -15365,13 +16140,17 @@ msgstr " 범위를 벗어남 "
 msgid "Export 3MF"
 msgstr "3MF 내보내기"
 
-msgid "Export project as 3MF."
+#, fuzzy
+#| msgid "Export project as 3MF."
+msgid "This exports the project as a 3MF file."
 msgstr "프로젝트를 3MF로 내보내기."
 
 msgid "Export slicing data"
 msgstr "슬라이싱 데이터 내보내기"
 
-msgid "Export slicing data to a folder."
+#, fuzzy
+#| msgid "Export slicing data to a folder."
+msgid "Export slicing data to a folder"
 msgstr "슬라이싱 데이터 폴더로 내보내기."
 
 msgid "Load slicing data"
@@ -15398,7 +16177,9 @@ msgstr "슬라이스"
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "플레이트 슬라이스: 0-모든 플레이트, i-플레이트 i, 기타-잘못됨"
 
-msgid "Show command help."
+#, fuzzy
+#| msgid "Show command help."
+msgid "This shows command help."
 msgstr "명령 도움말을 표시합니다."
 
 msgid "UpToDate"
@@ -15422,13 +16203,17 @@ msgstr "최소 크기로 3mf를 내보냅니다."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-msgid "max triangle count per plate for slicing."
+#, fuzzy
+#| msgid "max triangle count per plate for slicing."
+msgid "max triangle count per plate for slicing"
 msgstr "슬라이싱을 위한 플레이트당 최대 삼각형 개수."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-msgid "max slicing time per plate in seconds."
+#, fuzzy
+#| msgid "max slicing time per plate in seconds."
+msgid "max slicing time per plate in seconds"
 msgstr "플레이트당 최대 슬라이싱 시간(초)"
 
 msgid "No check"
@@ -15446,13 +16231,17 @@ msgstr "표준 항목을 확인합니다."
 msgid "Output Model Info"
 msgstr "모델 정보 출력"
 
-msgid "Output the model's information."
+#, fuzzy
+#| msgid "Output the model's information."
+msgid "This outputs the model’s information."
 msgstr "모델 정보를 출력합니다."
 
 msgid "Export Settings"
 msgstr "설정 내보내기"
 
-msgid "Export settings to a file."
+#, fuzzy
+#| msgid "Export settings to a file."
+msgid "This exports settings to a file."
 msgstr "설정을 파일로 내보내기."
 
 msgid "Send progress to pipe"
@@ -15536,14 +16325,20 @@ msgstr "객체 복제"
 msgid "Clone objects in the load list."
 msgstr "로드 목록에서 객체 복제"
 
+#, fuzzy
+#| msgid "Load uptodate process/machine settings when using uptodate."
 msgid "Load uptodate process/machine settings when using uptodate"
-msgstr ""
+msgstr "uptodate 사용 시 최신 프로세스/프린터 설정 로드"
 
-msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+#, fuzzy
+#| msgid "Load uptodate process/machine settings from the specified file when using uptodate."
+msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "uptodate를 사용할 때 지정된 파일에서 최신 프로세스/프린터 설정을 로드합니다"
 
+#, fuzzy
+#| msgid "Load uptodate filament settings when using uptodate."
 msgid "Load uptodate filament settings when using uptodate"
-msgstr ""
+msgstr "최신 필라멘트 설정 사용 시 최신 필라멘트 설정 로드"
 
 msgid "Load uptodate filament settings from the specified file when using uptodate."
 msgstr "최신 필라멘트 설정을 사용할 때 지정된 파일에서 최신 필라멘트 설정을 로드합니다."
@@ -15575,7 +16370,9 @@ msgstr "지정된 디렉토리에 설정을 로드하고 저장합니다. 이 �
 msgid "Output directory"
 msgstr "출력 디렉토리"
 
-msgid "Output directory for the exported files."
+#, fuzzy
+#| msgid "Output directory for the exported files."
+msgid "This is the output directory for exported files."
 msgstr "내보내기 파일의 출력 디렉토리입니다."
 
 msgid "Debug level"
@@ -15606,8 +16403,10 @@ msgstr "사용자 정의 Gcode를 json에서 불러오기."
 msgid "Load filament IDs"
 msgstr "필라멘트 ID 불러오기"
 
+#, fuzzy
+#| msgid "Load filament IDs for each object"
 msgid "Load filament IDs for each object."
-msgstr ""
+msgstr "각 객체에 대한 필라멘트 ID 로드"
 
 msgid "Allow multiple colors on one plate"
 msgstr "한 플레이트에서 여러 색상 허용"
@@ -16020,13 +16819,19 @@ msgstr "모델 파일 로드에 실패했습니다."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "모델 파일의 메싱이 실패했거나 유효한 형태가 없습니다."
 
-msgid "The supplied file couldn't be read because it's empty"
+#, fuzzy
+#| msgid "The supplied file couldn't be read because it's empty"
+msgid "The supplied file couldn't be read because it's empty."
 msgstr "제공된 파일이 비어 있어 읽을 수 없습니다"
 
-msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+#, fuzzy
+#| msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
+msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "알 수 없는 파일 형식: 입력 파일의 확장자는 .stl, .obj 또는 .amf(.xml)여야 합니다."
 
-msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+#, fuzzy
+#| msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
+msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "알 수 없는 파일 형식: 입력 파일의 확장자는.3mf 또는.zip.amf여야 합니다."
 
 msgid "load_obj: failed to parse"
@@ -16077,7 +16882,9 @@ msgstr "교정"
 msgid "Finish"
 msgstr "완료"
 
-msgid "How to use calibration result?"
+#, fuzzy
+#| msgid "How to use calibration result?"
+msgid "How can I use calibration results?"
 msgstr "교정 결과를 어떻게 사용하나요?"
 
 msgid "You could change the Flow Dynamics Calibration Factor in material editing"
@@ -16154,8 +16961,12 @@ msgstr "교정할 필라멘트를 선택하세요."
 msgid "The input value size must be 3."
 msgstr "입력 값 크기는 3이어야 합니다."
 
+#, fuzzy
+#| msgid ""
+#| "This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+#| "Do you still want to continue the calibration?"
 msgid ""
-"This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
+"This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
 msgstr ""
 "이 기계 유형은 노즐당 16개의 기록 결과만 보유할 수 있습니다. 기존 기록 결과를 삭제한 후 교정을 시작할 수 있습니다. 또는 교정을 계속할 수 있지만 새로운 교정 기록 결과를 생성할 수는 없습니다.\n"
@@ -16165,8 +16976,9 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "이름이 같은 결과 중 %s 하나만 저장됩니다. 다른 결과를 재정의하시겠습니까?"
 
-#, c-format, boost-format
-msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+#, boost-format, c-format, fuzzy
+#| msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "동일한 이름을 가진 기록 교정 결과가 이미 있습니다: %s. 동일한 이름의 결과 중 하나만 저장됩니다. 과거 결과를 재정의하시겠습니까?"
 
 #, c-format, boost-format
@@ -16177,8 +16989,9 @@ msgstr ""
 "동일한 압출기 내에서 필라멘트 유형, 노즐 직경 및 노즐 흐름이 동일한 경우 이름(%s)은 고유해야 합니다.\n"
 "과거 결과를 재정의하시겠습니까?"
 
-#, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+#, boost-format, c-format, fuzzy
+#| msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "이 기계 유형은 노즐당 %d개의 기록 결과만 보유할 수 있습니다. 이 결과는 저장되지 않습니다."
 
 msgid "Connecting to printer..."
@@ -16254,8 +17067,15 @@ msgstr "또한 RC 비행기에 사용되는 LW-PLA와 같은 발포 재료에는
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "압출량 교정은 예상되는 압출량과 실제 압출량의 비율을 측정합니다. 기본 설정은 사전 보정되고 미세 조정된 뱀부랩 프린터 및 공식 필라멘트에서 잘 작동합니다. 일반 필라멘트의 경우 일반적으로 다른 교정을 수행한 후에도 나열된 결함이 표시되지 않는 한 압출량 교정을 수행할 필요가 없습니다. 자세한 내용은 위키를 확인하시기 바랍니다."
 
+#, fuzzy
+#| msgid ""
+#| "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
+#| "\n"
+#| "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
+#| "\n"
+#| "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgid ""
-"Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
+"Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
 "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
 "\n"
@@ -16300,6 +17120,8 @@ msgstr "이름은 40자를 초과할 수 없습니다."
 msgid "Please find the best line on your plate"
 msgstr "당신의 플레이트에서 가장 좋은 선을 찾아보세요"
 
+#, fuzzy
+#| msgid "Please find the corner with the perfect degree of extrusion"
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "완벽한 돌출 정도를 가진 코너를 찾아주세요."
 
@@ -16389,6 +17211,8 @@ msgstr "노즐 흐름"
 msgid "Nozzle Info"
 msgstr "노즐 정보"
 
+#, fuzzy
+#| msgid "Plate Type"
 msgid "Plate Type"
 msgstr "플레이트 타입"
 
@@ -16462,14 +17286,17 @@ msgstr "기록 결과 없음"
 msgid "Success to get history result"
 msgstr "기록 결과 가져오기 성공"
 
-msgid "Refreshing the historical Flow Dynamics Calibration records"
+#, fuzzy
+#| msgid "Refreshing the historical Flow Dynamics Calibration records"
+msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "과거 동적 압출량 교정 기록 새로 고침"
 
 msgid "Action"
 msgstr "실행"
 
-#, c-format, boost-format
-msgid "This machine type can only hold %d history results per nozzle."
+#, boost-format, c-format, fuzzy
+#| msgid "This machine type can only hold %d history results per nozzle."
+msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "이 기계 유형은 노즐당 %d개의 기록 결과만 보유할 수 있습니다."
 
 msgid "Edit Flow Dynamics Calibration"
@@ -17069,11 +17896,14 @@ msgstr "필라멘트 사전 설정"
 msgid "Create"
 msgstr "생성"
 
-msgid "Vendor is not selected, please reselect vendor."
+#, fuzzy
+#| msgid "Vendor is not selected, please reselect vendor."
+msgid "Vendor is not selected; please reselect vendor."
 msgstr "공급업체가 선택되지 않았습니다. 공급업체를 다시 선택하세요."
 
 #, fuzzy
-msgid "Custom vendor is missing, please input custom vendor."
+#| msgid "Custom vendor is missing, please input custom vendor."
+msgid "Custom vendor missing; please input custom vendor."
 msgstr "사용자 정의 공급업체가 입력되지 않았습니다. 사용자 정의 공급업체를 입력해 주세요."
 
 msgid "\"Bambu\" or \"Generic\" cannot be used as a Vendor for custom filaments."
@@ -17082,22 +17912,31 @@ msgstr "\"뱀부\" 또는 \"일반적인\"은 맞춤형 필라멘트 공급업�
 msgid "Filament type is not selected, please reselect type."
 msgstr "필라멘트 유형이 선택되지 않았습니다. 유형을 다시 선택하세요."
 
-msgid "Filament serial is not entered, please enter serial."
+#, fuzzy
+#| msgid "Filament serial is not entered, please enter serial."
+msgid "Filament serial missing; please input serial."
 msgstr "필라멘트 시리얼이 입력되지 않았습니다. 시리얼을 입력해 주세요."
 
-msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+#, fuzzy
+#| msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
+msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "공급업체나 필라멘트의 직렬 입력에 이스케이프 문자가 있을 수 있습니다. 삭제하고 다시 입력해주세요."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "사용자 정의 공급업체 또는 일련번호의 모든 입력은 공백입니다. 다시 입력해 주세요."
 
-msgid "The vendor cannot be a number. Please re-enter."
+#, fuzzy
+#| msgid "The vendor cannot be a number. Please re-enter."
+msgid "The vendor cannot be a number; please re-enter."
 msgstr "공급업체는 숫자가 될 수 없습니다. 다시 입력하세요."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "아직 프린터나 사전 설정을 선택하지 않았습니다. 하나 이상 선택하세요."
 
-#, c-format, boost-format
+#, boost-format, c-format, fuzzy
+#| msgid ""
+#| "The Filament name %s you created already exists.\n"
+#| "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -17141,7 +17980,9 @@ msgstr "사전 설정 가져오기"
 msgid "Create Type"
 msgstr "유형 생성"
 
-msgid "The model was not found, please reselect vendor."
+#, fuzzy
+#| msgid "The model was not found, please reselect vendor."
+msgid "The model was not found; please reselect vendor."
 msgstr "모델을 찾을 수 없습니다. 공급업체를 다시 선택하세요."
 
 msgid "Select Printer"
@@ -17181,16 +18022,22 @@ msgstr "파일이 %d MB를 초과합니다. 다시 가져오십시오."
 msgid "Exception in obtaining file size, please import again."
 msgstr "파일 크기를 가져오는 중 예외가 발생했습니다. 다시 가져오세요."
 
-msgid "Preset path was not found, please reselect vendor."
+#, fuzzy
+#| msgid "Preset path was not found, please reselect vendor."
+msgid "Preset path was not found; please reselect vendor."
 msgstr "사전 설정 경로를 찾을 수 없습니다. 공급업체를 다시 선택하세요."
 
 msgid "The printer model was not found, please reselect."
 msgstr "프린터 모델을 찾을 수 없습니다. 다시 선택하세요."
 
-msgid "The nozzle diameter was not found, please reselect."
+#, fuzzy
+#| msgid "The nozzle diameter was not found, please reselect."
+msgid "The nozzle diameter was not found; please reselect."
 msgstr "노즐 직경이 마음에 들지 않으면 다시 선택하세요."
 
-msgid "The printer preset was not found, please reselect."
+#, fuzzy
+#| msgid "The printer preset was not found, please reselect."
+msgid "The printer preset was not found; please reselect."
 msgstr "프린터 사전 설정이 마음에 들지 않습니다. 다시 선택하세요."
 
 msgid "Printer Preset"
@@ -17205,14 +18052,22 @@ msgstr "프로세스 사전 설정 템플릿"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "생성할 프린터 사전 설정을 아직 선택하지 않았습니다. 프린터의 공급업체와 모델을 선택하세요"
 
-msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+#, fuzzy
+#| msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
+msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "첫 번째 페이지의 출력 가능 영역 섹션에 잘못된 입력을 입력했습니다. 작성 전 꼭 확인해주세요."
 
+#, fuzzy
+#| msgid ""
+#| "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
+#| "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
+#| "and filament and process presets without the same preset name will be reserve.\n"
+#| "\tCancel: Do not create a preset, return to the creation interface."
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserve.\n"
-"\tCancel: Do not create a preset, return to the creation interface."
+"and filament and process presets without the same preset name will be reserved.\n"
+"\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "생성한 프린터 사전 설정에 동일한 이름의 사전 설정이 이미 있습니다. 덮어쓰시겠습니까?\n"
 "예: 동일한 이름으로 프린터 사전 설정을 덮어쓰면 동일한 사전 설정 이름을 가진 필라멘트 및 프로세스 사전 설정이 다시 생성됩니다.\n"
@@ -17231,13 +18086,17 @@ msgstr "필라멘트 사전 설정 생성에 실패했습니다. 다음과 같�
 msgid "Create process presets failed. As follows:\n"
 msgstr "프로세스 사전 설정 생성에 실패했습니다. 다음과 같이:\n"
 
-msgid "Vendor was not found, please reselect."
+#, fuzzy
+#| msgid "Vendor was not found, please reselect."
+msgid "Vendor was not found; please reselect."
 msgstr "공급업체를 찾을 수 없습니다. 다시 선택하세요."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "현재 공급업체에는 모델이 없습니다. 다시 선택하세요."
 
-msgid "You have not selected the vendor and model or entered the custom vendor and model."
+#, fuzzy
+#| msgid "You have not selected the vendor and model or entered the custom vendor and model."
+msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "공급업체 및 모델을 선택하지 않았거나 맞춤 공급업체 및 모델을 입력하지 않았습니다."
 
 msgid "There may be escape characters in the custom printer vendor or model. Please delete and re-enter."
@@ -17249,7 +18108,9 @@ msgstr "사용자 정의 프린터 공급업체 또는 모델의 모든 입력�
 msgid "Please check bed printable shape and origin input."
 msgstr "출력 가능한 베드 형태를 확인해주세요."
 
-msgid "You have not yet selected the printer to replace the nozzle, please choose."
+#, fuzzy
+#| msgid "You have not yet selected the printer to replace the nozzle, please choose."
+msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "노즐을 교체할 프린터를 아직 선택하지 않으셨습니다. 선택해 주세요."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"
@@ -17289,9 +18150,13 @@ msgstr "사전 설정을 편집하려면 프린터 설정으로 이동하세요"
 msgid "Filament Created"
 msgstr "필라멘트 생성됨"
 
+#, fuzzy
+#| msgid ""
+#| "Please go to filament setting to edit your presets if you need.\n"
+#| "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
 msgid ""
-"Please go to filament setting to edit your presets if you need.\n"
-"Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
+"Please go to filament settings to edit your presets if you need to.\n"
+"Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
 msgstr ""
 "필요한 경우 필라멘트 설정으로 이동하여 사전 설정을 편집하세요.\n"
 "노즐 온도, 핫베드 온도 및 최대 압출 속도는 출력 품질에 큰 영향을 미칩니다. 신중하게 설정해 주세요."
@@ -17343,9 +18208,12 @@ msgstr "ZIP 열기 실패"
 msgid "Export successful"
 msgstr "내보내기 성공"
 
-#, c-format, boost-format
+#, boost-format, c-format, fuzzy
+#| msgid ""
+#| "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
+#| "If not, a time suffix will be added, and you can modify the name after creation."
 msgid ""
-"The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
+"The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
 msgstr ""
 "현재 디렉터리에 '%s' 폴더가 이미 존재합니다. 지우고 다시 작성하시겠습니까?\n"
@@ -17372,7 +18240,9 @@ msgstr ""
 "사용자의 필라멘트 사전 설정입니다.\n"
 "다른 사람과 공유할 수 있습니다."
 
-msgid "Only display printer names with changes to printer, filament, and process presets."
+#, fuzzy
+#| msgid "Only display printer names with changes to printer, filament, and process presets."
+msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "프린터, 필라멘트 및 프로세스 사전 설정이 변경된 경우에만 프린터 이름을 표시합니다."
 
 msgid "Only display the filament names with changes to filament presets."
@@ -17398,7 +18268,9 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "프린터나 필라멘트를 하나 이상 선택해 주세요."
 
-msgid "Please select a type you want to export"
+#, fuzzy
+#| msgid "Please select a type you want to export"
+msgid "Please select a preset type you want to export"
 msgstr "내보내려는 유형을 선택하세요"
 
 msgid "Failed to create temporary folder, please try Export Configs again."
@@ -17460,7 +18332,9 @@ msgstr "[삭제 필수]"
 msgid "Edit Preset"
 msgstr "프리셋 편집"
 
-msgid "For more information, please check out Wiki"
+#, fuzzy
+#| msgid "For more information, please check out Wiki"
+msgid "For more information, please check out our Wiki"
 msgstr "더 자세한 내용은 위키를 확인해주세요"
 
 msgid "Wiki"
@@ -17528,9 +18402,6 @@ msgstr ""
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "교정할 수 없음: 설정된 교정 값 범위가 너무 크거나 단계가 너무 작기 때문일 수 있습니다"
-
-msgid "Physical Printer"
-msgstr "물리 프린터"
 
 msgid "Print Host upload"
 msgstr "출력 호스트 업로드"
@@ -17934,9 +18805,6 @@ msgstr "여기에서 관리할 장치를 선택하세요 (최대 6개 장치)"
 msgid "Printing Options"
 msgstr "출력 옵션"
 
-msgid "Bed Leveling"
-msgstr "베드 레벨링"
-
 msgid "Flow Dynamic Calibration"
 msgstr "압출량 동적 보정"
 
@@ -17952,7 +18820,9 @@ msgstr "프린터를 동시에 사용할 수 있습니다. (동시에 가열할 
 msgid "Wait"
 msgstr "대기"
 
-msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
+#, fuzzy
+#| msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
+msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "분 단위로 배치합니다. (가열을 완료하는 데 걸리는 시간에 따라 다릅니다.)"
 
 msgid "Task Sending"
@@ -18252,8 +19122,10 @@ msgstr "경고: 브림 유형이 “페인트”로 설정되어 있지 않으�
 msgid "Set the brim type of this object to \"painted\""
 msgstr "이 개체의 테두리 유형을 \"페인트\"로 설정합니다"
 
+#, fuzzy
+#| msgid " invalid brim ears"
 msgid "invalid brim ears"
-msgstr ""
+msgstr " 유효하지 않은 브림 귀"
 
 msgid "Brim Ears"
 msgstr "브림 귀"
@@ -18619,6 +19491,10 @@ msgstr ""
 "각 출력 중에 타임랩스 비디오를 생성할 수 있다는 것을 알고 계섰나요?"
 
 #: resources/data/hints.ini: [hint:Auto-Arrange]
+#, fuzzy
+#| msgid ""
+#| "Auto-Arrange\n"
+#| "Did you know that you can auto-arrange all the objects in your project?"
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -18627,6 +19503,10 @@ msgstr ""
 "프로젝트의 모든 객체를 자동 정렬할 수 있다는 것을 알고 계섰나요?"
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
+#, fuzzy
+#| msgid ""
+#| "Auto-Orient\n"
+#| "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -18724,11 +19604,14 @@ msgstr ""
 "출력을 플레이트로 분할\n"
 "부품이 많은 모델을 출력할 준비가 된 개별 플레이트로 분할할 수 있다는 사실을 알고 계섰나요? 이렇게 하면 모든 부품을 추적하는 프로세스가 간소화됩니다."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#, fuzzy
+#| msgid ""
+#| "Speed up your print with Adaptive Layer Height\n"
+#| "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
-"Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
+"Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
 msgstr ""
 "적응형 레이어 높이로 출력 속도를 높이세요\n"
 "적응형 레이어를 사용하면 모델을 더욱 빠르게 프린트할 수 있다는 사실을 알고 계셨나요? 레이어 높이 옵션을 확인해 보세요!"
@@ -18742,17 +19625,25 @@ msgstr ""
 "서포트의 위치를 칠할 수 있다는 것을 알고 계섰나요? 이 기능을 사용하면 실제로 필요한 모델 부위에만 서포트 재료를 쉽게 배치할 수 있습니다."
 
 #: resources/data/hints.ini: [hint:Different types of supports]
+#, fuzzy
+#| msgid ""
+#| "Different types of supports\n"
+#| "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
 msgid ""
 "Different types of supports\n"
-"Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
+"Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
 msgstr ""
 "다양한 유형의 서포트\n"
 "여러 유형의 서포트 중에서 선택할 수 있다는 것을 알고 계섰나요? 트리 서포트는 필라멘트를 절약하고 출력 속도를 향상시키면서 유기 모델에 적합합니다. 확인해 보세요!"
 
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
+#, fuzzy
+#| msgid ""
+#| "Printing Silk Filament\n"
+#| "Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
 msgid ""
 "Printing Silk Filament\n"
-"Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
+"Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
 msgstr ""
 "실크 필라멘트 출력\n"
 "실크 필라멘트를 성공적으로 출력하려면 특별한 주의가 필요하다는 사실을 알고 계셨나요? 최상의 결과를 얻으려면 항상 더 높은 온도와 더 낮은 속도를 권장합니다."
@@ -18766,6 +19657,10 @@ msgstr ""
 "모델을 출력할 때 베드 표면과의 접촉면이 작을 경우 브림을 사용하는 것이 권장된다는 사실을 알고 계섰나요?"
 
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
+#, fuzzy
+#| msgid ""
+#| "Set parameters for multiple objects\n"
+#| "Did you know that you can set slicing parameters for all selected objects at once?"
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -18782,9 +19677,13 @@ msgstr ""
 "물건을 통째로 쌓을 수 있다는 사실을 알고 계섰나요?"
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
+#, fuzzy
+#| msgid ""
+#| "Flush into support/objects/infill\n"
+#| "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
+"Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
 msgstr ""
 "서포트/객체/채우기에 내보내기\n"
 "필라멘트를 교체하는 동안 낭비되는 필라멘트를 서포트/객체/채우기 출력에 활용할 수 있다는 사실을 알고 계섰나요?"
@@ -18797,23 +19696,101 @@ msgstr ""
 "강도 향상\n"
 "더 많은 외벽과 더 높은 드문 채우기 밀도를 사용하여 모델의 강도를 높일 수 있다는 사실을 알고 계섰나요?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 #, fuzzy
+#| msgid ""
+#| "When do you need to print with the printer door opened?\n"
+#| "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 msgid ""
 "When do you need to print with the printer door opened?\n"
-"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
 "프린터 도어를 연 상태로 출력해야 하는 경우\n"
 "더 높은 프린터 내부 온도로 낮은 온도의 필라멘트를 출력할 때 프린터 도어를 열면 압출기/핫엔드가 막힐 가능성을 줄일 수 있다는 것을 알고 계섰나요? 이에 대한 자세한 내용은 Wiki에서 확인하세요."
 
 #: resources/data/hints.ini: [hint:Avoid warping]
+#, fuzzy
+#| msgid ""
+#| "Avoid warping\n"
+#| "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Perform"
+#~ msgstr "수행"
+
+#~ msgid "Reset Rotation"
+#~ msgstr "회전 초기화"
+
+#~ msgid "Top Solid Layers"
+#~ msgstr "상부 꽉찬 레이어"
+
+#~ msgid "Add modifier"
+#~ msgstr "수정자 추가"
+
+#~ msgid "Bed Type"
+#~ msgstr "베드 유형"
+
+#~ msgid "Last Step"
+#~ msgstr "마지막 단계"
+
+#~ msgid "Dynamic flow Calibration"
+#~ msgstr "동적 압출량 교정"
+
+#~ msgid "Print with filaments mounted on the back of the chassis"
+#~ msgstr "섀시 뒷면에 필라멘트를 장착하여 출력"
+
+#~ msgid "Load Filament"
+#~ msgstr "필라멘트 넣기"
+
+#~ msgid "Filament Changes"
+#~ msgstr "필라멘트 변경"
+
+#~ msgid "Mirror Object"
+#~ msgstr "객체 반전"
+
+#~ msgid "Delete all"
+#~ msgstr "모두 삭제"
+
+#~ msgid "Select all"
+#~ msgstr "모두 선택"
+
+#~ msgid "Deselect all"
+#~ msgstr "모든 선택 취소"
+
+#~ msgid "Filament Settings"
+#~ msgstr "필라멘트 설정"
+
+#~ msgid "Detail."
+#~ msgstr "세부 사항."
+
+#~ msgid "Support painting"
+#~ msgstr "서포트 칠하기"
+
+#~ msgid "Color painting"
+#~ msgstr "색 칠하기"
+
+#~ msgid "Same as Global Bed Type"
+#~ msgstr "글로벌 베드유형과 동일"
+
+#~ msgid "Undef"
+#~ msgstr "정의되지 않음"
+
+#~ msgid "Undefine"
+#~ msgstr "알 수 없음"
+
+#~ msgid "Number of top interface layers."
+#~ msgstr "상단 접점 레이어 수"
+
+#~ msgid "Physical Printer"
+#~ msgstr "물리 프린터"
+
+#~ msgid "Bed Leveling"
+#~ msgstr "베드 레벨링"
 
 #~ msgid ""
 #~ "It is recommended to assemble objects first,\n"
@@ -20461,9 +21438,6 @@ msgstr ""
 
 #~ msgid "active"
 #~ msgstr "활성화"
-
-#~ msgid "Jump to layer"
-#~ msgstr "다음 레이어로 이동"
 
 #~ msgid "Cabin humidity"
 #~ msgstr "AMS 습도"

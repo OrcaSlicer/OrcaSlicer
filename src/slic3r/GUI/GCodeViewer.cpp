@@ -2795,7 +2795,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
-        imgui.title(_u8L("Total Estimation"));
+        imgui.title(_u8L("Total estimation"));
 
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
@@ -3681,8 +3681,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}});
         break;
     }
-    case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer Height (mm)")); break; }
-    case libvgcode::EViewType::Width:          { imgui.title(_u8L("Line Width (mm)")); break; }
+    case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
+    case libvgcode::EViewType::Width:          { imgui.title(_u8L("Line width (mm)")); break; }
     case libvgcode::EViewType::Speed:
     {
         imgui.title(_u8L("Speed (mm/s)"));
@@ -3703,7 +3703,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         imgui.title(_u8L("Jerk (mm/s)"));
         break;
     }
-    case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan Speed (%)")); break; }
+    case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan speed (%)")); break; }
     case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (°C)")); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:{ imgui.title(_u8L("Pressure Advance")); break; }
@@ -3851,7 +3851,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
         else if (type == libvgcode::EOptionType::ToolChanges) {
             const auto option_values = option_stats(type);
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament Changes"), visible,
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament changes"), visible,
                 option_values[0], option_values[1], option_values[2], option_values[3]);
         }
         else if (type == libvgcode::EOptionType::Wipes) {
@@ -4548,7 +4548,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
     // total estimated printing time section
     ImGui::Spacing();
-    std::string time_title = m_viewer.get_view_type() == libvgcode::EViewType::FeatureType ? _u8L("Total Estimation") : _u8L("Time Estimation");
+    std::string time_title = m_viewer.get_view_type() == libvgcode::EViewType::FeatureType ? _u8L("Total estimation") : _u8L("Time Estimation");
     auto can_show_mode_button = [this](libvgcode::ETimeMode mode) {
         std::vector<std::string> time_strs;
         for (size_t i = 0; i < m_print_statistics.modes.size(); ++i) {

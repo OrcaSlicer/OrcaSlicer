@@ -225,7 +225,7 @@ _finished:
     }
 
     if (model.objects.empty())
-        throw Slic3r::RuntimeError(_L("The supplied file couldn't be read because it's empty"));
+        throw Slic3r::RuntimeError(_L("The supplied file couldn\'t be read because it\'s empty."));
 
     for (ModelObject *o : model.objects)
         o->input_file = input_file;
@@ -337,7 +337,7 @@ Model Model::read_from_file(const std::string&                                  
     }
 #endif
     else
-        throw Slic3r::RuntimeError(_L("Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."));
+        throw Slic3r::RuntimeError(_L("Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."));
 
     if (is_cb_cancel) {
         Model empty_model;
@@ -352,7 +352,7 @@ Model Model::read_from_file(const std::string&                                  
     }
 
     if (model.objects.empty())
-        throw Slic3r::RuntimeError(_L("The supplied file couldn't be read because it's empty"));
+        throw Slic3r::RuntimeError(_L("The supplied file couldn\'t be read because it\'s empty."));
 
     for (ModelObject *o : model.objects)
         o->input_file = input_file;
@@ -399,7 +399,7 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
     else if (boost::algorithm::iends_with(input_file, ".zip.amf"))
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, &is_bbl_3mf);
     else
-        throw Slic3r::RuntimeError(_L("Unknown file format. Input file must have .3mf or .zip.amf extension."));
+        throw Slic3r::RuntimeError(_L("Unknown file format: input file must have .3mf or .zip.amf extension."));
 
     if (out_file_type != En3mfType::From_Prusa) {
         if (is_orca_3mf)
@@ -696,8 +696,7 @@ unsigned int Model::update_print_volume_state(const BuildVolume &build_volume)
         num_printable += model_object->update_instances_print_volume_state(build_volume);
     //BBS: add logs for build_volume
     const BoundingBoxf3& print_volume = build_volume.bounding_volume();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}, got %7% printable istances")\
-        %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z() %num_printable;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}, got %7% printable istances")        %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z() %num_printable;
     return num_printable;
 }
 
@@ -2127,10 +2126,7 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
 
             if (is_multi_volume_object) {
                 // BBS: volume geometry not changed, so we can keep the paint facets
-#define COPY_FACETS(f) \
-                if (new_vol->f.timestamp() == volume->f.timestamp()) \
-                    new_vol->f.reset(); /* BBS: let next assign take effect */ \
-                new_vol->f.assign(volume->f)
+#define COPY_FACETS(f)                 if (new_vol->f.timestamp() == volume->f.timestamp())                     new_vol->f.reset(); /* BBS: let next assign take effect */                 new_vol->f.assign(volume->f)
 
                 COPY_FACETS(supported_facets);
                 COPY_FACETS(seam_facets);
@@ -2372,8 +2368,7 @@ unsigned int ModelObject::update_instances_print_volume_state(const BuildVolume 
     unsigned int num_printable = 0;
     //BBS: add logs for build_volume
     //const BoundingBoxf3& print_volume = build_volume.bounding_volume();
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}")\
-    //    %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z();
+    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}")    //    %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z();
     for (ModelInstance* model_instance : this->instances) {
         if (model_instance->update_print_volume_state(build_volume) == ModelInstancePVS_Inside) {
             //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", object %1%'s instance inside print volum")%this->name;
@@ -3434,8 +3429,7 @@ ModelInstanceEPrintVolumeState ModelInstance::calc_print_volume_state(const Buil
             BoundingBoxf3 bb = vol->get_convex_hull().bounding_box();
             Vec3d size = bb.size();
             if ((size.x() == 0.f) || (size.y() == 0.f) || (size.z() == 0.f)) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", object %1%'s vol %2% is empty, skip it, box: {%3%, %4%, %5%} to {%6%, %7%, %8%}")%this->object->name %vol->name\
-                    %bb.min.x() %bb.min.y() %bb.min.z()%bb.max.x() %bb.max.y() %bb.max.z();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", object %1%'s vol %2% is empty, skip it, box: {%3%, %4%, %5%} to {%6%, %7%, %8%}")%this->object->name %vol->name                    %bb.min.x() %bb.min.y() %bb.min.z()%bb.max.x() %bb.max.y() %bb.max.z();
                 continue;
             }
 
