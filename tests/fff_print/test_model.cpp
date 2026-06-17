@@ -4,15 +4,15 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
-#include <boost/nowide/cstdio.hpp>
 #include <boost/filesystem.hpp>
 
 #include "test_data.hpp"
+#include "test_utils.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-SCENARIO("Model construction", "[Model][.]") {
+SCENARIO("Model construction", "[Model]") {
     GIVEN("A Slic3r Model") {
 		Slic3r::Model model;
         Slic3r::TriangleMesh sample_mesh = Slic3r::make_cube(20,20,20);
@@ -49,12 +49,11 @@ SCENARIO("Model construction", "[Model][.]") {
 				print.set_status_silent();
 				print.apply(model, config);
 				print.process();
-				boost::filesystem::path temp = boost::filesystem::unique_path();
+				ScopedTemporaryFile temp(".gcode");
                 print.export_gcode(temp.string(), nullptr, nullptr);
-                REQUIRE(boost::filesystem::exists(temp));
-				REQUIRE(boost::filesystem::is_regular_file(temp));
-				REQUIRE(boost::filesystem::file_size(temp) > 0);
-				boost::nowide::remove(temp.string().c_str());
+                REQUIRE(boost::filesystem::exists(temp.path()));
+				REQUIRE(boost::filesystem::is_regular_file(temp.path()));
+				REQUIRE(boost::filesystem::file_size(temp.path()) > 0);
 			}
         }
     }

@@ -31,6 +31,7 @@
 #include <wx/filefn.h>
 #include <wx/secretstore.h>
 #include <wx/stdpaths.h>
+#include <wx/app.h>
 #include <wx/utils.h>
 
 #if defined(_WIN32)
@@ -1416,6 +1417,10 @@ void OrcaCloudServiceAgent::persist_refresh_token(const std::string& token)
         }
 
         compute_fallback_path();
+        if (refresh_fallback_path.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: no refresh-token storage path available; skipping file persistence";
+            return;
+        }
         wxFileName path(wxString::FromUTF8(refresh_fallback_path.c_str()));
         path.Normalize();
         if (!wxFileName::DirExists(path.GetPath())) {
@@ -2219,7 +2224,15 @@ bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::s
 
 void OrcaCloudServiceAgent::compute_fallback_path()
 {
-    if (!refresh_fallback_path.empty()) return;
+    if (!refresh_fallback_path.empty())
+        return;
+    // wxStandardPaths::GetUserDataDir() resolves the app data directory via
+    // wxAppConsoleBase::GetAppName(), which dereferences wxTheApp. In headless
+    // contexts (CLI, unit tests) there is no wxApp, so guard the call to avoid a
+    // null dereference. The path can still be provided explicitly through
+    // set_config_dir(); when it is left empty, file persistence is skipped.
+    if (wxTheApp == nullptr)
+        return;
     wxFileName fallback(wxStandardPaths::Get().GetUserDataDir(), "orca_refresh_token.sec");
     fallback.Normalize();
     refresh_fallback_path = fallback.GetFullPath().ToStdString();

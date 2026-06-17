@@ -544,7 +544,7 @@ public:
 
     // Bundle subscription sync
     void            check_bundle_updates();
-    void            sync_bundle(std::string bundle_id, std::string version);
+    int             sync_bundle(std::string bundle_id, std::string version);
     bool            unsubscribe_bundle(const std::string& id);
     void            update_single_bundle(wxCommandEvent& evt);
 
