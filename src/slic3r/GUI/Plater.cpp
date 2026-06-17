@@ -16109,22 +16109,9 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
     if (upload_job.empty())
         return;
 
-    const auto  host_type_opt = physical_printer_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
-    const auto  host_type     = host_type_opt != nullptr ? host_type_opt->value : htElegooLink;
-    const auto* ff_serial_opt = physical_printer_config->option<ConfigOptionString>("flashforge_serial_number");
-    const auto* ff_code_opt   = physical_printer_config->option<ConfigOptionString>("printhost_apikey");
-    const bool  flashforge_local_api =
-        host_type == htFlashforge &&
-        ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
-        ff_code_opt != nullptr && !ff_code_opt->value.empty();
-
     // Orca: the use_3mf printer option makes us send a .gcode.3mf to the printer
-    const auto* use_3mf_opt    = physical_printer_config->option<ConfigOptionBool>("use_3mf");
-    const bool printer_use_3mf = use_3mf_opt != nullptr && use_3mf_opt->value;
-
-    // Orca todo: which flashforge models support 3mf upload? We should update printer profiles to set use_3mf to true for those models, and
-    // then we can remove the flashforge_local_api check here and just rely on use_3mf.
-    const bool use_3mf = printer_use_3mf || flashforge_local_api;
+    const auto* use_3mf_opt = physical_printer_config->option<ConfigOptionBool>("use_3mf");
+    const bool  use_3mf     = use_3mf_opt != nullptr && use_3mf_opt->value;
 
     upload_job.upload_data.use_3mf = use_3mf;
 
@@ -16175,6 +16162,13 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
     {
         auto        preset_bundle = wxGetApp().preset_bundle;
         auto        config        = get_app_config();
+
+        const auto host_type_opt        = physical_printer_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
+        const auto host_type            = host_type_opt != nullptr ? host_type_opt->value : htElegooLink;
+        const auto* ff_serial_opt       = physical_printer_config->option<ConfigOptionString>("flashforge_serial_number");
+        const auto* ff_code_opt         = physical_printer_config->option<ConfigOptionString>("printhost_apikey");
+        const bool flashforge_local_api = host_type == htFlashforge && ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
+                                          ff_code_opt != nullptr && !ff_code_opt->value.empty();
 
         std::unique_ptr<PrintHostSendDialog> pDlg;
         if (host_type == htElegooLink) {
