@@ -1,5 +1,5 @@
 #include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/PresetBundleCache.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include <boost/filesystem.hpp>
@@ -70,17 +70,59 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    const std::string cache_path =
-        (fs::path(profiles_path) / "system_presets_cache.cache").make_preferred().string();
+    // Collect all vendor names from JSON files in the profiles directory.
+    std::vector<std::string> vendor_names;
+    for (const auto& e : fs::directory_iterator(profiles_path)) {
+        if (e.path().extension() == ".json")
+            vendor_names.push_back(e.path().stem().string());
+    }
 
-    PresetBundleCache::SystemPresetsCache cache;
-    cache.capture(*preset_bundle, profiles_path);
-    cache.save(cache_path);
+    // Sort: PresetBundle::ORCA_FILAMENT_LIBRARY first, rest alphabetical.
+    std::sort(vendor_names.begin(), vendor_names.end(),
+              [](const std::string& a, const std::string& b) {
+                  if (a == PresetBundle::ORCA_FILAMENT_LIBRARY) return true;
+                  if (b == PresetBundle::ORCA_FILAMENT_LIBRARY) return false;
+                  return a < b;
+              });
 
-    std::cout << "Cache written: " << cache_path << "\n"
-              << "  Vendor profiles:  " << cache.vendor_profiles.size()   << "\n"
-              << "  Print presets:    " << cache.print_presets.size()     << "\n"
-              << "  Filament presets: " << cache.filament_presets.size()  << "\n"
-              << "  Printer presets:  " << cache.printer_presets.size()   << "\n";
-    return 0;
+    size_t total_print = 0, total_filament = 0, total_printer = 0;
+    int    saved = 0, failed = 0;
+
+    for (const auto& vendor_name : vendor_names) {
+        const std::string json_path = (fs::path(profiles_path) / (vendor_name + ".json")).string();
+        const Semver ver = get_version_from_json(json_path);
+        const std::string ver_str = ver.valid() ? ver.to_string() : "";
+
+        const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
+        Slic3r::VendorCache vc;
+        vc.capture(*preset_bundle, vendor_name, ver_str, is_orca_lib);
+
+        const std::string cache_path =
+            (fs::path(profiles_path) / (vendor_name + ".cache")).make_preferred().string();
+        vc.save(cache_path);
+
+        // Verify the file was written and can be reloaded.
+        Slic3r::VendorCache verify;
+        if (!verify.load(cache_path) || !verify.is_valid(ver_str)) {
+            std::cerr << "WARNING: verification failed for " << cache_path << "\n";
+            ++failed;
+        } else {
+            std::cout << "  [ok] " << vendor_name << ".cache"
+                      << "  (" << vc.print_presets.size()    << " print, "
+                      <<           vc.filament_presets.size() << " filament, "
+                      <<           vc.printer_presets.size()  << " printer)\n";
+            total_print    += vc.print_presets.size();
+            total_filament += vc.filament_presets.size();
+            total_printer  += vc.printer_presets.size();
+            ++saved;
+        }
+    }
+
+    std::cout << "\nDone: " << saved << " cache(s) written";
+    if (failed) std::cout << ", " << failed << " FAILED";
+    std::cout << "\n"
+              << "  Total print presets:    " << total_print    << "\n"
+              << "  Total filament presets: " << total_filament << "\n"
+              << "  Total printer presets:  " << total_printer  << "\n";
+    return failed ? 1 : 0;
 }

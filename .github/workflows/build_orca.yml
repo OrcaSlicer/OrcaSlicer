@@ -420,8 +420,10 @@ jobs:
         shell: pwsh
         run: |
           $tool = Get-ChildItem -Recurse -Path build -Filter "generate_system_cache.exe" | Select-Object -First 1
+          if (-not $tool) { Write-Error "generate_system_cache.exe not found in build tree"; exit 1 }
           $profiles = Get-ChildItem -Recurse -Path build -Directory -Filter profiles |
             Where-Object { $_.FullName -match 'resources' } | Select-Object -First 1
+          if (-not $profiles) { Write-Error "profiles directory not found in build tree"; exit 1 }
           & $tool.FullName --path $profiles.FullName --log_level 2
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
@@ -576,12 +578,13 @@ jobs:
         shell: bash
         run: |
           tool=$(find build -name generate_system_cache -type f | head -1)
+          if [ -z "$tool" ]; then echo "ERROR: generate_system_cache not found in build tree" >&2; exit 1; fi
           "$tool" --path build/package/resources/profiles --log_level 2
-          # Re-pack the AppImage so the cache is included
+          # Re-pack the AppImage so the per-vendor caches are included
           appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
           chmod +x "$appimage"
           "$appimage" --appimage-extract
-          cp build/package/resources/profiles/system_presets_cache.cache squashfs-root/resources/profiles/
+          cp build/package/resources/profiles/*.cache squashfs-root/resources/profiles/
           appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
           ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
           rm -rf squashfs-root
