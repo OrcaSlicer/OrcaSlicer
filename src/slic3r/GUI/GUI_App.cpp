@@ -6785,6 +6785,9 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
     // BBS
     m_user_sync_token.reset(new int(0));
     if (with_progress_dlg) {
+        // Mark a manual progress dialog as active so restart_sync_user_preset() ignores
+        // repeat triggers while it is on screen (prevents stacking modal dialogs).
+        m_sync_user_preset_dlg_active = true;
         auto dlg = new ProgressDialog(_L("Loading"), "", 100, this->mainframe, wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT);
         dlg->Update(0, _L("Loading user preset"));
         progressFn = [this, dlg](int percent) {
@@ -6796,7 +6799,9 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             return is_closing() || dlg->WasCanceled() || t.expired();
         };
         finishFn = [this, dlg](bool) {
-            CallAfter([=]{ dlg->Destroy(); });
+            // Clear the guard together with destroying the dialog, on the GUI thread, so the
+            // next manual sync is allowed exactly once this dialog leaves the screen.
+            CallAfter([=]{ dlg->Destroy(); m_sync_user_preset_dlg_active = false; });
         };
     }
     else {
@@ -6810,7 +6815,10 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 
     m_sync_update_thread = Slic3r::create_thread(
         [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
-            if (!m_agent) return;
+            // finishFn tears down the progress dialog (and clears the re-entrancy guard), so it
+            // must run on every exit path — otherwise an early bail-out would leak the modal
+            // dialog and leave the guard stuck, blocking all later manual syncs.
+            if (!m_agent) { finishFn(false); return; }
 
             // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
             scan_orphaned_info_files();
@@ -7070,6 +7078,14 @@ void GUI_App::stop_sync_user_preset()
 
 void GUI_App::restart_sync_user_preset()
 {
+    // A manual sync's progress dialog is already on screen — ignore repeat triggers so a
+    // second modal dialog can never stack. This matters most offline: each attempt blocks
+    // on a long HTTP timeout and can't be cancelled mid-request, and on macOS the global
+    // menu bar stays clickable even while the dialog disables the main window, so without
+    // this guard repeated clicks pile up modal dialogs and wedge the UI (force-quit only).
+    if (m_sync_user_preset_dlg_active)
+        return;
+
     if (!m_user_sync_token) {
         // No sync running. If a restart helper is already in flight it will
         // start the new sync once the old thread is joined — don't race it.
