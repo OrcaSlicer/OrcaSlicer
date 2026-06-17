@@ -33,6 +33,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          wave_line_spacing,
     double          wave_line_width,
     const Flow     &overhang_flow,
+    double          mm3_per_mm,
     double          scaled_resolution,
     int             max_iterations            = 0,
     double          min_new_area_mm2          = 0.01,
