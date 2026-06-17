@@ -810,7 +810,7 @@ msgid "Entering Seam painting"
 msgstr "Entering seam painting"
 
 msgid "Leaving Seam painting"
-msgstr "Leaving Seam Painting"
+msgstr ""
 
 msgid "Paint-on seam editing"
 msgstr "Paint-on seam editing"
