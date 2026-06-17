@@ -436,16 +436,16 @@ void append_shell_perimeters(ExtrusionPaths &overhang_region,
 }
 
 // Helper: construct an ExtrusionPath from a polyline + flow/role (Orca API).
-static ExtrusionPath make_wave_path(const Polyline &polyline, const Flow &flow)
+static ExtrusionPath make_wave_path(const Polyline &polyline, const Flow &flow, double mm3_per_mm)
 {
-    ExtrusionPath path(erOverhangPerimeter, flow.mm3_per_mm(), flow.width(), flow.height());
+    ExtrusionPath path(erOverhangPerimeter, mm3_per_mm, flow.width(), flow.height());
     path.polyline = Slic3r::Polyline3(polyline, flow.height());
     return path;
 }
 
-static ExtrusionPath make_wave_path(Polyline &&polyline, const Flow &flow)
+static ExtrusionPath make_wave_path(Polyline &&polyline, const Flow &flow, double mm3_per_mm)
 {
-    ExtrusionPath path(erOverhangPerimeter, flow.mm3_per_mm(), flow.width(), flow.height());
+    ExtrusionPath path(erOverhangPerimeter, mm3_per_mm, flow.width(), flow.height());
     path.polyline = std::move(Slic3r::Polyline3(polyline, flow.height()));
     return path;
 }
@@ -453,6 +453,7 @@ static ExtrusionPath make_wave_path(Polyline &&polyline, const Flow &flow)
 void append_wave_fronts(ExtrusionPaths &overhang_region,
                         const Polylines &fronts,
                         const Flow      &wave_flow,
+                        double           mm3_per_mm,
                         coord_t          connector_limit,
                         WaveOverhangPattern wave_pattern)
 {
@@ -462,7 +463,7 @@ void append_wave_fronts(ExtrusionPaths &overhang_region,
     if (wave_pattern == WaveOverhangPattern::Monotonic) {
         Polylines monotonic_fronts = fronts;
         extrusion_paths_append(overhang_region, monotonic_fronts, erOverhangPerimeter,
-                               wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
+                               mm3_per_mm, wave_flow.width(), wave_flow.height());
         return;
     }
 
@@ -498,7 +499,7 @@ void append_wave_fronts(ExtrusionPaths &overhang_region,
         }
 
         extrusion_paths_append(overhang_region, merged, erOverhangPerimeter,
-                               wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
+                               mm3_per_mm, wave_flow.width(), wave_flow.height());
         return;
     }
 
@@ -584,14 +585,15 @@ void append_wave_fronts(ExtrusionPaths &overhang_region,
         if (reverse_score > forward_score)
             front.reverse();
 
-        overhang_region.push_back(make_wave_path(front, wave_flow));
-        support_paths.push_back(make_wave_path(std::move(front), wave_flow));
+        overhang_region.push_back(make_wave_path(front, wave_flow, mm3_per_mm));
+        support_paths.push_back(make_wave_path(std::move(front), wave_flow, mm3_per_mm));
     }
 }
 
 void append_zig_zag_front_levels(ExtrusionPaths               &overhang_region,
                                  const std::vector<Polylines> &front_levels,
                                  const Flow                   &wave_flow,
+                                 double                        mm3_per_mm,
                                  coord_t                       connector_limit)
 {
     if (front_levels.empty())
@@ -606,7 +608,7 @@ void append_zig_zag_front_levels(ExtrusionPaths               &overhang_region,
 
     auto append_or_start = [&](Polyline &&front) {
         if (overhang_region.empty()) {
-            overhang_region.push_back(make_wave_path(std::move(front), wave_flow));
+            overhang_region.push_back(make_wave_path(std::move(front), wave_flow, mm3_per_mm));
             return;
         }
 
@@ -616,7 +618,7 @@ void append_zig_zag_front_levels(ExtrusionPaths               &overhang_region,
         const double best_d = std::min(d_keep, d_flip);
 
         if (best_d > max_connector_distance_sq) {
-            overhang_region.push_back(make_wave_path(std::move(front), wave_flow));
+            overhang_region.push_back(make_wave_path(std::move(front), wave_flow, mm3_per_mm));
             return;
         }
 
@@ -699,6 +701,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          wave_line_spacing,
     double          wave_line_width,
     const Flow     &overhang_flow,
+    double          mm3_per_mm,
     double          scaled_resolution,
     int             max_iterations,
     double          min_new_area_mm2,
@@ -881,12 +884,12 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
                 if (! front_levels.empty()) {
                     ExtrusionPaths split_region_paths;
                     if (wave_pattern == WaveOverhangPattern::ZigZag) {
-                        append_zig_zag_front_levels(split_region_paths, front_levels, wave_flow, zig_zag_connector_limit);
+                        append_zig_zag_front_levels(split_region_paths, front_levels, wave_flow, mm3_per_mm, zig_zag_connector_limit);
                     } else {
                         Polylines collected_fronts;
                         for (const Polylines &level : front_levels)
                             collected_fronts.insert(collected_fronts.end(), level.begin(), level.end());
-                        append_wave_fronts(split_region_paths, collected_fronts, wave_flow, zig_zag_connector_limit, wave_pattern);
+                        append_wave_fronts(split_region_paths, collected_fronts, wave_flow, mm3_per_mm, zig_zag_connector_limit, wave_pattern);
                     }
                     if (! split_region_paths.empty()) {
                         append(overhang_region, split_region_paths);

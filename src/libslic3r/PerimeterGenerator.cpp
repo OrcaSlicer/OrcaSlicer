@@ -550,6 +550,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
+                extrusion_loop.inset_idx = extrusion->inset_idx;
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
