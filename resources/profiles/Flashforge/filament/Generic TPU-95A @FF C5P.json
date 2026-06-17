@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Generic TPU-95A @FF C5P",
+	"inherits": "Generic TPU @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -55,14 +60,9 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"filament_type": [
 		"TPU-95A"
 	],
-	"inherits": "Generic TPU @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Generic TPU-95A @FF C5P",
 	"nozzle_temperature": [
 		"230"
 	],
@@ -92,6 +92,5 @@
 	],
 	"textured_cool_plate_temp_initial_layer": [
 		"35"
-	],
-	"version": "2.3.0.3"
+	]
 }

@@ -6,6 +6,7 @@
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
+#include "LocalesUtils.hpp"
 #include "Model.hpp"
 #include "libslic3r_version.h"
 
@@ -27,6 +28,8 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <miniz/miniz.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
 
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
@@ -604,13 +607,24 @@ VendorType PresetBundle::get_current_vendor_type()
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;
+    const auto* printer_model = config->opt<ConfigOptionString>("printer_model");
+    if (printer_model == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": printer_model is "
+                                   << (config->has("printer_model") ? "not a string" : "missing")
+                                   << ", vendor type is Unknown";
+        return t;
+    }
+
     std::string vendor_name;
-    for (auto vendor_profile : vendors) {
-        for (auto vendor_model : vendor_profile.second.models)
-            if (vendor_model.name == config->opt_string("printer_model")) {
+    for (const auto& vendor_profile : vendors) {
+        for (const auto& vendor_model : vendor_profile.second.models) {
+            if (vendor_model.name == printer_model->value) {
                 vendor_name = vendor_profile.first;
                 break;
             }
+        }
+        if (!vendor_name.empty())
+            break;
     }
     if (!vendor_name.empty())
     {
@@ -2180,48 +2194,83 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         vendor_name.erase(vendor_name.size() - 5);
         vendor_names.push_back(vendor_name);
     }
-    // Move ORCA_FILAMENT_LIBRARY to the beginning of the list
-    for (size_t i = 0; i < vendor_names.size(); ++ i) {
-        if (vendor_names[i] == ORCA_FILAMENT_LIBRARY) {
-            std::swap(vendor_names[0], vendor_names[i]);
-            break;
-        }
+    // Separate ORCA_FILAMENT_LIBRARY from other vendors. It must be loaded
+    // first because other vendors' filaments may inherit from it via the
+    // `base_bundle` lookup in parse_subfile. The remaining vendors are
+    // independent (no cross-vendor inheritance) and can be loaded in parallel.
+    std::string orca_lib_vendor;
+    std::vector<std::string> other_vendors;
+    other_vendors.reserve(vendor_names.size());
+    for (auto& vn : vendor_names) {
+        if (vn == ORCA_FILAMENT_LIBRARY)
+            orca_lib_vendor = vn;
+        else if (!(validation_mode && !vendor_to_validate.empty() && vn != vendor_to_validate))
+            other_vendors.push_back(vn);
     }
 
-    for (auto &vendor_name : vendor_names)
-    {
-        if (validation_mode && !vendor_to_validate.empty() && vendor_name != vendor_to_validate && vendor_name != ORCA_FILAMENT_LIBRARY)
-            continue;
-
+    // Step 1: Load ORCA_FILAMENT_LIBRARY into `this` synchronously.
+    if (!orca_lib_vendor.empty()) {
         try {
-            // Load the config bundle, flatten it.
-            if (first) {
-                // Reset this PresetBundle and load the first vendor config.
-                append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem, compatibility_rule).first);
-                first = false;
-            } else {
-                // Load the other vendor configs, merge them with this PresetBundle.
-                // Report duplicate profiles.
-                PresetBundle other;
-                append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem, compatibility_rule, this).first);
-                std::vector<std::string> duplicates = this->merge_presets(std::move(other));
-                if (!duplicates.empty()) {
-                    errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
-                    for (size_t i = 0; i < duplicates.size(); ++i) {
-                        if (i > 0)
-                            errors_cummulative += ", ";
-                        errors_cummulative += duplicates[i];
-                        ++m_errors;
-                        BOOST_LOG_TRIVIAL(error) << "Found duplicated preset: " + duplicates[i] + " in vendor: " + vendor_name + ": ";
-                    }
-                }
-            }
+            append(substitutions, this->load_vendor_configs_from_json(dir.string(), orca_lib_vendor, PresetBundle::LoadSystem, compatibility_rule).first);
+            first = false;
         } catch (const std::runtime_error &err) {
             if (validation_mode)
                 throw err;
-            else {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
+        }
+    }
+
+    // Step 2: Load remaining vendors in parallel. Each gets its own
+    // PresetBundle and uses `this` (which contains ORCA_FILAMENT_LIBRARY)
+    // as the base_bundle for cross-bundle inheritance lookups.
+    std::vector<std::unique_ptr<PresetBundle>>      parallel_bundles(other_vendors.size());
+    std::vector<PresetsConfigSubstitutions>         parallel_substitutions(other_vendors.size());
+    std::vector<std::string>                        parallel_errors(other_vendors.size());
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, other_vendors.size()),
+        [&](const tbb::blocked_range<size_t>& range) {
+            for (size_t i = range.begin(); i < range.end(); ++i) {
+                auto bundle = std::make_unique<PresetBundle>();
+                bundle->set_is_validation_mode(validation_mode);
+                try {
+                    auto result = bundle->load_vendor_configs_from_json(
+                        dir.string(), other_vendors[i], PresetBundle::LoadSystem,
+                        compatibility_rule, this);
+                    parallel_substitutions[i] = std::move(result.first);
+                    parallel_bundles[i] = std::move(bundle);
+                } catch (const std::runtime_error &err) {
+                    parallel_errors[i] = err.what();
+                }
+            }
+        });
+
+    // Step 3: Sequentially merge the parallel-loaded bundles into `this`.
+    // The merge order is the original vendor order so any duplicate-warning
+    // output stays stable across runs.
+    for (size_t i = 0; i < other_vendors.size(); ++i) {
+        if (!parallel_errors[i].empty()) {
+            if (validation_mode)
+                throw std::runtime_error(parallel_errors[i]);
+            errors_cummulative += parallel_errors[i];
+            errors_cummulative += "\n";
+            continue;
+        }
+        if (!parallel_bundles[i])
+            continue;
+
+        const std::string& vendor_name = other_vendors[i];
+        append(substitutions, std::move(parallel_substitutions[i]));
+        std::vector<std::string> duplicates = this->merge_presets(std::move(*parallel_bundles[i]));
+        first = false;
+        if (!duplicates.empty()) {
+            errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
+            for (size_t j = 0; j < duplicates.size(); ++j) {
+                if (j > 0)
+                    errors_cummulative += ", ";
+                errors_cummulative += duplicates[j];
+                ++m_errors;
+                BOOST_LOG_TRIVIAL(error) << "Found duplicated preset: " + duplicates[j] + " in vendor: " + vendor_name + ": ";
             }
         }
     }
@@ -2578,6 +2627,9 @@ void PresetBundle::update_selections(AppConfig &config)
             break;
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
+
+    update_filament_count();
+
     std::vector<std::string> filament_colors;
     auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
     if (!f_colors.empty()) {
@@ -2719,6 +2771,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
 
+    update_filament_count();
+
     // Load data from AppConfig to ProjectConfig when Studio is initialized.
     std::vector<std::string> filament_colors;
     auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
@@ -2819,6 +2873,14 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
 
     if (use_default_nozzle_volume_type) {
         project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+    } else {
+        // Orca: make sure `nozzle_volume_type` not shorter than `default_nozzle_volume_type`, otherwise we got array out of bound access
+        // later in `Tab::switch_excluder`
+        auto& opt = project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+        const auto& opt_default = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+        while (opt.size() < opt_default.size()) {
+            opt.emplace_back(opt_default[opt.size()]);
+        }
     }
 
     // Parse the initial physical printer name.
@@ -3738,9 +3800,31 @@ int PresetBundle::get_printer_extruder_count() const
 {
     const Preset& printer_preset = this->printers.get_edited_preset();
 
-    int count = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto* nozzle_diameter = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_diameter == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_diameter is missing, using 1 extruder";
+        return 1;
+    }
+    if (nozzle_diameter->values.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_diameter is empty, using 1 extruder";
+        return 1;
+    }
+
+    int count = int(nozzle_diameter->values.size());
 
     return count;
+}
+
+void PresetBundle::update_filament_count()
+{
+    if (printers.get_edited_preset().printer_technology() != ptFFF)
+        return;
+    const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
+    if (filament_presets.size() >= num_extruders)
+        return;
+    filament_presets.resize(num_extruders, filament_presets.empty()
+        ? filaments.first_visible().name
+        : filament_presets.back());
 }
 
 bool PresetBundle::support_different_extruders()
@@ -4021,13 +4105,16 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         opt->value = boost::algorithm::clamp<int>(opt->value, 0, int(num_filaments));
     }
 
-    static const char* keys_1based[] = {"wall_filament", "sparse_infill_filament", "solid_infill_filament"};
-    for (size_t i = 0; i < sizeof(keys_1based) / sizeof(keys_1based[0]); ++ i) {
-        std::string key = std::string(keys_1based[i]);
+    static const char* keys_with_default[] = {
+        "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+    };
+    for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
+        std::string key = std::string(keys_with_default[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
         assert(opt != nullptr);
-        if(opt->value < 1 || opt->value > int(num_filaments))
-            opt->value = 1;
+        if(opt->value < 0 || opt->value > int(num_filaments))
+            opt->value = 0;
     }
     out.option<ConfigOptionString >("print_settings_id",    true)->value  = this->prints.get_selected_preset_name();
     out.option<ConfigOptionStrings>("filament_settings_id", true)->values = this->filament_presets;
@@ -4896,6 +4983,39 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                     preset_name << "\" defines invalid printer variant \"" << printer_variant << "\", it will be ignored.";
                 reason = std::string("can not find printer_variant in vendor profile");
                 return reason;
+            }
+            // An instantiation printer profile's nozzle_diameter must match the numeric (diameter)
+            // prefix of its printer_variant: "0.4" -> {0.4}, "0.8HF" -> {0.8} (a trailing
+            // non-numeric suffix such as "HF"/"HS" distinguishes a hardware sub-variant and is
+            // ignored here), and for multi-nozzle printers "0.4+0.6" -> {0.4, 0.6}.
+            // Note: a variant may legitimately repeat across presets of the same model (e.g. speed
+            // modes, IDEX copy/mirror, or different control boards), so only the diameter is
+            // validated, not variant uniqueness. Validation-only so the app keeps loading existing
+            // profiles unchanged.
+            if (validation_mode && instantiation == "true") {
+                const auto *nd = config.option<ConfigOptionFloats>("nozzle_diameter");
+                std::set<double> nozzles, variant_nozzles;
+                if (nd != nullptr)
+                    nozzles.insert(nd->values.begin(), nd->values.end());
+                std::vector<std::string> variant_tokens;
+                boost::algorithm::split(variant_tokens, printer_variant, boost::algorithm::is_any_of("+"));
+                bool variant_ok = true; // printer_variant is already guaranteed non-empty above
+                for (const std::string &tok : variant_tokens) {
+                    size_t consumed = 0;
+                    double d = string_to_double_decimal_point(tok, &consumed);
+                    // Require a leading numeric diameter; a trailing suffix (e.g. "HF") is allowed.
+                    if (consumed == 0) { variant_ok = false; break; }
+                    variant_nozzles.insert(d);
+                }
+                if (!variant_ok || variant_nozzles != nozzles) {
+                    ++m_errors;
+                    BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
+                        preset_name << "\" has printer_variant \"" << printer_variant <<
+                        "\" that does not match its nozzle_diameter \"" << (nd ? nd->serialize() : std::string()) << "\". "
+                        "printer_variant must begin with the nozzle diameter, optionally followed by a non-numeric suffix "
+                        "(e.g. \"0.4\", \"0.8HF\"); for multi-nozzle printers, join the per-nozzle diameters with \"+\" in "
+                        "nozzle order (e.g. \"0.4+0.6\").";
+                }
             }
         }
         const Preset *preset_existing = presets_collection->find_preset(preset_name, false);

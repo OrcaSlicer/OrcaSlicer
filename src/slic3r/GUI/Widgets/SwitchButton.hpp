@@ -63,6 +63,8 @@ public:
     void msw_rescale() { Rescale(); }
 
     bool Enable(bool enable = true) override;
+    void SetDevMode(bool enable = true);
+    bool GetDevMode() const {return m_dev_mode;};
 
 protected:
     void doRender(wxDC& dc) override;
@@ -78,7 +80,14 @@ private:
 private:
     int      m_selection { 0 };
     bool     m_pressed   { false };
-    wxString m_tooltips[3];
+    bool     m_enabled   { true };
+    bool     m_dev_mode  { false };
+    wxString   m_tooltips[4];
+    StateColor dot_active;
+    StateColor dot_dimmed;
+    StateColor text_color;
+    StateColor track_background;
+    StateColor track_border;
 };
 
 class MultiSwitchButton : public StaticBox

@@ -607,7 +607,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, _L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -2526,7 +2526,10 @@ void SelectMachineDialog::on_send_print()
                || m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
             : m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
 
-    m_print_job->could_emmc_print = obj_->is_support_print_with_emmc;
+    m_print_job->could_emmc_print = obj_->can_use_emmc_print();
+    if (obj_->is_support_print_with_emmc && !m_print_job->could_emmc_print) {
+        BOOST_LOG_TRIVIAL(info) << "print_job: emmc print disabled by config";
+    }
 
 
     bool timelapse_option = m_checkbox_list["timelapse"]->IsShown()?true:false;
@@ -3327,7 +3330,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     /*check sdcard when if lan mode printer*/
     if (obj_->is_lan_mode_printer()) {
         if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD
-            && !obj_->is_support_print_with_emmc) {
+            && !obj_->can_use_emmc_print()) {
             show_status(PrintDialogStatus::PrintStatusLanModeNoSdcard);
             return;
         } else if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_READONLY) {

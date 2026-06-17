@@ -1,8 +1,9 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-06-11 17:12-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -13,11 +14,11 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=((n%10==1 && n%100!=11) ? 0 : ((n%10 >= 2 "
 "&& n%10 <=4 && (n%100 < 12 || n%100 > 14)) ? 1 : ((n%10 == 0 || (n%10 >= 5 "
 "&& n%10 <=9)) || (n%100 >= 11 && n%100 <= 14)) ? 2 : 3));\n"
-"X-Crowdin-Project: orcaslicerua\n"
-"X-Crowdin-Project-ID: 748805\n"
-"X-Crowdin-Language: uk\n"
 "X-Crowdin-File: OrcaSlicer.pot\n"
 "X-Crowdin-File-ID: 13\n"
+"X-Crowdin-Language: uk\n"
+"X-Crowdin-Project: orcaslicerua\n"
+"X-Crowdin-Project-ID: 748805\n"
 "X-Generator: Poedit 3.5\n"
 
 msgid "right"
@@ -82,16 +83,16 @@ msgid "Current AMS humidity"
 msgstr "Поточна вологість AMS"
 
 msgid "Humidity"
-msgstr ""
+msgstr "Вологість"
 
 msgid "Temperature"
 msgstr "Температура"
 
 msgid "Left Time"
-msgstr ""
+msgstr "Часу залишилося"
 
 msgid "Drying"
-msgstr ""
+msgstr "Сушка"
 
 msgid "Idle"
 msgstr "Холостий хід"
@@ -117,8 +118,8 @@ msgstr "Виконати"
 msgid "On highlighted overhangs only"
 msgstr "Тільки на підсвічених нависанняхх"
 
-msgid "Erase all painting"
-msgstr "Стерти всі малюнки"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Підсвічувати області нависань"
@@ -187,8 +188,20 @@ msgstr "Підсвічувати грані відповідно до кута �
 msgid "No auto support"
 msgstr "Без автоматичної підтримки"
 
+msgid "Done"
+msgstr "Виконано"
+
 msgid "Support Generated"
 msgstr "Згенеровані підтримки"
+
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
 
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo - Покласти на грань"
@@ -251,7 +264,7 @@ msgid "Reset"
 msgstr "Скинути"
 
 msgid "Enter"
-msgstr ""
+msgstr "Друкарка"
 
 msgid "Shortcut Key "
 msgstr "Комбінація клавіш "
@@ -276,10 +289,19 @@ msgid "Painted using: Filament %1%"
 msgstr "Забарвлений за допомогою: Філамент %1%"
 
 msgid "To:"
+msgstr "До:"
+
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
 msgstr ""
 
 msgid "Paint-on fuzzy skin"
-msgstr ""
+msgstr "Нанесення текстури"
 
 msgid "Add fuzzy skin"
 msgstr ""
@@ -288,13 +310,22 @@ msgid "Remove fuzzy skin"
 msgstr ""
 
 msgid "Reset selection"
-msgstr ""
+msgstr "Скинути вибір"
 
 msgid ""
 "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
+msgstr ""
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
 msgstr ""
 
 msgid "Move"
@@ -334,19 +365,25 @@ msgid "mm"
 msgstr "мм"
 
 msgid "Part selection"
-msgstr ""
+msgstr "Вибір частини"
 
 msgid "Fixed step drag"
+msgstr "Фіксоване перетягування кроками"
+
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
 msgstr ""
 
 msgid "Single sided scaling"
-msgstr ""
+msgstr "Масштабування в одну сторону"
 
 msgid "Position"
 msgstr "Позиція"
 
 msgid "Rotate (relative)"
-msgstr ""
+msgstr "Повернути (відносно)"
 
 msgid "Scale ratios"
 msgstr "Коефіцієнти масштабування"
@@ -386,15 +423,16 @@ msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr ""
+"Скинути поточне обертання до значення при відкритті інструмента обертання."
 
 msgid "Rotate (absolute)"
-msgstr ""
+msgstr "Обертання (абсолютне)"
 
 msgid "Reset current rotation to real zeros."
-msgstr ""
+msgstr "Скинути поточне обертання до нульових значень."
 
 msgid "Part coordinates"
-msgstr ""
+msgstr "Координати частини"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -486,6 +524,18 @@ msgstr "Положення зрізу"
 
 msgid "Build Volume"
 msgstr "Робочий об'єм"
+
+msgid "Multiple"
+msgstr "Кілька"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr "Проміжок"
+
+msgid "Spacing"
+msgstr "Відстань"
 
 msgid "Part"
 msgstr "Частина"
@@ -594,12 +644,6 @@ msgstr "Редагувати з'єднувачі"
 msgid "Add connectors"
 msgstr "Додати з'єднання"
 
-msgid "Reset cut"
-msgstr "Скинути розрізання"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Скиньте площину різання та зніміть з'єднувачі"
-
 msgid "Upper part"
 msgstr "Верхня частина"
 
@@ -617,6 +661,9 @@ msgstr "Після вирізування"
 
 msgid "Cut to parts"
 msgstr "Розрізати на частини"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Скиньте площину різання та зніміть з'єднувачі"
 
 msgid "Perform cut"
 msgstr "Виконати розрізання"
@@ -674,6 +721,15 @@ msgstr "Розрізати по лінії"
 
 msgid "Delete connector"
 msgstr "Видалити з'єднувач"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Назва сітки"
@@ -757,7 +813,7 @@ msgid "Leaving Seam painting"
 msgstr "Leaving Seam Painting"
 
 msgid "Paint-on seam editing"
-msgstr ""
+msgstr "Paint-on seam editing"
 
 #. TRN - Input label. Be short as possible
 #. Select look of letter shape
@@ -851,6 +907,9 @@ msgstr "Типовий шрифт"
 
 msgid "Advanced"
 msgstr "Розширені"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1509,15 +1568,6 @@ msgstr ""
 "Особливість 1 скинута, \n"
 "Особливість 2 тепер особливість 1"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Попередження: будь ласка, виберіть характеристику площини."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Попередження: будь ласка, виберіть характеристику точки або кола."
-
-msgid "Warning: please select two different meshes."
-msgstr "Попередження: будь ласка, виберіть дві різні сітки."
-
 msgid "Copy to clipboard"
 msgstr "Копіювати в буфер обміну"
 
@@ -1554,35 +1604,61 @@ msgstr "Паралельна відстань:"
 msgid "Flip by Face 2"
 msgstr "Перевернути за Гранню 2"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Об'єднати у збірку"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr ""
+"Будь ласка, підтвердіть коефіцієнт вибуху = 1 та виберіть принаймні два "
+"об’єми."
 
 msgid "Please select at least two volumes."
-msgstr ""
+msgstr "Будь ласка, виберіть принаймні два об’єми."
 
 msgid "(Moving)"
-msgstr ""
+msgstr "(Переміщення)"
 
 msgid "Point and point assembly"
-msgstr ""
+msgstr "Збірка точка до точки"
+
+msgid "Warning: please select two different meshes."
+msgstr "Попередження: будь ласка, виберіть дві різні сітки."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Попередження: будь ласка, виберіть характеристику площини."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Попередження: будь ласка, виберіть характеристику точки або кола."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
+"Рекомендується спочатку зібрати об’єкти,\n"
+"оскільки об’єкти обмежені платформою,\n"
+"і тільки частини можуть бути підняті."
 
 msgid "Face and face assembly"
+msgstr "Збірка грань до грані"
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
 msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
 msgid "Alt+"
-msgstr ""
+msgstr "Alt+"
 
 msgid "Notice"
 msgstr "Повідомлення"
@@ -1755,6 +1831,18 @@ msgstr "Це найновіша версія."
 msgid "Info"
 msgstr "Інформація"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1808,6 +1896,17 @@ msgstr ""
 msgid "User logged out"
 msgstr "Користувач вийшов із системи"
 
+msgid ""
+"You are currently in Stealth Mode. To log into the Cloud, you need to "
+"disable Stealth Mode first."
+msgstr ""
+
+msgid "Stealth Mode"
+msgstr ""
+
+msgid "Quit Stealth Mode"
+msgstr ""
+
 msgid "new or open project file is not allowed during the slicing process!"
 msgstr "новий або відкритий файл проекту не дозволяється в процесі нарізки!"
 
@@ -1820,6 +1919,40 @@ msgid ""
 msgstr ""
 "Версія студії Bambu надто низька, її необхідно оновити до останньоїверсії, "
 "перш ніж її можна буде використовувати у звичайному режимі"
+
+msgid ""
+"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+msgid "Resolve cloud sync conflict"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr ""
@@ -1861,7 +1994,7 @@ msgid "Privacy Policy Update"
 msgstr "Оновлення політики конфіденційності"
 
 #, c-format, boost-format
-msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgid "your Orca Cloud profile (user ID: \"%s\")"
 msgstr ""
 
 msgid "your default profile"
@@ -2089,7 +2222,7 @@ msgid "Delete the selected object"
 msgstr "Видалення вибраних моделей"
 
 msgid "Backspace"
-msgstr ""
+msgstr "Назад"
 
 msgid "Load..."
 msgstr "Завантажити..."
@@ -2111,6 +2244,9 @@ msgstr "Тороїд"
 
 msgid "Orca Cube"
 msgstr "Orca Куб"
+
+msgid "OrcaSliced Combo"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Тест на допуски ORCA"
@@ -2364,10 +2500,10 @@ msgstr "Автоматично орієнтуйте об'єкт для покр�
 msgid "Edit"
 msgstr "Редагувати"
 
-msgid "Delete this filament"
+msgid "Merge with"
 msgstr ""
 
-msgid "Merge with"
+msgid "Delete this filament"
 msgstr ""
 
 msgid "Select All"
@@ -2413,28 +2549,28 @@ msgid "Remove the selected plate"
 msgstr "Видалити вибрану пластину"
 
 msgid "Add instance"
-msgstr ""
+msgstr "Додати копію"
 
 msgid "Add one more instance of the selected object"
-msgstr ""
+msgstr "Додати ще одну копію обраного об'єкта"
 
 msgid "Remove instance"
-msgstr ""
+msgstr "Видалити копію"
 
 msgid "Remove one instance of the selected object"
-msgstr ""
+msgstr "Видалити одну копію обраного об'єкта"
 
 msgid "Set number of instances"
-msgstr ""
+msgstr "Задати кількість копій"
 
 msgid "Change the number of instances of the selected object"
-msgstr ""
+msgstr "Змінити кількість копій обраного об'єкта"
 
 msgid "Fill bed with instances"
-msgstr ""
+msgstr "Заповнити весь стіл копіями"
 
 msgid "Fill the remaining area of bed with instances of the selected object"
-msgstr ""
+msgstr "Заповнити область столу, що залишилася, копіями обраного об'єкта"
 
 msgid "Clone"
 msgstr "Зробити копію"
@@ -2571,7 +2707,7 @@ msgstr ""
 "вибраних моделей."
 
 msgid "Remove paint-on fuzzy skin"
-msgstr ""
+msgstr "Видалити намальовану текстурну оболонку"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Видалити конектор з об'єкта, який є частиною розрізу"
@@ -2609,7 +2745,7 @@ msgid "Deleting the last solid part is not allowed."
 msgstr "Видалення останньої твердотільного частини не допускається."
 
 msgid "The target object contains only one part and can not be split."
-msgstr ""
+msgstr "Цільовий об’єкт містить лише одну частину і не може бути розділений."
 
 msgid "Assembly"
 msgstr "Збірка"
@@ -2933,10 +3069,10 @@ msgid ""
 msgstr ""
 
 msgid "Change Anyway"
-msgstr ""
+msgstr "Змінити все одно"
 
 msgid "Off"
-msgstr ""
+msgstr "Вимк."
 
 msgid "Filter"
 msgstr "Фільтрувати"
@@ -2955,24 +3091,26 @@ msgid ""
 "The selected material only supports the current fan mode, and it can't be "
 "changed during printing."
 msgstr ""
+"Обраний матеріал підтримує тільки поточний режим вентилятора, і його не "
+"можна змінити під час друку."
 
 msgid "Cooling"
 msgstr "Охолодження"
 
 msgid "Heating"
-msgstr ""
+msgstr "Обігрів"
 
 msgid "Exhaust"
-msgstr ""
+msgstr "Вихлоп"
 
 msgid "Full Cooling"
-msgstr ""
+msgstr "Повне охолодження"
 
 msgid "Init"
 msgstr ""
 
 msgid "Chamber"
-msgstr ""
+msgstr "Термокамера"
 
 msgid "Innerloop"
 msgstr ""
@@ -3018,16 +3156,16 @@ msgid "Left(Aux)"
 msgstr ""
 
 msgid "Hotend"
-msgstr ""
+msgstr "Хотенд"
 
 msgid "Parts"
-msgstr ""
+msgstr "Part"
 
 msgid "Aux"
-msgstr ""
+msgstr "Aux"
 
 msgid "Nozzle1"
-msgstr ""
+msgstr "Сопло1"
 
 msgid "MC Board"
 msgstr ""
@@ -3069,6 +3207,45 @@ msgid "The maximum temperature cannot exceed "
 msgstr ""
 
 msgid "The minmum temperature should not be less than "
+msgstr ""
+
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Всі"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Скасувати вибір всіх"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr ""
+
+msgid "Expert settings"
 msgstr ""
 
 msgid ""
@@ -3312,7 +3489,7 @@ msgid "Bad input data for EmbossCreateObjectJob."
 msgstr ""
 
 msgid "Add Emboss text object"
-msgstr ""
+msgstr "Додати об’єкт тексту з рельєфом"
 
 msgid "Bad input data for EmbossUpdateJob."
 msgstr ""
@@ -3329,15 +3506,18 @@ msgstr ""
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
-msgstr ""
+msgstr "Зміна атрибута рельєфу"
 
 msgid "Add Emboss text Volume"
-msgstr ""
+msgstr "Додати об’єм тексту з рельєфом"
 
 msgid "Font doesn't have any shape for given text."
-msgstr ""
+msgstr "Шрифт не має жодної форми для вказаного тексту."
 
 msgid "There is no valid surface for text projection."
+msgstr "Немає дійсної поверхні для проекції тексту."
+
+msgid "An unexpected error occurred"
 msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
@@ -4185,6 +4365,9 @@ msgid ""
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
+"Нульова початкова висота шару недійсна.\n"
+"\n"
+"Висота першого шару буде скинуто до 0,2."
 
 msgid ""
 "This setting is only used for model size tunning with small value in some "
@@ -4505,7 +4688,7 @@ msgid "Update failed."
 msgstr "Не вдалося оновити."
 
 msgid "Timelapse is not supported on this printer."
-msgstr ""
+msgstr "Таймлапс не підтримується цим принтером."
 
 msgid "Timelapse is not supported while the storage does not exist."
 msgstr ""
@@ -4629,9 +4812,6 @@ msgstr ""
 
 msgid "Proceed"
 msgstr ""
-
-msgid "Done"
-msgstr "Виконано"
 
 msgid "Retry"
 msgstr "Повторити спробу"
@@ -4835,10 +5015,10 @@ msgid "Tool Change"
 msgstr "Зміна інструменту"
 
 msgid "Color Change"
-msgstr ""
+msgstr "Зміна Кольору"
 
 msgid "Pause Print"
-msgstr ""
+msgstr "Pause Print"
 
 msgid "Travel"
 msgstr "Переміщення"
@@ -4847,7 +5027,7 @@ msgid "Wipe"
 msgstr "Протирання"
 
 msgid "Extrude"
-msgstr ""
+msgstr "Екструзія"
 
 msgid "Inner wall"
 msgstr "Внутрішня стінка"
@@ -4894,33 +5074,6 @@ msgstr "Годтримка переходу"
 msgid "Mixed"
 msgstr ""
 
-msgid "mm/s"
-msgstr "мм/с"
-
-msgid "mm/s²"
-msgstr "мм/с²"
-
-msgid "Flow rate"
-msgstr "Потік"
-
-msgid "mm³/s"
-msgstr "мм³/с"
-
-msgid "Fan speed"
-msgstr "Швидкість вентилятора"
-
-msgid "°C"
-msgstr ""
-
-msgid "Time"
-msgstr "Час"
-
-msgid "Actual speed profile"
-msgstr ""
-
-msgid "Speed: "
-msgstr "Швидкість: "
-
 msgid "Height: "
 msgstr "Висота: "
 
@@ -4953,6 +5106,33 @@ msgstr ""
 
 msgid "PA: "
 msgstr ""
+
+msgid "mm/s"
+msgstr "мм/с"
+
+msgid "mm/s²"
+msgstr "мм/с²"
+
+msgid "mm³/s"
+msgstr "мм³/с"
+
+msgid "Flow rate"
+msgstr "Потік"
+
+msgid "Fan speed"
+msgstr "Швидкість вентилятора"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Час"
+
+msgid "Speed: "
+msgstr "Швидкість: "
+
+msgid "Actual speed profile"
+msgstr "Фактичний профіль швидкості"
 
 msgid "Statistics of All Plates"
 msgstr "Статистика всіх пластин"
@@ -4990,10 +5170,10 @@ msgid "Why this grouping"
 msgstr ""
 
 msgid "Left nozzle"
-msgstr ""
+msgstr "Ліве сопло"
 
 msgid "Right nozzle"
-msgstr ""
+msgstr "Праве сопло"
 
 msgid "Please place filaments on the printer based on grouping result."
 msgstr ""
@@ -5039,7 +5219,7 @@ msgid "Set to Optimal"
 msgstr ""
 
 msgid "Regroup filament"
-msgstr ""
+msgstr "Перегрупувати філамент"
 
 msgid "Wiki Guide"
 msgstr ""
@@ -5084,7 +5264,7 @@ msgid "Volumetric flow rate (mm³/s)"
 msgstr "Об'ємна витрата (мм³/с)"
 
 msgid "Actual volumetric flow rate (mm³/s)"
-msgstr ""
+msgstr "Фактична об'ємна швидкість потоку (мм³/с)"
 
 msgid "Seams"
 msgstr "Шви"
@@ -5105,7 +5285,7 @@ msgid "Filament change times"
 msgstr "Час зміни філаменту"
 
 msgid "Tool changes"
-msgstr ""
+msgstr "Зміна інструменту"
 
 msgid "Color change"
 msgstr "Зміна кольору"
@@ -5135,10 +5315,10 @@ msgid "Model printing time"
 msgstr "Час друку моделі"
 
 msgid "Show stealth mode"
-msgstr ""
+msgstr "Показати тихий режим"
 
 msgid "Show normal mode"
-msgstr ""
+msgstr "Показати нормальний режим"
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
@@ -5152,6 +5332,9 @@ msgid ""
 "Please solve the problem by moving it totally on or off the plate, and "
 "confirming that the height is within the build volume."
 msgstr ""
+"Об'єкт знаходиться за кордоном пластини або перевищує обмеження по висоті.\n"
+"Будь ласка, вирішіть проблему, перемістивши її повністю на тарілку або з неї,"
+"і підтвердження того, що висота знаходиться в межах обсягу збирання."
 
 msgid "Variable layer height"
 msgstr "Змінна висота шару"
@@ -5196,7 +5379,7 @@ msgid "Part Selection"
 msgstr ""
 
 msgid "number keys"
-msgstr ""
+msgstr "клавіші з числами"
 
 msgid "Number keys can quickly change the color of objects"
 msgstr ""
@@ -5205,17 +5388,21 @@ msgid ""
 "Following objects are laid over the boundary of plate or exceeds the height "
 "limit:\n"
 msgstr ""
+"Наступні об'єкти перекривають межі пластини або перевищують ліміт по "
+"висоті:\n"
 
 msgid ""
 "Please solve the problem by moving it totally on or off the plate, and "
 "confirming that the height is within the build volume.\n"
 msgstr ""
+"Будь ласка, передвиньте це повністю на чи з пластини, та переконайтеся, що "
+"висота знаходиться у межах області друку.\n"
 
 msgid "left nozzle"
-msgstr ""
+msgstr "ліве сопло"
 
 msgid "right nozzle"
-msgstr ""
+msgstr "праве сопло"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
@@ -5232,11 +5419,11 @@ msgstr ""
 
 #, boost-format
 msgid "Left nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
-msgstr ""
+msgstr "Ліве сопло: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 
 #, boost-format
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
-msgstr ""
+msgstr "Праве сопло: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 msgid "Mirror Object"
 msgstr "Дзеркальний об'єкт"
@@ -5265,9 +5452,6 @@ msgstr "Орієнтація"
 msgid "Arrange options"
 msgstr "Параметри впорядкування"
 
-msgid "Spacing"
-msgstr "Відстань"
-
 msgid "0 means auto spacing."
 msgstr "0 означає автоматичний інтервал."
 
@@ -5285,11 +5469,11 @@ msgstr "Розташувати вздовж осі Y"
 
 msgctxt "Camera"
 msgid "Left"
-msgstr ""
+msgstr "Ліво"
 
 msgctxt "Camera"
 msgid "Right"
-msgstr ""
+msgstr "Право"
 
 msgid "Add"
 msgstr "Додати"
@@ -5358,6 +5542,9 @@ msgid "Overhangs"
 msgstr "Нависання"
 
 msgid "Outline"
+msgstr "Контур"
+
+msgid "Realistic View"
 msgstr ""
 
 msgid "Perspective"
@@ -5376,7 +5563,7 @@ msgid "Paint Toolbar"
 msgstr "Панель інструментів малювання"
 
 msgid "part selection"
-msgstr ""
+msgstr "вибір частини"
 
 msgid "Explosion Ratio"
 msgstr "Коефіцієнт вибуху"
@@ -5388,7 +5575,7 @@ msgid "Assemble Control"
 msgstr "Складання керування"
 
 msgid "Selection Mode"
-msgstr ""
+msgstr "Режим вибору"
 
 msgid "Total Volume:"
 msgstr "Загальний обсяг:"
@@ -5420,7 +5607,7 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "Шлях G-коду виходить за межі пластини."
 
 msgid "Not support printing 2 or more TPU filaments."
-msgstr ""
+msgstr "Не підтримується друк 2 або більше TPU філаментів."
 
 #, c-format, boost-format
 msgid "Tool %d"
@@ -5474,10 +5661,10 @@ msgid ""
 msgstr ""
 
 msgid "Click Wiki for help."
-msgstr ""
+msgstr "Натисніть Wiki для допомоги."
 
 msgid "Click here to regroup"
-msgstr ""
+msgstr "Натисніть тут щоб перегрупувати"
 
 msgid "Flushing Volume"
 msgstr ""
@@ -5492,7 +5679,7 @@ msgid "Bed leveling"
 msgstr "Вирівнювання столу"
 
 msgid "High-temperature Heatbed Calibration"
-msgstr ""
+msgstr "Високотемпературне калібрування гарячого ліжка"
 
 msgid "Nozzle clumping detection Calibration"
 msgstr ""
@@ -5645,14 +5832,17 @@ msgstr "Майстер налаштувань"
 msgid "Show Configuration Folder"
 msgstr "Показати папку конфігурації"
 
+msgid "Troubleshoot Center"
+msgstr ""
+
+msgid "Open Network Test"
+msgstr "Відкритий мережевий тест"
+
 msgid "Show Tip of the Day"
 msgstr "Показати пораду дня"
 
 msgid "Check for Updates"
 msgstr ""
-
-msgid "Open Network Test"
-msgstr "Відкритий мережевий тест"
 
 #, c-format, boost-format
 msgid "&About %s"
@@ -5785,6 +5975,15 @@ msgstr "Експорт поточної конфігурації до файлі
 msgid "Export"
 msgstr "Експорт"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Вихід"
 
@@ -5908,6 +6107,9 @@ msgid "View"
 msgstr "Вид"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -6430,7 +6632,7 @@ msgid "Invert Roll axis"
 msgstr "Інвертувати вісь Roll"
 
 msgid "(LAN)"
-msgstr ""
+msgstr "(LAN)"
 
 msgid "Search"
 msgstr "Пошук"
@@ -6491,7 +6693,7 @@ msgstr "Прив’язати з кодом доступу"
 
 msgctxt "Quit_Switching"
 msgid "Quit"
-msgstr ""
+msgstr "Вихід"
 
 msgid "Switching..."
 msgstr ""
@@ -6787,7 +6989,7 @@ msgstr "Статус"
 
 msgctxt "Firmware"
 msgid "Update"
-msgstr ""
+msgstr "Оновлення"
 
 msgid "Assistant(HMS)"
 msgstr ""
@@ -6873,7 +7075,7 @@ msgstr "Остання версія: "
 
 msgctxt "Software"
 msgid "Update"
-msgstr ""
+msgstr "Оновлення"
 
 msgid "Not for now"
 msgstr "Наразі не потрібно"
@@ -7005,6 +7207,12 @@ msgstr "Експорт успішно."
 msgid "Model file downloaded."
 msgstr "Завантажений файл моделі."
 
+msgid "Pull"
+msgstr ""
+
+msgid "Force push"
+msgstr ""
+
 msgid "Shared profiles may be available for this printer."
 msgstr ""
 
@@ -7105,7 +7313,7 @@ msgid "Pausing Sensitivity:"
 msgstr ""
 
 msgid "Spaghetti Detection"
-msgstr ""
+msgstr "Spaghetti Detection"
 
 msgid "Detect spaghetti failures (scattered lose filament)."
 msgstr ""
@@ -7161,15 +7369,15 @@ msgstr ""
 
 msgctxt "Nozzle Type"
 msgid "Type"
-msgstr ""
+msgstr "Тип"
 
 msgctxt "Nozzle Diameter"
 msgid "Diameter"
-msgstr ""
+msgstr "Діаметр"
 
 msgctxt "Nozzle Flow"
 msgid "Flow"
-msgstr ""
+msgstr "Потік"
 
 msgid "Please change the nozzle settings on the printer."
 msgstr ""
@@ -7322,13 +7530,13 @@ msgid ""
 msgstr ""
 
 msgid "Switch diameter"
-msgstr ""
+msgstr "Змінити діаметр"
 
 msgid "Configuration incompatible"
 msgstr "Несумісність конфігурації"
 
 msgid "Sync printer information"
-msgstr ""
+msgstr "Синхронізувати інформацію принтера"
 
 msgid ""
 "The currently selected machine preset is inconsistent with the connected "
@@ -7348,13 +7556,13 @@ msgid "Connection"
 msgstr "Зв'язок"
 
 msgid "Synchronize nozzle information and the number of AMS"
-msgstr ""
+msgstr "Синхронізувати інформацію про сопла та кількість AMS"
 
 msgid "Click to edit preset"
 msgstr "Натисніть, щоб редагувати профіль"
 
 msgid "Project Filaments"
-msgstr ""
+msgstr "Філаменти проєкта"
 
 msgid "Flushing volumes"
 msgstr "Об'єми промивки"
@@ -7402,6 +7610,7 @@ msgid ""
 "Filament type and color information have been synchronized, but slot "
 "information is not included."
 msgstr ""
+"Тип та колір філамента було синхронізовано, але немає інформації про слот."
 
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
@@ -7463,7 +7672,7 @@ msgid "Collapse sidebar"
 msgstr "Згорнути бічну панель"
 
 msgid "Tab"
-msgstr ""
+msgstr "Табуляції"
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7956,9 +8165,10 @@ msgstr ""
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr ""
+"Тип сопла не встановлений. Будь ласка, оберіть сопло та спробуйте ще раз."
 
 msgid "The nozzle type is not set. Please check."
-msgstr ""
+msgstr "Тип сопла не встановлений. Перевірте, будь ласка."
 
 msgid ""
 "Unable to perform boolean operation on model meshes. Only positive parts "
@@ -7989,6 +8199,12 @@ msgid ""
 msgstr ""
 "Не можливо виконати булеву операцію на сітках моделі. Тільки позитивні "
 "частини будуть експортовані."
+
+msgid "Flashforge host is not available."
+msgstr ""
+
+msgid "Unable to log in to the Flashforge printer."
+msgstr ""
 
 msgid "Is the printer ready? Is the print sheet in place, empty and clean?"
 msgstr ""
@@ -8043,17 +8259,21 @@ msgid ""
 "There are no filaments on the printer. Please load the filaments on the "
 "printer first."
 msgstr ""
+"В принтері немає філаментів. Будь ласка, спочатку завантажте філаменти в "
+"принтер."
 
 msgid ""
 "The filaments on the printer are all unknown types. Please go to the printer "
 "screen or software device page to set the filament type."
 msgstr ""
+"Філаменти в принтері невідомого типу. Будь ласка, змініть тип філаменту на "
+"принтері чи на сторінці принтера."
 
 msgid "Device Page"
-msgstr ""
+msgstr "Сторінка принтера"
 
 msgid "Synchronize AMS Filament Information"
-msgstr ""
+msgstr "Синхронізувати інформацію про філаменти з AMS"
 
 msgid "Plate Settings"
 msgstr "Параметри планшета"
@@ -8110,25 +8330,25 @@ msgid ""
 msgstr ""
 
 msgid "Not available"
-msgstr ""
+msgstr "Недоступно"
 
 msgid "isometric"
-msgstr ""
+msgstr "ізометрично"
 
 msgid "top_front"
-msgstr ""
+msgstr "верх_перед"
 
 msgid "top"
-msgstr ""
+msgstr "верх"
 
 msgid "bottom"
-msgstr ""
+msgstr "низ"
 
 msgid "front"
-msgstr ""
+msgstr "перед"
 
 msgid "rear"
-msgstr ""
+msgstr "зад"
 
 msgid "Switching the language requires application restart.\n"
 msgstr "Для перемикання мови потрібно перезапустити програму.\n"
@@ -8345,9 +8565,6 @@ msgstr ""
 msgid "Group user filament presets based on selection"
 msgstr ""
 
-msgid "All"
-msgstr "Всі"
-
 msgid "By type"
 msgstr ""
 
@@ -8358,7 +8575,7 @@ msgid "Optimize filaments area height for..."
 msgstr ""
 
 msgid "filaments"
-msgstr ""
+msgstr "філаменти"
 
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr ""
@@ -8465,21 +8682,33 @@ msgstr ""
 "Якщо увімкнено, використовуватиметься вільна камера. Якщо вимкнено, "
 "використовуватиметься камера з обмеженими можливостями."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Поміняти кнопки миші для панорамування й обертання"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Якщо ввімкнено, змінює місцями функції панорамування та обертання між лівою "
-"та правою кнопками миші."
-
 msgid "Reverse mouse zoom"
 msgstr "Зворотне масштабування мишкою"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr ""
 "Якщо увімкнено, змінює напрямок масштабування за допомогою коліщатка миші."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr ""
@@ -8503,6 +8732,77 @@ msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
 msgstr ""
 
+msgid "Graphics"
+msgstr ""
+
+msgid "Phong shading"
+msgstr ""
+
+msgid "Uses Phong shading inside realistic view."
+msgstr ""
+
+msgid "SSAO ambient occlusion"
+msgstr ""
+
+msgid "Applies SSAO in realistic view."
+msgstr ""
+
+msgid "Shadows"
+msgstr ""
+
+msgid "Renders cast shadows on the plate in realistic view."
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Вимкнено"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
+
 msgid "Login region"
 msgstr "Регіон входу"
 
@@ -8510,9 +8810,16 @@ msgid "Stealth mode"
 msgstr "Прихований режим"
 
 msgid ""
-"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
-"the transmission of data to Bambu's cloud services too. Users who don't use "
-"BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud features, including Orca Cloud profile syncing. "
+"Users who prefer to work entirely offline can enable this option.\n"
+"Note: When Stealth Mode is enabled, your user profiles will not be backed up "
+"to Orca Cloud."
+msgstr ""
+
+msgid "Hide login side panel"
+msgstr ""
+
+msgid "Hide the login side panel on the home page."
 msgstr ""
 
 msgid "Network test"
@@ -8608,6 +8915,14 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Асоціювати файли з OrcaSlicer"
 
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
+
 #, fuzzy
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Асоціювати файли .3mf з OrcaSlicer"
@@ -8657,6 +8972,23 @@ msgstr "Режим розробки"
 msgid "Skip AMS blacklist check"
 msgstr "Пропустити перевірку чорного списку AMS"
 
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
+
+msgid "Show unsupported presets"
+msgstr ""
+
+msgid ""
+"Show incompatible/unsupported presets in the printer and filament dropdown "
+"lists. These presets cannot be selected."
+msgstr ""
+
 msgid "Allow Abnormal Storage"
 msgstr ""
 
@@ -8699,7 +9031,7 @@ msgid "Reload Failed"
 msgstr ""
 
 msgid "Debug"
-msgstr ""
+msgstr "Debug"
 
 msgid "Sync settings"
 msgstr "Налаштування синхронізації"
@@ -8798,7 +9130,7 @@ msgid "Edit preset"
 msgstr "Змінити попереднє встановлення"
 
 msgid "Unspecified"
-msgstr ""
+msgstr "Не вказано"
 
 msgid "Project-inside presets"
 msgstr "Внутрішні пресети проекту"
@@ -9008,7 +9340,7 @@ msgid "Bambu Textured PEI Plate"
 msgstr "Bambu Текстурована PEI пластина"
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr ""
+msgstr "Bambu Cool Plate SuperTack"
 
 msgid "Send print job"
 msgstr ""
@@ -9166,7 +9498,7 @@ msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr ""
 
 msgid "nozzle"
-msgstr ""
+msgstr "сопло"
 
 msgid "both extruders"
 msgstr ""
@@ -9382,6 +9714,9 @@ msgstr ""
 msgid ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
+msgstr ""
+
+msgid "Sending failed, please try again!"
 msgstr ""
 
 msgid "Slice ok."
@@ -9777,6 +10112,9 @@ msgstr "Ширина лінії"
 msgid "Precision"
 msgstr "Точність"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Wall generator"
 msgstr "Генерація стінок"
 
@@ -9815,6 +10153,9 @@ msgstr "Встановіть швидкість для зовнішніх та �
 
 msgid "Travel speed"
 msgstr "Швидкість переміщення"
+
+msgid "Junction Deviation"
+msgstr ""
 
 msgid "Jerk(XY)"
 msgstr "Ривок (XY)"
@@ -10030,7 +10371,7 @@ msgid "Dependencies"
 msgstr "Залежності"
 
 msgid "Compatible printers"
-msgstr ""
+msgstr "Сумісні принтери"
 
 msgid "Compatible process profiles"
 msgstr "Сумісні профілі процесів"
@@ -10175,13 +10516,11 @@ msgid "Retraction when switching material"
 msgstr "Втягування під час зміни матеріалу"
 
 msgid ""
-"The Wipe option is not available when using the Firmware Retraction mode.\n"
+"The Retract before wipe option could be only 100% when using the Firmware "
+"Retraction mode.\n"
 "\n"
-"Shall I disable it in order to enable Firmware Retraction?"
+"Shall I set it to 100% in order to enable Firmware Retraction?"
 msgstr ""
-"Опція Wipe недоступна під час використання режиму Firmware Retraction.\n"
-"\n"
-"Чи я повинен відключити його, щоб включити Firmware Retraction?"
 
 msgid "Firmware Retraction"
 msgstr "Апаратне витягування"
@@ -10192,7 +10531,7 @@ msgid ""
 msgstr ""
 
 msgid "Use Modified Value"
-msgstr ""
+msgstr "Використати змінене значення"
 
 msgid "Detached"
 msgstr "Окремий"
@@ -10273,7 +10612,7 @@ msgid "Temperature Safety Check"
 msgstr ""
 
 msgid "Continue"
-msgstr ""
+msgstr "Продовжити"
 
 msgid "Back"
 msgstr "Ззаду"
@@ -10324,6 +10663,32 @@ msgstr "Не зберігати"
 
 msgid "Discard"
 msgstr "Не зберігати"
+
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
 
 msgid "Click the right mouse button to display the full text."
 msgstr "Натисніть праву кнопку миші, щоб відобразити повний текст."
@@ -10424,10 +10789,10 @@ msgid "Select presets to compare"
 msgstr "Виберіть профілі для порівняння"
 
 msgid "Left Preset Value"
-msgstr ""
+msgstr "Значення в Лівому Профілі"
 
 msgid "Right Preset Value"
-msgstr ""
+msgstr "Значення в Правому Профілі"
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."
@@ -10574,7 +10939,7 @@ msgid "Reset mapped extruders."
 msgstr "Скинути відображені екструдери."
 
 msgid "Note"
-msgstr ""
+msgstr "Примітка"
 
 msgid ""
 "The color has been selected, you can choose OK \n"
@@ -10592,7 +10957,7 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr ""
+msgstr "Початковий"
 
 msgid "After mapping"
 msgstr ""
@@ -10602,7 +10967,7 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Plate"
-msgstr ""
+msgstr "Стіл"
 
 msgid ""
 "The connected printer does not match the currently selected printer. Please "
@@ -10654,9 +11019,6 @@ msgid ""
 "Replace the project filaments list sequentially based on printer filaments. "
 "And unused printer filaments will be automatically added to the end of the "
 "list."
-msgstr ""
-
-msgid "Advanced settings"
 msgstr ""
 
 msgid "Add unused AMS filaments to filaments list."
@@ -10730,7 +11092,7 @@ msgstr ""
 
 msgctxt "Sync_Nozzle_AMS"
 msgid "Cancel"
-msgstr ""
+msgstr "Скасувати"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr ""
@@ -10740,7 +11102,7 @@ msgstr ""
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr ""
+msgstr "ОК"
 
 msgid "Ramming customization"
 msgstr "Налаштування раммінгу"
@@ -10769,6 +11131,8 @@ msgstr ""
 #, boost-format
 msgid "For constant flow rate, hold %1% while dragging."
 msgstr ""
+"Для постійної об'ємної витрати утримуйте натиснутою клавішу %1% під час "
+"перетягування."
 
 msgid "ms"
 msgstr ""
@@ -10777,7 +11141,7 @@ msgid "Total ramming"
 msgstr ""
 
 msgid "Volume"
-msgstr ""
+msgstr "Об'єм"
 
 msgid "Ramming line"
 msgstr ""
@@ -10815,7 +11179,7 @@ msgid "Flushing volumes for filament change"
 msgstr "Об'єми промивки для зміни філаменту"
 
 msgid "Please choose the filament colour"
-msgstr ""
+msgstr "Будь ласка, виберіть колір філаменту"
 
 msgid ""
 "Native Wayland liveview requires the GStreamer GTK video sink. Please "
@@ -10874,6 +11238,9 @@ msgstr "Натисніть тут, щоб завантажити його."
 msgid "Login"
 msgstr "Логін"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10910,6 +11277,18 @@ msgstr "Показати список клавіш"
 msgid "Global shortcuts"
 msgstr "Глобальні ярлики"
 
+msgid "Pan View"
+msgstr "Панорамний вигляд"
+
+msgid "Rotate View"
+msgstr "Повернути вигляд"
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr "Перегляд масштабу"
+
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
 "it just orients the selected ones. Otherwise, it will orient all objects in "
@@ -10926,7 +11305,7 @@ msgid "Collapse/Expand the sidebar"
 msgstr "Згорнути/розгорнути бічну панель"
 
 msgid "Any arrow"
-msgstr ""
+msgstr "Будь-яка стрілка"
 
 msgid "Movement in camera space"
 msgstr "Рух у просторі камери"
@@ -11013,7 +11392,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Булеві операції Gizmo"
 
 msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr ""
+msgstr "Інструмент - 'Малювання текстурної оболонки'"
 
 msgid "Gizmo SLA support points"
 msgstr "Точки підтримки Gizmo SL"
@@ -11058,7 +11437,7 @@ msgid "Support/Color Painting: adjust section position"
 msgstr "Підтримка/кольорове фарбування: регулювання положення секцій"
 
 msgid "Gizmo"
-msgstr ""
+msgstr "Gizmo"
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Встановіть номер екструдера для об'єктів та деталей"
@@ -11128,11 +11507,22 @@ msgstr "Доступний новий мережевий плагін (%s), чи
 msgid "New version of Orca Slicer"
 msgstr "Нова версія Orca Slicer"
 
+msgid "Check on Microsoft Store"
+msgstr ""
+
 msgid "Check on Github"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "Пропустити цю версію"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Підтвердити і оновити сопло"
@@ -11159,7 +11549,7 @@ msgid ""
 msgstr ""
 
 msgid "IP"
-msgstr ""
+msgstr "IP"
 
 msgid "Access Code"
 msgstr "Код доступу"
@@ -11180,7 +11570,7 @@ msgid "Manual Setup"
 msgstr "Ручне налаштування"
 
 msgid "IP and Access Code Verified! You may close the window"
-msgstr ""
+msgstr "IP-адреса та доступний код перевірено! Ви можете закрити вікно"
 
 msgid "connecting..."
 msgstr "підключення…"
@@ -11238,6 +11628,9 @@ msgid "Cutting Module"
 msgstr ""
 
 msgid "Auto Fire Extinguishing System"
+msgstr ""
+
+msgid "Beta"
 msgstr ""
 
 msgid "Update firmware"
@@ -11388,9 +11781,6 @@ msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Внутрішній міст"
-
-msgid "Multiple"
-msgstr "Кілька"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -11694,6 +12084,8 @@ msgstr ""
 msgid ""
 "One or more object were assigned an extruder that the printer does not have."
 msgstr ""
+"Одному або декільком об’єктам було призначено екструдер, якого принтер не "
+"має."
 
 msgid "Too small line width"
 msgstr "Надто мала ширина лінії"
@@ -11758,6 +12150,19 @@ msgstr ""
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Висота шару не може перевищувати діаметр сопла"
 
+msgid "Bridge line width must not exceed nozzle diameter"
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
+msgid ""
+"\"G92 E0\" was found in layer_change_gcode, but the G or E are not "
+"uppercase. Please change them to the exact uppercase \"G92 E0\"."
+msgstr ""
+
 msgid ""
 "Relative extruder addressing requires resetting the extruder position at "
 "each layer to prevent loss of floating point accuracy. Add \"G92 E0\" to "
@@ -11768,18 +12173,14 @@ msgstr ""
 "\"G92 E0\" до layer_gcode."
 
 msgid ""
-"\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
-"absolute extruder addressing."
+"\"G92 E0\" was found in before_layer_change_gcode, which is incompatible "
+"with absolute extruder addressing."
 msgstr ""
-"У before_layer_gcode знайдено \"G92 E0\", що несумісне з абсолютною "
-"адресацією екструдера."
 
 msgid ""
-"\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
-"extruder addressing."
+"\"G92 E0\" was found in layer_change_gcode, which is incompatible with "
+"absolute extruder addressing."
 msgstr ""
-"У layer_gcode знайдено \"G92 E0\", що несумісне з абсолютною адресацією "
-"екструдера."
 
 #, c-format, boost-format
 msgid "Plate %d: %s does not support filament %s"
@@ -11876,6 +12277,31 @@ msgstr "Область друку"
 msgid "Extruder printable area"
 msgstr ""
 
+msgid "Support parallel printheads"
+msgstr ""
+
+msgid ""
+"Enable printer settings for machines that can use multiple printheads in "
+"parallel."
+msgstr ""
+
+msgid "Parallel printheads count"
+msgstr ""
+
+msgid ""
+"Set the number of parallel printheads for machines like OrangeStorm Giga "
+"printer."
+msgstr ""
+
+msgid "Parallel printheads bed exclude areas"
+msgstr ""
+
+msgid ""
+"Ordered list of bed exclude areas by parallel printhead count. Item 1 "
+"applies to one printhead, item 2 to two printheads, and so on. Leave an item "
+"empty for no excluded area."
+msgstr ""
+
 msgid "Bed exclude area"
 msgstr "Площа виключення столу"
 
@@ -11942,7 +12368,7 @@ msgid "Maximum printable height which is limited by mechanism of printer."
 msgstr "Максимальна висота друку, яка обмежена механізмом принтера"
 
 msgid "Extruder printable height"
-msgstr ""
+msgstr "Висота друку екструдера"
 
 msgid ""
 "Maximum printable height of this extruder which is limited by mechanism of "
@@ -12006,6 +12432,12 @@ msgstr ""
 "Orca Slicer може завантажувати файли G-коду на хост принтера. Це поле "
 "повинно утримувати \n"
 "API-ключ або пароль, необхідний для автентифікації."
+
+msgid "Serial Number"
+msgstr ""
+
+msgid "Flashforge local API requires the printer serial number."
+msgstr ""
 
 msgid "Name of the printer."
 msgstr "Назва принтера"
@@ -12356,111 +12788,128 @@ msgstr "Напрямок заповнення зовнішніх мостів"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Bridging angle override. If left to zero, the bridging angle will be "
-"calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180° for zero angle."
+"External Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
+"\n"
+"Use 180° for zero absolute angle."
 msgstr ""
-"Перевизначення кута моста. Якщо залишити значення рівним нулю, кут моста "
-"обчислюватиметься автоматично. Інакше наданий кут використовуйте для "
-"зовнішніх мостів. Використовуйте 180 ° для нульового кута."
 
 msgid "Internal bridge infill direction"
 msgstr "Напрямок заповнення внутрішніх мостів"
 
 msgid ""
-"Internal bridging angle override. If left to zero, the bridging angle will "
-"be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180° for zero angle.\n"
+"Internal Bridging angle override.\n"
+"If left to zero, the bridging angle will be calculated automatically for "
+"each specific bridge.\n"
+"Otherwise the provided angle will be used according to:\n"
+" - The absolute coordinates\n"
+" - The absolute coordinates + Model rotation: If Align infill direction to "
+"model is enabled\n"
+" - The optimal automatic angle + this value: If 'Relative Bridge Angle' is "
+"enabled\n"
 "\n"
-"It is recommended to leave it at 0 unless there is a specific model need not "
-"to."
+"Use 180° for zero absolute angle."
 msgstr ""
-"Перевизначення кута мостів. Якщо залишити значення рівним нулю, кут мостів "
-"буде розраховано автоматично. В іншому випадку для внутрішніх мостів буде "
-"використано заданий кут. Використовуйте 180° для нульового кута.\n"
-"\n"
-"Рекомендується залишати його на 0, якщо тільки це не є необхідним для "
-"конкретної моделі."
+
+msgid "Relative bridge angle"
+msgstr ""
+
+msgid ""
+"When enabled, the bridge angle values are added to the automatically "
+"calculated bridge direction instead of overriding it."
+msgstr ""
 
 msgid "External bridge density"
 msgstr "Щільність зовнішніх мостів"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
+"Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
+"extrusions to sag, 100% may not be sufficient.\n"
 "\n"
-"Lower density external bridges can help improve reliability as there is more "
-"space for air to circulate around the extruded bridge, improving its cooling "
-"speed. Minimum is 10%.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Produces smoother bridge surfaces, as overlapping lines provide "
+"additional support during printing.\n"
+"  - Cons: Can cause overextrusion, which may reduce lower and upper surface "
+"quality and increase the risk of warping.\n"
 "\n"
-"Higher densities can produce smoother bridge surfaces, as overlapping lines "
-"provide additional support during printing. Maximum is 120%.\n"
-"Note: Bridge density that is too high can cause warping or overextrusion."
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can create a string-like first layer. Faster and with better "
+"cooling because there is more space for air to circulate around the extruded "
+"bridge.\n"
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
 
 msgid "Internal bridge density"
 msgstr "Щільність внутрішніх мостів"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of internal bridge lines.\n"
+"Internal bridges act as intermediate support between sparse infill and top "
+"solid infill and can strongly affect top surface quality.\n"
 "\n"
-"Lower density internal bridges can help reduce top surface pillowing and "
-"improve internal bridge reliability as there is more space for air to "
-"circulate around the extruded bridge, improving its cooling speed.\n"
+"- Higher than 100% density (Recommended Max 125%):\n"
+"  - Pros: Improves internal bridge strength and support under top layers, "
+"reducing sagging and improving top-surface finish.\n"
+"  - Cons: Increases material use and print time; excessive density may cause "
+"overextrusion and internal stresses.\n"
+"\n"
+"- Lower than 100% density (Min 10%):\n"
+"  - Pros: Can reduce pillowing and improve cooling (more airflow through the "
+"bridge), and may speed up printing.\n"
+"  - Cons: May reduce internal support, increasing the risk of sagging and "
+"top surface defects.\n"
 "\n"
 "This option works particularly well when combined with the second internal "
-"bridge over infill option, further improving internal bridging structure "
-"before solid infill is extruded."
+"bridge over infill option to improve bridging further before solid infill is "
+"extruded."
 msgstr ""
-"Керує щільністю (відстанню) внутрішніх ліній мостів. 100% означає суцільний "
-"міст. Значення за замовчуванням – 100%.\n"
-"\n"
-"Мости з меншою щільністю можуть допомогти зменшити ефект здуття верхньої "
-"поверхні та покращити надійність внутрішніх мостів, оскільки навколо "
-"екструдованого моста залишається більше простору для циркуляції повітря, що "
-"покращує його охолодження.\n"
-"\n"
-"Ця опція особливо ефективна в поєднанні з параметром друку другого "
-"внутрішнього моста над заповненням, що ще більше покращує внутрішню "
-"структуру мостів перед екструзією суцільного заповнення."
 
 msgid "Bridge flow ratio"
 msgstr "Коефіцієнт потоку мостів"
 
 msgid ""
-"Decrease this value slightly (for example 0.9) to reduce the amount of "
-"material for bridge, to improve sag.\n"
+"This value governs the thickness of the external (visible) bridge layer.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
 "The actual bridge flow used is calculated by multiplying this value with the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Зменште це значення трохи(наприклад 0.9) щоб зменшити кількість матеріалу "
-"для мосту для покращення провисання.\n"
+
+msgid ""
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
+"Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
-"Фактичний потік матеріалу для мосту розраховується шляхом множення цього "
-"значення на коефіцієнт потоку філамента і якщо встановлено, на коефіцієнт "
-"потоку об'єкта."
+"The maximum value is 100% or the nozzle diameter.\n"
+"If set to 0, the line width will match the Internal solid infill width."
+msgstr ""
 
 msgid "Internal bridge flow ratio"
 msgstr "Коефіцієнт потоку внутрішніх мостів"
 
 msgid ""
 "This value governs the thickness of the internal bridge layer. This is the "
-"first layer over sparse infill. Decrease this value slightly (for example "
-"0.9) to improve surface quality over sparse infill.\n"
+"first layer over sparse infill so increasing it may increase strength and "
+"upper layer quality.\n"
+"Values above 1.0: Increase the amount of material while maintaining line "
+"spacing. This can improve line contact and strength.\n"
+"Values below 1.0: Reduce the amount of material while adjusting line spacing "
+"to maintain contact. This can improve sagging.\n"
 "\n"
-"The actual internal bridge flow used is calculated by multiplying this value "
-"with the bridge flow ratio, the filament flow ratio, and if set, the "
-"object's flow ratio."
+"The actual bridge flow used is calculated by multiplying this value with the "
+"filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Це значення визначає товщину внутрішнього мостового шару. Це перший шар над "
-"розрідженим заповненням.\n"
-"Зменште це значення трохи (наприклад 0.9) щоб покращити якість поверхні над "
-"розрідженим заповненням.\n"
-"\n"
-"Фактична подача матеріалу для внутрішнього мостового шару розраховується "
-"шляхом множення цього значення на коефіцієнт подачі для мостів, коефіцієнт "
-"подачі філаменту та, якщо встановлено, коефіцієнт подачі для об'єкта."
 
 msgid "Top surface flow ratio"
 msgstr "Коефіцієнт потоку верхньої поверхні"
@@ -12760,43 +13209,35 @@ msgstr "Уповільнення для нависаючих периметрі�
 #, no-c-format, no-boost-format
 msgid ""
 "Enable this option to slow down printing in areas where perimeters may have "
-"curled upwards. For example, additional slowdown will be applied when "
-"printing overhangs on sharp corners like the front of the Benchy hull, "
-"reducing curling which compounds over multiple layers.\n"
+"curled upwards.\n"
+"For example, additional slowdown will be applied when printing overhangs on "
+"sharp corners like the front of the Benchy hull, reducing curling which "
+"compounds over multiple layers.\n"
 "\n"
 "It is generally recommended to have this option switched on unless your "
-"printer cooling is powerful enough or the print speed slow enough that "
-"perimeter curling does not happen. If printing with a high external "
-"perimeter speed, this parameter may introduce slight artifacts when slowing "
-"down due to the large variance in print speeds. If you notice artifacts, "
-"ensure your pressure advance is tuned correctly.\n"
+"printer cooling is powerful enough or the print speed is slow enough that "
+"perimeter curling does not happen. \n"
+"If printing with a high external perimeter speed, this parameter may "
+"introduce wall artifacts when slowing down, due to the potentially large "
+"variance in print speeds causing the extruder to be unable to keep up with "
+"the requested flow change.\n"
+"Root cause of these artifacts is most likely PA tuning being slightly off, "
+"especially when combined with a high PA smooth time.\n"
+"\n"
+"Recommendations when enabling this option:\n"
+"1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder "
+"reacts quickly to the speed changes.\n"
+"2. Increase the minimum print speeds to limit the magnitude of the slowdown "
+"and reduce the variance between fast and slow segments.\n"
+"3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to "
+"further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like "
 "overhangs, meaning the overhang speed is applied even if the overhanging "
-"perimeter is part of a bridge. For example, when the perimeters are 100% "
-"overhanging, with no wall supporting them from underneath, the 100% overhang "
-"speed will be applied."
+"perimeter is part of a bridge.\n"
+"For example, when the perimeters are 100% overhanging, with no wall "
+"supporting them from underneath, the 100% overhang speed will be applied."
 msgstr ""
-"Увімкніть цю опцію, щоб уповільнити друк у зонах, де периметри можуть "
-"загортатися вгору.  \n"
-"\n"
-"**Наприклад, додаткове зниження швидкості застосовується при друку нависань "
-"на гострих кутах, таких як передня частина корпусу Benchy. Це допомагає "
-"зменшити загортання, яке може накопичуватися з кожним шаром.**  \n"
-"\n"
-"**Зазвичай рекомендується залишати цю опцію увімкненою, якщо тільки ваш "
-"принтер не має достатньо потужного охолодження або швидкість друку не є "
-"настільки низькою, щоб уникнути загортання периметрів. Якщо ви друкуєте на "
-"високій швидкості зовнішніх периметрів, це налаштування може спричинити "
-"незначні артефакти через різку зміну швидкості друку. Якщо ви помітили такі "
-"артефакти, переконайтеся, що калібрування компенсації тиску (pressure "
-"advance) виконано правильно.**  \n"
-"\n"
-"**Примітка:** Коли ця опція увімкнена, периметри нависань обробляються так "
-"само, як звичайні нависання. Це означає, що буде застосована швидкість друку "
-"для нависань, навіть якщо нависаючий периметр є частиною мосту. Наприклад, "
-"якщо периметри нависають на 100% без опори знизу, буде застосована "
-"відповідна швидкість для 100% нависань."
 
 msgid "mm/s or %"
 msgstr "мм/с або %"
@@ -13061,25 +13502,25 @@ msgid "Thick external bridges"
 msgstr "Товсті зовнішні мости"
 
 msgid ""
-"If enabled, bridges are more reliable, can bridge longer distances, but may "
-"look worse. If disabled, bridges look better but are reliable just for "
-"shorter bridged distances."
+"If enabled, bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases bridge strength and reliability, allowing longer spans, but "
+"may worsen appearance.\n"
+"If disabled, bridges may look better but are generally reliable only for "
+"shorter spans."
 msgstr ""
-"Якщо ця функція увімкнена, мости більш надійні, можуть з'єднувати "
-"великівідстань, але можуть виглядати гірше. Якщо відключити, мости "
-"виглядають краще,Але надійні лише для більш коротких мостових відстаней."
 
 msgid "Thick internal bridges"
 msgstr "Товсті внутрішні мости"
 
 msgid ""
-"If enabled, thick internal bridges will be used. It's usually recommended to "
-"have this feature turned on. However, consider turning it off if you are "
-"using large nozzles."
+"If enabled, internal bridge extrusion uses a line height equal to the nozzle "
+"diameter.\n"
+"This increases internal bridge strength and reliability when printed over "
+"sparse infill, but may worsen appearance.\n"
+"If disabled, internal bridges may look better but can be less reliable over "
+"sparse infill."
 msgstr ""
-"Якщо увімкнено, будуть використовуватися товсті внутрішні мости. Зазвичай "
-"рекомендується вмикати цю функцію. Однак, якщо ви використовуєте великі "
-"сопла, краще вимкнути її."
 
 msgid "Extra bridge layers (beta)"
 msgstr "Додаткові шари мостів (бета)"
@@ -13147,9 +13588,6 @@ msgstr ""
 "еталонний кут.\n"
 "4. Застосовувати до всіх - створює другий містовий шар для внутрішніх і "
 "зовнішніх мостів\n"
-
-msgid "Disabled"
-msgstr "Вимкнено"
 
 msgid "External bridge only"
 msgstr "Тільки зовнішні мости"
@@ -13846,6 +14284,18 @@ msgstr ""
 msgid "Auto For Match"
 msgstr ""
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr ""
 
@@ -14295,9 +14745,10 @@ msgid "Align infill direction to model"
 msgstr ""
 
 msgid ""
-"Aligns infill and surface fill directions to follow the model's orientation "
-"on the build plate. When enabled, fill directions rotate with the model to "
-"maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing and surface fill directions to follow the "
+"model's orientation on the build plate.\n"
+"When enabled, directions rotate with the model to maintain optimal strength "
+"characteristics."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -14317,6 +14768,18 @@ msgid ""
 "Using multiple lines for the infill pattern, if supported by infill pattern."
 msgstr ""
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Шаблон часткового заповнення"
 
@@ -14324,7 +14787,7 @@ msgid "Line pattern for internal sparse infill."
 msgstr "Шаблон ліній внутрішнього часткового заповнення"
 
 msgid "Zig Zag"
-msgstr ""
+msgstr "Зіг-Заг"
 
 msgid "Cross Zag"
 msgstr ""
@@ -14405,6 +14868,27 @@ msgstr ""
 
 msgid ""
 "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr ""
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are "
+"pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
 msgstr ""
 
 msgid "Sparse infill anchor length"
@@ -14544,9 +15028,6 @@ msgid ""
 msgstr "Klipper-ів max_accel_to_decel буде скориговано на цей %% прискорення"
 
 msgid "Default jerk."
-msgstr ""
-
-msgid "Junction Deviation"
 msgstr ""
 
 msgid ""
@@ -15034,7 +15515,7 @@ msgstr ""
 "нарізка."
 
 msgid "HRC"
-msgstr ""
+msgstr "HRC"
 
 msgid "Printer structure"
 msgstr "Структура принтера"
@@ -15114,6 +15595,30 @@ msgstr ""
 "недостатнім для того, щоб вентилятор почав обертатися з упору, абодля "
 "прискорення роботи вентилятора.\n"
 "Для деактивації встановіть значення 0."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr "%"
 
 msgid "Time cost"
 msgstr "Вартість часу"
@@ -15344,8 +15849,10 @@ msgstr ""
 msgid "Probing exclude area of clumping."
 msgstr ""
 
-msgid "Filament to print internal sparse infill."
-msgstr "Філамент для друку внутрішнього часткового заповнення."
+msgid ""
+"Filament to print internal sparse infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal sparse infill. If expressed as a %, it will be "
@@ -15455,7 +15962,7 @@ msgid "Orientation of interlock beams."
 msgstr ""
 
 msgid "Interlocking beam layers"
-msgstr ""
+msgstr "Кількість шарів взаємопов'язаних балок"
 
 msgid ""
 "The height of the beams of the interlocking structure, measured in number of "
@@ -15465,7 +15972,7 @@ msgstr ""
 "шарів забезпечує більшу міцність, але підвищує ризик дефектів."
 
 msgid "Interlocking depth"
-msgstr ""
+msgstr "Глибина взаємопов'язаної структури"
 
 msgid ""
 "The distance from the boundary between filaments to generate interlocking "
@@ -15828,7 +16335,7 @@ msgid "DAA"
 msgstr ""
 
 msgid "X"
-msgstr ""
+msgstr "X"
 
 msgid ""
 "Resonant frequency for the X axis input shaper.\n"
@@ -15838,7 +16345,7 @@ msgid ""
 msgstr ""
 
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 msgid ""
 "Resonant frequency for the Y axis input shaper.\n"
@@ -16174,8 +16681,21 @@ msgstr ""
 "друку іншу швидкість. Для 100%%-вого нависання використовується швидкість "
 "моста."
 
-msgid "Filament to print walls."
-msgstr "Філамент для друку стінок"
+msgid "Outer walls"
+msgstr ""
+
+msgid ""
+"Filament to print outer walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid "Inner walls"
+msgstr ""
+
+msgid ""
+"Filament to print inner walls.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of inner wall. If expressed as a %, it will be computed over the "
@@ -16867,11 +17387,20 @@ msgstr ""
 "Ділянки часткового заповнення, менші за порогове значення, замінюються "
 "внутрішнім суцільним заповненням"
 
-msgid "Solid infill"
-msgstr "Суцільне заповнення"
+msgid ""
+"Filament to print internal solid infill.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
-msgid "Filament to print solid infill."
-msgstr "Філамент для друку суцільного заповнення"
+msgid ""
+"Filament to print top surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
+
+msgid ""
+"Filament to print bottom surface.\n"
+"\"Default\" uses the active object/part filament."
+msgstr ""
 
 msgid ""
 "Line width of internal solid infill. If expressed as a %, it will be "
@@ -17067,6 +17596,19 @@ msgstr "Очистити від залишків філаменту на під�
 msgid "Enable filament ramming"
 msgstr ""
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "Без розріджених шарів (бета)"
 
@@ -17228,12 +17770,10 @@ msgid "Support/raft base"
 msgstr "База підтримки/підкладки"
 
 msgid ""
-"Filament to print support base and raft. \"Default\" means no specific "
-"filament for support and current filament is used."
+"Filament to print support base and raft.\n"
+"\"Default\" means no specific filament for support and current filament is "
+"used."
 msgstr ""
-"Філамент для друку підтримок та підкладки. «За замовчуванням» означає "
-"відсутність конкретного філаменту для підтримок та використання поточного "
-"філаменту"
 
 msgid "Avoid interface filament for base"
 msgstr "Уникати філаменту інтерфейсу для бази"
@@ -17263,12 +17803,10 @@ msgid "Support/raft interface"
 msgstr "Інтерфейс підтримки/підкладки"
 
 msgid ""
-"Filament to print support interface. \"Default\" means no specific filament "
-"for support interface and current filament is used."
+"Filament to print support interface.\n"
+"\"Default\" means no specific filament for support interface and current "
+"filament is used."
 msgstr ""
-"Філамент для друку підтримки. «За замовчуванням» означає відсутність "
-"конкретного філаменту для друку підтримки, і використовується поточний "
-"філамент"
 
 msgid "Top interface layers"
 msgstr "Верхній шар підтримки"
@@ -17405,15 +17943,17 @@ msgid "Threshold angle"
 msgstr "Кут порога"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
-"Буде створена опора для нависань з кутом нахилу нижче порогу."
-"Чим менше це значення, тим крутіше нависання можна надрукувати без підтримки.\n"
-"Примітка: Якщо встановлено значення 0, звичайні опори використовують перекриття "
-"порогу, тоді як опори дерев повертаються до значення за замовчуванням 30."
+"Буде створена опора для нависань з кутом нахилу нижче порогу.Чим менше це "
+"значення, тим крутіше нависання можна надрукувати без підтримки.\n"
+"Примітка: Якщо встановлено значення 0, звичайні опори використовують "
+"перекриття порогу, тоді як опори дерев повертаються до значення за "
+"замовчуванням 30."
 
 msgid "Threshold overlap"
 msgstr "Поріг накладання"
@@ -18284,6 +18824,9 @@ msgstr "неправильне значення "
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Неприпустиме значення при увімкненому режимі спіральної вази: "
 
+msgid "Bridge line width must not exceed nozzle diameter: "
+msgstr ""
+
 msgid "too large line width "
 msgstr "надто велика ширина лінії "
 
@@ -18348,13 +18891,13 @@ msgid "Export 3MF with minimum size."
 msgstr "експортувати 3MF з мінімальним розміром."
 
 msgid "mtcpp"
-msgstr ""
+msgstr "mtcpp"
 
 msgid "max triangle count per plate for slicing."
 msgstr "максимальна кількість трикутників на стіл для нарізки."
 
 msgid "mstpp"
-msgstr ""
+msgstr "mstpp"
 
 msgid "max slicing time per plate in seconds."
 msgstr "максимальний час нарізки на стіл у секундах."
@@ -18436,10 +18979,10 @@ msgid "Rotation angle around the Z axis in degrees."
 msgstr "Кут обертання навколо осі Z у градусах."
 
 msgid "Rotate around X"
-msgstr ""
+msgstr "Обертання навколо X"
 
 msgid "Rotation angle around the X axis in degrees."
-msgstr ""
+msgstr "Кут обертання навколо осі Х у градусах."
 
 msgid "Rotate around Y"
 msgstr "Обертати навколо осі Y"
@@ -18535,6 +19078,12 @@ msgid ""
 msgstr ""
 "Встановлює рівень реєстрації налагодження. 0: непереборний, 1: помилка, 2: "
 "попередження, 3: інформація, 4: налагодження, 5: трасування\n"
+
+msgid "Log file"
+msgstr ""
+
+msgid "Redirects debug logging to file.\n"
+msgstr ""
 
 msgid "Enable timelapse for print"
 msgstr "Увімкнути таймлапс для друку"
@@ -18724,10 +19273,12 @@ msgstr ""
 "в поточному друці."
 
 msgid "Has single extruder MM priming"
-msgstr ""
+msgstr "Є перед-заряджання одиночного багато-кольорового екструдера"
 
 msgid "Are the extra multi-material priming regions used in this print?"
 msgstr ""
+"Чи використовуються в цій печатці додаткові області перед-зарядки для "
+"декількох матеріалів?"
 
 msgid "Volume per extruder"
 msgstr "Об'єм на один екструдер"
@@ -18773,23 +19324,27 @@ msgid "Number of layers in the entire print."
 msgstr "Кількість шарів усього друку."
 
 msgid "Print time (normal mode)"
-msgstr ""
+msgstr "Час друку (звичайний режим)"
 
 msgid ""
 "Estimated print time when printed in normal mode (i.e. not in silent mode). "
 "Same as print_time."
 msgstr ""
+"Розрахунковий час друку у звичайному режимі (тобто не в тихому режимі). Те "
+"саме, що і 'Час друку (звичайний режим)'(print_time)."
 
 msgid ""
 "Estimated print time when printed in normal mode (i.e. not in silent mode). "
 "Same as normal_print_time."
 msgstr ""
+"Розрахунковий час друку у звичайному режимі (тобто не в тихому режимі). Те "
+"саме, що й 'Час друку (звичайний режим)'(normal_print_time)."
 
 msgid "Print time (silent mode)"
-msgstr ""
+msgstr "Час друку (тихий режим)"
 
 msgid "Estimated print time when printed in silent mode."
-msgstr ""
+msgstr "Розрахунковий час друку в тихому режимі."
 
 msgid ""
 "Total cost of all material used in the print. Calculated from filament_cost "
@@ -18797,7 +19352,7 @@ msgid ""
 msgstr ""
 
 msgid "Total wipe tower cost"
-msgstr ""
+msgstr "Загальна вартість 'Вежі Очищення'"
 
 msgid ""
 "Total cost of the material wasted on the wipe tower. Calculated from "
@@ -18805,16 +19360,16 @@ msgid ""
 msgstr ""
 
 msgid "Wipe tower volume"
-msgstr ""
+msgstr "Об'єм 'Вежі Очищення'"
 
 msgid "Total filament volume extruded on the wipe tower."
-msgstr ""
+msgstr "Загальний об'єм матеріалу видавленого в 'Вежу Очищення'."
 
 msgid "Used filament"
 msgstr "Філамент, що використовується"
 
 msgid "Total length of filament used in the print."
-msgstr ""
+msgstr "Загальна довжина філаменту, використаної під час друку."
 
 msgid "Print time (seconds)"
 msgstr ""
@@ -18989,9 +19544,6 @@ msgstr "Створення областей заповнення"
 msgid "Generating infill toolpath"
 msgstr "Створення траєкторії заповнення"
 
-msgid "Z contouring"
-msgstr ""
-
 msgid "Detect overhangs for auto-lift"
 msgstr "Виявлення виступів для автоматичного підйому"
 
@@ -19045,9 +19597,12 @@ msgid ""
 "is also fuzzy skin painted.\n"
 "XY Size compensation cannot be combined with fuzzy skin painting."
 msgstr ""
+"Увімкнено компенсацію розмірів за XY, яка не може працювати одночасно з "
+"текстурною оболонкою. \n"
+"Тому компенсація розмірів за XY не буде використана."
 
 msgid "Object name"
-msgstr ""
+msgstr "Назва об'єкту"
 
 msgid "Support: generate contact points"
 msgstr "Підтримка: створення точок контакту"
@@ -19531,7 +20086,7 @@ msgid "Printing Parameters"
 msgstr "Параметри друку"
 
 msgid "- ℃"
-msgstr ""
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
 msgstr ""
@@ -19997,6 +20552,15 @@ msgstr ""
 msgid "Top Surface Pattern"
 msgstr ""
 
+msgid "Choose a slot for the selected color"
+msgstr ""
+
+msgid "Material in the material station"
+msgstr ""
+
+msgid "Only materials of the same type can be selected."
+msgstr ""
+
 msgid "Send G-code to printer host"
 msgstr "Надіслання G-коду на хост друку"
 
@@ -20020,6 +20584,48 @@ msgstr ""
 
 msgid "Upload"
 msgstr "Завантаження"
+
+msgid "Leveling before print"
+msgstr ""
+
+msgid "Time-lapse"
+msgstr "Таймлапс"
+
+msgid "Enable IFS"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Detected %d IFS slots on printer."
+msgstr ""
+
+msgid "This printer does not report a material station."
+msgstr ""
+
+msgid "Unable to read IFS slots from printer."
+msgstr ""
+
+msgid "Loading IFS slots from printer..."
+msgstr ""
+
+msgid "Slice the plate first to get project material information."
+msgstr ""
+
+msgid ""
+"This plate uses multiple materials. Enable IFS and assign each tool to a "
+"printer slot."
+msgstr ""
+
+msgid "Each project material must be assigned to an IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must be assigned to a loaded IFS slot before printing."
+msgstr ""
+
+msgid ""
+"Each project material must match the material loaded in the selected IFS "
+"slot."
+msgstr ""
 
 msgid "Print host upload queue"
 msgstr "Черга завантаження на хост друку"
@@ -20064,9 +20670,6 @@ msgid ""
 msgstr ""
 "Тип столу не відповідає файлу. Будь ласка, підтвердьте перед початком друку."
 
-msgid "Time-lapse"
-msgstr "Таймлапс"
-
 msgid "Heated Bed Leveling"
 msgstr "Вирівнювання Нагрівального Столу"
 
@@ -20075,6 +20678,16 @@ msgstr "Текстурована Робоча Пластина (Cторона A)
 
 msgid "Smooth Build Plate (Side B)"
 msgstr "Гладка Робоча Пластина (Cторона B)"
+
+#, c-format, boost-format
+msgid "Printer: %s"
+msgstr ""
+
+msgid "Calibrate before printing"
+msgstr ""
+
+msgid "Filament Mapping:"
+msgstr ""
 
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Не вдається виконати булеву операцію на вибраних частинах"
@@ -20354,9 +20967,6 @@ msgstr "Набір параметрів принтера"
 msgid "Filament Preset Template"
 msgstr "Шаблон набору параметрів філаменту"
 
-msgid "Deselect All"
-msgstr "Скасувати вибір всіх"
-
 msgid "Process Preset Template"
 msgstr "Шаблон набору параметрів процесу"
 
@@ -20444,6 +21054,18 @@ msgstr ""
 msgid ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
 msgstr ""
 
 msgid "Printer Created Successfully"
@@ -20704,34 +21326,8 @@ msgid ""
 msgstr ""
 
 #, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr ""
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr ""
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-
-#, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr ""
+msgstr "Друк матеріалу %1s соплом %2s може призвести до пошкодження сопла."
 
 msgid "Need select printer"
 msgstr "Потрібно вибрати принтер"
@@ -20743,6 +21339,8 @@ msgid ""
 "The number of printer extruders and the printer selected for calibration "
 "does not match."
 msgstr ""
+"Кількість екструдерів не підходить для принтера, що було обрано для "
+"калібрування."
 
 #, c-format, boost-format
 msgid ""
@@ -20787,8 +21385,17 @@ msgid ""
 "agents are registered at startup."
 msgstr ""
 
+msgid "Select a Flashforge printer"
+msgstr ""
+
+msgid "Discovered Printers"
+msgstr ""
+
 msgid "Could not get a valid Printer Host reference"
 msgstr "Неможливо отримати дійсне посилання на хост принтера"
+
+msgid "Valid session not detected. Proceed with login to 3DPrinterOS?"
+msgstr ""
 
 msgid "Success!"
 msgstr "Успіх!"
@@ -20835,6 +21442,42 @@ msgstr "Вхід/Тест"
 
 msgid "Connection to printers connected via the print host failed."
 msgstr "Не вдалося підключитися до принтерів, підключених через вузол друку."
+
+msgid "3DPrinterOS Cloud upload options"
+msgstr ""
+
+msgid "Single file"
+msgstr ""
+
+msgid "Project File"
+msgstr ""
+
+msgid "Project:"
+msgstr ""
+
+msgid "Printer type:"
+msgstr ""
+
+msgid "Printer type not found, please select manually."
+msgstr ""
+
+msgid "Authorizing..."
+msgstr ""
+
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
+msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -21215,28 +21858,46 @@ msgid ""
 "vendor for suitable profile before printing and adjust some parameters "
 "according to its performances."
 msgstr ""
+"Це ні філамент, який широко використовується, ні один з філаментів Bambu, і "
+"він значно відрізняється від бренду до бренду. Тому високо рекомендується "
+"звернутися до його постачальника за відповідним профілем перед друкуванням і "
+"налаштувати деякі параметри відповідно до його характеристик."
 
 msgid ""
 "When printing this filament, there's a risk of warping and low layer "
 "adhesion strength. To get better results, please refer to this wiki: "
 "Printing Tips for High Temp / Engineering materials."
 msgstr ""
+"При друкуванні з цього філамента існує ризик деформації та низької адгезії "
+"між шарами. Щоб отримати кращі результати, будь ласка, ознайомтеся з цією "
+"вікі: Поради з друку для матеріалів високої температури / інженерних "
+"матеріалів."
 
 msgid ""
 "When printing this filament, there's a risk of nozzle clogging, oozing, "
 "warping and low layer adhesion strength. To get better results, please refer "
 "to this wiki: Printing Tips for High Temp / Engineering materials."
 msgstr ""
+"При друкуванні з цього філамента існує ризик забивання сопла, витікання, "
+"деформації та низької адгезії між шарами. Щоб отримати кращі результати, "
+"будь ласка, ознайомтеся з цією вікі: Поради з друку для матеріалів високої "
+"температури / інженерних матеріалів."
 
 msgid ""
 "To get better transparent or translucent results with the corresponding "
 "filament, please refer to this wiki: Printing tips for transparent PETG."
 msgstr ""
+"Щоб отримати кращі прозорі або напівпрозорі результати з відповідним "
+"філаментом, будь ласка, ознайомтеся з цією вікі: Поради з друку для "
+"прозорого PETG."
 
 msgid ""
 "To make the prints get higher gloss, please dry the filament before use, and "
 "set the outer wall speed to be 40 to 60 mm/s when slicing."
 msgstr ""
+"Щоб надати друкам вищий блиск, будь ласка, просушіть філамент перед "
+"використанням і встановіть швидкість зовнішньої стіни на 40-60 мм/с під час "
+"нарізання."
 
 msgid ""
 "This filament is only used to print models with a low density usually, and "
@@ -21244,24 +21905,38 @@ msgid ""
 "refer to this wiki: Instructions for printing RC model with foaming PLA (PLA "
 "Aero)."
 msgstr ""
+"Цей філамент зазвичай використовується лише для друку моделей з низькою "
+"щільністю, і для нього потрібні деякі спеціальні параметри. Щоб отримати "
+"кращу якість друку, будь ласка, ознайомтеся з цією вікі: Інструкції з друку "
+"RC моделей з пінопласту PLA (PLA Aero)."
 
 msgid ""
 "This filament is only used to print models with a low density usually, and "
 "some special parameters are required. To get better printing quality, please "
 "refer to this wiki: ASA Aero Printing Guide."
 msgstr ""
+"Цей філамент зазвичай використовується лише для друку моделей з низькою "
+"щільністю, і для нього потрібні деякі спеціальні параметри. Щоб отримати "
+"кращу якість друку, будь ласка, ознайомтеся з цією вікі: Посібник з друку "
+"ASA Aero."
 
 msgid ""
 "This filament is too soft and not compatible with the AMS. Printing it is of "
 "many requirements, and to get better printing quality, please refer to this "
 "wiki: TPU printing guide."
 msgstr ""
+"Цей філамент занадто м’який і не сумісний з AMS. Друк з нього має багато "
+"вимог, і для отримання кращої якості друку, будь ласка, ознайомтеся з цією "
+"вікі: Посібник з друку TPU."
 
 msgid ""
 "This filament has high enough hardness (about 67D)  and is compatible with "
 "the AMS. Printing it is of many requirements, and to get better printing "
 "quality, please refer to this wiki: TPU printing guide."
 msgstr ""
+"Цей філамент має достатню твердість (приблизно 67D) і сумісний з AMS. Друк з "
+"нього має багато вимог, і для отримання кращої якості друку, будь ласка, "
+"ознайомтеся з цією вікі: Посібник з друку TPU."
 
 msgid ""
 "If you are to print a kind of soft TPU, please don't slice with this "
@@ -21269,6 +21944,10 @@ msgid ""
 "55D) and is compatible with the AMS. To get better printing quality, please "
 "refer to this wiki: TPU printing guide."
 msgstr ""
+"Якщо ви збираєтеся друкувати м’який TPU, будь ласка, не нарізайте його з цим "
+"профілем; цей профіль призначений лише для TPU з достатньою твердістю (не "
+"менше 55D) і сумісного з AMS. Щоб отримати кращу якість друку, будь ласка, "
+"ознайомтеся з цією вікі: Посібник з друку TPU."
 
 msgid ""
 "This is a water-soluble support filament, and usually it is only for the "
@@ -21276,6 +21955,10 @@ msgid ""
 "many requirements, and to get better printing quality, please refer to this "
 "wiki: PVA Printing Guide."
 msgstr ""
+"Це філамент, що розчиняється у воді, і зазвичай він призначений лише для "
+"підтримуючої структури, а не для тіла моделі. Друк з цього філамента має "
+"багато вимог, і для отримання кращої якості друку, будь ласка, ознайомтеся з "
+"цією вікі: Посібник з друку PVA."
 
 msgid ""
 "This is a non-water-soluble support filament, and usually it is only for the "
@@ -21283,12 +21966,19 @@ msgid ""
 "quality, please refer to this wiki: Printing Tips for Support Filament and "
 "Support Function."
 msgstr ""
+"Це філамент для підтримки, що не розчиняється у воді, і зазвичай він "
+"призначений лише для підтримуючої структури, а не для тіла моделі. Щоб "
+"отримати кращу якість друку, будь ласка, ознайомтеся з цією вікі: Поради з "
+"друку для філамента підтримки та функції підтримки."
 
 msgid ""
 "The generic presets are conservatively tuned for compatibility with a wider "
 "range of filaments. For higher printing quality and speeds, please use Bambu "
 "filaments with Bambu presets."
 msgstr ""
+"Загальні пресети налаштовані консервативно для сумісності з більш широким "
+"спектром філаментів. Для досягнення вищої якості друку та швидкості, будь "
+"ласка, використовуйте філаменти Bambu з пресетами Bambu."
 
 msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
 msgstr ""
@@ -21545,10 +22235,124 @@ msgstr ""
 "Обліковий запис SimplyPrint не пов’язано. Щоб налаштувати його, перейдіть до "
 "параметрів підключення."
 
+msgid "Flashforge returned an invalid JSON response."
+msgstr ""
+
+msgid "No Flashforge printers were discovered on the local network."
+msgstr ""
+
+msgid "Connected to Flashforge local API successfully."
+msgstr ""
+
 msgid "Serial connection to Flashforge is working correctly."
 msgstr ""
 
+msgid "Could not connect to Flashforge local API"
+msgstr ""
+
 msgid "Could not connect to Flashforge via serial"
+msgstr ""
+
+msgid "Flashforge local API requires both serial number and access code."
+msgstr ""
+
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
 msgstr ""
 
 msgid "The provided state is not correct."
@@ -21572,26 +22376,17 @@ msgstr "Максимальний кут"
 msgid "Detection radius"
 msgstr "Радіус виявлення"
 
-msgid "Remove selected points"
-msgstr "Видалити вибрані точки"
-
-msgid "Remove all"
-msgstr "Видалити все"
-
-msgid "Auto-generate points"
-msgstr "Автоматично згенерувати точки"
-
-msgid "Add a brim ear"
-msgstr "Додати краєчок"
-
-msgid "Delete a brim ear"
-msgstr "Видалити краєчок"
-
-msgid "Adjust head diameter"
+msgid "Selected"
 msgstr ""
 
-msgid "Adjust section view"
-msgstr "Налаштувати вид секції"
+msgid "Auto-generate"
+msgstr ""
+
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
+
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -21601,10 +22396,10 @@ msgstr ""
 "матимуть ефекту!"
 
 msgid "Set the brim type of this object to \"painted\""
-msgstr ""
+msgstr "Встановити тип краєчка для цього об'єкту на “намальований“"
 
-msgid " invalid brim ears"
-msgstr " Неправильні краєчки"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Краєчки"
@@ -21612,13 +22407,22 @@ msgstr "Краєчки"
 msgid "Please select single object."
 msgstr "Будь ласка, виберіть один об’єкт."
 
-msgid "Zoom Out"
+msgid "Entering Brim Ears"
 msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
+msgid "Zoom Out"
+msgstr "Зменшити"
 
 msgid "Zoom In"
-msgstr ""
+msgstr "Збільшити"
 
 msgid "Load skipping objects information failed. Please try again."
+msgstr ""
+
+msgid "Failed to create the temporary folder."
 msgstr ""
 
 #, c-format, boost-format
@@ -21682,7 +22486,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr ""
+msgstr "Помилка: %s"
 
 msgid "Show details"
 msgstr ""
@@ -21732,13 +22536,13 @@ msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
-msgstr ""
+msgstr "ВЗАГАЛІ БЕЗ УТРАМБУВАННЯ"
 
 msgid "Volumetric speed"
-msgstr ""
+msgstr "Об'ємна швидкість"
 
 msgid "Step file import parameters"
-msgstr ""
+msgstr "Параметри імпорту STEP-файлу"
 
 msgid ""
 "Smaller linear and angular deflections result in higher-quality "
@@ -21746,45 +22550,148 @@ msgid ""
 msgstr ""
 
 msgid "Linear Deflection"
-msgstr ""
+msgstr "Лінійне відхилення"
 
 msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
 msgstr ""
+"Будь ласка, введіть допустиме значення (0.001 < лінійне відхилення < 0.1)"
 
 msgid "Angle Deflection"
-msgstr ""
+msgstr "Відхилення кута"
 
 msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
-msgstr ""
+msgstr "Будь ласка, введіть допустиме значення (0.01 < відхилення кута < 1.0)"
 
 msgid "Split compound and compsolid into multiple objects"
 msgstr ""
 
 msgid "Number of triangular facets"
-msgstr ""
+msgstr "Кількість трикутних граней"
 
 msgid "Calculating, please wait..."
+msgstr "Розрахунок, будь ласка, зачекайте…"
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - boost::filesystem::"
+"canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
 msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
 "Generic filament presets will be used."
 msgstr ""
+"Цей філамент може бути несумісним з поточними налаштуваннями машини. Будуть "
+"використані пресети Generic філамента"
 
 msgid ""
 "The filament model is unknown. Still using the previous filament preset."
 msgstr ""
+"Модель філамента невідома. Продовжуємо використовувати попередні пресети "
+"філамента."
 
 msgid "The filament model is unknown. Generic filament presets will be used."
 msgstr ""
+"Модель філамента невідома. Будуть використані пресети Generic філамента"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. A "
 "random filament preset will be used."
 msgstr ""
+"Цей філамент може бути несумісним з поточними налаштуваннями машини. Буде "
+"використаний випадковий пресет філамента"
 
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
+"Модель філамента невідома. Буде використаний випадковий пресет філамента"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -21871,15 +22778,13 @@ msgstr ""
 "Чи знаєте ви, що Orca Slicer пропонує широкий спектр комбінацій клавіш для "
 "роботи з 3D-сценами?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Reverse on odd\n"
-"Чи знали ви, що функція <b>Реверс по непарних периметрах</b> може значно "
-"покращити якість поверхні ваших нависань?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22172,6 +23077,247 @@ msgstr ""
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як "
 "ABS, відповідне підвищення температури гарячого ліжка може зменшити "
 "ймовірність деформації?"
+
+#~ msgid ""
+#~ "The Wipe option is not available when using the Firmware Retraction "
+#~ "mode.\n"
+#~ "\n"
+#~ "Shall I disable it in order to enable Firmware Retraction?"
+#~ msgstr ""
+#~ "Опція Wipe недоступна під час використання режиму Firmware Retraction.\n"
+#~ "\n"
+#~ "Чи я повинен відключити його, щоб включити Firmware Retraction?"
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in before_layer_gcode, which is incompatible with "
+#~ "absolute extruder addressing."
+#~ msgstr ""
+#~ "У before_layer_gcode знайдено \"G92 E0\", що несумісне з абсолютною "
+#~ "адресацією екструдера."
+
+#~ msgid ""
+#~ "\"G92 E0\" was found in layer_gcode, which is incompatible with absolute "
+#~ "extruder addressing."
+#~ msgstr ""
+#~ "У layer_gcode знайдено \"G92 E0\", що несумісне з абсолютною адресацією "
+#~ "екструдера."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Bridging angle override. If left to zero, the bridging angle will be "
+#~ "calculated automatically. Otherwise the provided angle will be used for "
+#~ "external bridges. Use 180° for zero angle."
+#~ msgstr ""
+#~ "Перевизначення кута моста. Якщо залишити значення рівним нулю, кут моста "
+#~ "обчислюватиметься автоматично. Інакше наданий кут використовуйте для "
+#~ "зовнішніх мостів. Використовуйте 180 ° для нульового кута."
+
+#~ msgid ""
+#~ "Internal bridging angle override. If left to zero, the bridging angle "
+#~ "will be calculated automatically. Otherwise the provided angle will be "
+#~ "used for internal bridges. Use 180° for zero angle.\n"
+#~ "\n"
+#~ "It is recommended to leave it at 0 unless there is a specific model need "
+#~ "not to."
+#~ msgstr ""
+#~ "Перевизначення кута мостів. Якщо залишити значення рівним нулю, кут "
+#~ "мостів буде розраховано автоматично. В іншому випадку для внутрішніх "
+#~ "мостів буде використано заданий кут. Використовуйте 180° для нульового "
+#~ "кута.\n"
+#~ "\n"
+#~ "Рекомендується залишати його на 0, якщо тільки це не є необхідним для "
+#~ "конкретної моделі."
+
+#~ msgid ""
+#~ "Controls the density (spacing) of internal bridge lines. 100% means solid "
+#~ "bridge. Default is 100%.\n"
+#~ "\n"
+#~ "Lower density internal bridges can help reduce top surface pillowing and "
+#~ "improve internal bridge reliability as there is more space for air to "
+#~ "circulate around the extruded bridge, improving its cooling speed.\n"
+#~ "\n"
+#~ "This option works particularly well when combined with the second "
+#~ "internal bridge over infill option, further improving internal bridging "
+#~ "structure before solid infill is extruded."
+#~ msgstr ""
+#~ "Керує щільністю (відстанню) внутрішніх ліній мостів. 100% означає "
+#~ "суцільний міст. Значення за замовчуванням – 100%.\n"
+#~ "\n"
+#~ "Мости з меншою щільністю можуть допомогти зменшити ефект здуття верхньої "
+#~ "поверхні та покращити надійність внутрішніх мостів, оскільки навколо "
+#~ "екструдованого моста залишається більше простору для циркуляції повітря, "
+#~ "що покращує його охолодження.\n"
+#~ "\n"
+#~ "Ця опція особливо ефективна в поєднанні з параметром друку другого "
+#~ "внутрішнього моста над заповненням, що ще більше покращує внутрішню "
+#~ "структуру мостів перед екструзією суцільного заповнення."
+
+#~ msgid ""
+#~ "Decrease this value slightly (for example 0.9) to reduce the amount of "
+#~ "material for bridge, to improve sag.\n"
+#~ "\n"
+#~ "The actual bridge flow used is calculated by multiplying this value with "
+#~ "the filament flow ratio, and if set, the object's flow ratio."
+#~ msgstr ""
+#~ "Зменште це значення трохи(наприклад 0.9) щоб зменшити кількість матеріалу "
+#~ "для мосту для покращення провисання.\n"
+#~ "\n"
+#~ "Фактичний потік матеріалу для мосту розраховується шляхом множення цього "
+#~ "значення на коефіцієнт потоку філамента і якщо встановлено, на коефіцієнт "
+#~ "потоку об'єкта."
+
+#~ msgid ""
+#~ "This value governs the thickness of the internal bridge layer. This is "
+#~ "the first layer over sparse infill. Decrease this value slightly (for "
+#~ "example 0.9) to improve surface quality over sparse infill.\n"
+#~ "\n"
+#~ "The actual internal bridge flow used is calculated by multiplying this "
+#~ "value with the bridge flow ratio, the filament flow ratio, and if set, "
+#~ "the object's flow ratio."
+#~ msgstr ""
+#~ "Це значення визначає товщину внутрішнього мостового шару. Це перший шар "
+#~ "над розрідженим заповненням.\n"
+#~ "Зменште це значення трохи (наприклад 0.9) щоб покращити якість поверхні "
+#~ "над розрідженим заповненням.\n"
+#~ "\n"
+#~ "Фактична подача матеріалу для внутрішнього мостового шару розраховується "
+#~ "шляхом множення цього значення на коефіцієнт подачі для мостів, "
+#~ "коефіцієнт подачі філаменту та, якщо встановлено, коефіцієнт подачі для "
+#~ "об'єкта."
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enable this option to slow down printing in areas where perimeters may "
+#~ "have curled upwards. For example, additional slowdown will be applied "
+#~ "when printing overhangs on sharp corners like the front of the Benchy "
+#~ "hull, reducing curling which compounds over multiple layers.\n"
+#~ "\n"
+#~ "It is generally recommended to have this option switched on unless your "
+#~ "printer cooling is powerful enough or the print speed slow enough that "
+#~ "perimeter curling does not happen. If printing with a high external "
+#~ "perimeter speed, this parameter may introduce slight artifacts when "
+#~ "slowing down due to the large variance in print speeds. If you notice "
+#~ "artifacts, ensure your pressure advance is tuned correctly.\n"
+#~ "\n"
+#~ "Note: When this option is enabled, overhang perimeters are treated like "
+#~ "overhangs, meaning the overhang speed is applied even if the overhanging "
+#~ "perimeter is part of a bridge. For example, when the perimeters are 100% "
+#~ "overhanging, with no wall supporting them from underneath, the 100% "
+#~ "overhang speed will be applied."
+#~ msgstr ""
+#~ "Увімкніть цю опцію, щоб уповільнити друк у зонах, де периметри можуть "
+#~ "загортатися вгору.  \n"
+#~ "\n"
+#~ "**Наприклад, додаткове зниження швидкості застосовується при друку "
+#~ "нависань на гострих кутах, таких як передня частина корпусу Benchy. Це "
+#~ "допомагає зменшити загортання, яке може накопичуватися з кожним шаром."
+#~ "**  \n"
+#~ "\n"
+#~ "**Зазвичай рекомендується залишати цю опцію увімкненою, якщо тільки ваш "
+#~ "принтер не має достатньо потужного охолодження або швидкість друку не є "
+#~ "настільки низькою, щоб уникнути загортання периметрів. Якщо ви друкуєте "
+#~ "на високій швидкості зовнішніх периметрів, це налаштування може "
+#~ "спричинити незначні артефакти через різку зміну швидкості друку. Якщо ви "
+#~ "помітили такі артефакти, переконайтеся, що калібрування компенсації тиску "
+#~ "(pressure advance) виконано правильно.**  \n"
+#~ "\n"
+#~ "**Примітка:** Коли ця опція увімкнена, периметри нависань обробляються "
+#~ "так само, як звичайні нависання. Це означає, що буде застосована "
+#~ "швидкість друку для нависань, навіть якщо нависаючий периметр є частиною "
+#~ "мосту. Наприклад, якщо периметри нависають на 100% без опори знизу, буде "
+#~ "застосована відповідна швидкість для 100% нависань."
+
+#~ msgid ""
+#~ "If enabled, bridges are more reliable, can bridge longer distances, but "
+#~ "may look worse. If disabled, bridges look better but are reliable just "
+#~ "for shorter bridged distances."
+#~ msgstr ""
+#~ "Якщо ця функція увімкнена, мости більш надійні, можуть з'єднувати "
+#~ "великівідстань, але можуть виглядати гірше. Якщо відключити, мости "
+#~ "виглядають краще,Але надійні лише для більш коротких мостових відстаней."
+
+#~ msgid ""
+#~ "If enabled, thick internal bridges will be used. It's usually recommended "
+#~ "to have this feature turned on. However, consider turning it off if you "
+#~ "are using large nozzles."
+#~ msgstr ""
+#~ "Якщо увімкнено, будуть використовуватися товсті внутрішні мости. Зазвичай "
+#~ "рекомендується вмикати цю функцію. Однак, якщо ви використовуєте великі "
+#~ "сопла, краще вимкнути її."
+
+#~ msgid "Filament to print internal sparse infill."
+#~ msgstr "Філамент для друку внутрішнього часткового заповнення."
+
+#~ msgid "Filament to print walls."
+#~ msgstr "Філамент для друку стінок"
+
+#~ msgid "Solid infill"
+#~ msgstr "Суцільне заповнення"
+
+#~ msgid "Filament to print solid infill."
+#~ msgstr "Філамент для друку суцільного заповнення"
+
+#~ msgid ""
+#~ "Filament to print support base and raft. \"Default\" means no specific "
+#~ "filament for support and current filament is used."
+#~ msgstr ""
+#~ "Філамент для друку підтримок та підкладки. «За замовчуванням» означає "
+#~ "відсутність конкретного філаменту для підтримок та використання поточного "
+#~ "філаменту"
+
+#~ msgid ""
+#~ "Filament to print support interface. \"Default\" means no specific "
+#~ "filament for support interface and current filament is used."
+#~ msgstr ""
+#~ "Філамент для друку підтримки. «За замовчуванням» означає відсутність "
+#~ "конкретного філаменту для друку підтримки, і використовується поточний "
+#~ "філамент"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Стерти всі малюнки"
+
+#~ msgid "Reset cut"
+#~ msgstr "Скинути розрізання"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Поміняти кнопки миші для панорамування й обертання"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Якщо ввімкнено, змінює місцями функції панорамування та обертання між "
+#~ "лівою та правою кнопками миші."
+
+#~ msgid "Remove selected points"
+#~ msgstr "Видалити вибрані точки"
+
+#~ msgid "Remove all"
+#~ msgstr "Видалити все"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Автоматично згенерувати точки"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Додати краєчок"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Видалити краєчок"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Налаштувати вид секції"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " Неправильні краєчки"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Reverse on odd\n"
+#~ "Чи знали ви, що функція <b>Реверс по непарних периметрах</b> може значно "
+#~ "покращити якість поверхні ваших нависань?"
 
 #~ msgid "Pen size"
 #~ msgstr "Розмір пера"
@@ -23182,9 +24328,6 @@ msgstr ""
 
 #~ msgid "Set Position"
 #~ msgstr "Встановити позицію"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #, boost-format
 #~ msgid "%1%"

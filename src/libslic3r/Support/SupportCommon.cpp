@@ -1733,8 +1733,8 @@ void generate_support_toolpaths(
                         interface_as_base ? ExtrusionRole::erSupportMaterial : ExtrusionRole::erSupportMaterialInterface, interface_flow);
                 }
             };
-            const bool top_interfaces = config.support_interface_top_layers.value != 0;
-            const bool bottom_interfaces = top_interfaces && config.support_interface_bottom_layers != 0;
+            const bool top_interfaces = support_params.num_top_interface_layers > 0;
+            const bool bottom_interfaces = top_interfaces && support_params.num_bottom_interface_layers > 0;
             extrude_interface(top_contact_layer,    raft_layer ? InterfaceLayerType::RaftContact : top_interfaces ? InterfaceLayerType::TopContact : InterfaceLayerType::InterfaceAsBase);
             if (!organic_tree)
                 extrude_interface(bottom_contact_layer, bottom_interfaces ? InterfaceLayerType::BottomContact : InterfaceLayerType::InterfaceAsBase);

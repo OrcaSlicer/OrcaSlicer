@@ -138,7 +138,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "RatRig V-Core 4 IDEX 400",             "RatRig V-Core 4 IDEX 400 COPY MODE",   "RatRig V-Core 4 IDEX 400 MIRROR MODE", "RatRig V-Core 4 IDEX 500",             "RatRig V-Core 4 IDEX 500 COPY MODE",
                             "RatRig V-Core 4 IDEX 500 MIRROR MODE"}},
      {"re3D",              {"re3D Gigabot 4",                       "re3D Gigabot 4 XLT",                   "re3D Terabot 4",
-                            "re3D Gigabot X2",                      "re3D Gigabot X2 XLT",                  "re3D Terabot X2"}},
+                            "re3D GigabotX 2",                      "re3D GigabotX 2 XLT",                  "re3D TerabotX 2"}},
      {"RolohaunDesign",    {"Rook MK1 LDO"}},
      {"SecKit",            {"SecKit SK-Tank", "Seckit Go3"}},
      {"Snapmaker",         {"Snapmaker J1",                 "Snapmaker A250",               "Snapmaker A350",               "Snapmaker A250 Dual",          "Snapmaker A350 Dual",
@@ -3378,9 +3378,30 @@ bool CreatePrinterPresetDialog::validate_input_valid()
 
     if (auto preset = wxGetApp().preset_bundle->printers.find_preset(custom_printer_name)) {
         if (preset->is_system) {
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                              wxYES | wxYES_DEFAULT | wxCENTRE);
-            dlg.ShowModal();
+            // ORCA offer switcing to existing preset to reduce confusion
+            std::string diameters;
+            auto printer_model = preset->config.opt_string("printer_model");
+            for (auto &preset : wxGetApp().preset_bundle->printers) {
+                if (preset.config.opt_string("printer_model") == printer_model)
+                    diameters += preset.config.opt_string("printer_variant") + "  ";
+            }
+            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+                                  + _L("\n\nAvailable nozzle profiles for this printer:")
+                                  + "\n" + diameters
+                                  + _L("\n\nChoose YES to switch existing preset:")
+                                  + "\n" + preset->name
+                              , wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info")
+                              , wxYES | wxYES_DEFAULT | wxNO | wxCENTRE);
+            if (dlg.ShowModal() == wxID_YES){
+                auto bundle = wxGetApp().preset_bundle;
+                bundle->printers.select_preset_by_name(preset->name, true);
+                bundle->update_compatible(PresetSelectCompatibleType::Always);
+                wxGetApp().load_current_presets();
+                wxGetApp().mainframe->update_side_preset_ui();
+                wxGetApp().sidebar().update_ui_from_settings();
+                wxGetApp().sidebar().update_all_preset_comboboxes();
+                EndModal(wxID_CANCEL);
+            }
             return false;
         }
     }
