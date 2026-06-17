@@ -28,6 +28,7 @@
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevStorage.h"
+#include "DeviceCore/DevUtilBackend.h"
 
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
@@ -1574,6 +1575,12 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
     } else if (status == PrintStatusColorQuantityExceed) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(false);
+    } else if (status == PrintDialogStatus::PrintStatusRackNozzleMappingWaiting) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(false);
+    } else if (status == PrintDialogStatus::PrintStatusRackNozzleMappingError) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
     }

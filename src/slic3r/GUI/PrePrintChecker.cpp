@@ -36,6 +36,8 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusNotSupportedPrintAll: return "PrintStatusNotSupportedPrintAll";
     case PrintStatusBlankPlate: return "PrintStatusBlankPlate";
     case PrintStatusUnsupportedPrinter: return "PrintStatusUnsupportedPrinter";
+    case PrintStatusRackNozzleMappingWaiting: return "PrintStatusRackNozzleMappingWaiting";
+    case PrintStatusRackNozzleMappingError: return "PrintStatusRackNozzleMappingError";
     case PrintStatusColorQuantityExceed: return "PrintStatusColorQuantityExceed";
     // Handle filament errors
     case PrintStatusAmsOnSettingup: return "PrintStatusAmsOnSettingup";
@@ -87,6 +89,8 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusNeedForceUpgrading: return _L("Cannot send the print job to a printer whose firmware is required to get updated.");
     case PrintStatusNeedConsistencyUpgrading: return _L("Cannot send the print job to a printer whose firmware is required to get updated.");
     case PrintStatusBlankPlate: return _L("Cannot send a print job for an empty plate.");
+    case PrintStatusRackNozzleMappingWaiting: return _L("The printer is calculating nozzle mapping.");
+    case PrintStatusRackNozzleMappingError: return _L("Nozzle mapping failed.");
     case PrintStatusTimelapseNoSdcard: return _L("Storage needs to be inserted to record timelapse.");
     case PrintStatusMixAmsAndVtSlotWarning: return _L("You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing.");
     case PrintStatusTPUUnsupportAutoCali: return _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
