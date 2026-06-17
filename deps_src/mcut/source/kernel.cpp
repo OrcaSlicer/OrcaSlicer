@@ -2928,7 +2928,7 @@ void dispatch(output_t& output, const input_t& input)
 
             if (have_plane_intersection) { // does the segment intersect the plane?
 
-                if (segment_intersection_type != '1') { // the segment only touches the plane (the line reprsented by segment still intersects the plane)
+                if (segment_intersection_type != '1') { // the segment only touches the the plane (the line reprsented by segment still intersects the plane)
 
                     // before jumping-the-gun and assuming that we have indeed violated GP,
                     // we should check whether the point found to be on the plane (touching point) is
@@ -6793,7 +6793,7 @@ void dispatch(output_t& output, const input_t& input)
                     sm_polygons_above_cs.push_back(sm_poly_idx);
                 }
 
-                // Here we can conviniently find and save the neighbouring polygon that is on the
+                // Here we can conviniently find and save the the neighbouring polygon that is on the
                 // other side i.e. "below" the cut-mesh. This is made possible because we can easily
                 // search through the halfedge connectivity.
 

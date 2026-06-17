@@ -3758,7 +3758,7 @@ namespace UT_Thread { inline int getNumProcessors() {
 /////
 ///// Requirements for the Range functor are:
 /////   - the requirements of the tbb Range Concept
-/////   - UT_estimatorNumItems<Range> must return the estimated number of work items
+/////   - UT_estimatorNumItems<Range> must return the the estimated number of work items
 /////     for the range. When Range::size() is not the correct estimate, then a 
 /////     (partial) specialization of UT_estimatorNumItemsimatorRange must be provided
 /////     for the type Range.
