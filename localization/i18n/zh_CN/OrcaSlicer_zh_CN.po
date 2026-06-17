@@ -1596,7 +1596,7 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "警告:请选择点或圆特征。"
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
+"It is recommended to assemble objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
@@ -1670,8 +1670,8 @@ msgstr "AMF 文件"
 msgid "3MF files"
 msgstr "3MF 文件"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF 文件"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF 文件"
 
 msgid "G-code files"
 msgstr "G-code 文件"
@@ -5264,10 +5264,10 @@ msgstr "增加/减小编辑区域"
 msgid "Sequence"
 msgstr "顺序"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "对象选择"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "零件选择"
 
 msgid "number keys"
@@ -7697,7 +7697,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "选中的模型不可分裂。"
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "禁用自动落板以保留 Z 轴定位？\n"
 
 msgid "Object with floating parts was detected"
@@ -11260,8 +11260,8 @@ msgstr "新版本的Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
-msgstr "在 Github 上查看"
+msgid "Check on GitHub"
+msgstr "在 GitHub 上查看"
 
 msgid "Open Microsoft Store"
 msgstr ""
@@ -15646,7 +15646,7 @@ msgstr "不交替填充方向"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "在使用 Z 层抗锯齿时禁用交替填充方向。"
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "最小 Z 高度"
 
 msgid ""

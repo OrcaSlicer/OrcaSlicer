@@ -4388,7 +4388,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Reduce the height of top-surface perimeters to match the model edge height.\n"
                       "Affects perimeters with a slope less than this angle (degrees).\n"
                       "A reasonable value is 35. Set to 0 to disable.");
-    def->sidetext = L("°");
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 0;
     def->max      = 90;
     def->mode     = comExpert;
@@ -4402,7 +4402,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("zaa_min_z", coFloat);
-    def->label    = L("Minimum z height");
+    def->label    = L("Minimum Z height");
     def->category = L("Quality");
     def->tooltip  = L("Minimum Z-layer height.\n"
                       "Also controls the slicing plane.");

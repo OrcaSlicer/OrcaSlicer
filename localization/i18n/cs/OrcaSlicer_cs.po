@@ -1620,13 +1620,10 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "Varování: Vyberte prosím vlastnost bodu nebo kruhu."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"It is recommended to assemble objects first,\n"
+"because they are restricted to the bed \n"
 "and only parts can be lifted."
 msgstr ""
-"Doporučuje se nejprve spojit objekty,\n"
-"protože objekty jsou omezeny na podložku\n"
-"a zvedat lze pouze jednotlivé části."
 
 msgid "Face and face assembly"
 msgstr "Sestavení plocha–plocha"
@@ -1696,8 +1693,8 @@ msgstr "AMF soubory"
 msgid "3MF files"
 msgstr "3MF soubory"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF soubory"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF soubory"
 
 msgid "G-code files"
 msgstr "G-code soubory"
@@ -5464,10 +5461,10 @@ msgstr "Zvětšit/zmenšit editační oblast"
 msgid "Sequence"
 msgstr "Sekvence"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Výběr objektu"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Výběr části"
 
 msgid "number keys"
@@ -5654,7 +5651,7 @@ msgstr "Popisky"
 msgid "Paint Toolbar"
 msgstr "Panel malování"
 
-msgid "part selection"
+msgid "Part selection"
 msgstr "výběr části"
 
 msgid "Explosion Ratio"
@@ -8036,7 +8033,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "Zvolený objekt nelze rozdělit."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Zakázat automatické položení pro zachování pozice v ose Z?\n"
 
 msgid "Object with floating parts was detected"
@@ -11742,7 +11739,7 @@ msgstr "Nová verze Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr "Zkontrolovat na GitHubu"
 
 msgid "Open Microsoft Store"
@@ -16463,7 +16460,7 @@ msgstr "Nestřídat směr výplně"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "Zakáže střídání směru výplně při použití Z-konturování."
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "Minimální výška Z"
 
 msgid ""

@@ -1635,7 +1635,7 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "Figyelmeztetés: válaszd a pont vagy kör jellemzőt."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
+"It is recommended to assemble objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
@@ -1713,8 +1713,8 @@ msgstr "AMF fájlok"
 msgid "3MF files"
 msgstr "3MF fájlok"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF fájlok"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF fájlok"
 
 msgid "G-code files"
 msgstr "G-code fájlok"
@@ -5523,10 +5523,10 @@ msgstr "Szerkesztési terület növelése/csökkentése"
 msgid "Sequence"
 msgstr "Sorrend"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Objektum kijelölés"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Alkatrész kijelölés"
 
 msgid "number keys"
@@ -8109,8 +8109,8 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "A kijelölt objektumot nem lehet feldarabolni."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
-msgstr "Letiltja az Auto-Drop funkciót a z pozicionálás megőrzéséhez?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
+msgstr "Letiltja az Auto-Drop funkciót a Z pozicionálás megőrzéséhez?\n"
 
 msgid "Object with floating parts was detected"
 msgstr "Lebegő részeket tartalmazó tárgyat észleltünk"
@@ -11969,7 +11969,7 @@ msgstr "A Orca Slicer új verziója"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr "Ellenőrizd a GitHub-on"
 
 msgid "Open Microsoft Store"
@@ -16848,8 +16848,8 @@ msgstr "Ne váltakozzon a töltési irány"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "A váltakozó kitöltési irány letiltása Z kontúrozás használatakor."
 
-msgid "Minimum z height"
-msgstr "Minimális z magasság"
+msgid "Minimum Z height"
+msgstr "Minimális Z magasság"
 
 msgid ""
 "Minimum Z-layer height.\n"

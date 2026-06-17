@@ -1645,8 +1645,8 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "Avís: seleccioneu la funció de Punt o Cercle."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"It is recommended to assemble objects first,\n"
+"because they are restricted to the bed \n"
 "and only parts can be lifted."
 msgstr ""
 "Es recomana muntar els objectes primer,\n"
@@ -1725,7 +1725,7 @@ msgstr "Fitxers AMF"
 msgid "3MF files"
 msgstr "Fitxers 3MF"
 
-msgid "Gcode 3MF files"
+msgid "G-code 3MF files"
 msgstr "Fitxers G-code 3MF"
 
 msgid "G-code files"
@@ -5527,10 +5527,10 @@ msgstr "Incrementar/reduir àrea edició"
 msgid "Sequence"
 msgstr "Seqüència"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"
@@ -8125,7 +8125,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "L'objecte seleccionat no s'ha pogut partir."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 
 msgid "Object with floating parts was detected"
@@ -11949,7 +11949,7 @@ msgstr "Nova versió d'Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr ""
 
 msgid "Open Microsoft Store"
@@ -16786,7 +16786,7 @@ msgstr ""
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr ""
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr ""
 
 msgid ""

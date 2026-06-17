@@ -1651,7 +1651,7 @@ msgstr ""
 "Advertencia: por favor selecciona la característica del Punto o Círculo."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
+"It is recommended to assemble objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
@@ -1731,8 +1731,8 @@ msgstr "Archivos AMF"
 msgid "3MF files"
 msgstr "Archivos 3MF"
 
-msgid "Gcode 3MF files"
-msgstr "Archivos Gcode 3MF"
+msgid "G-code 3MF files"
+msgstr "Archivos G-code 3MF"
 
 msgid "G-code files"
 msgstr "Archivos G-code"
@@ -5608,10 +5608,10 @@ msgstr "Incrementar/disminuir el área de edición"
 msgid "Sequence"
 msgstr "Secuencia"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Selección de objetos"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Selección de partes"
 
 msgid "number keys"
@@ -8237,7 +8237,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "El objeto seleccionado no ha podido ser dividido."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 "¿Desactivar la caída automática para mantener la posición en el eje Z?\n"
 
@@ -12157,8 +12157,8 @@ msgstr "Nueva versión de Orca Slicer"
 msgid "Check on Microsoft Store"
 msgstr "Echa un vistazo en Microsoft Store"
 
-msgid "Check on Github"
-msgstr "Ver en Github"
+msgid "Check on GitHub"
+msgstr "Ver en GitHub"
 
 msgid "Open Microsoft Store"
 msgstr "Abrir Microsoft Store"
@@ -17282,7 +17282,7 @@ msgid "Disable alternating fill direction when using Z contouring."
 msgstr ""
 "Desactivar la alternancia de dirección de relleno al utilizar el Perfilado Z."
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "Altura Z mínima"
 
 msgid ""

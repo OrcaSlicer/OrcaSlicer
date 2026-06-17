@@ -1657,7 +1657,7 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "Attenzione: selezionare l'elemento del Punto o del Cerchio."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
+"It is recommended to assemble objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
@@ -1737,7 +1737,7 @@ msgstr "File AMF"
 msgid "3MF files"
 msgstr "File 3MF"
 
-msgid "Gcode 3MF files"
+msgid "G-code 3MF files"
 msgstr "File G-code 3MF"
 
 msgid "G-code files"
@@ -5580,10 +5580,10 @@ msgstr "Aumenta/diminuisci l'area di modifica"
 msgid "Sequence"
 msgstr "Sequenza"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Selezione oggetto"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Selezione parte"
 
 msgid "number keys"
@@ -8186,7 +8186,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "L'oggetto selezionato non può essere diviso."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 "Disabilitare la funzione di Rilascio automatico per preservare il "
 "posizionamento sull'asse Z?\n"
@@ -12062,7 +12062,7 @@ msgstr "Nuova versione di OrcaSlicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr "Visualizza su GitHub"
 
 msgid "Open Microsoft Store"
@@ -17038,7 +17038,7 @@ msgstr ""
 "Disabilita il riempimento a direzione alternata quando si utilizza l'opzione "
 "\"Contornatura Z\"."
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "Altezza Z minima"
 
 msgid ""

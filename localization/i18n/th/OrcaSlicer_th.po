@@ -1611,7 +1611,7 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "คำเตือน: โปรดเลือกคุณลักษณะของจุดหรือวงกลม"
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
+"It is recommended to assemble objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
@@ -1685,7 +1685,8 @@ msgstr "ไฟล์ AMF"
 msgid "3MF files"
 msgstr "ไฟล์ 3MF"
 
-msgid "Gcode 3MF files"
+#, fuzzy
+msgid "G-code 3MF files"
 msgstr "ไฟล์ Gcode3MF"
 
 msgid "G-code files"
@@ -5351,10 +5352,11 @@ msgstr "เพิ่ม/ลดพื้นที่แก้ไข"
 msgid "Sequence"
 msgstr "ลำดับ"
 
-msgid "Object Selection"
+#, fuzzy
+msgid "Object selection"
 msgstr "การเลือกวัตถุ"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "การเลือกชิ้นส่วน"
 
 msgid "number keys"
@@ -7831,7 +7833,8 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "ไม่สามารถแยกวัตถุที่เลือกได้"
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+#, fuzzy
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "ปิดการใช้งานการวางอัตโนมัติเพื่อรักษาตำแหน่ง z หรือไม่\n"
 
 msgid "Object with floating parts was detected"
@@ -11471,8 +11474,8 @@ msgstr "Orca Slicer เวอร์ชันใหม่"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
-msgstr "ตรวจสอบบน Github"
+msgid "Check on GitHub"
+msgstr "ตรวจสอบบน GitHub"
 
 msgid "Open Microsoft Store"
 msgstr ""
@@ -15957,7 +15960,8 @@ msgstr "อย่าสลับทิศทางไส้ใน"
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "ปิดใช้งานการสลับทิศทางไส้ในเมื่อใช้โครงร่าง Z"
 
-msgid "Minimum z height"
+#, fuzzy
+msgid "Minimum Z height"
 msgstr "ความสูงขั้นต่ำ z"
 
 msgid ""

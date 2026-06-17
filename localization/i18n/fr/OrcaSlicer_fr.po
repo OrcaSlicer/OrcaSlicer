@@ -1666,8 +1666,8 @@ msgstr ""
 "Avertissement : veuillez sélectionner la fonction du Point ou du Cercle."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"It is recommended to assemble objects first,\n"
+"because they are restricted to the bed \n"
 "and only parts can be lifted."
 msgstr ""
 "Il est recommandé d'assembler les objets d'abord,\n"
@@ -1746,7 +1746,7 @@ msgstr "Fichiers AMF"
 msgid "3MF files"
 msgstr "Fichiers 3MF"
 
-msgid "Gcode 3MF files"
+msgid "G-code 3MF files"
 msgstr "Fichiers 3MF G-code"
 
 msgid "G-code files"
@@ -5622,10 +5622,10 @@ msgstr "Augmenter/diminuer la zone d'édition"
 msgid "Sequence"
 msgstr "Séquence"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Sélection d’objet"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Sélection de pièce"
 
 msgid "number keys"
@@ -8262,7 +8262,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "L'objet sélectionné n'a pas pu être divisé."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 "Désactiver le dépôt automatique pour préserver le positionnement en Z ?\n"
 
@@ -12239,7 +12239,7 @@ msgstr "Nouvelle version de OrcaSlicer"
 msgid "Check on Microsoft Store"
 msgstr ""
 
-msgid "Check on Github"
+msgid "Check on GitHub"
 msgstr "Vérifier sur GitHub"
 
 msgid "Open Microsoft Store"
@@ -17423,7 +17423,7 @@ msgstr ""
 "Désactive l’alternance du sens de remplissage lors de l’utilisation du "
 "contournage en Z."
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "Hauteur Z minimale"
 
 msgid ""

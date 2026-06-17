@@ -7684,7 +7684,7 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
         };
         bool split_auto_drop = auto_drop;
         if (current_model_object->instances[0]->auto_drop && is_atleast_one_floating()) {
-            MessageDialog dlg(q, _L("Disable Auto-Drop to preserve z positioning?\n"),
+            MessageDialog dlg(q, _L("Disable Auto-Drop to preserve Z positioning?\n"),
                                   _L("Object with floating parts was detected"), wxICON_QUESTION | wxYES_NO);
 
             if (dlg.ShowModal() == wxID_YES)
