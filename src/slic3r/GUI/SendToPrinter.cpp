@@ -61,10 +61,10 @@ static const std::map<int, std::string> error_messages = {
     {SendToPrinterDialog::SEND_ERR, L("File upload failed, please try again.")}
 };
 
-static std::string ParseErrorCode(int errorcde)
+static wxString ParseErrorCode(int errorcde)
 {
     auto it = error_messages.find(errorcde);
-    if (it != error_messages.end()) { return it->second; }
+    if (it != error_messages.end()) { return _L(it->second); }
     return "";
 }
 
@@ -367,7 +367,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, _L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -1982,7 +1982,7 @@ void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::s
             if (ParseErrorCode(resp_ec) != "")
                 update_print_status_msg(ParseErrorCode(resp_ec), false, true);
             else
-                update_print_status_msg("Sending failed, please try again!", false, true);
+                update_print_status_msg(_L("Sending failed, please try again!"), false, true);
             m_filetransfer_uploadfile_job.reset();
             m_filetransfer_uploadfile_job = nullptr;
         }

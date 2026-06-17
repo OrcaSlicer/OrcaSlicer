@@ -137,20 +137,22 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
     }
 
     bool res = true;
-    auto url = make_url("upload/" + safe_filename(upload_filename.string()));
+    const auto safe_upload_filename = safe_filename(upload_filename.string());
+    // Only encode the URL path segment; keep the multipart filename and start-print path as the stored filename.
+    auto url = make_url("upload/" + Http::url_encode(safe_upload_filename));
 
     auto  http = Http::post(url); // std::move(url));
     set_auth(http);
     if (!supports_multi_color_print())
         http.form_add("path", upload_parent_path.string());
-    http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
+    http.form_add_file("file", upload_data.source_path.string(), safe_upload_filename)
 
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
 
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
                 wxString errormsg;
-                if (!start_print(errormsg, safe_filename(upload_filename.string()), upload_data.extended_info)) {
+                if (!start_print(errormsg, safe_upload_filename, upload_data.extended_info)) {
                     error_fn(std::move(errormsg));
                     res = false;
                 }

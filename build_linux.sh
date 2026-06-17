@@ -504,13 +504,24 @@ if [[ -n "${USE_LLD}" ]] ; then
     fi
 fi
 
-# Auto-detect ccache for faster rebuilds
 export CMAKE_CCACHE_ARGS=()
-if command -v ccache >/dev/null 2>&1 ; then
-    echo "ccache found at $(command -v ccache), enabling compiler caching..."
-    export CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+CMAKE_CCACHE=${CMAKE_CCACHE:-}
+if [ -n "$CMAKE_CCACHE" ]; then
+        echo "Checking ${CMAKE_CCACHE} environment variable for compiler cache program..."
+        CMAKE_CCACHE=$(command -v "${CMAKE_CCACHE}") || {
+            echo "CMAKE_CCACHE environment variable is set to '${CMAKE_CCACHE}' but it was not found in PATH."
+            CMAKE_CCACHE=""
+        }
+elif command -v sccache >/dev/null 2>&1 ; then
+        CMAKE_CCACHE=$(command -v sccache)
+elif command -v ccache >/dev/null 2>&1 ; then
+        CMAKE_CCACHE=$(command -v ccache)
+fi
+if [ -n "${CMAKE_CCACHE}" ] ; then
+    echo "${CMAKE_CCACHE} found, enabling compiler caching..."
+    export CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER="${CMAKE_CCACHE}" -DCMAKE_CXX_COMPILER_LAUNCHER="${CMAKE_CCACHE}")
 else
-    echo "Note: ccache not found. Install ccache for faster rebuilds."
+    echo "Note: ccache or sccache are not found. Install either of them for faster rebuilds."
 fi
 
 if [[ -n "${BUILD_DEPS}" ]] ; then
@@ -525,7 +536,7 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
         BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
 
-    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
+    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
     print_and_run cmake --build deps/$BUILD_DIR -j1
 fi
 

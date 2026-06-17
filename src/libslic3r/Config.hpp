@@ -2186,7 +2186,7 @@ private:
             else
                 throw ConfigurationError("Serializing NaN");
         }
-        else {
+        else if (this->keys_map != nullptr) {
             for (const auto& kvp : *this->keys_map)
                 if (kvp.second == v)
                     ss << kvp.first;

@@ -2026,6 +2026,26 @@ wxBoxSizer* MainFrame::create_side_tools()
                     });
 
                 p->append_button(send_gcode_btn);
+
+                // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
+                // also offer exporting the sliced .gcode.3mf bundle
+                const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+                const auto* use_3mf_opt    = printer_config.option<ConfigOptionBool>("use_3mf");
+                if (use_3mf_opt != nullptr && use_3mf_opt->value) {
+                    SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
+                    export_sliced_file_btn->SetCornerRadius(0);
+                    export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                        m_print_btn->SetLabel(_L("Export plate sliced file"));
+                        m_print_select = eExportSlicedFile;
+                        m_print_enable = get_enable_print_status();
+                        m_print_btn->Enable(m_print_enable);
+                        this->Layout();
+                        fit_tab_labels(); // ORCA on label change
+                        p->Dismiss();
+                        });
+                    p->append_button(export_sliced_file_btn);
+                }
+
                 p->append_button(export_gcode_btn);
             }
             else {
@@ -4031,6 +4051,13 @@ void MainFrame::set_print_button_to_default(PrintSelectType select_type)
         m_print_select = eExportGcode;
         if (m_print_enable)
             m_print_enable = get_enable_print_status() && can_send_gcode();
+        m_print_btn->Enable(m_print_enable);
+        this->Layout();
+    } else if (select_type == PrintSelectType::eExportSlicedFile) {
+        m_print_btn->SetLabel(_L("Export plate sliced file"));
+        m_print_select = eExportSlicedFile;
+        if (m_print_enable)
+            m_print_enable = get_enable_print_status();
         m_print_btn->Enable(m_print_enable);
         this->Layout();
     } else {

@@ -23,7 +23,7 @@
 namespace Slic3r { namespace GUI {
 
 PrinterCloudAuthDialog::PrinterCloudAuthDialog(wxWindow* parent, PrintHost* host)
-    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "Login")
+    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, _L("Login"))
 {
     SetBackgroundColour(*wxWHITE);
     // Url

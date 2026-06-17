@@ -262,6 +262,7 @@ ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
     m_tooltips[0] = _L("Simple settings");
     m_tooltips[1] = _L("Advanced settings");
     m_tooltips[2] = _L("Expert settings");
+    m_tooltips[3] = _L("Developer mode") + "\n" + _L("Launch troubleshoot center") + "...";
 
     Bind(wxEVT_LEFT_DOWN, &ModeSwitchButton::mouseDown, this);
     Bind(wxEVT_LEFT_UP, &ModeSwitchButton::mouseReleased, this);
@@ -280,7 +281,7 @@ void ModeSwitchButton::SetSelection(int selection)
 
 void ModeSwitchButton::SelectAndNotify(int selection)
 {
-    if (!IsEnabled())
+    if (m_dev_mode || !IsEnabled())
         return;
 
     SetSelection(selection);
@@ -310,6 +311,15 @@ bool ModeSwitchButton::Enable(bool enable /* = true */)
     return changed;
 }
 
+void ModeSwitchButton::SetDevMode(bool enable /* = true */)
+{
+    if (enable != m_dev_mode){
+        m_dev_mode = enable;
+        update_tooltip();
+        Refresh();
+    }
+}
+
 void ModeSwitchButton::doRender(wxDC& dc)
 {
     const wxRect bounds = GetClientRect();
@@ -328,7 +338,7 @@ void ModeSwitchButton::doRender(wxDC& dc)
     dc.SetBrush(wxBrush(background_color.colorForStates(states)));
     dc.DrawRoundedRectangle(bounds, v_center);
 
-    if (m_enabled) {
+    if (!m_dev_mode) {
         double dot_dist = (bounds.width - bounds.height) * 0.50;
 
         // Track
@@ -368,6 +378,11 @@ void ModeSwitchButton::doRender(wxDC& dc)
 
 void ModeSwitchButton::mouseDown(wxMouseEvent& event)
 {
+    if (m_dev_mode){
+        Slic3r::GUI::wxGetApp().troubleshoot();
+        return;
+    }
+
     if (!IsEnabled()) {
         event.Skip();
         return;
@@ -425,7 +440,10 @@ wxRect ModeSwitchButton::thumb_rect_for(int selection) const
 
 void ModeSwitchButton::update_tooltip()
 {
-    SetToolTip(m_tooltips[m_selection]);
+    if (m_dev_mode)
+        SetToolTip(m_tooltips[3]);
+    else
+        SetToolTip(m_tooltips[m_selection]);
 }
 
 MultiSwitchButton::MultiSwitchButton(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)

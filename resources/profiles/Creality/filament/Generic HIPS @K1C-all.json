@@ -54,7 +54,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "4"
+        "10"
     ],
     "filament_retract_before_wipe": [
         "100%"

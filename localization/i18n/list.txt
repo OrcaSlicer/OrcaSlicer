@@ -48,9 +48,12 @@ src/slic3r/GUI/DeviceTab/uiAmsHumidityPopup.cpp
 src/slic3r/GUI/DeviceTab/uiDeviceUpdateVersion.h
 src/slic3r/GUI/DeviceTab/uiDeviceUpdateVersion.cpp
 src/slic3r/GUI/Gizmos/GLGizmoFdmSupports.cpp
+src/slic3r/GUI/Gizmos/GLGizmoFdmSupports.hpp
 src/slic3r/GUI/Gizmos/GLGizmoFlatten.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMmuSegmentation.cpp
+src/slic3r/GUI/Gizmos/GLGizmoMmuSegmentation.hpp
 src/slic3r/GUI/Gizmos/GLGizmoFuzzySkin.cpp
+src/slic3r/GUI/Gizmos/GLGizmoFuzzySkin.hpp
 src/slic3r/GUI/Gizmos/GLGizmoMove.cpp
 src/slic3r/GUI/Gizmos/GLGizmoRotate.cpp
 src/slic3r/GUI/Gizmos/GLGizmoScale.cpp
@@ -58,6 +61,7 @@ src/slic3r/GUI/Gizmos/GLGizmosManager.cpp
 src/slic3r/GUI/Gizmos/GLGizmoPainterBase.cpp
 src/slic3r/GUI/Gizmos/GizmoObjectManipulation.cpp
 src/slic3r/GUI/Gizmos/GLGizmoCut.cpp
+src/slic3r/GUI/Gizmos/GLGizmoCut.hpp
 src/slic3r/GUI/Gizmos/GLGizmoSimplify.cpp
 src/slic3r/GUI/Gizmos/GLGizmoFaceDetector.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSeam.cpp
@@ -67,7 +71,9 @@ src/slic3r/GUI/Gizmos/GLGizmoText.hpp
 src/slic3r/GUI/Gizmos/GLGizmoEmboss.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSVG.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMeasure.cpp
+src/slic3r/GUI/Gizmos/GLGizmoMeasure.hpp
 src/slic3r/GUI/Gizmos/GLGizmoAssembly.cpp
+src/slic3r/GUI/Gizmos/GLGizmoAssembly.hpp
 src/slic3r/GUI/GUI.cpp
 src/slic3r/GUI/GUI_App.cpp
 src/slic3r/GUI/GUI_AuxiliaryList.cpp
@@ -89,6 +95,8 @@ src/slic3r/GUI/Widgets/AMSControl.cpp
 src/slic3r/GUI/Widgets/FanControl.cpp
 src/slic3r/GUI/Widgets/FilamentLoad.cpp
 src/slic3r/GUI/Widgets/TempInput.cpp
+src/slic3r/GUI/Widgets/CheckList.cpp
+src/slic3r/GUI/Widgets/SwitchButton.cpp
 src/slic3r/GUI/ImGuiWrapper.cpp
 src/slic3r/GUI/Jobs/ArrangeJob.cpp
 src/slic3r/GUI/Jobs/OrientJob.cpp
@@ -98,6 +106,7 @@ src/slic3r/GUI/Jobs/BindJob.cpp
 src/slic3r/GUI/Jobs/PrintJob.cpp
 src/slic3r/GUI/Jobs/SendJob.cpp
 src/slic3r/GUI/Jobs/EmbossJob.cpp
+src/slic3r/GUI/Jobs/PlaterWorker.hpp
 src/slic3r/GUI/ThermalPreconditioningDialog.cpp
 src/slic3r/GUI/ThermalPreconditioningDialog.hpp
 src/slic3r/GUI/Jobs/SLAImportJob.cpp
@@ -237,8 +246,12 @@ src/slic3r/GUI/FilamentMapPanel.cpp
 src/slic3r/Utils/Obico.cpp
 src/slic3r/Utils/SimplyPrint.cpp
 src/slic3r/Utils/Flashforge.cpp
+src/slic3r/Utils/ElegooLink.cpp
+src/slic3r/Utils/CrealityPrint.cpp
+src/slic3r/Utils/PrintHost.cpp
 src/slic3r/GUI/Jobs/OAuthJob.cpp
 src/slic3r/GUI/Gizmos/GLGizmoBrimEars.cpp
+src/slic3r/GUI/Gizmos/GLGizmoBrimEars.hpp
 src/slic3r/GUI/PartSkipDialog.cpp
 src/slic3r/GUI/PartSkipDialog.hpp
 src/slic3r/GUI/SkipPartCanvas.cpp
@@ -250,4 +263,12 @@ src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
+src/slic3r/GUI/PresetBundleDialog.cpp
+src/slic3r/GUI/ExportPresetBundleDialog.cpp
+src/slic3r/GUI/DesktopIntegrationDialog.cpp
+src/slic3r/GUI/Downloader.cpp
+src/slic3r/GUI/DownloaderFileGet.cpp
+src/slic3r/GUI/FileArchiveDialog.cpp
+src/slic3r/GUI/PrinterCloudAuthDialog.cpp
+src/slic3r/GUI/PrinterWebViewHandler.cpp
 src/libslic3r/PresetBundle.cpp
