@@ -17,7 +17,7 @@ on:
         required: true
         type: string
       tag:
-        description: 'Tag of the draft release to upload to (e.g. v2.4.0-beta)'
+        description: 'Tag of the draft release to upload to (e.g. v2.4.0)'
         required: true
         type: string
 
