@@ -255,12 +255,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                         predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
                         if(m_config.gcode_comments) output << "; APA: Interpolation failed, using fallback pressure advance value\n";
                     }
-                }
-                // Round predicted PA to nearest 0.01 to reduce meaningless adjustments.
-                // Prusa printers have to wait for planner sync to change PA, causing a delay.
-                if (predicted_pa > 0.04) {
-                    predicted_pa = std::round(predicted_pa * 100.0) / 100.0;
-                }
+                }                
                 if(m_config.gcode_comments) {
                     // Output debug GCode comments
                     output << pa_change_line << '\n'; // Output PA change command tag
@@ -273,9 +268,23 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     output << "; APA Flow rate: " << std::to_string(mm3mm_value * m_max_next_feedrate) << "\n";
                     output << "; APA Prev PA: " << std::to_string(m_last_predicted_pa) << " New PA: " << std::to_string(predicted_pa) << "\n"; 
                 }
-                if (extruder_changed || std::fabs(predicted_pa - m_last_predicted_pa) > EPSILON) {
-                    output << m_gcodegen.writer().set_pressure_advance(predicted_pa); // Use m_writer to set pressure advance
-                    m_last_predicted_pa = predicted_pa; // Update the last predicted PA value
+                // Only change the PA value if the change is significant.
+                // Good for prusa printers, which currently have to wait for plotter synchronisation before changing PA 
+                // See https://github.com/prusa3d/Prusa-Firmware-Buddy/issues/5322
+                bool significant_change = false;
+                if (extruder_changed) {
+                    significant_change = true;
+                } else if (std::fabs(m_last_predicted_pa) < 1e-12) {
+                    // Previous value was effectively zero: any non-zero predicted PA is significant
+                    significant_change = std::fabs(predicted_pa) > 1e-12;
+                } else {
+                    double relative_change = std::fabs((predicted_pa - m_last_predicted_pa) / m_last_predicted_pa);
+                    significant_change = (relative_change >= 0.10); // 10% threshold
+                }
+                
+                if (significant_change) {
+                    output << m_gcodegen.writer().set_pressure_advance(predicted_pa);
+                    m_last_predicted_pa = predicted_pa;// Update the last predicted PA value
                 }
             }
         }else {
