@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:18-0300\n"
+"POT-Creation-Date: 2026-06-17 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -91,9 +91,12 @@ msgid "Latest version"
 msgstr "Nieuwste versie"
 
 #, fuzzy
-#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "Ondersteuning (Support) tekenen"
+
+#, fuzzy
+msgid "Apply"
+msgstr "Toepassen"
 
 msgid "On highlighted overhangs only"
 msgstr "Alleen op gemarkeerde overhangen"
@@ -102,7 +105,6 @@ msgid "Erase all"
 msgstr ""
 
 #, fuzzy
-#| msgid "Highlight overhang areas"
 msgid "Highlight overhangs"
 msgstr "Overhangende gebieden markeren"
 
@@ -174,7 +176,6 @@ msgid "Done"
 msgstr "Klaar"
 
 #, fuzzy
-#| msgid "Support Generated"
 msgid "Support generated"
 msgstr "Ondersteuning gegenereerd"
 
@@ -191,7 +192,6 @@ msgid "Gizmo-Place on Face"
 msgstr "Plaats op vlak"
 
 #, fuzzy
-#| msgid "Lay on face"
 msgid "Lay on Face"
 msgstr "Op zijde leggen"
 
@@ -200,7 +200,6 @@ msgid "Filament count exceeds the maximum number that painting tool supports. On
 msgstr "Het aantal filamenten overschrijdt het maximale aantal dat het tekengereedschap ondersteunt. Alleen de eerste %1% filamenten zijn beschikbaar in de tekentool."
 
 #, fuzzy
-#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "Kleuren schilderen"
 
@@ -328,11 +327,6 @@ msgstr "Roteren"
 msgid "Optimize orientation"
 msgstr "Oriëntatie optimaliseren"
 
-#, fuzzy
-#| msgid "Apply"
-msgid "Apply"
-msgstr "Toepassen"
-
 msgid "Scale"
 msgstr "Schalen"
 
@@ -373,12 +367,10 @@ msgid "Scale ratios"
 msgstr "Schaalverhoudingen"
 
 #, fuzzy
-#| msgid "Object Operations"
 msgid "Object operations"
 msgstr "Objectbewerkingen"
 
 #, fuzzy
-#| msgid "Volume Operations"
 msgid "Volume operations"
 msgstr "Volumebewerkingen"
 
@@ -386,24 +378,24 @@ msgid "Translate"
 msgstr "Vertalen"
 
 #, fuzzy
-#| msgid "Group Operations"
 msgid "Group operations"
 msgstr "Groepsbewerkingen"
 
 #, fuzzy
-#| msgid "Set Orientation"
 msgid "Set orientation"
 msgstr "Oriëntatie instellen"
 
 #, fuzzy
-#| msgid "Set Scale"
 msgid "Set scale"
 msgstr "Schaal instellen"
 
 #, fuzzy
-#| msgid "Reset Position"
 msgid "Reset position"
 msgstr "Positie herstellen"
+
+#, fuzzy
+msgid "Reset rotation"
+msgstr "Reset rotatie"
 
 msgid "Object coordinates"
 msgstr "Objectcoördinaten"
@@ -697,7 +689,6 @@ msgid "Cut by Plane"
 msgstr "Snij met behulp van vlak"
 
 #, fuzzy
-#| msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "hiet-gevormde randen worden veroorzaakt door snijgereedschap: wil je dit nu herstellen?"
 
@@ -767,7 +758,6 @@ msgid "Show wireframe"
 msgstr "Draadmodel tonen"
 
 #, fuzzy
-#| msgid "Can't apply when processing preview."
 msgid "Unable to apply when processing preview"
 msgstr "Kan niet toepassen bij een voorvertoning."
 
@@ -794,7 +784,6 @@ msgid "Remove selection"
 msgstr "Selectie verwijderen"
 
 #, fuzzy
-#| msgid "Entering Seam painting"
 msgid "Entering seam painting"
 msgstr "Naad schilderen invoeren"
 
@@ -819,9 +808,6 @@ msgid "Angle"
 msgstr "Hoek"
 
 #, fuzzy
-#| msgid ""
-#| "Embedded\n"
-#| "depth"
 msgid "Embedded depth"
 msgstr "Embedded depth"
 
@@ -1393,11 +1379,6 @@ msgstr "Distance of the center of the SVG to the model surface."
 msgid "Reset distance"
 msgstr "Reset distance"
 
-#, fuzzy
-#| msgid "Reset rotation"
-msgid "Reset rotation"
-msgstr "Reset rotatie"
-
 msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr "Lock/unlock rotation angle when dragging above the surface."
 
@@ -1628,7 +1609,6 @@ msgid "Notice"
 msgstr "Let op"
 
 #, fuzzy
-#| msgid "Undef"
 msgid "Undefined"
 msgstr "Niet gedefinieerd"
 
@@ -1652,12 +1632,10 @@ msgid "Machine"
 msgstr "Machine"
 
 #, fuzzy
-#| msgid "Configuration package was loaded, but some values were not recognized."
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "Het onfiguratiepakket werd geladen, maar sommige waarden werden niet herkend."
 
-#, boost-format, fuzzy
-#| msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+#, fuzzy, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Configuratiebestand “%1%” werd geladen, maar sommige waarden werden niet herkend."
 
@@ -1841,7 +1819,6 @@ msgid "Some presets are modified."
 msgstr "Sommige voorinstellingen zijn aangepast."
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Je kunt de aangepaste voorinstellingen bewaren voor het nieuwe project ze laten vervallen of opslaan als nieuwe voorinstelling."
 
@@ -2039,8 +2016,7 @@ msgstr "Naam wijzigen"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Initialisatie van Orca Slicer GUI is mislukt"
 
-#, boost-format, fuzzy
-#| msgid "Fatal error, exception caught: %1%"
+#, fuzzy, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Fatale fout, uitzondering tegengehouden: %1%"
 
@@ -2066,7 +2042,10 @@ msgid "Strength"
 msgstr "Sterkte"
 
 #, fuzzy
-#| msgid "Top Minimum Shell Thickness"
+msgid "Top solid layers"
+msgstr "Aantal bovenste solide lagen"
+
+#, fuzzy
 msgid "Top minimum shell thickness"
 msgstr "Minimale dikte van de bovenste laag"
 
@@ -2074,12 +2053,10 @@ msgid "Top Surface Density"
 msgstr "Top Surface Density"
 
 #, fuzzy
-#| msgid "Bottom Solid Layers"
 msgid "Bottom solid layers"
 msgstr "Aantal gesloten bodemlagen"
 
 #, fuzzy
-#| msgid "Bottom Minimum Shell Thickness"
 msgid "Bottom minimum shell thickness"
 msgstr "Minimale bodemdikte"
 
@@ -2090,7 +2067,6 @@ msgid "Ironing"
 msgstr "Strijken"
 
 #, fuzzy
-#| msgid "Fuzzy Skin"
 msgid "Fuzzy skin"
 msgstr "Vage buitenkant"
 
@@ -2098,7 +2074,6 @@ msgid "Extruders"
 msgstr "Extruders"
 
 #, fuzzy
-#| msgid "Extrusion Width"
 msgid "Extrusion width"
 msgstr "Extrusiebreedte"
 
@@ -2109,22 +2084,22 @@ msgid "Bed adhesion"
 msgstr "Printbed hechting"
 
 #, fuzzy
-#| msgid "Add part"
 msgid "Add Part"
 msgstr "Onderdeel toevoegen"
 
 #, fuzzy
-#| msgid "Add negative part"
 msgid "Add Negative Part"
 msgstr "Negatief deel toevoegen"
 
 #, fuzzy
-#| msgid "Add support blocker"
+msgid "Add Modifier"
+msgstr "Aanpasser toevoegen"
+
+#, fuzzy
 msgid "Add Support Blocker"
 msgstr "Ondersteuningsblokkade toevoegen"
 
 #, fuzzy
-#| msgid "Add support enforcer"
 msgid "Add Support Enforcer"
 msgstr "Ondersteuning toevoegen"
 
@@ -2225,17 +2200,14 @@ msgid "Text"
 msgstr "Tekst"
 
 #, fuzzy
-#| msgid "Height range Modifier"
 msgid "Height Range Modifier"
 msgstr "Hoogtebereikaanpasser"
 
 #, fuzzy
-#| msgid "Add settings"
 msgid "Add Settings"
 msgstr "Instellingen toevoegen"
 
 #, fuzzy
-#| msgid "Change type"
 msgid "Change Type"
 msgstr "Verander type"
 
@@ -2252,12 +2224,10 @@ msgid "Change part type"
 msgstr "Kies het onderdeel type"
 
 #, fuzzy
-#| msgid "Set as an individual object"
 msgid "Set as An Individual Object"
 msgstr "Instellen als individueel object"
 
 #, fuzzy
-#| msgid "Set as individual objects"
 msgid "Set as Individual Objects"
 msgstr "Instellen als individuele objecten"
 
@@ -2277,7 +2247,6 @@ msgid "Automatically drops the selected object to the build plate"
 msgstr ""
 
 #, fuzzy
-#| msgid "Fix model"
 msgid "Fix Model"
 msgstr "Repareer model"
 
@@ -2349,22 +2318,18 @@ msgid "Edit in Parameter Table"
 msgstr "Bewerken in de parametertabel"
 
 #, fuzzy
-#| msgid "Convert from inches"
 msgid "Convert from Inches"
 msgstr "Omzetten vanuit inch"
 
 #, fuzzy
-#| msgid "Restore to inches"
 msgid "Restore to Inch"
 msgstr "Terugzetten naar inch"
 
 #, fuzzy
-#| msgid "Convert from meters"
 msgid "Convert from Meters"
 msgstr "Omzetten vanuit meter"
 
 #, fuzzy
-#| msgid "Restore to meters"
 msgid "Restore to Meter"
 msgstr "Terugzetten naar meter"
 
@@ -2381,37 +2346,30 @@ msgid "Mesh boolean operations including union and subtraction"
 msgstr "Booleane mesh-operaties inclusief samenvoegen en aftrekken"
 
 #, fuzzy
-#| msgid "Along X axis"
 msgid "Along X Axis"
 msgstr "Langs de X as"
 
 #, fuzzy
-#| msgid "Mirror along the X axis"
 msgid "Mirror along the X Axis"
 msgstr "Spiegelen langs de X as"
 
 #, fuzzy
-#| msgid "Along Y axis"
 msgid "Along Y Axis"
 msgstr "Langs de Y as"
 
 #, fuzzy
-#| msgid "Mirror along the Y axis"
 msgid "Mirror along the Y Axis"
 msgstr "Spiegelen langs de Y as"
 
 #, fuzzy
-#| msgid "Along Z axis"
 msgid "Along Z Axis"
 msgstr "Langs de Z as"
 
 #, fuzzy
-#| msgid "Mirror along the Z axis"
 msgid "Mirror along the Z Axis"
 msgstr "Spiegelen langs de Z as"
 
 #, fuzzy
-#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "Spiegel object"
 
@@ -2443,7 +2401,6 @@ msgid "Show Labels"
 msgstr "Toon labels"
 
 #, fuzzy
-#| msgid "To objects"
 msgid "To Objects"
 msgstr "Naar objecten"
 
@@ -2451,7 +2408,6 @@ msgid "Split the selected object into multiple objects"
 msgstr "Splits het geselecteerde object op in meerdere objecten"
 
 #, fuzzy
-#| msgid "To parts"
 msgid "To Parts"
 msgstr "Naar onderdelen"
 
@@ -2480,7 +2436,6 @@ msgid "Delete this filament"
 msgstr "Delete this filament"
 
 #, fuzzy
-#| msgid "Select all"
 msgid "Select All"
 msgstr "Alles selecteren"
 
@@ -2494,7 +2449,6 @@ msgid "Select all objects on all plates"
 msgstr "Select all objects on all plates"
 
 #, fuzzy
-#| msgid "Delete all"
 msgid "Delete All"
 msgstr "Alles verwijderen"
 
@@ -2628,7 +2582,6 @@ msgid "Click the icon to repair model object"
 msgstr "Click the icon to repair model object"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object settings"
 msgid "Right click the icon to drop the object settings"
 msgstr "Klik met de rechter muisknop op het pictogram om de objectinstellingen te verwijderen"
 
@@ -2636,12 +2589,10 @@ msgid "Click the icon to reset all settings of the object"
 msgstr "Klik op het icoon om alle instellingen van het object terug te zetten"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object printable property"
 msgid "Right click the icon to drop the object printable property"
 msgstr "Klik met de rechter muisknop op het pictogram om de printbare eigenschap van het object te verwijderen"
 
 #, fuzzy
-#| msgid "Click the icon to toggle printable property of the object"
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Klik op het pictogram om de afdruk eigenschap van het object in te schakelen"
 
@@ -2649,7 +2600,6 @@ msgid "Click the icon to edit support painting of the object"
 msgstr "Klik op het pictogram om de support van het object te bewerken"
 
 #, fuzzy
-#| msgid "Click the icon to edit color painting of the object"
 msgid "Click the icon to edit color painting for the object"
 msgstr "Klik op het pictogram om de kleur van het object te bewerken"
 
@@ -2667,11 +2617,6 @@ msgstr "Kon de modelinformatie niet laden uit het huidige bestand."
 
 msgid "Generic"
 msgstr "Algemeen"
-
-#, fuzzy
-#| msgid "Add Modifier"
-msgid "Add Modifier"
-msgstr "Aanpasser toevoegen"
 
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr "Schakel over naar instellingsmodus per object om instellingen van de aanpassing te bewerken."
@@ -2695,11 +2640,6 @@ msgid "To save cut correspondence you can delete all connectors from all related
 msgstr "Om de knipovereenkomst op te slaan kan je alle verbindingen verwijderen uit gerelateerde objecten."
 
 #, fuzzy
-#| msgid ""
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed.\n"
-#| "\n"
-#| "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2733,17 +2673,14 @@ msgid "Group manipulation"
 msgstr "Groupsmanipulatie"
 
 #, fuzzy
-#| msgid "Object Settings to modify"
 msgid "Object Settings to Modify"
 msgstr "Voorwerpopties om aan te passen"
 
 #, fuzzy
-#| msgid "Part Settings to modify"
 msgid "Part Settings to Modify"
 msgstr "Onderdeelopties om aan te passen"
 
 #, fuzzy
-#| msgid "Layer range Settings to modify"
 msgid "Layer Range Settings to Modify"
 msgstr "lagenreeksopties om aan te passen"
 
@@ -2772,7 +2709,6 @@ msgid "If the first selected item is a part, the second should be a part in the 
 msgstr "Als het eerst geselecteerde item een onderdeel is, moet het tweede een onderdeel van hetzelfde object zijn."
 
 #, fuzzy
-#| msgid "The type of the last solid object part is not to be changed."
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Het type van het laatste solide object onderdeel kan niet worden veranderd."
 
@@ -2893,22 +2829,18 @@ msgid "1x1 Grid: %d mm"
 msgstr "1x1 raster: %d mm"
 
 #, fuzzy
-#| msgid "Detail."
 msgid "More"
 msgstr "Meer"
 
 #, fuzzy
-#| msgid "Open Preferences."
 msgid "Open Preferences"
 msgstr "Voorkeuren openen."
 
 #, fuzzy
-#| msgid "Open next tip."
 msgid "Open next tip"
 msgstr "Volgende tip openen."
 
 #, fuzzy
-#| msgid "Open Documentation in web browser."
 msgid "Open documentation in web browser"
 msgstr "Documentatie openen in een webbrowser."
 
@@ -2940,12 +2872,10 @@ msgid "Enter Custom G-code used on current layer:"
 msgstr "Voer de aangepaste G-code in die op de huidige laag wordt gebruikt:"
 
 #, fuzzy
-#| msgid "Jump to Layer"
 msgid "Jump to layer"
 msgstr "Spring naar laag"
 
 #, fuzzy
-#| msgid "Please enter the layer number"
 msgid "Please enter the layer number."
 msgstr "Voer het laagnummer in"
 
@@ -3025,7 +2955,6 @@ msgid "Auto Refill"
 msgstr "Auto Refill"
 
 #, fuzzy
-#| msgid "Load Filament"
 msgid "Load"
 msgstr "Laden"
 
@@ -3033,7 +2962,6 @@ msgid "Unload"
 msgstr "Lossen"
 
 #, fuzzy
-#| msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Kies een AMS-sleuf en druk op de knop \"Laden\" of \"Lossen\" om automatisch filament te laden of te ontladen."
 
@@ -3144,7 +3072,6 @@ msgid "Cut filament"
 msgstr "Filament afsnijden"
 
 #, fuzzy
-#| msgid "Pull back current filament"
 msgid "Pull back the current filament"
 msgstr "Huidig filament terugtrekken"
 
@@ -3185,7 +3112,6 @@ msgid "No matching items..."
 msgstr ""
 
 #, fuzzy
-#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "Alles deselecteren"
 
@@ -3244,7 +3170,6 @@ msgid "Arranging canceled."
 msgstr "Rangschikken geannuleerd."
 
 #, fuzzy
-#| msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Rangschikken voltooid, sommige zaken konden niet geranschikt worden. Verklein de afstand en probeer het opnieuw."
 
@@ -3313,7 +3238,6 @@ msgid "Please check the printer network connection."
 msgstr "Controleer de netwerkverbinding van de printer."
 
 #, fuzzy
-#| msgid "Abnormal print file data. Please slice again."
 msgid "Abnormal print file data: please slice again."
 msgstr "Abnormal print file data: please slice again."
 
@@ -3327,7 +3251,6 @@ msgid "Cloud service connection failed. Please try again."
 msgstr "Verbinding met cloudservice is mislukt. Probeer het nog eens."
 
 #, fuzzy
-#| msgid "Print file not found. Please slice again."
 msgid "Print file not found; please slice again."
 msgstr "Print file not found. Please slice again."
 
@@ -3341,7 +3264,6 @@ msgid "Failed to upload file to ftp. Please try again."
 msgstr "Failed to upload file to ftp. Please try again."
 
 #, fuzzy
-#| msgid "Check the current status of the bambu server by clicking on the link above."
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Check the current status of the bambu server by clicking on the link above."
 
@@ -3349,12 +3271,10 @@ msgid "The size of the print file is too large. Please adjust the file size and 
 msgstr "The size of the print file is too large. Please adjust the file size and try again."
 
 #, fuzzy
-#| msgid "Print file not found, please slice it again and send it for printing."
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Print file not found, please slice it again and send it for printing."
 
 #, fuzzy
-#| msgid "Failed to upload print file to FTP. Please check the network status and try again."
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Failed to upload print file to FTP. Please check the network status and try again."
 
@@ -3407,7 +3327,6 @@ msgid "Sending G-code file over LAN"
 msgstr "G-codebestand verzenden via LAN"
 
 #, fuzzy
-#| msgid "Sending G-code file to SD card"
 msgid "Sending G-code file to SD card"
 msgstr "G-codebestand naar SD-kaart verzenden"
 
@@ -3479,7 +3398,6 @@ msgid "Importing SLA archive"
 msgstr "Importing SLA archive"
 
 #, fuzzy
-#| msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 
@@ -3493,7 +3411,6 @@ msgid "The imported SLA archive did not contain any presets. The current SLA pre
 msgstr "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 
 #, fuzzy
-#| msgid "You cannot load SLA project with a multi-part object on the bed"
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "You cannot load SLA project with a multi-part object on the bed"
 
@@ -3522,7 +3439,6 @@ msgid "Install failed"
 msgstr "Installatie mislukt"
 
 #, fuzzy
-#| msgid "Portions copyright"
 msgid "License Info"
 msgstr "Licentie informatie"
 
@@ -3641,7 +3557,6 @@ msgid "Custom Color"
 msgstr "Aangepaste kleur"
 
 #, fuzzy
-#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "Dynamische flow kalibratie"
 
@@ -3650,6 +3565,10 @@ msgstr "De temperatuur van het mondstuk en de maximale volumetrische snelheid zi
 
 msgid "Nozzle Diameter"
 msgstr "Mondstukdiameter"
+
+#, fuzzy
+msgid "Plate Type"
+msgstr "Plate Type"
 
 msgid "Nozzle temperature"
 msgstr "Mondstuk temperatuur"
@@ -3670,7 +3589,6 @@ msgid "mm³"
 msgstr "mm³"
 
 #, fuzzy
-#| msgid "Start calibration"
 msgid "Start"
 msgstr "Start"
 
@@ -3682,6 +3600,10 @@ msgstr "Kalibratie voltooid. Zoek de meest uniforme extrusielijn op uw hotbed, z
 
 msgid "Save"
 msgstr "Bewaar"
+
+#, fuzzy
+msgid "Back"
+msgstr "Achterzijde"
 
 msgid "Example"
 msgstr "Voorbeeld"
@@ -3778,7 +3700,6 @@ msgid "Enable AMS"
 msgstr "AMS inschakelen"
 
 #, fuzzy
-#| msgid "Print with filaments in the AMS"
 msgid "Print with filament in the AMS"
 msgstr "Printen met filament in AMS"
 
@@ -3786,12 +3707,10 @@ msgid "Disable AMS"
 msgstr "AMS uitschakelen"
 
 #, fuzzy
-#| msgid "Print with the filament mounted on the back of chassis"
 msgid "Print with filament on external spool"
 msgstr "Print met filament op een externe spoel"
 
 #, fuzzy
-#| msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
 
@@ -3811,12 +3730,10 @@ msgid "Do not Enable AMS"
 msgstr "AMS niet inschakelen"
 
 #, fuzzy
-#| msgid "Print using materials mounted on the back of the case"
 msgid "Print using filament on external spool."
 msgstr "Print met filament op een externe spoel."
 
 #, fuzzy
-#| msgid "Print with filaments in AMS"
 msgid "Print with filament in AMS"
 msgstr "Printen met filament in AMS"
 
@@ -3842,7 +3759,6 @@ msgid "The printer does not currently support auto refill."
 msgstr "De printer ondersteunt automatisch bijvullen momenteel niet."
 
 #, fuzzy
-#| msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "AMS filament backup is not enabled, please enable it in the AMS settings."
 
@@ -3866,7 +3782,6 @@ msgid "Insertion update"
 msgstr "Update gegevens bij invoeren"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "De AMS zal automatisch de filamentinformatie lezen bij het plaatsen van een nieuw Bambu Lab filament. Dit duurt ongeveer 20 seconden."
 
@@ -3877,12 +3792,10 @@ msgid "When inserting a new filament, the AMS will not automatically read its in
 msgstr "Bij het laden van nieuw filament zal de informatie niet automatisch ingelezen worden door de AMS, de informatie kan door uzelf worden ingegeven."
 
 #, fuzzy
-#| msgid "Power on update"
 msgid "Update on startup"
 msgstr "Update gegevens bij aanzetten"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "De AMS leest automatisch de informatie van het ingevoegde filament bij het opstarten. Dit duurt ongeveer 1 minuut. Tijdens het leesproces zullen de filamentspoelen rollen."
 
@@ -3938,7 +3851,6 @@ msgid "Failed to download the plug-in. Please check your firewall settings and V
 msgstr "Het downloaden van de plug-in is mislukt. Controleer je firewall-instellingen en VPN-software en probeer het opnieuw."
 
 #, fuzzy
-#| msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 
@@ -3961,7 +3873,6 @@ msgid "Go Home"
 msgstr "Near home positie"
 
 #, fuzzy
-#| msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Er is een probleem opgetreden. Er is geen vrij geheugen of er een is een bug opgetreden"
 
@@ -3970,12 +3881,10 @@ msgid "A fatal error occurred: \"%1%\""
 msgstr "A fatal error occurred: \"%1%\""
 
 #, fuzzy
-#| msgid "Please save project and restart the program."
 msgid "Please save your project and restart the application."
 msgstr "Sla uw project alstublieft op en herstart het programma."
 
 #, fuzzy
-#| msgid "Processing G-code from Previous file..."
 msgid "Processing G-Code from previous file…"
 msgstr "De G-code van het vorige bestand wordt verwerkt..."
 
@@ -4041,7 +3950,6 @@ msgid "G-code file exported to %1%"
 msgstr ".gcode-bestand geëxporteerd naar %1%"
 
 #, fuzzy
-#| msgid "Unknown error when exporting G-code."
 msgid "Unknown error with G-code export"
 msgstr "Onbekende fout tijdens het exporteren van de G-code"
 
@@ -4056,7 +3964,6 @@ msgstr ""
 "Bronbestand %2%."
 
 #, fuzzy
-#| msgid "Copying of the temporary G-code to the output G-code failed"
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Het kopiëren van de tijdelijke G-code naar de G-uitvoercode is mislukt."
 
@@ -4104,7 +4011,6 @@ msgid "Invalid file format."
 msgstr "Ongeldig bestandsformaat."
 
 #, fuzzy
-#| msgid "Error! Invalid model"
 msgid "Error: invalid model"
 msgstr "Fout: Ongeldig model"
 
@@ -4112,7 +4018,6 @@ msgid "The selected file contains no geometry."
 msgstr "Het gekozen bestand bevat geen geometrische data."
 
 #, fuzzy
-#| msgid "The selected file contains several disjoint areas. This is not supported."
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Het geselecteerde bestand bevat verschillende onsamenhangende gebieden. Dit is niet toegestaan."
 
@@ -4140,10 +4045,6 @@ msgid "Please check.\n"
 msgstr "Controleer het.\n"
 
 #, fuzzy
-#| msgid ""
-#| "Nozzle may be blocked when the temperature is out of recommended range.\n"
-#| "Please make sure whether to use the temperature to print.\n"
-#| "\n"
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4158,9 +4059,6 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "De aanbevolen mondstuk temperatuur voor dit type filament is [%d, %d] graden Celsius."
 
 #, fuzzy
-#| msgid ""
-#| "Too small max volumetric speed.\n"
-#| "Reset to 0.5."
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4168,15 +4066,11 @@ msgstr ""
 "Te kleine maximale volumetrische snelheid.\n"
 "De waarde is teruggezet naar 0,5"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+#, fuzzy, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "De huidige kamertemperatuur is hoger dan de veilige temperatuur van het materiaal; dit kan leiden tot verzachting van het materiaal en verstoppingen van het mondstuk. De maximale veilige temperatuur voor het materiaal is %d"
 
 #, fuzzy
-#| msgid ""
-#| "Too small layer height.\n"
-#| "Reset to 0.2."
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4185,9 +4079,6 @@ msgstr ""
 "Teruggezet naar 0.2mm"
 
 #, fuzzy
-#| msgid ""
-#| "Too small ironing spacing.\n"
-#| "Reset to 0.1."
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4205,12 +4096,6 @@ msgstr ""
 "De eerste laaghoogte wordt gereset naar 0,2."
 
 #, fuzzy
-#| msgid ""
-#| "This setting is only used for model size tunning with small value in some cases.\n"
-#| "For example, when model size has small error and hard to be assembled.\n"
-#| "For large size tuning, please use model scale function.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4224,12 +4109,6 @@ msgstr ""
 "De waarde wordt teruggezet naar 0."
 
 #, fuzzy
-#| msgid ""
-#| "Too large elephant foot compensation is unreasonable.\n"
-#| "If really have serious elephant foot effect, please check other settings.\n"
-#| "For example, whether bed temperature is too high.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4322,10 +4201,6 @@ msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Maar machines met een I3-structuur genereren geen timelapsevideo's."
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings and enable spiral mode automatically\n"
-#| "No  - Give up using spiral mode this time"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4697,7 +4572,6 @@ msgid "Print settings"
 msgstr "Print instellingen"
 
 #, fuzzy
-#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "Filament instellingen"
 
@@ -4722,8 +4596,7 @@ msgstr "Lege tekenreeks"
 msgid "Value is out of range."
 msgstr "Waarde is buiten het bereik."
 
-#, boost-format, c-format, fuzzy
-#| msgid "%s can't be a percentage"
+#, fuzzy, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s kan geen percentage zijn"
 
@@ -4964,7 +4837,6 @@ msgid "Total"
 msgstr "Totaal"
 
 #, fuzzy
-#| msgid "Total Estimation"
 msgid "Total estimation"
 msgstr "Schatting totaal"
 
@@ -5044,12 +4916,10 @@ msgid "Usage"
 msgstr "Gebruik"
 
 #, fuzzy
-#| msgid "Layer Height (mm)"
 msgid "Layer height (mm)"
 msgstr "Laaghoogte (mm)"
 
 #, fuzzy
-#| msgid "Line Width (mm)"
 msgid "Line width (mm)"
 msgstr "Lijndikte (mm)"
 
@@ -5066,7 +4936,6 @@ msgid "Jerk (mm/s)"
 msgstr ""
 
 #, fuzzy
-#| msgid "Fan Speed (%)"
 msgid "Fan speed (%)"
 msgstr "Ventilator snelheid (%)"
 
@@ -5081,6 +4950,10 @@ msgstr "Actual volumetric flow rate (mm³/s)"
 
 msgid "Seams"
 msgstr "Naden"
+
+#, fuzzy
+msgid "Filament changes"
+msgstr "Filament wisselingen"
 
 msgid "Options"
 msgstr "Opties"
@@ -5104,7 +4977,6 @@ msgid "Print"
 msgstr "Print"
 
 #, fuzzy
-#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "Printer"
 
@@ -5223,7 +5095,6 @@ msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 #, fuzzy
-#| msgid "Tool Move"
 msgid "Tool move"
 msgstr "Beweeg tool"
 
@@ -5231,12 +5102,10 @@ msgid "Tool Rotate"
 msgstr "Tool Rotate"
 
 #, fuzzy
-#| msgid "Move Object"
 msgid "Move object"
 msgstr "Beweeg object"
 
 #, fuzzy
-#| msgid "Auto Orientation options"
 msgid "Auto orientation options"
 msgstr "Opties voor automatisch oriënteren"
 
@@ -5369,7 +5238,6 @@ msgid "Section View"
 msgstr "Sectie weergave"
 
 #, fuzzy
-#| msgid "Assemble Control"
 msgid "Assembly Control"
 msgstr "Assemblage controle"
 
@@ -5399,7 +5267,6 @@ msgid "A G-code path goes beyond the max print height."
 msgstr "Een G-codepad gaat verder dan de maximale printhoogte."
 
 #, fuzzy
-#| msgid "A G-code path goes beyond the plate boundaries."
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "Een G-code pad treedt buiten de grenzen van de printplaat."
 
@@ -5461,7 +5328,6 @@ msgid "Micro lidar calibration"
 msgstr "Micro Lidar Kalibratie"
 
 #, fuzzy
-#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "Bednivellering"
 
@@ -5541,7 +5407,6 @@ msgstr ""
 "on the printer, as shown in the figure:"
 
 #, fuzzy
-#| msgid "Invalid input."
 msgid "Invalid input"
 msgstr "Ongeldige invoer"
 
@@ -5552,7 +5417,6 @@ msgid "Open a new window"
 msgstr "Een nieuw venster openen"
 
 #, fuzzy
-#| msgid "Application is closing"
 msgid "Closing application"
 msgstr "De toepassing wordt afgesloten"
 
@@ -5802,7 +5666,6 @@ msgid "Paste clipboard"
 msgstr "Klembord plakken"
 
 #, fuzzy
-#| msgid "Delete selected"
 msgid "Delete Selected"
 msgstr "Verwijder selectie"
 
@@ -5813,7 +5676,6 @@ msgid "Deletes all objects"
 msgstr "Verwijder alle objecten"
 
 #, fuzzy
-#| msgid "Clone selected"
 msgid "Clone Selected"
 msgstr "Duplicaat geselecteerd"
 
@@ -5977,13 +5839,11 @@ msgstr "&Bekijken"
 msgid "&Help"
 msgstr "&Hulp"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A file exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "A file exists with the same name: %s, do you want to overwrite it?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A config exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "A config exists with the same name: %s, do you want to overwrite it?"
 
@@ -6009,7 +5869,6 @@ msgstr[0] "Er is %d configuratie geëxporteerd. (Alleen niet-systeemconfiguratie
 msgstr[1] "Er zijn %d configuraties geëxporteerd. (Alleen niet-systeemconfiguraties)"
 
 #, fuzzy
-#| msgid "Export result"
 msgid "Export Result"
 msgstr "Exporteer resultaat"
 
@@ -6056,7 +5915,6 @@ msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "De speler werkt niet goed. Installeer de systeemspeler opnieuw."
 
 #, fuzzy
-#| msgid "The player is not loaded, please click \"play\" button to retry."
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "De speler is niet geladen; klik op de \"play\" knop om het opnieuw te proberen."
 
@@ -6079,7 +5937,6 @@ msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 
 #, fuzzy
-#| msgid "Please enter the IP of printer to connect."
 msgid "Please enter the IP of the printer to connect."
 msgstr "Voer het IP-adres in van de printer waarmee u verbinding wilt maken."
 
@@ -6381,7 +6238,6 @@ msgid "Input access code"
 msgstr "Toegangscode invoeren"
 
 #, fuzzy
-#| msgid "Can't find my devices?"
 msgid "Can't find devices?"
 msgstr "Kun je geen apparaten vinden?"
 
@@ -6407,17 +6263,14 @@ msgid "illegal suffix:"
 msgstr "ongeldig achtervoegsel:"
 
 #, fuzzy
-#| msgid "The name is not allowed to be empty."
 msgid "The name field is not allowed to be empty."
 msgstr "Het is niet toegestaand om de naam leeg te laten."
 
 #, fuzzy
-#| msgid "The name is not allowed to start with space character."
 msgid "The name is not allowed to start with a space."
 msgstr "Het is niet toegestaan om een naam met een spatie te laten beginnen."
 
 #, fuzzy
-#| msgid "The name is not allowed to end with space character."
 msgid "The name is not allowed to end with a space."
 msgstr "Het is niet toegestaan om een naam met een spatie te laten eindigen."
 
@@ -6441,7 +6294,6 @@ msgid "Switching failed"
 msgstr "Wisselen mislukt"
 
 #, fuzzy
-#| msgid "Printing Progress"
 msgid "Printing progress"
 msgstr "Print voortgang"
 
@@ -6461,9 +6313,6 @@ msgid "Clear"
 msgstr "Wissen"
 
 #, fuzzy
-#| msgid ""
-#| "You have completed printing the mall model, \n"
-#| "but the synchronization of rating information has failed."
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6552,8 +6401,7 @@ msgstr "Downloaden..."
 msgid "Cloud Slicing..."
 msgstr "Cloud slicen..."
 
-#, boost-format, c-format, fuzzy
-#| msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+#, fuzzy, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "In Cloud Slicing Queue, there are %s tasks ahead."
 
@@ -6578,7 +6426,6 @@ msgid "Please select an AMS slot before calibration"
 msgstr "Selecteer een AMS-slot voor de kalibratie"
 
 #, fuzzy
-#| msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "Kan de filament informatie niet lezen: het filament is in de printkop geladen; verwijder het filament en probeer het opnieuw."
 
@@ -6812,7 +6659,6 @@ msgid "3D Mouse disconnected."
 msgstr "3D-muis losgekoppeld."
 
 #, fuzzy
-#| msgid "Configuration can update now."
 msgid "A new configuration is available. Update now?"
 msgstr "Er is een nieuwe configuratie beschikbaar. Wilt u updaten?"
 
@@ -6838,17 +6684,14 @@ msgid "Undo integration failed."
 msgstr "Het ongedaan maken van de integratie is mislukt."
 
 #, fuzzy
-#| msgid "Exporting."
 msgid "Exporting"
 msgstr "Exporteren."
 
 #, fuzzy
-#| msgid "Software has New version."
 msgid "An update is available!"
 msgstr "Er is een update beschikbaar."
 
 #, fuzzy
-#| msgid "Goto download page."
 msgid "Go to download page"
 msgstr "Ga naar de download pagina."
 
@@ -6977,7 +6820,6 @@ msgid "Enable detection of build plate position"
 msgstr "Detectie van de positie van de printplaat inschakelen"
 
 #, fuzzy
-#| msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "De lokalisatietag van de bouwplaat wordt gedetecteerd en het afdrukken wordt gepauzeerd als de tag zich niet binnen het vooraf gedefinieerde bereik bevindt."
 
@@ -7024,7 +6866,6 @@ msgid "First Layer Inspection"
 msgstr "Inspectie van de eerste laag"
 
 #, fuzzy
-#| msgid "Auto-recovery from step loss"
 msgid "Auto-recover from step loss"
 msgstr "Automatisch herstel na stapverlies"
 
@@ -7038,7 +6879,6 @@ msgid "Allow Prompt Sound"
 msgstr "Promptgeluid toestaan"
 
 #, fuzzy
-#| msgid "Filament Tangle Detect"
 msgid "Filament Tangle Detection"
 msgstr "Filament Tangle Detect"
 
@@ -7191,11 +7031,6 @@ msgstr "Verbruikte materialen"
 msgid "Estimated time"
 msgstr "Geschatte tijd"
 
-#, fuzzy
-#| msgid "Filament changes"
-msgid "Filament changes"
-msgstr "Filament wisselingen"
-
 msgid "Set the number of AMS installed on the nozzle."
 msgstr "Set the number of AMS installed on the nozzle."
 
@@ -7302,7 +7137,6 @@ msgid "Ejecting of device %s (%s) has failed."
 msgstr "Ejecting of device %s (%s) has failed."
 
 #, fuzzy
-#| msgid "Previous unsaved project detected, do you want to restore it?"
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Er is niet opgeslagen project data gedectereerd, wilt u deze herstellen?"
 
@@ -7310,12 +7144,10 @@ msgid "Restore"
 msgstr "Herstellen"
 
 #, fuzzy
-#| msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "De huidige warmtebedtemperatuur is relatief hoog. Het mondstuk kan verstopt raken bij het printen van dit filament in een gesloten omgeving. Open de voordeur en/of verwijder het bovenste glas."
 
 #, fuzzy
-#| msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "De door het filament vereiste hardheid van het mondstuk is hoger dan de standaard hardheid van het mondstuk van de printer. Vervang het geharde mondstuk of het filament, anders raakt het mondstuk versleten of beschadigd."
 
@@ -7368,7 +7200,6 @@ msgid "The 3MF file version %s is newer than %s's version %s, found the followin
 msgstr "Versie %s van de 3MF is nieuwer dan versie %s van %s. De volgende sleutels worden niet herkend:"
 
 #, fuzzy
-#| msgid "You'd better upgrade your software.\n"
 msgid "You should update your software.\n"
 msgstr "U dient de software te upgraden.\n"
 
@@ -7391,7 +7222,6 @@ msgid "Invalid values found in the 3MF:"
 msgstr "Invalid values found in the 3MF:"
 
 #, fuzzy
-#| msgid "Please correct them in the param tabs"
 msgid "Please correct them in the Param tabs"
 msgstr "Please correct them in the param tabs"
 
@@ -7414,12 +7244,10 @@ msgid "Customized Preset"
 msgstr "Aangepaste voorinstelling"
 
 #, fuzzy
-#| msgid "Name of components inside STEP file is not UTF8 format!"
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Naam van componenten in step-bestand is niet UTF8-formaat!"
 
 #, fuzzy
-#| msgid "The name may show garbage characters!"
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Vanwege niet-ondersteunde tekstcodering kunnen er onjuiste tekens verschijnen!"
 
@@ -7436,10 +7264,7 @@ msgstr "Objecten zonder inhoud zijn verwijderd"
 msgid "The volume of the object is zero"
 msgstr "Het volume van het object is 0"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The object from file %s is too small, and maybe in meters or inches.\n"
-#| " Do you want to scale to millimeters?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7451,10 +7276,6 @@ msgid "Object too small"
 msgstr "He tobject is te klein"
 
 #, fuzzy
-#| msgid ""
-#| "This file contains several objects positioned at multiple heights.\n"
-#| "Instead of considering them as multiple objects, should \n"
-#| "the file be loaded as a single object having multiple parts?"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7471,7 +7292,6 @@ msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Wilt u deze bestanden laden als een enkel object bestaande uit meerdere onderdelen?\n"
 
 #, fuzzy
-#| msgid "Object with multiple parts was detected"
 msgid "An object with multiple parts was detected"
 msgstr "Er is een object met meerdere onderdelen gedetecteerd"
 
@@ -7507,17 +7327,13 @@ msgid "Export AMF file:"
 msgstr "AMF-bestand exporteren:"
 
 #, fuzzy
-#| msgid "Save file as:"
 msgid "Save file as"
 msgstr "Bewaar bestand als:"
 
 msgid "Export OBJ file:"
 msgstr "OBJ-bestand exporteren:"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The file %s already exists\n"
-#| "Do you want to replace it?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7532,10 +7348,6 @@ msgid "Delete object which is a part of cut object"
 msgstr "Delete object which is a part of cut object"
 
 #, fuzzy
-#| msgid ""
-#| "You try to delete an object which is a part of a cut object.\n"
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed."
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7561,7 +7373,6 @@ msgid "Unable to replace with more than one volume"
 msgstr "Kan niet worden vervangen door meer dan één volume"
 
 #, fuzzy
-#| msgid "Error during replace"
 msgid "Error during replacement"
 msgstr "Fout tijdens vervanging"
 
@@ -7572,7 +7383,6 @@ msgid "Select a new file"
 msgstr "Selecteer een nieuw bestand"
 
 #, fuzzy
-#| msgid "File for the replace wasn't selected"
 msgid "File for the replacement wasn't selected"
 msgstr "Het bestand voor de vervanging is niet geselecteerd"
 
@@ -7664,7 +7474,6 @@ msgid "Sync now"
 msgstr "Sync now"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project or discard them"
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Je kunt de aangepaste voorinstellingen bewaren voor het nieuwe project of ze laten vervallen"
 
@@ -7675,9 +7484,6 @@ msgid "Load project"
 msgstr "Project laden"
 
 #, fuzzy
-#| msgid ""
-#| "Failed to save the project.\n"
-#| "Please check whether the folder exists online or if other programs open the project file."
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7696,7 +7502,6 @@ msgid "Preparing 3MF file..."
 msgstr "voorbereiden van 3MF bestand..."
 
 #, fuzzy
-#| msgid "Download failed, unknown file format."
 msgid "Download failed; unknown file format."
 msgstr "Download failed, unknown file format."
 
@@ -7704,7 +7509,6 @@ msgid "Downloading project..."
 msgstr "project downloaden..."
 
 #, fuzzy
-#| msgid "Download failed, File size exception."
 msgid "Download failed; File size exception."
 msgstr "Download failed, File size exception."
 
@@ -7731,12 +7535,10 @@ msgid "The selected file"
 msgstr "Het geselecteerde bestand"
 
 #, fuzzy
-#| msgid "does not contain valid G-code."
 msgid "Does not contain valid G-code."
 msgstr "Bevat geen geldige G-code"
 
 #, fuzzy
-#| msgid "Error occurs while loading G-code file"
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Er is een fout opgetreden tijdens het laden van het G-codebestand."
 
@@ -7767,7 +7569,6 @@ msgid "Import geometry only"
 msgstr "Alleen geometrische data importeren"
 
 #, fuzzy
-#| msgid "Only one G-code file can be opened at the same time."
 msgid "Only one G-code file can be opened at a time."
 msgstr "Er kan slechts 1 G-code bestand tegelijkertijd geopend worden."
 
@@ -7775,12 +7576,10 @@ msgid "G-code loading"
 msgstr "G-Code wordt geladen"
 
 #, fuzzy
-#| msgid "G-code files cannot be loaded with models together!"
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-Code bestanden en modellen kunnen niet tegelijk geladen worden!"
 
 #, fuzzy
-#| msgid "Cannot add models when in preview mode!"
 msgid "Unable to add models in preview mode"
 msgstr "Modellen kunnen niet worden toegevoegd in voorbeeldmodus"
 
@@ -7788,7 +7587,6 @@ msgid "All objects will be removed, continue?"
 msgstr "Alle objecten zullen verwijderd worden, doorgaan?"
 
 #, fuzzy
-#| msgid "The current project has unsaved changes, save it before continue?"
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Het huidige project heeft niet-opgeslagen wijzigingen. Wilt u eerst opslaan voordat u verder gaat?"
 
@@ -7861,9 +7659,6 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Abnormale printbestand. Slice opnieuw"
 
 #, fuzzy
-#| msgid ""
-#| "Print By Object: \n"
-#| "Suggest to use auto-arrange to avoid collisions when printing."
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7949,8 +7744,7 @@ msgstr "Driehoeken: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
 
-#, boost-format, c-format, fuzzy
-#| msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+#, fuzzy, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
 
@@ -7979,7 +7773,6 @@ msgid "rear"
 msgstr "rear"
 
 #, fuzzy
-#| msgid "Switching the language requires application restart.\n"
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Om de taal te wijzigen dient de toepassing opnieuw opgestart te worden.\n"
 
@@ -8008,7 +7801,6 @@ msgid "Others"
 msgstr "Andere"
 
 #, fuzzy
-#| msgid "Changing the region will log out your account.\n"
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Als u de regio wijzigt, wordt u afgemeld bij uw account.\n"
 
@@ -8085,7 +7877,6 @@ msgid "Set the page opened on startup."
 msgstr "Stel de pagina in die wordt geopend bij het opstarten."
 
 #, fuzzy
-#| msgid "Enable dark mode"
 msgid "Enable dark Mode"
 msgstr "Donkere modus inschakelen"
 
@@ -8162,7 +7953,6 @@ msgid "Auto backup"
 msgstr "Automatisch een back-up maken"
 
 #, fuzzy
-#| msgid "Backup your project periodically for restoring from the occasional crash."
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Maak regelmatig een back-up van uw project, zodat u het kunt herstellen na een incidentele crash."
 
@@ -8442,7 +8232,6 @@ msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Gebruikersvoorinstellingen automatisch synchroniseren (printer/filament/proces)"
 
 #, fuzzy
-#| msgid "Update built-in Presets automatically."
 msgid "Update built-in presets automatically."
 msgstr "Ingebouwde voorinstellingen automatisch bijwerken."
 
@@ -8522,7 +8311,6 @@ msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Koppel .3mf-bestanden aan OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .3mf-bestanden te openen"
 
@@ -8537,7 +8325,6 @@ msgid "Associate STL files to OrcaSlicer"
 msgstr "Koppel .stl-bestanden aan OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .stl-bestanden te openen"
 
@@ -8546,7 +8333,6 @@ msgid "Associate STEP files to OrcaSlicer"
 msgstr "Koppel .step/.stp bestanden aan OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .step-bestanden te openen"
 
@@ -8647,7 +8433,6 @@ msgid "Other"
 msgstr "Anders"
 
 #, fuzzy
-#| msgid "Mouse wheel reverses when zooming"
 msgid "Reverse scroll direction while zooming"
 msgstr "Omgekeerde scrollrichting tijdens het zoomen"
 
@@ -8682,12 +8467,10 @@ msgid "Save debug settings"
 msgstr "bewaar debug instellingen"
 
 #, fuzzy
-#| msgid "DEBUG settings have been saved successfully!"
 msgid "Debug settings have been saved successfully!"
 msgstr "De debug instellingen zijn succesvol opgeslagen!"
 
 #, fuzzy
-#| msgid "Cloud environment switched, please login again!"
 msgid "Cloud environment switched; please login again!"
 msgstr "Cloudomgeving geschakeld; log alsjeblieft nogmaals in!"
 
@@ -8707,7 +8490,6 @@ msgid "Left filaments"
 msgstr "Left filaments"
 
 #, fuzzy
-#| msgid "AMS filaments"
 msgid "AMS filament"
 msgstr "AMS-filament"
 
@@ -8742,7 +8524,6 @@ msgid "Unsupported"
 msgstr "Niet ondersteund"
 
 #, fuzzy
-#| msgid "Add/Remove filaments"
 msgid "Add/Remove filament"
 msgstr "Filament toevoegen/verwijderen"
 
@@ -8780,7 +8561,6 @@ msgid "Plate name"
 msgstr "Plaat naam"
 
 #, fuzzy
-#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "Same as Global Plate Type"
 
@@ -8818,7 +8598,6 @@ msgid "Log Out"
 msgstr "Uitloggen"
 
 #, fuzzy
-#| msgid "Slice all plate to obtain time and filament estimation"
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Slice alle printbedden om een inschatting te krijgen van de printtijd en het filamentverbruik"
 
@@ -8880,7 +8659,6 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr "Voorinstelling \"%1%\" bestaat al en is niet compatibel met de huidige printer."
 
 #, fuzzy
-#| msgid "Please note that saving will overwrite this preset."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Let er aub op dat opslaan de voorinstelling zal overschrijven"
 
@@ -9011,7 +8789,6 @@ msgid "The selected printer (%s) is incompatible with the print file configurati
 msgstr "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 
 #, fuzzy
-#| msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 
@@ -9031,7 +8808,6 @@ msgid "The printer type selected when generating G-code is not consistent with t
 msgstr "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 
 #, fuzzy
-#| msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Er zijn enkele onbekende filamenten in de AMS mappings. Controleer of het de vereiste filamenten zijn. Als ze in orde zijn, klikt u op \"Bevestigen\" om het afdrukken te starten."
 
@@ -9164,7 +8940,6 @@ msgid "Storage needs to be inserted before printing."
 msgstr "Storage needs to be inserted before printing."
 
 #, fuzzy
-#| msgid "Cannot send the print job to a printer whose firmware is required to get updated."
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Kan de printopdracht niet naar een printer sturen waarvan de firmware moet worden bijgewerkt."
 
@@ -9220,7 +8995,6 @@ msgid "Connection failed. Click the icon to retry"
 msgstr "Connection failed. Click the icon to retry"
 
 #, fuzzy
-#| msgid "Cannot send the print task when the upgrade is in progress"
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Kan de printtaak niet verzenden wanneer de upgrade wordt uitgevoerd"
 
@@ -9231,7 +9005,6 @@ msgid "Storage needs to be inserted before send to printer."
 msgstr "Storage needs to be inserted before send to printer."
 
 #, fuzzy
-#| msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "De printer moet zich in hetzelfde LAN bevinden als Orca Slicer."
 
@@ -9248,7 +9021,6 @@ msgid "Sending failed, please try again!"
 msgstr ""
 
 #, fuzzy
-#| msgid "Slice ok."
 msgid "Slice complete"
 msgstr "Slice gelukt."
 
@@ -9265,12 +9037,10 @@ msgid "Failed to publish login request"
 msgstr "Kan loginverzoek niet publiceren"
 
 #, fuzzy
-#| msgid "Get ticket from device timeout"
 msgid "Timeout getting ticket from device"
 msgstr "Time-out bij het ophalen van ticket van apparaat"
 
 #, fuzzy
-#| msgid "Get ticket from server timeout"
 msgid "Timeout getting ticket from server"
 msgstr "Time-out bij het ophalen van ticket van server"
 
@@ -9378,7 +9148,6 @@ msgid "Click to reset all settings to the last saved preset."
 msgstr "Klik om alle instellingen terug te zetten naar de laatst opgeslagen voorinstelling."
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Een Prime-toren is vereist voor een vloeiende timeplase-modus. Er kunnen gebreken ontstaan aan het model zonder prime-toren. Weet je zeker dat je de prime-toren wilt uitschakelen?"
 
@@ -9395,7 +9164,6 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "Het inschakelen van zowel precieze Z-hoogte als de spoeltoren kan slicefouten veroorzaken. Wilt u precieze Z-hoogte nog steeds inschakelen?"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Een prime-toren is vereist voor een vloeiende timelapse-modus. Er kunnen gebreken ontstaan aan het model zonder prime-toren. Wilt u de prime-toren inschakelen?"
 
@@ -9417,10 +9185,6 @@ msgstr ""
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and disable independent support layer height."
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings automatically\n"
-#| "No  - Do not change these settings for me"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9572,7 +9336,6 @@ msgid "Top/bottom shells"
 msgstr "Boven-/onderlagen"
 
 #, fuzzy
-#| msgid "First layer speed"
 msgid "First layer speed"
 msgstr "Printsnelheid van de eerste laag"
 
@@ -9601,7 +9364,6 @@ msgid "Raft"
 msgstr "Vlot"
 
 #, fuzzy
-#| msgid "Support filament"
 msgid "Filament for Supports"
 msgstr "Support filament"
 
@@ -9665,7 +9427,6 @@ msgid "Recommended nozzle temperature"
 msgstr "Aanbevolen mondstuk temperatuur"
 
 #, fuzzy
-#| msgid "Recommended nozzle temperature range of this filament. 0 means no set"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "De geadviseerde mondstuk temperatuur voor dit filament. 0 betekend dat er geen waarde is"
 
@@ -9688,7 +9449,6 @@ msgid "Cool Plate"
 msgstr "Cool (koud) printbed"
 
 #, fuzzy
-#| msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dit is de bedtemperatuur wanneer de koelplaat is geïnstalleerd. Een waarde van 0 betekent dat het filament printen op de Cool Plate niet ondersteunt."
 
@@ -9696,12 +9456,10 @@ msgid "Textured Cool Plate"
 msgstr "Textured Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 
 #, fuzzy
-#| msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Dit is de bedtemperatuur wanneer de technische plaat is geïnstalleerd. Een waarde van 0 betekent dat het filament afdrukken op de Engineering Plate niet ondersteunt."
 
@@ -9709,12 +9467,10 @@ msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Gladde PEI-plaat / Hoge temperatuurplaat"
 
 #, fuzzy
-#| msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Bedtemperatuur wanneer gladde PEI-plaat/hoge temperatuurplaat is geïnstalleerd. Waarde 0 betekent dat het filament niet geschikt is voor afdrukken op de gladde PEI-plaat/hoge temperatuurplaat."
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Bedtemperatuur wanneer een getextureerde PEI-plaat is geïnstalleerd. 0 betekent dat het filament niet wordt ondersteund op de getextureerde PEI-plaat"
 
@@ -9731,7 +9487,6 @@ msgid "Min fan speed threshold"
 msgstr "Minimale snelheidsdrempel ventilator snelheid"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "De snelheid van de printkop ventilator begint op minimale snelheid te draaien wanneer de geschatte printtijd voor de laag niet langer is dan de printtijd in de instelling. Wanneer de printtijd korter is dan de drempelwaarde, wordt de ventilatorsnelheid geïnterpoleerd tussen de minimale en maximale ventilatorsnelheid volgens de printtijd van de laag"
 
@@ -9739,7 +9494,6 @@ msgid "Max fan speed threshold"
 msgstr "Snelheidsdrempel ventilatorsnelheid"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "De snelheid van de printkop ventilator zal maximaal zijn als de inschatte tijd voor het printen van de laag lager is dan de ingestelde waarde"
 
@@ -9963,8 +9717,7 @@ msgstr ""
 "Weet je zeker dat je de geselecteerde preset wilt verwijderen?\n"
 "Als de voorinstelling overeenkomt met een filament dat momenteel in gebruik is op je printer, reset dan de filamentinformatie voor die sleuf."
 
-#, boost-format, fuzzy
-#| msgid "Are you sure to %1% the selected preset?"
+#, fuzzy, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Weet u zeker dat u de geselecteerde preset wilt %1%?"
 
@@ -10000,11 +9753,6 @@ msgstr ""
 msgid "Continue"
 msgstr "Doorgaan"
 
-#, fuzzy
-#| msgid "Back"
-msgid "Back"
-msgstr "Achterzijde"
-
 msgid "Don't warn again for this preset"
 msgstr ""
 
@@ -10020,7 +9768,6 @@ msgid "Click to reset current value and attach to the global value."
 msgstr "Klik om de huidige waarde terug te zetten en de globale waarde toe te passen."
 
 #, fuzzy
-#| msgid "Click to drop current modify and reset to saved value."
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Klik om de huidige aanpassingen te verwerpen en terug te gaan naar de standaard instelling."
 
@@ -10028,7 +9775,6 @@ msgid "Process Settings"
 msgstr "Procesinstellingen"
 
 #, fuzzy
-#| msgid "Unsaved Changes"
 msgid "unsaved changes"
 msgstr "niet-opgeslagen wijzigingen"
 
@@ -10036,7 +9782,6 @@ msgid "Transfer or discard changes"
 msgstr "Verwerp of bewaar aanpassingen"
 
 #, fuzzy
-#| msgid "Old Value"
 msgid "Old value"
 msgstr "Oude waarde"
 
@@ -10082,7 +9827,6 @@ msgid "Click the right mouse button to display the full text."
 msgstr "Klik op de rechtermuisknop om de volledige tekst weer te geven."
 
 #, fuzzy
-#| msgid "All changes will not be saved"
 msgid "No changes will be saved."
 msgstr "Er zullen geen wijzigingen worden opgeslagen"
 
@@ -10632,7 +10376,6 @@ msgid "Arrow Up"
 msgstr "Pijl naar boven"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive Y direction"
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Verplaats de selectie 10mm in een positieve Y richting"
 
@@ -10640,7 +10383,6 @@ msgid "Arrow Down"
 msgstr "Pijl omlaag"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative Y direction"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Verplaats de selectie 10mm in een negatieve Y richting"
 
@@ -10648,7 +10390,6 @@ msgid "Arrow Left"
 msgstr "Pijl naar links"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative X direction"
 msgid "Move selection 10mm in negative X direction"
 msgstr "Verplaats de selectie 10mm in een negatieve X richting"
 
@@ -10656,17 +10397,14 @@ msgid "Arrow Right"
 msgstr "Pijl naar rechts"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive X direction"
 msgid "Move selection 10mm in positive X direction"
 msgstr "Verplaats de selectie 10mm in een positieve X richting"
 
 #, fuzzy
-#| msgid "Movement step set to 1 mm"
 msgid "Movement step set to 1mm"
 msgstr "Bewegingsinterval ingesteld op 1mm"
 
 #, fuzzy
-#| msgid "Keyboard 1-9: set filament for object/part"
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Toets 1-9: kies filament voor het object/onderdeel"
 
@@ -10764,7 +10502,6 @@ msgid "Set extruder number for the objects and parts"
 msgstr "Stel het extrudernnumer in voor de objecten en onderdelen"
 
 #, fuzzy
-#| msgid "Delete objects, parts, modifiers"
 msgid "Delete objects, parts, modifiers"
 msgstr "Verwijder objecten, onderdelen, aanpassingen"
 
@@ -10818,7 +10555,6 @@ msgid "Network plug-in update"
 msgstr "Netwerk plug-in update"
 
 #, fuzzy
-#| msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "Klik op OK om de netwerkplug-in bij te werken wanneer Orca Slicer de volgende keer wordt gestart."
 
@@ -10964,12 +10700,10 @@ msgid "Are you sure you want to update? This will take about 10 minutes. Do not 
 msgstr "Weet u zeker dat u de firmware wilt bijwerken? Dit duurt ongeveer 10 minuten. Zet de printer NIET uit tijdens dit proces."
 
 #, fuzzy
-#| msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Er is een belangrijke update gedetecteerd die moet worden uitgevoerd voordat het printen kan worden voortgezet. Wil je nu updaten? Je kunt ook later updaten via 'Firmware bijwerken'."
 
 #, fuzzy
-#| msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "De firmwareversie is abnormaal. Repareren en bijwerken is vereist voor het afdrukken. Wil je nu updaten? Je kunt ook later op de printer updaten of updaten wanneer je Orca Slicer de volgende keer start."
 
@@ -10984,7 +10718,6 @@ msgid "Repair finished"
 msgstr "Reperaren afgerond"
 
 #, fuzzy
-#| msgid "Repair failed."
 msgid "Repair failed"
 msgstr "Repareren mislukt."
 
@@ -10996,7 +10729,6 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Het kopieeren van bestand %1% naar %2% is mislukt: %3%"
 
 #, fuzzy
-#| msgid "Need to check the unsaved changes before configuration updates."
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Controleer niet-opgeslagen wijzigingen voordat u de configuratie bijwerkt."
 
@@ -11012,8 +10744,7 @@ msgstr "Open G-code bestand:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Eén object heeft een lege eerste laag en kan niet geprint worden. Knip een stuk van de bodem van het object of genereer support."
 
-#, boost-format, fuzzy
-#| msgid "Object can't be printed for empty layer between %1% and %2%."
+#, fuzzy, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Het object heeft lege lagen tussen %1% en %2% en kan daarom niet geprint worden."
 
@@ -11022,7 +10753,6 @@ msgid "Object: %1%"
 msgstr "Object: %1%"
 
 #, fuzzy
-#| msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Delen van het object op deze hoogts kunnen te dun zijn of het object kan een defect in de constructie hebben."
 
@@ -11033,7 +10763,6 @@ msgid "Filament change extrusion role G-code"
 msgstr ""
 
 #, fuzzy
-#| msgid "No object can be printed. Maybe too small"
 msgid "No object can be printed. It may be too small."
 msgstr "Er kunnen geen objecten geprint worden. Het kan zijn dat ze te klein zijn."
 
@@ -11077,8 +10806,7 @@ msgstr " can not be placed in the "
 msgid "Internal Bridge"
 msgstr "Internal Bridge"
 
-#, boost-format, fuzzy
-#| msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+#, fuzzy, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "Kan de lijndikte van %1% niet berekenen omdat de waarde van \"%2%\" niet opgehaald kan worden"
 
@@ -11092,7 +10820,6 @@ msgid "too many files"
 msgstr "Teveel bestanden"
 
 #, fuzzy
-#| msgid "file too large"
 msgid "File too large"
 msgstr "Bestand is te groot"
 
@@ -11115,7 +10842,6 @@ msgid "invalid header or corrupted"
 msgstr "Onjuiste of beschadigde header"
 
 #, fuzzy
-#| msgid "unsupported multidisk"
 msgid "Saving to RAID is not supported."
 msgstr "Opslaan naar een RAID configuratie is niet ondersteund."
 
@@ -11165,7 +10891,6 @@ msgid "invalid filename"
 msgstr "Ongeldige bestandsnaam"
 
 #, fuzzy
-#| msgid "buffer too small"
 msgid "Buffer too small"
 msgstr "Buffer te klein"
 
@@ -11176,7 +10901,6 @@ msgid "file not found"
 msgstr "Bestand mist"
 
 #, fuzzy
-#| msgid "archive too large"
 msgid "Archive too large"
 msgstr "Archief is te groot"
 
@@ -11186,8 +10910,7 @@ msgstr "Valideren is mislukt"
 msgid "write callback failed"
 msgstr "callback schrijven is mislukt"
 
-#, boost-format, fuzzy
-#| msgid "%1% is too close to exclusion area, there may be collisions when printing."
+#, fuzzy, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% bevindt zich te dicht bij het uitsluitingsgebied. Er kunnen botsingen optreden tijdens het afdrukken."
 
@@ -11212,7 +10935,6 @@ msgid " is too close to others, and collisions may be caused.\n"
 msgstr "staat te dicht bij andere objecten en er kunnen botsingen worden veroorzaakt.\n"
 
 #, fuzzy
-#| msgid " is too close to exclusion area, and collisions will be caused.\n"
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " bevindt zich te dicht bij het uitsluitingsgebied en er zullen botsingen worden veroorzaakt.\n"
 
@@ -11247,7 +10969,6 @@ msgid "Please select \"By object\" print sequence to print multiple objects in s
 msgstr "Selecteer de afdrukvolgorde \"per object\" om meerdere objecten in spiraalvaasmodus af te drukken."
 
 #, fuzzy
-#| msgid "The spiral vase mode does not work when an object contains more than one materials."
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spiraal (vaas) modus werkt niet als een object meer dan 1 filament bevalt."
 
@@ -11282,27 +11003,22 @@ msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprint
 msgstr "De prime tower wordt momenteel alleen ondersteund voor de Marlin, RepRap/Sprinter, RepRapFirmware en Repetier G-code smaken."
 
 #, fuzzy
-#| msgid "The prime tower is not supported in \"By object\" print."
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Een prime-toren wordt niet ondersteund bij het \"per object\" printen."
 
 #, fuzzy
-#| msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "Een prime toren wordt niet ondersteund tijdens het printen met adaptieve laaghoogte. Voor het werken met een prime toren is het van belang dat alle lagen dezelfde laaghoogte hebben."
 
 #, fuzzy
-#| msgid "The prime tower requires \"support gap\" to be multiple of layer height."
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Een prime toren vereist dat elke \"support opening\" een veelvoud van de laaghoogte is."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects have the same layer heights."
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "Een prime toren vereist dat alle objecten dezelfde laaghoogte hebben."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are printed over the same number of raft layers."
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "Een prime-toren vereist dat alle objecten op hetzelfde aantal raftlagen worden afgedrukt."
 
@@ -11310,7 +11026,6 @@ msgid "The prime tower is only supported for multiple objects if they are printe
 msgstr "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are sliced with the same layer heights."
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "Een prime toren vereist dat alle objecten met dezelfde laaghoogte gesliced worden."
 
@@ -11321,12 +11036,10 @@ msgid "One or more object were assigned an extruder that the printer does not ha
 msgstr "One or more object were assigned an extruder that the printer does not have."
 
 #, fuzzy
-#| msgid "Too small line width"
 msgid "Line width too small"
 msgstr "Te kleine lijnbreedte"
 
 #, fuzzy
-#| msgid "Too large line width"
 msgid "Line width too large"
 msgstr "Te groote lijnbreedte"
 
@@ -11334,7 +11047,6 @@ msgid "Printing with multiple extruders of differing nozzle diameters. If suppor
 msgstr "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 
 #, fuzzy
-#| msgid "The prime tower requires that support has the same layer height with object."
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Een prime toren vereist dat support dezelfde laaghoogte heeft als het object."
 
@@ -11360,7 +11072,6 @@ msgid "Support enforcers are used but support is not enabled. Please enable supp
 msgstr "Er zijn support handhavers ingesteld, maar support staat uit. Schakel  support in."
 
 #, fuzzy
-#| msgid "Layer height cannot exceed nozzle diameter."
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "De laaghoogte kan niet groter zijn dan de diameter van het mondstuk"
 
@@ -11441,7 +11152,6 @@ msgid "Generating G-code"
 msgstr "Genereer G-code"
 
 #, fuzzy
-#| msgid "Failed processing of the filename_format template."
 msgid "Processing of the filename_format template failed."
 msgstr "Verwerking van het sjabloon \"bestandsnaam_formaat\" is mislukt."
 
@@ -11473,7 +11183,6 @@ msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 app
 msgstr ""
 
 #, fuzzy
-#| msgid "Bed exclude area"
 msgid "Excluded bed area"
 msgstr "Uitgesloten printbed gebied"
 
@@ -11490,7 +11199,6 @@ msgid "Elephant foot compensation"
 msgstr "\"Elephant foot\" compensatie"
 
 #, fuzzy
-#| msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Hierdoor krimpt de eerste laag op de bouwplaat om het \"elephant foot\" effect te compenseren."
 
@@ -11510,7 +11218,6 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-#| msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Dit is de hoogte voor iedere laag. Kleinere laaghoogtes geven een grotere nauwkeurigheid maar een langere printtijd."
 
@@ -11518,7 +11225,6 @@ msgid "Printable height"
 msgstr "Hoogte waarbinnen geprint kan worden"
 
 #, fuzzy
-#| msgid "Maximum printable height which is limited by mechanism of printer."
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "Dit is de maximale printbare hoogte gelimiteerd door de constructie van de printer"
 
@@ -11598,7 +11304,6 @@ msgid "Ignore HTTPS certificate revocation checks"
 msgstr "HTTPS-certificaatintrekkingscontroles negeren"
 
 #, fuzzy
-#| msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "HTTPS-certificaatherroepingscontroles negeren in geval van ontbrekende of offline distributiepunten. Men kan deze optie inschakelen voor zelfondertekende certificaten als de verbinding mislukt."
 
@@ -11618,7 +11323,6 @@ msgid "Avoid crossing walls"
 msgstr "Vermijd het oversteken van walls"
 
 #, fuzzy
-#| msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Omweg om te voorkomen dat de printkop over wanden verplaatst, dit zou namelijk klodders op het oppervlak kunnen veroorzaken"
 
@@ -11626,7 +11330,6 @@ msgid "Avoid crossing walls - Max detour length"
 msgstr "Walls vermijden - Maximale omleidingslengte"
 
 #, fuzzy
-#| msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Maximale omleidingsafstand om te voorkomen dat een muur wordt overgestoken: De printer zal geen omweg maken als de omleidingsafstand groter is dan deze waarde. De lengte van de omleiding kan worden gespecificeerd als absolute waarde of als percentage (bijvoorbeeld 50%) van een directe reisroute. Een waarde van 0 zal dit uitschakelen."
 
@@ -11640,72 +11343,58 @@ msgid "Bed temperature for layers except the initial one. A value of 0 means the
 msgstr "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dit is de bedtemperatuur voor alle lagen behalve de eerste. Een waarde van 0 betekent dat het filament het afdrukken op de Cool Plate niet ondersteunt."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Dit is de bedtemperatuur voor lagen, behalve voor de eerste. Een waarde van 0 betekent dat het filament afdrukken op de Engineering Plate niet ondersteunt."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Dit is de bedtemperatuur voor lagen, behalve voor de eerste. Een waarde van 0 betekent dat het filament printen op de High Temp Plate niet ondersteunt."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Bedtemperatuur na de eerste laag. 0 betekent dat het filament niet wordt ondersteund op de getextureerde PEI-plaat."
 
 #, fuzzy
-#| msgid "First layer"
 msgid "First layer"
 msgstr "Eerste laag"
 
 #, fuzzy
-#| msgid "First layer bed temperature"
 msgid "First layer bed temperature"
 msgstr "Printbed temperatuur voor de eerste laag"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dit is de bedtemperatuur van de beginlaag. Een waarde van 0 betekent dat het filament printen op de Cool Plate niet ondersteunt."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Dit is de bedtemperatuur van de beginlaag. Een waarde van 0 betekent dat het filament afdrukken op de Engineering Plate niet ondersteunt."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Dit is de bedtemperatuur van de beginlaag. Een waarde van 0 betekent dat het filament printen op de High Temp Plate niet ondersteunt."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "De bedtemperatuur van de eerste laag 0 betekent dat het filament niet wordt ondersteund op de getextureerde PEI-plaat."
 
 #, fuzzy
-#| msgid "Bed types supported by the printer."
 msgid "Plate types supported by the printer"
 msgstr "Printbedden ondersteund door de printer"
 
@@ -11740,7 +11429,6 @@ msgid "Bottom shell thickness"
 msgstr "Bodemdikte"
 
 #, fuzzy
-#| msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Het aantal onderste solide lagen wordt verhoogd tijdens het slicen als de totale dikte van de onderste lagen lager is dan deze waarde. Dit zorgt ervoor dat de schaal niet te dun is bij een lage laaghoogte. 0 betekend dat deze instelling niet actief is en dat de dikte van de bodem bepaald wordt door het aantal bodem lagen."
 
@@ -12148,12 +11836,10 @@ msgstr ""
 "When Detect overhang wall is not enabled, this option is ignored and reversal happens on every even layers regardless."
 
 #, fuzzy
-#| msgid "Slow down for overhang"
 msgid "Slow down for overhangs"
 msgstr "Afremmen voor overhangende delen"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing down for different overhang degree."
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "Schakel deze optie in om de snelheid omlaag te brengen voor verschillende overhangende hoeken"
 
@@ -12200,7 +11886,6 @@ msgid "Brim width"
 msgstr "Rand breedte"
 
 #, fuzzy
-#| msgid "Distance from model to the outermost brim line."
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Dit is de afstand van het model tot de buitenste randlijn."
 
@@ -12214,7 +11899,6 @@ msgid "Brim-object gap"
 msgstr "Ruimte tussen rand en object"
 
 #, fuzzy
-#| msgid "A gap between innermost brim line and object can make brim be removed more easily."
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Dit creëert ruimte tussen de binnenste brimlijn en het object en zorgt ervoor dat het object eenvoudiger van het printbed kan worden verwijderd."
 
@@ -12230,16 +11914,10 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-#| msgid "Brim follows compensated outline"
 msgid "Brim follows compensated outline"
 msgstr "Rand volgt de gecompenseerde omtrek"
 
 #, fuzzy
-#| msgid ""
-#| "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
-#| "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
-#| "\n"
-#| "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12295,7 +11973,6 @@ msgid "Condition"
 msgstr "Voorwaarde"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Een waar/niet waar aanduiding die gebruik maakt van configuratiewaarden van een actief printerprofiel. Als deze aanduiding op waar staat, wordt dit profiel beschouwd als geschikt voor het actieve printerprofiel."
 
@@ -12303,12 +11980,10 @@ msgid "Select profiles"
 msgstr "Select profiles"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Een waar/niet waar aanduiding die gebruik maakt van configuratiewaarden van een actief printprofiel. Als deze aanduiding op waar staat, wordt dit profiel beschouwd als geschikt voor het actieve printprofiel."
 
 #, fuzzy
-#| msgid "Print sequence, layer by layer or object by object."
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Hiermee wordt de afdrukvolgorde bepaald, zodat u kunt kiezen tussen laag voor laag of object voor object printen."
 
@@ -12331,7 +12006,6 @@ msgid "Slow printing down for better layer cooling"
 msgstr "Printsnelheid omlaag brengen zodat de laag beter kan koelen"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "Schakel deze optie in om de afdruksnelheid te verlagen om de laatste laag printtijd niet korter te maken dan de laagtijddrempel in \"Maximale ventilatorsnelheidsdrempel\", zodat de laag langer kan worden gekoeld. Dit kan de koelkwaliteit voor kleine details verbeteren"
 
@@ -12339,7 +12013,6 @@ msgid "Normal printing"
 msgstr "Normaal printen"
 
 #, fuzzy
-#| msgid "The default acceleration of both normal printing and travel except initial layer."
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Dit is de standaard versnelling voor zowel normaal printen en verplaatsen behalve voor de eerste laag"
 
@@ -12386,7 +12059,6 @@ msgid "Don't support bridges"
 msgstr "Geen support bij bruggen toepassen"
 
 #, fuzzy
-#| msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Dit schakelt de ondersteuning (support) voor bruggebieden uit, waardoor de ondersteuning (support) erg groot kan worden. Bruggen kunnen meestal direct zonder ondersteuning (support) worden afgedrukt als ze niet erg lang zijn."
 
@@ -12475,7 +12147,6 @@ msgid "Max bridge length"
 msgstr "Maximale bruglengte"
 
 #, fuzzy
-#| msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Maximale lengte van bruggen die geen ondersteuning nodig hebben. Stel het in op 0 als u wilt dat alle bruggen worden ondersteund, en stel het in op een zeer grote waarde als u niet wilt dat bruggen worden ondersteund."
 
@@ -12483,7 +12154,6 @@ msgid "End G-code"
 msgstr "Einde G-code"
 
 #, fuzzy
-#| msgid "End G-code when finishing the entire print."
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Voeg een eind G-code toe bij het afwerken van de hele print."
 
@@ -12494,7 +12164,6 @@ msgid "Insert G-code between objects. This parameter will only come into effect 
 msgstr "G-code invoegen tussen objecten. Deze parameter wordt alleen actief wanneer u uw modellen object voor object afdrukt."
 
 #, fuzzy
-#| msgid "End G-code when finishing the printing of this filament."
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "Voeg een eind G-code toe bij het afronden van het printen van dit filament."
 
@@ -12526,7 +12195,6 @@ msgid "Top surface pattern"
 msgstr "Patroon bovenvlak"
 
 #, fuzzy
-#| msgid "Line pattern of top surface infill."
 msgid "This is the line pattern for top surface infill."
 msgstr "Dit is het lijnenpatroon voor de vulling (infill) van het bovenoppervlak."
 
@@ -12558,7 +12226,6 @@ msgid "Bottom surface pattern"
 msgstr "Bodem oppvlakte patroon"
 
 #, fuzzy
-#| msgid "Line pattern of bottom surface infill, not bridge infill."
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Dit is het lijnenpatroon van de vulling (infill) van het bodemoppervlak, maar niet van de vulling van de brug."
 
@@ -12572,7 +12239,6 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "Dit is de snelheid voor de buitenste wand die zichtbaar is. Deze wordt langzamer geprint dan de binnenste wanden om een betere kwaliteit te krijgen."
 
@@ -12649,7 +12315,6 @@ msgid "Height to rod"
 msgstr "Hoogte tot geleider"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Afstand van de punt van het mondstuk tot de onderste stang. Wordt gebruikt om botsingen te voorkomen bij het afdrukken op basis van objecten."
 
@@ -12657,12 +12322,10 @@ msgid "Height to lid"
 msgstr "Hoogte tot deksel"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Afstand van de punt van het mondstuk tot het deksel. Wordt gebruikt om botsingen te voorkomen bij het afdrukken op basis van objecten."
 
 #, fuzzy
-#| msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Afstandsradius rond de extruder: gebruikt om botsingen te vermijden bij het printen per object."
 
@@ -12800,7 +12463,6 @@ msgid "Keep fan always on"
 msgstr "Laat de ventilator aan staan"
 
 #, fuzzy
-#| msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Als deze instelling is ingeschakeld, zal de printkop ventilator altijd aan staan op een minimale snelheid om het aantal start en stop momenten te beperken"
 
@@ -12822,7 +12484,6 @@ msgid "Layer time"
 msgstr "Laag tijd"
 
 #, fuzzy
-#| msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "De printkop ventilator wordt ingeschakeld voor lagen waarvan de geschatte printtijd korter is dan deze waarde. Ventilatorsnelheid wordt geïnterpoleerd tussen de minimale en maximale ventilatorsnelheden volgens de printtijd van de laag"
 
@@ -12849,7 +12510,6 @@ msgid "Required nozzle HRC"
 msgstr "Vereiste mondstuk HRC"
 
 #, fuzzy
-#| msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "Minimale HRC van het mondstuk die nodig is om het filament te printen. Een waarde van 0 betekent geen controle van de HRC van het mondstuk."
 
@@ -12890,7 +12550,6 @@ msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric s
 msgstr "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 
 #, fuzzy
-#| msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Deze instelling is het volume filament dat per seconde kan worden gesmolten en geëxtrudeerd. De afdruksnelheid wordt beperkt door de maximale volumetrische snelheid, in geval van een te hoge en onredelijke snelheidsinstelling. Deze waarde kan niet nul zijn."
 
@@ -12925,7 +12584,6 @@ msgid "By Highest Temp"
 msgstr "By Highest Temp"
 
 #, fuzzy
-#| msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Filamentdiameter wordt gebruikt om de extrusie in de G-code te berekenen, het is dus belangrijk dat deze nauwkeurig wordt ingegeven."
 
@@ -13000,7 +12658,6 @@ msgid "Unloading speed"
 msgstr "Ontlaadsnelheid"
 
 #, fuzzy
-#| msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Snelheid die gebruikt wordt voor het ontladen van het afveegblok (heeft geen effect op het initiële onderdeel van het ontladen direct na de ramming)."
 
@@ -13119,7 +12776,6 @@ msgid "Density"
 msgstr "Dichtheid"
 
 #, fuzzy
-#| msgid "Filament density. For statistics only."
 msgid "Filament density, for statistical purposes only."
 msgstr "Filamentdichtheid, alleen voor statistische doeleinden."
 
@@ -13127,7 +12783,6 @@ msgid "g/cm³"
 msgstr "g/cm³"
 
 #, fuzzy
-#| msgid "The material type of filament."
 msgid "Filament material type"
 msgstr "Filament materiaal."
 
@@ -13159,7 +12814,6 @@ msgid "Softening temperature"
 msgstr "Verzachtingstemperatuur"
 
 #, fuzzy
-#| msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
 
@@ -13167,7 +12821,6 @@ msgid "Price"
 msgstr "Prijs"
 
 #, fuzzy
-#| msgid "Filament price. For statistics only."
 msgid "Filament price, for statistical purposes only."
 msgstr "Filament prijs. Alleen voor statistieken"
 
@@ -13187,7 +12840,6 @@ msgid "Sparse infill direction"
 msgstr "Sparse infill direction"
 
 #, fuzzy
-#| msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Dit is de hoek voor een dun opvulpatroon, dat het begin of de hoofdrichting van de lijnen bepaalt."
 
@@ -13235,7 +12887,6 @@ msgid "Sparse infill pattern"
 msgstr "Vulpatroon"
 
 #, fuzzy
-#| msgid "Line pattern for internal sparse infill."
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Dit is het lijnpatroon voor dunne interne vulling (infill)"
 
@@ -13370,12 +13021,10 @@ msgid "Acceleration of travel moves."
 msgstr "Acceleration of travel moves."
 
 #, fuzzy
-#| msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Versnelling van de topoppervlakte-invulling. Gebruik van een lagere waarde kan de kwaliteit van de bovenlaag verbeteren."
 
 #, fuzzy
-#| msgid "Acceleration of outer wall. Using a lower value can improve quality."
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Versnelling van de buitenwand: een lagere waarde kan de kwaliteit verbeteren."
 
@@ -13392,7 +13041,6 @@ msgid "Acceleration of internal solid infill. If the value is expressed as a per
 msgstr "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 
 #, fuzzy
-#| msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Dit is de afdrukversnelling voor de eerste laag. Een beperkte versnelling kan de hechting van de bouwplaat verbeteren."
 
@@ -13450,27 +13098,22 @@ msgid "Line width of the first layer. If expressed as a %, it will be computed o
 msgstr "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "First layer height"
 msgid "First layer height"
 msgstr "Laaghoogte van de eerste laag"
 
 #, fuzzy
-#| msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Dit is de hoogte van de eerste laag. Door de hoogte van de eerste laag hoger te maken, kan de hechting op het printbed worden verbeterd."
 
 #, fuzzy
-#| msgid "Speed of the first layer except the solid infill part."
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Dit is de snelheid voor de eerste laag behalve solide vulling (infill) delen"
 
 #, fuzzy
-#| msgid "First layer infill"
 msgid "First layer infill"
 msgstr "Vulling (infill) van de eerste laag"
 
 #, fuzzy
-#| msgid "Speed of solid infill part of the first layer."
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Dit is de snelheid voor de solide vulling (infill) delen van de eerste laag."
 
@@ -13481,7 +13124,6 @@ msgid "Travel speed of the first layer."
 msgstr "Travel speed of the first layer."
 
 #, fuzzy
-#| msgid "Number of slow layers"
 msgid "This is the number of top interface layers."
 msgstr "Number of slow layers"
 
@@ -13489,12 +13131,10 @@ msgid "The first few layers are printed slower than normal. The speed is gradual
 msgstr "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 
 #, fuzzy
-#| msgid "First layer nozzle temperature"
 msgid "First layer nozzle temperature"
 msgstr "Mondstuk temperatuur voor de eerste laag"
 
 #, fuzzy
-#| msgid "Nozzle temperature for printing the first layer when using this filament."
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Mondstuk temperatuur om de eerste laag mee te printen bij gebruik van dit filament"
 
@@ -13566,7 +13206,6 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 
 #, fuzzy
-#| msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Deze instelling zorgt ervoor dat de toolhead willekeurig schudt tijdens het printen van muren, zodat het oppervlak er ruw uitziet. Deze instelling regelt de \"fuzzy\" positie."
 
@@ -13589,7 +13228,6 @@ msgid "Fuzzy skin thickness"
 msgstr "Fuzzy skin dikte"
 
 #, fuzzy
-#| msgid "The width within which to jitter. It's advised to be below outer wall line width."
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "De breedte van jittering: het is aan te raden deze lager te houden dan de lijndikte van de buitenste wand."
 
@@ -13720,7 +13358,6 @@ msgid "Don't print gap fill with a length is smaller than the threshold specifie
 msgstr "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 
 #, fuzzy
-#| msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Dit is de snelheid voor het opvullen van gaten. Tussenruimtes hebben meestal een onregelmatige lijndikte en moeten daarom langzamer worden afgedrukt."
 
@@ -13752,7 +13389,6 @@ msgid "Scan first layer"
 msgstr "Eerste laag scannen"
 
 #, fuzzy
-#| msgid "Enable this to enable the camera on printer to check the quality of first layer."
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Schakel dit in zodat de camera in de printer de kwaliteit van de eerste laag kan controleren."
 
@@ -13769,7 +13405,6 @@ msgid "Nozzle type"
 msgstr "Mondstuk type"
 
 #, fuzzy
-#| msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Het type metaal van het mondstuk. Dit bepaalt de slijtvastheid van het mondstuk en wat voor soort filament kan worden geprint"
 
@@ -13786,7 +13421,6 @@ msgid "Nozzle HRC"
 msgstr "Mondstuk HRC"
 
 #, fuzzy
-#| msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "De hardheid van het mondstuk. Nul betekent geen controle op de hardheid van het mondstuk tijdens het slicen."
 
@@ -13871,7 +13505,6 @@ msgid "money/h"
 msgstr "money/h"
 
 #, fuzzy
-#| msgid "Support control chamber temperature"
 msgid "Support controlling chamber temperature"
 msgstr "Ondersteuning voor het regelen van de kamertemperatuur"
 
@@ -13935,7 +13568,6 @@ msgid "Infill combination"
 msgstr "Vulling (infill) combinatie"
 
 #, fuzzy
-#| msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Combineer het printen van meerdere lagen vulling om te printtijd te verlagen. De wanden worden geprint in de originele laaghoogte."
 
@@ -14043,12 +13675,10 @@ msgid "Line width of internal sparse infill. If expressed as a %, it will be com
 msgstr "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "Infill/Wall overlap"
 msgid "Infill/wall overlap"
 msgstr "Vulling (infill)/wand overlap"
 
-#, fuzzy, no-boost-format, no-c-format
-#| msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+#, fuzzy, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 
@@ -14060,7 +13690,6 @@ msgid "Top solid infill area is enlarged slightly to overlap with wall for bette
 msgstr "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 
 #, fuzzy
-#| msgid "Speed of internal sparse infill."
 msgid "This is the speed for internal sparse infill."
 msgstr "Dit is de snelheid voor de dunne vulling (infill)"
 
@@ -14080,7 +13709,6 @@ msgid "Maximum width of a segmented region"
 msgstr "Maximale breedte van een gesegmenteerd gebied"
 
 #, fuzzy
-#| msgid "Maximum width of a segmented region. Zero disables this feature."
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Maximum width of a segmented region. Zero disables this feature."
 
@@ -14127,12 +13755,10 @@ msgid "The distance from the outside of a model where interlocking structures wi
 msgstr "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 
 #, fuzzy
-#| msgid "Ironing Type"
 msgid "Ironing type"
 msgstr "Strijk type"
 
 #, fuzzy
-#| msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "Strijken gebruikt een lage flow om op dezelfde hoogte van een oppervlak te printen om platte oppervlakken gladder te maken. Deze instelling bepaalt op welke lagen het strijken wordt toegepast."
 
@@ -14140,12 +13766,10 @@ msgid "No ironing"
 msgstr "Niet strijken"
 
 #, fuzzy
-#| msgid "Top surfaces"
 msgid "All top surfaces"
 msgstr "Alle bovenoppervlakken"
 
 #, fuzzy
-#| msgid "Topmost surface"
 msgid "Topmost surface only"
 msgstr "Alleen het bovenste oppervlak"
 
@@ -14160,12 +13784,10 @@ msgid "The pattern that will be used when ironing."
 msgstr "The pattern that will be used when ironing."
 
 #, fuzzy
-#| msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Dit is de hoeveelheid materiaal die dient te worden geëxtrudeerd tijdens het strijken. Het is relatief ten opzichte van de flow van normale laaghoogte. Een te hoge waarde zal resulteren in overextrusie op het oppervlak."
 
 #, fuzzy
-#| msgid "The distance between the lines of ironing."
 msgid "This is the distance between the lines used for ironing."
 msgstr "Dit is de afstand voor de lijnen die gebruikt worden voor het strijken."
 
@@ -14173,7 +13795,6 @@ msgid "The distance to keep from the edges. A value of 0 sets this to half of th
 msgstr "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 
 #, fuzzy
-#| msgid "Print speed of ironing lines."
 msgid "This is the print speed for ironing lines."
 msgstr "Dit is de print snelheid van de strijk lijnen"
 
@@ -14231,12 +13852,10 @@ msgid "Clumping detection G-code"
 msgstr "Clumping detection G-code"
 
 #, fuzzy
-#| msgid "Supports silent mode"
 msgid "Silent Mode"
 msgstr "Stille modus"
 
 #, fuzzy
-#| msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Dit geeft aan of de machine de stille modus ondersteunt waarin de machine een lagere versnelling gebruikt om te printen"
 
@@ -14488,7 +14107,6 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-#| msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "De snelheid van de ventilator op de printkop kan verhoogd worden als automatisch koelen is ingeschakeld. Dit is de maximale snelheidslimiet van de printkop ventilator"
 
@@ -14604,7 +14222,6 @@ msgid "Nozzle volume"
 msgstr "Mondstuk volume"
 
 #, fuzzy
-#| msgid "Volume of nozzle between the cutter and the end of nozzle."
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Volume van het mondstuk tussen de filamentsnijder en het uiteinde van het mondstuk"
 
@@ -14642,7 +14259,6 @@ msgid "Start end points"
 msgstr "Start end points"
 
 #, fuzzy
-#| msgid "The start and end points which is from cutter area to garbage can."
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Het begin- en eindpunt dat zich van het snijoppervlak naar de afvoer chute bevindt."
 
@@ -14650,7 +14266,6 @@ msgid "Reduce infill retraction"
 msgstr "Reduceer terugtrekken (retraction) bij vulling (infill)"
 
 #, fuzzy
-#| msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "Trek niet terug als de beweging zich volledig in een opvulgebied bevindt. Dat betekent dat het sijpelen niet zichtbaar is. Dit kan de retraction times voor complexe modellen verkorten en printtijd besparen, maar het segmenteren en het genereren van G-codes langzamer maken."
 
@@ -14661,7 +14276,6 @@ msgid "Filename format"
 msgstr "Bestandsnaam formaat"
 
 #, fuzzy
-#| msgid "Users can define the project file name when exporting."
 msgid "Users can decide project file names when exporting."
 msgstr "Gebruikers kunnen zelf de project bestandsnaam kiezen tijdens het exporteren"
 
@@ -14687,8 +14301,7 @@ msgstr "Maximum area of a hole in the base of the model before it's filled by co
 msgid "Detect overhang walls"
 msgstr "Overhange wand detecteren"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+#, fuzzy, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Dit maakt het mogelijk om het overhangpercentage ten opzichte van de lijnbreedte te detecteren en gebruikt verschillende snelheden om af te drukken. Voor 100%% overhang wordt de brugsnelheid gebruikt."
 
@@ -14712,12 +14325,10 @@ msgid "Line width of inner wall. If expressed as a %, it will be computed over t
 msgstr "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "Speed of inner wall."
 msgid "This is the speed for inner walls."
 msgstr "Dit is de snelheid voor de binnenste wanden"
 
 #, fuzzy
-#| msgid "Number of walls of every layer."
 msgid "This is the number of walls per layer."
 msgstr "Dit is het aantal wanden per laag."
 
@@ -14765,7 +14376,6 @@ msgid "Raft contact Z distance"
 msgstr "Vlot (raft) contact Z afstand:"
 
 #, fuzzy
-#| msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z-gap tussen het vlot en het object. Als de bovenste Z-afstand van de ondersteuning 0 is, wordt deze waarde genegeerd en wordt het object direct in contact met het vlot geprint (geen gap)."
 
@@ -14773,27 +14383,22 @@ msgid "Raft expansion"
 msgstr "Vlot (raft) expansie"
 
 #, fuzzy
-#| msgid "Expand all raft layers in XY plane."
 msgid "This expands all raft layers in XY plane."
 msgstr "Dit vergroot alle raft lagen in het XY vlak."
 
 #, fuzzy
-#| msgid "First layer density"
 msgid "First layer density"
 msgstr "Dichtheid van de eerste laag"
 
 #, fuzzy
-#| msgid "Density of the first raft or support layer."
 msgid "This is the density of the first raft or support layer."
 msgstr "Dit is de dichtheid van de eerste raft- of support laag."
 
 #, fuzzy
-#| msgid "First layer expansion"
 msgid "First layer expansion"
 msgstr "Vergroten van de eerste laag"
 
 #, fuzzy
-#| msgid "Expand the first raft or support layer to improve bed plate adhesion."
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Dit zet de eerste raft- of steun (support) laag uit om de hechting van het bed te verbeteren."
 
@@ -14804,7 +14409,6 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "Het object wordt verhoogd met dit aantal support lagen. Gebruik deze functie om kromtrekken te voorkomen bij het afdrukken met ABS."
 
 #, fuzzy
-#| msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "Het G-codepad wordt gegenereerd na het vereenvoudigen van de contouren van modellen om teveel punten en G-codelijnen te vermijden. Kleinere waarden betekenen een hogere resolutie en meer tijd die nodig is om het ontwerpen te slicen."
 
@@ -14818,17 +14422,14 @@ msgid "Retract amount before wipe"
 msgstr "Terugtrek (retract) hoeveelheid voor schoonvegen"
 
 #, fuzzy
-#| msgid "The length of fast retraction before wipe, relative to retraction length."
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Dit is de lengte van snel intrekken (retraction) vóór een wipe, in verhouding tot de retraction lengte."
 
 #, fuzzy
-#| msgid "Retract when change layer"
 msgid "Retract on layer change"
 msgstr "Terugtrekken (retract) bij wisselen van laag"
 
 #, fuzzy
-#| msgid "Force a retraction when changes layer."
 msgid "This forces a retraction on layer changes."
 msgstr "Dit forceert retraction (terugtrekken van filament) als er gewisseld wordt van laag"
 
@@ -14839,7 +14440,6 @@ msgid "Some amount of material in extruder is pulled back to avoid ooze during l
 msgstr "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 
 #, fuzzy
-#| msgid "Long retraction when cut (beta)"
 msgid "Long retraction when cut (beta)"
 msgstr "Long retraction when cut (beta)"
 
@@ -14862,7 +14462,6 @@ msgid "Z-hop height"
 msgstr "Z-hop height"
 
 #, fuzzy
-#| msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Wanneer er een terugtrekking (retraction) is, wordt het mondstuk een beetje opgetild om ruimte te creëren tussen het mondstuk en de print. Dit voorkomt dat het mondstuk de print raakt bij verplaatsen. Het gebruik van spiraallijnen om Z op te tillen kan stringing voorkomen."
 
@@ -14942,7 +14541,6 @@ msgid "When the retraction is compensated after changing tool, the extruder will
 msgstr "Als retracten wordt gecompenseerd na een toolwisseling, wordt deze extra hoeveelheid filament geëxtrudeerd."
 
 #, fuzzy
-#| msgid "Retraction Speed"
 msgid "Retraction speed"
 msgstr "Terugtrek (retraction) snelheid"
 
@@ -14950,7 +14548,6 @@ msgid "Speed for retracting filament from the nozzle."
 msgstr "Speed for retracting filament from the nozzle."
 
 #, fuzzy
-#| msgid "De-retraction Speed"
 msgid "Deretraction speed"
 msgstr "Snelheid van terugtrekken (deretraction)"
 
@@ -14976,7 +14573,6 @@ msgid "Seam position"
 msgstr "Naad positie"
 
 #, fuzzy
-#| msgid "The start position to print each part of outer wall."
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Dit is de startpositie voor ieder deel van de buitenste wand."
 
@@ -15117,7 +14713,6 @@ msgid "Skirt distance"
 msgstr "Rand (skirt) afstand"
 
 #, fuzzy
-#| msgid "The distance from the skirt to the brim or the object."
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Dit is de afstand van de skirt tot de rand van het object."
 
@@ -15131,7 +14726,6 @@ msgid "Skirt height"
 msgstr "Skirt height"
 
 #, fuzzy
-#| msgid "How many layers of skirt. Usually only one layer."
 msgid "Number of skirt layers: usually only one"
 msgstr "How many layers of skirt. Usually only one layer."
 
@@ -15171,7 +14765,6 @@ msgid "Skirt loops"
 msgstr "Rand (skirt) lussen"
 
 #, fuzzy
-#| msgid "Number of loops for the skirt. Zero means disabling skirt."
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Dit is het aantal lussen voor de skirt. 0 betekent dat de skirt is uitgeschakeld."
 
@@ -15202,7 +14795,6 @@ msgid "Minimum sparse infill threshold"
 msgstr "Minimale drempel voor dunne opvulling (infill)"
 
 #, fuzzy
-#| msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Dunne opvullingen (infill) die kleiner zijn dan deze drempelwaarde worden vervangen door solide interne vulling (infill)."
 
@@ -15225,12 +14817,10 @@ msgid "Line width of internal solid infill. If expressed as a %, it will be comp
 msgstr "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "Speed of internal solid infill, not the top and bottom surface."
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Dit is de snelheid voor de interne solide vulling (infill), bodem en bovenste oppervlakte zijn hiervan uitgezonderd"
 
 #, fuzzy
-#| msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Dit maakt spiralen mogelijk, waardoor de Z-bewegingen van de buitencontour worden afgevlakt en een solide model wordt omgezet in een enkelwandige print met solide onderlagen. Het uiteindelijke gegenereerde model heeft geen naad."
 
@@ -15262,7 +14852,6 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 
 #, fuzzy
-#| msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Als de vloeiende of traditionele modus is geselecteerd, wordt voor elke print een timelapse-video gegenereerd. Nadat elke laag is geprint, wordt een momentopname gemaakt met de kamercamera. Al deze momentopnamen worden samengevoegd tot een timelapse-video wanneer het afdrukken is voltooid. Als de vloeiende modus is geselecteerd, beweegt de gereedschapskop naar de afvoer chute nadat iedere laag is afgedrukt en maakt vervolgens een momentopname. Aangezien het gesmolten filament uit het mondstuk kan lekken tijdens het maken van een momentopname, is voor de soepele modus een primetoren nodig om het mondstuk schoon te vegen."
 
@@ -15298,12 +14887,10 @@ msgid "Start G-code"
 msgstr "Start G-code"
 
 #, fuzzy
-#| msgid "Start G-code when starting the entire print."
 msgid "G-code added when starting a print."
 msgstr "Start G-code bij het starten van een print"
 
 #, fuzzy
-#| msgid "Start G-code when starting the printing of this filament."
 msgid "G-code added when the printer starts using this filament"
 msgstr "Start G-code wanneer het printen van dit filament begint"
 
@@ -15389,7 +14976,6 @@ msgid "Enable support"
 msgstr "Support inschakelen"
 
 #, fuzzy
-#| msgid "Enable support generation."
 msgid "This enables support generation."
 msgstr "Dit maakt het genereren van support mogelijk."
 
@@ -15413,7 +14999,6 @@ msgid "Support/object XY distance"
 msgstr "Support/object XY afstand"
 
 #, fuzzy
-#| msgid "XY separation between an object and its support."
 msgid "This controls the XY separation between an object and its support."
 msgstr "Dit regelt de XY-afstand tussen een object en zijn support."
 
@@ -15433,7 +15018,6 @@ msgid "On build plate only"
 msgstr "Alleen op het printbed"
 
 #, fuzzy
-#| msgid "Don't create support on model surface, only on build plate."
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Deze instelling genereert alleen support die begint op het printbed."
 
@@ -15453,7 +15037,6 @@ msgid "Top Z distance"
 msgstr "Top Z afstand"
 
 #, fuzzy
-#| msgid "Z gap between the support's top and object."
 msgid "Z gap between the support's top and object."
 msgstr "Z-gap tussen de bovenkant van de ondersteuning en het object."
 
@@ -15461,7 +15044,6 @@ msgid "Bottom Z distance"
 msgstr "Onderste Z-afstand"
 
 #, fuzzy
-#| msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z-gap tussen het object en de onderkant van de ondersteuning. Als de bovenste Z-afstand van de ondersteuning 0 is en de onderkant interfacerlagen heeft, wordt deze waarde genegeerd en wordt de ondersteuning direct in contact met het object geprint (geen gap)."
 
@@ -15469,7 +15051,6 @@ msgid "Support/raft base"
 msgstr "Support/raft base"
 
 #, fuzzy
-#| msgid "Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used."
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
@@ -15485,12 +15066,10 @@ msgid "Line width of support. If expressed as a %, it will be computed over the 
 msgstr "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "Interface use loop pattern"
 msgid "Loop pattern interface"
 msgstr "Luspatroon interface"
 
 #, fuzzy
-#| msgid "Cover the top contact layer of the supports with loops. Disabled by default."
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Dit bedekt de bovenste laag van de support met lussen. Het is standaard uitgeschakeld."
 
@@ -15498,7 +15077,6 @@ msgid "Support/raft interface"
 msgstr "Support/raft interface"
 
 #, fuzzy
-#| msgid "Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used."
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
@@ -15530,12 +15108,10 @@ msgid "Bottom interface spacing"
 msgstr "Onderste interface-afstand"
 
 #, fuzzy
-#| msgid "Spacing of bottom interface lines. Zero means solid interface."
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Dit is de afstand tussen de onderste interfacelijnen. 0 betekent solide interface."
 
 #, fuzzy
-#| msgid "Speed of support interface."
 msgid "This is the speed for support interfaces."
 msgstr "Dit is de snelheid voor het printen van de support interfaces."
 
@@ -15565,7 +15141,6 @@ msgid "Interface pattern"
 msgstr "Interfacepatroon"
 
 #, fuzzy
-#| msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "Dit is het lijnpatroon voor support interfaces. Het standaardpatroon voor niet-oplosbare support interfaces is Rechtlijnig, terwijl het standaardpatroon voor oplosbare support interfaces Concentrisch is."
 
@@ -15576,12 +15151,10 @@ msgid "Base pattern spacing"
 msgstr "Basis patroon afstand"
 
 #, fuzzy
-#| msgid "Spacing between support lines."
 msgid "This determines the spacing between support lines."
 msgstr "Dit bepaald de ruimte tussen de support lijnen."
 
 #, fuzzy
-#| msgid "Normal Support expansion"
 msgid "Normal support expansion"
 msgstr "Normale uitbreiding van de ondersteuning"
 
@@ -15589,7 +15162,6 @@ msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Vergroot (+) of verklein (-) het horizontale bereik van de normale ondersteuning"
 
 #, fuzzy
-#| msgid "Speed of support."
 msgid "This is the speed for support."
 msgstr "Dit is de snelheid voor het printen van support."
 
@@ -15628,9 +15200,6 @@ msgid "Threshold angle"
 msgstr "Drempel hoek"
 
 #, fuzzy
-#| msgid ""
-#| "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
-#| "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15764,7 +15333,6 @@ msgstr ""
 "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 
 #, fuzzy
-#| msgid "Nozzle temperature for layers after the initial one."
 msgid "Nozzle temperature after the first layer"
 msgstr "Mondstuk temperatuur voor de lagen na de eerste laag"
 
@@ -15773,7 +15341,6 @@ msgid "Detect thin walls"
 msgstr "Detecteer dunne wanden"
 
 #, fuzzy
-#| msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Dit detecteert dunne wanden die geen twee lijnen kunnen bevatten en gebruikt een enkele lijn tijdens het printen. Het kan zijn dat de kwaliteit minder goed is, omdat er geen gesloten lus is"
 
@@ -15793,7 +15360,6 @@ msgid "Line width for top surfaces. If expressed as a %, it will be computed ove
 msgstr "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 
 #, fuzzy
-#| msgid "Speed of top surface infill which is solid."
 msgid "This is the speed for solid top surface infill."
 msgstr "Dit is de snelheid voor de solide vulling (infill) van de bovenste laag"
 
@@ -15801,20 +15367,13 @@ msgid "Top shell layers"
 msgstr "Aantal lagen bovenkant"
 
 #, fuzzy
-#| msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Dit is het aantal solide lagen van de bovenkant, inclusief de bovenste oppervlaktelaag. Wanneer de door deze waarde berekende dikte dunner is dan de dikte van de bovenste laag, worden de bovenste lagen vergroot"
-
-#, fuzzy
-#| msgid "Top solid layers"
-msgid "Top solid layers"
-msgstr "Aantal bovenste solide lagen"
 
 msgid "Top shell thickness"
 msgstr "Dikte bovenkant"
 
 #, fuzzy
-#| msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Het aantal bovenste solide lagen wordt verhoogd tijdens het slicen als de totale dikte van de bovenste lagen lager is dan deze waarde. Dit zorgt ervoor dat de schaal niet te dun is bij een lage laaghoogte. 0 betekend dat deze instelling niet actief is en dat de dikte van de bovenkant bepaald wordt door het aantal bodem lagen."
 
@@ -15835,7 +15394,6 @@ msgstr ""
 "WARNING: Lowering this value may negatively affect bed adhesion."
 
 #, fuzzy
-#| msgid "Speed of travel which is faster and without extrusion."
 msgid "This is the speed at which traveling is done."
 msgstr "Dit is de snelheid waarmee verplaatsingen zullen worden gedaan."
 
@@ -15843,12 +15401,10 @@ msgid "Wipe while retracting"
 msgstr "Vegen tijdens intrekken (retracting)"
 
 #, fuzzy
-#| msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Dit beweegt het mondstuk langs het laatste extrusiepad bij het terugtrekken (retraction) om eventueel gelekt materiaal op het mondstuk te reinigen. Dit kan \"blobs\" minimaliseren bij het printen van een nieuw onderdeel na het verplaatsen"
 
 #, fuzzy
-#| msgid "Wipe Distance"
 msgid "Wipe distance"
 msgstr "Veeg afstand"
 
@@ -15866,7 +15422,6 @@ msgstr ""
 "Setting a value in the retract amount before wipe setting below will perform any excess retraction before the wipe, else it will be performed after."
 
 #, fuzzy
-#| msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "De veegtoren kan worden gebruikt om resten op het mondstuk te verwijderen en de druk in het mondstuk te stabiliseren om uiterlijke gebreken bij het printen van objecten te voorkomen."
 
@@ -15883,7 +15438,6 @@ msgid "Flush multiplier"
 msgstr "Flush-vermenigvuldiger"
 
 #, fuzzy
-#| msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "De werkelijke flushvolumes zijn gelijk aan de flush vermenigvuldigingswaarde vermenigvuldigd met de flushvolumes in de tabel."
 
@@ -15891,12 +15445,10 @@ msgid "Prime volume"
 msgstr "Prime-volume"
 
 #, fuzzy
-#| msgid "The volume of material to prime extruder on tower."
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Dit is het volume van het materiaal dat de extruder op de prime toren uitwerpt."
 
 #, fuzzy
-#| msgid "Width of the prime tower."
 msgid "This is the width of prime towers."
 msgstr "Dit is de breedte van de prime toren."
 
@@ -16011,12 +15563,10 @@ msgid "Infill gap."
 msgstr "Infill gap."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "Het purgen na het verwisselen van het filament vindt plaats in de vullingen van objecten. Dit kan de hoeveelheid afval verminderen en de printtijd verkorten. Als de wanden zijn geprint met transparant filament, is de infill in gemengde kleuren zichtbaar. Het wordt niet van kracht tenzij de prime tower is ingeschakeld."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Het purgen na het verwisselen van het filament vindt plaats in de ondersteuning van de objecten. Dit kan de hoeveelheid afval verminderen en de printtijd verkorten. Het wordt niet van kracht tenzij een prime tower is ingeschakeld."
 
@@ -16051,7 +15601,6 @@ msgid "X-Y hole compensation"
 msgstr "X-Y-gaten compensatie"
 
 #, fuzzy
-#| msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Gaten in objecten worden met de ingestelde waarde groter of kleiner in het XY-vlak. Positieve waarden maken de gaten groter en negatieve waarden maken de gaten kleiner. Deze functie wordt gebruikt om de grootte enigszins aan te passen wanneer objecten montageproblemen hebben."
 
@@ -16059,7 +15608,6 @@ msgid "X-Y contour compensation"
 msgstr "X-Y contourcompensatie"
 
 #, fuzzy
-#| msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "De contouren van objecten worden met de ingestelde waarde in het XY-vlak groter of kleiner gemaakt. Positieve waarden maken contouren groter en negatieve waarden maken contouren kleiner. Deze functie wordt gebruikt om de afmetingen enigszins aan te passen wanneer objecten montageproblemen hebben."
 
@@ -16111,7 +15659,6 @@ msgid "Relative extrusion is recommended when using \"label_objects\" option. So
 msgstr "Relatieve extrusie wordt aanbevolen bij gebruik van de optie \"label_objects\". Sommige extruders werken beter als deze optie niet is aangevinkt (absolute extrusiemodus). Wipe tower is alleen compatibel met relatieve modus. Het wordt aanbevolen op de meeste printers. Standaard is aangevinkt"
 
 #, fuzzy
-#| msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "De klassieke wandgenerator produceert wanden met constante extrusiebreedte en voor zeer dunne gebieden wordt gap-fill gebruikt. De Arachne generator produceert wanden met variabele extrusiebreedte."
 
@@ -16122,7 +15669,6 @@ msgid "Wall transition length"
 msgstr "Lengte wandovergang"
 
 #, fuzzy
-#| msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Bij de overgang tussen verschillende aantallen muren naarmate het onderdeel dunner wordt, wordt een bepaalde hoeveelheid ruimte toegewezen om de wandsegmenten te splitsen of samen te voegen. Dit wordt uitgedrukt als een percentage ten opzichte van de diameter van het mondstuk."
 
@@ -16212,7 +15758,6 @@ msgid "Export 3MF"
 msgstr "Exporteer 3mf"
 
 #, fuzzy
-#| msgid "Export project as 3MF."
 msgid "This exports the project as a 3MF file."
 msgstr "Dit exporteert het project als 3MF."
 
@@ -16220,7 +15765,6 @@ msgid "Export slicing data"
 msgstr "Exporteer slicinggegevens"
 
 #, fuzzy
-#| msgid "Export slicing data to a folder."
 msgid "Export slicing data to a folder"
 msgstr "Exporteer slicinggegevens naar een map"
 
@@ -16249,7 +15793,6 @@ msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Slice de printbedden: 0-alle printbedden, i-printbed i, andere-onjuist"
 
 #, fuzzy
-#| msgid "Show command help."
 msgid "This shows command help."
 msgstr "Dit toont de command hulp."
 
@@ -16275,7 +15818,6 @@ msgid "mtcpp"
 msgstr "mtcpp"
 
 #, fuzzy
-#| msgid "max triangle count per plate for slicing."
 msgid "max triangle count per plate for slicing"
 msgstr "max triangle count per plate for slicing."
 
@@ -16283,7 +15825,6 @@ msgid "mstpp"
 msgstr "mstpp"
 
 #, fuzzy
-#| msgid "max slicing time per plate in seconds."
 msgid "max slicing time per plate in seconds"
 msgstr "max slicing time per plate in seconds."
 
@@ -16303,7 +15844,6 @@ msgid "Output Model Info"
 msgstr "Model informatie weergeven"
 
 #, fuzzy
-#| msgid "Output the model's information."
 msgid "This outputs the model’s information."
 msgstr "Dit geeft de informatie van het model weer."
 
@@ -16311,7 +15851,6 @@ msgid "Export Settings"
 msgstr "Exporteer instellingen"
 
 #, fuzzy
-#| msgid "Export settings to a file."
 msgid "This exports settings to a file."
 msgstr "Exporteer instellingen naar een bestand"
 
@@ -16400,7 +15939,6 @@ msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Load uptodate process/machine settings when using uptodate"
 
 #, fuzzy
-#| msgid "Load uptodate process/machine settings from the specified file when using uptodate."
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "laad actuele proces-/machine-instellingen uit het opgegeven bestand bij gebruik van up-to-date"
 
@@ -16438,7 +15976,6 @@ msgid "Output directory"
 msgstr "Uitvoermap"
 
 #, fuzzy
-#| msgid "Output directory for the exported files."
 msgid "This is the output directory for exported files."
 msgstr "Dit is de map waarin de geëxporteerde bestanden worden opgeslagen"
 
@@ -16876,17 +16413,14 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr "Meshing of a model file failed or no valid shape."
 
 #, fuzzy
-#| msgid "The supplied file couldn't be read because it's empty"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "The supplied file couldn't be read because it's empty"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Unknown file format. Input file must have .3mf or .zip.amf extension."
 
@@ -16939,7 +16473,6 @@ msgid "Finish"
 msgstr "Klaar"
 
 #, fuzzy
-#| msgid "How to use calibration result?"
 msgid "How can I use calibration results?"
 msgstr "Hoe kan ik kalibratieresultaten gebruiken?"
 
@@ -17018,9 +16551,6 @@ msgid "The input value size must be 3."
 msgstr "De grootte van de invoerwaarde moet 3 zijn."
 
 #, fuzzy
-#| msgid ""
-#| "This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-#| "Do you still want to continue the calibration?"
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -17032,8 +16562,7 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+#, fuzzy, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Er is al een eerder kalibratieresultaat met dezelfde naam: %s. Er wordt maar één resultaat met een naam opgeslagen. Weet je zeker dat je het vorige resultaat wilt overschrijven?"
 
@@ -17045,8 +16574,7 @@ msgstr ""
 "Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
 "Are you sure you want to override the historical result?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Dit type machine kan slechts %d historische resultaten per mondstuk bevatten. Dit resultaat wordt niet opgeslagen."
 
@@ -17128,12 +16656,6 @@ msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion 
 msgstr "Flow Rate Calibration meet de verhouding tussen verwachte en werkelijke extrusievolumes. De standaardinstelling werkt goed in Bambu Lab printers en officiële filamenten, omdat deze vooraf zijn gekalibreerd en afgestemd. Voor een normaal filament is het meestal niet nodig om een kalibratie van de stroomsnelheid uit te voeren, tenzij je nog steeds de genoemde defecten ziet nadat je andere kalibraties hebt uitgevoerd. Kijk voor meer informatie in het wiki-artikel."
 
 #, fuzzy
-#| msgid ""
-#| "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
-#| "\n"
-#| "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
-#| "\n"
-#| "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17181,7 +16703,6 @@ msgid "Please find the best line on your plate"
 msgstr "Zoek de beste regel op je bord"
 
 #, fuzzy
-#| msgid "Please find the corner with the perfect degree of extrusion"
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Zoek de hoek met de perfecte extrusiegraad"
 
@@ -17271,11 +16792,6 @@ msgstr "Nozzle Flow"
 msgid "Nozzle Info"
 msgstr "Nozzle Info"
 
-#, fuzzy
-#| msgid "Plate Type"
-msgid "Plate Type"
-msgstr "Plate Type"
-
 msgid "Filament position"
 msgstr "filament positie"
 
@@ -17347,15 +16863,13 @@ msgid "Success to get history result"
 msgstr "Succes om geschiedenisresultaat te krijgen"
 
 #, fuzzy
-#| msgid "Refreshing the historical Flow Dynamics Calibration records"
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "De vorige Flow Dynamics kalibratierecords vernieuwen"
 
 msgid "Action"
 msgstr "Actie"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Dit type machine kan slechts %d historische resultaten per mondstuk bevatten."
 
@@ -17981,12 +17495,10 @@ msgid "Create"
 msgstr "Creëren"
 
 #, fuzzy
-#| msgid "Vendor is not selected, please reselect vendor."
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
 #, fuzzy
-#| msgid "Custom vendor is missing, please input custom vendor."
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Custom vendor missing; please input custom vendor."
 
@@ -17997,12 +17509,10 @@ msgid "Filament type is not selected, please reselect type."
 msgstr "Het type draad is niet geselecteerd, selecteer het type opnieuw."
 
 #, fuzzy
-#| msgid "Filament serial is not entered, please enter serial."
 msgid "Filament serial missing; please input serial."
 msgstr "Filament serial missing; please input serial."
 
 #, fuzzy
-#| msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 
@@ -18010,17 +17520,13 @@ msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Alle ingangen in de aangepaste verkoper of serie zijn spaties. Voer opnieuw in."
 
 #, fuzzy
-#| msgid "The vendor cannot be a number. Please re-enter."
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "The vendor cannot be a number. Please re-enter."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Je hebt nog geen printer of preset geselecteerd. Selecteer er ten minste één."
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The Filament name %s you created already exists.\n"
-#| "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -18067,7 +17573,6 @@ msgid "Create Type"
 msgstr "Type maken"
 
 #, fuzzy
-#| msgid "The model was not found, please reselect vendor."
 msgid "The model was not found; please reselect vendor."
 msgstr "The model was not found; please reselect vendor."
 
@@ -18109,7 +17614,6 @@ msgid "Exception in obtaining file size, please import again."
 msgstr "Uitzondering in het verkrijgen van bestandsgrootte, importeer opnieuw."
 
 #, fuzzy
-#| msgid "Preset path was not found, please reselect vendor."
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Preset-pad niet gevonden; selecteer leverancier opnieuw."
 
@@ -18117,12 +17621,10 @@ msgid "The printer model was not found, please reselect."
 msgstr "Het printermodel is niet gevonden, selecteer opnieuw."
 
 #, fuzzy
-#| msgid "The nozzle diameter was not found, please reselect."
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "De diameter van het mondstuk is niet gevonden. Selecteer opnieuw."
 
 #, fuzzy
-#| msgid "The printer preset was not found, please reselect."
 msgid "The printer preset was not found; please reselect."
 msgstr "The printer preset was not found; please reselect."
 
@@ -18139,16 +17641,10 @@ msgid "You have not yet chosen which printer preset to create based on. Please c
 msgstr "Je hebt nog niet gekozen op basis van welke preset je de printer wilt maken. Kies de leverancier en het model van de printer"
 
 #, fuzzy
-#| msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "U hebt een niet toegestaan teken ingevoerd in het gedeelte van het afdrukbare gebied op de eerste pagina. Gebruik alleen cijfers."
 
 #, fuzzy
-#| msgid ""
-#| "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-#| "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-#| "and filament and process presets without the same preset name will be reserve.\n"
-#| "\tCancel: Do not create a preset, return to the creation interface."
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -18173,7 +17669,6 @@ msgid "Create process presets failed. As follows:\n"
 msgstr "Procesvoorinstellingen maken mislukt. Als volgt:\n"
 
 #, fuzzy
-#| msgid "Vendor was not found, please reselect."
 msgid "Vendor was not found; please reselect."
 msgstr "Leverancier is niet gevonden; selecteer opnieuw."
 
@@ -18181,7 +17676,6 @@ msgid "Current vendor has no models, please reselect."
 msgstr "De huidige leverancier heeft geen modellen. Selecteer opnieuw."
 
 #, fuzzy
-#| msgid "You have not selected the vendor and model or entered the custom vendor and model."
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "U hebt de verkoper en het model niet geselecteerd of de aangepaste verkoper en het aangepaste model niet ingevoerd."
 
@@ -18195,7 +17689,6 @@ msgid "Please check bed printable shape and origin input."
 msgstr "Controleer de bedrukbare vorm en oorsprongsinvoer."
 
 #, fuzzy
-#| msgid "You have not yet selected the printer to replace the nozzle, please choose."
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Je hebt de printer waarvoor je het mondstuk wilt vervangen nog niet geselecteerd; kies een printer."
 
@@ -18237,9 +17730,6 @@ msgid "Filament Created"
 msgstr "Aangemaakt filament"
 
 #, fuzzy
-#| msgid ""
-#| "Please go to filament setting to edit your presets if you need.\n"
-#| "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -18294,10 +17784,7 @@ msgstr "open zip geschreven mislukt"
 msgid "Export successful"
 msgstr "Exporteren is gelukt"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
-#| "If not, a time suffix will be added, and you can modify the name after creation."
+#, fuzzy, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18330,7 +17817,6 @@ msgstr ""
 "Kan worden gedeeld met anderen."
 
 #, fuzzy
-#| msgid "Only display printer names with changes to printer, filament, and process presets."
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Alleen printers met wijzigingen in printer-, filament- en proces presets worden weergegeven."
 
@@ -18358,7 +17844,6 @@ msgid "Please select at least one printer or filament."
 msgstr "Selecteer ten minste één printer of filament."
 
 #, fuzzy
-#| msgid "Please select a type you want to export"
 msgid "Please select a preset type you want to export"
 msgstr "Selecteer het type preset dat je wilt exporteren"
 
@@ -18423,7 +17908,6 @@ msgid "Edit Preset"
 msgstr "Preset bewerken"
 
 #, fuzzy
-#| msgid "For more information, please check out Wiki"
 msgid "For more information, please check out our Wiki"
 msgstr "For more information, please check out our Wiki"
 
@@ -18911,7 +18395,6 @@ msgid "Wait"
 msgstr "Wachten"
 
 #, fuzzy
-#| msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "minute each batch. (It depends on how long it takes to complete the heating.)"
 
@@ -19213,7 +18696,6 @@ msgid "Set the brim type of this object to \"painted\""
 msgstr "Set the brim type of this object to \"painted\""
 
 #, fuzzy
-#| msgid " invalid brim ears"
 msgid "invalid brim ears"
 msgstr " ongeldige rand oren"
 
@@ -19582,9 +19064,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 #, fuzzy
-#| msgid ""
-#| "Auto-Arrange\n"
-#| "Did you know that you can auto-arrange all the objects in your project?"
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19594,9 +19073,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 #, fuzzy
-#| msgid ""
-#| "Auto-Orient\n"
-#| "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19694,11 +19170,9 @@ msgstr ""
 "Uw afdrukken opsplitsen in platen\n"
 "Wist u dat u een model met veel onderdelen kunt splitsen in afzonderlijke platen die klaar zijn om te printen? Dit vereenvoudigt het proces van het bijhouden van alle onderdelen."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 #, fuzzy
-#| msgid ""
-#| "Speed up your print with Adaptive Layer Height\n"
-#| "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19716,9 +19190,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Different types of supports]
 #, fuzzy
-#| msgid ""
-#| "Different types of supports\n"
-#| "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19728,9 +19199,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 #, fuzzy
-#| msgid ""
-#| "Printing Silk Filament\n"
-#| "Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19748,9 +19216,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 #, fuzzy
-#| msgid ""
-#| "Set parameters for multiple objects\n"
-#| "Did you know that you can set slicing parameters for all selected objects at once?"
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19768,9 +19233,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 #, fuzzy
-#| msgid ""
-#| "Flush into support/objects/infill\n"
-#| "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19786,11 +19248,9 @@ msgstr ""
 "Stekte verbeteren\n"
 "Wist je dat je meer wandlussen en een hogere dunne invuldichtheid kunt gebruiken om de sterkte van het model te verbeteren?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 #, fuzzy
-#| msgid ""
-#| "When do you need to print with the printer door opened?\n"
-#| "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19800,9 +19260,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 #, fuzzy
-#| msgid ""
-#| "Avoid warping\n"
-#| "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

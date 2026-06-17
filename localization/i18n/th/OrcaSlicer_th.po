@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:18-0300\n"
+"POT-Creation-Date: 2026-06-17 14:21-0300\n"
 "PO-Revision-Date: 2026-06-04 12:39+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -95,9 +95,12 @@ msgid "Latest version"
 msgstr "เวอร์ชันล่าสุด"
 
 #, fuzzy
-#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "ระบายส่วนรองรับ"
+
+#, fuzzy
+msgid "Apply"
+msgstr "ใช้"
 
 msgid "On highlighted overhangs only"
 msgstr "เฉพาะส่วนยื่นที่ไฮไลต์เท่านั้น"
@@ -106,7 +109,6 @@ msgid "Erase all"
 msgstr "ลบทั้งหมด"
 
 #, fuzzy
-#| msgid "Highlight overhang areas"
 msgid "Highlight overhangs"
 msgstr "ไฮไลต์พื้นที่ส่วนยื่น"
 
@@ -178,7 +180,6 @@ msgid "Done"
 msgstr "เสร็จแล้ว"
 
 #, fuzzy
-#| msgid "Support Generated"
 msgid "Support generated"
 msgstr "สร้างส่วนรองรับแล้ว"
 
@@ -195,7 +196,6 @@ msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Place บนหน้า"
 
 #, fuzzy
-#| msgid "Lay on face"
 msgid "Lay on Face"
 msgstr "วางบนหน้า"
 
@@ -204,7 +204,6 @@ msgid "Filament count exceeds the maximum number that painting tool supports. On
 msgstr "จำนวนเส้นพลาสติกเกินจำนวนสูงสุดที่เครื่องมือพ่นสีรองรับ เฉพาะเส้นพลาสติก %1% แรกเท่านั้นที่จะสามารถใช้ได้ในเครื่องมือวาดภาพ"
 
 #, fuzzy
-#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "จิตรกรรมสี"
 
@@ -332,11 +331,6 @@ msgstr "Gizmo-หมุน"
 msgid "Optimize orientation"
 msgstr "ปรับการวางแนวให้เหมาะสม"
 
-#, fuzzy
-#| msgid "Apply"
-msgid "Apply"
-msgstr "ใช้"
-
 msgid "Scale"
 msgstr "ปรับขนาด"
 
@@ -377,12 +371,10 @@ msgid "Scale ratios"
 msgstr "อัตราส่วนการปรับขนาด"
 
 #, fuzzy
-#| msgid "Object Operations"
 msgid "Object operations"
 msgstr "การทำงานกับวัตถุ"
 
 #, fuzzy
-#| msgid "Volume Operations"
 msgid "Volume operations"
 msgstr "การดำเนินการตามปริมาณ"
 
@@ -390,24 +382,24 @@ msgid "Translate"
 msgstr "เลื่อนตำแหน่ง"
 
 #, fuzzy
-#| msgid "Group Operations"
 msgid "Group operations"
 msgstr "การดำเนินงานของกลุ่ม"
 
 #, fuzzy
-#| msgid "Set Orientation"
 msgid "Set orientation"
 msgstr "ตั้งค่าการวางแนว"
 
 #, fuzzy
-#| msgid "Set Scale"
 msgid "Set scale"
 msgstr "ตั้งค่ามาตราส่วน"
 
 #, fuzzy
-#| msgid "Reset Position"
 msgid "Reset position"
 msgstr "รีเซ็ตตำแหน่ง"
+
+#, fuzzy
+msgid "Reset rotation"
+msgstr "รีเซ็ตการหมุน"
 
 msgid "Object coordinates"
 msgstr "พิกัดวัตถุ"
@@ -699,7 +691,6 @@ msgid "Cut by Plane"
 msgstr "ตัดด้วยระนาบ"
 
 #, fuzzy
-#| msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "ขอบที่ไม่มีท่อร่วมนั้นเกิดจากเครื่องมือตัด คุณต้องการแก้ไขตอนนี้เลยหรือไม่?"
 
@@ -769,7 +760,6 @@ msgid "Show wireframe"
 msgstr "แสดงโครงลวด"
 
 #, fuzzy
-#| msgid "Can't apply when processing preview."
 msgid "Unable to apply when processing preview"
 msgstr "ใช้ไม่ได้เมื่อประมวลผลการแสดงตัวอย่าง"
 
@@ -795,7 +785,6 @@ msgid "Remove selection"
 msgstr "ลบการเลือก"
 
 #, fuzzy
-#| msgid "Entering Seam painting"
 msgid "Entering seam painting"
 msgstr "เข้าสู่การทาสีรอยตะเข็บ"
 
@@ -820,9 +809,6 @@ msgid "Angle"
 msgstr "มุม"
 
 #, fuzzy
-#| msgid ""
-#| "Embedded\n"
-#| "depth"
 msgid "Embedded depth"
 msgstr ""
 "ฝังตัว\n"
@@ -1396,11 +1382,6 @@ msgstr "ระยะห่างจากศูนย์กลางของ SV
 msgid "Reset distance"
 msgstr "รีเซ็ตระยะทาง"
 
-#, fuzzy
-#| msgid "Reset rotation"
-msgid "Reset rotation"
-msgstr "รีเซ็ตการหมุน"
-
 msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr "ล็อค/ปลดล็อคมุมการหมุนเมื่อลากเหนือพื้นผิว"
 
@@ -1631,7 +1612,6 @@ msgid "Notice"
 msgstr "ประกาศ"
 
 #, fuzzy
-#| msgid "Undef"
 msgid "Undefined"
 msgstr "ไม่ระบุ"
 
@@ -1655,12 +1635,10 @@ msgid "Machine"
 msgstr "เครื่อง"
 
 #, fuzzy
-#| msgid "Configuration package was loaded, but some values were not recognized."
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "โหลดแพ็คเกจการกำหนดค่าแล้ว แต่ไม่รู้จักค่าบางค่า"
 
-#, boost-format, fuzzy
-#| msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+#, fuzzy, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "โหลดไฟล์การกำหนดค่า \"%1%\" แล้ว แต่ระบบไม่รู้จักค่าบางค่า"
 
@@ -1844,7 +1822,6 @@ msgid "Some presets are modified."
 msgstr "ค่าที่ตั้งล่วงหน้าบางส่วนได้รับการแก้ไข"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "คุณสามารถเก็บค่าที่ตั้งล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่ ทิ้งหรือบันทึกการเปลี่ยนแปลงเป็นค่าที่ตั้งล่วงหน้าใหม่ได้"
 
@@ -2047,8 +2024,7 @@ msgstr "เปลี่ยนชื่อ"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "การเริ่มต้น Orca Slicer GUI ล้มเหลว"
 
-#, boost-format, fuzzy
-#| msgid "Fatal error, exception caught: %1%"
+#, fuzzy, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "ข้อผิดพลาดร้ายแรง พบข้อยกเว้น: %1%"
 
@@ -2074,7 +2050,10 @@ msgid "Strength"
 msgstr "ความแข็งแรง"
 
 #, fuzzy
-#| msgid "Top Minimum Shell Thickness"
+msgid "Top solid layers"
+msgstr "ชั้นแข็งด้านบน"
+
+#, fuzzy
 msgid "Top minimum shell thickness"
 msgstr "ความหนาของเปลือกขั้นต่ำสูงสุด"
 
@@ -2082,12 +2061,10 @@ msgid "Top Surface Density"
 msgstr "ความหนาแน่นพื้นผิวด้านบน"
 
 #, fuzzy
-#| msgid "Bottom Solid Layers"
 msgid "Bottom solid layers"
 msgstr "เลเยอร์ทึบด้านล่าง"
 
 #, fuzzy
-#| msgid "Bottom Minimum Shell Thickness"
 msgid "Bottom minimum shell thickness"
 msgstr "ความหนาของเปลือกขั้นต่ำด้านล่าง"
 
@@ -2098,7 +2075,6 @@ msgid "Ironing"
 msgstr "รีดผิว"
 
 #, fuzzy
-#| msgid "Fuzzy Skin"
 msgid "Fuzzy skin"
 msgstr "ผิวฟัซซี"
 
@@ -2106,7 +2082,6 @@ msgid "Extruders"
 msgstr "ชุดดันเส้น"
 
 #, fuzzy
-#| msgid "Extrusion Width"
 msgid "Extrusion width"
 msgstr "ความกว้างของการอัดขึ้นรูป"
 
@@ -2117,22 +2092,22 @@ msgid "Bed adhesion"
 msgstr "การยึดเกาะของฐานพิมพ์"
 
 #, fuzzy
-#| msgid "Add part"
 msgid "Add Part"
 msgstr "เพิ่มส่วนหนึ่ง"
 
 #, fuzzy
-#| msgid "Add negative part"
 msgid "Add Negative Part"
 msgstr "เพิ่มส่วนที่เป็นลบ"
 
 #, fuzzy
-#| msgid "Add support blocker"
+msgid "Add Modifier"
+msgstr "เพิ่มตัวแก้ไข"
+
+#, fuzzy
 msgid "Add Support Blocker"
 msgstr "เพิ่มตัวบล็อกส่วนรองรับ"
 
 #, fuzzy
-#| msgid "Add support enforcer"
 msgid "Add Support Enforcer"
 msgstr "เพิ่มกำหนดส่วนรองรับ"
 
@@ -2233,17 +2208,14 @@ msgid "Text"
 msgstr "ข้อความ"
 
 #, fuzzy
-#| msgid "Height range Modifier"
 msgid "Height Range Modifier"
 msgstr "ตัวแก้ไขช่วงความสูง"
 
 #, fuzzy
-#| msgid "Add settings"
 msgid "Add Settings"
 msgstr "การตั้งค่าเพิ่ม"
 
 #, fuzzy
-#| msgid "Change type"
 msgid "Change Type"
 msgstr "เปลี่ยนประเภท"
 
@@ -2260,12 +2232,10 @@ msgid "Change part type"
 msgstr "เปลี่ยนประเภทชิ้นส่วน"
 
 #, fuzzy
-#| msgid "Set as an individual object"
 msgid "Set as An Individual Object"
 msgstr "ตั้งเป็นวัตถุแต่ละรายการ"
 
 #, fuzzy
-#| msgid "Set as individual objects"
 msgid "Set as Individual Objects"
 msgstr "ตั้งเป็นวัตถุแต่ละรายการ"
 
@@ -2285,7 +2255,6 @@ msgid "Automatically drops the selected object to the build plate"
 msgstr "วางวัตถุที่เลือกลงในเพลตฐานพิมพ์โดยอัตโนมัติ"
 
 #, fuzzy
-#| msgid "Fix model"
 msgid "Fix Model"
 msgstr "ซ่อมโมเดล"
 
@@ -2357,22 +2326,18 @@ msgid "Edit in Parameter Table"
 msgstr "แก้ไขในตารางพารามิเตอร์"
 
 #, fuzzy
-#| msgid "Convert from inches"
 msgid "Convert from Inches"
 msgstr "แปลงจากนิ้ว"
 
 #, fuzzy
-#| msgid "Restore to inches"
 msgid "Restore to Inch"
 msgstr "กลับคืนสู่นิ้ว"
 
 #, fuzzy
-#| msgid "Convert from meters"
 msgid "Convert from Meters"
 msgstr "แปลงจากเมตร"
 
 #, fuzzy
-#| msgid "Restore to meters"
 msgid "Restore to Meter"
 msgstr "คืนค่าเป็นเมตร"
 
@@ -2389,37 +2354,30 @@ msgid "Mesh boolean operations including union and subtraction"
 msgstr "การดำเนินการบูลีนแบบ Mesh รวมถึงการรวมและการลบ"
 
 #, fuzzy
-#| msgid "Along X axis"
 msgid "Along X Axis"
 msgstr "ตามแกน X"
 
 #, fuzzy
-#| msgid "Mirror along the X axis"
 msgid "Mirror along the X Axis"
 msgstr "กลับด้านตามแกน X"
 
 #, fuzzy
-#| msgid "Along Y axis"
 msgid "Along Y Axis"
 msgstr "ตามแกน Y"
 
 #, fuzzy
-#| msgid "Mirror along the Y axis"
 msgid "Mirror along the Y Axis"
 msgstr "กลับด้านตามแกน Y"
 
 #, fuzzy
-#| msgid "Along Z axis"
 msgid "Along Z Axis"
 msgstr "ตามแกน Z"
 
 #, fuzzy
-#| msgid "Mirror along the Z axis"
 msgid "Mirror along the Z Axis"
 msgstr "กลับด้านตามแกน Z"
 
 #, fuzzy
-#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "วัตถุกระจก"
 
@@ -2451,7 +2409,6 @@ msgid "Show Labels"
 msgstr "แสดงป้ายชื่อ"
 
 #, fuzzy
-#| msgid "To objects"
 msgid "To Objects"
 msgstr "ไปยังวัตถุ"
 
@@ -2459,7 +2416,6 @@ msgid "Split the selected object into multiple objects"
 msgstr "แยกวัตถุที่เลือกออกเป็นหลายวัตถุ"
 
 #, fuzzy
-#| msgid "To parts"
 msgid "To Parts"
 msgstr "เพื่อชิ้นส่วน"
 
@@ -2488,7 +2444,6 @@ msgid "Delete this filament"
 msgstr "ลบเส้นพลาสติกนี้"
 
 #, fuzzy
-#| msgid "Select all"
 msgid "Select All"
 msgstr "เลือกทั้งหมด"
 
@@ -2502,7 +2457,6 @@ msgid "Select all objects on all plates"
 msgstr "เลือกวัตถุทั้งหมดบนจานทั้งหมด"
 
 #, fuzzy
-#| msgid "Delete all"
 msgid "Delete All"
 msgstr "ลบทั้งหมด"
 
@@ -2633,7 +2587,6 @@ msgid "Click the icon to repair model object"
 msgstr "คลิกที่ไอคอนเพื่อซ่อมแซมโมเดลออบเจ็กต์"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object settings"
 msgid "Right click the icon to drop the object settings"
 msgstr "คลิกขวาที่ไอคอนเพื่อยกเลิกการตั้งค่าออบเจ็กต์"
 
@@ -2641,12 +2594,10 @@ msgid "Click the icon to reset all settings of the object"
 msgstr "คลิกที่ไอคอนเพื่อรีเซ็ตการตั้งค่าทั้งหมดของออบเจ็กต์"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object printable property"
 msgid "Right click the icon to drop the object printable property"
 msgstr "คลิกขวาที่ไอคอนเพื่อปล่อยคุณสมบัติการพิมพ์ของออบเจ็กต์"
 
 #, fuzzy
-#| msgid "Click the icon to toggle printable property of the object"
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "คลิกที่ไอคอนเพื่อสลับคุณสมบัติการพิมพ์ของออบเจ็กต์"
 
@@ -2654,7 +2605,6 @@ msgid "Click the icon to edit support painting of the object"
 msgstr "คลิกที่ไอคอนเพื่อแก้ไขภาพวาดส่วนรองรับของวัตถุ"
 
 #, fuzzy
-#| msgid "Click the icon to edit color painting of the object"
 msgid "Click the icon to edit color painting for the object"
 msgstr "คลิกที่ไอคอนเพื่อแก้ไขการวาดภาพสีของวัตถุ"
 
@@ -2672,11 +2622,6 @@ msgstr "ไม่สามารถรับข้อมูลโมเดลใ
 
 msgid "Generic"
 msgstr "ทั่วไป"
-
-#, fuzzy
-#| msgid "Add Modifier"
-msgid "Add Modifier"
-msgstr "เพิ่มตัวแก้ไข"
 
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr "สลับไปที่โหมดการตั้งค่าต่อวัตถุเพื่อแก้ไขการตั้งค่าตัวแก้ไข"
@@ -2700,11 +2645,6 @@ msgid "To save cut correspondence you can delete all connectors from all related
 msgstr "หากต้องการบันทึกการติดต่อตัด คุณสามารถลบตัวเชื่อมต่อทั้งหมดออกจากวัตถุที่เกี่ยวข้องทั้งหมดได้"
 
 #, fuzzy
-#| msgid ""
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed.\n"
-#| "\n"
-#| "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2738,17 +2678,14 @@ msgid "Group manipulation"
 msgstr "การจัดการกลุ่ม"
 
 #, fuzzy
-#| msgid "Object Settings to modify"
 msgid "Object Settings to Modify"
 msgstr "การตั้งค่าวัตถุที่จะแก้ไข"
 
 #, fuzzy
-#| msgid "Part Settings to modify"
 msgid "Part Settings to Modify"
 msgstr "การตั้งค่าส่วนที่จะแก้ไข"
 
 #, fuzzy
-#| msgid "Layer range Settings to modify"
 msgid "Layer Range Settings to Modify"
 msgstr "การตั้งค่าช่วงชั้นที่จะแก้ไข"
 
@@ -2777,7 +2714,6 @@ msgid "If the first selected item is a part, the second should be a part in the 
 msgstr "หากรายการแรกที่เลือกเป็นส่วนหนึ่ง รายการที่สองควรเป็นส่วนในวัตถุเดียวกัน"
 
 #, fuzzy
-#| msgid "The type of the last solid object part is not to be changed."
 msgid "The type of the last solid object part cannot be changed."
 msgstr "ประเภทของชิ้นส่วนวัตถุทึบชิ้นสุดท้ายจะไม่ถูกเปลี่ยนแปลง"
 
@@ -2895,22 +2831,18 @@ msgid "1x1 Grid: %d mm"
 msgstr "1x1 ตาราง: %d มม"
 
 #, fuzzy
-#| msgid "Detail."
 msgid "More"
 msgstr "เพิ่มเติม"
 
 #, fuzzy
-#| msgid "Open Preferences."
 msgid "Open Preferences"
 msgstr "เปิดการตั้งค่า"
 
 #, fuzzy
-#| msgid "Open next tip."
 msgid "Open next tip"
 msgstr "เปิดเคล็ดลับถัดไป"
 
 #, fuzzy
-#| msgid "Open Documentation in web browser."
 msgid "Open documentation in web browser"
 msgstr "เปิดเอกสารในเว็บเบราว์เซอร์"
 
@@ -2942,12 +2874,10 @@ msgid "Enter Custom G-code used on current layer:"
 msgstr "ป้อนรหัส G ที่กำหนดเองที่ใช้ในเลเยอร์ปัจจุบัน:"
 
 #, fuzzy
-#| msgid "Jump to Layer"
 msgid "Jump to layer"
 msgstr "ข้ามไปที่เลเยอร์"
 
 #, fuzzy
-#| msgid "Please enter the layer number"
 msgid "Please enter the layer number."
 msgstr "กรุณากรอกหมายเลขชั้น"
 
@@ -3027,7 +2957,6 @@ msgid "Auto Refill"
 msgstr "เติมเส้นอัตโนมัติ"
 
 #, fuzzy
-#| msgid "Load Filament"
 msgid "Load"
 msgstr "โหลด"
 
@@ -3035,7 +2964,6 @@ msgid "Unload"
 msgstr "ถอนเส้น"
 
 #, fuzzy
-#| msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "เลือกช่อง AMS จากนั้นกดปุ่ม \"โหลด\" หรือ \"ยกเลิกการโหลด\" เพื่อโหลดหรือยกเลิกการโหลดฟิลาเมนต์โดยอัตโนมัติ"
 
@@ -3146,7 +3074,6 @@ msgid "Cut filament"
 msgstr "ตัดเส้นพลาสติก"
 
 #, fuzzy
-#| msgid "Pull back current filament"
 msgid "Pull back the current filament"
 msgstr "ดึงไส้ปัจจุบันกลับ"
 
@@ -3187,7 +3114,6 @@ msgid "No matching items..."
 msgstr ""
 
 #, fuzzy
-#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "ยกเลิกการเลือกทั้งหมด"
 
@@ -3245,7 +3171,6 @@ msgid "Arranging canceled."
 msgstr "ยกเลิกการจัดเตรียมแล้ว"
 
 #, fuzzy
-#| msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "จัดเตรียมของเสร็จแต่มีของที่แกะออกมา ลดระยะห่างแล้วลองอีกครั้ง"
 
@@ -3314,7 +3239,6 @@ msgid "Please check the printer network connection."
 msgstr "โปรดตรวจสอบการเชื่อมต่อเครือข่ายเครื่องพิมพ์"
 
 #, fuzzy
-#| msgid "Abnormal print file data. Please slice again."
 msgid "Abnormal print file data: please slice again."
 msgstr "ข้อมูลไฟล์การพิมพ์ผิดปกติ กรุณาสไลซ์อีกครั้ง."
 
@@ -3328,7 +3252,6 @@ msgid "Cloud service connection failed. Please try again."
 msgstr "การเชื่อมต่อบริการคลาวด์ล้มเหลว โปรดลองอีกครั้ง"
 
 #, fuzzy
-#| msgid "Print file not found. Please slice again."
 msgid "Print file not found; please slice again."
 msgstr "ไม่พบไฟล์การพิมพ์ กรุณาสไลซ์อีกครั้ง."
 
@@ -3342,7 +3265,6 @@ msgid "Failed to upload file to ftp. Please try again."
 msgstr "ไม่สามารถอัปโหลดไฟล์ไปยัง ftp โปรดลองอีกครั้ง"
 
 #, fuzzy
-#| msgid "Check the current status of the bambu server by clicking on the link above."
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "ตรวจสอบสถานะปัจจุบันของเซิร์ฟเวอร์ bambu โดยคลิกที่ลิงค์ด้านบน"
 
@@ -3350,12 +3272,10 @@ msgid "The size of the print file is too large. Please adjust the file size and 
 msgstr "ขนาดของไฟล์การพิมพ์ใหญ่เกินไป โปรดปรับขนาดไฟล์แล้วลองอีกครั้ง"
 
 #, fuzzy
-#| msgid "Print file not found, please slice it again and send it for printing."
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "ไม่พบไฟล์พิมพ์ โปรดสไลซ์อีกครั้งและส่งไปพิมพ์"
 
 #, fuzzy
-#| msgid "Failed to upload print file to FTP. Please check the network status and try again."
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "ไม่สามารถอัปโหลดไฟล์พิมพ์ไปยัง FTP โปรดตรวจสอบสถานะเครือข่ายแล้วลองอีกครั้ง"
 
@@ -3408,7 +3328,6 @@ msgid "Sending G-code file over LAN"
 msgstr "การส่งไฟล์ G-code ผ่าน LAN"
 
 #, fuzzy
-#| msgid "Sending G-code file to SD card"
 msgid "Sending G-code file to SD card"
 msgstr "กำลังส่งไฟล์ G-code ไปยังการ์ด SD"
 
@@ -3480,7 +3399,6 @@ msgid "Importing SLA archive"
 msgstr "การนำเข้าไฟล์เก็บถาวร SLA"
 
 #, fuzzy
-#| msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "ไฟล์เก็บถาวร SLA ไม่มีการตั้งค่าล่วงหน้าใดๆ โปรดเปิดใช้งานเครื่องพิมพ์ SLA ที่ตั้งไว้ล่วงหน้าก่อนที่จะนำเข้าไฟล์เก็บถาวร SLA นั้น"
 
@@ -3494,7 +3412,6 @@ msgid "The imported SLA archive did not contain any presets. The current SLA pre
 msgstr "ไฟล์เก็บถาวร SLA ที่นำเข้าไม่มีการตั้งค่าล่วงหน้าใดๆ ค่าที่ตั้งไว้ล่วงหน้าของ SLA ปัจจุบันถูกใช้เป็นทางเลือก"
 
 #, fuzzy
-#| msgid "You cannot load SLA project with a multi-part object on the bed"
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "คุณไม่สามารถโหลดโครงการ SLA ที่มีวัตถุหลายส่วนบนฐานพิมพ์ได้"
 
@@ -3523,7 +3440,6 @@ msgid "Install failed"
 msgstr "ติดตั้งล้มเหลว"
 
 #, fuzzy
-#| msgid "Portions copyright"
 msgid "License Info"
 msgstr "ลิขสิทธิ์บางส่วน"
 
@@ -3642,7 +3558,6 @@ msgid "Custom Color"
 msgstr "สีกำหนดเอง"
 
 #, fuzzy
-#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "ปรับเทียบการไหลแบบไดนามิก"
 
@@ -3651,6 +3566,10 @@ msgstr "อุณหภูมิหัวฉีดและความเร็
 
 msgid "Nozzle Diameter"
 msgstr "เส้นผ่านศูนย์กลางหัวฉีด"
+
+#, fuzzy
+msgid "Plate Type"
+msgstr "ชนิดฐานพิมพ์"
 
 msgid "Nozzle temperature"
 msgstr "อุณหภูมิหัวฉีด"
@@ -3671,7 +3590,6 @@ msgid "mm³"
 msgstr "มม.³"
 
 #, fuzzy
-#| msgid "Start calibration"
 msgid "Start"
 msgstr "เริ่มปรับเทียบ"
 
@@ -3683,6 +3601,10 @@ msgstr "การสอบเทียบเสร็จสิ้น โปร�
 
 msgid "Save"
 msgstr "บันทึก"
+
+#, fuzzy
+msgid "Back"
+msgstr "หลัง"
 
 msgid "Example"
 msgstr "ตัวอย่าง"
@@ -3779,7 +3701,6 @@ msgid "Enable AMS"
 msgstr "เปิดใช้ AMS"
 
 #, fuzzy
-#| msgid "Print with filaments in the AMS"
 msgid "Print with filament in the AMS"
 msgstr "พิมพ์ด้วยเส้นพลาสติกในระบบ AMS"
 
@@ -3787,12 +3708,10 @@ msgid "Disable AMS"
 msgstr "ปิดใช้ AMS"
 
 #, fuzzy
-#| msgid "Print with the filament mounted on the back of chassis"
 msgid "Print with filament on external spool"
 msgstr "พิมพ์โดยติดฟิลาเมนท์ไว้ที่ด้านหลังของตัวเครื่อง"
 
 #, fuzzy
-#| msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "โปรดเปลี่ยนสารดูดความชื้นเมื่อเปียกเกินไป ตัวบ่งชี้อาจแสดงไม่ถูกต้องในกรณีต่อไปนี้: เมื่อเปิดฝาหรือเปลี่ยนชุดดูดความชื้น การดูดซับความชื้นใช้เวลาหลายชั่วโมง และอุณหภูมิที่ต่ำยังทำให้กระบวนการช้าลงอีกด้วย"
 
@@ -3812,12 +3731,10 @@ msgid "Do not Enable AMS"
 msgstr "อย่าเปิดใช้งาน AMS"
 
 #, fuzzy
-#| msgid "Print using materials mounted on the back of the case"
 msgid "Print using filament on external spool."
 msgstr "พิมพ์โดยใช้วัสดุที่ติดตั้งอยู่ที่ด้านหลังของเคส"
 
 #, fuzzy
-#| msgid "Print with filaments in AMS"
 msgid "Print with filament in AMS"
 msgstr "พิมพ์ด้วยเส้นพลาสติกในระบบ AMS"
 
@@ -3843,7 +3760,6 @@ msgid "The printer does not currently support auto refill."
 msgstr "ขณะนี้เครื่องพิมพ์ไม่รองรับการโหลดเส้นอัตโนมัติ"
 
 #, fuzzy
-#| msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "ไม่ได้เปิดใช้งานการสำรองข้อมูลเส้นพลาสติก AMS โปรดเปิดใช้งานในการตั้งค่า AMS"
 
@@ -3867,7 +3783,6 @@ msgid "Insertion update"
 msgstr "การอัพเดตการแทรก"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "AMS จะอ่านข้อมูลเส้นพลาสติกโดยอัตโนมัติเมื่อใส่เส้นพลาสติก Bambu Lab ใหม่ This takes about 20 seconds."
 
@@ -3878,12 +3793,10 @@ msgid "When inserting a new filament, the AMS will not automatically read its in
 msgstr "เมื่อใส่เส้นพลาสติกใหม่ AMS จะไม่อ่านข้อมูลโดยอัตโนมัติ ปล่อยให้ว่างไว้เพื่อให้คุณป้อนด้วยตนเอง"
 
 #, fuzzy
-#| msgid "Power on update"
 msgid "Update on startup"
 msgstr "เปิดการอัพเดต"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "AMS จะอ่านข้อมูลของเส้นพลาสติกที่ใส่ไว้โดยอัตโนมัติเมื่อสตาร์ทเครื่อง จะใช้เวลาประมาณ 1 นาที กระบวนการอ่านจะม้วนแกนเส้นพลาสติก"
 
@@ -3939,7 +3852,6 @@ msgid "Failed to download the plug-in. Please check your firewall settings and V
 msgstr "ดาวน์โหลดปลั๊กอินไม่สำเร็จ โปรดตรวจสอบการตั้งค่าไฟร์วอลล์และซอฟต์แวร์ VPN แล้วลองอีกครั้ง"
 
 #, fuzzy
-#| msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "ไม่สามารถติดตั้งปลั๊กอินได้ ไฟล์ปลั๊กอินอาจถูกใช้งานอยู่ โปรดรีสตาร์ท OrcaSlicer แล้วลองอีกครั้ง ตรวจสอบด้วยว่าซอฟต์แวร์ป้องกันไวรัสบล็อกหรือลบหรือไม่"
 
@@ -3962,7 +3874,6 @@ msgid "Go Home"
 msgstr "กลับจุดอ้างอิง"
 
 #, fuzzy
-#| msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "เกิดข้อผิดพลาด บางทีหน่วยความจำของระบบอาจไม่เพียงพอหรือเป็นข้อบกพร่องของโปรแกรม"
 
@@ -3971,12 +3882,10 @@ msgid "A fatal error occurred: \"%1%\""
 msgstr "เกิดข้อผิดพลาดร้ายแรง: \"%1%\""
 
 #, fuzzy
-#| msgid "Please save project and restart the program."
 msgid "Please save your project and restart the application."
 msgstr "โปรดบันทึกโปรเจกต์และเริ่มโปรแกรมใหม่"
 
 #, fuzzy
-#| msgid "Processing G-code from Previous file..."
 msgid "Processing G-Code from previous file…"
 msgstr "กำลังประมวลผล G-code จากไฟล์ก่อนหน้า..."
 
@@ -4042,7 +3951,6 @@ msgid "G-code file exported to %1%"
 msgstr "ส่งออกไฟล์ G-code ไปที่ %1% แล้ว"
 
 #, fuzzy
-#| msgid "Unknown error when exporting G-code."
 msgid "Unknown error with G-code export"
 msgstr "เกิดข้อผิดพลาดไม่ทราบสาเหตุขณะส่งออก G-code"
 
@@ -4057,7 +3965,6 @@ msgstr ""
 "ไฟล์ต้นฉบับ %2%"
 
 #, fuzzy
-#| msgid "Copying of the temporary G-code to the output G-code failed"
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "การคัดลอก G-code ชั่วคราวไปยังเอาต์พุต G-code ล้มเหลว"
 
@@ -4105,7 +4012,6 @@ msgid "Invalid file format."
 msgstr "รูปแบบไฟล์ไม่ถูกต้อง"
 
 #, fuzzy
-#| msgid "Error! Invalid model"
 msgid "Error: invalid model"
 msgstr "ข้อผิดพลาด! โมเดลไม่ถูกต้อง"
 
@@ -4113,7 +4019,6 @@ msgid "The selected file contains no geometry."
 msgstr "ไฟล์ที่เลือกไม่มีรูปทรงเรขาคณิต"
 
 #, fuzzy
-#| msgid "The selected file contains several disjoint areas. This is not supported."
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "ไฟล์ที่เลือกมีพื้นที่ที่ไม่ต่อเนื่องกันหลายส่วน สิ่งนี้ไม่ได้รับส่วนรองรับ"
 
@@ -4141,10 +4046,6 @@ msgid "Please check.\n"
 msgstr "กรุณาตรวจสอบ.\n"
 
 #, fuzzy
-#| msgid ""
-#| "Nozzle may be blocked when the temperature is out of recommended range.\n"
-#| "Please make sure whether to use the temperature to print.\n"
-#| "\n"
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4158,9 +4059,6 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "อุณหภูมิหัวฉีดที่แนะนำสำหรับเส้นพลาสติกประเภทนี้คือ [%d, %d] องศาเซลเซียส"
 
 #, fuzzy
-#| msgid ""
-#| "Too small max volumetric speed.\n"
-#| "Reset to 0.5."
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4168,15 +4066,11 @@ msgstr ""
 "ความเร็วปริมาตรสูงสุดน้อยเกินไป\n"
 "รีเซ็ตเป็น 0.5"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+#, fuzzy, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "อุณหภูมิห้องเพาะเลี้ยงในปัจจุบันสูงกว่าอุณหภูมิที่ปลอดภัยของวัสดุ ซึ่งอาจส่งผลให้วัสดุอ่อนตัวและอุดตัน อุณหภูมิที่ปลอดภัยสูงสุดสำหรับวัสดุคือ %d"
 
 #, fuzzy
-#| msgid ""
-#| "Too small layer height.\n"
-#| "Reset to 0.2."
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4185,9 +4079,6 @@ msgstr ""
 "รีเซ็ตเป็น 0.2"
 
 #, fuzzy
-#| msgid ""
-#| "Too small ironing spacing.\n"
-#| "Reset to 0.1."
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4205,12 +4096,6 @@ msgstr ""
 "ความสูงของเลเยอร์แรกจะถูกรีเซ็ตเป็น 0.2"
 
 #, fuzzy
-#| msgid ""
-#| "This setting is only used for model size tunning with small value in some cases.\n"
-#| "For example, when model size has small error and hard to be assembled.\n"
-#| "For large size tuning, please use model scale function.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4224,12 +4109,6 @@ msgstr ""
 "ค่าจะถูกรีเซ็ตเป็น 0"
 
 #, fuzzy
-#| msgid ""
-#| "Too large elephant foot compensation is unreasonable.\n"
-#| "If really have serious elephant foot effect, please check other settings.\n"
-#| "For example, whether bed temperature is too high.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4322,10 +4201,6 @@ msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr "แต่เครื่องที่มีโครงสร้าง I3 จะไม่สร้างวิดีโอแบบไทม์แลปส์"
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings and enable spiral mode automatically\n"
-#| "No  - Give up using spiral mode this time"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4697,7 +4572,6 @@ msgid "Print settings"
 msgstr "การตั้งค่าพิมพ์"
 
 #, fuzzy
-#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "การตั้งค่าเส้นพลาสติก"
 
@@ -4722,8 +4596,7 @@ msgstr "สตริงว่าง"
 msgid "Value is out of range."
 msgstr "ค่าอยู่นอกช่วงที่กำหนด"
 
-#, boost-format, c-format, fuzzy
-#| msgid "%s can't be a percentage"
+#, fuzzy, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s ไม่สามารถเป็นเปอร์เซ็นต์ได้"
 
@@ -4964,7 +4837,6 @@ msgid "Total"
 msgstr "รวม"
 
 #, fuzzy
-#| msgid "Total Estimation"
 msgid "Total estimation"
 msgstr "การประมาณค่าทั้งหมด"
 
@@ -5044,12 +4916,10 @@ msgid "Usage"
 msgstr "การใช้งาน"
 
 #, fuzzy
-#| msgid "Layer Height (mm)"
 msgid "Layer height (mm)"
 msgstr "ความสูงเลเยอร์ (มม.)"
 
 #, fuzzy
-#| msgid "Line Width (mm)"
 msgid "Line width (mm)"
 msgstr "ความกว้างเส้น (มม.)"
 
@@ -5066,7 +4936,6 @@ msgid "Jerk (mm/s)"
 msgstr "กระตุก (มม./วินาที)"
 
 #, fuzzy
-#| msgid "Fan Speed (%)"
 msgid "Fan speed (%)"
 msgstr "ความเร็วพัดลม (%)"
 
@@ -5081,6 +4950,10 @@ msgstr "อัตราการไหลเชิงปริมาตรจร
 
 msgid "Seams"
 msgstr "รอยตะเข็บ"
+
+#, fuzzy
+msgid "Filament changes"
+msgstr "การเปลี่ยนเส้นพลาสติก"
 
 msgid "Options"
 msgstr "ตัวเลือก"
@@ -5104,7 +4977,6 @@ msgid "Print"
 msgstr "พิมพ์"
 
 #, fuzzy
-#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "เครื่องพิมพ์"
 
@@ -5224,7 +5096,6 @@ msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "หัวฉีดด้านขวา: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 #, fuzzy
-#| msgid "Tool Move"
 msgid "Tool move"
 msgstr "การเคลื่อนย้ายเครื่องมือ"
 
@@ -5232,12 +5103,10 @@ msgid "Tool Rotate"
 msgstr "หมุนเครื่องมือ"
 
 #, fuzzy
-#| msgid "Move Object"
 msgid "Move object"
 msgstr "ย้ายวัตถุ"
 
 #, fuzzy
-#| msgid "Auto Orientation options"
 msgid "Auto orientation options"
 msgstr "ตัวเลือกการวางแนวอัตโนมัติ"
 
@@ -5370,7 +5239,6 @@ msgid "Section View"
 msgstr "มุมมองส่วน"
 
 #, fuzzy
-#| msgid "Assemble Control"
 msgid "Assembly Control"
 msgstr "ประกอบการควบคุม"
 
@@ -5400,7 +5268,6 @@ msgid "A G-code path goes beyond the max print height."
 msgstr "เส้นทาง G-code อยู่เกินความสูงสูงสุดในการพิมพ์"
 
 #, fuzzy
-#| msgid "A G-code path goes beyond the plate boundaries."
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "เส้นทาง G-code อยู่นอกเหนือขอบเขตของเพลท"
 
@@ -5462,7 +5329,6 @@ msgid "Micro lidar calibration"
 msgstr "การสอบเทียบไมโครไลดาร์"
 
 #, fuzzy
-#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "ปรับระดับฐานพิมพ์"
 
@@ -5542,7 +5408,6 @@ msgstr ""
 "บนเครื่องพิมพ์ ดังแสดงในรูป:"
 
 #, fuzzy
-#| msgid "Invalid input."
 msgid "Invalid input"
 msgstr "ข้อมูลไม่ถูกต้อง"
 
@@ -5553,7 +5418,6 @@ msgid "Open a new window"
 msgstr "เปิดหน้าต่างใหม่"
 
 #, fuzzy
-#| msgid "Application is closing"
 msgid "Closing application"
 msgstr "ปิดรับสมัครแล้ว"
 
@@ -5803,7 +5667,6 @@ msgid "Paste clipboard"
 msgstr "วางคลิปบอร์ด"
 
 #, fuzzy
-#| msgid "Delete selected"
 msgid "Delete Selected"
 msgstr "ลบรายการที่เลือก"
 
@@ -5814,7 +5677,6 @@ msgid "Deletes all objects"
 msgstr "ลบวัตถุทั้งหมด"
 
 #, fuzzy
-#| msgid "Clone selected"
 msgid "Clone Selected"
 msgstr "เลือกโคลนแล้ว"
 
@@ -5978,13 +5840,11 @@ msgstr "&มุมมอง"
 msgid "&Help"
 msgstr "&ช่วยเหลือ"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A file exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "มีไฟล์ชื่อเดียวกันนี้: %s คุณต้องการเขียนทับหรือไม่?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A config exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "มีการกำหนดค่าชื่อเดียวกัน: %s คุณต้องการเขียนทับหรือไม่"
 
@@ -6009,7 +5869,6 @@ msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "มีการส่งออกการตั้งค่า %d รายการ (เฉพาะการตั้งค่าที่ไม่ใช่ของระบบ)"
 
 #, fuzzy
-#| msgid "Export result"
 msgid "Export Result"
 msgstr "ผลลัพธ์การส่งออก"
 
@@ -6060,7 +5919,6 @@ msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "เครื่องเล่นทำงานผิดปกติ กรุณาติดตั้งเครื่องเล่นระบบใหม่"
 
 #, fuzzy
-#| msgid "The player is not loaded, please click \"play\" button to retry."
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "โปรแกรมเล่นไม่ได้โหลด กรุณาคลิกปุ่ม \"เล่น\" เพื่อลองอีกครั้ง"
 
@@ -6083,7 +5941,6 @@ msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "LAN Only Liveview ปิดอยู่ กรุณาเปิด liveview บนหน้าจอเครื่องพิมพ์"
 
 #, fuzzy
-#| msgid "Please enter the IP of printer to connect."
 msgid "Please enter the IP of the printer to connect."
 msgstr "โปรดป้อน IP ของเครื่องพิมพ์เพื่อเชื่อมต่อ"
 
@@ -6384,7 +6241,6 @@ msgid "Input access code"
 msgstr "ป้อนรหัสการเข้าถึง"
 
 #, fuzzy
-#| msgid "Can't find my devices?"
 msgid "Can't find devices?"
 msgstr "ไม่พบอุปกรณ์ของฉัน?"
 
@@ -6410,17 +6266,14 @@ msgid "illegal suffix:"
 msgstr "คำต่อท้ายที่ผิดกฎหมาย:"
 
 #, fuzzy
-#| msgid "The name is not allowed to be empty."
 msgid "The name field is not allowed to be empty."
 msgstr "ชื่อไม่ได้รับอนุญาตให้เว้นว่าง"
 
 #, fuzzy
-#| msgid "The name is not allowed to start with space character."
 msgid "The name is not allowed to start with a space."
 msgstr "ชื่อไม่ได้รับอนุญาตให้ขึ้นต้นด้วยอักขระเว้นวรรค"
 
 #, fuzzy
-#| msgid "The name is not allowed to end with space character."
 msgid "The name is not allowed to end with a space."
 msgstr "ชื่อไม่ได้รับอนุญาตให้ลงท้ายด้วยอักขระเว้นวรรค"
 
@@ -6444,7 +6297,6 @@ msgid "Switching failed"
 msgstr "การสลับล้มเหลว"
 
 #, fuzzy
-#| msgid "Printing Progress"
 msgid "Printing progress"
 msgstr "ความคืบหน้าการพิมพ์"
 
@@ -6464,9 +6316,6 @@ msgid "Clear"
 msgstr "ชัดเจน"
 
 #, fuzzy
-#| msgid ""
-#| "You have completed printing the mall model, \n"
-#| "but the synchronization of rating information has failed."
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6555,8 +6404,7 @@ msgstr "กำลังดาวน์โหลด..."
 msgid "Cloud Slicing..."
 msgstr "คลาวด์สไลซ์..."
 
-#, boost-format, c-format, fuzzy
-#| msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+#, fuzzy, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "ใน Cloud Slicing Queue มี %s งานรออยู่ข้างหน้า"
 
@@ -6581,7 +6429,6 @@ msgid "Please select an AMS slot before calibration"
 msgstr "โปรดเลือกช่อง AMS ก่อนการสอบเทียบ"
 
 #, fuzzy
-#| msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "ไม่สามารถอ่านข้อมูลเส้นพลาสติกได้: โหลดเส้นพลาสติกไปที่หัวเครื่องมือแล้ว โปรดยกเลิกการโหลดเส้นพลาสติกแล้วลองอีกครั้ง"
 
@@ -6811,7 +6658,6 @@ msgid "3D Mouse disconnected."
 msgstr "เมาส์ 3D ถูกตัดการเชื่อมต่อ"
 
 #, fuzzy
-#| msgid "Configuration can update now."
 msgid "A new configuration is available. Update now?"
 msgstr "การกำหนดค่าสามารถอัปเดตได้ทันที"
 
@@ -6837,17 +6683,14 @@ msgid "Undo integration failed."
 msgstr "เลิกทำการผสานรวมล้มเหลว"
 
 #, fuzzy
-#| msgid "Exporting."
 msgid "Exporting"
 msgstr "กำลังส่งออก"
 
 #, fuzzy
-#| msgid "Software has New version."
 msgid "An update is available!"
 msgstr "ซอฟต์แวร์มีเวอร์ชันใหม่"
 
 #, fuzzy
-#| msgid "Goto download page."
 msgid "Go to download page"
 msgstr "ไปที่หน้าดาวน์โหลด"
 
@@ -6972,7 +6815,6 @@ msgid "Enable detection of build plate position"
 msgstr "เปิดใช้งานการตรวจจับตำแหน่งฐานรองแท่นพิมพ์"
 
 #, fuzzy
-#| msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "ตรวจพบแท็กการแปลของเพลตการพิมพ์ และการพิมพ์จะหยุดชั่วคราวหากแท็กไม่อยู่ในช่วงที่กำหนดไว้ล่วงหน้า"
 
@@ -7019,7 +6861,6 @@ msgid "First Layer Inspection"
 msgstr "การตรวจสอบชั้นแรก"
 
 #, fuzzy
-#| msgid "Auto-recovery from step loss"
 msgid "Auto-recover from step loss"
 msgstr "กู้คืนอัตโนมัติจากการสูญเสียขั้นตอน"
 
@@ -7033,7 +6874,6 @@ msgid "Allow Prompt Sound"
 msgstr "อนุญาตเสียงพร้อมท์"
 
 #, fuzzy
-#| msgid "Filament Tangle Detect"
 msgid "Filament Tangle Detection"
 msgstr "การตรวจจับเส้นพลาสติกพันกัน"
 
@@ -7186,11 +7026,6 @@ msgstr "วัสดุที่ใช้แล้ว"
 msgid "Estimated time"
 msgstr "เวลาโดยประมาณ"
 
-#, fuzzy
-#| msgid "Filament changes"
-msgid "Filament changes"
-msgstr "การเปลี่ยนเส้นพลาสติก"
-
 msgid "Set the number of AMS installed on the nozzle."
 msgstr "กำหนดจำนวน AMS ที่ติดตั้งบนหัวฉีด"
 
@@ -7297,7 +7132,6 @@ msgid "Ejecting of device %s (%s) has failed."
 msgstr "การดีดอุปกรณ์ %s (%s) ล้มเหลว"
 
 #, fuzzy
-#| msgid "Previous unsaved project detected, do you want to restore it?"
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "ตรวจพบโปรเจ็กต์ที่ยังไม่ได้บันทึกก่อนหน้านี้ คุณต้องการกู้คืนหรือไม่"
 
@@ -7305,12 +7139,10 @@ msgid "Restore"
 msgstr "คืนค่า"
 
 #, fuzzy
-#| msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "อุณหภูมิฐานพิมพ์ร้อนในปัจจุบันค่อนข้างสูง หัวฉีดอาจอุดตันเมื่อพิมพ์เส้นพลาสติกนี้ในตู้ปิด กรุณาเปิดประตูหน้าและ/หรือถอดกระจกด้านบนออก"
 
 #, fuzzy
-#| msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "ความแข็งของหัวฉีดที่ต้องการสำหรับเส้นพลาสติกนั้นสูงกว่าความแข็งของหัวฉีดเริ่มต้นของเครื่องพิมพ์ โปรดเปลี่ยนหัวฉีดหรือเส้นพลาสติกที่แข็งแล้ว ไม่เช่นนั้นหัวฉีดจะเสียหายหรือเสียหาย"
 
@@ -7362,7 +7194,6 @@ msgid "The 3MF file version %s is newer than %s's version %s, found the followin
 msgstr "ไฟล์ 3MF เวอร์ชัน %s ใหม่กว่าเวอร์ชัน %s ของ %s พบคีย์ที่ไม่รู้จักต่อไปนี้:"
 
 #, fuzzy
-#| msgid "You'd better upgrade your software.\n"
 msgid "You should update your software.\n"
 msgstr "คุณควรอัพเกรดซอฟต์แวร์ของคุณดีกว่า\n"
 
@@ -7385,7 +7216,6 @@ msgid "Invalid values found in the 3MF:"
 msgstr "พบค่าที่ไม่ถูกต้องใน 3MF:"
 
 #, fuzzy
-#| msgid "Please correct them in the param tabs"
 msgid "Please correct them in the Param tabs"
 msgstr "โปรดแก้ไขให้ถูกต้องในแท็บพารามิเตอร์"
 
@@ -7408,12 +7238,10 @@ msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
 #, fuzzy
-#| msgid "Name of components inside STEP file is not UTF8 format!"
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
 
 #, fuzzy
-#| msgid "The name may show garbage characters!"
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "ชื่ออาจแสดงตัวอักษรขยะ!"
 
@@ -7430,10 +7258,7 @@ msgstr "วัตถุที่มีปริมาตรเป็นศูน
 msgid "The volume of the object is zero"
 msgstr "ปริมาตรของวัตถุเป็นศูนย์"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The object from file %s is too small, and maybe in meters or inches.\n"
-#| " Do you want to scale to millimeters?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7445,10 +7270,6 @@ msgid "Object too small"
 msgstr "วัตถุมีขนาดเล็กเกินไป"
 
 #, fuzzy
-#| msgid ""
-#| "This file contains several objects positioned at multiple heights.\n"
-#| "Instead of considering them as multiple objects, should \n"
-#| "the file be loaded as a single object having multiple parts?"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7465,7 +7286,6 @@ msgid "Load these files as a single object with multiple parts?\n"
 msgstr "โหลดไฟล์เหล่านี้เป็นออบเจ็กต์เดียวที่มีหลายส่วนใช่ไหม\n"
 
 #, fuzzy
-#| msgid "Object with multiple parts was detected"
 msgid "An object with multiple parts was detected"
 msgstr "ตรวจพบวัตถุที่มีหลายส่วน"
 
@@ -7501,17 +7321,13 @@ msgid "Export AMF file:"
 msgstr "ส่งออกไฟล์ AMF:"
 
 #, fuzzy
-#| msgid "Save file as:"
 msgid "Save file as"
 msgstr "บันทึกไฟล์เป็น:"
 
 msgid "Export OBJ file:"
 msgstr "ส่งออกไฟล์ OBJ:"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The file %s already exists\n"
-#| "Do you want to replace it?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7526,10 +7342,6 @@ msgid "Delete object which is a part of cut object"
 msgstr "ลบวัตถุซึ่งเป็นส่วนหนึ่งของวัตถุที่ตัด"
 
 #, fuzzy
-#| msgid ""
-#| "You try to delete an object which is a part of a cut object.\n"
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed."
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7556,7 +7368,6 @@ msgid "Unable to replace with more than one volume"
 msgstr "ไม่สามารถแทนที่ด้วยวอลุ่มมากกว่าหนึ่งวอลุ่ม"
 
 #, fuzzy
-#| msgid "Error during replace"
 msgid "Error during replacement"
 msgstr "เกิดข้อผิดพลาดระหว่างการเปลี่ยน"
 
@@ -7567,7 +7378,6 @@ msgid "Select a new file"
 msgstr "เลือกไฟล์ใหม่"
 
 #, fuzzy
-#| msgid "File for the replace wasn't selected"
 msgid "File for the replacement wasn't selected"
 msgstr "ไม่ได้เลือกไฟล์สำหรับการแทนที่"
 
@@ -7659,7 +7469,6 @@ msgid "Sync now"
 msgstr "ซิงค์เลย"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project or discard them"
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "คุณสามารถเก็บค่าที่ตั้งไว้ล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่หรือทิ้งก็ได้"
 
@@ -7670,9 +7479,6 @@ msgid "Load project"
 msgstr "โหลดโปรเจกต์"
 
 #, fuzzy
-#| msgid ""
-#| "Failed to save the project.\n"
-#| "Please check whether the folder exists online or if other programs open the project file."
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7690,7 +7496,6 @@ msgid "Preparing 3MF file..."
 msgstr "กำลังเตรียมไฟล์ 3MF..."
 
 #, fuzzy
-#| msgid "Download failed, unknown file format."
 msgid "Download failed; unknown file format."
 msgstr "การดาวน์โหลดล้มเหลว รูปแบบไฟล์ที่ไม่รู้จัก"
 
@@ -7698,7 +7503,6 @@ msgid "Downloading project..."
 msgstr "กำลังดาวน์โหลดโปรเจ็กต์..."
 
 #, fuzzy
-#| msgid "Download failed, File size exception."
 msgid "Download failed; File size exception."
 msgstr "ดาวน์โหลดล้มเหลว มีข้อยกเว้นขนาดไฟล์"
 
@@ -7725,12 +7529,10 @@ msgid "The selected file"
 msgstr "ไฟล์ที่เลือก"
 
 #, fuzzy
-#| msgid "does not contain valid G-code."
 msgid "Does not contain valid G-code."
 msgstr "ไม่มีรหัส G ที่ถูกต้อง"
 
 #, fuzzy
-#| msgid "Error occurs while loading G-code file"
 msgid "An Error has occurred while loading the G-code file."
 msgstr "เกิดข้อผิดพลาดขณะโหลดไฟล์ G-code"
 
@@ -7761,7 +7563,6 @@ msgid "Import geometry only"
 msgstr "นำเข้ารูปทรงเรขาคณิตเท่านั้น"
 
 #, fuzzy
-#| msgid "Only one G-code file can be opened at the same time."
 msgid "Only one G-code file can be opened at a time."
 msgstr "สามารถเปิดไฟล์ G-code ได้เพียงไฟล์เดียวเท่านั้น"
 
@@ -7769,12 +7570,10 @@ msgid "G-code loading"
 msgstr "กำลังโหลดรหัส G"
 
 #, fuzzy
-#| msgid "G-code files cannot be loaded with models together!"
 msgid "G-code files and models cannot be loaded together!"
 msgstr "ไม่สามารถโหลดไฟล์ G-code กับโมเดลด้วยกันได้!"
 
 #, fuzzy
-#| msgid "Cannot add models when in preview mode!"
 msgid "Unable to add models in preview mode"
 msgstr "ไม่สามารถเพิ่มโมเดลได้เมื่ออยู่ในโหมดแสดงตัวอย่าง!"
 
@@ -7782,7 +7581,6 @@ msgid "All objects will be removed, continue?"
 msgstr "วัตถุทั้งหมดจะถูกลบ ดำเนินการต่อหรือไม่"
 
 #, fuzzy
-#| msgid "The current project has unsaved changes, save it before continue?"
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "โปรเจ็กต์ปัจจุบันมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก บันทึกก่อนดำเนินการต่อหรือไม่"
 
@@ -7855,9 +7653,6 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "ข้อมูลไฟล์การพิมพ์ผิดปกติ กรุณาสไลซ์อีกครั้ง"
 
 #, fuzzy
-#| msgid ""
-#| "Print By Object: \n"
-#| "Suggest to use auto-arrange to avoid collisions when printing."
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7943,8 +7738,7 @@ msgstr "สามเหลี่ยม: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "ใช้ \"Fix Model\" เพื่อซ่อมแซมตาข่าย"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+#, fuzzy, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "เพลต %d: ไม่แนะนำให้ใช้ %s ในการพิมพ์เส้นพลาสติก %s (%s) หากคุณยังต้องงานพิมพ์นี้ โปรดตั้งค่าอุณหภูมิฐานของเส้นพลาสติกให้ไม่เป็นศูนย์"
 
@@ -7973,7 +7767,6 @@ msgid "rear"
 msgstr "หลัง"
 
 #, fuzzy
-#| msgid "Switching the language requires application restart.\n"
 msgid "Switching languages requires the application to restart.\n"
 msgstr "การเปลี่ยนภาษาจำเป็นต้องรีสตาร์ทแอปพลิเคชัน\n"
 
@@ -8002,7 +7795,6 @@ msgid "Others"
 msgstr "อื่นๆ"
 
 #, fuzzy
-#| msgid "Changing the region will log out your account.\n"
 msgid "Changing the region will log you out of your account.\n"
 msgstr "การเปลี่ยนภูมิภาคจะออกจากระบบบัญชีของคุณ\n"
 
@@ -8079,7 +7871,6 @@ msgid "Set the page opened on startup."
 msgstr "ตั้งค่าเพจที่เปิดเมื่อเริ่มต้น"
 
 #, fuzzy
-#| msgid "Enable dark mode"
 msgid "Enable dark Mode"
 msgstr "เปิดใช้งานโหมดมืด"
 
@@ -8156,7 +7947,6 @@ msgid "Auto backup"
 msgstr "การสำรองข้อมูลอัตโนมัติ"
 
 #, fuzzy
-#| msgid "Backup your project periodically for restoring from the occasional crash."
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "สำรองข้อมูลโปรเจ็กต์ของคุณเป็นระยะเพื่อกู้คืนจากข้อขัดข้องเป็นครั้งคราว"
 
@@ -8448,7 +8238,6 @@ msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "การตั้งค่าล่วงหน้าของผู้ใช้ซิงค์อัตโนมัติ (เครื่องพิมพ์/เส้นพลาสติก/กระบวนการ)"
 
 #, fuzzy
-#| msgid "Update built-in Presets automatically."
 msgid "Update built-in presets automatically."
 msgstr "อัปเดตค่าที่ตั้งล่วงหน้าในตัวโดยอัตโนมัติ"
 
@@ -8527,7 +8316,6 @@ msgid "Associate 3MF files to OrcaSlicer"
 msgstr "เชื่อมโยงไฟล์ 3MF กับ OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "หากเปิดใช้งาน ให้ตั้งค่า OrcaSlicer เป็นแอปพลิเคชันเริ่มต้นเพื่อเปิดไฟล์ 3MF"
 
@@ -8541,7 +8329,6 @@ msgid "Associate STL files to OrcaSlicer"
 msgstr "เชื่อมโยงไฟล์ STL กับ OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "หากเปิดใช้งาน ให้ตั้งค่า OrcaSlicer เป็นแอปพลิเคชันเริ่มต้นเพื่อเปิดไฟล์ STL"
 
@@ -8549,7 +8336,6 @@ msgid "Associate STEP files to OrcaSlicer"
 msgstr "เชื่อมโยงไฟล์ STEP กับ OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "หากเปิดใช้งาน ให้ตั้งค่า OrcaSlicer เป็นแอปพลิเคชันเริ่มต้นเพื่อเปิดไฟล์ STEP"
 
@@ -8652,7 +8438,6 @@ msgid "Other"
 msgstr "อื่นๆ"
 
 #, fuzzy
-#| msgid "Mouse wheel reverses when zooming"
 msgid "Reverse scroll direction while zooming"
 msgstr "ล้อเมาส์จะกลับด้านเมื่อซูม"
 
@@ -8687,12 +8472,10 @@ msgid "Save debug settings"
 msgstr "บันทึกการตั้งค่าการแก้ไขข้อบกพร่อง"
 
 #, fuzzy
-#| msgid "DEBUG settings have been saved successfully!"
 msgid "Debug settings have been saved successfully!"
 msgstr "บันทึกการตั้งค่า DEBUG สำเร็จแล้ว!"
 
 #, fuzzy
-#| msgid "Cloud environment switched, please login again!"
 msgid "Cloud environment switched; please login again!"
 msgstr "สภาพแวดล้อมคลาวด์ถูกเปลี่ยน กรุณาเข้าสู่ระบบอีกครั้ง!"
 
@@ -8712,7 +8495,6 @@ msgid "Left filaments"
 msgstr "เส้นพลาสติกด้านซ้าย"
 
 #, fuzzy
-#| msgid "AMS filaments"
 msgid "AMS filament"
 msgstr "เส้นพลาสติก AMS"
 
@@ -8747,7 +8529,6 @@ msgid "Unsupported"
 msgstr "ไม่รองรับ"
 
 #, fuzzy
-#| msgid "Add/Remove filaments"
 msgid "Add/Remove filament"
 msgstr "เพิ่ม/ลบเส้นพลาสติก"
 
@@ -8785,7 +8566,6 @@ msgid "Plate name"
 msgstr "ชื่อจาน"
 
 #, fuzzy
-#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "เช่นเดียวกับประเภทเพลททั่วโลก"
 
@@ -8823,7 +8603,6 @@ msgid "Log Out"
 msgstr "ออกจากระบบ"
 
 #, fuzzy
-#| msgid "Slice all plate to obtain time and filament estimation"
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "ตัดแผ่นทั้งหมดเพื่อให้ได้เวลาและการประมาณค่าเส้นพลาสติก"
 
@@ -8885,7 +8664,6 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr "ค่าที่ตั้งไว้ล่วงหน้า \"%1%\" มีอยู่แล้ว และเข้ากันไม่ได้กับเครื่องพิมพ์ปัจจุบัน"
 
 #, fuzzy
-#| msgid "Please note that saving will overwrite this preset."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "โปรดทราบว่าการบันทึกจะเขียนทับค่าที่ตั้งล่วงหน้านี้"
 
@@ -9016,7 +8794,6 @@ msgid "The selected printer (%s) is incompatible with the print file configurati
 msgstr "เครื่องพิมพ์ที่เลือก (%s) เข้ากันไม่ได้กับการกำหนดค่าไฟล์การพิมพ์ (%s) โปรดปรับการตั้งค่าล่วงหน้าของเครื่องพิมพ์ในหน้าจัดเตรียมหรือเลือกเครื่องพิมพ์ที่ใช้งานร่วมกันได้ในหน้านี้"
 
 #, fuzzy
-#| msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "เมื่อเปิดใช้งานโหมดแจกันเกลียว เครื่องจักรที่มีโครงสร้าง I3 จะไม่สร้างวิดีโอไทม์แลปส์"
 
@@ -9036,7 +8813,6 @@ msgid "The printer type selected when generating G-code is not consistent with t
 msgstr "ประเภทเครื่องพิมพ์ที่เลือกเมื่อสร้าง G-code ไม่สอดคล้องกับเครื่องพิมพ์ที่เลือกในปัจจุบัน ขอแนะนำให้คุณใช้เครื่องพิมพ์ประเภทเดียวกันในการตัด"
 
 #, fuzzy
-#| msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "มีเส้นพลาสติกที่ไม่รู้จักบางอย่างในการแมป AMS โปรดตรวจสอบว่าเป็นเส้นพลาสติกที่ต้องการหรือไม่ หากไม่เป็นไร ให้กด \"ยืนยัน\" เพื่อเริ่มพิมพ์"
 
@@ -9169,7 +8945,6 @@ msgid "Storage needs to be inserted before printing."
 msgstr "ต้องใส่ที่เก็บข้อมูลก่อนพิมพ์"
 
 #, fuzzy
-#| msgid "Cannot send the print job to a printer whose firmware is required to get updated."
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "ไม่สามารถส่งงานพิมพ์ไปยังเครื่องพิมพ์ที่ต้องใช้เฟิร์มแวร์ในการอัพเดต"
 
@@ -9225,7 +9000,6 @@ msgid "Connection failed. Click the icon to retry"
 msgstr "การเชื่อมต่อล้มเหลว คลิกไอคอนเพื่อลองอีกครั้ง"
 
 #, fuzzy
-#| msgid "Cannot send the print task when the upgrade is in progress"
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "ไม่สามารถส่งงานพิมพ์ได้ในขณะที่กำลังอัปเกรด"
 
@@ -9236,7 +9010,6 @@ msgid "Storage needs to be inserted before send to printer."
 msgstr "ต้องใส่ที่เก็บข้อมูลก่อนส่งไปยังเครื่องพิมพ์"
 
 #, fuzzy
-#| msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "เครื่องพิมพ์จะต้องอยู่ใน LAN เดียวกันกับ Orca Slicer"
 
@@ -9253,7 +9026,6 @@ msgid "Sending failed, please try again!"
 msgstr ""
 
 #, fuzzy
-#| msgid "Slice ok."
 msgid "Slice complete"
 msgstr "ชิ้นตกลง"
 
@@ -9270,12 +9042,10 @@ msgid "Failed to publish login request"
 msgstr "ไม่สามารถเผยแพร่คำขอเข้าสู่ระบบได้"
 
 #, fuzzy
-#| msgid "Get ticket from device timeout"
 msgid "Timeout getting ticket from device"
 msgstr "รับตั๋วจากการหมดเวลาของอุปกรณ์"
 
 #, fuzzy
-#| msgid "Get ticket from server timeout"
 msgid "Timeout getting ticket from server"
 msgstr "รับตั๋วจากการหมดเวลาของเซิร์ฟเวอร์"
 
@@ -9383,7 +9153,6 @@ msgid "Click to reset all settings to the last saved preset."
 msgstr "คลิกเพื่อรีเซ็ตการตั้งค่าทั้งหมดเป็นค่าที่ตั้งไว้ล่วงหน้าที่บันทึกไว้ล่าสุด"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "จำเป็นต้องมีหอคอยหลักเพื่อให้ไทม์แลปส์ราบรื่น อาจมีตำหนิตรงรุ่นที่ไม่มีไพร์มทาวเวอร์ คุณแน่ใจหรือไม่ว่าต้องการปิดการใช้งานไพร์มทาวเวอร์?"
 
@@ -9400,7 +9169,6 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและหอคอยหลักอาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน คุณยังต้องการเปิดใช้งานความสูง Z ที่แม่นยำหรือไม่"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "จำเป็นต้องมีหอคอยหลักเพื่อให้ไทม์แลปส์ราบรื่น อาจมีตำหนิตรงรุ่นที่ไม่มีไพร์มทาวเวอร์ คุณต้องการเปิดใช้งานไพร์มทาวเวอร์หรือไม่?"
 
@@ -9422,10 +9190,6 @@ msgstr ""
 "0 ระยะทาง Z บนสุด, ระยะห่างระหว่างอินเทอร์เฟซ 0, รูปแบบเส้นตรงแบบอินเทอร์เลซ และปิดใช้งานความสูงของเลเยอร์รองรับอิสระ"
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings automatically\n"
-#| "No  - Do not change these settings for me"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9577,7 +9341,6 @@ msgid "Top/bottom shells"
 msgstr "เปลือกบน/ล่าง"
 
 #, fuzzy
-#| msgid "First layer speed"
 msgid "First layer speed"
 msgstr "ความเร็วชั้นแรก"
 
@@ -9606,7 +9369,6 @@ msgid "Raft"
 msgstr "ฐานรองชิ้นงาน"
 
 #, fuzzy
-#| msgid "Support filament"
 msgid "Filament for Supports"
 msgstr "เส้นพลาสติกสำหรับส่วนรองรับ"
 
@@ -9665,7 +9427,6 @@ msgid "Recommended nozzle temperature"
 msgstr "อุณหภูมิหัวฉีดที่แนะนำ"
 
 #, fuzzy
-#| msgid "Recommended nozzle temperature range of this filament. 0 means no set"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "ช่วงอุณหภูมิหัวฉีดที่แนะนำของเส้นพลาสติกนี้ 0 หมายถึงไม่มีการตั้งค่า"
 
@@ -9688,7 +9449,6 @@ msgid "Cool Plate"
 msgstr "จานเย็น"
 
 #, fuzzy
-#| msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "อุณหภูมิฐานพิมพ์เมื่อติดตั้ง Cool Plate ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate"
 
@@ -9696,12 +9456,10 @@ msgid "Textured Cool Plate"
 msgstr "เท็กซ์เจอร์ คูลเพลท"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "อุณหภูมิฐานพิมพ์เมื่อติดตั้ง Textured Cool Plate ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Textured Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "อุณหภูมิฐานพิมพ์เมื่อติดตั้ง Engineering Plate ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Engineering Plate"
 
@@ -9709,12 +9467,10 @@ msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "แผ่น PEI เรียบ / แผ่นอุณหภูมิสูง"
 
 #, fuzzy
-#| msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "อุณหภูมิฐานพิมพ์เมื่อติดตั้งแผ่น Smooth PEI/แผ่นอุณหภูมิสูง ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนแผ่น PEI แบบเรียบ/แผ่นอุณหภูมิสูง"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "อุณหภูมิฐานพิมพ์เมื่อติดตั้งเพลต PEI แบบมีพื้นผิว ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนเพลต PEI ที่มีพื้นผิว"
 
@@ -9731,7 +9487,6 @@ msgid "Min fan speed threshold"
 msgstr "เกณฑ์ความเร็วพัดลมขั้นต่ำ"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "ความเร็วพัดลมระบายความร้อนชิ้นส่วนจะเริ่มทำงานที่ความเร็วต่ำสุด เมื่อเวลาของเลเยอร์โดยประมาณไม่นานกว่าเวลาของเลเยอร์ในการตั้งค่า เมื่อเวลาของเลเยอร์สั้นกว่าเกณฑ์ ความเร็วพัดลมจะถูกประมาณค่าระหว่างความเร็วพัดลมต่ำสุดและสูงสุดตามเวลาการพิมพ์ของเลเยอร์"
 
@@ -9739,7 +9494,6 @@ msgid "Max fan speed threshold"
 msgstr "เกณฑ์ความเร็วพัดลมสูงสุด"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "ความเร็วพัดลมระบายความร้อนของชิ้นส่วนจะสูงสุดเมื่อเวลาเลเยอร์โดยประมาณสั้นกว่าค่าที่ตั้งไว้"
 
@@ -9961,8 +9715,7 @@ msgstr ""
 "คุณแน่ใจหรือไม่ว่าต้องการลบค่าที่ตั้งล่วงหน้าที่เลือกไว้\n"
 "หากค่าที่ตั้งไว้ล่วงหน้าสอดคล้องกับเส้นพลาสติกที่ใช้งานอยู่ในเครื่องพิมพ์ของคุณ โปรดรีเซ็ตข้อมูลเส้นพลาสติกสำหรับช่องนั้น"
 
-#, boost-format, fuzzy
-#| msgid "Are you sure to %1% the selected preset?"
+#, fuzzy, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "คุณแน่ใจหรือว่า %1% เป็นค่าที่ตั้งล่วงหน้าที่เลือกไว้"
 
@@ -10007,11 +9760,6 @@ msgstr "การตรวจสอบความปลอดภัยของ
 msgid "Continue"
 msgstr "ดำเนินการต่อ"
 
-#, fuzzy
-#| msgid "Back"
-msgid "Back"
-msgstr "หลัง"
-
 msgid "Don't warn again for this preset"
 msgstr "ไม่ต้องเตือนอีกสำหรับค่าที่กำหนดล่วงหน้านี้"
 
@@ -10027,7 +9775,6 @@ msgid "Click to reset current value and attach to the global value."
 msgstr "คลิกเพื่อรีเซ็ตค่าปัจจุบันและแนบไปกับค่าส่วนกลาง"
 
 #, fuzzy
-#| msgid "Click to drop current modify and reset to saved value."
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "คลิกเพื่อยกเลิกการแก้ไขปัจจุบันและรีเซ็ตเป็นค่าที่บันทึกไว้"
 
@@ -10035,7 +9782,6 @@ msgid "Process Settings"
 msgstr "การตั้งค่ากระบวนการ"
 
 #, fuzzy
-#| msgid "Unsaved Changes"
 msgid "unsaved changes"
 msgstr "การเปลี่ยนแปลงที่ไม่ได้บันทึก"
 
@@ -10043,7 +9789,6 @@ msgid "Transfer or discard changes"
 msgstr "โอนหรือละทิ้งการเปลี่ยนแปลง"
 
 #, fuzzy
-#| msgid "Old Value"
 msgid "Old value"
 msgstr "ค่าเก่า"
 
@@ -10100,7 +9845,6 @@ msgid "Click the right mouse button to display the full text."
 msgstr "คลิกปุ่มเมาส์ขวาเพื่อแสดงข้อความทั้งหมด"
 
 #, fuzzy
-#| msgid "All changes will not be saved"
 msgid "No changes will be saved."
 msgstr "การเปลี่ยนแปลงทั้งหมดจะไม่ถูกบันทึก"
 
@@ -10650,7 +10394,6 @@ msgid "Arrow Up"
 msgstr "ลูกศรขึ้น"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive Y direction"
 msgid "Move selection 10mm in positive Y direction"
 msgstr "เลื่อนส่วนที่เลือกไป 10 มม. ในทิศทางบวก Y"
 
@@ -10658,7 +10401,6 @@ msgid "Arrow Down"
 msgstr "ลูกศรลง"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative Y direction"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "ย้ายส่วนที่เลือกไป 10 มม. ในทิศทางลบ Y"
 
@@ -10666,7 +10408,6 @@ msgid "Arrow Left"
 msgstr "ลูกศรซ้าย"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative X direction"
 msgid "Move selection 10mm in negative X direction"
 msgstr "ย้ายส่วนที่เลือกไป 10 มม. ในทิศทาง X ลบ"
 
@@ -10674,17 +10415,14 @@ msgid "Arrow Right"
 msgstr "ลูกศรขวา"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive X direction"
 msgid "Move selection 10mm in positive X direction"
 msgstr "เลื่อนส่วนที่เลือกไป 10 มม. ในทิศทาง X บวก"
 
 #, fuzzy
-#| msgid "Movement step set to 1 mm"
 msgid "Movement step set to 1mm"
 msgstr "สเต็ปการเคลื่อนไหวตั้งไว้ที่ 1 มม"
 
 #, fuzzy
-#| msgid "Keyboard 1-9: set filament for object/part"
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "แป้นพิมพ์ 1-9: ตั้งค่าเส้นพลาสติกสำหรับวัตถุ/ชิ้นส่วน"
 
@@ -10782,7 +10520,6 @@ msgid "Set extruder number for the objects and parts"
 msgstr "กำหนดหมายเลขชุดดันเส้นสำหรับวัตถุและชิ้นส่วน"
 
 #, fuzzy
-#| msgid "Delete objects, parts, modifiers"
 msgid "Delete objects, parts, modifiers"
 msgstr "ลบวัตถุ ชิ้นส่วน ตัวดัดแปลง"
 
@@ -10836,7 +10573,6 @@ msgid "Network plug-in update"
 msgstr "การอัปเดตปลั๊กอินเครือข่าย"
 
 #, fuzzy
-#| msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "คลิกตกลงเพื่ออัปเดตปลั๊กอินเครือข่ายเมื่อ Orca Slicer เปิดตัวในครั้งถัดไป"
 
@@ -10982,12 +10718,10 @@ msgid "Are you sure you want to update? This will take about 10 minutes. Do not 
 msgstr "คุณแน่ใจหรือไม่ว่าต้องการอัปเดต การดำเนินการนี้จะใช้เวลาประมาณ 10 นาที อย่าปิดเครื่องในขณะที่เครื่องพิมพ์กำลังอัปเดต"
 
 #, fuzzy
-#| msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "ตรวจพบการอัปเดตที่สำคัญและจำเป็นต้องดำเนินการก่อนจึงจะสามารถพิมพ์ต่อได้ คุณต้องการอัปเดตตอนนี้หรือไม่? คุณสามารถอัปเดตภายหลังได้จาก 'อัปเกรดเฟิร์มแวร์'"
 
 #, fuzzy
-#| msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "เวอร์ชันเฟิร์มแวร์ผิดปกติ จำเป็นต้องซ่อมแซมและอัปเดตก่อนพิมพ์ คุณต้องการอัปเดตตอนนี้หรือไม่? คุณยังสามารถอัปเดตในภายหลังบนเครื่องพิมพ์หรืออัปเดตในครั้งถัดไปโดยเริ่มตั้งแต่ Orca"
 
@@ -11012,7 +10746,6 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "การคัดลอกไฟล์ %1% ถึง %2% ล้มเหลว: %3%"
 
 #, fuzzy
-#| msgid "Need to check the unsaved changes before configuration updates."
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "จำเป็นต้องตรวจสอบการเปลี่ยนแปลงที่ยังไม่ได้บันทึกก่อนอัปเดตการกำหนดค่า"
 
@@ -11028,8 +10761,7 @@ msgstr "เปิดไฟล์ G-code:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "วัตถุหนึ่งมีชั้นแรกว่างเปล่าและไม่สามารถพิมพ์ได้ กรุณาตัดด้านล่างหรือเปิดใช้งานส่วนรองรับ"
 
-#, boost-format, fuzzy
-#| msgid "Object can't be printed for empty layer between %1% and %2%."
+#, fuzzy, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "ไม่สามารถพิมพ์วัตถุสำหรับเลเยอร์ว่างระหว่าง %1% ถึง %2%"
 
@@ -11038,7 +10770,6 @@ msgid "Object: %1%"
 msgstr "วัตถุ: %1%"
 
 #, fuzzy
-#| msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "บางทีบางส่วนของวัตถุที่ความสูงเหล่านี้บางเกินไป หรือวัตถุนั้นมีตาข่ายที่ผิดพลาด"
 
@@ -11049,7 +10780,6 @@ msgid "Filament change extrusion role G-code"
 msgstr "เส้นพลาสติกเปลี่ยนบทบาทการอัดขึ้นรูป G-code"
 
 #, fuzzy
-#| msgid "No object can be printed. Maybe too small"
 msgid "No object can be printed. It may be too small."
 msgstr "ไม่สามารถพิมพ์วัตถุได้ อาจจะเล็กเกินไป"
 
@@ -11093,8 +10823,7 @@ msgstr "ไม่สามารถวางใน"
 msgid "Internal Bridge"
 msgstr "สะพานภายใน"
 
-#, boost-format, fuzzy
-#| msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+#, fuzzy, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "ไม่สามารถคำนวณความกว้างของเส้น %1% ไม่สามารถรับค่า \"%2%\""
 
@@ -11108,7 +10837,6 @@ msgid "too many files"
 msgstr "มีไฟล์มากเกินไป"
 
 #, fuzzy
-#| msgid "file too large"
 msgid "File too large"
 msgstr "ไฟล์ใหญ่เกินไป"
 
@@ -11131,7 +10859,6 @@ msgid "invalid header or corrupted"
 msgstr "ส่วนหัวไม่ถูกต้องหรือเสียหาย"
 
 #, fuzzy
-#| msgid "unsupported multidisk"
 msgid "Saving to RAID is not supported."
 msgstr "มัลติดิสก์ที่ไม่รองรับ"
 
@@ -11181,7 +10908,6 @@ msgid "invalid filename"
 msgstr "ชื่อไฟล์ไม่ถูกต้อง"
 
 #, fuzzy
-#| msgid "buffer too small"
 msgid "Buffer too small"
 msgstr "บัฟเฟอร์เล็กเกินไป"
 
@@ -11192,7 +10918,6 @@ msgid "file not found"
 msgstr "ไม่พบไฟล์"
 
 #, fuzzy
-#| msgid "archive too large"
 msgid "Archive too large"
 msgstr "ไฟล์เก็บถาวรมีขนาดใหญ่เกินไป"
 
@@ -11202,8 +10927,7 @@ msgstr "การตรวจสอบล้มเหลว"
 msgid "write callback failed"
 msgstr "การเขียนการโทรกลับล้มเหลว"
 
-#, boost-format, fuzzy
-#| msgid "%1% is too close to exclusion area, there may be collisions when printing."
+#, fuzzy, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% อยู่ใกล้พื้นที่แยกมากเกินไป อาจเกิดการชนกันเมื่อพิมพ์"
 
@@ -11228,7 +10952,6 @@ msgid " is too close to others, and collisions may be caused.\n"
 msgstr "อยู่ใกล้ผู้อื่นมากเกินไปและอาจเกิดการชนได้\n"
 
 #, fuzzy
-#| msgid " is too close to exclusion area, and collisions will be caused.\n"
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr "อยู่ใกล้เขตหวงห้ามมากเกินไปจะเกิดการชนกัน\n"
 
@@ -11263,7 +10986,6 @@ msgid "Please select \"By object\" print sequence to print multiple objects in s
 msgstr "โปรดเลือกลำดับการพิมพ์ \"ตามวัตถุ\" เพื่อพิมพ์วัตถุหลายชิ้นในโหมดแจกันเกลียว"
 
 #, fuzzy
-#| msgid "The spiral vase mode does not work when an object contains more than one materials."
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "โหมดแจกันเกลียวจะไม่ทำงานเมื่อวัตถุมีวัสดุมากกว่าหนึ่งชนิด"
 
@@ -11298,27 +11020,22 @@ msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprint
 msgstr "ขณะนี้ไพรม์ทาวเวอร์รองรับเฉพาะรสชาติ Marlin, RepRap/Sprinter, RepRapFirmware และ Repetier G-code เท่านั้น"
 
 #, fuzzy
-#| msgid "The prime tower is not supported in \"By object\" print."
 msgid "A prime tower is not supported in “By object” print."
 msgstr "ไม่รองรับไพรม์ทาวเวอร์ในการพิมพ์ \"ตามวัตถุ\""
 
 #, fuzzy
-#| msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "ไม่รองรับไพรม์ทาวเวอร์เมื่อเปิดความสูงของเลเยอร์แบบปรับได้ กำหนดให้วัตถุทั้งหมดมีความสูงของชั้นเท่ากัน"
 
 #, fuzzy
-#| msgid "The prime tower requires \"support gap\" to be multiple of layer height."
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "หอคอยหลักต้องมี \"ช่องว่างรองรับ\" เพื่อให้มีความสูงหลายชั้น"
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects have the same layer heights."
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "หอคอยหลักกำหนดให้วัตถุทั้งหมดมีความสูงของชั้นเท่ากัน"
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are printed over the same number of raft layers."
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "หอคอยหลักกำหนดให้วัตถุทั้งหมดพิมพ์บนชั้นฐานรองชิ้นงานจำนวนเท่ากัน"
 
@@ -11326,7 +11043,6 @@ msgid "The prime tower is only supported for multiple objects if they are printe
 msgstr "ไพรม์ทาวเวอร์รองรับวัตถุหลายชิ้นเท่านั้นหากพิมพ์ด้วย support_top_z_distance เท่ากัน"
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are sliced with the same layer heights."
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "หอคอยหลักกำหนดให้วัตถุทั้งหมดถูกสไลซ์ด้วยความสูงของชั้นเดียวกัน"
 
@@ -11337,12 +11053,10 @@ msgid "One or more object were assigned an extruder that the printer does not ha
 msgstr "วัตถุอย่างน้อยหนึ่งชิ้นถูกกำหนดให้เป็นชุดดันเส้นที่เครื่องพิมพ์ไม่มี"
 
 #, fuzzy
-#| msgid "Too small line width"
 msgid "Line width too small"
 msgstr "ความกว้างของเส้นเล็กเกินไป"
 
 #, fuzzy
-#| msgid "Too large line width"
 msgid "Line width too large"
 msgstr "ความกว้างของเส้นใหญ่เกินไป"
 
@@ -11350,7 +11064,6 @@ msgid "Printing with multiple extruders of differing nozzle diameters. If suppor
 msgstr "การพิมพ์ด้วยชุดดันเส้นหลายเครื่องที่มีเส้นผ่านศูนย์กลางหัวฉีดต่างกัน หากจะพิมพ์ส่วนรองรับด้วยฟิลาเมนต์ปัจจุบัน (support_filament == 0 หรือ support_interface_filament == 0) หัวฉีดทั้งหมดจะต้องมีเส้นผ่านศูนย์กลางเท่ากัน"
 
 #, fuzzy
-#| msgid "The prime tower requires that support has the same layer height with object."
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "หอคอยหลักต้องการให้ส่วนรองรับมีความสูงของชั้นเดียวกันกับวัตถุ"
 
@@ -11376,7 +11089,6 @@ msgid "Support enforcers are used but support is not enabled. Please enable supp
 msgstr "มีการใช้กำหนดส่วนรองรับ แต่ไม่ได้เปิดใช้งานส่วนรองรับ กรุณาเปิดใช้งานส่วนรองรับ"
 
 #, fuzzy
-#| msgid "Layer height cannot exceed nozzle diameter."
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "ความสูงของชั้นต้องไม่เกินเส้นผ่านศูนย์กลางหัวฉีด"
 
@@ -11457,7 +11169,6 @@ msgid "Generating G-code"
 msgstr "กำลังสร้าง G-code"
 
 #, fuzzy
-#| msgid "Failed processing of the filename_format template."
 msgid "Processing of the filename_format template failed."
 msgstr "การประมวลผลเทมเพลต filename_format ล้มเหลว"
 
@@ -11489,7 +11200,6 @@ msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 app
 msgstr ""
 
 #, fuzzy
-#| msgid "Bed exclude area"
 msgid "Excluded bed area"
 msgstr "ฐานพิมพ์ไม่รวมพื้นที่"
 
@@ -11506,7 +11216,6 @@ msgid "Elephant foot compensation"
 msgstr "การชดเชยอาการฐานบาน"
 
 #, fuzzy
-#| msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "ย่อชั้นแรกบนฐานรองพิมพ์เพื่อชดเชยผลกระทบจากรอยอาการฐานบาน"
 
@@ -11529,7 +11238,6 @@ msgstr ""
 "เลเยอร์ต่อมาจะมีความหนาแน่นเชิงเส้นมากขึ้นตามความสูงที่ระบุใน elefant_foot_compensation_layers"
 
 #, fuzzy
-#| msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "ความสูงของการตัดแต่ละชั้น ความสูงของชั้นที่เล็กลงหมายถึงความแม่นยำและเวลาในการพิมพ์ที่มากขึ้น"
 
@@ -11537,7 +11245,6 @@ msgid "Printable height"
 msgstr "ความสูงที่สามารถพิมพ์ได้"
 
 #, fuzzy
-#| msgid "Maximum printable height which is limited by mechanism of printer."
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "ความสูงสูงสุดที่สามารถพิมพ์ได้ซึ่งถูกจำกัดโดยกลไกของเครื่องพิมพ์"
 
@@ -11617,7 +11324,6 @@ msgid "Ignore HTTPS certificate revocation checks"
 msgstr "ละเว้นการตรวจสอบการเพิกถอนใบรับรอง HTTPS"
 
 #, fuzzy
-#| msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "ละเว้นการตรวจสอบการเพิกถอนใบรับรอง HTTPS ในกรณีที่จุดแจกจ่ายหายไปหรือออฟไลน์ อาจต้องการเปิดใช้งานตัวเลือกนี้สำหรับใบรับรองที่ลงนามด้วยตนเองหากการเชื่อมต่อล้มเหลว"
 
@@ -11637,7 +11343,6 @@ msgid "Avoid crossing walls"
 msgstr "หลีกเลี่ยงการข้ามผนัง"
 
 #, fuzzy
-#| msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "ทางอ้อมเพื่อหลีกเลี่ยงการเดินทางข้ามผนัง ซึ่งอาจทำให้เกิดหยดบนพื้นผิว"
 
@@ -11645,7 +11350,6 @@ msgid "Avoid crossing walls - Max detour length"
 msgstr "หลีกเลี่ยงการข้ามผนัง - ความยาวทางเบี่ยงสูงสุด"
 
 #, fuzzy
-#| msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "ระยะทางเบี่ยงสูงสุดเพื่อหลีกเลี่ยงการข้ามผนัง อย่าอ้อมหากระยะทางเบี่ยงมากกว่าค่านี้ ความยาวทางเบี่ยงสามารถระบุเป็นค่าสัมบูรณ์หรือเป็นเปอร์เซ็นต์ (เช่น 50%) ของเส้นทางการเดินทางโดยตรง ศูนย์ที่จะปิดการใช้งาน"
 
@@ -11659,72 +11363,58 @@ msgid "Bed temperature for layers except the initial one. A value of 0 means the
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate SuperTack"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Textured Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Engineering Plate"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนแผ่นอุณหภูมิสูง"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนเพลต PEI ที่มีพื้นผิว"
 
 #, fuzzy
-#| msgid "First layer"
 msgid "First layer"
 msgstr "ชั้นแรก"
 
 #, fuzzy
-#| msgid "First layer bed temperature"
 msgid "First layer bed temperature"
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate SuperTack"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Textured Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Engineering Plate"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนแผ่นอุณหภูมิสูง"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "อุณหภูมิฐานพิมพ์ชั้นแรก ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บนเพลต PEI ที่มีพื้นผิว"
 
 #, fuzzy
-#| msgid "Bed types supported by the printer."
 msgid "Plate types supported by the printer"
 msgstr "ประเภทฐานพิมพ์ที่เครื่องพิมพ์รองรับ"
 
@@ -11759,7 +11449,6 @@ msgid "Bottom shell thickness"
 msgstr "ความหนาผนังด้านล่าง"
 
 #, fuzzy
-#| msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "จำนวนชั้นทึบด้านล่างจะเพิ่มขึ้นเมื่อสไลซ์หากความหนาที่คำนวณโดยชั้นเปลือกด้านล่างบางกว่าค่านี้ วิธีนี้สามารถหลีกเลี่ยงไม่ให้เปลือกบางเกินไปเมื่อชั้นมีความสูงน้อย 0 หมายความว่าการตั้งค่านี้ถูกปิดใช้งาน และความหนาของเปลือกด้านล่างจะถูกกำหนดโดยชั้นเปลือกด้านล่างอย่างแน่นอน"
 
@@ -12167,12 +11856,10 @@ msgstr ""
 "เมื่อไม่ได้เปิดใช้งาน Detect ส่วนยื่น wall ตัวเลือกนี้จะถูกละเว้นและการกลับรายการจะเกิดขึ้นในทุกเลเยอร์คู่โดยไม่คำนึงถึง"
 
 #, fuzzy
-#| msgid "Slow down for overhang"
 msgid "Slow down for overhangs"
 msgstr "ลดความเร็วสำหรับส่วนยื่น"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing down for different overhang degree."
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "เปิดใช้งานตัวเลือกนี้เพื่อทำให้การพิมพ์ช้าลงสำหรับระดับระยะยื่นที่แตกต่างกัน"
 
@@ -12219,7 +11906,6 @@ msgid "Brim width"
 msgstr "ความกว้าง ขอบยึดชิ้นงาน"
 
 #, fuzzy
-#| msgid "Distance from model to the outermost brim line."
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "ระยะห่างจากแบบจำลองถึงเส้นขอบยึดชิ้นงานด้านนอกสุด"
 
@@ -12233,7 +11919,6 @@ msgid "Brim-object gap"
 msgstr "ช่องว่าง ขอบยึดชิ้นงาน กับชิ้นงาน"
 
 #, fuzzy
-#| msgid "A gap between innermost brim line and object can make brim be removed more easily."
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "ช่องว่างระหว่างเส้นขอบยึดชิ้นงานด้านในสุดกับวัตถุสามารถทำให้ขอบยึดชิ้นงานหลุดออกได้ง่ายขึ้น"
 
@@ -12254,16 +11939,10 @@ msgstr ""
 "หมายเหตุ: ค่าผลลัพธ์จะไม่ได้รับผลกระทบจากอัตราส่วนการไหลของชั้นแรก"
 
 #, fuzzy
-#| msgid "Brim follows compensated outline"
 msgid "Brim follows compensated outline"
 msgstr "ขอบยึดชิ้นงาน ปฏิบัติตามโครงร่างที่ได้รับการชดเชย"
 
 #, fuzzy
-#| msgid ""
-#| "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
-#| "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
-#| "\n"
-#| "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12319,7 +11998,6 @@ msgid "Condition"
 msgstr "เงื่อนไข"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "นิพจน์บูลีนที่ใช้ค่าการกำหนดค่าของโปรไฟล์เครื่องพิมพ์ที่ใช้งานอยู่ หากนิพจน์นี้ประเมินว่าเป็นจริง โปรไฟล์นี้จะถือว่าเข้ากันได้กับโปรไฟล์เครื่องพิมพ์ที่ใช้งานอยู่"
 
@@ -12327,12 +12005,10 @@ msgid "Select profiles"
 msgstr "โปรไฟล์เลือก"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "นิพจน์บูลีนที่ใช้ค่าการกำหนดค่าของโปรไฟล์การพิมพ์ที่ใช้งานอยู่ หากนิพจน์นี้ประเมินว่าเป็นจริง โปรไฟล์นี้จะถือว่าเข้ากันได้กับโปรไฟล์การพิมพ์ที่ใช้งานอยู่"
 
 #, fuzzy
-#| msgid "Print sequence, layer by layer or object by object."
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "ลำดับการพิมพ์ ทีละชั้น หรือวัตถุต่อวัตถุ"
 
@@ -12355,7 +12031,6 @@ msgid "Slow printing down for better layer cooling"
 msgstr "ชะลอการพิมพ์ลงเพื่อการระบายความร้อนที่ดีขึ้น"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "เปิดใช้งานตัวเลือกนี้เพื่อลดความเร็วในการพิมพ์ลงเพื่อทำให้เวลาเลเยอร์สุดท้ายไม่สั้นกว่าเกณฑ์เวลาของเลเยอร์ใน \"ขีดจำกัดความเร็วพัดลมสูงสุด\" เพื่อให้เลเยอร์นั้นเย็นลงได้นานขึ้น สิ่งนี้สามารถปรับปรุงคุณภาพการระบายความร้อนสำหรับเข็มและรายละเอียดเล็กๆ ได้"
 
@@ -12363,7 +12038,6 @@ msgid "Normal printing"
 msgstr "การพิมพ์ปกติ"
 
 #, fuzzy
-#| msgid "The default acceleration of both normal printing and travel except initial layer."
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "การเร่งความเร็วเริ่มต้นของทั้งการพิมพ์และการเคลื่อนที่ตามปกติ ยกเว้นเลเยอร์เริ่มต้น"
 
@@ -12410,7 +12084,6 @@ msgid "Don't support bridges"
 msgstr "ไม่ส่วนรองรับสะพาน"
 
 #, fuzzy
-#| msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "ไม่รองรับพื้นที่สะพานทั้งหมดซึ่งทำให้รองรับได้มาก โดยปกติแล้วบริดจ์สามารถพิมพ์ได้โดยตรงโดยไม่ต้องรองรับหากไม่นานมาก"
 
@@ -12499,7 +12172,6 @@ msgid "Max bridge length"
 msgstr "ความยาวสะพานสูงสุด"
 
 #, fuzzy
-#| msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "ความยาวสูงสุดของสะพานที่ไม่ต้องการการรองรับ ตั้งค่าเป็น 0 หากคุณต้องการให้บริดจ์ทั้งหมดได้รับส่วนรองรับ และตั้งค่าเป็นค่าที่สูงมากหากคุณไม่ต้องการให้บริดจ์ใดๆ ได้รับการรองรับ"
 
@@ -12507,7 +12179,6 @@ msgid "End G-code"
 msgstr "จบ G-code"
 
 #, fuzzy
-#| msgid "End G-code when finishing the entire print."
 msgid "Add end G-Code when finishing the entire print."
 msgstr "สิ้นสุด G-code เมื่อพิมพ์เสร็จทั้งหมด"
 
@@ -12518,7 +12189,6 @@ msgid "Insert G-code between objects. This parameter will only come into effect 
 msgstr "แทรกรหัส G ระหว่างวัตถุ พารามิเตอร์นี้จะมีผลเมื่อคุณพิมพ์โมเดลของคุณทีละวัตถุเท่านั้น"
 
 #, fuzzy
-#| msgid "End G-code when finishing the printing of this filament."
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "สิ้นสุด G-code เมื่อเสร็จสิ้นการพิมพ์เส้นพลาสติกนี้"
 
@@ -12550,7 +12220,6 @@ msgid "Top surface pattern"
 msgstr "รูปแบบผิวด้านบน"
 
 #, fuzzy
-#| msgid "Line pattern of top surface infill."
 msgid "This is the line pattern for top surface infill."
 msgstr "ลายเส้นของไส้ในพื้นผิวด้านบน"
 
@@ -12582,7 +12251,6 @@ msgid "Bottom surface pattern"
 msgstr "รูปแบบผิวด้านล่าง"
 
 #, fuzzy
-#| msgid "Line pattern of bottom surface infill, not bridge infill."
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "รูปแบบเส้นของไส้ในพื้นผิวด้านล่าง ไม่ใช่ไส้ในแบบบริดจ์"
 
@@ -12596,7 +12264,6 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "ความกว้างของเส้นของผนังด้านนอก หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "ความเร็วของผนังด้านนอกซึ่งอยู่ด้านนอกสุดและมองเห็นได้ เคยช้ากว่าความเร็วผนังด้านในเพื่อให้ได้คุณภาพที่ดีขึ้น"
 
@@ -12677,7 +12344,6 @@ msgid "Height to rod"
 msgstr "ความสูงถึงก้าน"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "ระยะห่างของปลายหัวฉีดถึงแกนล่าง ใช้สำหรับการหลีกเลี่ยงการชนกันในการพิมพ์ตามวัตถุ"
 
@@ -12685,12 +12351,10 @@ msgid "Height to lid"
 msgstr "ความสูงถึงฝา"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "ระยะห่างของปลายหัวฉีดถึงฝา ใช้สำหรับการหลีกเลี่ยงการชนกันในการพิมพ์ตามวัตถุ"
 
 #, fuzzy
-#| msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "รัศมีระยะปลอดภัยรอบชุดดันเส้น ใช้สำหรับการหลีกเลี่ยงการชนกันในการพิมพ์ตามวัตถุ"
 
@@ -12827,7 +12491,6 @@ msgid "Keep fan always on"
 msgstr "เปิดพัดลมไว้ตลอดเวลา"
 
 #, fuzzy
-#| msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "การเปิดใช้งานการตั้งค่านี้หมายความว่าพัดลมระบายความร้อนของชิ้นส่วนจะไม่หยุดทำงานโดยสิ้นเชิง และจะทำงานที่ความเร็วขั้นต่ำเป็นอย่างน้อยเพื่อลดความถี่ในการสตาร์ทและหยุด"
 
@@ -12849,7 +12512,6 @@ msgid "Layer time"
 msgstr "เวลาเลเยอร์"
 
 #, fuzzy
-#| msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "พัดลมระบายความร้อนบางส่วนจะถูกเปิดใช้งานสำหรับเลเยอร์ที่เวลาโดยประมาณสั้นกว่าค่านี้ ความเร็วพัดลมจะถูกประมาณค่าระหว่างความเร็วพัดลมขั้นต่ำและสูงสุดตามเวลาการพิมพ์เลเยอร์"
 
@@ -12876,7 +12538,6 @@ msgid "Required nozzle HRC"
 msgstr "หัวฉีด HRC ที่จำเป็น"
 
 #, fuzzy
-#| msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "HRC ขั้นต่ำของหัวฉีดที่จำเป็นสำหรับการพิมพ์เส้นพลาสติก ศูนย์หมายถึงไม่มีการตรวจสอบ HRC ของหัวฉีด"
 
@@ -12917,7 +12578,6 @@ msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric s
 msgstr "ความเร็วตามปริมาตรเมื่อทำการล้างเส้นพลาสติก 0 หมายถึงความเร็วปริมาตรสูงสุด"
 
 #, fuzzy
-#| msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "การตั้งค่านี้หมายถึงปริมาณเส้นพลาสติกที่สามารถหลอมและอัดขึ้นรูปต่อวินาทีได้ ความเร็วในการพิมพ์จะถูกจำกัดด้วยความเร็วปริมาตรสูงสุด ในกรณีที่ตั้งค่าความเร็วไว้สูงเกินไปและไม่เหมาะสม ไม่สามารถเป็นศูนย์ได้"
 
@@ -12952,7 +12612,6 @@ msgid "By Highest Temp"
 msgstr "โดยอุณหภูมิสูงสุด"
 
 #, fuzzy
-#| msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "เส้นผ่านศูนย์กลางของฟิลาเมนต์ใช้ในการคำนวณการอัดขึ้นรูปใน G-code ดังนั้นจึงมีความสำคัญและควรมีความแม่นยำ"
 
@@ -13027,7 +12686,6 @@ msgid "Unloading speed"
 msgstr "ความเร็วในการขนถ่าย"
 
 #, fuzzy
-#| msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "ความเร็วที่ใช้ในการขนถ่ายเส้นพลาสติกบนไวด์ทาวเวอร์ (ไม่ส่งผลต่อส่วนเริ่มแรกของการขนถ่ายหลังจากการชน)"
 
@@ -13146,7 +12804,6 @@ msgid "Density"
 msgstr "ความหนาแน่น"
 
 #, fuzzy
-#| msgid "Filament density. For statistics only."
 msgid "Filament density, for statistical purposes only."
 msgstr "ความหนาแน่นของเส้นพลาสติก สำหรับสถิติเท่านั้น"
 
@@ -13154,7 +12811,6 @@ msgid "g/cm³"
 msgstr "กรัม/ซม.³"
 
 #, fuzzy
-#| msgid "The material type of filament."
 msgid "Filament material type"
 msgstr "ประเภทวัสดุของเส้นพลาสติก"
 
@@ -13186,7 +12842,6 @@ msgid "Softening temperature"
 msgstr "อุณหภูมิอ่อนลง"
 
 #, fuzzy
-#| msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "วัสดุจะอ่อนตัวลงที่อุณหภูมินี้ ดังนั้นเมื่ออุณหภูมิฐานพิมพ์เท่ากับหรือมากกว่านี้ ขอแนะนำอย่างยิ่งให้เปิดประตูหน้าและ/หรือถอดกระจกด้านบนออกเพื่อหลีกเลี่ยงการอุดตัน"
 
@@ -13194,7 +12849,6 @@ msgid "Price"
 msgstr "ราคา"
 
 #, fuzzy
-#| msgid "Filament price. For statistics only."
 msgid "Filament price, for statistical purposes only."
 msgstr "ราคาเส้นพลาสติก. สำหรับสถิติเท่านั้น"
 
@@ -13214,7 +12868,6 @@ msgid "Sparse infill direction"
 msgstr "ทิศทางไส้ในแบบโปร่ง"
 
 #, fuzzy
-#| msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "มุมสำหรับรูปแบบไส้ในแบบกระจาย ซึ่งควบคุมจุดเริ่มต้นหรือทิศทางหลักของเส้น"
 
@@ -13262,7 +12915,6 @@ msgid "Sparse infill pattern"
 msgstr "รูปแบบไส้ในแบบโปร่ง"
 
 #, fuzzy
-#| msgid "Line pattern for internal sparse infill."
 msgid "This is the line pattern for internal sparse infill."
 msgstr "รูปแบบเส้นสำหรับไส้ในแบบกระจัดกระจายภายใน"
 
@@ -13397,12 +13049,10 @@ msgid "Acceleration of travel moves."
 msgstr "การเร่งความเร็วของการเดินทาง"
 
 #, fuzzy
-#| msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "ความเร่งของไส้ในพื้นผิวด้านบน การใช้ค่าที่ต่ำกว่าอาจปรับปรุงคุณภาพพื้นผิวด้านบนได้"
 
 #, fuzzy
-#| msgid "Acceleration of outer wall. Using a lower value can improve quality."
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "ความเร่งของผนังด้านนอก การใช้ค่าที่ต่ำกว่าสามารถปรับปรุงคุณภาพได้"
 
@@ -13419,7 +13069,6 @@ msgid "Acceleration of internal solid infill. If the value is expressed as a per
 msgstr "ความเร่งของไส้ในของแข็งภายใน หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 100%) ค่านั้นจะถูกคำนวณตามความเร่งเริ่มต้น"
 
 #, fuzzy
-#| msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "ความเร่งของชั้นแรก การใช้ค่าที่ต่ำกว่าสามารถปรับปรุงการยึดเกาะของเพลตได้"
 
@@ -13481,27 +13130,22 @@ msgid "Line width of the first layer. If expressed as a %, it will be computed o
 msgstr "ความกว้างของเส้นของชั้นแรก หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "First layer height"
 msgid "First layer height"
 msgstr "ความสูงของชั้นแรก"
 
 #, fuzzy
-#| msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "ความสูงของชั้นแรก การทำให้ชั้นแรกหนาขึ้นสามารถปรับปรุงการยึดเกาะของแผ่นรองพื้นได้"
 
 #, fuzzy
-#| msgid "Speed of the first layer except the solid infill part."
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "ความเร็วของชั้นแรก ยกเว้นส่วน ไส้ใน ที่เป็นของแข็ง"
 
 #, fuzzy
-#| msgid "First layer infill"
 msgid "First layer infill"
 msgstr "ไส้ในชั้นแรก"
 
 #, fuzzy
-#| msgid "Speed of solid infill part of the first layer."
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "ความเร็วของส่วน ไส้ใน ที่เป็นของแข็งของชั้นแรก"
 
@@ -13512,7 +13156,6 @@ msgid "Travel speed of the first layer."
 msgstr "ความเร็วเดินหัวเปล่าของเลเยอร์แรก"
 
 #, fuzzy
-#| msgid "Number of slow layers"
 msgid "This is the number of top interface layers."
 msgstr "จำนวนชั้นที่ช้า"
 
@@ -13520,12 +13163,10 @@ msgid "The first few layers are printed slower than normal. The speed is gradual
 msgstr "สองสามชั้นแรกจะพิมพ์ช้ากว่าปกติ ความเร็วจะค่อยๆ เพิ่มขึ้นในลักษณะเชิงเส้นตามจำนวนเลเยอร์ที่ระบุ"
 
 #, fuzzy
-#| msgid "First layer nozzle temperature"
 msgid "First layer nozzle temperature"
 msgstr "อุณหภูมิหัวฉีดชั้นแรก"
 
 #, fuzzy
-#| msgid "Nozzle temperature for printing the first layer when using this filament."
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "อุณหภูมิหัวฉีดสำหรับการพิมพ์ชั้นแรกเมื่อใช้ฟิลาเมนต์นี้"
 
@@ -13597,7 +13238,6 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "การแทนที่เส้นพลาสติกเฉพาะเพื่อความเร็วในการรีดผิว ซึ่งช่วยให้คุณปรับแต่งความเร็วในการพิมพ์ของเส้นรีดผิวสำหรับเส้นพลาสติกแต่ละประเภทได้"
 
 #, fuzzy
-#| msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "สุ่มกระวนกระวายใจขณะพิมพ์ผนังเพื่อให้พื้นผิวดูหยาบกร้าน การตั้งค่านี้ควบคุมตำแหน่งที่ไม่ชัดเจน"
 
@@ -13620,7 +13260,6 @@ msgid "Fuzzy skin thickness"
 msgstr "ความหนาผิวฟัซซี"
 
 #, fuzzy
-#| msgid "The width within which to jitter. It's advised to be below outer wall line width."
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "ความกว้างภายในที่จะกระวนกระวายใจ แนะนำให้อยู่ต่ำกว่าความกว้างของเส้นผนังด้านนอก"
 
@@ -13768,7 +13407,6 @@ msgid "Don't print gap fill with a length is smaller than the threshold specifie
 msgstr "อย่าพิมพ์การเติมช่องว่างโดยมีความยาวน้อยกว่าเกณฑ์ที่ระบุ (เป็นมม.) การตั้งค่านี้ใช้กับการเติมช่องว่างด้านบน ด้านล่าง และทึบ และหากใช้เครื่องกำเนิดเส้นรอบวงแบบคลาสสิก ก็สามารถทำการเติมช่องว่างที่ผนังได้"
 
 #, fuzzy
-#| msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "ความเร็วของการเติมช่องว่าง Gap มักจะมีความกว้างของเส้นไม่สม่ำเสมอ และควรพิมพ์ให้ช้าลง"
 
@@ -13800,7 +13438,6 @@ msgid "Scan first layer"
 msgstr "สแกนชั้นแรก"
 
 #, fuzzy
-#| msgid "Enable this to enable the camera on printer to check the quality of first layer."
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "เปิดใช้งานสิ่งนี้เพื่อให้กล้องบนเครื่องพิมพ์สามารถตรวจสอบคุณภาพของเลเยอร์แรกได้"
 
@@ -13817,7 +13454,6 @@ msgid "Nozzle type"
 msgstr "ชนิดหัวฉีด"
 
 #, fuzzy
-#| msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "วัสดุโลหะของหัวฉีด สิ่งนี้จะกำหนดความต้านทานต่อการขัดถูของหัวฉีด และชนิดของฟิลาเมนท์ที่สามารถพิมพ์ได้"
 
@@ -13834,7 +13470,6 @@ msgid "Nozzle HRC"
 msgstr "หัวฉีด HRC"
 
 #, fuzzy
-#| msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "ความแข็งของหัวฉีด ค่าศูนย์หมายถึงไม่ต้องตรวจสอบความแข็งของหัวฉีดระหว่างการตัด"
 
@@ -13922,7 +13557,6 @@ msgid "money/h"
 msgstr "เงิน/ชม."
 
 #, fuzzy
-#| msgid "Support control chamber temperature"
 msgid "Support controlling chamber temperature"
 msgstr "รองรับการควบคุมอุณหภูมิห้องควบคุม"
 
@@ -13986,7 +13620,6 @@ msgid "Infill combination"
 msgstr "ไส้ในชุดค่าผสม"
 
 #, fuzzy
-#| msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "รวมไส้ในแบบโปร่งของหลายชั้นโดยอัตโนมัติเพื่อพิมพ์เข้าด้วยกันเพื่อลดเวลา ผนังยังคงพิมพ์ด้วยความสูงชั้นเดิม"
 
@@ -14094,12 +13727,10 @@ msgid "Line width of internal sparse infill. If expressed as a %, it will be com
 msgstr "ความกว้างของเส้นของไส้ในแบบกระจัดกระจายภายใน หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "Infill/Wall overlap"
 msgid "Infill/wall overlap"
 msgstr "ไส้ในซ้อนทับผนัง"
 
-#, fuzzy, no-boost-format, no-c-format
-#| msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+#, fuzzy, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "พื้นที่ไส้ในจะขยายใหญ่ขึ้นเล็กน้อยเพื่อให้ทับซ้อนกับผนังเพื่อการยึดเกาะที่ดีขึ้น ค่าเปอร์เซ็นต์สัมพันธ์กับความกว้างของเส้นของไส้ในแบบกระจัดกระจาย ตั้งค่านี้เป็น ~10-15% เพื่อลดโอกาสเกิดการอัดขึ้นรูปและการสะสมของวัสดุ ส่งผลให้พื้นผิวด้านบนขรุขระ"
 
@@ -14111,7 +13742,6 @@ msgid "Top solid infill area is enlarged slightly to overlap with wall for bette
 msgstr "พื้นที่ไส้ในของแข็งด้านบนจะถูกขยายให้ใหญ่ขึ้นเล็กน้อยเพื่อให้ทับซ้อนกับผนังเพื่อการยึดเกาะที่ดีขึ้น และเพื่อลดการเกิดรูเข็มที่ซึ่งอินฟิลด้านบนบรรจบกับผนัง ค่า 25-30% ถือเป็นจุดเริ่มต้นที่ดี โดยช่วยลดการเกิดรูเข็มให้เหลือน้อยที่สุด ค่าเปอร์เซ็นต์สัมพันธ์กับความกว้างของเส้นของไส้ในแบบกระจัดกระจาย"
 
 #, fuzzy
-#| msgid "Speed of internal sparse infill."
 msgid "This is the speed for internal sparse infill."
 msgstr "ความเร็วของ ไส้ใน เบาบางภายใน"
 
@@ -14131,7 +13761,6 @@ msgid "Maximum width of a segmented region"
 msgstr "ความกว้างสูงสุดของขอบเขตที่แบ่งส่วน"
 
 #, fuzzy
-#| msgid "Maximum width of a segmented region. Zero disables this feature."
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "ความกว้างสูงสุดของขอบเขตที่แบ่งส่วน ศูนย์ปิดใช้งานคุณลักษณะนี้"
 
@@ -14178,12 +13807,10 @@ msgid "The distance from the outside of a model where interlocking structures wi
 msgstr "ระยะห่างจากด้านนอกของแบบจำลองซึ่งจะไม่สร้างโครงสร้างที่เชื่อมต่อกัน โดยวัดเป็นเซลล์"
 
 #, fuzzy
-#| msgid "Ironing Type"
 msgid "Ironing type"
 msgstr "ชนิดการรีดผิว"
 
 #, fuzzy
-#| msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "การรีดผิวคือการใช้การไหลเล็กน้อยเพื่อพิมพ์บนพื้นผิวที่มีความสูงเท่ากันอีกครั้งเพื่อให้พื้นผิวเรียบเรียบยิ่งขึ้น การตั้งค่านี้ควบคุมว่าชั้นใดที่จะรีด"
 
@@ -14191,12 +13818,10 @@ msgid "No ironing"
 msgstr "ไม่รีดผิว"
 
 #, fuzzy
-#| msgid "Top surfaces"
 msgid "All top surfaces"
 msgstr "ผิวด้านบน"
 
 #, fuzzy
-#| msgid "Topmost surface"
 msgid "Topmost surface only"
 msgstr "ผิวบนสุด"
 
@@ -14210,12 +13835,10 @@ msgid "The pattern that will be used when ironing."
 msgstr "รูปแบบที่จะใช้ในการรีด"
 
 #, fuzzy
-#| msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "ปริมาณวัสดุที่จะพ่นออกมาระหว่างรีดผิว สัมพันธ์กับการไหลของความสูงของชั้นปกติ ค่าที่สูงเกินไปส่งผลให้เกิดการอัดขึ้นรูปมากเกินไปบนพื้นผิว"
 
 #, fuzzy
-#| msgid "The distance between the lines of ironing."
 msgid "This is the distance between the lines used for ironing."
 msgstr "ระยะห่างระหว่างเส้นรีดผิว"
 
@@ -14223,7 +13846,6 @@ msgid "The distance to keep from the edges. A value of 0 sets this to half of th
 msgstr "ระยะห่างที่ต้องเก็บจากขอบ ค่า 0 ตั้งค่านี้เป็นครึ่งหนึ่งของเส้นผ่านศูนย์กลางหัวฉีด"
 
 #, fuzzy
-#| msgid "Print speed of ironing lines."
 msgid "This is the print speed for ironing lines."
 msgstr "ความเร็วในการพิมพ์รีดผิว"
 
@@ -14287,12 +13909,10 @@ msgid "Clumping detection G-code"
 msgstr "G-code การตรวจจับการจับตัวเป็นก้อน"
 
 #, fuzzy
-#| msgid "Supports silent mode"
 msgid "Silent Mode"
 msgstr "รองรับโหมดเงียบ"
 
 #, fuzzy
-#| msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "เครื่องรองรับโหมดเงียบซึ่งเครื่องใช้ความเร่งในการพิมพ์ต่ำกว่าหรือไม่"
 
@@ -14563,7 +14183,6 @@ msgstr ""
 "หากต้องการปิดใช้งานการสร้างอินพุต ให้ใช้ประเภทปิดใช้งาน"
 
 #, fuzzy
-#| msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "ความเร็วพัดลมระบายความร้อนบางส่วนอาจเพิ่มขึ้นเมื่อเปิดใช้งานการระบายความร้อนอัตโนมัติ นี่คือความเร็วสูงสุดสำหรับพัดลมระบายความร้อนของชิ้นส่วน"
 
@@ -14681,7 +14300,6 @@ msgid "Nozzle volume"
 msgstr "ปริมาณหัวฉีด"
 
 #, fuzzy
-#| msgid "Volume of nozzle between the cutter and the end of nozzle."
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "ปริมาตรของหัวฉีดระหว่างเครื่องตัดกับปลายหัวฉีด"
 
@@ -14719,7 +14337,6 @@ msgid "Start end points"
 msgstr "เริ่มต้นจุดสิ้นสุด"
 
 #, fuzzy
-#| msgid "The start and end points which is from cutter area to garbage can."
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "จุดเริ่มต้นและจุดสิ้นสุดตั้งแต่บริเวณเครื่องตัดถึงถังขยะ"
 
@@ -14727,7 +14344,6 @@ msgid "Reduce infill retraction"
 msgstr "ลดการหดตัวของ ไส้ใน"
 
 #, fuzzy
-#| msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
 
@@ -14738,7 +14354,6 @@ msgid "Filename format"
 msgstr "รูปแบบชื่อไฟล์"
 
 #, fuzzy
-#| msgid "Users can define the project file name when exporting."
 msgid "Users can decide project file names when exporting."
 msgstr "ผู้ใช้สามารถกำหนดชื่อไฟล์โครงการเมื่อส่งออก"
 
@@ -14763,8 +14378,7 @@ msgstr "พื้นที่สูงสุดของรูที่ฐาน
 msgid "Detect overhang walls"
 msgstr "ตรวจจับผนังส่วนยื่น"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+#, fuzzy, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "ตรวจจับเปอร์เซ็นต์ระยะยื่นที่สัมพันธ์กับความกว้างของเส้น และใช้ความเร็วที่แตกต่างกันในการพิมพ์ สำหรับระยะยื่น 100%% จะใช้ความเร็วบริดจ์"
 
@@ -14788,12 +14402,10 @@ msgid "Line width of inner wall. If expressed as a %, it will be computed over t
 msgstr "ความกว้างของเส้นของผนังด้านใน หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "Speed of inner wall."
 msgid "This is the speed for inner walls."
 msgstr "ความเร็วของผนังด้านใน"
 
 #, fuzzy
-#| msgid "Number of walls of every layer."
 msgid "This is the number of walls per layer."
 msgstr "จำนวนผนังทุกชั้น"
 
@@ -14841,7 +14453,6 @@ msgid "Raft contact Z distance"
 msgstr "ระยะสัมผัสฐานรองชิ้นงาน Z"
 
 #, fuzzy
-#| msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "ช่องว่าง Z ระหว่างฐานรองชิ้นงานกับวัตถุ หากระยะ Z สูงสุดที่รองรับคือ 0 ค่านี้จะถูกละเว้น และวัตถุจะถูกพิมพ์โดยสัมผัสโดยตรงกับฐานรองชิ้นงาน (ไม่มีช่องว่าง)"
 
@@ -14849,27 +14460,22 @@ msgid "Raft expansion"
 msgstr "การขยาย ฐานรองชิ้นงาน"
 
 #, fuzzy
-#| msgid "Expand all raft layers in XY plane."
 msgid "This expands all raft layers in XY plane."
 msgstr "ขยายชั้นฐานรองชิ้นงานทั้งหมดในระนาบ XY"
 
 #, fuzzy
-#| msgid "First layer density"
 msgid "First layer density"
 msgstr "ความหนาแน่นของชั้นแรก"
 
 #, fuzzy
-#| msgid "Density of the first raft or support layer."
 msgid "This is the density of the first raft or support layer."
 msgstr "ความหนาแน่นของฐานรองชิ้นงานแรกหรือชั้นรองรับ"
 
 #, fuzzy
-#| msgid "First layer expansion"
 msgid "First layer expansion"
 msgstr "การขยายชั้นแรก"
 
 #, fuzzy
-#| msgid "Expand the first raft or support layer to improve bed plate adhesion."
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "ขยายฐานรองชิ้นงานหรือชั้นรองรับชั้นแรกเพื่อปรับปรุงการยึดเกาะของแผ่นฐานพิมพ์"
 
@@ -14880,7 +14486,6 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "วัตถุจะถูกยกขึ้นตามจำนวนชั้นรองรับนี้ ใช้ฟังก์ชันนี้เพื่อหลีกเลี่ยงการบิดงอเมื่อพิมพ์ ABS"
 
 #, fuzzy
-#| msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "เส้นทาง G-code ถูกสร้างขึ้นหลังจากลดความซับซ้อนของรูปร่างของโมเดล เพื่อหลีกเลี่ยงจุดและเส้น G-code ที่มากเกินไป ค่าที่น้อยลงหมายถึงความละเอียดสูงขึ้นและมีเวลามากขึ้นในการตัด"
 
@@ -14894,17 +14499,14 @@ msgid "Retract amount before wipe"
 msgstr "ถอนจำนวนก่อนเช็ด"
 
 #, fuzzy
-#| msgid "The length of fast retraction before wipe, relative to retraction length."
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "ความยาวของการดึงกลับอย่างรวดเร็วก่อนเช็ด สัมพันธ์กับความยาวการดึงกลับ"
 
 #, fuzzy
-#| msgid "Retract when change layer"
 msgid "Retract on layer change"
 msgstr "ถอนออกเมื่อเปลี่ยนเลเยอร์"
 
 #, fuzzy
-#| msgid "Force a retraction when changes layer."
 msgid "This forces a retraction on layer changes."
 msgstr "บังคับให้ถอนกลับเมื่อเปลี่ยนเลเยอร์"
 
@@ -14915,7 +14517,6 @@ msgid "Some amount of material in extruder is pulled back to avoid ooze during l
 msgstr "วัสดุบางส่วนในชุดดันเส้นถูกดึงกลับเพื่อหลีกเลี่ยงไม่ให้ซึ่มในระหว่างการเดินทางระยะไกล ตั้งค่าเป็นศูนย์เพื่อปิดใช้งานการเพิกถอน"
 
 #, fuzzy
-#| msgid "Long retraction when cut (beta)"
 msgid "Long retraction when cut (beta)"
 msgstr "การถอยกลับยาวเมื่อตัด (เบต้า)"
 
@@ -14938,7 +14539,6 @@ msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
 
 #, fuzzy
-#| msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "เมื่อใดก็ตามที่การดึงกลับเสร็จสิ้น หัวฉีดจะถูกยกขึ้นเล็กน้อยเพื่อสร้างระยะห่างระหว่างหัวฉีดและงานพิมพ์ ป้องกันไม่ให้หัวฉีดชนกับงานพิมพ์ขณะเคลื่อนตัว การใช้เส้นเกลียวเพื่อยก Z สามารถป้องกันการร้อยสายได้"
 
@@ -15018,7 +14618,6 @@ msgid "When the retraction is compensated after changing tool, the extruder will
 msgstr "เมื่อการดึงกลับได้รับการชดเชยหลังจากเปลี่ยนเครื่องมือ ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มไส้ในจำนวนนี้"
 
 #, fuzzy
-#| msgid "Retraction Speed"
 msgid "Retraction speed"
 msgstr "ความเร็วดึงกลับ"
 
@@ -15026,7 +14625,6 @@ msgid "Speed for retracting filament from the nozzle."
 msgstr "ความเร็วในการดึงเส้นพลาสติกออกจากหัวฉีด"
 
 #, fuzzy
-#| msgid "De-retraction Speed"
 msgid "Deretraction speed"
 msgstr "ความเร็วในการถอนกลับ"
 
@@ -15052,7 +14650,6 @@ msgid "Seam position"
 msgstr "ตำแหน่งรอยตะเข็บ"
 
 #, fuzzy
-#| msgid "The start position to print each part of outer wall."
 msgid "This is the starting position for each part of the outer wall."
 msgstr "ตำแหน่งเริ่มต้นในการพิมพ์แต่ละส่วนของผนังด้านนอก"
 
@@ -15193,7 +14790,6 @@ msgid "Skirt distance"
 msgstr "ระยะห่างของเส้นล้อมชิ้นงาน"
 
 #, fuzzy
-#| msgid "The distance from the skirt to the brim or the object."
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "ระยะห่างจากเส้นล้อมชิ้นงานถึงขอบยึดชิ้นงานหรือวัตถุ"
 
@@ -15207,7 +14803,6 @@ msgid "Skirt height"
 msgstr "ความสูงของเส้นล้อมชิ้นงาน"
 
 #, fuzzy
-#| msgid "How many layers of skirt. Usually only one layer."
 msgid "Number of skirt layers: usually only one"
 msgstr "เส้นล้อมชิ้นงานกี่ชั้น.. โดยปกติจะมีเพียงชั้นเดียวเท่านั้น"
 
@@ -15247,7 +14842,6 @@ msgid "Skirt loops"
 msgstr "ห่วงเส้นล้อมชิ้นงาน"
 
 #, fuzzy
-#| msgid "Number of loops for the skirt. Zero means disabling skirt."
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "จำนวนห่วงสำหรับเส้นล้อมชิ้นงาน ศูนย์หมายถึงปิดการใช้งานเส้นล้อมชิ้นงาน"
 
@@ -15278,7 +14872,6 @@ msgid "Minimum sparse infill threshold"
 msgstr "เกณฑ์ไส้ในแบบกระจัดกระจายขั้นต่ำ"
 
 #, fuzzy
-#| msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "พื้นที่ไส้ในแบบกระจัดกระจายที่เล็กกว่าค่าเกณฑ์นี้จะถูกแทนที่ด้วยไส้ในแบบทึบภายใน"
 
@@ -15301,12 +14894,10 @@ msgid "Line width of internal solid infill. If expressed as a %, it will be comp
 msgstr "ความกว้างของเส้นของ ไส้ใน ทึบภายใน หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "Speed of internal solid infill, not the top and bottom surface."
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "ความเร็วของไส้ในของแข็งภายใน ไม่ใช่พื้นผิวด้านบนและด้านล่าง"
 
 #, fuzzy
-#| msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Spiralize จะทำให้การเคลื่อนที่ Z ของเส้นขอบด้านนอกเรียบเนียนขึ้น และเปลี่ยนโมเดลทึบให้เป็นภาพพิมพ์ผนังเดี่ยวพร้อมชั้นล่างสุดทึบ โมเดลที่สร้างขึ้นขั้นสุดท้ายไม่มีรอยตะเข็บ"
 
@@ -15338,7 +14929,6 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "ตั้งค่าอัตราส่วนการไหลขั้นสุดท้ายขณะสิ้นสุดเกลียว โดยปกติการเปลี่ยนผ่านของเกลียวจะปรับขนาดอัตราส่วนการไหลจาก 100% เป็น 0% ในระหว่างลูปสุดท้าย ซึ่งในบางกรณีอาจนำไปสู่การรีดขึ้นรูปที่ปลายเกลียว"
 
 #, fuzzy
-#| msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "หากเลือกโหมดเรียบหรือโหมดดั้งเดิม วิดีโอไทม์แลปส์จะถูกสร้างขึ้นสำหรับการพิมพ์แต่ละครั้ง หลังจากพิมพ์แต่ละชั้นแล้ว กล้องจะถ่ายภาพสแนปช็อตด้วยกล้องแชมเบอร์ สแน็ปช็อตทั้งหมดนี้จะถูกประกอบเป็นวิดีโอไทม์แลปส์เมื่อการพิมพ์เสร็จสิ้น หากเลือกโหมดเรียบ หัวเครื่องมือจะย้ายไปยังรางส่วนเกินหลังจากพิมพ์แต่ละเลเยอร์แล้วจึงถ่ายภาพสแน็ปช็อต เนื่องจากเส้นพลาสติกที่หลอมละลายอาจรั่วไหลออกจากหัวฉีดในระหว่างขั้นตอนการถ่ายภาพ จึงจำเป็นต้องมีไพรม์ทาวเวอร์เพื่อให้โหมดราบรื่นในการเช็ดหัวฉีด"
 
@@ -15374,12 +14964,10 @@ msgid "Start G-code"
 msgstr "เริ่ม G-code"
 
 #, fuzzy
-#| msgid "Start G-code when starting the entire print."
 msgid "G-code added when starting a print."
 msgstr "เริ่ม G-code เมื่อเริ่มพิมพ์ทั้งหมด"
 
 #, fuzzy
-#| msgid "Start G-code when starting the printing of this filament."
 msgid "G-code added when the printer starts using this filament"
 msgstr "เริ่ม G-code เมื่อเริ่มพิมพ์เส้นพลาสติกนี้"
 
@@ -15465,7 +15053,6 @@ msgid "Enable support"
 msgstr "เปิดใช้ส่วนรองรับ"
 
 #, fuzzy
-#| msgid "Enable support generation."
 msgid "This enables support generation."
 msgstr "เปิดใช้การสร้างส่วนรองรับ"
 
@@ -15488,7 +15075,6 @@ msgid "Support/object XY distance"
 msgstr "ส่วนรองรับ/วัตถุ ระยะ XY"
 
 #, fuzzy
-#| msgid "XY separation between an object and its support."
 msgid "This controls the XY separation between an object and its support."
 msgstr "การแยก XY ระหว่างวัตถุและส่วนรองรับ"
 
@@ -15508,7 +15094,6 @@ msgid "On build plate only"
 msgstr "บนแผ่นฐานเท่านั้น"
 
 #, fuzzy
-#| msgid "Don't create support on model surface, only on build plate."
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "อย่าสร้างส่วนรองรับบนพื้นผิวของโมเดล เฉพาะบนฐานรองพิมพ์เท่านั้น"
 
@@ -15528,7 +15113,6 @@ msgid "Top Z distance"
 msgstr "ระยะทาง Z สูงสุด"
 
 #, fuzzy
-#| msgid "Z gap between the support's top and object."
 msgid "Z gap between the support's top and object."
 msgstr "ช่องว่าง Z ระหว่างด้านบนของส่วนรองรับและวัตถุ"
 
@@ -15536,7 +15120,6 @@ msgid "Bottom Z distance"
 msgstr "ระยะ Z ล่าง"
 
 #, fuzzy
-#| msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "ช่องว่าง Z ระหว่างวัตถุและฐานรองรับ หากระยะ Z สูงสุดที่รองรับคือ 0 และด้านล่างมีเลเยอร์อินเทอร์เฟซ ค่านี้จะถูกละเว้น และส่วนรองรับจะถูกพิมพ์โดยสัมผัสโดยตรงกับวัตถุ (ไม่มีช่องว่าง)"
 
@@ -15544,7 +15127,6 @@ msgid "Support/raft base"
 msgstr "ส่วนรองรับ/ฐานฐานรองชิ้นงาน"
 
 #, fuzzy
-#| msgid "Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used."
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
@@ -15560,12 +15142,10 @@ msgid "Line width of support. If expressed as a %, it will be computed over the 
 msgstr "ความกว้างของเส้นรองรับ หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "Interface use loop pattern"
 msgid "Loop pattern interface"
 msgstr "รูปแบบการใช้อินเทอร์เฟซแบบวนซ้ำ"
 
 #, fuzzy
-#| msgid "Cover the top contact layer of the supports with loops. Disabled by default."
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "ครอบคลุมชั้นสัมผัสด้านบนของส่วนรองรับด้วยลูป ปิดใช้งานตามค่าเริ่มต้น"
 
@@ -15573,7 +15153,6 @@ msgid "Support/raft interface"
 msgstr "ส่วนต่อประสานส่วนรองรับ / ฐานรองชิ้นงาน"
 
 #, fuzzy
-#| msgid "Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used."
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
@@ -15605,12 +15184,10 @@ msgid "Bottom interface spacing"
 msgstr "ระยะห่างของอินเทอร์เฟซด้านล่าง"
 
 #, fuzzy
-#| msgid "Spacing of bottom interface lines. Zero means solid interface."
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "ระยะห่างของบรรทัดอินเทอร์เฟซด้านล่าง ศูนย์หมายถึงอินเทอร์เฟซที่มั่นคง"
 
 #, fuzzy
-#| msgid "Speed of support interface."
 msgid "This is the speed for support interfaces."
 msgstr "ความเร็วของอินเทอร์เฟซส่วนรองรับ"
 
@@ -15640,7 +15217,6 @@ msgid "Interface pattern"
 msgstr "รูปแบบอินเทอร์เฟซ"
 
 #, fuzzy
-#| msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "รูปแบบเส้นของอินเทอร์เฟซส่วนรองรับ รูปแบบเริ่มต้นสำหรับอินเทอร์เฟซส่วนรองรับที่ไม่ละลายน้ำคือ Rectilinear ในขณะที่รูปแบบเริ่มต้นสำหรับอินเทอร์เฟซส่วนรองรับที่ละลายน้ำได้คือ Concentric"
 
@@ -15651,12 +15227,10 @@ msgid "Base pattern spacing"
 msgstr "ระยะห่างของรูปแบบฐาน"
 
 #, fuzzy
-#| msgid "Spacing between support lines."
 msgid "This determines the spacing between support lines."
 msgstr "ระยะห่างระหว่างเส้นรองรับ"
 
 #, fuzzy
-#| msgid "Normal Support expansion"
 msgid "Normal support expansion"
 msgstr "การขยายส่วนรองรับปกติ"
 
@@ -15664,7 +15238,6 @@ msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "ขยาย (+) หรือย่อ (-) ช่วงแนวนอนของแนวรับปกติ"
 
 #, fuzzy
-#| msgid "Speed of support."
 msgid "This is the speed for support."
 msgstr "ความเร็วของส่วนรองรับ"
 
@@ -15703,9 +15276,6 @@ msgid "Threshold angle"
 msgstr "มุมเกณฑ์"
 
 #, fuzzy
-#| msgid ""
-#| "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
-#| "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15839,7 +15409,6 @@ msgstr ""
 "หากเปิดใช้งาน พารามิเตอร์นี้จะตั้งค่าตัวแปร G-code ชื่อ Chamber_temperature ซึ่งสามารถใช้เพื่อส่งอุณหภูมิห้องเพาะเลี้ยงที่ต้องการไปยังมาโครเริ่มการพิมพ์ของคุณ หรือมาโครความร้อนแช่เช่นนี้: PRINT_START (ตัวแปรอื่นๆ) CHAMBER_TEMP=[chamber_temperature] วิธีนี้อาจเป็นประโยชน์หากเครื่องพิมพ์ของคุณไม่รองรับคำสั่ง M141/M191 หรือหากคุณต้องการจัดการกับความร้อนที่แช่อยู่ในมาโครเริ่มการพิมพ์ หากไม่มีการติดตั้งเครื่องทำความร้อนในห้องที่ใช้งานอยู่"
 
 #, fuzzy
-#| msgid "Nozzle temperature for layers after the initial one."
 msgid "Nozzle temperature after the first layer"
 msgstr "อุณหภูมิหัวฉีดสำหรับชั้นหลังจากอันแรก"
 
@@ -15847,7 +15416,6 @@ msgid "Detect thin walls"
 msgstr "ตรวจจับผนังบาง"
 
 #, fuzzy
-#| msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "ตรวจจับผนังบางๆ ที่ไม่สามารถมีความกว้างสองบรรทัดได้ และใช้บรรทัดเดียวในการพิมพ์ อาจจะพิมพ์ได้ไม่ดีนักเพราะไม่ใช่วงปิด"
 
@@ -15867,7 +15435,6 @@ msgid "Line width for top surfaces. If expressed as a %, it will be computed ove
 msgstr "ความกว้างของเส้นสำหรับพื้นผิวด้านบน หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
 
 #, fuzzy
-#| msgid "Speed of top surface infill which is solid."
 msgid "This is the speed for solid top surface infill."
 msgstr "ความเร็วของไส้ในพื้นผิวด้านบนซึ่งเป็นของแข็ง"
 
@@ -15875,20 +15442,13 @@ msgid "Top shell layers"
 msgstr "เลเยอร์ผนังด้านบน"
 
 #, fuzzy
-#| msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "นี่คือจำนวนชั้นทึบของเปลือกด้านบน รวมถึงชั้นผิวด้านบนด้วย เมื่อความหนาที่คำนวณโดยค่านี้บางกว่าความหนาของเปลือกด้านบน ชั้นเปลือกด้านบนจะเพิ่มขึ้น"
-
-#, fuzzy
-#| msgid "Top solid layers"
-msgid "Top solid layers"
-msgstr "ชั้นแข็งด้านบน"
 
 msgid "Top shell thickness"
 msgstr "ความหนาผนังด้านบน"
 
 #, fuzzy
-#| msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "จำนวนชั้นทึบด้านบนจะเพิ่มขึ้นเมื่อสไลซ์หากความหนาที่คำนวณโดยชั้นเปลือกด้านบนบางกว่าค่านี้ วิธีนี้สามารถหลีกเลี่ยงไม่ให้เปลือกบางเกินไปเมื่อชั้นมีความสูงน้อย 0 หมายความว่าการตั้งค่านี้ถูกปิดใช้งาน และความหนาของเปลือกด้านบนถูกกำหนดโดยชั้นเปลือกด้านบนอย่างแน่นอน"
 
@@ -15909,7 +15469,6 @@ msgstr ""
 "คำเตือน: การลดค่านี้อาจส่งผลเสียต่อการยึดเกาะของฐานพิมพ์"
 
 #, fuzzy
-#| msgid "Speed of travel which is faster and without extrusion."
 msgid "This is the speed at which traveling is done."
 msgstr "ความเร็วในการเดินทางที่เร็วกว่าและไม่มีการอัดขึ้นรูป"
 
@@ -15917,12 +15476,10 @@ msgid "Wipe while retracting"
 msgstr "เช็ดขณะดึงกลับ"
 
 #, fuzzy
-#| msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "เลื่อนหัวฉีดไปตามเส้นทางการอัดขึ้นรูปสุดท้ายเมื่อถอยกลับเพื่อทำความสะอาดวัสดุที่รั่วไหลบนหัวฉีด วิธีนี้จะช่วยลดรอยหยดเมื่อพิมพ์ชิ้นส่วนใหม่หลังการเดินทาง"
 
 #, fuzzy
-#| msgid "Wipe Distance"
 msgid "Wipe distance"
 msgstr "ระยะเช็ดหัวฉีด"
 
@@ -15940,7 +15497,6 @@ msgstr ""
 "การตั้งค่าในจำนวนการถอนก่อนการล้างการตั้งค่าด้านล่างจะทำการถอนส่วนที่เกินก่อนการล้าง มิฉะนั้นจะดำเนินการหลังจากนั้น"
 
 #, fuzzy
-#| msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "หอเช็ดสามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
 
@@ -15957,7 +15513,6 @@ msgid "Flush multiplier"
 msgstr "ตัวคูณการไล่เส้น"
 
 #, fuzzy
-#| msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "ปริมาตรการไล่เส้นตามจริงจะเท่ากับตัวคูณการไล่เส้นคูณด้วยปริมาตรการไล่เส้นในตาราง"
 
@@ -15965,12 +15520,10 @@ msgid "Prime volume"
 msgstr "ปริมาณเฉพาะ"
 
 #, fuzzy
-#| msgid "The volume of material to prime extruder on tower."
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "ปริมาตรของวัสดุที่จะนำไปอัดรีดชั้นดีบนทาวเวอร์"
 
 #, fuzzy
-#| msgid "Width of the prime tower."
 msgid "This is the width of prime towers."
 msgstr "ความกว้างของหอคอยหลัก"
 
@@ -16085,12 +15638,10 @@ msgid "Infill gap."
 msgstr "การเติมช่องว่าง."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "การล้างหลังจากเปลี่ยนเส้นพลาสติกจะดำเนินการภายในส่วนไส้ในของวัตถุ สิ่งนี้อาจลดปริมาณขยะและลดเวลาในการพิมพ์ หากผนังพิมพ์ด้วยเส้นพลาสติกโปร่งใส จะเห็นไส้ในสีผสมไว้ด้านนอก มันจะไม่มีผลเว้นแต่จะเปิดใช้งานไพรม์ทาวเวอร์"
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "การล้างข้อมูลหลังจากเปลี่ยนเส้นพลาสติกจะดำเนินการภายในส่วนรองรับของวัตถุ สิ่งนี้อาจลดปริมาณขยะและลดเวลาในการพิมพ์ มันจะไม่มีผลเว้นแต่จะเปิดใช้งานไพรม์ทาวเวอร์"
 
@@ -16125,7 +15676,6 @@ msgid "X-Y hole compensation"
 msgstr "การชดเชยรู X-Y"
 
 #, fuzzy
-#| msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "รูในวัตถุจะขยายหรือหดตัวในระนาบ XY ตามค่าที่กำหนดค่าไว้ ค่าบวกจะทำให้รูมีขนาดใหญ่ขึ้น ค่าลบจะทำให้รูเล็กลง ฟังก์ชันนี้ใช้เพื่อปรับขนาดเล็กน้อยเมื่อวัตถุมีปัญหาในการประกอบ"
 
@@ -16133,7 +15683,6 @@ msgid "X-Y contour compensation"
 msgstr "การชดเชยรูปร่าง X-Y"
 
 #, fuzzy
-#| msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "รูปทรงของวัตถุจะขยายหรือหดตัวในระนาบ XY ตามค่าที่กำหนดค่าไว้ ค่าบวกจะทำให้เส้นขอบมีขนาดใหญ่ขึ้น ค่าลบจะทำให้เส้นขอบมีขนาดเล็กลง ฟังก์ชันนี้ใช้เพื่อปรับขนาดเล็กน้อยเมื่อวัตถุมีปัญหาในการประกอบ"
 
@@ -16185,7 +15734,6 @@ msgid "Relative extrusion is recommended when using \"label_objects\" option. So
 msgstr "แนะนำให้ใช้การอัดขึ้นรูปแบบสัมพัทธ์เมื่อใช้ตัวเลือก \"label_objects\" ชุดดันเส้นบางชนิดทำงานได้ดีกว่าหากไม่ได้เลือกตัวเลือกนี้ (โหมดการอัดขึ้นรูปสัมบูรณ์) Wipe Tower ใช้งานได้กับโหมดสัมพัทธ์เท่านั้น แนะนำให้ใช้กับเครื่องพิมพ์ส่วนใหญ่ เลือกค่าเริ่มต้นแล้ว"
 
 #, fuzzy
-#| msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "เครื่องกำเนิดผนังแบบคลาสสิกสร้างผนังที่มีความกว้างของการอัดขึ้นรูปคงที่ และสำหรับพื้นที่ที่บางมากจะใช้การเติมช่องว่าง เครื่องยนต์ Arachne สร้างผนังที่มีความกว้างของการอัดขึ้นรูปที่หลากหลาย"
 
@@ -16196,7 +15744,6 @@ msgid "Wall transition length"
 msgstr "ความยาวการเปลี่ยนผนัง"
 
 #, fuzzy
-#| msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "เมื่อเปลี่ยนระหว่างผนังจำนวนต่างๆ เมื่อชิ้นส่วนบางลง จะมีการแบ่งพื้นที่จำนวนหนึ่งเพื่อแยกหรือรวมส่วนของผนัง โดยแสดงเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของหัวฉีด"
 
@@ -16285,7 +15832,6 @@ msgid "Export 3MF"
 msgstr "ส่งออก 3MF"
 
 #, fuzzy
-#| msgid "Export project as 3MF."
 msgid "This exports the project as a 3MF file."
 msgstr "ส่งออกโครงการเป็น 3MF"
 
@@ -16293,7 +15839,6 @@ msgid "Export slicing data"
 msgstr "ส่งออกข้อมูลการแบ่งส่วน"
 
 #, fuzzy
-#| msgid "Export slicing data to a folder."
 msgid "Export slicing data to a folder"
 msgstr "ส่งออกข้อมูลการแบ่งส่วนไปยังโฟลเดอร์"
 
@@ -16322,7 +15867,6 @@ msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "แบ่งเพลต: 0-เพลตทั้งหมด, i-เพลท i, อื่นๆ-ไม่ถูกต้อง"
 
 #, fuzzy
-#| msgid "Show command help."
 msgid "This shows command help."
 msgstr "แสดงคำสั่งช่วยเหลือ"
 
@@ -16348,7 +15892,6 @@ msgid "mtcpp"
 msgstr "mtcpp"
 
 #, fuzzy
-#| msgid "max triangle count per plate for slicing."
 msgid "max triangle count per plate for slicing"
 msgstr "จำนวนสามเหลี่ยมสูงสุดต่อแผ่นสำหรับการสไลซ์"
 
@@ -16356,7 +15899,6 @@ msgid "mstpp"
 msgstr "mstpp"
 
 #, fuzzy
-#| msgid "max slicing time per plate in seconds."
 msgid "max slicing time per plate in seconds"
 msgstr "เวลาสไลซ์สูงสุดต่อจานในหน่วยวินาที"
 
@@ -16376,7 +15918,6 @@ msgid "Output Model Info"
 msgstr "ข้อมูลรุ่นเอาท์พุต"
 
 #, fuzzy
-#| msgid "Output the model's information."
 msgid "This outputs the model’s information."
 msgstr "ส่งออกข้อมูลของโมเดล"
 
@@ -16384,7 +15925,6 @@ msgid "Export Settings"
 msgstr "ส่งออกการตั้งค่า"
 
 #, fuzzy
-#| msgid "Export settings to a file."
 msgid "This exports settings to a file."
 msgstr "ส่งออกการตั้งค่าไปยังไฟล์"
 
@@ -16473,7 +16013,6 @@ msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "โหลดการตั้งค่ากระบวนการ/เครื่อง uptodate เมื่อใช้ uptodate"
 
 #, fuzzy
-#| msgid "Load uptodate process/machine settings from the specified file when using uptodate."
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "โหลดการตั้งค่ากระบวนการ/เครื่อง uptodate จากไฟล์ที่ระบุเมื่อใช้ uptodate"
 
@@ -16511,7 +16050,6 @@ msgid "Output directory"
 msgstr "ไดเร็กทอรีเอาต์พุต"
 
 #, fuzzy
-#| msgid "Output directory for the exported files."
 msgid "This is the output directory for exported files."
 msgstr "ไดเร็กทอรีเอาต์พุตสำหรับไฟล์ที่ส่งออก"
 
@@ -16949,17 +16487,14 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr "การประสานไฟล์โมเดลล้มเหลวหรือไม่มีรูปร่างที่ถูกต้อง"
 
 #, fuzzy
-#| msgid "The supplied file couldn't be read because it's empty"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "ไม่สามารถอ่านไฟล์ที่ให้มาได้เนื่องจากไฟล์ว่างเปล่า"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .stl, .obj, .amf(.xml)"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .3mf หรือ .zip.amf"
 
@@ -17012,7 +16547,6 @@ msgid "Finish"
 msgstr "เสร็จ"
 
 #, fuzzy
-#| msgid "How to use calibration result?"
 msgid "How can I use calibration results?"
 msgstr "จะใช้ผลการสอบเทียบได้อย่างไร?"
 
@@ -17091,9 +16625,6 @@ msgid "The input value size must be 3."
 msgstr "ขนาดค่าอินพุตต้องเป็น 3"
 
 #, fuzzy
-#| msgid ""
-#| "This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-#| "Do you still want to continue the calibration?"
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -17105,8 +16636,7 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "มีเพียงผลลัพธ์เดียวเท่านั้นที่มีชื่อเดียวกัน: %s จะถูกบันทึก คุณแน่ใจหรือไม่ว่าต้องการแทนที่ผลลัพธ์อื่นๆ"
 
-#, boost-format, c-format, fuzzy
-#| msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+#, fuzzy, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "มีผลการสอบเทียบในอดีตที่มีชื่อเดียวกันอยู่แล้ว: %s บันทึกผลลัพธ์ที่มีชื่อเดียวกันเพียงรายการเดียวเท่านั้น คุณแน่ใจหรือไม่ว่าต้องการแทนที่ผลลัพธ์ในอดีต"
 
@@ -17118,8 +16648,7 @@ msgstr ""
 "ภายในชุดดันเส้นเดียวกัน ชื่อ(%s) จะต้องไม่ซ้ำกันเมื่อประเภทเส้นพลาสติก เส้นผ่านศูนย์กลางของหัวฉีด และการไหลของหัวฉีดเหมือนกัน\n"
 "คุณแน่ใจหรือไม่ว่าต้องการแทนที่ผลลัพธ์ในอดีต"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "ประเภทเครื่องนี้สามารถเก็บผลลัพธ์ประวัติได้เพียง %d รายการต่อหัวฉีด ผลลัพธ์นี้จะไม่ถูกบันทึก"
 
@@ -17201,12 +16730,6 @@ msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion 
 msgstr "การสอบเทียบอัตราการไหลจะวัดอัตราส่วนของปริมาณที่คาดหวังต่อปริมาณการอัดขึ้นรูปจริง การตั้งค่าเริ่มต้นทำงานได้ดีในเครื่องพิมพ์ Bambu Lab และเส้นพลาสติกอย่างเป็นทางการ เนื่องจากมีการสอบเทียบล่วงหน้าและปรับแต่งอย่างละเอียด สำหรับเส้นพลาสติกทั่วไป โดยปกติแล้วคุณไม่จำเป็นต้องทำการสอบเทียบอัตราการไหล เว้นแต่คุณยังคงเห็นข้อบกพร่องที่ระบุไว้หลังจากคุณทำการสอบเทียบอื่นๆ แล้ว สำหรับรายละเอียดเพิ่มไส้ใน โปรดดูบทความวิกิ"
 
 #, fuzzy
-#| msgid ""
-#| "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
-#| "\n"
-#| "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
-#| "\n"
-#| "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17254,7 +16777,6 @@ msgid "Please find the best line on your plate"
 msgstr "โปรดค้นหาเส้นที่ดีที่สุดบนจานของคุณ"
 
 #, fuzzy
-#| msgid "Please find the corner with the perfect degree of extrusion"
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "โปรดค้นหามุมที่มีการอัดขึ้นรูปที่สมบูรณ์แบบ"
 
@@ -17344,11 +16866,6 @@ msgstr "การไหลของหัวฉีด"
 msgid "Nozzle Info"
 msgstr "ข้อมูลหัวฉีด"
 
-#, fuzzy
-#| msgid "Plate Type"
-msgid "Plate Type"
-msgstr "ชนิดฐานพิมพ์"
-
 msgid "Filament position"
 msgstr "ตำแหน่งเส้นพลาสติก"
 
@@ -17420,15 +16937,13 @@ msgid "Success to get history result"
 msgstr "ประสบความสำเร็จในการรับผลประวัติ"
 
 #, fuzzy
-#| msgid "Refreshing the historical Flow Dynamics Calibration records"
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "การรีเฟรชบันทึกการปรับเทียบ Flow Dynamics ในอดีต"
 
 msgid "Action"
 msgstr "การทำงาน"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "ประเภทเครื่องนี้สามารถเก็บผลลัพธ์ประวัติได้เพียง %d รายการต่อหัวฉีด"
 
@@ -18054,12 +17569,10 @@ msgid "Create"
 msgstr "สร้าง"
 
 #, fuzzy
-#| msgid "Vendor is not selected, please reselect vendor."
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "ไม่ได้เลือกผู้ขาย โปรดเลือกผู้ขายอีกครั้ง"
 
 #, fuzzy
-#| msgid "Custom vendor is missing, please input custom vendor."
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "ผู้ขายที่กำหนดเองหายไป โปรดป้อนผู้ขายที่กำหนดเอง"
 
@@ -18070,12 +17583,10 @@ msgid "Filament type is not selected, please reselect type."
 msgstr "ไม่ได้เลือกประเภทเส้นพลาสติก โปรดเลือกประเภทอีกครั้ง"
 
 #, fuzzy
-#| msgid "Filament serial is not entered, please enter serial."
 msgid "Filament serial missing; please input serial."
 msgstr "ไม่ได้ป้อนซีเรียลของฟิลาเมนต์ โปรดป้อนซีเรียล"
 
 #, fuzzy
-#| msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "อาจมีอักขระหลีกในผู้ขายหรืออินพุตแบบอนุกรมของเส้นพลาสติก กรุณาลบและป้อนใหม่"
 
@@ -18083,17 +17594,13 @@ msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "อินพุตทั้งหมดในผู้จำหน่ายแบบกำหนดเองหรือซีเรียลเป็นช่องว่าง กรุณาเข้าใหม่อีกครั้ง"
 
 #, fuzzy
-#| msgid "The vendor cannot be a number. Please re-enter."
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "ผู้จัดจำหน่ายไม่สามารถเป็นตัวเลขได้ กรุณาเข้าใหม่อีกครั้ง"
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "คุณยังไม่ได้เลือกเครื่องพิมพ์หรือค่าที่ตั้งไว้ล่วงหน้า โปรดเลือกอย่างน้อยหนึ่งรายการ"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The Filament name %s you created already exists.\n"
-#| "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -18140,7 +17647,6 @@ msgid "Create Type"
 msgstr "สร้างชนิด"
 
 #, fuzzy
-#| msgid "The model was not found, please reselect vendor."
 msgid "The model was not found; please reselect vendor."
 msgstr "ไม่พบแบบจำลอง โปรดเลือกผู้จำหน่ายอีกครั้ง"
 
@@ -18182,7 +17688,6 @@ msgid "Exception in obtaining file size, please import again."
 msgstr "ข้อยกเว้นในการรับขนาดไฟล์ โปรดนำเข้าอีกครั้ง"
 
 #, fuzzy
-#| msgid "Preset path was not found, please reselect vendor."
 msgid "Preset path was not found; please reselect vendor."
 msgstr "ไม่พบเส้นทางที่กำหนดไว้ล่วงหน้า โปรดเลือกผู้ขายอีกครั้ง"
 
@@ -18190,12 +17695,10 @@ msgid "The printer model was not found, please reselect."
 msgstr "ไม่พบรุ่นเครื่องพิมพ์ โปรดเลือกใหม่"
 
 #, fuzzy
-#| msgid "The nozzle diameter was not found, please reselect."
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "ไม่พบเส้นผ่านศูนย์กลางของหัวฉีด โปรดเลือกใหม่"
 
 #, fuzzy
-#| msgid "The printer preset was not found, please reselect."
 msgid "The printer preset was not found; please reselect."
 msgstr "ไม่พบค่าที่ตั้งไว้ล่วงหน้าของเครื่องพิมพ์ โปรดเลือกใหม่"
 
@@ -18212,16 +17715,10 @@ msgid "You have not yet chosen which printer preset to create based on. Please c
 msgstr "คุณยังไม่ได้เลือกพรีเซ็ตเครื่องพิมพ์ที่จะใช้สร้าง โปรดเลือกผู้จำหน่ายและรุ่นของเครื่องพิมพ์"
 
 #, fuzzy
-#| msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "คุณได้ป้อนข้อมูลที่ไม่ถูกต้องในส่วนพื้นที่ที่สามารถพิมพ์ได้ในหน้าแรก โปรดตรวจสอบก่อนที่จะสร้างมัน"
 
 #, fuzzy
-#| msgid ""
-#| "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-#| "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-#| "and filament and process presets without the same preset name will be reserve.\n"
-#| "\tCancel: Do not create a preset, return to the creation interface."
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -18246,7 +17743,6 @@ msgid "Create process presets failed. As follows:\n"
 msgstr "สร้างการตั้งค่าล่วงหน้าของกระบวนการล้มเหลว ดังนี้:\n"
 
 #, fuzzy
-#| msgid "Vendor was not found, please reselect."
 msgid "Vendor was not found; please reselect."
 msgstr "ไม่พบผู้ขาย โปรดเลือกใหม่"
 
@@ -18254,7 +17750,6 @@ msgid "Current vendor has no models, please reselect."
 msgstr "ผู้จำหน่ายปัจจุบันไม่มีรุ่น โปรดเลือกใหม่"
 
 #, fuzzy
-#| msgid "You have not selected the vendor and model or entered the custom vendor and model."
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "คุณยังไม่ได้เลือกผู้จำหน่ายและรุ่น หรือป้อนผู้จำหน่ายและรุ่นที่กำหนดเอง"
 
@@ -18268,7 +17763,6 @@ msgid "Please check bed printable shape and origin input."
 msgstr "โปรดตรวจสอบรูปร่างที่สามารถพิมพ์ฐานพิมพ์ได้และอินพุตจุดเริ่มต้น"
 
 #, fuzzy
-#| msgid "You have not yet selected the printer to replace the nozzle, please choose."
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "คุณยังไม่ได้เลือกเครื่องพิมพ์ที่จะเปลี่ยนหัวฉีด โปรดเลือก"
 
@@ -18314,9 +17808,6 @@ msgid "Filament Created"
 msgstr "สร้างเส้นพลาสติกแล้ว"
 
 #, fuzzy
-#| msgid ""
-#| "Please go to filament setting to edit your presets if you need.\n"
-#| "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -18370,10 +17861,7 @@ msgstr "การเขียน zip แบบเปิดล้มเหลว"
 msgid "Export successful"
 msgstr "ส่งออกสำเร็จ"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
-#| "If not, a time suffix will be added, and you can modify the name after creation."
+#, fuzzy, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18406,7 +17894,6 @@ msgstr ""
 "สามารถแบ่งปันกับผู้อื่นได้"
 
 #, fuzzy
-#| msgid "Only display printer names with changes to printer, filament, and process presets."
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "แสดงเฉพาะชื่อเครื่องพิมพ์ที่มีการเปลี่ยนแปลงเครื่องพิมพ์ เส้นพลาสติก และการตั้งค่าล่วงหน้าของกระบวนการ"
 
@@ -18434,7 +17921,6 @@ msgid "Please select at least one printer or filament."
 msgstr "โปรดเลือกเครื่องพิมพ์หรือเส้นพลาสติกอย่างน้อยหนึ่งรายการ"
 
 #, fuzzy
-#| msgid "Please select a type you want to export"
 msgid "Please select a preset type you want to export"
 msgstr "โปรดเลือกประเภทที่คุณต้องการส่งออก"
 
@@ -18498,7 +17984,6 @@ msgid "Edit Preset"
 msgstr "แก้ไขพรีเซ็ต"
 
 #, fuzzy
-#| msgid "For more information, please check out Wiki"
 msgid "For more information, please check out our Wiki"
 msgstr "สำหรับข้อมูลเพิ่มเติม โปรดดูที่ วิกิ"
 
@@ -18986,7 +18471,6 @@ msgid "Wait"
 msgstr "รอ"
 
 #, fuzzy
-#| msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "นาทีในแต่ละชุด (ขึ้นอยู่กับระยะเวลาในการทำความร้อนให้เสร็จสิ้น)"
 
@@ -19657,9 +19141,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 #, fuzzy
-#| msgid ""
-#| "Auto-Arrange\n"
-#| "Did you know that you can auto-arrange all the objects in your project?"
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19669,9 +19150,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 #, fuzzy
-#| msgid ""
-#| "Auto-Orient\n"
-#| "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19769,11 +19247,9 @@ msgstr ""
 "แบ่งงานพิมพ์ของคุณออกเป็นจาน\n"
 "คุณรู้ไหมว่าคุณสามารถแบ่งแบบจำลองที่มีชิ้นส่วนจำนวนมากออกเป็นเพลตแต่ละอันที่พร้อมพิมพ์ได้ สิ่งนี้จะทำให้กระบวนการติดตามทุกส่วนง่ายขึ้น"
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 #, fuzzy
-#| msgid ""
-#| "Speed up your print with Adaptive Layer Height\n"
-#| "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19791,9 +19267,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Different types of supports]
 #, fuzzy
-#| msgid ""
-#| "Different types of supports\n"
-#| "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19803,9 +19276,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 #, fuzzy
-#| msgid ""
-#| "Printing Silk Filament\n"
-#| "Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19823,9 +19293,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 #, fuzzy
-#| msgid ""
-#| "Set parameters for multiple objects\n"
-#| "Did you know that you can set slicing parameters for all selected objects at once?"
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19843,9 +19310,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 #, fuzzy
-#| msgid ""
-#| "Flush into support/objects/infill\n"
-#| "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19861,11 +19325,9 @@ msgstr ""
 "ปรับปรุงความแข็งแรง\n"
 "คุณรู้ไหมว่าคุณสามารถใช้ลูปติดผนังได้มากขึ้นและมีความหนาแน่นของไส้ในแบบโปร่งที่สูงขึ้นเพื่อปรับปรุงความแข็งแกร่งของแบบจำลอง"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 #, fuzzy
-#| msgid ""
-#| "When do you need to print with the printer door opened?\n"
-#| "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19875,9 +19337,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 #, fuzzy
-#| msgid ""
-#| "Avoid warping\n"
-#| "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

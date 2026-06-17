@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:18-0300\n"
+"POT-Creation-Date: 2026-06-17 14:21-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -94,9 +94,12 @@ msgid "Latest version"
 msgstr "最新版本"
 
 #, fuzzy
-#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "支撑绘制"
+
+#, fuzzy
+msgid "Apply"
+msgstr "应用"
 
 msgid "On highlighted overhangs only"
 msgstr "仅对高亮悬垂区生效"
@@ -105,7 +108,6 @@ msgid "Erase all"
 msgstr "全部擦除"
 
 #, fuzzy
-#| msgid "Highlight overhang areas"
 msgid "Highlight overhangs"
 msgstr "高亮悬垂区域"
 
@@ -177,7 +179,6 @@ msgid "Done"
 msgstr "完成"
 
 #, fuzzy
-#| msgid "Support Generated"
 msgid "Support generated"
 msgstr "已生成支撑"
 
@@ -194,7 +195,6 @@ msgid "Gizmo-Place on Face"
 msgstr "选择底面"
 
 #, fuzzy
-#| msgid "Lay on face"
 msgid "Lay on Face"
 msgstr "选择底面"
 
@@ -203,7 +203,6 @@ msgid "Filament count exceeds the maximum number that painting tool supports. On
 msgstr "耗材丝数量超过涂色工具支持的最大值，仅前%1%个耗材丝可在涂色工具中使用。"
 
 #, fuzzy
-#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "涂色"
 
@@ -331,11 +330,6 @@ msgstr "Gizmo-旋转"
 msgid "Optimize orientation"
 msgstr "优化朝向"
 
-#, fuzzy
-#| msgid "Apply"
-msgid "Apply"
-msgstr "应用"
-
 msgid "Scale"
 msgstr "缩放"
 
@@ -376,12 +370,10 @@ msgid "Scale ratios"
 msgstr "缩放比例"
 
 #, fuzzy
-#| msgid "Object Operations"
 msgid "Object operations"
 msgstr "对象操作"
 
 #, fuzzy
-#| msgid "Volume Operations"
 msgid "Volume operations"
 msgstr "零件操作"
 
@@ -389,24 +381,24 @@ msgid "Translate"
 msgstr "平移"
 
 #, fuzzy
-#| msgid "Group Operations"
 msgid "Group operations"
 msgstr "组操作"
 
 #, fuzzy
-#| msgid "Set Orientation"
 msgid "Set orientation"
 msgstr "设置方向"
 
 #, fuzzy
-#| msgid "Set Scale"
 msgid "Set scale"
 msgstr "设置缩放"
 
 #, fuzzy
-#| msgid "Reset Position"
 msgid "Reset position"
 msgstr "重置位置"
+
+#, fuzzy
+msgid "Reset rotation"
+msgstr "重置旋转"
 
 msgid "Object coordinates"
 msgstr "物体坐标"
@@ -698,7 +690,6 @@ msgid "Cut by Plane"
 msgstr "按平面切割"
 
 #, fuzzy
-#| msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "因切割产生了非流形边，您是否想现在修复？"
 
@@ -768,7 +759,6 @@ msgid "Show wireframe"
 msgstr "显示线框"
 
 #, fuzzy
-#| msgid "Can't apply when processing preview."
 msgid "Unable to apply when processing preview"
 msgstr "处理预览的过程中无法应用。"
 
@@ -794,7 +784,6 @@ msgid "Remove selection"
 msgstr "移除绘制"
 
 #, fuzzy
-#| msgid "Entering Seam painting"
 msgid "Entering seam painting"
 msgstr "进入Z缝绘制"
 
@@ -819,9 +808,6 @@ msgid "Angle"
 msgstr "角度"
 
 #, fuzzy
-#| msgid ""
-#| "Embedded\n"
-#| "depth"
 msgid "Embedded depth"
 msgstr "内嵌深度"
 
@@ -1392,11 +1378,6 @@ msgstr "SVG中心到模型表面的距离。"
 msgid "Reset distance"
 msgstr "重置距离"
 
-#, fuzzy
-#| msgid "Reset rotation"
-msgid "Reset rotation"
-msgstr "重置旋转"
-
 msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr "在曲面上方拖动时锁定/解锁旋转角度。"
 
@@ -1628,7 +1609,6 @@ msgid "Notice"
 msgstr "通知"
 
 #, fuzzy
-#| msgid "Undef"
 msgid "Undefined"
 msgstr "未定义"
 
@@ -1652,12 +1632,10 @@ msgid "Machine"
 msgstr "打印机"
 
 #, fuzzy
-#| msgid "Configuration package was loaded, but some values were not recognized."
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "配置包已被加载，但部分数值未被识别。"
 
-#, boost-format, fuzzy
-#| msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+#, fuzzy, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "配置文件“%1%”已被加载，但部分数值未被识别。"
 
@@ -1838,7 +1816,6 @@ msgid "Some presets are modified."
 msgstr "预设已被修改。"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "您可以保留未保存修改的预设应用到新项目中，或者选择忽略。"
 
@@ -2051,8 +2028,7 @@ msgstr "重命名"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "逆戟鲸切片器图形界面初始化失败"
 
-#, boost-format, fuzzy
-#| msgid "Fatal error, exception caught: %1%"
+#, fuzzy, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "致命错误，捕获到异常：%1%"
 
@@ -2078,7 +2054,10 @@ msgid "Strength"
 msgstr "强度"
 
 #, fuzzy
-#| msgid "Top Minimum Shell Thickness"
+msgid "Top solid layers"
+msgstr "顶部壳体层数"
+
+#, fuzzy
 msgid "Top minimum shell thickness"
 msgstr "顶部外壳最小厚度"
 
@@ -2086,12 +2065,10 @@ msgid "Top Surface Density"
 msgstr "顶面密度"
 
 #, fuzzy
-#| msgid "Bottom Solid Layers"
 msgid "Bottom solid layers"
 msgstr "底部实心层"
 
 #, fuzzy
-#| msgid "Bottom Minimum Shell Thickness"
 msgid "Bottom minimum shell thickness"
 msgstr "底部外壳最小厚度"
 
@@ -2102,7 +2079,6 @@ msgid "Ironing"
 msgstr "熨烫"
 
 #, fuzzy
-#| msgid "Fuzzy Skin"
 msgid "Fuzzy skin"
 msgstr "绒毛表面"
 
@@ -2110,7 +2086,6 @@ msgid "Extruders"
 msgstr "挤出机"
 
 #, fuzzy
-#| msgid "Extrusion Width"
 msgid "Extrusion width"
 msgstr "挤出宽度"
 
@@ -2121,22 +2096,22 @@ msgid "Bed adhesion"
 msgstr "热床粘接"
 
 #, fuzzy
-#| msgid "Add part"
 msgid "Add Part"
 msgstr "添加部件"
 
 #, fuzzy
-#| msgid "Add negative part"
 msgid "Add Negative Part"
 msgstr "添加负零件"
 
 #, fuzzy
-#| msgid "Add support blocker"
+msgid "Add Modifier"
+msgstr "添加修改器"
+
+#, fuzzy
 msgid "Add Support Blocker"
 msgstr "添加支撑屏蔽器"
 
 #, fuzzy
-#| msgid "Add support enforcer"
 msgid "Add Support Enforcer"
 msgstr "添加支撑生成器"
 
@@ -2240,17 +2215,14 @@ msgid "Text"
 msgstr "文字浮雕"
 
 #, fuzzy
-#| msgid "Height range Modifier"
 msgid "Height Range Modifier"
 msgstr "高度范围修改器"
 
 #, fuzzy
-#| msgid "Add settings"
 msgid "Add Settings"
 msgstr "添加设置"
 
 #, fuzzy
-#| msgid "Change type"
 msgid "Change Type"
 msgstr "更改类型"
 
@@ -2267,12 +2239,10 @@ msgid "Change part type"
 msgstr "选择零件类型"
 
 #, fuzzy
-#| msgid "Set as an individual object"
 msgid "Set as An Individual Object"
 msgstr "设置为独立对象"
 
 #, fuzzy
-#| msgid "Set as individual objects"
 msgid "Set as Individual Objects"
 msgstr "设置为独立对象"
 
@@ -2292,7 +2262,6 @@ msgid "Automatically drops the selected object to the build plate"
 msgstr "自动将选中的对象落到打印板上"
 
 #, fuzzy
-#| msgid "Fix model"
 msgid "Fix Model"
 msgstr "修复模型"
 
@@ -2364,22 +2333,18 @@ msgid "Edit in Parameter Table"
 msgstr "在参数表格中编辑"
 
 #, fuzzy
-#| msgid "Convert from inches"
 msgid "Convert from Inches"
 msgstr "从英寸转换"
 
 #, fuzzy
-#| msgid "Restore to inches"
 msgid "Restore to Inch"
 msgstr "恢复到英寸"
 
 #, fuzzy
-#| msgid "Convert from meters"
 msgid "Convert from Meters"
 msgstr "从米转换"
 
 #, fuzzy
-#| msgid "Restore to meters"
 msgid "Restore to Meter"
 msgstr "恢复到米"
 
@@ -2396,37 +2361,30 @@ msgid "Mesh boolean operations including union and subtraction"
 msgstr "包括并集和差集的网格布尔运算"
 
 #, fuzzy
-#| msgid "Along X axis"
 msgid "Along X Axis"
 msgstr "沿 X 轴"
 
 #, fuzzy
-#| msgid "Mirror along the X axis"
 msgid "Mirror along the X Axis"
 msgstr "沿X轴镜像"
 
 #, fuzzy
-#| msgid "Along Y axis"
 msgid "Along Y Axis"
 msgstr "沿 Y 轴"
 
 #, fuzzy
-#| msgid "Mirror along the Y axis"
 msgid "Mirror along the Y Axis"
 msgstr "沿Y轴镜像"
 
 #, fuzzy
-#| msgid "Along Z axis"
 msgid "Along Z Axis"
 msgstr "沿 Z 轴"
 
 #, fuzzy
-#| msgid "Mirror along the Z axis"
 msgid "Mirror along the Z Axis"
 msgstr "沿Z轴镜像"
 
 #, fuzzy
-#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "镜像对象"
 
@@ -2458,7 +2416,6 @@ msgid "Show Labels"
 msgstr "显示标签"
 
 #, fuzzy
-#| msgid "To objects"
 msgid "To Objects"
 msgstr "拆分到对象"
 
@@ -2466,7 +2423,6 @@ msgid "Split the selected object into multiple objects"
 msgstr "拆分所选对象为多个对象"
 
 #, fuzzy
-#| msgid "To parts"
 msgid "To Parts"
 msgstr "到零件"
 
@@ -2495,7 +2451,6 @@ msgid "Delete this filament"
 msgstr "移除此耗材"
 
 #, fuzzy
-#| msgid "Select all"
 msgid "Select All"
 msgstr "全选"
 
@@ -2509,7 +2464,6 @@ msgid "Select all objects on all plates"
 msgstr "选择所有打印板上的所有对象"
 
 #, fuzzy
-#| msgid "Delete all"
 msgid "Delete All"
 msgstr "删除所有"
 
@@ -2640,7 +2594,6 @@ msgid "Click the icon to repair model object"
 msgstr "点击图标修复模型对象"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object settings"
 msgid "Right click the icon to drop the object settings"
 msgstr "右键点击此图标以舍弃对象的设置"
 
@@ -2648,12 +2601,10 @@ msgid "Click the icon to reset all settings of the object"
 msgstr "点击此图标可重置对象的所有设置"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object printable property"
 msgid "Right click the icon to drop the object printable property"
 msgstr "右键点击此图标以舍弃对象的可打印属性"
 
 #, fuzzy
-#| msgid "Click the icon to toggle printable property of the object"
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "点击此图标可切换这个对象的可打印属性"
 
@@ -2661,7 +2612,6 @@ msgid "Click the icon to edit support painting of the object"
 msgstr "点击此图标可编辑这个对象的支撑绘制"
 
 #, fuzzy
-#| msgid "Click the icon to edit color painting of the object"
 msgid "Click the icon to edit color painting for the object"
 msgstr "点击此图标可编辑这个对象的颜色绘制"
 
@@ -2679,11 +2629,6 @@ msgstr "无法获取当前文件中的模型数据。"
 
 msgid "Generic"
 msgstr "通用"
-
-#, fuzzy
-#| msgid "Add Modifier"
-msgid "Add Modifier"
-msgstr "添加修改器"
 
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr "切换到对象模式以编辑修改器的设置。"
@@ -2707,11 +2652,6 @@ msgid "To save cut correspondence you can delete all connectors from all related
 msgstr "为保证切割关系，您可以将所有关联对象的连接件一起删除。"
 
 #, fuzzy
-#| msgid ""
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed.\n"
-#| "\n"
-#| "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2744,17 +2684,14 @@ msgid "Group manipulation"
 msgstr "操作组"
 
 #, fuzzy
-#| msgid "Object Settings to modify"
 msgid "Object Settings to Modify"
 msgstr "要修改的对象设置"
 
 #, fuzzy
-#| msgid "Part Settings to modify"
 msgid "Part Settings to Modify"
 msgstr "要修改的零件设置"
 
 #, fuzzy
-#| msgid "Layer range Settings to modify"
 msgid "Layer Range Settings to Modify"
 msgstr "要修改的图层范围设置"
 
@@ -2783,7 +2720,6 @@ msgid "If the first selected item is a part, the second should be a part in the 
 msgstr "如果第一个选择的是零件，那么第二个选择的也必须是同一个对象中的零件。"
 
 #, fuzzy
-#| msgid "The type of the last solid object part is not to be changed."
 msgid "The type of the last solid object part cannot be changed."
 msgstr "不允许修改对象中最后一个实体零件的类型。"
 
@@ -2901,22 +2837,18 @@ msgid "1x1 Grid: %d mm"
 msgstr "1x1 网格：%d mm"
 
 #, fuzzy
-#| msgid "Detail."
 msgid "More"
 msgstr "详情"
 
 #, fuzzy
-#| msgid "Open Preferences."
 msgid "Open Preferences"
 msgstr "打开首选项"
 
 #, fuzzy
-#| msgid "Open next tip."
 msgid "Open next tip"
 msgstr "打开下一条提示"
 
 #, fuzzy
-#| msgid "Open Documentation in web browser."
 msgid "Open documentation in web browser"
 msgstr "在网页浏览器中打开文档。"
 
@@ -2948,12 +2880,10 @@ msgid "Enter Custom G-code used on current layer:"
 msgstr "输入当前层上使用的自定义G-code："
 
 #, fuzzy
-#| msgid "Jump to Layer"
 msgid "Jump to layer"
 msgstr "跳转到层"
 
 #, fuzzy
-#| msgid "Please enter the layer number"
 msgid "Please enter the layer number."
 msgstr "请输入层数"
 
@@ -3033,7 +2963,6 @@ msgid "Auto Refill"
 msgstr "自动补给"
 
 #, fuzzy
-#| msgid "Load Filament"
 msgid "Load"
 msgstr "进料"
 
@@ -3041,7 +2970,6 @@ msgid "Unload"
 msgstr "退料"
 
 #, fuzzy
-#| msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "选择一个AMS槽位，然后点击“进料”或“退料”按钮以自动进退料。"
 
@@ -3152,7 +3080,6 @@ msgid "Cut filament"
 msgstr "切断耗材丝"
 
 #, fuzzy
-#| msgid "Pull back current filament"
 msgid "Pull back the current filament"
 msgstr "抽回耗材丝"
 
@@ -3193,7 +3120,6 @@ msgid "No matching items..."
 msgstr "没有匹配的项目……"
 
 #, fuzzy
-#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "全部取消选中"
 
@@ -3249,7 +3175,6 @@ msgid "Arranging canceled."
 msgstr "已取消自动摆放。"
 
 #, fuzzy
-#| msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "已完成自动摆放，但是有未被摆到盘内的项，可在减小间距后重试。"
 
@@ -3318,7 +3243,6 @@ msgid "Please check the printer network connection."
 msgstr "请检查打印机的网络连接。"
 
 #, fuzzy
-#| msgid "Abnormal print file data. Please slice again."
 msgid "Abnormal print file data: please slice again."
 msgstr "打印文件数据异常，请重新切片"
 
@@ -3332,7 +3256,6 @@ msgid "Cloud service connection failed. Please try again."
 msgstr "云服务连接失败，请重试"
 
 #, fuzzy
-#| msgid "Print file not found. Please slice again."
 msgid "Print file not found; please slice again."
 msgstr "未找到打印文件，请重新切片。"
 
@@ -3346,7 +3269,6 @@ msgid "Failed to upload file to ftp. Please try again."
 msgstr "上传文件至FTP失败，请重试。"
 
 #, fuzzy
-#| msgid "Check the current status of the bambu server by clicking on the link above."
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "点击上方的链接检查Bambu服务器的当前状态。"
 
@@ -3354,12 +3276,10 @@ msgid "The size of the print file is too large. Please adjust the file size and 
 msgstr "打印文件的大小过大，请调整文件大小后重试。"
 
 #, fuzzy
-#| msgid "Print file not found, please slice it again and send it for printing."
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "未找到打印文件，请重新切片后再发送打印。"
 
 #, fuzzy
-#| msgid "Failed to upload print file to FTP. Please check the network status and try again."
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "无法将打印文件上传至FTP。请检查网络状态并重试。"
 
@@ -3412,7 +3332,6 @@ msgid "Sending G-code file over LAN"
 msgstr "通过局域网发送G-code文件"
 
 #, fuzzy
-#| msgid "Sending G-code file to SD card"
 msgid "Sending G-code file to SD card"
 msgstr "发送G-code文件到SD卡"
 
@@ -3484,7 +3403,6 @@ msgid "Importing SLA archive"
 msgstr "导入SLA存档"
 
 #, fuzzy
-#| msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "SLA存档不包含任何预设。在导入该SLA存档之前，请先激活一些SLA打印机预设。"
 
@@ -3498,7 +3416,6 @@ msgid "The imported SLA archive did not contain any presets. The current SLA pre
 msgstr "导入的SLA存档不包含任何预设。当前的SLA预设被用作备用选项。"
 
 #, fuzzy
-#| msgid "You cannot load SLA project with a multi-part object on the bed"
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "您不能加载一个在床上有多个部件的SLA项目"
 
@@ -3527,7 +3444,6 @@ msgid "Install failed"
 msgstr "安装失败"
 
 #, fuzzy
-#| msgid "Portions copyright"
 msgid "License Info"
 msgstr "部分版权"
 
@@ -3642,7 +3558,6 @@ msgid "Custom Color"
 msgstr "自定义颜色"
 
 #, fuzzy
-#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "动态流量校准"
 
@@ -3651,6 +3566,10 @@ msgstr "喷嘴温度和最大体积流量会影响到校准结果，请填写与
 
 msgid "Nozzle Diameter"
 msgstr "喷嘴直径"
+
+#, fuzzy
+msgid "Plate Type"
+msgstr "热床类型"
 
 msgid "Nozzle temperature"
 msgstr "喷嘴温度"
@@ -3671,7 +3590,6 @@ msgid "mm³"
 msgstr "立方毫米"
 
 #, fuzzy
-#| msgid "Start calibration"
 msgid "Start"
 msgstr "开始"
 
@@ -3683,6 +3601,10 @@ msgstr "校准完成。如下图中的示例，请在您的热床上找到最均
 
 msgid "Save"
 msgstr "保存"
+
+#, fuzzy
+msgid "Back"
+msgstr "背面"
 
 msgid "Example"
 msgstr "示例"
@@ -3779,7 +3701,6 @@ msgid "Enable AMS"
 msgstr "启用AMS"
 
 #, fuzzy
-#| msgid "Print with filaments in the AMS"
 msgid "Print with filament in the AMS"
 msgstr "采用AMS里的材料打印"
 
@@ -3787,12 +3708,10 @@ msgid "Disable AMS"
 msgstr "不启用AMS"
 
 #, fuzzy
-#| msgid "Print with the filament mounted on the back of chassis"
 msgid "Print with filament on external spool"
 msgstr "使用机箱背后挂载的材料打印"
 
 #, fuzzy
-#| msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "当干燥剂过于潮湿时,请及时更换。以下几种情况下,指示器可能无法准确反映情况:盖子打开或干燥剂包被替换时。干燥剂需要数小时吸收潮气,低温也会延缓该过程。"
 
@@ -3812,12 +3731,10 @@ msgid "Do not Enable AMS"
 msgstr "不启用AMS"
 
 #, fuzzy
-#| msgid "Print using materials mounted on the back of the case"
 msgid "Print using filament on external spool."
 msgstr "使用安装在机箱背面的材料进行打印"
 
 #, fuzzy
-#| msgid "Print with filaments in AMS"
 msgid "Print with filament in AMS"
 msgstr "采用AMS里的材料打印"
 
@@ -3843,7 +3760,6 @@ msgid "The printer does not currently support auto refill."
 msgstr "打印机当前不支持自动补给耗材。"
 
 #, fuzzy
-#| msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "AMS耗材备份未启用，请在AMS设置中启用。"
 
@@ -3865,7 +3781,6 @@ msgid "Insertion update"
 msgstr "插入料时更新"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "当插入新的Bambu Lab耗材丝的时候，AMS会自动读取耗材丝信息。这个过程大约需要20秒。"
 
@@ -3876,12 +3791,10 @@ msgid "When inserting a new filament, the AMS will not automatically read its in
 msgstr "在插入一卷新料时，AMS将不会自动读取料卷信息，预留一个空的料卷信息等待您手动输入。"
 
 #, fuzzy
-#| msgid "Power on update"
 msgid "Update on startup"
 msgstr "开机时检测"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "每次开机时，AMS将会自动读取其所插入的耗材信息(读取过程会转料卷)。需要花时大约1分钟。"
 
@@ -3937,7 +3850,6 @@ msgid "Failed to download the plug-in. Please check your firewall settings and V
 msgstr "插件下载失败。请检查您的防火墙设置和vpn软件,检查后重试。"
 
 #, fuzzy
-#| msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "插件安装失败。插件文件可能正在使用中。请重新启动 OrcaSlicer 后重试。同时检查是否被杀毒软件阻止或删除。"
 
@@ -3960,7 +3872,6 @@ msgid "Go Home"
 msgstr "回原点"
 
 #, fuzzy
-#| msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "发生错误。可能系统内存不足或者程序存在bug。"
 
@@ -3969,12 +3880,10 @@ msgid "A fatal error occurred: \"%1%\""
 msgstr "发生致命错误：\"%1%\""
 
 #, fuzzy
-#| msgid "Please save project and restart the program."
 msgid "Please save your project and restart the application."
 msgstr "请保存项目并重启程序。"
 
 #, fuzzy
-#| msgid "Processing G-code from Previous file..."
 msgid "Processing G-Code from previous file…"
 msgstr "从之前的文件加载G-code..."
 
@@ -4040,7 +3949,6 @@ msgid "G-code file exported to %1%"
 msgstr "G 代码文件导出到 %1%"
 
 #, fuzzy
-#| msgid "Unknown error when exporting G-code."
 msgid "Unknown error with G-code export"
 msgstr "导出G-code文件发生未知错误。"
 
@@ -4055,7 +3963,6 @@ msgstr ""
 "源文件 %2%."
 
 #, fuzzy
-#| msgid "Copying of the temporary G-code to the output G-code failed"
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "将临时 G 代码复制到输出 G 代码失败"
 
@@ -4103,7 +4010,6 @@ msgid "Invalid file format."
 msgstr "无效的文件格式。"
 
 #, fuzzy
-#| msgid "Error! Invalid model"
 msgid "Error: invalid model"
 msgstr "错误！无效模型"
 
@@ -4111,7 +4017,6 @@ msgid "The selected file contains no geometry."
 msgstr "所选文件不包含任何几何数据。"
 
 #, fuzzy
-#| msgid "The selected file contains several disjoint areas. This is not supported."
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "所选文件包含多个未连接的区域。不支持这种类型。"
 
@@ -4139,10 +4044,6 @@ msgid "Please check.\n"
 msgstr "请检查。\n"
 
 #, fuzzy
-#| msgid ""
-#| "Nozzle may be blocked when the temperature is out of recommended range.\n"
-#| "Please make sure whether to use the temperature to print.\n"
-#| "\n"
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4157,9 +4058,6 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "该耗材的推荐喷嘴温度是[%d, %d]摄氏度"
 
 #, fuzzy
-#| msgid ""
-#| "Too small max volumetric speed.\n"
-#| "Reset to 0.5."
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4167,24 +4065,17 @@ msgstr ""
 "最大体积流量设置过小\n"
 "重置为0.5"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+#, fuzzy, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "当前腔体温度高于材料的安全温度，这可能导致材料软化和堵塞。该材料的最高安全温度为 %d。"
 
 #, fuzzy
-#| msgid ""
-#| "Too small layer height.\n"
-#| "Reset to 0.2."
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
 msgstr "层高过小。将重置为0.2"
 
 #, fuzzy
-#| msgid ""
-#| "Too small ironing spacing.\n"
-#| "Reset to 0.1."
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4200,12 +4091,6 @@ msgstr ""
 "首层层高将被重置为0.2。"
 
 #, fuzzy
-#| msgid ""
-#| "This setting is only used for model size tunning with small value in some cases.\n"
-#| "For example, when model size has small error and hard to be assembled.\n"
-#| "For large size tuning, please use model scale function.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4219,12 +4104,6 @@ msgstr ""
 "这个数值将被重置为0。"
 
 #, fuzzy
-#| msgid ""
-#| "Too large elephant foot compensation is unreasonable.\n"
-#| "If really have serious elephant foot effect, please check other settings.\n"
-#| "For example, whether bed temperature is too high.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4317,10 +4196,6 @@ msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr "但是使用I3结构的机器将不会生成延时视频。"
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings and enable spiral mode automatically\n"
-#| "No  - Give up using spiral mode this time"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4692,7 +4567,6 @@ msgid "Print settings"
 msgstr "打印设置"
 
 #, fuzzy
-#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "耗材丝设置"
 
@@ -4717,8 +4591,7 @@ msgstr "空字符串"
 msgid "Value is out of range."
 msgstr "值越界。"
 
-#, boost-format, c-format, fuzzy
-#| msgid "%s can't be a percentage"
+#, fuzzy, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s 不可以是百分比"
 
@@ -4959,7 +4832,6 @@ msgid "Total"
 msgstr "总计"
 
 #, fuzzy
-#| msgid "Total Estimation"
 msgid "Total estimation"
 msgstr "总预估"
 
@@ -5039,12 +4911,10 @@ msgid "Usage"
 msgstr "用法"
 
 #, fuzzy
-#| msgid "Layer Height (mm)"
 msgid "Layer height (mm)"
 msgstr "层高（mm）"
 
 #, fuzzy
-#| msgid "Line Width (mm)"
 msgid "Line width (mm)"
 msgstr "线宽（mm）"
 
@@ -5061,7 +4931,6 @@ msgid "Jerk (mm/s)"
 msgstr "抖动 (mm/s)"
 
 #, fuzzy
-#| msgid "Fan Speed (%)"
 msgid "Fan speed (%)"
 msgstr "风扇速度（%）"
 
@@ -5076,6 +4945,10 @@ msgstr "实际体积流量（mm³/s）"
 
 msgid "Seams"
 msgstr "缝"
+
+#, fuzzy
+msgid "Filament changes"
+msgstr "材料切换"
 
 msgid "Options"
 msgstr "选项"
@@ -5099,7 +4972,6 @@ msgid "Print"
 msgstr "打印"
 
 #, fuzzy
-#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "打印机"
 
@@ -5218,7 +5090,6 @@ msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右喷嘴：X：%1%-%2%，Y：%3%-%4%，Z：%5%-%6%"
 
 #, fuzzy
-#| msgid "Tool Move"
 msgid "Tool move"
 msgstr "工具 移动"
 
@@ -5226,12 +5097,10 @@ msgid "Tool Rotate"
 msgstr "工具 旋转"
 
 #, fuzzy
-#| msgid "Move Object"
 msgid "Move object"
 msgstr "移动对象"
 
 #, fuzzy
-#| msgid "Auto Orientation options"
 msgid "Auto orientation options"
 msgstr "自动朝向选项"
 
@@ -5365,7 +5234,6 @@ msgid "Section View"
 msgstr "剖面视图"
 
 #, fuzzy
-#| msgid "Assemble Control"
 msgid "Assembly Control"
 msgstr "拼装视图控制"
 
@@ -5395,7 +5263,6 @@ msgid "A G-code path goes beyond the max print height."
 msgstr "检测出超出打印高度的G-code路径。"
 
 #, fuzzy
-#| msgid "A G-code path goes beyond the plate boundaries."
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "检测超出热床边界的G-code路径。"
 
@@ -5457,7 +5324,6 @@ msgid "Micro lidar calibration"
 msgstr "微激光雷达校准"
 
 #, fuzzy
-#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "热床调平"
 
@@ -5537,7 +5403,6 @@ msgstr ""
 "在打印机上，如图："
 
 #, fuzzy
-#| msgid "Invalid input."
 msgid "Invalid input"
 msgstr "非法输入"
 
@@ -5548,7 +5413,6 @@ msgid "Open a new window"
 msgstr "打开新窗口"
 
 #, fuzzy
-#| msgid "Application is closing"
 msgid "Closing application"
 msgstr "正在关闭应用程序"
 
@@ -5798,7 +5662,6 @@ msgid "Paste clipboard"
 msgstr "从剪贴板粘贴"
 
 #, fuzzy
-#| msgid "Delete selected"
 msgid "Delete Selected"
 msgstr "删除所选项"
 
@@ -5809,7 +5672,6 @@ msgid "Deletes all objects"
 msgstr "删除所有对象"
 
 #, fuzzy
-#| msgid "Clone selected"
 msgid "Clone Selected"
 msgstr "克隆所选项"
 
@@ -5973,13 +5835,11 @@ msgstr "视图"
 msgid "&Help"
 msgstr "帮助"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A file exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "存在同名文件：%s，是否要覆盖？"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A config exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "存在同名配置：%s，是否要覆盖？"
 
@@ -6004,7 +5864,6 @@ msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "共导出 %d 组预设（仅包含当前使用的非系统的预设）"
 
 #, fuzzy
-#| msgid "Export result"
 msgid "Export Result"
 msgstr "导出结果"
 
@@ -6055,7 +5914,6 @@ msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "播放器异常，请重新安装系统播放器。"
 
 #, fuzzy
-#| msgid "The player is not loaded, please click \"play\" button to retry."
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "未能加载播放器，请重新点击“播放”按钮。"
 
@@ -6078,7 +5936,6 @@ msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "局域网模式直播未开启，请前往打印机屏幕开启。"
 
 #, fuzzy
-#| msgid "Please enter the IP of printer to connect."
 msgid "Please enter the IP of the printer to connect."
 msgstr "请输入打印机IP后尝试连接。"
 
@@ -6377,7 +6234,6 @@ msgid "Input access code"
 msgstr "输入访问码"
 
 #, fuzzy
-#| msgid "Can't find my devices?"
 msgid "Can't find devices?"
 msgstr "找不到我的设备？"
 
@@ -6403,17 +6259,14 @@ msgid "illegal suffix:"
 msgstr "非法后缀："
 
 #, fuzzy
-#| msgid "The name is not allowed to be empty."
 msgid "The name field is not allowed to be empty."
 msgstr "名称不允许为空。"
 
 #, fuzzy
-#| msgid "The name is not allowed to start with space character."
 msgid "The name is not allowed to start with a space."
 msgstr "名称不允许以空格开头。"
 
 #, fuzzy
-#| msgid "The name is not allowed to end with space character."
 msgid "The name is not allowed to end with a space."
 msgstr "名称不允许以空格结尾。"
 
@@ -6437,7 +6290,6 @@ msgid "Switching failed"
 msgstr "切换失败"
 
 #, fuzzy
-#| msgid "Printing Progress"
 msgid "Printing progress"
 msgstr "打印进度"
 
@@ -6457,9 +6309,6 @@ msgid "Clear"
 msgstr "清除"
 
 #, fuzzy
-#| msgid ""
-#| "You have completed printing the mall model, \n"
-#| "but the synchronization of rating information has failed."
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6546,8 +6395,7 @@ msgstr "下载中..."
 msgid "Cloud Slicing..."
 msgstr "云切片中..."
 
-#, boost-format, c-format, fuzzy
-#| msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+#, fuzzy, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "前面还有%s个任务在云端切片队列中"
 
@@ -6572,7 +6420,6 @@ msgid "Please select an AMS slot before calibration"
 msgstr "请先选择一个AMS槽位后进行校准"
 
 #, fuzzy
-#| msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "无法读取耗材丝信息：耗材丝已经加载到工具头，请退出耗材丝后再重试。"
 
@@ -6803,7 +6650,6 @@ msgid "3D Mouse disconnected."
 msgstr "3D鼠标断连。"
 
 #, fuzzy
-#| msgid "Configuration can update now."
 msgid "A new configuration is available. Update now?"
 msgstr "配置现在可以升级。"
 
@@ -6829,17 +6675,14 @@ msgid "Undo integration failed."
 msgstr "集成取消失败。"
 
 #, fuzzy
-#| msgid "Exporting."
 msgid "Exporting"
 msgstr "正在导出。"
 
 #, fuzzy
-#| msgid "Software has New version."
 msgid "An update is available!"
 msgstr "发现新的软件版本。"
 
 #, fuzzy
-#| msgid "Goto download page."
 msgid "Go to download page"
 msgstr "前往下载网站。"
 
@@ -6962,7 +6805,6 @@ msgid "Enable detection of build plate position"
 msgstr "启用打印板位置检测"
 
 #, fuzzy
-#| msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "检测打印板的定位标记，如果标记不在预定义范围内时暂停打印。"
 
@@ -7009,7 +6851,6 @@ msgid "First Layer Inspection"
 msgstr "首层扫描"
 
 #, fuzzy
-#| msgid "Auto-recovery from step loss"
 msgid "Auto-recover from step loss"
 msgstr "自动从丢步中恢复"
 
@@ -7023,7 +6864,6 @@ msgid "Allow Prompt Sound"
 msgstr "允许提示音"
 
 #, fuzzy
-#| msgid "Filament Tangle Detect"
 msgid "Filament Tangle Detection"
 msgstr "缠料检测"
 
@@ -7176,11 +7016,6 @@ msgstr "材料消耗"
 msgid "Estimated time"
 msgstr "预估打印时间"
 
-#, fuzzy
-#| msgid "Filament changes"
-msgid "Filament changes"
-msgstr "材料切换"
-
 msgid "Set the number of AMS installed on the nozzle."
 msgstr "设置安装在喷嘴上的 AMS 的数量。"
 
@@ -7287,7 +7122,6 @@ msgid "Ejecting of device %s (%s) has failed."
 msgstr "弹出设备%s(%s)失败"
 
 #, fuzzy
-#| msgid "Previous unsaved project detected, do you want to restore it?"
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "检测到有未保存的项目，是否恢复此项目？"
 
@@ -7295,12 +7129,10 @@ msgid "Restore"
 msgstr "恢复"
 
 #, fuzzy
-#| msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "当前热床温度相对较高。在封闭式外壳中打印这种丝可能会导致喷嘴堵塞。请打开前门和/或取下上部玻璃。"
 
 #, fuzzy
-#| msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "打印丝所要求的喷嘴硬度高于打印机默认的喷嘴硬度。请更换硬化的喷嘴或打印丝，否则喷嘴可能被磨损或损坏。"
 
@@ -7352,7 +7184,6 @@ msgid "The 3MF file version %s is newer than %s's version %s, found the followin
 msgstr "该 3MF 文件版本 %s 比 %s 的版本 %s 新，发现以下无法识别的参数键值："
 
 #, fuzzy
-#| msgid "You'd better upgrade your software.\n"
 msgid "You should update your software.\n"
 msgstr "建议升级您的软件版本。\n"
 
@@ -7375,7 +7206,6 @@ msgid "Invalid values found in the 3MF:"
 msgstr "在3mf文件中发现无效值："
 
 #, fuzzy
-#| msgid "Please correct them in the param tabs"
 msgid "Please correct them in the Param tabs"
 msgstr "请在参数页更正它们"
 
@@ -7398,12 +7228,10 @@ msgid "Customized Preset"
 msgstr "自定义的预设"
 
 #, fuzzy
-#| msgid "Name of components inside STEP file is not UTF8 format!"
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "STEP 文件中的部件名称不是 UTF8 格式！"
 
 #, fuzzy
-#| msgid "The name may show garbage characters!"
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "此名称可能显示乱码字符！"
 
@@ -7420,10 +7248,7 @@ msgstr "体积为零的对象已被移除"
 msgid "The volume of the object is zero"
 msgstr "对象的体积为零"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The object from file %s is too small, and maybe in meters or inches.\n"
-#| " Do you want to scale to millimeters?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7435,10 +7260,6 @@ msgid "Object too small"
 msgstr "对象尺寸过小"
 
 #, fuzzy
-#| msgid ""
-#| "This file contains several objects positioned at multiple heights.\n"
-#| "Instead of considering them as multiple objects, should \n"
-#| "the file be loaded as a single object having multiple parts?"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7454,7 +7275,6 @@ msgid "Load these files as a single object with multiple parts?\n"
 msgstr "将这些文件加载为一个多零件对象？\n"
 
 #, fuzzy
-#| msgid "Object with multiple parts was detected"
 msgid "An object with multiple parts was detected"
 msgstr "检测到多零件对象"
 
@@ -7490,17 +7310,13 @@ msgid "Export AMF file:"
 msgstr "导出AMF文件："
 
 #, fuzzy
-#| msgid "Save file as:"
 msgid "Save file as"
 msgstr "文件另存为："
 
 msgid "Export OBJ file:"
 msgstr "导出OBJ文件："
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The file %s already exists\n"
-#| "Do you want to replace it?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7515,10 +7331,6 @@ msgid "Delete object which is a part of cut object"
 msgstr "删除切割对象的一部分"
 
 #, fuzzy
-#| msgid ""
-#| "You try to delete an object which is a part of a cut object.\n"
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed."
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7541,7 +7353,6 @@ msgid "Unable to replace with more than one volume"
 msgstr "超过1个零件，无法替换"
 
 #, fuzzy
-#| msgid "Error during replace"
 msgid "Error during replacement"
 msgstr "替换时发生错误"
 
@@ -7552,7 +7363,6 @@ msgid "Select a new file"
 msgstr "选择新文件"
 
 #, fuzzy
-#| msgid "File for the replace wasn't selected"
 msgid "File for the replacement wasn't selected"
 msgstr "未选择替换文件"
 
@@ -7644,7 +7454,6 @@ msgid "Sync now"
 msgstr "立即同步"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project or discard them"
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "您可以保留修改的预设到新项目中或者忽略这些修改"
 
@@ -7655,9 +7464,6 @@ msgid "Load project"
 msgstr "加载项目"
 
 #, fuzzy
-#| msgid ""
-#| "Failed to save the project.\n"
-#| "Please check whether the folder exists online or if other programs open the project file."
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7673,7 +7479,6 @@ msgid "Preparing 3MF file..."
 msgstr "正在准备 3MF 文件..."
 
 #, fuzzy
-#| msgid "Download failed, unknown file format."
 msgid "Download failed; unknown file format."
 msgstr "下载失败，未知文件格式。"
 
@@ -7681,7 +7486,6 @@ msgid "Downloading project..."
 msgstr "项目下载中..."
 
 #, fuzzy
-#| msgid "Download failed, File size exception."
 msgid "Download failed; File size exception."
 msgstr "下载失败，文件大小异常。"
 
@@ -7708,12 +7512,10 @@ msgid "The selected file"
 msgstr "已选择的文件"
 
 #, fuzzy
-#| msgid "does not contain valid G-code."
 msgid "Does not contain valid G-code."
 msgstr "不包含有效的G-code文件。"
 
 #, fuzzy
-#| msgid "Error occurs while loading G-code file"
 msgid "An Error has occurred while loading the G-code file."
 msgstr "加载G-code文件时遇到错误"
 
@@ -7744,7 +7546,6 @@ msgid "Import geometry only"
 msgstr "仅导入模型数据"
 
 #, fuzzy
-#| msgid "Only one G-code file can be opened at the same time."
 msgid "Only one G-code file can be opened at a time."
 msgstr "只能同时打开一个G-code文件。"
 
@@ -7752,12 +7553,10 @@ msgid "G-code loading"
 msgstr "正在加载G-code文件"
 
 #, fuzzy
-#| msgid "G-code files cannot be loaded with models together!"
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-code文件不能和模型一起加载"
 
 #, fuzzy
-#| msgid "Cannot add models when in preview mode!"
 msgid "Unable to add models in preview mode"
 msgstr "在预览模式不允许添加模型"
 
@@ -7765,7 +7564,6 @@ msgid "All objects will be removed, continue?"
 msgstr "即将删除所有对象，是否继续？"
 
 #, fuzzy
-#| msgid "The current project has unsaved changes, save it before continue?"
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "当前项目包含未保存的修改，是否先保存？"
 
@@ -7838,9 +7636,6 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "打印文件数据异常，请重新切片"
 
 #, fuzzy
-#| msgid ""
-#| "Print By Object: \n"
-#| "Suggest to use auto-arrange to avoid collisions when printing."
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7926,8 +7721,7 @@ msgstr "三角形：%1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "使用“修复模型”来修复网格。"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+#, fuzzy, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "热床 %d：%s不建议被用于打印%s（%s）材料。如果你依然想打印，请设置耗材对应的热床温度为非零值。"
 
@@ -7956,7 +7750,6 @@ msgid "rear"
 msgstr "后部"
 
 #, fuzzy
-#| msgid "Switching the language requires application restart.\n"
 msgid "Switching languages requires the application to restart.\n"
 msgstr "切换语言需要重启应用程序。\n"
 
@@ -7985,7 +7778,6 @@ msgid "Others"
 msgstr "其他"
 
 #, fuzzy
-#| msgid "Changing the region will log out your account.\n"
 msgid "Changing the region will log you out of your account.\n"
 msgstr "修改区域会自动登出您的账号。\n"
 
@@ -8060,7 +7852,6 @@ msgid "Set the page opened on startup."
 msgstr "设置启动OrcaSlicer时首先显示的页面。"
 
 #, fuzzy
-#| msgid "Enable dark mode"
 msgid "Enable dark Mode"
 msgstr "启用深色模式"
 
@@ -8137,7 +7928,6 @@ msgid "Auto backup"
 msgstr "自动备份"
 
 #, fuzzy
-#| msgid "Backup your project periodically for restoring from the occasional crash."
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "定期备份你的项目，以便从偶尔的崩溃中恢复过来。"
 
@@ -8431,7 +8221,6 @@ msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "同步用户预设（打印机/耗材丝/工艺）"
 
 #, fuzzy
-#| msgid "Update built-in Presets automatically."
 msgid "Update built-in presets automatically."
 msgstr "自动更新系统预设"
 
@@ -8505,7 +8294,6 @@ msgid "Associate 3MF files to OrcaSlicer"
 msgstr "将 3MF 文件关联到 OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "启用后，将 OrcaSlicer 设置为打开 3MF 文件的默认应用程序。"
 
@@ -8519,7 +8307,6 @@ msgid "Associate STL files to OrcaSlicer"
 msgstr "将 STL 文件关联到 OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "启用后，将 OrcaSlicer 设置为打开 STL 文件的默认应用程序。"
 
@@ -8527,7 +8314,6 @@ msgid "Associate STEP files to OrcaSlicer"
 msgstr "将 STEP 文件关联到 OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "启用后，将 OrcaSlicer 设置为打开 STEP 文件的默认应用程序。"
 
@@ -8630,7 +8416,6 @@ msgid "Other"
 msgstr "其他"
 
 #, fuzzy
-#| msgid "Mouse wheel reverses when zooming"
 msgid "Reverse scroll direction while zooming"
 msgstr "缩放时鼠标滚轮反转"
 
@@ -8665,12 +8450,10 @@ msgid "Save debug settings"
 msgstr "保存调试设置"
 
 #, fuzzy
-#| msgid "DEBUG settings have been saved successfully!"
 msgid "Debug settings have been saved successfully!"
 msgstr "DEBUG模式生效!"
 
 #, fuzzy
-#| msgid "Cloud environment switched, please login again!"
 msgid "Cloud environment switched; please login again!"
 msgstr "切换云环境，请重新登录!"
 
@@ -8690,7 +8473,6 @@ msgid "Left filaments"
 msgstr "左耗材"
 
 #, fuzzy
-#| msgid "AMS filaments"
 msgid "AMS filament"
 msgstr "AMS 打印丝"
 
@@ -8725,7 +8507,6 @@ msgid "Unsupported"
 msgstr "不支持"
 
 #, fuzzy
-#| msgid "Add/Remove filaments"
 msgid "Add/Remove filament"
 msgstr "添加/删除材料"
 
@@ -8763,7 +8544,6 @@ msgid "Plate name"
 msgstr "盘名称"
 
 #, fuzzy
-#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "跟随全局打印板类型"
 
@@ -8801,7 +8581,6 @@ msgid "Log Out"
 msgstr "登出"
 
 #, fuzzy
-#| msgid "Slice all plate to obtain time and filament estimation"
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "正在切片以获取切片信息和预估打印时间"
 
@@ -8863,7 +8642,6 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr "预设“%1%”已存在，并且和当前打印机不兼容。"
 
 #, fuzzy
-#| msgid "Please note that saving will overwrite this preset."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "请注意，保存操作将覆盖此预设。"
 
@@ -8994,7 +8772,6 @@ msgid "The selected printer (%s) is incompatible with the print file configurati
 msgstr "所选打印机 (%s) 与打印文件配置 (%s) 不兼容。请在准备页面调整打印机预设或在此页面选择兼容的打印机。"
 
 #, fuzzy
-#| msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "当启用旋转花瓶模式时，I3结构的机器将不会生成延时摄影。"
 
@@ -9014,7 +8791,6 @@ msgid "The printer type selected when generating G-code is not consistent with t
 msgstr "生成G-code时选择的打印机类型与当前选择的打印机不一致。建议您使用相同的打印机类型进行切片。"
 
 #, fuzzy
-#| msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS映射中存在一些未知的耗材。请检查它们是否符合预期。如果符合，按“确定”以开始打印任务。"
 
@@ -9147,7 +8923,6 @@ msgid "Storage needs to be inserted before printing."
 msgstr "打印前需要插入存储。"
 
 #, fuzzy
-#| msgid "Cannot send the print job to a printer whose firmware is required to get updated."
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "需要更新打印机固件后，才能将打印任务发送到打印机"
 
@@ -9203,7 +8978,6 @@ msgid "Connection failed. Click the icon to retry"
 msgstr "连接失败。单击该图标重试"
 
 #, fuzzy
-#| msgid "Cannot send the print task when the upgrade is in progress"
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "设备升级中，无法发送打印任务"
 
@@ -9214,7 +8988,6 @@ msgid "Storage needs to be inserted before send to printer."
 msgstr "在发送到打印机之前需要插入存储。"
 
 #, fuzzy
-#| msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "打印机需要与Orca Slicer在同一个局域网内。"
 
@@ -9231,7 +9004,6 @@ msgid "Sending failed, please try again!"
 msgstr "发送失败，请重试！"
 
 #, fuzzy
-#| msgid "Slice ok."
 msgid "Slice complete"
 msgstr "切片完成."
 
@@ -9248,12 +9020,10 @@ msgid "Failed to publish login request"
 msgstr "无法发布登录请求"
 
 #, fuzzy
-#| msgid "Get ticket from device timeout"
 msgid "Timeout getting ticket from device"
 msgstr "从设备获取票据超时"
 
 #, fuzzy
-#| msgid "Get ticket from server timeout"
 msgid "Timeout getting ticket from server"
 msgstr "从服务器获取票据超时"
 
@@ -9359,7 +9129,6 @@ msgid "Click to reset all settings to the last saved preset."
 msgstr "点击以将所有设置还原到最后一次保存的版本。"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "平滑模式的延时摄影需要擦料塔，否则打印件上可能会有瑕疵。您确定要关闭擦料塔吗？"
 
@@ -9376,7 +9145,6 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "同时启用精确Z高度和擦拭塔可能会导致切片错误。您仍然要启用精确Z高度吗？"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "平滑模式的延时摄影需要擦料塔，否则打印件上可能会有瑕疵。您想打开擦料塔吗？"
 
@@ -9398,10 +9166,6 @@ msgstr ""
 "0顶部Z距离，0接触面间距，交错线性图案并禁用支撑独立层高"
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings automatically\n"
-#| "No  - Do not change these settings for me"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9555,7 +9319,6 @@ msgid "Top/bottom shells"
 msgstr "顶部/底部外壳"
 
 #, fuzzy
-#| msgid "First layer speed"
 msgid "First layer speed"
 msgstr "首层速度"
 
@@ -9584,7 +9347,6 @@ msgid "Raft"
 msgstr "筏层"
 
 #, fuzzy
-#| msgid "Support filament"
 msgid "Filament for Supports"
 msgstr "支撑耗材"
 
@@ -9645,7 +9407,6 @@ msgid "Recommended nozzle temperature"
 msgstr "建议喷嘴温度"
 
 #, fuzzy
-#| msgid "Recommended nozzle temperature range of this filament. 0 means no set"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "该材料的建议喷嘴温度范围。0表示未设置"
 
@@ -9668,7 +9429,6 @@ msgid "Cool Plate"
 msgstr "低温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "安装低温打印热床时的热床温度。0值表示这个耗材丝不支持低温打印热床"
 
@@ -9676,12 +9436,10 @@ msgid "Textured Cool Plate"
 msgstr "纹理的低温打印床"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "安装纹理低温打印热床时的热床温度。0值表示这个耗材丝不支持纹理低温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "安装工程材料热床时的热床温度。0值表示这个耗材丝不支持工程材料热床"
 
@@ -9689,12 +9447,10 @@ msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "光滑PEI板/高温板"
 
 #, fuzzy
-#| msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "使用光滑PEI热床或高温打印热床时的床温。值0表示耗材不支持在光滑PEI热床或高温打印热床上打印"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "安装纹理PEI热床时的热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
@@ -9711,7 +9467,6 @@ msgid "Min fan speed threshold"
 msgstr "最小风扇速度阈值"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "当预估的层时间不大于设定的数值时，部件冷却风扇将开始运行在最小速度。层时间小于阈值时，实际风扇转速将根据层打印时间在最大和最小风扇速度之间插值获得"
 
@@ -9719,7 +9474,6 @@ msgid "Max fan speed threshold"
 msgstr "最大风扇速度阈值"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "当预计的层打印时间比设置值要短时，部件冷却风扇转速将达到最大值"
 
@@ -9944,8 +9698,7 @@ msgstr ""
 "确定要删除所选预设吗？\n"
 "如果预设对应当前在您的打印机上使用的材料，请重新设置该槽位的材料信息。"
 
-#, boost-format, fuzzy
-#| msgid "Are you sure to %1% the selected preset?"
+#, fuzzy, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "确定要%1%所选预设吗？"
 
@@ -9991,11 +9744,6 @@ msgstr "温度安全检查"
 msgid "Continue"
 msgstr "继续"
 
-#, fuzzy
-#| msgid "Back"
-msgid "Back"
-msgstr "背面"
-
 msgid "Don't warn again for this preset"
 msgstr "不再为此预设警告"
 
@@ -10011,7 +9759,6 @@ msgid "Click to reset current value and attach to the global value."
 msgstr "点击该图标，恢复到全局的配置数值，并与全局配置同步变化。"
 
 #, fuzzy
-#| msgid "Click to drop current modify and reset to saved value."
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "点击该图标，丢弃当前的修改，恢复到上次保存的数值。"
 
@@ -10019,7 +9766,6 @@ msgid "Process Settings"
 msgstr "工艺设置"
 
 #, fuzzy
-#| msgid "Unsaved Changes"
 msgid "unsaved changes"
 msgstr "未保存的更改"
 
@@ -10027,7 +9773,6 @@ msgid "Transfer or discard changes"
 msgstr "放弃或保留更改"
 
 #, fuzzy
-#| msgid "Old Value"
 msgid "Old value"
 msgstr "旧值"
 
@@ -10084,7 +9829,6 @@ msgid "Click the right mouse button to display the full text."
 msgstr "单击鼠标右键显示全文。"
 
 #, fuzzy
-#| msgid "All changes will not be saved"
 msgid "No changes will be saved."
 msgstr "所有的修改都不会被保存"
 
@@ -10636,7 +10380,6 @@ msgid "Arrow Up"
 msgstr "上箭头"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive Y direction"
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Y方向移动 10mm"
 
@@ -10644,7 +10387,6 @@ msgid "Arrow Down"
 msgstr "下箭头"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative Y direction"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Y方向移动 10mm"
 
@@ -10652,7 +10394,6 @@ msgid "Arrow Left"
 msgstr "左箭头"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative X direction"
 msgid "Move selection 10mm in negative X direction"
 msgstr "X方向移动 10mm"
 
@@ -10660,17 +10401,14 @@ msgid "Arrow Right"
 msgstr "右箭头"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive X direction"
 msgid "Move selection 10mm in positive X direction"
 msgstr "X方向移动 10mm"
 
 #, fuzzy
-#| msgid "Movement step set to 1 mm"
 msgid "Movement step set to 1mm"
 msgstr "沿X、Y轴以1mm为步进移动对象"
 
 #, fuzzy
-#| msgid "Keyboard 1-9: set filament for object/part"
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "按键1-9：设置对象/零件的耗材丝"
 
@@ -10768,7 +10506,6 @@ msgid "Set extruder number for the objects and parts"
 msgstr "设置对象、零件使用的挤出机编号"
 
 #, fuzzy
-#| msgid "Delete objects, parts, modifiers"
 msgid "Delete objects, parts, modifiers"
 msgstr "删除对象、零件、修改器"
 
@@ -10822,7 +10559,6 @@ msgid "Network plug-in update"
 msgstr "网络插件升级"
 
 #, fuzzy
-#| msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "点击\"确定\"，将在Orca Slicer下次启动之后自动升级网络插件"
 
@@ -10968,12 +10704,10 @@ msgid "Are you sure you want to update? This will take about 10 minutes. Do not 
 msgstr "确定要更新吗？更新需要大约10分钟，在此期间请勿关闭电源。"
 
 #, fuzzy
-#| msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "检测到重要更新，需要升级后才可进行打印。你想现在就开始升级吗？你也可以稍后点击‘升级固件’完成升级。"
 
 #, fuzzy
-#| msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "当前固件版本异常，需要进行修复升级，否则无法继续打印。你想现在就开始升级吗？你也可以稍后在打印机上升级，或者下一次启动studio再升级。"
 
@@ -10998,7 +10732,6 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "从%1%拷贝文件到%2%失败：%3%"
 
 #, fuzzy
-#| msgid "Need to check the unsaved changes before configuration updates."
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "需要在配置更新之前检查没有保存的参数修改。"
 
@@ -11014,8 +10747,7 @@ msgstr "打开G-code文件："
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "模型出现空层无法打印。请切掉底部或打开支撑。"
 
-#, boost-format, fuzzy
-#| msgid "Object can't be printed for empty layer between %1% and %2%."
+#, fuzzy, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "模型在%1%和%2%之间出现空层，无法打印。"
 
@@ -11024,7 +10756,6 @@ msgid "Object: %1%"
 msgstr "模型：%1%"
 
 #, fuzzy
-#| msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "部分模型在这些高度可能过薄，或者模型存在面片错误"
 
@@ -11035,7 +10766,6 @@ msgid "Filament change extrusion role G-code"
 msgstr "耗材挤出类型更换 G-code"
 
 #, fuzzy
-#| msgid "No object can be printed. Maybe too small"
 msgid "No object can be printed. It may be too small."
 msgstr "没有可打印的对象。可能是因为尺寸过小。"
 
@@ -11081,8 +10811,7 @@ msgstr "不能放置在"
 msgid "Internal Bridge"
 msgstr "内部搭桥"
 
-#, boost-format, fuzzy
-#| msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+#, fuzzy, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "计算 %1%的线宽失败。无法获得 \"%2%\" 的值"
 
@@ -11096,7 +10825,6 @@ msgid "too many files"
 msgstr "文件过多"
 
 #, fuzzy
-#| msgid "file too large"
 msgid "File too large"
 msgstr "文件太大"
 
@@ -11119,7 +10847,6 @@ msgid "invalid header or corrupted"
 msgstr "无效文件头或文件已损坏"
 
 #, fuzzy
-#| msgid "unsupported multidisk"
 msgid "Saving to RAID is not supported."
 msgstr "不支持多磁盘存档"
 
@@ -11169,7 +10896,6 @@ msgid "invalid filename"
 msgstr "无效的文件名"
 
 #, fuzzy
-#| msgid "buffer too small"
 msgid "Buffer too small"
 msgstr "缓冲区太小"
 
@@ -11180,7 +10906,6 @@ msgid "file not found"
 msgstr "文件未找到"
 
 #, fuzzy
-#| msgid "archive too large"
 msgid "Archive too large"
 msgstr "存档文件太大"
 
@@ -11190,8 +10915,7 @@ msgstr "验证失败"
 msgid "write callback failed"
 msgstr "写入回调失败"
 
-#, boost-format, fuzzy
-#| msgid "%1% is too close to exclusion area, there may be collisions when printing."
+#, fuzzy, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1%离屏蔽区域太近，可能会发生碰撞。"
 
@@ -11216,7 +10940,6 @@ msgid " is too close to others, and collisions may be caused.\n"
 msgstr "离其它对象太近，可能会发生碰撞。\n"
 
 #, fuzzy
-#| msgid " is too close to exclusion area, and collisions will be caused.\n"
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr "离不可打印区域太近，会发生碰撞。\n"
 
@@ -11251,7 +10974,6 @@ msgid "Please select \"By object\" print sequence to print multiple objects in s
 msgstr "请选择逐件打印以支持在旋转花瓶模式下打印多个对象。"
 
 #, fuzzy
-#| msgid "The spiral vase mode does not work when an object contains more than one materials."
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "不支持在包含多个材料的打印中使用旋转花瓶模式。"
 
@@ -11286,27 +11008,22 @@ msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprint
 msgstr "擦拭塔目前仅支持Marlin、RepRap/Sprinter、RepRapFirmware和Repetier G-code风格。"
 
 #, fuzzy
-#| msgid "The prime tower is not supported in \"By object\" print."
 msgid "A prime tower is not supported in “By object” print."
 msgstr "擦拭塔不支持在逐件打印模式下使用。"
 
 #, fuzzy
-#| msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "不支持在可变层高开启时使用擦拭塔。它要求所有对象拥有相同的层高。"
 
 #, fuzzy
-#| msgid "The prime tower requires \"support gap\" to be multiple of layer height."
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "擦拭塔要求”支撑间隙“为层高的整数倍。"
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects have the same layer heights."
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "擦拭塔要求各个对象拥有同样的层高。"
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are printed over the same number of raft layers."
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "擦拭塔要求各个对象使用同样的筏层数量。"
 
@@ -11314,7 +11031,6 @@ msgid "The prime tower is only supported for multiple objects if they are printe
 msgstr "仅当多个对象使用相同的 support_top_z_distance 打印时，才支持主塔。"
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are sliced with the same layer heights."
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "擦拭塔要求各个对象拥有同样的层高。"
 
@@ -11325,12 +11041,10 @@ msgid "One or more object were assigned an extruder that the printer does not ha
 msgstr "为一个或多个对象分配了打印机没有的挤出机。"
 
 #, fuzzy
-#| msgid "Too small line width"
 msgid "Line width too small"
 msgstr "线宽太小"
 
 #, fuzzy
-#| msgid "Too large line width"
 msgid "Line width too large"
 msgstr "线宽太大"
 
@@ -11338,7 +11052,6 @@ msgid "Printing with multiple extruders of differing nozzle diameters. If suppor
 msgstr "使用不同喷嘴直径的多个挤出机进行打印。如果要使用当前耗材打印支撑（support_filament == 0 或 support_interface_filament == 0），则所有喷嘴必须具有相同的直径。"
 
 #, fuzzy
-#| msgid "The prime tower requires that support has the same layer height with object."
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "擦拭塔要求支撑和对象采用同样的层高。"
 
@@ -11364,7 +11077,6 @@ msgid "Support enforcers are used but support is not enabled. Please enable supp
 msgstr "使用了支撑添加器但没有打开支撑。请打开支撑。"
 
 #, fuzzy
-#| msgid "Layer height cannot exceed nozzle diameter."
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "层高不能超过喷嘴直径"
 
@@ -11445,7 +11157,6 @@ msgid "Generating G-code"
 msgstr "正在生成G-code"
 
 #, fuzzy
-#| msgid "Failed processing of the filename_format template."
 msgid "Processing of the filename_format template failed."
 msgstr "处理文件名格式模板失败。"
 
@@ -11477,7 +11188,6 @@ msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 app
 msgstr "按并联打印头数量排列的热床排除区域有序列表。第 1 项适用于一个打印头，第 2 项适用于两个打印头，依此类推。将某项留空表示无排除区域。"
 
 #, fuzzy
-#| msgid "Bed exclude area"
 msgid "Excluded bed area"
 msgstr "不可打印区域"
 
@@ -11494,7 +11204,6 @@ msgid "Elephant foot compensation"
 msgstr "象脚补偿"
 
 #, fuzzy
-#| msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "将首层收缩用于补偿象脚效应"
 
@@ -11517,7 +11226,6 @@ msgstr ""
 "后续各层会按 elefant_foot_compensation_layers 中指定的高度线性增密。"
 
 #, fuzzy
-#| msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "每一层的切片高度。越小的层高意味着更高的精度和更长的打印时间。"
 
@@ -11525,7 +11233,6 @@ msgid "Printable height"
 msgstr "可打印高度"
 
 #, fuzzy
-#| msgid "Maximum printable height which is limited by mechanism of printer."
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "由打印机结构约束的最大可打印高度"
 
@@ -11605,7 +11312,6 @@ msgid "Ignore HTTPS certificate revocation checks"
 msgstr "忽略HTTPS证书吊销检查"
 
 #, fuzzy
-#| msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "在缺少或离线分发点的情况下忽略HTTPS证书吊销检查。如果连接失败，可以启用此选项来处理自签名证书。"
 
@@ -11625,7 +11331,6 @@ msgid "Avoid crossing walls"
 msgstr "避免跨越外墙"
 
 #, fuzzy
-#| msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "空驶时绕过外墙以避免在模型外观面产生斑点"
 
@@ -11633,7 +11338,6 @@ msgid "Avoid crossing walls - Max detour length"
 msgstr "避免跨越外墙-最大绕行长度"
 
 #, fuzzy
-#| msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "避免跨越外墙时的最大绕行距离。当绕行距离比这个数值大时，此次空驶不绕行。绕行距离可表达为绝对值，或者相对直线空驶长度的百分比(例如50%)。0表示禁用"
 
@@ -11647,72 +11351,58 @@ msgid "Bed temperature for layers except the initial one. A value of 0 means the
 msgstr "除首层外的其他层的热床温度。0值表示该耗材丝不支持在Cool Plate SuperTack上打印。"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持低温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持纹理低温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持工程材料热床"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持高温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
 #, fuzzy
-#| msgid "First layer"
 msgid "First layer"
 msgstr "首层"
 
 #, fuzzy
-#| msgid "First layer bed temperature"
 msgid "First layer bed temperature"
 msgstr "首层床温"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "初始层的床温。值 0 表示耗材不支持在 Cool Plate SuperTack 上打印。"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持低温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持纹理低温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持工程材料热床"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持高温打印热床"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
 #, fuzzy
-#| msgid "Bed types supported by the printer."
 msgid "Plate types supported by the printer"
 msgstr "打印机所支持的热床类型"
 
@@ -11747,7 +11437,6 @@ msgid "Bottom shell thickness"
 msgstr "底部壳体厚度"
 
 #, fuzzy
-#| msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "如果由底部壳体层数算出的厚度小于这个数值，那么切片时将自动增加底部壳体层数。这能够避免当层高很小时，底部壳体过薄。0表示关闭这个设置，同时底部壳体的厚度完全由底部壳体层数决定"
 
@@ -12170,12 +11859,10 @@ msgstr ""
 "当未启用检测悬垂时，此选项将被忽略，反转将在每个偶数层上发生。"
 
 #, fuzzy
-#| msgid "Slow down for overhang"
 msgid "Slow down for overhangs"
 msgstr "悬垂降速"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing down for different overhang degree."
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "启用此选项将降低不同悬垂程度的走线的打印速度"
 
@@ -12236,7 +11923,6 @@ msgid "Brim width"
 msgstr "Brim宽度"
 
 #, fuzzy
-#| msgid "Distance from model to the outermost brim line."
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "从模型到最外圈brim走线的距离"
 
@@ -12250,7 +11936,6 @@ msgid "Brim-object gap"
 msgstr "Brim与模型的间隙"
 
 #, fuzzy
-#| msgid "A gap between innermost brim line and object can make brim be removed more easily."
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "在brim和模型之间设置间隙，能够让brim更容易剥离"
 
@@ -12271,16 +11956,10 @@ msgstr ""
 "注意：所得的值不会受首层流量比的影响。"
 
 #, fuzzy
-#| msgid "Brim follows compensated outline"
 msgid "Brim follows compensated outline"
 msgstr "Brim遵循补偿轮廓"
 
 #, fuzzy
-#| msgid ""
-#| "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
-#| "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
-#| "\n"
-#| "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12336,7 +12015,6 @@ msgid "Condition"
 msgstr "条件"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "使用活动打印机配置文件的配置值的布尔表达式。如果此表达式计算为 true,则此配置文件将被视为与活动打印机配置文件兼容。"
 
@@ -12344,12 +12022,10 @@ msgid "Select profiles"
 msgstr "选择配置文件"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "使用活动打印配置文件的配置值的布尔表达式。如果此表达式计算为 true,则此配置文件将被视为与活动打印配置文件兼容。"
 
 #, fuzzy
-#| msgid "Print sequence, layer by layer or object by object."
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "打印顺序，逐层打印或者逐件打印"
 
@@ -12372,7 +12048,6 @@ msgid "Slow printing down for better layer cooling"
 msgstr "降低打印速度 以得到更好的冷却"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "勾选这个选项，将降低打印速度，使得最终的层打印时间不小于\"最大风扇速度阈值\"里的层时间阈值，从而使得该层获得更久的冷却。这能够改善尖顶和小细节的冷却效果"
 
@@ -12380,7 +12055,6 @@ msgid "Normal printing"
 msgstr "普通打印"
 
 #, fuzzy
-#| msgid "The default acceleration of both normal printing and travel except initial layer."
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "除首层之外的默认的打印和空驶的加速度"
 
@@ -12427,7 +12101,6 @@ msgid "Don't support bridges"
 msgstr "不支撑桥接"
 
 #, fuzzy
-#| msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "不对整个桥接面进行支撑，否则支撑体会很大。不是很长的桥接通常可以无支撑直接打印。"
 
@@ -12522,7 +12195,6 @@ msgid "Max bridge length"
 msgstr "最大桥接长度"
 
 #, fuzzy
-#| msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "不需要支撑的桥接的最大长度。如果希望支持所有桥接，请将其设置为0；如果不希望支持任何桥接，请将其设置为非常大的值。"
 
@@ -12530,7 +12202,6 @@ msgid "End G-code"
 msgstr "结尾G-code"
 
 #, fuzzy
-#| msgid "End G-code when finishing the entire print."
 msgid "Add end G-Code when finishing the entire print."
 msgstr "所有打印结束时的结尾G-code"
 
@@ -12541,7 +12212,6 @@ msgid "Insert G-code between objects. This parameter will only come into effect 
 msgstr "在对象之间插入 G-code。此参数仅在逐个打印模型物体时生效。"
 
 #, fuzzy
-#| msgid "End G-code when finishing the printing of this filament."
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "结束使用该耗材打印时的结尾G-code"
 
@@ -12573,7 +12243,6 @@ msgid "Top surface pattern"
 msgstr "顶面图案"
 
 #, fuzzy
-#| msgid "Line pattern of top surface infill."
 msgid "This is the line pattern for top surface infill."
 msgstr "顶面填充的走线图案"
 
@@ -12605,7 +12274,6 @@ msgid "Bottom surface pattern"
 msgstr "底面图案"
 
 #, fuzzy
-#| msgid "Line pattern of bottom surface infill, not bridge infill."
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "除了桥接外的底面填充的走线图案"
 
@@ -12619,7 +12287,6 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "外墙的线宽。如果以%表示，它将基于喷嘴直径来计算"
 
 #, fuzzy
-#| msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "外墙的打印速度。它通常使用比内壁速度慢的速度，以获得更好的质量。"
 
@@ -12700,7 +12367,6 @@ msgid "Height to rod"
 msgstr "到横杆高度"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "喷嘴尖端到下方滑杆的距离。用于在逐件打印中避免碰撞。"
 
@@ -12708,12 +12374,10 @@ msgid "Height to lid"
 msgstr "到顶盖高度"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "喷嘴尖端到顶盖的距离。用于在逐件打印中避免碰撞。"
 
 #, fuzzy
-#| msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "挤出机四周的避让半径。用于在逐件打印中避免碰撞。"
 
@@ -12840,7 +12504,6 @@ msgid "Keep fan always on"
 msgstr "保持风扇常开"
 
 #, fuzzy
-#| msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "如果勾选这个选项，部件冷却风扇将永远不会停止，并且会至少运行在最小风扇转速值以减少风扇的启停频次"
 
@@ -12862,7 +12525,6 @@ msgid "Layer time"
 msgstr "层时间"
 
 #, fuzzy
-#| msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "当层预估打印时间小于该数值时，部件冷却风扇将会被开启。风扇转速将根据层打印时间在最大和最小风扇转速之间插值获得"
 
@@ -12889,7 +12551,6 @@ msgid "Required nozzle HRC"
 msgstr "喷嘴硬度要求"
 
 #, fuzzy
-#| msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "打印此材料的所需的最小喷嘴硬度。零值表示不检查喷嘴硬度。"
 
@@ -12930,7 +12591,6 @@ msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric s
 msgstr "冲洗耗材丝时的体积流量。 0 表示最大体积流量。"
 
 #, fuzzy
-#| msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "这个设置表示在1秒内能够融化和挤出的耗材丝体积。打印速度会受到最大体积流量的限制，防止设置过高和不合理的速度。不允许设置为0。"
 
@@ -12976,7 +12636,6 @@ msgid "By Highest Temp"
 msgstr "根据最高打印温度"
 
 #, fuzzy
-#| msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "耗材丝直径被用于计算G-code文件中的挤出量。因此很重要，应尽可能精确。"
 
@@ -13051,7 +12710,6 @@ msgid "Unloading speed"
 msgstr "卸载速度"
 
 #, fuzzy
-#| msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "用于擦拭塔卸载耗材的速度（不影响尖端成型之后初始部分的速度）。"
 
@@ -13170,7 +12828,6 @@ msgid "Density"
 msgstr "密度"
 
 #, fuzzy
-#| msgid "Filament density. For statistics only."
 msgid "Filament density, for statistical purposes only."
 msgstr "耗材丝的密度。只用于统计信息。"
 
@@ -13178,7 +12835,6 @@ msgid "g/cm³"
 msgstr "克/立方厘米"
 
 #, fuzzy
-#| msgid "The material type of filament."
 msgid "Filament material type"
 msgstr "耗材丝的材料类型"
 
@@ -13210,7 +12866,6 @@ msgid "Softening temperature"
 msgstr "软化温度"
 
 #, fuzzy
-#| msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr ""
 "材料在这个温度下会软化。\n"
@@ -13220,7 +12875,6 @@ msgid "Price"
 msgstr "价格"
 
 #, fuzzy
-#| msgid "Filament price. For statistics only."
 msgid "Filament price, for statistical purposes only."
 msgstr "耗材丝的价格。只用于统计信息。"
 
@@ -13240,7 +12894,6 @@ msgid "Sparse infill direction"
 msgstr "稀疏填充方向"
 
 #, fuzzy
-#| msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "稀疏填充图案的角度，决定走线的开始或整体方向。"
 
@@ -13290,7 +12943,6 @@ msgid "Sparse infill pattern"
 msgstr "稀疏填充图案"
 
 #, fuzzy
-#| msgid "Line pattern for internal sparse infill."
 msgid "This is the line pattern for internal sparse infill."
 msgstr "内部稀疏填充的走线图案"
 
@@ -13423,12 +13075,10 @@ msgid "Acceleration of travel moves."
 msgstr "空驶加速度"
 
 #, fuzzy
-#| msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "顶面填充的加速度。使用较低值可能会改善顶面质量"
 
 #, fuzzy
-#| msgid "Acceleration of outer wall. Using a lower value can improve quality."
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "外墙加速度。使用较小的值可以提高质量。"
 
@@ -13445,7 +13095,6 @@ msgid "Acceleration of internal solid infill. If the value is expressed as a per
 msgstr "内部实心填充的加速度。如果该值以百分比表示（例如100%），则将根据默认加速度进行计算。"
 
 #, fuzzy
-#| msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "首层加速度。使用较低值可以改善和打印板的粘接。"
 
@@ -13507,29 +13156,24 @@ msgid "Line width of the first layer. If expressed as a %, it will be computed o
 msgstr "首层的线宽。若以百分比表示（例如120%），它将基于喷嘴直径来计算。"
 
 #, fuzzy
-#| msgid "First layer height"
 msgid "First layer height"
 msgstr "首层层高"
 
 #, fuzzy
-#| msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr ""
 "首层层高。\n"
 "若少许加厚首层层高，将有助增加部件与热床间的粘接力。"
 
 #, fuzzy
-#| msgid "Speed of the first layer except the solid infill part."
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "首层除实心填充之外的其他部分的打印速度"
 
 #, fuzzy
-#| msgid "First layer infill"
 msgid "First layer infill"
 msgstr "首层填充"
 
 #, fuzzy
-#| msgid "Speed of solid infill part of the first layer."
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "首层实心填充的打印速度"
 
@@ -13540,7 +13184,6 @@ msgid "Travel speed of the first layer."
 msgstr "首层空驶速度"
 
 #, fuzzy
-#| msgid "Number of slow layers"
 msgid "This is the number of top interface layers."
 msgstr "慢速打印层数"
 
@@ -13550,12 +13193,10 @@ msgstr ""
 "打印速度会在这个范围内以线性方式逐层加至满速。"
 
 #, fuzzy
-#| msgid "First layer nozzle temperature"
 msgid "First layer nozzle temperature"
 msgstr "首层打印温度"
 
 #, fuzzy
-#| msgid "Nozzle temperature for printing the first layer when using this filament."
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "使用此耗材时的首层打印温度。"
 
@@ -13628,7 +13269,6 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "特定于耗材的熨烫速度优先。这允许您自定义每种耗材丝类型的熨烫线的打印速度。"
 
 #, fuzzy
-#| msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "打印外墙时随机抖动，使外表面产生绒效果。这个设置决定适用的位置。"
 
@@ -13651,7 +13291,6 @@ msgid "Fuzzy skin thickness"
 msgstr "绒毛表面厚度"
 
 #, fuzzy
-#| msgid "The width within which to jitter. It's advised to be below outer wall line width."
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "产生绒毛的抖动的宽度。建议小于外圈墙的线宽。"
 
@@ -13797,7 +13436,6 @@ msgid "Don't print gap fill with a length is smaller than the threshold specifie
 msgstr "不要打印长度小于指定阈值（以毫米为单位）的间隙填充。此设置适用于顶部、底部和实体填充，如果使用经典周长生成器，则适用于墙壁间隙填充。"
 
 #, fuzzy
-#| msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "填缝的速度。缝隙通常有不一致的线宽，应改用较慢速度打印。"
 
@@ -13829,7 +13467,6 @@ msgid "Scan first layer"
 msgstr "首层扫描"
 
 #, fuzzy
-#| msgid "Enable this to enable the camera on printer to check the quality of first layer."
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "开启这个设置将打开打印机上的摄像头用于检查首层打印质量。"
 
@@ -13846,7 +13483,6 @@ msgid "Nozzle type"
 msgstr "喷嘴类型"
 
 #, fuzzy
-#| msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "喷嘴的金属材料。这将决定喷嘴的耐磨性，以及可打印材料的种类"
 
@@ -13863,7 +13499,6 @@ msgid "Nozzle HRC"
 msgstr "喷嘴洛氏硬度"
 
 #, fuzzy
-#| msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr ""
 "喷嘴硬度。\n"
@@ -13952,7 +13587,6 @@ msgid "money/h"
 msgstr "钱/时"
 
 #, fuzzy
-#| msgid "Support control chamber temperature"
 msgid "Support controlling chamber temperature"
 msgstr "支持仓温控制"
 
@@ -14014,7 +13648,6 @@ msgid "Infill combination"
 msgstr "合并填充"
 
 #, fuzzy
-#| msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "自动合并打印若干层稀疏填充，以缩短时间，内外墙维持原始打印层高。"
 
@@ -14124,12 +13757,10 @@ msgid "Line width of internal sparse infill. If expressed as a %, it will be com
 msgstr "内部稀疏填充的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
 #, fuzzy
-#| msgid "Infill/Wall overlap"
 msgid "Infill/wall overlap"
 msgstr "填充/墙 重叠"
 
-#, fuzzy, no-boost-format, no-c-format
-#| msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+#, fuzzy, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "填充区域略微扩大以与墙壁重叠，以获得更好的粘合。百分比值相对于稀疏填充的线宽。将此值设置为约10-15%，以最小化潜在的过挤出和材料积累，从而导致顶部表面粗糙。"
 
@@ -14141,7 +13772,6 @@ msgid "Top solid infill area is enlarged slightly to overlap with wall for bette
 msgstr "顶部实心填充区域略微扩大，以便与墙壁重叠，以获得更好的粘合，并减少顶部填充与墙壁相接处的小孔出现。25-30%的值是一个很好的起点，可以减少小孔的出现。百分比值相对于稀疏填充的线宽"
 
 #, fuzzy
-#| msgid "Speed of internal sparse infill."
 msgid "This is the speed for internal sparse infill."
 msgstr "内部稀疏填充的打印速度"
 
@@ -14161,7 +13791,6 @@ msgid "Maximum width of a segmented region"
 msgstr "分段区域的最大宽度"
 
 #, fuzzy
-#| msgid "Maximum width of a segmented region. Zero disables this feature."
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "分段区域的最大宽度。将其设置为零会禁用此功能。"
 
@@ -14208,12 +13837,10 @@ msgid "The distance from the outside of a model where interlocking structures wi
 msgstr "模型边框与互锁结构的距离，以单元格为单位。"
 
 #, fuzzy
-#| msgid "Ironing Type"
 msgid "Ironing type"
 msgstr "熨烫类型"
 
 #, fuzzy
-#| msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "熨烫指的是使用小流量在表面的同高度打印，进而是的平面更加光滑。这个设置用于设置哪些层进行熨烫。"
 
@@ -14221,12 +13848,10 @@ msgid "No ironing"
 msgstr "不熨烫"
 
 #, fuzzy
-#| msgid "Top surfaces"
 msgid "All top surfaces"
 msgstr "顶面"
 
 #, fuzzy
-#| msgid "Topmost surface"
 msgid "Topmost surface only"
 msgstr "最顶面"
 
@@ -14240,12 +13865,10 @@ msgid "The pattern that will be used when ironing."
 msgstr "熨烫时将使用的图案"
 
 #, fuzzy
-#| msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "熨烫时相对正常层高流量的材料量。过高的数值将会导致表面材料过挤出。"
 
 #, fuzzy
-#| msgid "The distance between the lines of ironing."
 msgid "This is the distance between the lines used for ironing."
 msgstr "熨烫走线的间距"
 
@@ -14253,7 +13876,6 @@ msgid "The distance to keep from the edges. A value of 0 sets this to half of th
 msgstr "与边缘保持的距离。0值将其设置为喷嘴直径的一半。"
 
 #, fuzzy
-#| msgid "Print speed of ironing lines."
 msgid "This is the print speed for ironing lines."
 msgstr "熨烫的打印速度"
 
@@ -14316,12 +13938,10 @@ msgid "Clumping detection G-code"
 msgstr "结块检测 G-code"
 
 #, fuzzy
-#| msgid "Supports silent mode"
 msgid "Silent Mode"
 msgstr "支持静音模式"
 
 #, fuzzy
-#| msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "机器是否支持使用低加速度打印的静音模式。"
 
@@ -14592,7 +14212,6 @@ msgstr ""
 "要禁用输入整形，请使用“禁用”类型。"
 
 #, fuzzy
-#| msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "启用自动冷却时，可能会提高部件冷却风扇的转速。这是部件冷却风扇的最大速度限制"
 
@@ -14704,7 +14323,6 @@ msgid "Nozzle volume"
 msgstr "喷嘴内腔体积"
 
 #, fuzzy
-#| msgid "Volume of nozzle between the cutter and the end of nozzle."
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "从切刀位置到喷嘴尖端的内腔体积"
 
@@ -14742,7 +14360,6 @@ msgid "Start end points"
 msgstr "起始终止点"
 
 #, fuzzy
-#| msgid "The start and end points which is from cutter area to garbage can."
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "从切割区域到垃圾桶的起始和结束点。"
 
@@ -14750,7 +14367,6 @@ msgid "Reduce infill retraction"
 msgstr "减小填充回抽"
 
 #, fuzzy
-#| msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "当空驶完全在填充区域内时不触发回抽。这意味着即使漏料也是不可见的。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成G-code生成变慢"
 
@@ -14761,7 +14377,6 @@ msgid "Filename format"
 msgstr "文件名格式"
 
 #, fuzzy
-#| msgid "Users can define the project file name when exporting."
 msgid "Users can decide project file names when exporting."
 msgstr "用户可以自定义导出项目文件的名称。"
 
@@ -14786,8 +14401,7 @@ msgstr "模型底部的孔洞在被圆锥形材料填充前所允许的最大面
 msgid "Detect overhang walls"
 msgstr "识别悬垂外墙"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+#, fuzzy, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "检测悬垂相对于线宽的百分比，并应用不同的速度打印。100%%的悬垂将使用桥接速度。"
 
@@ -14815,12 +14429,10 @@ msgid "Line width of inner wall. If expressed as a %, it will be computed over t
 msgstr "内墙的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
 #, fuzzy
-#| msgid "Speed of inner wall."
 msgid "This is the speed for inner walls."
 msgstr "内圈墙打印速度"
 
 #, fuzzy
-#| msgid "Number of walls of every layer."
 msgid "This is the number of walls per layer."
 msgstr "每一层的外墙"
 
@@ -14868,7 +14480,6 @@ msgid "Raft contact Z distance"
 msgstr "筏层Z间距"
 
 #, fuzzy
-#| msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "筏层与模型之间的Z间隙。如果支撑顶部Z距离为0，则忽略该值，模型与筏层直接接触打印（无间隙）。"
 
@@ -14876,27 +14487,22 @@ msgid "Raft expansion"
 msgstr "筏层扩展"
 
 #, fuzzy
-#| msgid "Expand all raft layers in XY plane."
 msgid "This expands all raft layers in XY plane."
 msgstr "在XY平面扩展所有筏层"
 
 #, fuzzy
-#| msgid "First layer density"
 msgid "First layer density"
 msgstr "首层密度"
 
 #, fuzzy
-#| msgid "Density of the first raft or support layer."
 msgid "This is the density of the first raft or support layer."
 msgstr "筏和支撑的首层密度"
 
 #, fuzzy
-#| msgid "First layer expansion"
 msgid "First layer expansion"
 msgstr "首层扩展"
 
 #, fuzzy
-#| msgid "Expand the first raft or support layer to improve bed plate adhesion."
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "扩展筏和支撑的首层可以改善和热床的粘接。"
 
@@ -14907,7 +14513,6 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "模型会在相应层数的支撑上抬高进行打印。使用该功能通常用于打印ABS时翘曲。"
 
 #, fuzzy
-#| msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "为了避免G-code文件中过密集的点和走线，G-code走线通常是在简化模型的外轮廓之后生成。越小的数值代表更高的分辨率，同时需要更长的切片时间。"
 
@@ -14921,17 +14526,14 @@ msgid "Retract amount before wipe"
 msgstr "擦拭前的回抽量"
 
 #, fuzzy
-#| msgid "The length of fast retraction before wipe, relative to retraction length."
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "擦拭之前的回抽长度，用总回抽长度的百分比表示。"
 
 #, fuzzy
-#| msgid "Retract when change layer"
 msgid "Retract on layer change"
 msgstr "换层时回抽"
 
 #, fuzzy
-#| msgid "Force a retraction when changes layer."
 msgid "This forces a retraction on layer changes."
 msgstr "强制在换层时回抽。"
 
@@ -14942,7 +14544,6 @@ msgid "Some amount of material in extruder is pulled back to avoid ooze during l
 msgstr "挤出机中的一些材料被拉回，以避免在长行程期间渗出。设置为零以禁用回缩。"
 
 #, fuzzy
-#| msgid "Long retraction when cut (beta)"
 msgid "Long retraction when cut (beta)"
 msgstr "切料时回抽（实验）"
 
@@ -14965,7 +14566,6 @@ msgid "Z-hop height"
 msgstr "Z抬升高度"
 
 #, fuzzy
-#| msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "回抽完成之后，喷嘴轻微抬升，和打印件之间产生一定间隙。这能够避免空驶时喷嘴和打印件剐蹭和碰撞。使用螺旋线抬升z能够减少拉丝。"
 
@@ -15045,7 +14645,6 @@ msgid "When the retraction is compensated after changing tool, the extruder will
 msgstr "当换色后回抽被补偿时，挤出机将推入额外数量的耗材丝。"
 
 #, fuzzy
-#| msgid "Retraction Speed"
 msgid "Retraction speed"
 msgstr "回抽速度"
 
@@ -15053,7 +14652,6 @@ msgid "Speed for retracting filament from the nozzle."
 msgstr "从喷嘴回抽耗材的速度"
 
 #, fuzzy
-#| msgid "De-retraction Speed"
 msgid "Deretraction speed"
 msgstr "重新装填速度"
 
@@ -15081,7 +14679,6 @@ msgid "Seam position"
 msgstr "接缝位置"
 
 #, fuzzy
-#| msgid "The start position to print each part of outer wall."
 msgid "This is the starting position for each part of the outer wall."
 msgstr "开始打印外墙的位置"
 
@@ -15222,7 +14819,6 @@ msgid "Skirt distance"
 msgstr "裙边距离"
 
 #, fuzzy
-#| msgid "The distance from the skirt to the brim or the object."
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "从裙边到模型或者brim的距离"
 
@@ -15236,7 +14832,6 @@ msgid "Skirt height"
 msgstr "裙边高度"
 
 #, fuzzy
-#| msgid "How many layers of skirt. Usually only one layer."
 msgid "Number of skirt layers: usually only one"
 msgstr "裙边有多少层。通常只有一层"
 
@@ -15276,7 +14871,6 @@ msgid "Skirt loops"
 msgstr "裙边圈数"
 
 #, fuzzy
-#| msgid "Number of loops for the skirt. Zero means disabling skirt."
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "裙边的圈数。0表示关闭裙边。"
 
@@ -15307,7 +14901,6 @@ msgid "Minimum sparse infill threshold"
 msgstr "稀疏填充最小阈值"
 
 #, fuzzy
-#| msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "小于这个阈值的稀疏填充区域将会被内部实心填充替代。"
 
@@ -15336,12 +14929,10 @@ msgid "Line width of internal solid infill. If expressed as a %, it will be comp
 msgstr "内部实心填充的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
 #, fuzzy
-#| msgid "Speed of internal solid infill, not the top and bottom surface."
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "内部实心填充的速度，不是顶面和底面。"
 
 #, fuzzy
-#| msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "沿着对象的外轮廓螺旋上升，将实体模型转变为只有底面实心层和侧面单层墙壁的打印。最后生成的打印件没有接缝。"
 
@@ -15373,7 +14964,6 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "设置结束螺旋时的精加工流量比。通常，螺旋过渡在最后一个循环期间将流量比从 100% 缩放到 0%，这在某些情况下可能会导致螺旋末端挤出不足。"
 
 #, fuzzy
-#| msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "如果启用平滑模式或者传统模式，将在每次打印时生成延时摄影视频。打印完每层后，将用内置相机拍摄快照。打印完成后，所有这些快照会组合成一个延时视频。如果启用平滑模式，打印完每层后，工具头将移动到吐料槽，然后拍摄快照。由于平滑模式在拍摄快照的过程中熔丝可能会从喷嘴中泄漏，因此需要使用擦拭塔进行喷嘴擦拭。"
 
@@ -15409,12 +14999,10 @@ msgid "Start G-code"
 msgstr "起始G-code"
 
 #, fuzzy
-#| msgid "Start G-code when starting the entire print."
 msgid "G-code added when starting a print."
 msgstr "整个打印开始前的起始G-code"
 
 #, fuzzy
-#| msgid "Start G-code when starting the printing of this filament."
 msgid "G-code added when the printer starts using this filament"
 msgstr "开始使用这个耗材丝打印的起始G-code"
 
@@ -15500,7 +15088,6 @@ msgid "Enable support"
 msgstr "开启支撑"
 
 #, fuzzy
-#| msgid "Enable support generation."
 msgid "This enables support generation."
 msgstr "开启支撑生成。"
 
@@ -15523,7 +15110,6 @@ msgid "Support/object XY distance"
 msgstr "支撑/模型xy间距"
 
 #, fuzzy
-#| msgid "XY separation between an object and its support."
 msgid "This controls the XY separation between an object and its support."
 msgstr "模型和支撑之间XY分离距离"
 
@@ -15543,7 +15129,6 @@ msgid "On build plate only"
 msgstr "仅在打印板生成"
 
 #, fuzzy
-#| msgid "Don't create support on model surface, only on build plate."
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "不在模型表面上生成支撑，只在热床上生成。"
 
@@ -15563,7 +15148,6 @@ msgid "Top Z distance"
 msgstr "顶部Z距离"
 
 #, fuzzy
-#| msgid "Z gap between the support's top and object."
 msgid "Z gap between the support's top and object."
 msgstr "支撑顶部与模型之间的Z间隙。"
 
@@ -15571,7 +15155,6 @@ msgid "Bottom Z distance"
 msgstr "底部Z距离"
 
 #, fuzzy
-#| msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "模型与支撑底部之间的Z间隙。如果支撑顶部Z距离为0且底部有界面层，则忽略该值，支撑与模型直接接触打印（无间隙）。"
 
@@ -15595,12 +15178,10 @@ msgid "Line width of support. If expressed as a %, it will be computed over the 
 msgstr "支撑的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
 #, fuzzy
-#| msgid "Interface use loop pattern"
 msgid "Loop pattern interface"
 msgstr "接触面采用圈形走线。"
 
 #, fuzzy
-#| msgid "Cover the top contact layer of the supports with loops. Disabled by default."
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "使用圈形走线覆盖顶部接触面。默认关闭。"
 
@@ -15640,12 +15221,10 @@ msgid "Bottom interface spacing"
 msgstr "底部接触面线距"
 
 #, fuzzy
-#| msgid "Spacing of bottom interface lines. Zero means solid interface."
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "底部接触面走线的线距。0 表示实心接触面。"
 
 #, fuzzy
-#| msgid "Speed of support interface."
 msgid "This is the speed for support interfaces."
 msgstr "支撑面速度"
 
@@ -15675,7 +15254,6 @@ msgid "Interface pattern"
 msgstr "支撑面图案"
 
 #, fuzzy
-#| msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "支撑接触面的走线图案。非可溶支撑接触面的默认图案为直线，可溶支撑接触面的默认图案为同心。"
 
@@ -15686,12 +15264,10 @@ msgid "Base pattern spacing"
 msgstr "主体图案线距"
 
 #, fuzzy
-#| msgid "Spacing between support lines."
 msgid "This determines the spacing between support lines."
 msgstr "支撑线距"
 
 #, fuzzy
-#| msgid "Normal Support expansion"
 msgid "Normal support expansion"
 msgstr "普通支撑拓展"
 
@@ -15699,7 +15275,6 @@ msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "在水平方向对普通支撑进行拓展（+）或收缩（-）"
 
 #, fuzzy
-#| msgid "Speed of support."
 msgid "This is the speed for support."
 msgstr "支撑打印速度"
 
@@ -15738,9 +15313,6 @@ msgid "Threshold angle"
 msgstr "阈值角度"
 
 #, fuzzy
-#| msgid ""
-#| "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
-#| "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15869,7 +15441,6 @@ msgid ""
 msgstr "对于 ABS、ASA、PC 和 PA 等高温材料，较高的腔室温度有助于抑制或减少翘曲，并有可能提高层间粘合强度。但同时，较高的腔室温度会降低 ABS 和 ASA 的空气过滤效率。 对于 PLA、PETG、TPU、PVA 等低温材料，应禁用此选项（设置为 0），因为腔室温度应较低，以避免热断时材料软化导致挤出机堵塞。 如果启用，此参数还会设置一个名为 chamber_temple 的 G-code 变量，该变量可用于将所需的腔室温度传递给打印启动宏，或热浸宏，如下所示：PRINT_START（其他变量）CHAMBER_TEMP=[cham​​ber_Temperature]。如果您的打印机不支持 M141/M191 命令，或者如果您希望在未安装活动室加热器的情况下在打印启动宏中处理热浸，则这可能很有用。"
 
 #, fuzzy
-#| msgid "Nozzle temperature for layers after the initial one."
 msgid "Nozzle temperature after the first layer"
 msgstr "除首层外的其它层的喷嘴温度"
 
@@ -15877,7 +15448,6 @@ msgid "Detect thin walls"
 msgstr "检查薄壁"
 
 #, fuzzy
-#| msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "检查无法容纳两条走线的薄壁。使用单条走线打印。可能会打地不是很好，因为走线不再闭合。"
 
@@ -15897,7 +15467,6 @@ msgid "Line width for top surfaces. If expressed as a %, it will be computed ove
 msgstr "顶面的线宽。如果以 % 表示，它将基于喷嘴直径来计算。"
 
 #, fuzzy
-#| msgid "Speed of top surface infill which is solid."
 msgid "This is the speed for solid top surface infill."
 msgstr "顶面实心填充的速度"
 
@@ -15905,20 +15474,13 @@ msgid "Top shell layers"
 msgstr "顶部壳体层数"
 
 #, fuzzy
-#| msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "顶部壳体实心层层数，包括顶面。当由该层数计算的厚度小于顶部壳体厚度，切片时会增加顶部壳体的层数"
-
-#, fuzzy
-#| msgid "Top solid layers"
-msgid "Top solid layers"
-msgstr "顶部壳体层数"
 
 msgid "Top shell thickness"
 msgstr "顶部壳体厚度"
 
 #, fuzzy
-#| msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部壳体层数算出的厚度小于这个数值，那么切片时将自动增加顶部壳体层数。这能够避免当层高很小时，顶部壳体过薄。0 表示关闭这个设置，同时顶部壳体的厚度完全由顶部壳体层数决定"
 
@@ -15943,7 +15505,6 @@ msgstr ""
 "警告：降低此值会对热床粘接力产生负面影响。"
 
 #, fuzzy
-#| msgid "Speed of travel which is faster and without extrusion."
 msgid "This is the speed at which traveling is done."
 msgstr "空驶的速度。空驶是无挤出量的快速移动。"
 
@@ -15951,12 +15512,10 @@ msgid "Wipe while retracting"
 msgstr "回抽时擦拭"
 
 #, fuzzy
-#| msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "当回抽时，让喷嘴沿着前面的走线方向继续移动，清除掉喷嘴上的漏料。这能够避免空驶结束打印新的区域时产生斑点。"
 
 #, fuzzy
-#| msgid "Wipe Distance"
 msgid "Wipe distance"
 msgstr "擦拭距离"
 
@@ -15974,7 +15533,6 @@ msgstr ""
 "在下方的擦拭前回抽量设置中输入一个数值，将在擦拭动作之前执行任何超出部分的回抽，否则超出部分的回抽将在擦拭之后执行。"
 
 #, fuzzy
-#| msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "擦拭塔可以用来清理喷嘴上的残留料和让喷嘴内部的腔压达到稳定状态，以避免打印物体时出现外观瑕疵。"
 
@@ -15991,7 +15549,6 @@ msgid "Flush multiplier"
 msgstr "冲刷量乘数"
 
 #, fuzzy
-#| msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "实际冲刷量等于冲刷量乘数乘以表格单元中的冲刷量"
 
@@ -15999,12 +15556,10 @@ msgid "Prime volume"
 msgstr "清理量"
 
 #, fuzzy
-#| msgid "The volume of material to prime extruder on tower."
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "擦拭塔上的清理量"
 
 #, fuzzy
-#| msgid "Width of the prime tower."
 msgid "This is the width of prime towers."
 msgstr "擦拭塔宽度"
 
@@ -16119,12 +15674,10 @@ msgid "Infill gap."
 msgstr "填补空白。"
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "换料后的过渡料会被用来打印对象的填充。这样可以减少材料浪费和缩短打印时间，但是如果对象的内外墙是采用透明材料打印的，则可以从模型外观上看到内部的混色过渡料。该功能只有在启用料塔的时候才生效。"
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "换料后的过渡料会被用来打印对象的支撑。这样可以减少材料浪费以及缩短打印时间。该功能只有在启用料塔的时候才生效。"
 
@@ -16159,7 +15712,6 @@ msgid "X-Y hole compensation"
 msgstr "X-Y 孔洞尺寸补偿"
 
 #, fuzzy
-#| msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "物体中的孔洞将在XY平面内根据配置值进行扩展或收缩。正值使孔洞变大，负值使孔洞变小。此功能用于在物体出现装配问题时微调尺寸。"
 
@@ -16167,7 +15719,6 @@ msgid "X-Y contour compensation"
 msgstr "X-Y 外轮廓尺寸补偿"
 
 #, fuzzy
-#| msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "物体的外轮廓将在XY平面内根据配置值进行扩展或收缩。正值使轮廓变大，负值使轮廓变小。此功能用于在物体出现装配问题时微调尺寸。"
 
@@ -16220,7 +15771,6 @@ msgid "Relative extrusion is recommended when using \"label_objects\" option. So
 msgstr "相对挤出建议在使用\"label_objects\"选项时使用。某些挤出机在未选中此选项（绝对挤出模式）时工作得更好。擦拭塔仅与相对模式兼容。建议在大多数打印机上使用。默认为选中状态。"
 
 #, fuzzy
-#| msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "经典墙生成器产生的墙走线具有一致的挤出宽度，对狭窄区域使用填缝。Arachne引擎则产生变线宽的墙走线"
 
@@ -16231,7 +15781,6 @@ msgid "Wall transition length"
 msgstr "墙过渡长度"
 
 #, fuzzy
-#| msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "当零件逐渐变薄导致墙的层数发生变化时，需要在过渡段分配一定的空间来分割和连接墙走线。参数值表示为相对于喷嘴直径的百分比"
 
@@ -16323,7 +15872,6 @@ msgid "Export 3MF"
 msgstr "导出 3MF"
 
 #, fuzzy
-#| msgid "Export project as 3MF."
 msgid "This exports the project as a 3MF file."
 msgstr "导出项目为 3MF。"
 
@@ -16331,7 +15879,6 @@ msgid "Export slicing data"
 msgstr "导出切片数据"
 
 #, fuzzy
-#| msgid "Export slicing data to a folder."
 msgid "Export slicing data to a folder"
 msgstr "导出切片数据到目录"
 
@@ -16360,7 +15907,6 @@ msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "对打印板切片：0-所有板，i-第i个板，其他-无效"
 
 #, fuzzy
-#| msgid "Show command help."
 msgid "This shows command help."
 msgstr "显示命令行帮助。"
 
@@ -16386,7 +15932,6 @@ msgid "mtcpp"
 msgstr "材料温度补偿"
 
 #, fuzzy
-#| msgid "max triangle count per plate for slicing."
 msgid "max triangle count per plate for slicing"
 msgstr "切片时每个盘的最大三角形数。"
 
@@ -16394,7 +15939,6 @@ msgid "mstpp"
 msgstr "材料温度暂停"
 
 #, fuzzy
-#| msgid "max slicing time per plate in seconds."
 msgid "max slicing time per plate in seconds"
 msgstr "每板的最大切片耗时（秒）。"
 
@@ -16414,7 +15958,6 @@ msgid "Output Model Info"
 msgstr "输出模型信息"
 
 #, fuzzy
-#| msgid "Output the model's information."
 msgid "This outputs the model’s information."
 msgstr "输出模型的信息。"
 
@@ -16422,7 +15965,6 @@ msgid "Export Settings"
 msgstr "导出配置"
 
 #, fuzzy
-#| msgid "Export settings to a file."
 msgid "This exports settings to a file."
 msgstr "导出配置到文件。"
 
@@ -16511,7 +16053,6 @@ msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "更新同步时加载最新工艺/机器设置"
 
 #, fuzzy
-#| msgid "Load uptodate process/machine settings from the specified file when using uptodate."
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "在使用 同步最新设置 时，从指定的文件中加载最新的进程/机器设置。"
 
@@ -16549,7 +16090,6 @@ msgid "Output directory"
 msgstr "输出路径"
 
 #, fuzzy
-#| msgid "Output directory for the exported files."
 msgid "This is the output directory for exported files."
 msgstr "导出文件的输出路径。"
 
@@ -16987,17 +16527,14 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr "模型文件的网格划分失败，或缺少有效的形状。"
 
 #, fuzzy
-#| msgid "The supplied file couldn't be read because it's empty"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "无法读取提供的文件，因为该文件内容为空。"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .stl、.obj 或 .amf（.xml）。"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .3mf、.zip 或 .amf。"
 
@@ -17050,7 +16587,6 @@ msgid "Finish"
 msgstr "完成"
 
 #, fuzzy
-#| msgid "How to use calibration result?"
 msgid "How can I use calibration results?"
 msgstr "如何使用校准结果？"
 
@@ -17129,9 +16665,6 @@ msgid "The input value size must be 3."
 msgstr "输入值大小必须为3。"
 
 #, fuzzy
-#| msgid ""
-#| "This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-#| "Do you still want to continue the calibration?"
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -17141,8 +16674,7 @@ msgstr "该机型的每个喷嘴最多保存16个历史结果。您可以删除�
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "仅保存一个同名结果：%s。您确定要覆盖其他结果吗？"
 
-#, boost-format, c-format, fuzzy
-#| msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+#, fuzzy, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "已经存在一个同名的历史校准结果：%s。相同名称的结果只会保存一个。您确定要覆盖历史结果吗？"
 
@@ -17154,8 +16686,7 @@ msgstr ""
 "在同一挤出机内，耗材类型、喷嘴直径和喷嘴流量相同时，名称（%s）必须是唯一的。\n"
 "您确定要覆盖历史结果吗？"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "该机型的每个喷嘴最多只能保存 %d 个历史结果, 该结果将不会被保存"
 
@@ -17239,12 +16770,6 @@ msgstr ""
 "默认设置在Bambu Lab的打印机和官方耗材上表现良好，因为它们已经过预先校准和微调。对于普通的耗材，通常不需要执行流量校准，除非您在完成其他校准后仍然发现上述缺陷。如需更多详细信息，请查阅wiki文章。"
 
 #, fuzzy
-#| msgid ""
-#| "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
-#| "\n"
-#| "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
-#| "\n"
-#| "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17292,7 +16817,6 @@ msgid "Please find the best line on your plate"
 msgstr "请在您的打印板上找到最佳线条"
 
 #, fuzzy
-#| msgid "Please find the corner with the perfect degree of extrusion"
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "请找到具有完美挤出度的转角"
 
@@ -17382,11 +16906,6 @@ msgstr "喷嘴流量"
 msgid "Nozzle Info"
 msgstr "喷嘴信息"
 
-#, fuzzy
-#| msgid "Plate Type"
-msgid "Plate Type"
-msgstr "热床类型"
-
 msgid "Filament position"
 msgstr "耗材丝位置"
 
@@ -17458,15 +16977,13 @@ msgid "Success to get history result"
 msgstr "成功获取历史结果"
 
 #, fuzzy
-#| msgid "Refreshing the historical Flow Dynamics Calibration records"
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "刷新历史流量动态校准记录"
 
 msgid "Action"
 msgstr "操作"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "该机型每个喷嘴最多只能保存%d个历史结果"
 
@@ -18090,12 +17607,10 @@ msgid "Create"
 msgstr "创建"
 
 #, fuzzy
-#| msgid "Vendor is not selected, please reselect vendor."
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "未选择供应商，请重新选择供应商。"
 
 #, fuzzy
-#| msgid "Custom vendor is missing, please input custom vendor."
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "未输入自定义供应商，请输入自定义供应商。"
 
@@ -18106,12 +17621,10 @@ msgid "Filament type is not selected, please reselect type."
 msgstr "未选择耗材类型，请重新选择。"
 
 #, fuzzy
-#| msgid "Filament serial is not entered, please enter serial."
 msgid "Filament serial missing; please input serial."
 msgstr "未输入耗材系列，请输入耗材系列。"
 
 #, fuzzy
-#| msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "检测到输入的耗材供应商或系列中可能包含转义字符。请删除转义字符并重新输入。"
 
@@ -18119,17 +17632,13 @@ msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "检测到自定义供应商或系列中的所有输入都是空格。请重新输入。"
 
 #, fuzzy
-#| msgid "The vendor cannot be a number. Please re-enter."
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "自定义供应商不能是数字。请重新输入。"
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "您还没有选择打印机或预设。请至少选择一个。"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The Filament name %s you created already exists.\n"
-#| "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -18176,7 +17685,6 @@ msgid "Create Type"
 msgstr "创建类型"
 
 #, fuzzy
-#| msgid "The model was not found, please reselect vendor."
 msgid "The model was not found; please reselect vendor."
 msgstr "该型号未找到，请重新选择供应商。"
 
@@ -18218,7 +17726,6 @@ msgid "Exception in obtaining file size, please import again."
 msgstr "获取文件大小时异常，请重新导入。"
 
 #, fuzzy
-#| msgid "Preset path was not found, please reselect vendor."
 msgid "Preset path was not found; please reselect vendor."
 msgstr "预设路径未找到，请重新选择供应商。"
 
@@ -18226,12 +17733,10 @@ msgid "The printer model was not found, please reselect."
 msgstr "未找到打印机型号，请重新选择。"
 
 #, fuzzy
-#| msgid "The nozzle diameter was not found, please reselect."
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "未找到喷嘴直径，请重新选择。"
 
 #, fuzzy
-#| msgid "The printer preset was not found, please reselect."
 msgid "The printer preset was not found; please reselect."
 msgstr "打印机预设未找到，请重新选择。"
 
@@ -18248,16 +17753,10 @@ msgid "You have not yet chosen which printer preset to create based on. Please c
 msgstr "您尚未选择要基于哪个打印机预设来创建。请先选择打印机的供应商和型号。"
 
 #, fuzzy
-#| msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "您在第一页的可打印区域输入不正确。请检查后再创建。"
 
 #, fuzzy
-#| msgid ""
-#| "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-#| "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-#| "and filament and process presets without the same preset name will be reserve.\n"
-#| "\tCancel: Do not create a preset, return to the creation interface."
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -18281,7 +17780,6 @@ msgid "Create process presets failed. As follows:\n"
 msgstr "创建工艺预设失败。如下：\n"
 
 #, fuzzy
-#| msgid "Vendor was not found, please reselect."
 msgid "Vendor was not found; please reselect."
 msgstr "供应商未找到，请重新选择。"
 
@@ -18289,7 +17787,6 @@ msgid "Current vendor has no models, please reselect."
 msgstr "当前供应商下没有型号，请重新选择。"
 
 #, fuzzy
-#| msgid "You have not selected the vendor and model or entered the custom vendor and model."
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "您还没有选择或输入一个自定义供应商和型号。"
 
@@ -18303,7 +17800,6 @@ msgid "Please check bed printable shape and origin input."
 msgstr "请检查 可打印区域 和 原点 的输入。"
 
 #, fuzzy
-#| msgid "You have not yet selected the printer to replace the nozzle, please choose."
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "您尚未选择要更换喷嘴的打印机，请进行选择。"
 
@@ -18349,9 +17845,6 @@ msgid "Filament Created"
 msgstr "耗材已创建"
 
 #, fuzzy
-#| msgid ""
-#| "Please go to filament setting to edit your presets if you need.\n"
-#| "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -18406,10 +17899,7 @@ msgstr "zip写入失败"
 msgid "Export successful"
 msgstr "导出成功"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
-#| "If not, a time suffix will be added, and you can modify the name after creation."
+#, fuzzy, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18442,7 +17932,6 @@ msgstr ""
 "可与他人分享。"
 
 #, fuzzy
-#| msgid "Only display printer names with changes to printer, filament, and process presets."
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "仅显示对打印机、耗材和工艺预设有改动的打印机名称。"
 
@@ -18466,7 +17955,6 @@ msgid "Please select at least one printer or filament."
 msgstr "请至少选择一种打印机或耗材。"
 
 #, fuzzy
-#| msgid "Please select a type you want to export"
 msgid "Please select a preset type you want to export"
 msgstr "请选择想导出的类型"
 
@@ -18530,7 +18018,6 @@ msgid "Edit Preset"
 msgstr "编辑预设"
 
 #, fuzzy
-#| msgid "For more information, please check out Wiki"
 msgid "For more information, please check out our Wiki"
 msgstr "了解更多信息，请参阅Wiki"
 
@@ -19016,7 +18503,6 @@ msgid "Wait"
 msgstr "等待"
 
 #, fuzzy
-#| msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "分钟发送一次。（这取决于完成加热需要多长时间。）"
 
@@ -19690,9 +19176,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 #, fuzzy
-#| msgid ""
-#| "Auto-Arrange\n"
-#| "Did you know that you can auto-arrange all the objects in your project?"
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19702,9 +19185,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 #, fuzzy
-#| msgid ""
-#| "Auto-Orient\n"
-#| "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19802,11 +19282,9 @@ msgstr ""
 "分盘打印\n"
 "您知道吗，您可以把一个有很多零件的模型安排到多个独立的分盘，然后打印出来，这将简化对所有零件的管理。"
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 #, fuzzy
-#| msgid ""
-#| "Speed up your print with Adaptive Layer Height\n"
-#| "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19824,9 +19302,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Different types of supports]
 #, fuzzy
-#| msgid ""
-#| "Different types of supports\n"
-#| "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19836,9 +19311,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 #, fuzzy
-#| msgid ""
-#| "Printing Silk Filament\n"
-#| "Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19856,9 +19328,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 #, fuzzy
-#| msgid ""
-#| "Set parameters for multiple objects\n"
-#| "Did you know that you can set slicing parameters for all selected objects at once?"
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19876,9 +19345,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 #, fuzzy
-#| msgid ""
-#| "Flush into support/objects/infill\n"
-#| "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19894,11 +19360,9 @@ msgstr ""
 "提高强度\n"
 "你知道吗？你可以使用更多的墙层数和更高的疏散填充密度来提高模型的强度。"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 #, fuzzy
-#| msgid ""
-#| "When do you need to print with the printer door opened?\n"
-#| "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19908,9 +19372,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 #, fuzzy
-#| msgid ""
-#| "Avoid warping\n"
-#| "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

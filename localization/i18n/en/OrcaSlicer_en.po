@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:18-0300\n"
+"POT-Creation-Date: 2026-06-17 14:21-0300\n"
 "PO-Revision-Date: 2025-05-18 09:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -91,9 +91,12 @@ msgid "Latest version"
 msgstr ""
 
 #, fuzzy
-#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "Support Painting"
+
+#, fuzzy
+msgid "Apply"
+msgstr "Apply"
 
 msgid "On highlighted overhangs only"
 msgstr ""
@@ -194,7 +197,6 @@ msgid "Filament count exceeds the maximum number that painting tool supports. On
 msgstr ""
 
 #, fuzzy
-#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "Color Painting"
 
@@ -322,11 +324,6 @@ msgstr ""
 msgid "Optimize orientation"
 msgstr ""
 
-#, fuzzy
-#| msgid "Perform"
-msgid "Apply"
-msgstr "Apply"
-
 msgid "Scale"
 msgstr ""
 
@@ -386,6 +383,10 @@ msgstr "Set scale"
 
 msgid "Reset position"
 msgstr "Reset position"
+
+#, fuzzy
+msgid "Reset rotation"
+msgstr "Reset rotation"
 
 msgid "Object coordinates"
 msgstr ""
@@ -1352,11 +1353,6 @@ msgstr ""
 msgid "Reset distance"
 msgstr ""
 
-#, fuzzy
-#| msgid "Reset Rotation"
-msgid "Reset rotation"
-msgstr "Reset rotation"
-
 msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr ""
 
@@ -1581,7 +1577,6 @@ msgid "Notice"
 msgstr ""
 
 #, fuzzy
-#| msgid "Undef"
 msgid "Undefined"
 msgstr "Undefined"
 
@@ -1997,6 +1992,10 @@ msgstr ""
 msgid "Strength"
 msgstr ""
 
+#, fuzzy
+msgid "Top solid layers"
+msgstr "Top solid layers"
+
 msgid "Top minimum shell thickness"
 msgstr "Top minimum shell thickness"
 
@@ -2035,6 +2034,10 @@ msgstr "Add Part"
 
 msgid "Add Negative Part"
 msgstr "Add Negative Part"
+
+#, fuzzy
+msgid "Add Modifier"
+msgstr "Add Modifier"
 
 msgid "Add Support Blocker"
 msgstr "Add Support Blocker"
@@ -2290,7 +2293,6 @@ msgid "Mirror along the Z Axis"
 msgstr "Mirror along the Z Axis"
 
 #, fuzzy
-#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "Mirror object"
 
@@ -2355,7 +2357,6 @@ msgid "Delete this filament"
 msgstr ""
 
 #, fuzzy
-#| msgid "Select all"
 msgid "Select All"
 msgstr "Select All"
 
@@ -2369,7 +2370,6 @@ msgid "Select all objects on all plates"
 msgstr ""
 
 #, fuzzy
-#| msgid "Delete all"
 msgid "Delete All"
 msgstr "Delete All"
 
@@ -2534,11 +2534,6 @@ msgstr ""
 
 msgid "Generic"
 msgstr ""
-
-#, fuzzy
-#| msgid "Add modifier"
-msgid "Add Modifier"
-msgstr "Add Modifier"
 
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr ""
@@ -2745,7 +2740,6 @@ msgid "1x1 Grid: %d mm"
 msgstr ""
 
 #, fuzzy
-#| msgid "Detail."
 msgid "More"
 msgstr "More"
 
@@ -2867,7 +2861,6 @@ msgid "Auto Refill"
 msgstr ""
 
 #, fuzzy
-#| msgid "Load Filament"
 msgid "Load"
 msgstr "Load"
 
@@ -3023,7 +3016,6 @@ msgid "No matching items..."
 msgstr ""
 
 #, fuzzy
-#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "Deselect All"
 
@@ -3444,7 +3436,6 @@ msgid "Custom Color"
 msgstr ""
 
 #, fuzzy
-#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "Dynamic flow calibration"
 
@@ -3453,6 +3444,10 @@ msgstr ""
 
 msgid "Nozzle Diameter"
 msgstr ""
+
+#, fuzzy
+msgid "Plate Type"
+msgstr "Plate Type"
 
 msgid "Nozzle temperature"
 msgstr ""
@@ -3483,6 +3478,10 @@ msgstr ""
 
 msgid "Save"
 msgstr ""
+
+#, fuzzy
+msgid "Back"
+msgstr "Back"
 
 msgid "Example"
 msgstr ""
@@ -3576,7 +3575,6 @@ msgid "Disable AMS"
 msgstr ""
 
 #, fuzzy
-#| msgid "Print with filaments mounted on the back of the chassis"
 msgid "Print with filament on external spool"
 msgstr "Print with filament on external spool"
 
@@ -4387,7 +4385,6 @@ msgid "Print settings"
 msgstr ""
 
 #, fuzzy
-#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "Filament settings"
 
@@ -4760,6 +4757,10 @@ msgstr ""
 msgid "Seams"
 msgstr ""
 
+#, fuzzy
+msgid "Filament changes"
+msgstr "Filament changes"
+
 msgid "Options"
 msgstr ""
 
@@ -4782,7 +4783,6 @@ msgid "Print"
 msgstr ""
 
 #, fuzzy
-#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "Printer"
 
@@ -5125,7 +5125,6 @@ msgid "Micro lidar calibration"
 msgstr ""
 
 #, fuzzy
-#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "Bed leveling"
 
@@ -6778,11 +6777,6 @@ msgstr ""
 msgid "Estimated time"
 msgstr ""
 
-#, fuzzy
-#| msgid "Filament Changes"
-msgid "Filament changes"
-msgstr "Filament changes"
-
 msgid "Set the number of AMS installed on the nozzle."
 msgstr ""
 
@@ -8243,7 +8237,6 @@ msgid "Plate name"
 msgstr ""
 
 #, fuzzy
-#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "Same as Global Plate Type"
 
@@ -9386,11 +9379,6 @@ msgstr ""
 
 msgid "Continue"
 msgstr ""
-
-#, fuzzy
-#| msgid "Last Step"
-msgid "Back"
-msgstr "Back"
 
 msgid "Don't warn again for this preset"
 msgstr ""
@@ -12476,7 +12464,6 @@ msgid "Travel speed of the first layer."
 msgstr ""
 
 #, fuzzy
-#| msgid "Number of top interface layers."
 msgid "This is the number of top interface layers."
 msgstr "This is the number of top interface layers."
 
@@ -14545,11 +14532,6 @@ msgstr ""
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 
-#, fuzzy
-#| msgid "Top Solid Layers"
-msgid "Top solid layers"
-msgstr "Top solid layers"
-
 msgid "Top shell thickness"
 msgstr ""
 
@@ -15881,11 +15863,6 @@ msgstr ""
 
 msgid "Nozzle Info"
 msgstr ""
-
-#, fuzzy
-#| msgid "Bed Type"
-msgid "Plate Type"
-msgstr "Plate Type"
 
 msgid "Filament position"
 msgstr ""
@@ -18113,7 +18090,8 @@ msgid ""
 "Did you know that you can split a model that has a lot of parts into individual plates ready to print? This will simplify the process of keeping track of all the parts."
 msgstr ""
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -18177,7 +18155,8 @@ msgid ""
 "Did you know that you can use more wall loops and higher sparse infill density to improve the strength of the model?"
 msgstr ""
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

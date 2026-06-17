@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:18-0300\n"
+"POT-Creation-Date: 2026-06-17 14:21-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -88,9 +88,12 @@ msgid "Latest version"
 msgstr "Legfrissebb verzió"
 
 #, fuzzy
-#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "Támaszok festése"
+
+#, fuzzy
+msgid "Apply"
+msgstr "Alkalmaz"
 
 msgid "On highlighted overhangs only"
 msgstr "Csak a kiemelt túlnyúlásokon"
@@ -99,7 +102,6 @@ msgid "Erase all"
 msgstr "Az összes törlése"
 
 #, fuzzy
-#| msgid "Highlight overhang areas"
 msgid "Highlight overhangs"
 msgstr "Túlnyúló területek kiemelése"
 
@@ -171,7 +173,6 @@ msgid "Done"
 msgstr "Kész"
 
 #, fuzzy
-#| msgid "Support Generated"
 msgid "Support generated"
 msgstr "Támasz legenerálva"
 
@@ -188,7 +189,6 @@ msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Felület Tárgyasztalra Illesztése"
 
 #, fuzzy
-#| msgid "Lay on face"
 msgid "Lay on Face"
 msgstr "Felületre fektetés"
 
@@ -197,7 +197,6 @@ msgid "Filament count exceeds the maximum number that painting tool supports. On
 msgstr "A filamentek száma meghaladja a festés által támogatott maximális mennyiséget. Csak az első %1% filament lesz használható a festéshez."
 
 #, fuzzy
-#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "Színfestés"
 
@@ -325,11 +324,6 @@ msgstr "Gizmo-Forgatás"
 msgid "Optimize orientation"
 msgstr "Orientáció optimalizálása"
 
-#, fuzzy
-#| msgid "Apply"
-msgid "Apply"
-msgstr "Alkalmaz"
-
 msgid "Scale"
 msgstr "Átméretezés"
 
@@ -370,12 +364,10 @@ msgid "Scale ratios"
 msgstr "Méretarányok"
 
 #, fuzzy
-#| msgid "Object Operations"
 msgid "Object operations"
 msgstr "Objektum műveletek"
 
 #, fuzzy
-#| msgid "Volume Operations"
 msgid "Volume operations"
 msgstr "Térfogat műveletek"
 
@@ -383,24 +375,24 @@ msgid "Translate"
 msgstr "Fordítás"
 
 #, fuzzy
-#| msgid "Group Operations"
 msgid "Group operations"
 msgstr "Csoportos műveletek"
 
 #, fuzzy
-#| msgid "Set Orientation"
 msgid "Set orientation"
 msgstr "Orientáció beállítása"
 
 #, fuzzy
-#| msgid "Set Scale"
 msgid "Set scale"
 msgstr "Méretarány beállítása"
 
 #, fuzzy
-#| msgid "Reset Position"
 msgid "Reset position"
 msgstr "Pozíció visszaállítása"
+
+#, fuzzy
+msgid "Reset rotation"
+msgstr "Forgatás visszaállítása"
 
 msgid "Object coordinates"
 msgstr "Objektum koordináták"
@@ -694,7 +686,6 @@ msgid "Cut by Plane"
 msgstr "Vágás Síkkal"
 
 #, fuzzy
-#| msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "A vágás után hibás élek keletkeztek, szeretnéd most javítani őket?"
 
@@ -764,7 +755,6 @@ msgid "Show wireframe"
 msgstr "Drótváz megjelenítése"
 
 #, fuzzy
-#| msgid "Can't apply when processing preview."
 msgid "Unable to apply when processing preview"
 msgstr "Nem használható folyamat előnézetben."
 
@@ -790,7 +780,6 @@ msgid "Remove selection"
 msgstr "Kijelölés törlése"
 
 #, fuzzy
-#| msgid "Entering Seam painting"
 msgid "Entering seam painting"
 msgstr "Belépés varratfestő módba"
 
@@ -815,9 +804,6 @@ msgid "Angle"
 msgstr "Szög"
 
 #, fuzzy
-#| msgid ""
-#| "Embedded\n"
-#| "depth"
 msgid "Embedded depth"
 msgstr ""
 "Beágyazási\n"
@@ -1391,11 +1377,6 @@ msgstr "Az SVG középpontjának távolsága a modell felületétől."
 msgid "Reset distance"
 msgstr "Távolság visszaállítása"
 
-#, fuzzy
-#| msgid "Reset rotation"
-msgid "Reset rotation"
-msgstr "Forgatás visszaállítása"
-
 msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr "Forgatási szög zárolása/feloldása felület feletti húzáskor."
 
@@ -1626,7 +1607,6 @@ msgid "Notice"
 msgstr "Megjegyzés"
 
 #, fuzzy
-#| msgid "Undef"
 msgid "Undefined"
 msgstr "Definiálatlan"
 
@@ -1650,12 +1630,10 @@ msgid "Machine"
 msgstr "Gép"
 
 #, fuzzy
-#| msgid "Configuration package was loaded, but some values were not recognized."
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "A konfigurációs csomag betöltődött, de néhány értéket nem sikerült felismerni."
 
-#, boost-format, fuzzy
-#| msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+#, fuzzy, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "A(z) \"%1%\" konfigurációs csomag betöltődött, de néhány értéket nem sikerült felismerni."
 
@@ -1839,7 +1817,6 @@ msgid "Some presets are modified."
 msgstr "Néhány beállítás megváltozott."
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Megtarthatod az új projekt módosított beállításait, elvetheted őket, vagy elmentheted új beállításokként."
 
@@ -2042,8 +2019,7 @@ msgstr "Átnevezés"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Nem sikerült a Orca Slicer GUI inicializálása"
 
-#, boost-format, fuzzy
-#| msgid "Fatal error, exception caught: %1%"
+#, fuzzy, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Súlyos hiba, a következő kivételt találtuk: %1%"
 
@@ -2069,7 +2045,10 @@ msgid "Strength"
 msgstr "Szilárdság"
 
 #, fuzzy
-#| msgid "Top Minimum Shell Thickness"
+msgid "Top solid layers"
+msgstr "Felső tömör rétegek"
+
+#, fuzzy
 msgid "Top minimum shell thickness"
 msgstr "Minimális fedőréteg vastagság"
 
@@ -2077,12 +2056,10 @@ msgid "Top Surface Density"
 msgstr "Felső felületi sűrűség"
 
 #, fuzzy
-#| msgid "Bottom Solid Layers"
 msgid "Bottom solid layers"
 msgstr "Alsó tömör rétegek"
 
 #, fuzzy
-#| msgid "Bottom Minimum Shell Thickness"
 msgid "Bottom minimum shell thickness"
 msgstr "Alsó minimális héjvastagság"
 
@@ -2093,7 +2070,6 @@ msgid "Ironing"
 msgstr "Vasalás"
 
 #, fuzzy
-#| msgid "Fuzzy Skin"
 msgid "Fuzzy skin"
 msgstr "Barázdált felület"
 
@@ -2101,7 +2077,6 @@ msgid "Extruders"
 msgstr "Extruderek"
 
 #, fuzzy
-#| msgid "Extrusion Width"
 msgid "Extrusion width"
 msgstr "Extrudálási szélesség"
 
@@ -2112,22 +2087,22 @@ msgid "Bed adhesion"
 msgstr "Asztalra tapadás"
 
 #, fuzzy
-#| msgid "Add part"
 msgid "Add Part"
 msgstr "Tárgy hozzáadása"
 
 #, fuzzy
-#| msgid "Add negative part"
 msgid "Add Negative Part"
 msgstr "Negatív tárgy hozzáadása"
 
 #, fuzzy
-#| msgid "Add support blocker"
+msgid "Add Modifier"
+msgstr "Módosító hozzáadása"
+
+#, fuzzy
 msgid "Add Support Blocker"
 msgstr "Támasz blokkoló hozzáadása"
 
 #, fuzzy
-#| msgid "Add support enforcer"
 msgid "Add Support Enforcer"
 msgstr "Támasz kényszerítő hozzáadása"
 
@@ -2228,17 +2203,14 @@ msgid "Text"
 msgstr "Szöveg"
 
 #, fuzzy
-#| msgid "Height range Modifier"
 msgid "Height Range Modifier"
 msgstr "Magasságtartomány módosító"
 
 #, fuzzy
-#| msgid "Add settings"
 msgid "Add Settings"
 msgstr "Beállítások hozzáadása"
 
 #, fuzzy
-#| msgid "Change type"
 msgid "Change Type"
 msgstr "Típus megváltoztatása"
 
@@ -2255,12 +2227,10 @@ msgid "Change part type"
 msgstr "Alkatrész típusának módosítsa"
 
 #, fuzzy
-#| msgid "Set as an individual object"
 msgid "Set as An Individual Object"
 msgstr "Beállítás különálló objektumként"
 
 #, fuzzy
-#| msgid "Set as individual objects"
 msgid "Set as Individual Objects"
 msgstr "Beállítás különálló objektumokként"
 
@@ -2280,7 +2250,6 @@ msgid "Automatically drops the selected object to the build plate"
 msgstr "A kiválasztott objektumot automatikusan az építőlemezre ejti"
 
 #, fuzzy
-#| msgid "Fix model"
 msgid "Fix Model"
 msgstr "Model javítása"
 
@@ -2352,22 +2321,18 @@ msgid "Edit in Parameter Table"
 msgstr "Szerkesztés a paramétertáblában"
 
 #, fuzzy
-#| msgid "Convert from inches"
 msgid "Convert from Inches"
 msgstr "Átváltás hüvelykről"
 
 #, fuzzy
-#| msgid "Restore to inches"
 msgid "Restore to Inch"
 msgstr "Visszaállítás hüvelykre"
 
 #, fuzzy
-#| msgid "Convert from meters"
 msgid "Convert from Meters"
 msgstr "Átváltás méterről"
 
 #, fuzzy
-#| msgid "Restore to meters"
 msgid "Restore to Meter"
 msgstr "Visszaállítás méterre"
 
@@ -2384,37 +2349,30 @@ msgid "Mesh boolean operations including union and subtraction"
 msgstr "Modellhálóval kapcsolatos logikai műveletek, mint például az egyesítés és kivonás"
 
 #, fuzzy
-#| msgid "Along X axis"
 msgid "Along X Axis"
 msgstr "X-tengely mentén"
 
 #, fuzzy
-#| msgid "Mirror along the X axis"
 msgid "Mirror along the X Axis"
 msgstr "Tükrözés az X-tengely mentén"
 
 #, fuzzy
-#| msgid "Along Y axis"
 msgid "Along Y Axis"
 msgstr "Y-tengely mentén"
 
 #, fuzzy
-#| msgid "Mirror along the Y axis"
 msgid "Mirror along the Y Axis"
 msgstr "Tükrözés az Y-tengely mentén"
 
 #, fuzzy
-#| msgid "Along Z axis"
 msgid "Along Z Axis"
 msgstr "Z-tengely mentén"
 
 #, fuzzy
-#| msgid "Mirror along the Z axis"
 msgid "Mirror along the Z Axis"
 msgstr "Tükrözés a Z-tengely mentén"
 
 #, fuzzy
-#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "Objektum tükrözése"
 
@@ -2446,7 +2404,6 @@ msgid "Show Labels"
 msgstr "Címkék megjelenítése"
 
 #, fuzzy
-#| msgid "To objects"
 msgid "To Objects"
 msgstr "Objektumokra"
 
@@ -2454,7 +2411,6 @@ msgid "Split the selected object into multiple objects"
 msgstr "Szétválasztja a kijelölt objektumot több objektumra"
 
 #, fuzzy
-#| msgid "To parts"
 msgid "To Parts"
 msgstr "Tárgyakra"
 
@@ -2483,7 +2439,6 @@ msgid "Delete this filament"
 msgstr "Filament törlése"
 
 #, fuzzy
-#| msgid "Select all"
 msgid "Select All"
 msgstr "Összes kijelölése"
 
@@ -2497,7 +2452,6 @@ msgid "Select all objects on all plates"
 msgstr "Az összes tálca összes objektumának kijelölése"
 
 #, fuzzy
-#| msgid "Delete all"
 msgid "Delete All"
 msgstr "Összes törlése"
 
@@ -2631,7 +2585,6 @@ msgid "Click the icon to repair model object"
 msgstr "Kattints az ikonra a modellobjektum javításához"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object settings"
 msgid "Right click the icon to drop the object settings"
 msgstr "Kattints jobb gombbal az ikonra az objektum beállításainak elvetéséhez"
 
@@ -2639,12 +2592,10 @@ msgid "Click the icon to reset all settings of the object"
 msgstr "Kattints az ikonra az objektum összes beállításának visszaállításához"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object printable property"
 msgid "Right click the icon to drop the object printable property"
 msgstr "Kattints jobb gombbal az ikonra az objektum nyomtatható tulajdonságának elvetéséhez"
 
 #, fuzzy
-#| msgid "Click the icon to toggle printable property of the object"
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Kattints az ikonra az objektum nyomtatható tulajdonságának módosításához"
 
@@ -2652,7 +2603,6 @@ msgid "Click the icon to edit support painting of the object"
 msgstr "Kattints az ikonra az objektum támasz festésének szerkesztéséhez"
 
 #, fuzzy
-#| msgid "Click the icon to edit color painting of the object"
 msgid "Click the icon to edit color painting for the object"
 msgstr "Kattints az ikonra az objektum színfestésének szerkesztéséhez"
 
@@ -2670,11 +2620,6 @@ msgstr "Nem sikerült beolvasni a modelladatokat az aktuális fájlba."
 
 msgid "Generic"
 msgstr "Általános"
-
-#, fuzzy
-#| msgid "Add Modifier"
-msgid "Add Modifier"
-msgstr "Módosító hozzáadása"
 
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr "Válts át objektumonkénti beállítási módba a módosító beállításainak szerkesztéséhez."
@@ -2698,11 +2643,6 @@ msgid "To save cut correspondence you can delete all connectors from all related
 msgstr "A vágási megfeleltetés megőrzéséhez törölheted az összes connectort az összes kapcsolódó objektumból."
 
 #, fuzzy
-#| msgid ""
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed.\n"
-#| "\n"
-#| "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2736,17 +2676,14 @@ msgid "Group manipulation"
 msgstr "Csoportkezelés"
 
 #, fuzzy
-#| msgid "Object Settings to modify"
 msgid "Object Settings to Modify"
 msgstr "Módosítandó objektumbeállítások"
 
 #, fuzzy
-#| msgid "Part Settings to modify"
 msgid "Part Settings to Modify"
 msgstr "Módosítandó alkatrészbeállítások"
 
 #, fuzzy
-#| msgid "Layer range Settings to modify"
 msgid "Layer Range Settings to Modify"
 msgstr "Módosítandó rétegtartomány-beállítások"
 
@@ -2775,7 +2712,6 @@ msgid "If the first selected item is a part, the second should be a part in the 
 msgstr "Ha az első kiválasztott elem egy tárgy, akkor a másodiknak is tárgynak kell lennie."
 
 #, fuzzy
-#| msgid "The type of the last solid object part is not to be changed."
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Az utolsó tömör objektumrész típusa nem módosítható."
 
@@ -2896,22 +2832,18 @@ msgid "1x1 Grid: %d mm"
 msgstr "1x1 rács: %d mm"
 
 #, fuzzy
-#| msgid "Detail."
 msgid "More"
 msgstr "Több"
 
 #, fuzzy
-#| msgid "Open Preferences."
 msgid "Open Preferences"
 msgstr "Beállítások megnyitása"
 
 #, fuzzy
-#| msgid "Open next tip."
 msgid "Open next tip"
 msgstr "Következő tipp megnyitása"
 
 #, fuzzy
-#| msgid "Open Documentation in web browser."
 msgid "Open documentation in web browser"
 msgstr "Dokumentáció megnyitása webböngészőben"
 
@@ -2943,12 +2875,10 @@ msgid "Enter Custom G-code used on current layer:"
 msgstr "Add meg az aktuális rétegnél használandó egyedi G-kódot:"
 
 #, fuzzy
-#| msgid "Jump to Layer"
 msgid "Jump to layer"
 msgstr "Ugrás a rétegre"
 
 #, fuzzy
-#| msgid "Please enter the layer number"
 msgid "Please enter the layer number."
 msgstr "Kérlek, add meg a réteg számát."
 
@@ -3028,7 +2958,6 @@ msgid "Auto Refill"
 msgstr "Automatikus utántöltés"
 
 #, fuzzy
-#| msgid "Load Filament"
 msgid "Load"
 msgstr "Betöltés"
 
@@ -3036,7 +2965,6 @@ msgid "Unload"
 msgstr "Kitöltés"
 
 #, fuzzy
-#| msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Válassz ki egy AMS-helyet, majd nyomd meg a \"Betöltés\" vagy a \"Kitöltés\" gombot az filament automatikus betöltéséhez vagy eltávolításához."
 
@@ -3147,7 +3075,6 @@ msgid "Cut filament"
 msgstr "Filament vágása"
 
 #, fuzzy
-#| msgid "Pull back current filament"
 msgid "Pull back the current filament"
 msgstr "Jelenlegi filament visszahúzása"
 
@@ -3188,7 +3115,6 @@ msgid "No matching items..."
 msgstr ""
 
 #, fuzzy
-#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "Kijelölés megszüntetése"
 
@@ -3247,7 +3173,6 @@ msgid "Arranging canceled."
 msgstr "Elrendezése törölve."
 
 #, fuzzy
-#| msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Az elrendezés megtörtént, de maradtak összeragadt tárgyak. Csökkentsd a térközt, és próbáld meg újra."
 
@@ -3316,7 +3241,6 @@ msgid "Please check the printer network connection."
 msgstr "Kérlek, ellenőrizd a nyomtató hálózati kapcsolatát."
 
 #, fuzzy
-#| msgid "Abnormal print file data. Please slice again."
 msgid "Abnormal print file data: please slice again."
 msgstr "Rendellenes nyomtatási fájladatok. Szeletelj újra."
 
@@ -3330,7 +3254,6 @@ msgid "Cloud service connection failed. Please try again."
 msgstr "A felhőszolgáltatáshoz való csatlakozás sikertelen. Kérlek, próbáld újra."
 
 #, fuzzy
-#| msgid "Print file not found. Please slice again."
 msgid "Print file not found; please slice again."
 msgstr "A nyomtatási fájl nem található. Szeletelj újra."
 
@@ -3344,7 +3267,6 @@ msgid "Failed to upload file to ftp. Please try again."
 msgstr "Nem sikerült feltölteni a fájlt FTP-re. Próbáld újra."
 
 #, fuzzy
-#| msgid "Check the current status of the bambu server by clicking on the link above."
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "A Bambu szerver aktuális állapotát a fenti hivatkozásra kattintva ellenőrizheted."
 
@@ -3352,12 +3274,10 @@ msgid "The size of the print file is too large. Please adjust the file size and 
 msgstr "A nyomtatási fájl mérete túl nagy. Állítsd be a fájlméretet, és próbáld újra."
 
 #, fuzzy
-#| msgid "Print file not found, please slice it again and send it for printing."
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "A nyomtatási fájl nem található, szeleteld újra, és küldd nyomtatásra."
 
 #, fuzzy
-#| msgid "Failed to upload print file to FTP. Please check the network status and try again."
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Nem sikerült feltölteni a nyomtatási fájlt FTP-re. Ellenőrizd a hálózati állapotot, majd próbáld újra."
 
@@ -3410,7 +3330,6 @@ msgid "Sending G-code file over LAN"
 msgstr "G-kód fájl küldése LAN-on keresztül"
 
 #, fuzzy
-#| msgid "Sending G-code file to SD card"
 msgid "Sending G-code file to SD card"
 msgstr "G-kód fájl küldése SD-kártyára"
 
@@ -3482,7 +3401,6 @@ msgid "Importing SLA archive"
 msgstr "SLA archívum importálása"
 
 #, fuzzy
-#| msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "Az SLA archívum nem tartalmaz beállításokat. Az SLA archívum importálása előtt aktiválj egy SLA nyomtatóbeállítást."
 
@@ -3496,7 +3414,6 @@ msgid "The imported SLA archive did not contain any presets. The current SLA pre
 msgstr "Az importált SLA archívum nem tartalmazott beállításokat. Tartalékként az aktuális SLA beállítások kerültek használatra."
 
 #, fuzzy
-#| msgid "You cannot load SLA project with a multi-part object on the bed"
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Nem tölthető be SLA projekt, ha a tárgyasztalon több részből álló objektum van"
 
@@ -3525,7 +3442,6 @@ msgid "Install failed"
 msgstr "Sikertelen telepítés"
 
 #, fuzzy
-#| msgid "Portions copyright"
 msgid "License Info"
 msgstr "Szerzői jogok"
 
@@ -3644,7 +3560,6 @@ msgid "Custom Color"
 msgstr "Egyéni szín"
 
 #, fuzzy
-#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "Dinamikus anyagáramlás kalibráció"
 
@@ -3653,6 +3568,10 @@ msgstr "A fúvóka hőmérséklete és a maximális anyagáramlás sebessége be
 
 msgid "Nozzle Diameter"
 msgstr "Fúvóka átmérője"
+
+#, fuzzy
+msgid "Plate Type"
+msgstr "Tálcatípus"
 
 msgid "Nozzle temperature"
 msgstr "Fúvóka hőmérséklet"
@@ -3673,7 +3592,6 @@ msgid "mm³"
 msgstr "mm³"
 
 #, fuzzy
-#| msgid "Start calibration"
 msgid "Start"
 msgstr "Start"
 
@@ -3685,6 +3603,10 @@ msgstr "A kalibrálás befejeződött. Kérlek, válaszd ki az alábbi képen l�
 
 msgid "Save"
 msgstr "Mentés"
+
+#, fuzzy
+msgid "Back"
+msgstr "Hátul"
 
 msgid "Example"
 msgstr "Példa"
@@ -3781,7 +3703,6 @@ msgid "Enable AMS"
 msgstr "AMS engedélyezése"
 
 #, fuzzy
-#| msgid "Print with filaments in the AMS"
 msgid "Print with filament in the AMS"
 msgstr "Nyomtatás AMS-ben lévő filamenttel"
 
@@ -3789,12 +3710,10 @@ msgid "Disable AMS"
 msgstr "AMS kikapcsolása"
 
 #, fuzzy
-#| msgid "Print with the filament mounted on the back of chassis"
 msgid "Print with filament on external spool"
 msgstr "Nyomtatás külső tartón lévő filamenttel"
 
 #, fuzzy
-#| msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Cseréld a nedvszívót, ha túl nedves. A jelző nem mindig pontos az alábbi esetekben: ha a fedél nyitva van, vagy ha a nedvszívó csomag cserélve lett. A nedvesség elnyelése órákat vesz igénybe, és az alacsony hőmérséklet tovább lassítja a folyamatot."
 
@@ -3814,12 +3733,10 @@ msgid "Do not Enable AMS"
 msgstr "Ne engedélyezd az AMS-t"
 
 #, fuzzy
-#| msgid "Print using materials mounted on the back of the case"
 msgid "Print using filament on external spool."
 msgstr "Nyomtatás külső tartón lévő filamenttel."
 
 #, fuzzy
-#| msgid "Print with filaments in AMS"
 msgid "Print with filament in AMS"
 msgstr "Nyomtatás az AMS-ben lévő filamentekkel"
 
@@ -3845,7 +3762,6 @@ msgid "The printer does not currently support auto refill."
 msgstr "A nyomtató jelenleg nem támogatja az automatikus újratöltést."
 
 #, fuzzy
-#| msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "Az AMS filament tartalék funkció nincs engedélyezve, kapcsold be az AMS beállításokban."
 
@@ -3869,7 +3785,6 @@ msgid "Insertion update"
 msgstr "Frissítés"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "Az AMS automatikusan kiolvassa a filament információkat egy új Bambu Lab filament tekercs behelyezésekor. Ez körülbelül 20 másodpercet vesz igénybe."
 
@@ -3880,12 +3795,10 @@ msgid "When inserting a new filament, the AMS will not automatically read its in
 msgstr "Új filament behelyezésekor az AMS nem fogja automatikusan kiolvasni az információkat, hanem üresen hagyja azokat, így kézzel kell megadnod."
 
 #, fuzzy
-#| msgid "Power on update"
 msgid "Update on startup"
 msgstr "Frissítés bekapcsoláskor"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "Az AMS indításkor automatikusan kiolvassa a behelyezett filament adatait. Ez körülbelül 1 percet vesz igénybe. A leolvasási folyamat során a filamenttekercsek feltekercselésre kerülnek."
 
@@ -3941,7 +3854,6 @@ msgid "Failed to download the plug-in. Please check your firewall settings and V
 msgstr "Nem sikerült letölteni a bővítményt. Kérlek, ellenőrizd a tűzfal beállításait és a VPN-szoftvert, majd próbálja meg újra."
 
 #, fuzzy
-#| msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Nem sikerült telepíteni a bővítményt. Lehet, hogy a bővítményfájl használatban van. Indítsd újra az OrcaSlicert, majd próbáld újra. Ellenőrizd azt is, hogy vírusirtó szoftver nem blokkolta vagy törölte-e."
 
@@ -3964,7 +3876,6 @@ msgid "Go Home"
 msgstr "Alaphelyzet"
 
 #, fuzzy
-#| msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Hiba történt. Lehet, hogy a rendszer memóriája nem elég, vagy a program hibás"
 
@@ -3973,12 +3884,10 @@ msgid "A fatal error occurred: \"%1%\""
 msgstr "Végzetes hiba történt: \"%1%\""
 
 #, fuzzy
-#| msgid "Please save project and restart the program."
 msgid "Please save your project and restart the application."
 msgstr "Kérlek, mentsd el a projektet és indítsd újra a programot."
 
 #, fuzzy
-#| msgid "Processing G-code from Previous file..."
 msgid "Processing G-Code from previous file…"
 msgstr "G-kód feldolgozása egy előző fájlból..."
 
@@ -4044,7 +3953,6 @@ msgid "G-code file exported to %1%"
 msgstr "G-kód fájl exportálva ide: %1%"
 
 #, fuzzy
-#| msgid "Unknown error when exporting G-code."
 msgid "Unknown error with G-code export"
 msgstr "Ismeretlen hiba a G-kód exportálásakor."
 
@@ -4059,7 +3967,6 @@ msgstr ""
 "Forrás fájl: %2%."
 
 #, fuzzy
-#| msgid "Copying of the temporary G-code to the output G-code failed"
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni."
 
@@ -4107,7 +4014,6 @@ msgid "Invalid file format."
 msgstr "Érvénytelen fájl formátum."
 
 #, fuzzy
-#| msgid "Error! Invalid model"
 msgid "Error: invalid model"
 msgstr "Hiba! Érvénytelen modell"
 
@@ -4115,7 +4021,6 @@ msgid "The selected file contains no geometry."
 msgstr "A kiválasztott fájl nem tartalmaz geometriát."
 
 #, fuzzy
-#| msgid "The selected file contains several disjoint areas. This is not supported."
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "A kiválasztott fájl több, egymástól elkülönülő területet tartalmaz. Ez nem támogatott."
 
@@ -4143,10 +4048,6 @@ msgid "Please check.\n"
 msgstr "Kérlek, ellenőrizd.\n"
 
 #, fuzzy
-#| msgid ""
-#| "Nozzle may be blocked when the temperature is out of recommended range.\n"
-#| "Please make sure whether to use the temperature to print.\n"
-#| "\n"
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4161,9 +4062,6 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "Az ajánlott fúvóka hőmérséklet ehhez a filament típushoz [%d, %d] Celsius-fok"
 
 #, fuzzy
-#| msgid ""
-#| "Too small max volumetric speed.\n"
-#| "Reset to 0.5."
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4171,15 +4069,11 @@ msgstr ""
 "Túl alacsony max. volumetrikus sebesség.\n"
 "Az értéke 0,5-re állt vissza"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+#, fuzzy, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "A kamra aktuális hőmérséklete magasabb az anyag biztonságos hőmérsékleténél, ez az anyag meglágyulásához és eltömődéshez vezethet. Az anyag maximális biztonságos hőmérséklete: %d"
 
 #, fuzzy
-#| msgid ""
-#| "Too small layer height.\n"
-#| "Reset to 0.2."
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4188,9 +4082,6 @@ msgstr ""
 "Visszaállítva 0,2-re"
 
 #, fuzzy
-#| msgid ""
-#| "Too small ironing spacing.\n"
-#| "Reset to 0.1."
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4208,12 +4099,6 @@ msgstr ""
 "Az első réteg magassága 0.2-re lesz visszaállítva."
 
 #, fuzzy
-#| msgid ""
-#| "This setting is only used for model size tunning with small value in some cases.\n"
-#| "For example, when model size has small error and hard to be assembled.\n"
-#| "For large size tuning, please use model scale function.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4226,12 +4111,6 @@ msgstr ""
 "Az érték 0-ra áll vissza."
 
 #, fuzzy
-#| msgid ""
-#| "Too large elephant foot compensation is unreasonable.\n"
-#| "If really have serious elephant foot effect, please check other settings.\n"
-#| "For example, whether bed temperature is too high.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4324,10 +4203,6 @@ msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Az I3-szerkezetű gépek azonban nem fognak időfelvétel videókat készíteni."
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings and enable spiral mode automatically\n"
-#| "No  - Give up using spiral mode this time"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4699,7 +4574,6 @@ msgid "Print settings"
 msgstr "Nyomtatási beállítások"
 
 #, fuzzy
-#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "Filament beállítások"
 
@@ -4724,8 +4598,7 @@ msgstr "Üres karakterlánc"
 msgid "Value is out of range."
 msgstr "Az érték tartományon kívül esik."
 
-#, boost-format, c-format, fuzzy
-#| msgid "%s can't be a percentage"
+#, fuzzy, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s nem lehet százalék"
 
@@ -4966,7 +4839,6 @@ msgid "Total"
 msgstr "Összesen"
 
 #, fuzzy
-#| msgid "Total Estimation"
 msgid "Total estimation"
 msgstr "Összesített becslés"
 
@@ -5046,12 +4918,10 @@ msgid "Usage"
 msgstr "Használat"
 
 #, fuzzy
-#| msgid "Layer Height (mm)"
 msgid "Layer height (mm)"
 msgstr "Rétegmagasság (mm)"
 
 #, fuzzy
-#| msgid "Line Width (mm)"
 msgid "Line width (mm)"
 msgstr "Vonalszélesség (mm)"
 
@@ -5068,7 +4938,6 @@ msgid "Jerk (mm/s)"
 msgstr "Rántás (mm/s)"
 
 #, fuzzy
-#| msgid "Fan Speed (%)"
 msgid "Fan speed (%)"
 msgstr "Ventilátor fordulatszám (%)"
 
@@ -5083,6 +4952,10 @@ msgstr "Tényleges volumetrikus áramlási sebesség (mm³/s)"
 
 msgid "Seams"
 msgstr "Varratok"
+
+#, fuzzy
+msgid "Filament changes"
+msgstr "Filamentcserék"
 
 msgid "Options"
 msgstr "Opciók"
@@ -5106,7 +4979,6 @@ msgid "Print"
 msgstr "Nyomtatás"
 
 #, fuzzy
-#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "Nyomtató"
 
@@ -5225,7 +5097,6 @@ msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Jobb fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 #, fuzzy
-#| msgid "Tool Move"
 msgid "Tool move"
 msgstr "Fej mozgatása"
 
@@ -5233,12 +5104,10 @@ msgid "Tool Rotate"
 msgstr "Eszköz forgatás"
 
 #, fuzzy
-#| msgid "Move Object"
 msgid "Move object"
 msgstr "Objektum mozgatása"
 
 #, fuzzy
-#| msgid "Auto Orientation options"
 msgid "Auto orientation options"
 msgstr "Automatikus orientáció beállításai"
 
@@ -5371,7 +5240,6 @@ msgid "Section View"
 msgstr "Keresztmetszet nézet"
 
 #, fuzzy
-#| msgid "Assemble Control"
 msgid "Assembly Control"
 msgstr "Összeállítás"
 
@@ -5401,7 +5269,6 @@ msgid "A G-code path goes beyond the max print height."
 msgstr "A G-kód útvonala túlmegy a maximális nyomtatási magasságon."
 
 #, fuzzy
-#| msgid "A G-code path goes beyond the plate boundaries."
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "A G-kód útvonala túlmegy a tálca peremén."
 
@@ -5463,7 +5330,6 @@ msgid "Micro lidar calibration"
 msgstr "Micro Lidar kalibrálás"
 
 #, fuzzy
-#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "Asztalszintezés"
 
@@ -5543,7 +5409,6 @@ msgstr ""
 "ahogy az ábrán is látható:"
 
 #, fuzzy
-#| msgid "Invalid input."
 msgid "Invalid input"
 msgstr "Érvénytelen adat"
 
@@ -5554,7 +5419,6 @@ msgid "Open a new window"
 msgstr "Új ablak megnyitása"
 
 #, fuzzy
-#| msgid "Application is closing"
 msgid "Closing application"
 msgstr "Az alkalmazás bezárul"
 
@@ -5804,7 +5668,6 @@ msgid "Paste clipboard"
 msgstr "Beillesztés vágólapról"
 
 #, fuzzy
-#| msgid "Delete selected"
 msgid "Delete Selected"
 msgstr "Kijelölt törlése"
 
@@ -5815,7 +5678,6 @@ msgid "Deletes all objects"
 msgstr "Töröl minden objektumot"
 
 #, fuzzy
-#| msgid "Clone selected"
 msgid "Clone Selected"
 msgstr "Kijelölt klónozása"
 
@@ -5979,13 +5841,11 @@ msgstr "&Nézet"
 msgid "&Help"
 msgstr "&Segítség"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A file exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Már létezik azonos nevű fájl: %s. Felülírod?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A config exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Már létezik azonos nevű konfiguráció: %s. Felülírod?"
 
@@ -6011,7 +5871,6 @@ msgstr[0] "%d konfiguráció exportálva. (Csak nem rendszer konfigurációk)"
 msgstr[1] "%d konfiguráció exportálva. (Csak nem rendszer konfigurációk)"
 
 #, fuzzy
-#| msgid "Export result"
 msgid "Export Result"
 msgstr "Exportálás eredménye"
 
@@ -6063,7 +5922,6 @@ msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "A lejátszó hibásan működik. Kérlek, telepítsd újra."
 
 #, fuzzy
-#| msgid "The player is not loaded, please click \"play\" button to retry."
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "A lejátszó nem töltődött be; kérlek, kattints a \"lejátszás\" gombra az újra próbálkozáshoz."
 
@@ -6086,7 +5944,6 @@ msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "A csak LAN élőkép ki van kapcsolva. Kapcsold be az élőképet a nyomtató kijelzőjén."
 
 #, fuzzy
-#| msgid "Please enter the IP of printer to connect."
 msgid "Please enter the IP of the printer to connect."
 msgstr "A csatlakozáshoz add meg a nyomtató IP-címét."
 
@@ -6388,7 +6245,6 @@ msgid "Input access code"
 msgstr "Add meg a hozzáférési kódot"
 
 #, fuzzy
-#| msgid "Can't find my devices?"
 msgid "Can't find devices?"
 msgstr "Nem találod az eszközöket?"
 
@@ -6414,17 +6270,14 @@ msgid "illegal suffix:"
 msgstr "tiltott utótag:"
 
 #, fuzzy
-#| msgid "The name is not allowed to be empty."
 msgid "The name field is not allowed to be empty."
 msgstr "A név mező nem lehet üres."
 
 #, fuzzy
-#| msgid "The name is not allowed to start with space character."
 msgid "The name is not allowed to start with a space."
 msgstr "A név nem kezdődhet szóközzel."
 
 #, fuzzy
-#| msgid "The name is not allowed to end with space character."
 msgid "The name is not allowed to end with a space."
 msgstr "A név nem végződhet szóközzel."
 
@@ -6448,7 +6301,6 @@ msgid "Switching failed"
 msgstr "Váltás sikertelen"
 
 #, fuzzy
-#| msgid "Printing Progress"
 msgid "Printing progress"
 msgstr "Nyomtatás folyamata"
 
@@ -6468,9 +6320,6 @@ msgid "Clear"
 msgstr "Törlés"
 
 #, fuzzy
-#| msgid ""
-#| "You have completed printing the mall model, \n"
-#| "but the synchronization of rating information has failed."
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6559,8 +6408,7 @@ msgstr "Letöltés..."
 msgid "Cloud Slicing..."
 msgstr "Felhőszeletelés..."
 
-#, boost-format, c-format, fuzzy
-#| msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+#, fuzzy, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "In Cloud Slicing Queue, there are %s tasks ahead of you."
 
@@ -6586,7 +6434,6 @@ msgid "Please select an AMS slot before calibration"
 msgstr "Válassz egy AMS-helyet a kalibrálás előtt"
 
 #, fuzzy
-#| msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "A filamentinformáció nem olvasható: a filament a nyomtatófejbe van betöltve. Kérlek, távolítsd el a filamentet és próbáld újra."
 
@@ -6819,7 +6666,6 @@ msgid "3D Mouse disconnected."
 msgstr "3D Mouse csatlakoztatva."
 
 #, fuzzy
-#| msgid "Configuration can update now."
 msgid "A new configuration is available. Update now?"
 msgstr "A konfiguráció már frissíthető."
 
@@ -6845,17 +6691,14 @@ msgid "Undo integration failed."
 msgstr "Az integráció visszavonása nem sikerült."
 
 #, fuzzy
-#| msgid "Exporting."
 msgid "Exporting"
 msgstr "Exportálás."
 
 #, fuzzy
-#| msgid "Software has New version."
 msgid "An update is available!"
 msgstr "Új szoftververzió érhető el."
 
 #, fuzzy
-#| msgid "Goto download page."
 msgid "Go to download page"
 msgstr "Látogass el a letöltési oldalra."
 
@@ -6984,7 +6827,6 @@ msgid "Enable detection of build plate position"
 msgstr "Nyomtatótálca helyzetének érzékelése"
 
 #, fuzzy
-#| msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "A nyomtató megkeresi a nyomtatótálca lokalizációs címkéjét, és szünetelteti a nyomtatást, ha az nem egy előre meghatározott tartományban van."
 
@@ -7031,7 +6873,6 @@ msgid "First Layer Inspection"
 msgstr "Kezdőréteg ellenőrzése"
 
 #, fuzzy
-#| msgid "Auto-recovery from step loss"
 msgid "Auto-recover from step loss"
 msgstr "Automatikus helyreállítás lépésvesztésből"
 
@@ -7045,7 +6886,6 @@ msgid "Allow Prompt Sound"
 msgstr "Hangjelzés engedélyezése"
 
 #, fuzzy
-#| msgid "Filament Tangle Detect"
 msgid "Filament Tangle Detection"
 msgstr "Filament összegabalyodás észlelés"
 
@@ -7198,11 +7038,6 @@ msgstr "Felhasznált anyagok"
 msgid "Estimated time"
 msgstr "Becsült idő"
 
-#, fuzzy
-#| msgid "Filament changes"
-msgid "Filament changes"
-msgstr "Filamentcserék"
-
 msgid "Set the number of AMS installed on the nozzle."
 msgstr "Állítsd be a fúvókához telepített AMS-ek számát."
 
@@ -7309,7 +7144,6 @@ msgid "Ejecting of device %s (%s) has failed."
 msgstr "A(z) %s (%s) eszköz kiadása sikertelen."
 
 #, fuzzy
-#| msgid "Previous unsaved project detected, do you want to restore it?"
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Korábbi, nem mentett projekt észlelve, vissza szeretnéd állítani?"
 
@@ -7317,12 +7151,10 @@ msgid "Restore"
 msgstr "Visszaállítás"
 
 #, fuzzy
-#| msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "A jelenlegi asztalhőmérséklet viszonylag magas. Zárt térben történő nyomtatásnál ez a filament fúvókaeltömődést okozhat. Nyisd ki az elülső ajtót és/vagy vedd le a felső üveglapot."
 
 #, fuzzy
-#| msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "Ez a filament nagyobb keménységű fúvókát igényel. Kérlek, cseréld ki a fúvókát vagy válassz másik filamentet, különben előfordulhat, hogy a fúvóka idő előtt elhasználódik vagy megsérül."
 
@@ -7374,7 +7206,6 @@ msgid "The 3MF file version %s is newer than %s's version %s, found the followin
 msgstr "A 3MF fájl %s verziója újabb, mint a(z) %s verziója %s, a következő ismeretlen kulcsokat találtuk:"
 
 #, fuzzy
-#| msgid "You'd better upgrade your software.\n"
 msgid "You should update your software.\n"
 msgstr "Jobb lenne, ha frissítenéd a szoftvert.\n"
 
@@ -7397,7 +7228,6 @@ msgid "Invalid values found in the 3MF:"
 msgstr "Érvénytelen értékek találhatók a 3MF-ben:"
 
 #, fuzzy
-#| msgid "Please correct them in the param tabs"
 msgid "Please correct them in the Param tabs"
 msgstr "Javítsd őket a paraméter füleken"
 
@@ -7420,12 +7250,10 @@ msgid "Customized Preset"
 msgstr "Egyedi beállítás"
 
 #, fuzzy
-#| msgid "Name of components inside STEP file is not UTF8 format!"
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "A STEP fájlon belüli komponens neve nem UTF-8 formátumban van!"
 
 #, fuzzy
-#| msgid "The name may show garbage characters!"
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "A név helytelen karaktereket mutathat!"
 
@@ -7442,10 +7270,7 @@ msgstr "Nulla térfogatú objektumok eltávolítva"
 msgid "The volume of the object is zero"
 msgstr "Az objektum térfogata nulla"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The object from file %s is too small, and maybe in meters or inches.\n"
-#| " Do you want to scale to millimeters?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7455,10 +7280,6 @@ msgid "Object too small"
 msgstr "Objektum túl kicsi"
 
 #, fuzzy
-#| msgid ""
-#| "This file contains several objects positioned at multiple heights.\n"
-#| "Instead of considering them as multiple objects, should \n"
-#| "the file be loaded as a single object having multiple parts?"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7472,7 +7293,6 @@ msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Betöltöd ezeket a fájlokat több részből álló egyetlen objektumként?\n"
 
 #, fuzzy
-#| msgid "Object with multiple parts was detected"
 msgid "An object with multiple parts was detected"
 msgstr "Több részből álló objektumot észleltünk"
 
@@ -7509,17 +7329,13 @@ msgid "Export AMF file:"
 msgstr "AMF fájl exportálása:"
 
 #, fuzzy
-#| msgid "Save file as:"
 msgid "Save file as"
 msgstr "Fájl mentése mint:"
 
 msgid "Export OBJ file:"
 msgstr "OBJ fájl exportálása:"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The file %s already exists\n"
-#| "Do you want to replace it?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7534,10 +7350,6 @@ msgid "Delete object which is a part of cut object"
 msgstr "A vágott objektum részét képező objektum törlése"
 
 #, fuzzy
-#| msgid ""
-#| "You try to delete an object which is a part of a cut object.\n"
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed."
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7563,7 +7375,6 @@ msgid "Unable to replace with more than one volume"
 msgstr "Nem lehet egynél több kötetre cserélni"
 
 #, fuzzy
-#| msgid "Error during replace"
 msgid "Error during replacement"
 msgstr "Hiba a csere során"
 
@@ -7574,7 +7385,6 @@ msgid "Select a new file"
 msgstr "Válassz egy új fájlt"
 
 #, fuzzy
-#| msgid "File for the replace wasn't selected"
 msgid "File for the replacement wasn't selected"
 msgstr "A cserefájl nem lett kiválasztva"
 
@@ -7666,7 +7476,6 @@ msgid "Sync now"
 msgstr "Szinkronizálás most"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project or discard them"
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Megtarthatod az új projekt módosított beállításait, vagy elvetheted őket"
 
@@ -7677,9 +7486,6 @@ msgid "Load project"
 msgstr "Projekt betöltése"
 
 #, fuzzy
-#| msgid ""
-#| "Failed to save the project.\n"
-#| "Please check whether the folder exists online or if other programs open the project file."
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7698,7 +7504,6 @@ msgid "Preparing 3MF file..."
 msgstr "3mf fájl előkészítése..."
 
 #, fuzzy
-#| msgid "Download failed, unknown file format."
 msgid "Download failed; unknown file format."
 msgstr "Letöltés sikertelen, ismeretlen fájlformátum."
 
@@ -7706,7 +7511,6 @@ msgid "Downloading project..."
 msgstr "projekt letöltése ..."
 
 #, fuzzy
-#| msgid "Download failed, File size exception."
 msgid "Download failed; File size exception."
 msgstr "Letöltés sikertelen, fájlméret kivétel."
 
@@ -7733,12 +7537,10 @@ msgid "The selected file"
 msgstr "A kiválasztott fájl"
 
 #, fuzzy
-#| msgid "does not contain valid G-code."
 msgid "Does not contain valid G-code."
 msgstr "nem tartalmaz érvényes G-kódot."
 
 #, fuzzy
-#| msgid "Error occurs while loading G-code file"
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Hiba a G-kód betöltésének során"
 
@@ -7769,7 +7571,6 @@ msgid "Import geometry only"
 msgstr "Csak a geometria importálása"
 
 #, fuzzy
-#| msgid "Only one G-code file can be opened at the same time."
 msgid "Only one G-code file can be opened at a time."
 msgstr "Egyszerre csak egy G-kód fájl nyitható meg."
 
@@ -7777,12 +7578,10 @@ msgid "G-code loading"
 msgstr "G-code betöltése"
 
 #, fuzzy
-#| msgid "G-code files cannot be loaded with models together!"
 msgid "G-code files and models cannot be loaded together!"
 msgstr "A G-code fájlokat nem lehet a modellekkel együtt betölteni!"
 
 #, fuzzy
-#| msgid "Cannot add models when in preview mode!"
 msgid "Unable to add models in preview mode"
 msgstr "Előnézeti módban nem lehet modelleket hozzáadni!"
 
@@ -7790,7 +7589,6 @@ msgid "All objects will be removed, continue?"
 msgstr "Minden tárgyat eltávolítunk, folytatod?"
 
 #, fuzzy
-#| msgid "The current project has unsaved changes, save it before continue?"
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Az aktuális projektben el nem mentett módosítások vannak, mentsük el a folytatás előtt?"
 
@@ -7863,9 +7661,6 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Rendellenes nyomtatási fájladatok. Kérlek, szeleteld újra"
 
 #, fuzzy
-#| msgid ""
-#| "Print By Object: \n"
-#| "Suggest to use auto-arrange to avoid collisions when printing."
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7951,8 +7746,7 @@ msgstr "Háromszögek: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "A háló javításához használd a „Modell rögzítése” lehetőséget."
 
-#, boost-format, c-format, fuzzy
-#| msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+#, fuzzy, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "%d. tálca: a(z) %s használata nem javasolt a(z) %s (%s) filament nyomtatásához. Ha mégis el szeretnéd indítani ezt a nyomtatást, állítsd a filament asztalhőmérsékletét nullánál nagyobb értékre."
 
@@ -7981,7 +7775,6 @@ msgid "rear"
 msgstr "hátul"
 
 #, fuzzy
-#| msgid "Switching the language requires application restart.\n"
 msgid "Switching languages requires the application to restart.\n"
 msgstr "A nyelvváltáshoz az alkalmazás újraindítása szükséges.\n"
 
@@ -8010,7 +7803,6 @@ msgid "Others"
 msgstr "Egyéb"
 
 #, fuzzy
-#| msgid "Changing the region will log out your account.\n"
 msgid "Changing the region will log you out of your account.\n"
 msgstr "A régió megváltoztatásával a fiókod kijelentkezik.\n"
 
@@ -8087,7 +7879,6 @@ msgid "Set the page opened on startup."
 msgstr "Az induláskor megnyitott oldal beállítása."
 
 #, fuzzy
-#| msgid "Enable dark mode"
 msgid "Enable dark Mode"
 msgstr "Sötét mód engedélyezése"
 
@@ -8164,7 +7955,6 @@ msgid "Auto backup"
 msgstr "Automatikus biztonsági mentés"
 
 #, fuzzy
-#| msgid "Backup your project periodically for restoring from the occasional crash."
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "A projekt időszakos mentése az esetleges összeomlás utáni helyreállításhoz."
 
@@ -8456,7 +8246,6 @@ msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Felhasználói beállítások automatikus szinkronizálása (Nyomtató/Filament/Folyamat)"
 
 #, fuzzy
-#| msgid "Update built-in Presets automatically."
 msgid "Update built-in presets automatically."
 msgstr "Beépített beállítások automatikus frissítése."
 
@@ -8536,7 +8325,6 @@ msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf fájlok társítása a OrcaSlicerhoz"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Ha engedélyezve van, a OrcaSlicer-t állítja be alapértelmezett alkalmazásként a 3MF file fájlok megnyitásához"
 
@@ -8551,7 +8339,6 @@ msgid "Associate STL files to OrcaSlicer"
 msgstr ".stl fájlok társítása a OrcaSlicerhoz"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Ha engedélyezve van, a OrcaSlicer-t állítja be alapértelmezett alkalmazásként az .stl fájlok megnyitásához"
 
@@ -8560,7 +8347,6 @@ msgid "Associate STEP files to OrcaSlicer"
 msgstr ".step/.stp fájlok társítása a OrcaSlicerhoz"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Ha engedélyezve van, a OrcaSlicer-t állítja be alapértelmezett alkalmazásként a .step fájlok megnyitásához"
 
@@ -8663,7 +8449,6 @@ msgid "Other"
 msgstr "Egyéb"
 
 #, fuzzy
-#| msgid "Mouse wheel reverses when zooming"
 msgid "Reverse scroll direction while zooming"
 msgstr "Görgetési irány megfordítása nagyítás közben"
 
@@ -8698,12 +8483,10 @@ msgid "Save debug settings"
 msgstr "hibakeresési beállítások mentése"
 
 #, fuzzy
-#| msgid "DEBUG settings have been saved successfully!"
 msgid "Debug settings have been saved successfully!"
 msgstr "DEBUG beállítások sikeresen elmentve!"
 
 #, fuzzy
-#| msgid "Cloud environment switched, please login again!"
 msgid "Cloud environment switched; please login again!"
 msgstr "Felhőkörnyezet megváltozott, kérlek, jelentkezz be újra!"
 
@@ -8723,7 +8506,6 @@ msgid "Left filaments"
 msgstr "Bal oldali filamentek"
 
 #, fuzzy
-#| msgid "AMS filaments"
 msgid "AMS filament"
 msgstr "AMS filamentek"
 
@@ -8758,7 +8540,6 @@ msgid "Unsupported"
 msgstr "Nem támogatott"
 
 #, fuzzy
-#| msgid "Add/Remove filaments"
 msgid "Add/Remove filament"
 msgstr "Filament hozzáadása/eltávolítása"
 
@@ -8796,7 +8577,6 @@ msgid "Plate name"
 msgstr "Tálca neve"
 
 #, fuzzy
-#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "Ugyanaz, mint a globális tálcatípus"
 
@@ -8834,7 +8614,6 @@ msgid "Log Out"
 msgstr "Log Out"
 
 #, fuzzy
-#| msgid "Slice all plate to obtain time and filament estimation"
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Szeleteld fel az összes tálcát az idő és a filament becsléséhez"
 
@@ -8896,7 +8675,6 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr "A(z) \"%1%\" már létezik és nem kompatibilis a jelenlegi nyomtatóval."
 
 #, fuzzy
-#| msgid "Please note that saving will overwrite this preset."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Figyelem, a mentési művelet lecseréli ezt a beállítást"
 
@@ -9027,7 +8805,6 @@ msgid "The selected printer (%s) is incompatible with the print file configurati
 msgstr "A kiválasztott nyomtató (%s) nem kompatibilis a nyomtatási fájl konfigurációjával (%s). Állítsd be a nyomtató-előbeállítást az előkészítés oldalon, vagy válassz ezen az oldalon kompatibilis nyomtatót."
 
 #, fuzzy
-#| msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 
@@ -9047,7 +8824,6 @@ msgid "The printer type selected when generating G-code is not consistent with t
 msgstr "A G-kód létrehozásakor kiválasztott nyomtatótípus nem egyezik az aktuálisan kiválasztott nyomtatóval. Javasolt ugyanazt a nyomtatótípust használni a szeleteléshez."
 
 #, fuzzy
-#| msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Van néhány ismeretlen filament az AMS kiosztásban. Győződj meg róla, hogy ezek a szükséges filamentek. Ha igen, kattints a \"Megerősítés\" gombra a nyomtatás megkezdéséhez."
 
@@ -9180,7 +8956,6 @@ msgid "Storage needs to be inserted before printing."
 msgstr "Nyomtatás előtt be kell helyezni a tárolót."
 
 #, fuzzy
-#| msgid "Cannot send the print job to a printer whose firmware is required to get updated."
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nem küldhetsz nyomtatási feladatot a nyomtatóra, mert annak firmware-jét frissíteni kell."
 
@@ -9236,7 +9011,6 @@ msgid "Connection failed. Click the icon to retry"
 msgstr "Kapcsolódás sikertelen. Kattints az ikonra az újrapróbáláshoz."
 
 #, fuzzy
-#| msgid "Cannot send the print task when the upgrade is in progress"
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Nem küldhető nyomtatási feladat a nyomtatóra, amikor frissítés van folyamatban"
 
@@ -9247,7 +9021,6 @@ msgid "Storage needs to be inserted before send to printer."
 msgstr "Nyomtatóra küldés előtt be kell helyezni a tárolót."
 
 #, fuzzy
-#| msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "A nyomtatónak ugyanazon a hálózaton kell lennie, mint a Bambu Studiónak."
 
@@ -9264,7 +9037,6 @@ msgid "Sending failed, please try again!"
 msgstr ""
 
 #, fuzzy
-#| msgid "Slice ok."
 msgid "Slice complete"
 msgstr "Szeletelés kész."
 
@@ -9281,12 +9053,10 @@ msgid "Failed to publish login request"
 msgstr "Bejelentkezési kérés közzététele sikertelen"
 
 #, fuzzy
-#| msgid "Get ticket from device timeout"
 msgid "Timeout getting ticket from device"
 msgstr "Jegy lekérése az eszköztől időtúllépés miatt sikertelen"
 
 #, fuzzy
-#| msgid "Get ticket from server timeout"
 msgid "Timeout getting ticket from server"
 msgstr "Jegy lekérése a szervertől időtúllépés miatt sikertelen"
 
@@ -9394,7 +9164,6 @@ msgid "Click to reset all settings to the last saved preset."
 msgstr "Kattints az összes beállítás utolsó mentett változatának visszaállításához."
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "A sima időfelvétel miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Biztos, hogy kikapcsolod a törlőtornyot?"
 
@@ -9411,7 +9180,6 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "A pontos Z magasság és a törlőtorony egyidejű engedélyezése szeletelési hibákat okozhat. Továbbra is engedélyezi a pontos Z magasságot?"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "A sima időfelvétel miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Engedélyezed a törlőtornyot?"
 
@@ -9433,10 +9201,6 @@ msgstr ""
 "0 felső Z-távolság, 0 érintkező felület térköz, váltakozó egyenes vonalú mintázat, valamint a független támaszréteg-magasság kikapcsolása."
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings automatically\n"
-#| "No  - Do not change these settings for me"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9586,7 +9350,6 @@ msgid "Top/bottom shells"
 msgstr "Felső/alsó héjak"
 
 #, fuzzy
-#| msgid "First layer speed"
 msgid "First layer speed"
 msgstr "Kezdőréteg sebessége"
 
@@ -9615,7 +9378,6 @@ msgid "Raft"
 msgstr "Tutaj"
 
 #, fuzzy
-#| msgid "Support filament"
 msgid "Filament for Supports"
 msgstr "Filament a támaszhoz"
 
@@ -9679,7 +9441,6 @@ msgid "Recommended nozzle temperature"
 msgstr "Ajánlott fúvóka hőmérséklet"
 
 #, fuzzy
-#| msgid "Recommended nozzle temperature range of this filament. 0 means no set"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Az ajánlott fúvóka hőmérséklet-tartomány ehhez a filamenthez. A 0 azt jelenti, hogy nincs beállítva"
 
@@ -9702,7 +9463,6 @@ msgid "Cool Plate"
 msgstr "Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Asztalhőmérséklet a hideg tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
@@ -9710,12 +9470,10 @@ msgid "Textured Cool Plate"
 msgstr "Textured Cool Plate"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Asztalhőmérséklet a Textured Cool Plate használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja a Textured Cool Plate-re történő nyomtatást."
 
 #, fuzzy
-#| msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Asztalhőmérséklet a mérnöki tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja az Engineering Plate-re történő nyomtatást"
 
@@ -9723,12 +9481,10 @@ msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Sima PEI tálca / magas hőmérsékletű tálca"
 
 #, fuzzy
-#| msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Az asztal hőmérséklete Smooth PEI / High Temperature tálca használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja Smooth PEI / High Temperature tálcára történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Asztalhőmérséklet a texturált PEI tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a High Temp Plate-re történő nyomtatást"
 
@@ -9745,7 +9501,6 @@ msgid "Min fan speed threshold"
 msgstr "Min. ventilátor fordulatszám"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "A tárgyhűtő ventilátor akkor kezd el min. fordulatszámon működni, amikor a becsült rétegidő nem hosszabb, mint a rétegidő a beállítoskban. Ha a rétegidő rövidebb a küszöbértéknél, a ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
@@ -9753,7 +9508,6 @@ msgid "Max fan speed threshold"
 msgstr "Max. ventilátor fordulatszám"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "A tárgyhűtő ventilátor fordulatszáma a maximális lesz, ha a becsült rétegidő rövidebb, mint a beállított érték"
 
@@ -9977,8 +9731,7 @@ msgstr ""
 "Biztosan törlöd a kiválasztott beállítást?\n"
 "Ha ez a filament jelenleg használatban van a nyomtatón, kérlek, töröld az adott férőhelyen a filamentadatokat."
 
-#, boost-format, fuzzy
-#| msgid "Are you sure to %1% the selected preset?"
+#, fuzzy, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Biztos, hogy %1% a kiválasztott beállítást?"
 
@@ -10024,11 +9777,6 @@ msgstr "Hőmérséklet biztonsági ellenőrzés"
 msgid "Continue"
 msgstr "Folytatás"
 
-#, fuzzy
-#| msgid "Back"
-msgid "Back"
-msgstr "Hátul"
-
 msgid "Don't warn again for this preset"
 msgstr "Ne legyen több figyelmeztetés ennél az előbeállításnál"
 
@@ -10044,7 +9792,6 @@ msgid "Click to reset current value and attach to the global value."
 msgstr "Kattints ide az érték visszaállításához és a globális érték használatához."
 
 #, fuzzy
-#| msgid "Click to drop current modify and reset to saved value."
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Kattints a gombra az aktuális módosítás elvetéséhez és a mentett értékre való visszaállításhoz."
 
@@ -10052,7 +9799,6 @@ msgid "Process Settings"
 msgstr "Folyamatbeállítások"
 
 #, fuzzy
-#| msgid "Unsaved Changes"
 msgid "unsaved changes"
 msgstr "Mentetlen változások"
 
@@ -10060,7 +9806,6 @@ msgid "Transfer or discard changes"
 msgstr "Változások elvetése vagy megtartása"
 
 #, fuzzy
-#| msgid "Old Value"
 msgid "Old value"
 msgstr "Régi érték"
 
@@ -10117,7 +9862,6 @@ msgid "Click the right mouse button to display the full text."
 msgstr "Kattints a jobb egérgombbal a teljes szöveg megjelenítéséhez."
 
 #, fuzzy
-#| msgid "All changes will not be saved"
 msgid "No changes will be saved."
 msgstr "A módosítások nem kerülnek mentésre"
 
@@ -10667,7 +10411,6 @@ msgid "Arrow Up"
 msgstr "Felfelé nyíl"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive Y direction"
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Kijelölés mozgatása 10 mm-rel pozitív Y irányban"
 
@@ -10675,7 +10418,6 @@ msgid "Arrow Down"
 msgstr "Lefelé nyíl"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative Y direction"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Kijelölés mozgatása 10 mm-rel negatív Y irányban"
 
@@ -10683,7 +10425,6 @@ msgid "Arrow Left"
 msgstr "Balra nyíl"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative X direction"
 msgid "Move selection 10mm in negative X direction"
 msgstr "Kijelölés mozgatása 10 mm-rel negatív X irányban"
 
@@ -10691,17 +10432,14 @@ msgid "Arrow Right"
 msgstr "Jobbra nyíl"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive X direction"
 msgid "Move selection 10mm in positive X direction"
 msgstr "Kijelölés mozgatása 10 mm-rel pozitív X irányban"
 
 #, fuzzy
-#| msgid "Movement step set to 1 mm"
 msgid "Movement step set to 1mm"
 msgstr "Mozgatás lépéstávolsága 1mm-re állítva"
 
 #, fuzzy
-#| msgid "Keyboard 1-9: set filament for object/part"
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "filament hozzárendelése az objektumhoz/tárgyhoz"
 
@@ -10799,7 +10537,6 @@ msgid "Set extruder number for the objects and parts"
 msgstr "Extruder szám beállítása az objektumok és tárgyak számára"
 
 #, fuzzy
-#| msgid "Delete objects, parts, modifiers"
 msgid "Delete objects, parts, modifiers"
 msgstr "Objektumok, tárgyak, módosítók törlése"
 
@@ -10853,7 +10590,6 @@ msgid "Network plug-in update"
 msgstr "Hálózati bővítmény frissítése"
 
 #, fuzzy
-#| msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "Kattints az OK gombra a hálózati bővítmény frissítéséhez a Orca Slicer következő indításakor."
 
@@ -10999,12 +10735,10 @@ msgid "Are you sure you want to update? This will take about 10 minutes. Do not 
 msgstr "Biztos, hogy frissíteni akarsz? Ez körülbelül 10 percet vesz igénybe. Ne kapcsold ki a nyomtatót, amíg a frissítés tart."
 
 #, fuzzy
-#| msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Fontos frissítést találtunk, amelyet a nyomtatás előtt telepíteni kell. Szeretnél most frissíteni? A frissítés később is elvégezhető a \"Firmware frissítése\" menüpontban."
 
 #, fuzzy
-#| msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "A firmware verziója rendellenes. A nyomtatás előtt javításra és frissítésre van szükség. Szeretnél frissíteni most? A frissítés később is elvégezhető a Orca Slicer következő indításakor."
 
@@ -11029,7 +10763,6 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% fájl másolása sikertelen a következő helyre: %2% Hiba: %3%"
 
 #, fuzzy
-#| msgid "Need to check the unsaved changes before configuration updates."
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
 
@@ -11045,8 +10778,7 @@ msgstr "G-kód fájl megnyitása:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Az egyik objektum üres kezdőréteggel rendelkezik, ezért nem nyomtatható. Kérlek, vágd le az alját, vagy engedélyezd a támaszokat."
 
-#, boost-format, fuzzy
-#| msgid "Object can't be printed for empty layer between %1% and %2%."
+#, fuzzy, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Az objektumnak üres rétegei vannak %1% és %2% között, ezért nem nyomtatható."
 
@@ -11055,7 +10787,6 @@ msgid "Object: %1%"
 msgstr "Objektum: %1%"
 
 #, fuzzy
-#| msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Az objektum ezen magasságban lévő részei túl vékonyak lehetnek, vagy az objektum hibás hálóval rendelkezik."
 
@@ -11066,7 +10797,6 @@ msgid "Filament change extrusion role G-code"
 msgstr "Filament változás extrudálási szerepkör G-kódja"
 
 #, fuzzy
-#| msgid "No object can be printed. Maybe too small"
 msgid "No object can be printed. It may be too small."
 msgstr "Objektum nem nyomtatható ki. Lehet, hogy túl kicsi."
 
@@ -11112,8 +10842,7 @@ msgstr " nem helyezhető ide: "
 msgid "Internal Bridge"
 msgstr "Belső híd"
 
-#, boost-format, fuzzy
-#| msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+#, fuzzy, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "Nem sikerült kiszámítani %1% vonalszélességét. \"%2%\" értéke nem érhető el "
 
@@ -11127,7 +10856,6 @@ msgid "too many files"
 msgstr "túl sok fájl"
 
 #, fuzzy
-#| msgid "file too large"
 msgid "File too large"
 msgstr "fájl túl nagy"
 
@@ -11150,7 +10878,6 @@ msgid "invalid header or corrupted"
 msgstr "érvénytelen fejléc vagy sérült"
 
 #, fuzzy
-#| msgid "unsupported multidisk"
 msgid "Saving to RAID is not supported."
 msgstr "a többlemezes mentés nem támogatott"
 
@@ -11200,7 +10927,6 @@ msgid "invalid filename"
 msgstr "érvénytelen fájlnév"
 
 #, fuzzy
-#| msgid "buffer too small"
 msgid "Buffer too small"
 msgstr "túl kicsi puffer"
 
@@ -11211,7 +10937,6 @@ msgid "file not found"
 msgstr "fájl nem található"
 
 #, fuzzy
-#| msgid "archive too large"
 msgid "Archive too large"
 msgstr "archívum túl nagy"
 
@@ -11221,8 +10946,7 @@ msgstr "sikertelen érvényesítés"
 msgid "write callback failed"
 msgstr "írás callback sikertelen"
 
-#, boost-format, fuzzy
-#| msgid "%1% is too close to exclusion area, there may be collisions when printing."
+#, fuzzy, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések."
 
@@ -11247,7 +10971,6 @@ msgid " is too close to others, and collisions may be caused.\n"
 msgstr " túl közel van más tárgyakhoz, a nyomtatás során előfordulhatnak ütközések.\n"
 
 #, fuzzy
-#| msgid " is too close to exclusion area, and collisions will be caused.\n"
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések.\n"
 
@@ -11282,7 +11005,6 @@ msgid "Please select \"By object\" print sequence to print multiple objects in s
 msgstr "Kérlek, válaszd a \"Tárgyanként\" nyomtatási sorrendet több tárgy spirálváza módban történő nyomtatásához."
 
 #, fuzzy
-#| msgid "The spiral vase mode does not work when an object contains more than one materials."
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "A spirál (váza) mód nem működik, ha egy objektum egynél több anyagot tartalmaz."
 
@@ -11317,27 +11039,22 @@ msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprint
 msgstr "A törlőtorony jelenleg csak a Marlin, RepRap/Sprinter, RepRapFirmware és Repetier G-kód változatokkal használható."
 
 #, fuzzy
-#| msgid "The prime tower is not supported in \"By object\" print."
 msgid "A prime tower is not supported in “By object” print."
 msgstr "A törlőtorony nem támogatott \"Tárgyanként\" nyomtatás esetén."
 
 #, fuzzy
-#| msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "A törlőtorony nem támogatott, ha az adaptív rétegmagasság be van kapcsolva. Ehhez minden objektumnak azonos rétegmagassággal kell rendelkeznie."
 
 #, fuzzy
-#| msgid "The prime tower requires \"support gap\" to be multiple of layer height."
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "A törlőtorony használatához a \"támaszköznek\" a rétegmagasság többszörösének kell lennie."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects have the same layer heights."
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "A törlőtorony használatához minden objektumnak azonos rétegmagassággal kell rendelkeznie."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are printed over the same number of raft layers."
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "A törlőtorony használatához minden objektumot azonos számú tutajréteggel kell nyomtatni."
 
@@ -11345,7 +11062,6 @@ msgid "The prime tower is only supported for multiple objects if they are printe
 msgstr "A törlőtorony több objektum esetén csak akkor támogatott, ha azok azonos support_top_z_distance értékkel készülnek."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are sliced with the same layer heights."
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "A törlőtorony használatához minden objektumot azonos rétegmagasságokkal kell szeletelni."
 
@@ -11356,12 +11072,10 @@ msgid "One or more object were assigned an extruder that the printer does not ha
 msgstr "Egy vagy több objektum olyan extruderhez lett rendelve, amellyel a nyomtató nem rendelkezik."
 
 #, fuzzy
-#| msgid "Too small line width"
 msgid "Line width too small"
 msgstr "Túl kicsi a vonalszélesség"
 
 #, fuzzy
-#| msgid "Too large line width"
 msgid "Line width too large"
 msgstr "Túl nagy vonalszélesség"
 
@@ -11369,7 +11083,6 @@ msgid "Printing with multiple extruders of differing nozzle diameters. If suppor
 msgstr "Eltérő fúvókaátmérőjű több extruderrel történő nyomtatás. Ha a támaszt az aktuális filamenttel kell nyomtatni (support_filament == 0 vagy support_interface_filament == 0), akkor minden fúvókának azonos átmérőjűnek kell lennie."
 
 #, fuzzy
-#| msgid "The prime tower requires that support has the same layer height with object."
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "A törlőtorony használatához a támasznak az objektummal azonos rétegmagassággal kell rendelkeznie."
 
@@ -11395,7 +11108,6 @@ msgid "Support enforcers are used but support is not enabled. Please enable supp
 msgstr "Támasz kényszerítőket használtál, de a támaszok nincsenek engedélyezve. Kérlek, engedélyezd a támaszokat."
 
 #, fuzzy
-#| msgid "Layer height cannot exceed nozzle diameter."
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "A rétegmagasság nem lehet nagyobb a fúvóka átmérőjénél."
 
@@ -11476,7 +11188,6 @@ msgid "Generating G-code"
 msgstr "G-kód generálása"
 
 #, fuzzy
-#| msgid "Failed processing of the filename_format template."
 msgid "Processing of the filename_format template failed."
 msgstr "Nem sikerült feldolgozni a fájlnév_formátum sablont."
 
@@ -11508,7 +11219,6 @@ msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 app
 msgstr ""
 
 #, fuzzy
-#| msgid "Bed exclude area"
 msgid "Excluded bed area"
 msgstr "Asztal kizárási terület"
 
@@ -11525,7 +11235,6 @@ msgid "Elephant foot compensation"
 msgstr "Elefántláb kompenzáció"
 
 #, fuzzy
-#| msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Zsugorítja a kezdőréteget a tárgyasztalon, hogy kompenzálja az elefántláb-hatást"
 
@@ -11548,7 +11257,6 @@ msgstr ""
 "A következő rétegek lineárisan sűrűbbé válnak az elefant_foot_compensation_layers paraméterben megadott magassággal."
 
 #, fuzzy
-#| msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Az egyes rétegek szeletelési magassága. A kisebb rétegmagasság pontosabb nyomtatást és több időt jelent"
 
@@ -11556,7 +11264,6 @@ msgid "Printable height"
 msgstr "Nyomtatási magasság"
 
 #, fuzzy
-#| msgid "Maximum printable height which is limited by mechanism of printer."
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "Maximális nyomtatható magasság a nyomtató mechanikája által korlátozva."
 
@@ -11636,7 +11343,6 @@ msgid "Ignore HTTPS certificate revocation checks"
 msgstr "A HTTPS-tanúsítvány visszavonás ellenőrzésének figyelmen kívül hagyása"
 
 #, fuzzy
-#| msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Hiányzó vagy offline terjesztési pontok esetén figyelmen kívül hagyja a HTTPS-tanúsítványok visszavonásának ellenőrzését. Ez az opció akkor lehet segítségedre, ha nem sikerül csatlakoznod egy általad aláírt tanúsítvánnyal."
 
@@ -11656,7 +11362,6 @@ msgid "Avoid crossing walls"
 msgstr "Kerülje a falak keresztezését"
 
 #, fuzzy
-#| msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Kerülje a falon keresztül való áthaladást, ami nyomot hagyhat a felületen"
 
@@ -11664,7 +11369,6 @@ msgid "Avoid crossing walls - Max detour length"
 msgstr "Kerülje a falak keresztezését - Max kitérő hossza"
 
 #, fuzzy
-#| msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "A kitérő maximális hossza a fal keresztezésének elkerüléséhez: a nyomtató figyelmen kívül hagyja a kitérést, ha az ehhez szükséges távolság nagyobb, mint ez az érték. A kitérő megadható abszolút értékként vagy a közvetlen útvonal százalékában (például 50%). Állítsd az értéket 0-ra, ha ki szeretnéd kapcsolni ezt az opciót."
 
@@ -11678,72 +11382,58 @@ msgid "Bed temperature for layers except the initial one. A value of 0 means the
 msgstr "A kezdőrétegen kívüli rétegek tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a SuperTac hűvös tálcán."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Az asztal hőmérséklete a kezdőréteg kivételével. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "A kezdőrétegen kívüli rétegek tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a texturált hűvös tálcán."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Az asztal hőmérséklete a kezdeti réteg kivételével. A 0 érték azt jelenti, hogy a szál nem támogatja az Engineering Plate-re történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Az asztal hőmérséklete a kezdeti réteg kivételével. A 0 érték azt jelenti, hogy a szál nem támogatja a High Temp Plate-re történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Asztalhőmérséklet az első réteg után. A 0 érték azt jelenti, hogy a filament nem támogatja texturált PEI tálcára történő nyomtatást."
 
 #, fuzzy
-#| msgid "First layer"
 msgid "First layer"
 msgstr "Kezdőréteg"
 
 #, fuzzy
-#| msgid "First layer bed temperature"
 msgid "First layer bed temperature"
 msgstr "Első réteg asztalhőmérséklete"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "A kezdőréteg tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a SuperTac hűvös tálcán."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "A kezdőréteg tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a texturált hűvös tálcán."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a Engineering Plate-re történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a High Temp Plate-re történő nyomtatást"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Az első réteg asztalhőmérsékletének beállított 0 érték azt jelenti, hogy a filament nem támogatja texturált PEI tálcára történő nyomtatást."
 
 #, fuzzy
-#| msgid "Bed types supported by the printer."
 msgid "Plate types supported by the printer"
 msgstr "Nyomtató által támogatott asztaltípusok"
 
@@ -11778,7 +11468,6 @@ msgid "Bottom shell thickness"
 msgstr "Alsó héj vastagság"
 
 #, fuzzy
-#| msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Az alsó szilárd rétegek száma szeleteléskor megnő, ha az alsó héjrétegek vastagsága kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj, ha a rétegmagasság kicsi. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és az alsó héj vastagságát egyszerűen az alsó héjrétegek száma határozza meg."
 
@@ -12186,12 +11875,10 @@ msgstr ""
 "Ha a túlnyúló fal érzékelése nincs engedélyezve, ez az opció figyelmen kívül marad, és a megfordítás minden páros rétegen megtörténik."
 
 #, fuzzy
-#| msgid "Slow down for overhang"
 msgid "Slow down for overhangs"
 msgstr "Lassítás túlnyúlásoknál"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing down for different overhang degree."
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "Engedélyezd ezt az opciót a nyomtatási sebesség lassításához különböző túlnyúlási szögeknél"
 
@@ -12238,7 +11925,6 @@ msgid "Brim width"
 msgstr "Perem szélessége"
 
 #, fuzzy
-#| msgid "Distance from model to the outermost brim line."
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "A modell és a legkülső peremvonal közötti távolság"
 
@@ -12252,7 +11938,6 @@ msgid "Brim-object gap"
 msgstr "Perem-tárgy közötti rés"
 
 #, fuzzy
-#| msgid "A gap between innermost brim line and object can make brim be removed more easily."
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "A legbelső peremvonal és a tárgy közötti rés, ami megkönnyítheti a perem eltávolítását"
 
@@ -12273,16 +11958,10 @@ msgstr ""
 "Megjegyzés: A kapott értéket nem befolyásolja az első réteg áramlási aránya."
 
 #, fuzzy
-#| msgid "Brim follows compensated outline"
 msgid "Brim follows compensated outline"
 msgstr "A Perem a kompenzált körvonalat követi"
 
 #, fuzzy
-#| msgid ""
-#| "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
-#| "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
-#| "\n"
-#| "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12338,7 +12017,6 @@ msgid "Condition"
 msgstr "Feltétel"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Logikai kifejezés, amely egy aktív nyomtatóprofil konfigurációs értékeit használja. Ha ez a kifejezés igaz, akkor ez a profil kompatibilis az aktív nyomtatóprofillal."
 
@@ -12346,12 +12024,10 @@ msgid "Select profiles"
 msgstr "Profilok kiválasztása"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Logikai kifejezés, amely egy aktív nyomtatási profil konfigurációs értékeit használja. Ha ez a kifejezés igaz, akkor ez a profil kompatibilis az aktív nyomtatási profillal."
 
 #, fuzzy
-#| msgid "Print sequence, layer by layer or object by object."
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Nyomtatási sorrend, rétegenként vagy tárgyanként"
 
@@ -12374,7 +12050,6 @@ msgid "Slow printing down for better layer cooling"
 msgstr "Nyomtatás lelassítása a jobb hűtés érdekében"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr ""
 "Engedélyezd ezt az opciót a nyomtatási sebesség lassításához, hogy a rétegidő ne lehessen kevesebb, mint a \"Max. ventilátor fordulatszám\"-nál megadott küszöbérték.\n"
@@ -12384,7 +12059,6 @@ msgid "Normal printing"
 msgstr "Normál nyomtatás"
 
 #, fuzzy
-#| msgid "The default acceleration of both normal printing and travel except initial layer."
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Ez az alapértelmezett gyorsulás mind a normál nyomtatáshoz, mind az első réteg utáni mozgáshoz."
 
@@ -12431,7 +12105,6 @@ msgid "Don't support bridges"
 msgstr "Ne támassza alá az áthidalásokat"
 
 #, fuzzy
-#| msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Nem támasztja alá az áthidalásokat, ezáltal támaszanyagot spórolva. Az áthidalások általában támasz nélkül is jól nyomtathatók, ha nem túl hosszúak"
 
@@ -12520,7 +12193,6 @@ msgid "Max bridge length"
 msgstr "Maximum áthidalás hossza"
 
 #, fuzzy
-#| msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Ez a maximális hossza azoknak az áthidalásoknak, amelyeknek nincs szükségük alátámasztásra. Állítsd 0-ra, ha azt szeretnéd, hogy minden áthidalás alá legyen támasztva, vagy állítsd egy nagyon nagy értékre, ha azt szeretnéd, hogy egyetlen áthidalás se legyen alátámasztva."
 
@@ -12528,7 +12200,6 @@ msgid "End G-code"
 msgstr "Befejező G-kód"
 
 #, fuzzy
-#| msgid "End G-code when finishing the entire print."
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Befejező G-kód az egész nyomtatás befejezésekor"
 
@@ -12539,7 +12210,6 @@ msgid "Insert G-code between objects. This parameter will only come into effect 
 msgstr "A tárgyak nyomtatása között használt G-kód. Ez a paraméter csak akkor működik, ha a nyomtatás tárgyankénti sorrendben történik."
 
 #, fuzzy
-#| msgid "End G-code when finishing the printing of this filament."
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "Befejező G-kód a filament nyomtatásának befejezésekor"
 
@@ -12571,7 +12241,6 @@ msgid "Top surface pattern"
 msgstr "Felső felület mintázata"
 
 #, fuzzy
-#| msgid "Line pattern of top surface infill."
 msgid "This is the line pattern for top surface infill."
 msgstr "Ez a felső felület kitöltésének mintája."
 
@@ -12603,7 +12272,6 @@ msgid "Bottom surface pattern"
 msgstr "Alsó felület mintázata"
 
 #, fuzzy
-#| msgid "Line pattern of bottom surface infill, not bridge infill."
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Ez az alsó felület kitöltésének mintája, kivéve az áthidalásokat."
 
@@ -12617,7 +12285,6 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "A külső fal vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "A legkülső látható fal sebessége. A jobb minőség érdekében ez lassabb, mint a belső fal sebessége."
 
@@ -12698,7 +12365,6 @@ msgid "Height to rod"
 msgstr "Magasság a rúdig"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "A fúvóka hegye és az alsó rúd közötti távolság. Objektumonként történő nyomtatás során az ütközések elkerülésére szolgál."
 
@@ -12706,12 +12372,10 @@ msgid "Height to lid"
 msgstr "Magasság a fedélig"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "A fúvóka hegye és a fedél közötti távolság. Objektumonként történő nyomtatás során az ütközések elkerülésére szolgál."
 
 #, fuzzy
-#| msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Az extruder körüli szabadon hagyott terület sugara. Objektumonként történő nyomtatás során az ütközések elkerülésére szolgál."
 
@@ -12849,7 +12513,6 @@ msgid "Keep fan always on"
 msgstr "Ventilátor mindig bekapcsolva"
 
 #, fuzzy
-#| msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Ezen beállítás engedélyezése esetén a tárgyhűtő ventilátor soha nem áll le, és legalább a minimális fordulatszámon fog járni, hogy csökkentse az indítás és leállítás gyakoriságát"
 
@@ -12871,7 +12534,6 @@ msgid "Layer time"
 msgstr "Rétegidő"
 
 #, fuzzy
-#| msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "A tárgyhűtő ventilátor azon rétegek esetében lesz engedélyezve, amelyek becsült ideje rövidebb ennél az értéknél. A ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
@@ -12898,7 +12560,6 @@ msgid "Required nozzle HRC"
 msgstr "Szükséges fúvóka HRC-érték"
 
 #, fuzzy
-#| msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "A filament nyomtatásához szükséges fúvóka minimum HRC értéke. A 0 azt jelenti, hogy nem ellenőrzi a fúvóka HRC értékét."
 
@@ -12939,7 +12600,6 @@ msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric s
 msgstr "A filament öblítésekor használt volumetrikus sebesség. A 0 a maximális volumetrikus sebességet jelenti."
 
 #, fuzzy
-#| msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Ezzel a beállítással adhatod meg a másodpercenként megolvasztható és extrudálható maximális filamentmennyiséget. A nyomtatási sebességet a maximális térfogatsebesség korlátozhatja, túl magas és ésszerűtlen sebesség esetén. Ez az érték nem lehet 0."
 
@@ -12974,7 +12634,6 @@ msgid "By Highest Temp"
 msgstr "A legmagasabb hőmérséklet alapján"
 
 #, fuzzy
-#| msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "A filament átmérő a G-kódban az extrudálás kiszámításához szükséges, ezért fontos, hogy pontos legyen"
 
@@ -13049,7 +12708,6 @@ msgid "Unloading speed"
 msgstr "Kiürítési sebesség"
 
 #, fuzzy
-#| msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "A filament törlőtoronynál való kiürítéséhez használt sebesség (nem befolyásolja a kiürítés kezdeti részét közvetlenül a tömörítés után)."
 
@@ -13168,7 +12826,6 @@ msgid "Density"
 msgstr "Sűrűség"
 
 #, fuzzy
-#| msgid "Filament density. For statistics only."
 msgid "Filament density, for statistical purposes only."
 msgstr "Filament sűrűsége. Csak statisztikákhoz kerül felhasználásra"
 
@@ -13176,7 +12833,6 @@ msgid "g/cm³"
 msgstr "g/cm³"
 
 #, fuzzy
-#| msgid "The material type of filament."
 msgid "Filament material type"
 msgstr "Filament anyagának típusa"
 
@@ -13208,7 +12864,6 @@ msgid "Softening temperature"
 msgstr "Lágyulási hőmérséklet"
 
 #, fuzzy
-#| msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Az anyag ezen a hőmérsékleten kezd meglágyulni, ezért ha az asztal hőmérséklete ezt eléri vagy meghaladja, az eltömődés elkerülése érdekében erősen ajánlott kinyitni az első ajtót és/vagy eltávolítani a felső üveget."
 
@@ -13216,7 +12871,6 @@ msgid "Price"
 msgstr "Költség"
 
 #, fuzzy
-#| msgid "Filament price. For statistics only."
 msgid "Filament price, for statistical purposes only."
 msgstr "Filament költsége. Csak statisztikákhoz kerül felhasználásra"
 
@@ -13236,7 +12890,6 @@ msgid "Sparse infill direction"
 msgstr "Ritka kitöltés iránya"
 
 #, fuzzy
-#| msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "A ritkás kitöltési minta szöge, amely a vonal kezdő- vagy fő irányát szabályozza"
 
@@ -13284,7 +12937,6 @@ msgid "Sparse infill pattern"
 msgstr "Kitöltési mintázat"
 
 #, fuzzy
-#| msgid "Line pattern for internal sparse infill."
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Ez a belső ritkás kitöltés mintája."
 
@@ -13419,12 +13071,10 @@ msgid "Acceleration of travel moves."
 msgstr "Az utazó mozgások gyorsulása."
 
 #, fuzzy
-#| msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "A felső felületi kitöltés gyorsulása. Alacsonyabb érték használata javíthatja a felső felület minőségét"
 
 #, fuzzy
-#| msgid "Acceleration of outer wall. Using a lower value can improve quality."
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Gyorsulás a külső falnál: alacsonyabb érték használata javíthatja a minőséget."
 
@@ -13441,7 +13091,6 @@ msgid "Acceleration of internal solid infill. If the value is expressed as a per
 msgstr "A belső tömör kitöltés gyorsulása. Ha az érték százalékban van megadva (pl. 100%), az alapértelmezett gyorsulás alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "A kezdőréteg gyorsulása. Alacsonyabb érték használata javíthatja a tárgyasztalhoz való tapadást"
 
@@ -13503,27 +13152,22 @@ msgid "Line width of the first layer. If expressed as a %, it will be computed o
 msgstr "Az első réteg vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "First layer height"
 msgid "First layer height"
 msgstr "Kezdő rétegmagasság"
 
 #, fuzzy
-#| msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Kezdőréteg magassága. A vastagabb kezdőréteg javíthatja a tárgy asztalhoz való tapadását"
 
 #, fuzzy
-#| msgid "Speed of the first layer except the solid infill part."
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "A kezdőréteg nyomtatási sebessége a szilárd kitöltési rész kivételével"
 
 #, fuzzy
-#| msgid "First layer infill"
 msgid "First layer infill"
 msgstr "Kezdőréteg kitöltése"
 
 #, fuzzy
-#| msgid "Speed of solid infill part of the first layer."
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "A kezdőréteg szilárd kitöltési részének sebessége"
 
@@ -13534,7 +13178,6 @@ msgid "Travel speed of the first layer."
 msgstr "Az első réteg mozgási sebessége."
 
 #, fuzzy
-#| msgid "Number of slow layers"
 msgid "This is the number of top interface layers."
 msgstr "Lassú rétegek száma"
 
@@ -13542,12 +13185,10 @@ msgid "The first few layers are printed slower than normal. The speed is gradual
 msgstr "Az első néhány réteg a normálnál lassabban nyomtatódik. A sebesség a megadott rétegszámon keresztül fokozatosan, lineárisan növekszik."
 
 #, fuzzy
-#| msgid "First layer nozzle temperature"
 msgid "First layer nozzle temperature"
 msgstr "Az első réteg fúvóka hőmérséklete"
 
 #, fuzzy
-#| msgid "Nozzle temperature for printing the first layer when using this filament."
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "A fúvóka hőmérséklete az első réteg nyomtatásakor ezzel a filamenttel"
 
@@ -13619,7 +13260,6 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "Filament-specifikus felülbírálás a vasalási sebességhez. Lehetővé teszi a vasalási vonalak nyomtatási sebességének külön beállítását minden filamenttípushoz."
 
 #, fuzzy
-#| msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "A nyomtató véletlenszerűen vibrál a fal nyomtatása közben, így a felület durva megjelenésű lesz"
 
@@ -13642,7 +13282,6 @@ msgid "Fuzzy skin thickness"
 msgstr "A bolyhos felület vastagsága"
 
 #, fuzzy
-#| msgid "The width within which to jitter. It's advised to be below outer wall line width."
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "A rezgés szélessége: ezt ajánlott kisebbre állítani, mint a külső fal szélessége."
 
@@ -13790,7 +13429,6 @@ msgid "Don't print gap fill with a length is smaller than the threshold specifie
 msgstr "Ne nyomtasson olyan réskitöltést, amelynek hossza kisebb a megadott küszöbértéknél (mm-ben). Ez a beállítás a felső, alsó és tömör kitöltésre vonatkozik, valamint klasszikus kerületgenerátor használata esetén a falréskitöltésre is."
 
 #, fuzzy
-#| msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "A hézagkitöltés nyomtatási sebessége. A rés általában szabálytalan vonalszélességű, és lassabban kell nyomtatni"
 
@@ -13822,7 +13460,6 @@ msgid "Scan first layer"
 msgstr "Az első réteg szkennelése"
 
 #, fuzzy
-#| msgid "Enable this to enable the camera on printer to check the quality of first layer."
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Engedélyezd ezt az opciót, hogy a nyomtató kamerája ellenőrizze az első réteg minőségét"
 
@@ -13839,7 +13476,6 @@ msgid "Nozzle type"
 msgstr "Fúvóka típus"
 
 #, fuzzy
-#| msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "A fúvóka anyaga: Ez határozza meg a fúvóka kopásállóságát és azt, hogy milyen filamentekkel képes nyomtatni."
 
@@ -13856,7 +13492,6 @@ msgid "Nozzle HRC"
 msgstr "Fúvóka HRC értéke"
 
 #, fuzzy
-#| msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "A fúvóka keménysége. A 0 azt jelenti, hogy szeletelés során nem ellenőrzi a fúvóka HRC értékét."
 
@@ -13944,7 +13579,6 @@ msgid "money/h"
 msgstr "pénz/óra"
 
 #, fuzzy
-#| msgid "Support control chamber temperature"
 msgid "Support controlling chamber temperature"
 msgstr "Kamrahőmérséklet-szabályozás engedélyezése"
 
@@ -14008,7 +13642,6 @@ msgid "Infill combination"
 msgstr "Kitöltés összevonása"
 
 #, fuzzy
-#| msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Több réteg ritkás kitöltésének automatikus kombinálása a nyomtatási idő csökkentése érdekében. A fal továbbra is az eredeti rétegmagassággal kerül kinyomtatásra."
 
@@ -14116,12 +13749,10 @@ msgid "Line width of internal sparse infill. If expressed as a %, it will be com
 msgstr "A belső ritka kitöltés vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "Infill/Wall overlap"
 msgid "Infill/wall overlap"
 msgstr "Kitöltés/fal átfedés"
 
-#, fuzzy, no-boost-format, no-c-format
-#| msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+#, fuzzy, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "A kitöltési terület kissé megnagyobbodik, hogy átfedésbe kerüljön a fallal a jobb kötés érdekében. A százalékos érték a ritka kitöltés vonalszélességéhez viszonyított. Állítsd ezt az értéket kb. 10-15%-ra a lehetséges túlextrudálás és az anyagfelhalmozódás minimalizálásához, amely érdes felső felületeket eredményezhet."
 
@@ -14133,7 +13764,6 @@ msgid "Top solid infill area is enlarged slightly to overlap with wall for bette
 msgstr "A felső tömör kitöltési terület kissé megnagyobbodik, hogy átfedésbe kerüljön a fallal a jobb kötés érdekében, és csökkentse a tűlyukszerű hibák megjelenését ott, ahol a felső kitöltés a falakkal találkozik. Jó kiindulási érték a 25-30%, amely segít minimalizálni a tűlyukak megjelenését. A százalékos érték a ritka kitöltés vonalszélességéhez viszonyított."
 
 #, fuzzy
-#| msgid "Speed of internal sparse infill."
 msgid "This is the speed for internal sparse infill."
 msgstr "A belső ritkás kitöltés sebessége"
 
@@ -14153,7 +13783,6 @@ msgid "Maximum width of a segmented region"
 msgstr "Szegmentált régió maximális szélessége"
 
 #, fuzzy
-#| msgid "Maximum width of a segmented region. Zero disables this feature."
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Szegmentált régió maximális szélessége. A 0 érték letiltja ezt a funkciót."
 
@@ -14200,12 +13829,10 @@ msgid "The distance from the outside of a model where interlocking structures wi
 msgstr "A modell külső peremétől mért távolság, ahol nem jön létre kapcsolódó szerkezet, cellákban megadva."
 
 #, fuzzy
-#| msgid "Ironing Type"
 msgid "Ironing type"
 msgstr "Vasalás típusa"
 
 #, fuzzy
-#| msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "A vasalás kis anyagáramlás használatával kisimítja a sík felületeket. Ez a beállítás szabályozza, hogy mely rétegeknél történik meg a vasalás."
 
@@ -14213,12 +13840,10 @@ msgid "No ironing"
 msgstr "Nincs vasalás"
 
 #, fuzzy
-#| msgid "Top surfaces"
 msgid "All top surfaces"
 msgstr "Felső felületek"
 
 #, fuzzy
-#| msgid "Topmost surface"
 msgid "Topmost surface only"
 msgstr "Legfelső felület"
 
@@ -14233,12 +13858,10 @@ msgid "The pattern that will be used when ironing."
 msgstr "A vasaláskor használt minta."
 
 #, fuzzy
-#| msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "A vasalás során extrudálandó anyag mennyisége a normál anyagáramláshoz viszonyítva. A túl magas érték a felületen túlextrudálást eredményez."
 
 #, fuzzy
-#| msgid "The distance between the lines of ironing."
 msgid "This is the distance between the lines used for ironing."
 msgstr "A vasaláshoz használt vonalak közötti távolság."
 
@@ -14246,7 +13869,6 @@ msgid "The distance to keep from the edges. A value of 0 sets this to half of th
 msgstr "Az élektől tartandó távolság. A 0 érték ezt a fúvókaátmérő felére állítja."
 
 #, fuzzy
-#| msgid "Print speed of ironing lines."
 msgid "This is the print speed for ironing lines."
 msgstr "A vasalási vonalak nyomtatási sebessége"
 
@@ -14309,12 +13931,10 @@ msgid "Clumping detection G-code"
 msgstr "Csomósodásészlelés G-kód"
 
 #, fuzzy
-#| msgid "Supports silent mode"
 msgid "Silent Mode"
 msgstr "Csendes mód támogatva"
 
 #, fuzzy
-#| msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Csendes üzemmód támogatása, amelyben a gép kisebb gyorsulást használ a csendesebb nyomtatáshoz"
 
@@ -14585,7 +14205,6 @@ msgstr ""
 "A rezgéskompenzáció letiltásához használd a Letiltás típust."
 
 #, fuzzy
-#| msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "A tárgyhűtő ventilátor fordulatszáma növelhető, ha az automatikus hűtés engedélyezve van. Ez a tárgyhűtő ventilátor maximális fordulatszám-határa"
 
@@ -14703,7 +14322,6 @@ msgid "Nozzle volume"
 msgstr "Fúvóka térfogata"
 
 #, fuzzy
-#| msgid "Volume of nozzle between the cutter and the end of nozzle."
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "A fúvóka térfogata a filamentvágó és a fúvóka vége között"
 
@@ -14741,7 +14359,6 @@ msgid "Start end points"
 msgstr "Kezdő- és végpontok"
 
 #, fuzzy
-#| msgid "The start and end points which is from cutter area to garbage can."
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "A kezdő- és végpontok a vágási terület és a kidobónyílás között."
 
@@ -14749,7 +14366,6 @@ msgid "Reduce infill retraction"
 msgstr "Csökkentett visszahúzás kitöltésnél"
 
 #, fuzzy
-#| msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 "Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható.\n"
@@ -14762,7 +14378,6 @@ msgid "Filename format"
 msgstr "Fájlnév formátum"
 
 #, fuzzy
-#| msgid "Users can define the project file name when exporting."
 msgid "Users can decide project file names when exporting."
 msgstr "A felhasználó dönthet a projektfájlok nevéről exportáláskor."
 
@@ -14788,8 +14403,7 @@ msgstr "A modell alján lévő lyuk maximális területe, mielőtt kúpos anyag 
 msgid "Detect overhang walls"
 msgstr "Túlnyúló falak felismerése"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+#, fuzzy, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Felismeri a túlnyúlás százalékos arányát a vonalszélességhez viszonyítva, és más sebességet használ. A 100%%-os túlnyúlás esetén az áthidaláshoz beállított sebességet használja."
 
@@ -14813,12 +14427,10 @@ msgid "Line width of inner wall. If expressed as a %, it will be computed over t
 msgstr "A belső fal vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "Speed of inner wall."
 msgid "This is the speed for inner walls."
 msgstr "A belső fal nyomtatási sebessége"
 
 #, fuzzy
-#| msgid "Number of walls of every layer."
 msgid "This is the number of walls per layer."
 msgstr "Ez a falak száma rétegenként."
 
@@ -14866,7 +14478,6 @@ msgid "Raft contact Z distance"
 msgstr "Tutaj érintkezési Z-távolság"
 
 #, fuzzy
-#| msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z rés a tutaj és a tárgy között. Ha a támasz felső Z-távolsága 0, ez az érték figyelmen kívül lesz hagyva és a tárgy közvetlenül a tutajon kerül nyomtatásra (rés nélkül)."
 
@@ -14874,27 +14485,22 @@ msgid "Raft expansion"
 msgstr "Tutaj kibővítése"
 
 #, fuzzy
-#| msgid "Expand all raft layers in XY plane."
 msgid "This expands all raft layers in XY plane."
 msgstr "Az összes tutajréteg kiterjesztése az XY síkban"
 
 #, fuzzy
-#| msgid "First layer density"
 msgid "First layer density"
 msgstr "Első réteg sűrűsége"
 
 #, fuzzy
-#| msgid "Density of the first raft or support layer."
 msgid "This is the density of the first raft or support layer."
 msgstr "Az első tutaj- vagy támaszréteg sűrűsége"
 
 #, fuzzy
-#| msgid "First layer expansion"
 msgid "First layer expansion"
 msgstr "Első réteg kiterjesztése"
 
 #, fuzzy
-#| msgid "Expand the first raft or support layer to improve bed plate adhesion."
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Az első tutaj- vagy támaszréteg kiterjesztése a tárgyasztalhoz való tapadás javítása érdekében."
 
@@ -14905,7 +14511,6 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "A tárgy ennyi támaszréteggel kerül megemelésre. Ezzel a funkcióval elkerülheted a kunkorodást ABS nyomtatásakor."
 
 #, fuzzy
-#| msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "A G-kód útvonal a modell kontúrjának egyszerűsítése után jön létre, hogy elkerüljük a túl sok sort a G-kód fájlban. A kisebb érték nagyobb felbontást és több időt jelent a szeletelésnél"
 
@@ -14919,17 +14524,14 @@ msgid "Retract amount before wipe"
 msgstr "Visszahúzott mennyiség törlés előtt"
 
 #, fuzzy
-#| msgid "The length of fast retraction before wipe, relative to retraction length."
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Ez a törlés előtti gyors visszahúzás hossza a visszahúzási hosszhoz viszonyítva."
 
 #, fuzzy
-#| msgid "Retract when change layer"
 msgid "Retract on layer change"
 msgstr "Visszahúzás rétegváltáskor"
 
 #, fuzzy
-#| msgid "Force a retraction when changes layer."
 msgid "This forces a retraction on layer changes."
 msgstr "Kényszeríti a visszahúzást minden rétegváltáskor"
 
@@ -14940,7 +14542,6 @@ msgid "Some amount of material in extruder is pulled back to avoid ooze during l
 msgstr "Az extruderben lévő anyag egy részét visszahúzza, hogy hosszabb mozgások közben elkerülje a szivárgást. A visszahúzás kikapcsolásához állítsd 0-ra."
 
 #, fuzzy
-#| msgid "Long retraction when cut (beta)"
 msgid "Long retraction when cut (beta)"
 msgstr "Hosszú visszahúzás vágáskor (béta)"
 
@@ -14963,7 +14564,6 @@ msgid "Z-hop height"
 msgstr "Z-emelés magassága"
 
 #, fuzzy
-#| msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Visszahúzáskor a fúvóka egy kicsit megemelkedik, hogy a fúvóka és a nyomtatott tárgy között rés keletkezzen. Ez megakadályozza, hogy a fúvóka nagyobb mozgás közben a tárgynak ütközzön. A Z tengely emelésekor használt körkörös mozgás megelőzheti a szálazást."
 
@@ -15043,7 +14643,6 @@ msgid "When the retraction is compensated after changing tool, the extruder will
 msgstr "Amikor a visszahúzás kompenzálásra kerül szerszámváltás után, az extruder ezt a további szálmennyiséget nyomja előre."
 
 #, fuzzy
-#| msgid "Retraction Speed"
 msgid "Retraction speed"
 msgstr "Visszahúzás sebessége"
 
@@ -15051,7 +14650,6 @@ msgid "Speed for retracting filament from the nozzle."
 msgstr "A filament visszahúzásának sebessége a fúvókából."
 
 #, fuzzy
-#| msgid "De-retraction Speed"
 msgid "Deretraction speed"
 msgstr "Betöltési sebesség"
 
@@ -15077,7 +14675,6 @@ msgid "Seam position"
 msgstr "Varrat pozíció"
 
 #, fuzzy
-#| msgid "The start position to print each part of outer wall."
 msgid "This is the starting position for each part of the outer wall."
 msgstr "A külső fal nyomtatásának kiindulási helyzete."
 
@@ -15218,7 +14815,6 @@ msgid "Skirt distance"
 msgstr "Szoknya távolsága"
 
 #, fuzzy
-#| msgid "The distance from the skirt to the brim or the object."
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "A szoknyától a peremig vagy tárgyig mért távolság"
 
@@ -15232,7 +14828,6 @@ msgid "Skirt height"
 msgstr "Szoknya magassága"
 
 #, fuzzy
-#| msgid "How many layers of skirt. Usually only one layer."
 msgid "Number of skirt layers: usually only one"
 msgstr "A szoknya rétegeinek száma. Általában csak egy réteg."
 
@@ -15272,7 +14867,6 @@ msgid "Skirt loops"
 msgstr "Szoknya hurkok száma"
 
 #, fuzzy
-#| msgid "Number of loops for the skirt. Zero means disabling skirt."
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr ""
 "A szoknya hurkainak száma. A nulla a szoknya kikapcsolását jelenti.\n"
@@ -15307,7 +14901,6 @@ msgid "Minimum sparse infill threshold"
 msgstr "Ritkás kitöltés küszöbértéke"
 
 #, fuzzy
-#| msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Az ennél a küszöbértéknél kisebb ritka kitöltési területek belső tömör kitöltéssel helyettesítődnek."
 
@@ -15330,12 +14923,10 @@ msgid "Line width of internal solid infill. If expressed as a %, it will be comp
 msgstr "A belső tömör kitöltés vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "Speed of internal solid infill, not the top and bottom surface."
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "A belső szilárd kitöltés sebessége, de az az érték nem vonatkozik a felső és alsó felületre"
 
 #, fuzzy
-#| msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "A spirál mód kisimítja a külső kontúr Z mozgásait. A tömör modellt egyfalú nyomatokká alakítja, tömör alsó rétegekkel. A végső modellen nincsenek varratok"
 
@@ -15367,7 +14958,6 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "Beállítja a befejező áramlási arányt a spirál lezárásakor. Normál esetben a spirál lezárása az utolsó hurok alatt 100%-ról 0%-ra skálázza az áramlási arányt, ami egyes esetekben alulextrudálást okozhat a spirál végén."
 
 #, fuzzy
-#| msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Ha a sima vagy a hagyományos mód van kiválasztva, minden nyomtatásnál készül egy időfelvétel-videó. Az egyes rétegek kinyomtatása után a beépített kamera egy képet készít. A nyomtatás befejeződése után aztán ezeket a képeket a szoftver egy videóvá fűzi össze. Ha a sima mód van kiválasztva, a réteg nyomtatása után a nyomtatófej a kidobónyíláshoz mozog, majd a kamera egy képet készít. Mivel a kép készítése során szivároghat valamennyi olvadt filament a fúvókából, egy törlőtoronyra van szükség a fúvóka megtisztításához."
 
@@ -15403,12 +14993,10 @@ msgid "Start G-code"
 msgstr "Kezdő G-kód"
 
 #, fuzzy
-#| msgid "Start G-code when starting the entire print."
 msgid "G-code added when starting a print."
 msgstr "Kezdő G-kód az egész nyomtatás megkezdésekor"
 
 #, fuzzy
-#| msgid "Start G-code when starting the printing of this filament."
 msgid "G-code added when the printer starts using this filament"
 msgstr "Kezdő G-kód a filament nyomtatásának megkezdésekor"
 
@@ -15494,7 +15082,6 @@ msgid "Enable support"
 msgstr "Támasz engedélyezése"
 
 #, fuzzy
-#| msgid "Enable support generation."
 msgid "This enables support generation."
 msgstr "Engedélyezi a támasz generálását."
 
@@ -15518,7 +15105,6 @@ msgid "Support/object XY distance"
 msgstr "Támasz/tárgy XY távolság"
 
 #, fuzzy
-#| msgid "XY separation between an object and its support."
 msgid "This controls the XY separation between an object and its support."
 msgstr "Ez szabályozza a tárgy és a támasz közötti XY elválasztás távolságát."
 
@@ -15538,7 +15124,6 @@ msgid "On build plate only"
 msgstr "Csak a tárgyasztaltól"
 
 #, fuzzy
-#| msgid "Don't create support on model surface, only on build plate."
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Nem generál támaszt a modell felületén, csak a tárgyasztalon"
 
@@ -15558,7 +15143,6 @@ msgid "Top Z distance"
 msgstr "Z távolság"
 
 #, fuzzy
-#| msgid "Z gap between the support's top and object."
 msgid "Z gap between the support's top and object."
 msgstr "Z rés a támasz teteje és a tárgy között."
 
@@ -15566,7 +15150,6 @@ msgid "Bottom Z distance"
 msgstr "Alsó Z távolság"
 
 #, fuzzy
-#| msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z rés a tárgy és a támasz alja között. Ha a támasz felső Z-távolsága 0 és az alján vannak interfész rétegek, ez az érték figyelmen kívül lesz hagyva, és a támasz közvetlenül a tárgyhoz lesz nyomtatva (rés nélkül)."
 
@@ -15574,7 +15157,6 @@ msgid "Support/raft base"
 msgstr "Támasz/tutaj alap"
 
 #, fuzzy
-#| msgid "Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used."
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
@@ -15590,12 +15172,10 @@ msgid "Line width of support. If expressed as a %, it will be computed over the 
 msgstr "A támasz vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
 #, fuzzy
-#| msgid "Interface use loop pattern"
 msgid "Loop pattern interface"
 msgstr "Hurokminta felület"
 
 #, fuzzy
-#| msgid "Cover the top contact layer of the supports with loops. Disabled by default."
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Lefedi a támasz felső érintkező rétegét körökkel. Alapértelmezés szerint letiltva."
 
@@ -15603,7 +15183,6 @@ msgid "Support/raft interface"
 msgstr "Támasz/tutaj interfész"
 
 #, fuzzy
-#| msgid "Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used."
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
@@ -15635,12 +15214,10 @@ msgid "Bottom interface spacing"
 msgstr "Alső érintkező réteg térköz"
 
 #, fuzzy
-#| msgid "Spacing of bottom interface lines. Zero means solid interface."
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Az érintkező réteg vonalai közötti távolság. A nulla szilárd kitöltést jelent"
 
 #, fuzzy
-#| msgid "Speed of support interface."
 msgid "This is the speed for support interfaces."
 msgstr "Támasz érintkező felületek sebessége"
 
@@ -15670,7 +15247,6 @@ msgid "Interface pattern"
 msgstr "Érintkező felület mintázata"
 
 #, fuzzy
-#| msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "A támasz érintkezési felületének vonalmintája. A nem oldható támaszfelület alapértelmezett mintázata egyenes vonalú, míg az oldható támaszfelület alapértelmezett mintázata koncentrikus"
 
@@ -15681,12 +15257,10 @@ msgid "Base pattern spacing"
 msgstr "Alap mintázatának térköze"
 
 #, fuzzy
-#| msgid "Spacing between support lines."
 msgid "This determines the spacing between support lines."
 msgstr "A támasz vonalai közötti távolság"
 
 #, fuzzy
-#| msgid "Normal Support expansion"
 msgid "Normal support expansion"
 msgstr "Normál támasz kibővítése"
 
@@ -15694,7 +15268,6 @@ msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Megnöveli (+) vagy összehúzza (-) a normál támaszt vízszintes irányban"
 
 #, fuzzy
-#| msgid "Speed of support."
 msgid "This is the speed for support."
 msgstr "Támaszok sebessége"
 
@@ -15733,9 +15306,6 @@ msgid "Threshold angle"
 msgstr "Dőlésszög küszöbértéke"
 
 #, fuzzy
-#| msgid ""
-#| "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
-#| "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15869,7 +15439,6 @@ msgstr ""
 "Bekapcsolva ez a paraméter egy chamber_temperature nevű G-code változót is beállít, amely felhasználható a kívánt kamrahőmérséklet átadására a nyomtatásindító makrónak, vagy egy ilyen hőkiegyenlítő makrónak: PRINT_START (egyéb változók) CHAMBER_TEMP=[chamber_temperature]. Ez akkor lehet hasznos, ha a nyomtatód nem támogatja az M141/M191 parancsokat, vagy ha az aktív kamrafűtés hiányában a hőkiegyenlítést a nyomtatásindító makróban szeretnéd kezelni."
 
 #, fuzzy
-#| msgid "Nozzle temperature for layers after the initial one."
 msgid "Nozzle temperature after the first layer"
 msgstr "Fúvóka hőmérséklete az első réteg után"
 
@@ -15878,7 +15447,6 @@ msgid "Detect thin walls"
 msgstr "Vékony falak felismerése"
 
 #, fuzzy
-#| msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Felismeri a vékony falakat, amellyeket nem lehet két vonalnyi szélességgel nyomtatni, és egyetlen vonalt használ. Lehet nem jó a nyomat minősége, mert nem zárt hurok."
 
@@ -15898,7 +15466,6 @@ msgid "Line width for top surfaces. If expressed as a %, it will be computed ove
 msgstr "A felső felületek vonalszélessége. Ha %-ban van megadva, a rendszer a fúvóka átmérője alapján számítja ki."
 
 #, fuzzy
-#| msgid "Speed of top surface infill which is solid."
 msgid "This is the speed for solid top surface infill."
 msgstr "A felső felületi kitöltés sebessége, amely szilárd"
 
@@ -15906,20 +15473,13 @@ msgid "Top shell layers"
 msgstr "Felső héj rétegek"
 
 #, fuzzy
-#| msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Ez a felső héj szilárd rétegeinek száma, beleértve a felső felület réteget. Ha az ezzel az értékkel számított vastagság vékonyabb, mint a felső héj vastagsága, akkor a felső héj rétegeit a program megnöveli"
-
-#, fuzzy
-#| msgid "Top solid layers"
-msgid "Top solid layers"
-msgstr "Felső tömör rétegek"
 
 msgid "Top shell thickness"
 msgstr "Felső héj vastagság"
 
 #, fuzzy
-#| msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "A felső szilárd rétegek száma szeleteléskor megnő, ha a felső héjrétegekből számított vastagság kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj kis rétegmagasságnál. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és a felső héj vastagságát egyszerűen a felső héjrétegek száma határozza meg."
 
@@ -15940,7 +15500,6 @@ msgstr ""
 "FIGYELMEZTETÉS: Ennek az értéknek a csökkentése kedvezőtlenül befolyásolhatja a tárgyasztalhoz való tapadást."
 
 #, fuzzy
-#| msgid "Speed of travel which is faster and without extrusion."
 msgid "This is the speed at which traveling is done."
 msgstr "Mozgási sebesség, amikor nem történik extrudálás"
 
@@ -15948,12 +15507,10 @@ msgid "Wipe while retracting"
 msgstr "Törlés visszahúzás közben"
 
 #, fuzzy
-#| msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Ez visszahúzáskor a fúvókát az utolsó extrudálási útvonal mentén mozgatja, hogy a fúvókából szivárgott anyagot eltávolítsa. Ez minimálisra csökkentheti a pöttyöket, amikor a nyomtatófej a mozgást követően egy egy új alkatrész nyomtatásába kezd."
 
 #, fuzzy
-#| msgid "Wipe Distance"
 msgid "Wipe distance"
 msgstr "Törlési távolság"
 
@@ -15971,7 +15528,6 @@ msgstr ""
 "Ha az alábbi \"visszahúzási mennyiség törlés előtt\" beállításban értéket adsz meg, akkor az esetleges többletvisszahúzás a törlés előtt történik meg, különben utána."
 
 #, fuzzy
-#| msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 
@@ -15988,7 +15544,6 @@ msgid "Flush multiplier"
 msgstr "Öblítési szorzó"
 
 #, fuzzy
-#| msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "A tényleges öblítési mennyiségek megegyeznek az öblítési szorzó értékével, szorozva a táblázatban szereplő öblítési mennyiségekkel."
 
@@ -15996,12 +15551,10 @@ msgid "Prime volume"
 msgstr "Előkészítési mennyiség"
 
 #, fuzzy
-#| msgid "The volume of material to prime extruder on tower."
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Az extruder toronyban történő előkészítéséhez szükséges anyagmennyiség."
 
 #, fuzzy
-#| msgid "Width of the prime tower."
 msgid "This is the width of prime towers."
 msgstr "Ez a törlőtorony szélessége."
 
@@ -16116,12 +15669,10 @@ msgid "Infill gap."
 msgstr "Kitöltési hézag."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "A filamentcsere utáni kiürítés az objektumok kitöltésén belül történik. Ez csökkentheti a hulladék mennyiségét és a nyomtatási időt. Ha a falakat átlátszó filamenttel nyomtatod, a vegyes színű kitöltés látható lesz. Ez az opció csak akkor működik, ha a törlőtorony engedélyezve van."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "A filamentcsere utáni kiürítés az objektumok támaszain belül történik. Ez csökkentheti a hulladék mennyiségét és a nyomtatási időt. Ez az opció csak akkor működik, ha a törlőtorony engedélyezve van."
 
@@ -16156,7 +15707,6 @@ msgid "X-Y hole compensation"
 msgstr "X-Y furatkompenzáció"
 
 #, fuzzy
-#| msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr ""
 "A tárgy furatai az XY síkban a beállított értékkel nőnek vagy zsugorodnak. Pozitív érték esetén a furatok nagyobbak lesznek, míg a negatív értéktől kisebbek.\n"
@@ -16166,7 +15716,6 @@ msgid "X-Y contour compensation"
 msgstr "X-Y kontúrkompenzáció"
 
 #, fuzzy
-#| msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Az objektumok körvonalai az XY síkban a beállított értékkel növekednek vagy zsugorodnak. Pozitív érték esetén a körvonalak nagyobbak lesznek, negatív érték esetén kisebbek. Ez a funkció a méret kismértékű módosítására szolgál, ha a nyomtatott tárgyakkal összeszerelési problémák adódnak."
 
@@ -16218,7 +15767,6 @@ msgid "Relative extrusion is recommended when using \"label_objects\" option. So
 msgstr "A relatív extrudálás használata ajánlott a \"label_objects\" opcióval. Bizonyos extruderek jobban működnek, ha ez az opció nincs bejelölve (abszolút extrudálási mód). A törlőtorony csak a relatív móddal kompatibilis. A legtöbb nyomtatón ajánlott. Alapértelmezés szerint be van jelölve."
 
 #, fuzzy
-#| msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "A klasszikus falgenerátor állandó szélességű falakat generál, és a nagyon vékony területeknél hézagkitöltést használ. Az Arachne engine változó szélességű falakat generál."
 
@@ -16229,7 +15777,6 @@ msgid "Wall transition length"
 msgstr "Falátmenet hossza"
 
 #, fuzzy
-#| msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "A különböző vastagságú falak közötti átmenetkor, ahogy a tárgy vékonyabbá válik, egy bizonyos terület elkülönítésre kerül a falszegmensek összekapcsolására vagy épp elhatárolására. A fúvóka átmérőjének százalékában van kifejezve."
 
@@ -16319,7 +15866,6 @@ msgid "Export 3MF"
 msgstr "3MF exportálása"
 
 #, fuzzy
-#| msgid "Export project as 3MF."
 msgid "This exports the project as a 3MF file."
 msgstr "Projekt exportálása 3MF formátumban."
 
@@ -16327,7 +15873,6 @@ msgid "Export slicing data"
 msgstr "Szeletelési adatok exportálása"
 
 #, fuzzy
-#| msgid "Export slicing data to a folder."
 msgid "Export slicing data to a folder"
 msgstr "Szeletelési adatok exportálása egy mappába"
 
@@ -16356,7 +15901,6 @@ msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Tálcák szeletelése: 0 - összes tálca, i - i tálca, egyéb - érvénytelen"
 
 #, fuzzy
-#| msgid "Show command help."
 msgid "This shows command help."
 msgstr "Parancs súgó megjelenítése."
 
@@ -16382,7 +15926,6 @@ msgid "mtcpp"
 msgstr "mtcpp"
 
 #, fuzzy
-#| msgid "max triangle count per plate for slicing."
 msgid "max triangle count per plate for slicing"
 msgstr "tálcánkénti maximális háromszögszám szeleteléshez."
 
@@ -16390,7 +15933,6 @@ msgid "mstpp"
 msgstr "mstpp"
 
 #, fuzzy
-#| msgid "max slicing time per plate in seconds."
 msgid "max slicing time per plate in seconds"
 msgstr "tálcánkénti maximális szeletelési idő másodpercben."
 
@@ -16410,7 +15952,6 @@ msgid "Output Model Info"
 msgstr "Kimeneti modell információ"
 
 #, fuzzy
-#| msgid "Output the model's information."
 msgid "This outputs the model’s information."
 msgstr "Kimeneti modell információ."
 
@@ -16418,7 +15959,6 @@ msgid "Export Settings"
 msgstr "Beállítások exportálása"
 
 #, fuzzy
-#| msgid "Export settings to a file."
 msgid "This exports settings to a file."
 msgstr "Beállítások exportálása egy fájlba."
 
@@ -16507,7 +16047,6 @@ msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Naprakész folyamat-/gépbeállítások betöltése naprakész használatakor"
 
 #, fuzzy
-#| msgid "Load uptodate process/machine settings from the specified file when using uptodate."
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Naprakész folyamat-/gépbeállítások betöltése a megadott fájlból naprakész használatakor."
 
@@ -16545,7 +16084,6 @@ msgid "Output directory"
 msgstr "Kimeneti mappa"
 
 #, fuzzy
-#| msgid "Output directory for the exported files."
 msgid "This is the output directory for exported files."
 msgstr "Az exportált fájlok kimeneti mappája."
 
@@ -16983,17 +16521,14 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr "A modellfájl hálósítása sikertelen volt, vagy nincs érvényes alakzat."
 
 #, fuzzy
-#| msgid "The supplied file couldn't be read because it's empty"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "A megadott fájl nem olvasható be, mert üres"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .stl, .obj vagy .amf(.xml) kiterjesztésűnek kell lennie."
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .3mf vagy .zip.amf kiterjesztésűnek kell lennie."
 
@@ -17046,7 +16581,6 @@ msgid "Finish"
 msgstr "Kész"
 
 #, fuzzy
-#| msgid "How to use calibration result?"
 msgid "How can I use calibration results?"
 msgstr "Hogyan használjam a kalibrálási eredményeket?"
 
@@ -17125,9 +16659,6 @@ msgid "The input value size must be 3."
 msgstr "A bemeneti értéknek 3-nak kell lennie."
 
 #, fuzzy
-#| msgid ""
-#| "This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-#| "Do you still want to continue the calibration?"
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -17139,8 +16670,7 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Azonos nevű eredmények közül csak egy kerül mentésre: %s. Biztosan felül akarod írni a többi eredményt?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+#, fuzzy, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Már létezik egy ugyanilyen nevű, korábbi kalibrálási eredmény: %s. Csak egy azonos nevű eredményt lehet elmenteni. Biztos, hogy felül akarod írni a korábbi eredményeket?"
 
@@ -17152,8 +16682,7 @@ msgstr ""
 "Ugyanazon az extruderen belül a névnek (%s) egyedinek kell lennie, ha a filament típusa, a fúvóka átmérője és a fúvóka anyagáramlása azonos.\n"
 "Biztosan felül akarod írni a korábbi eredményt?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Ez a géptípus fúvókánként legfeljebb %d előzményeredményt tud tárolni. Ez az eredmény nem lesz elmentve."
 
@@ -17235,12 +16764,6 @@ msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion 
 msgstr "Az anyagáramlás kalibrálása a várt és a tényleges extrudált mennyiségek arányát méri. Az alapértelmezett érték jól működik a Bambu Lab nyomtatókkal és gyári filamentekkel, mivel azokat előre kalibráltuk és finomhangoltuk. Egy hagyományos filament esetében általában nem kell anyagáramlás kalibrálását elvégezni, kivéve, ha más kalibrálások után még mindig látod a felsorolt hibákat. További részletekért kérlek, olvasd el a wiki cikkünket."
 
 #, fuzzy
-#| msgid ""
-#| "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
-#| "\n"
-#| "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
-#| "\n"
-#| "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17288,7 +16811,6 @@ msgid "Please find the best line on your plate"
 msgstr "Keresd meg a legjobb vonalat a tálcán"
 
 #, fuzzy
-#| msgid "Please find the corner with the perfect degree of extrusion"
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Keresd meg a tökéletesen extrudált sarkot"
 
@@ -17378,11 +16900,6 @@ msgstr "Fúvóka anyagáramlása"
 msgid "Nozzle Info"
 msgstr "Fúvókaadatok"
 
-#, fuzzy
-#| msgid "Plate Type"
-msgid "Plate Type"
-msgstr "Tálcatípus"
-
 msgid "Filament position"
 msgstr "filamentpozíció"
 
@@ -17454,15 +16971,13 @@ msgid "Success to get history result"
 msgstr "Előzmények sikeresen lekérdezve"
 
 #, fuzzy
-#| msgid "Refreshing the historical Flow Dynamics Calibration records"
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Az előző anyagáramlás-dinamikai kalibrációs rekordok frissítése"
 
 msgid "Action"
 msgstr "Művelet"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Ez a géptípus fúvókánként legfeljebb %d előzményeredményt tud tárolni."
 
@@ -18088,12 +17603,10 @@ msgid "Create"
 msgstr "Létrehoz"
 
 #, fuzzy
-#| msgid "Vendor is not selected, please reselect vendor."
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
 #, fuzzy
-#| msgid "Custom vendor is missing, please input custom vendor."
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Custom vendor missing; please input custom vendor."
 
@@ -18104,12 +17617,10 @@ msgid "Filament type is not selected, please reselect type."
 msgstr "A filament típusa nem lett kiválasztva, kérlek, válaszd ki a típust."
 
 #, fuzzy
-#| msgid "Filament serial is not entered, please enter serial."
 msgid "Filament serial missing; please input serial."
 msgstr "Filament serial missing; please input serial."
 
 #, fuzzy
-#| msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 
@@ -18117,17 +17628,13 @@ msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Az egyedi gyártó vagy sorozat értéke üres. Kérlek, írd be újra."
 
 #, fuzzy
-#| msgid "The vendor cannot be a number. Please re-enter."
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "A gyártó nem lehet szám. Add meg újra."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Még nem választottál nyomtatót vagy beállítást. Kérlek, válassz ki legalább egyet."
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The Filament name %s you created already exists.\n"
-#| "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -18174,7 +17681,6 @@ msgid "Create Type"
 msgstr "Típus létrehozása"
 
 #, fuzzy
-#| msgid "The model was not found, please reselect vendor."
 msgid "The model was not found; please reselect vendor."
 msgstr "The model was not found; please reselect vendor."
 
@@ -18216,7 +17722,6 @@ msgid "Exception in obtaining file size, please import again."
 msgstr "Kivétel történt a fájlméret megállapításakor, kérlek ismételd meg az importálást."
 
 #, fuzzy
-#| msgid "Preset path was not found, please reselect vendor."
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Útvonal nem található. Kérlek, válaszd ki újra a gyártót."
 
@@ -18224,12 +17729,10 @@ msgid "The printer model was not found, please reselect."
 msgstr "A nyomtató modellje nem található, kérlek, válaszd ki újra."
 
 #, fuzzy
-#| msgid "The nozzle diameter was not found, please reselect."
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "The nozzle diameter was not found; please reselect."
 
 #, fuzzy
-#| msgid "The printer preset was not found, please reselect."
 msgid "The printer preset was not found; please reselect."
 msgstr "The printer preset was not found; please reselect."
 
@@ -18246,16 +17749,10 @@ msgid "You have not yet chosen which printer preset to create based on. Please c
 msgstr "Még nem választottad ki, hogy melyik nyomtató beállításai alapján készüljön az új. Kérlek, válaszd ki a nyomtató gyártóját és modelljét"
 
 #, fuzzy
-#| msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Tiltott karakter került be az első oldalon a nyomtatási terület részbe. Kérlek, csak számokat használj."
 
 #, fuzzy
-#| msgid ""
-#| "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-#| "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-#| "and filament and process presets without the same preset name will be reserve.\n"
-#| "\tCancel: Do not create a preset, return to the creation interface."
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -18280,7 +17777,6 @@ msgid "Create process presets failed. As follows:\n"
 msgstr "A következő folyamatbeállítások létrehozása nem sikerült:\n"
 
 #, fuzzy
-#| msgid "Vendor was not found, please reselect."
 msgid "Vendor was not found; please reselect."
 msgstr "Gyártó nem található. Kérlek, válaszd ki újból."
 
@@ -18288,7 +17784,6 @@ msgid "Current vendor has no models, please reselect."
 msgstr "A kiválasztott gyártónak nincsenek modelljei. Kérlek, válassz másikat."
 
 #, fuzzy
-#| msgid "You have not selected the vendor and model or entered the custom vendor and model."
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Nem választottad ki a gyártót és modellt, vagy nem adtál meg egy egyedi gyártót és modellt."
 
@@ -18302,7 +17797,6 @@ msgid "Please check bed printable shape and origin input."
 msgstr "Kérlek, ellenőrizd az asztal alakját és a kezdőpont koordinátáit."
 
 #, fuzzy
-#| msgid "You have not yet selected the printer to replace the nozzle, please choose."
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Nem választottál nyomtatót a fúvókacseréhez. Kérlek, válassz egy nyomtatót."
 
@@ -18350,9 +17844,6 @@ msgid "Filament Created"
 msgstr "Filament létrehozva"
 
 #, fuzzy
-#| msgid ""
-#| "Please go to filament setting to edit your presets if you need.\n"
-#| "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -18407,10 +17898,7 @@ msgstr "zip-fájl írása sikertelen"
 msgid "Export successful"
 msgstr "Sikeres exportálás!"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
-#| "If not, a time suffix will be added, and you can modify the name after creation."
+#, fuzzy, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18443,7 +17931,6 @@ msgstr ""
 "Megosztható másokkal."
 
 #, fuzzy
-#| msgid "Only display printer names with changes to printer, filament, and process presets."
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Csak azok a nyomtatók jelennek meg, amelyeknél változtak a nyomtató-, filament- és folyamatbeállítások."
 
@@ -18467,7 +17954,6 @@ msgid "Please select at least one printer or filament."
 msgstr "Kérlek, válassz ki legalább egy nyomtatót vagy filamentet."
 
 #, fuzzy
-#| msgid "Please select a type you want to export"
 msgid "Please select a preset type you want to export"
 msgstr "Válaszd ki az exportálandó beállítás típusát"
 
@@ -18532,7 +18018,6 @@ msgid "Edit Preset"
 msgstr "Beállítás módosítása"
 
 #, fuzzy
-#| msgid "For more information, please check out Wiki"
 msgid "For more information, please check out our Wiki"
 msgstr "For more information, please check out our Wiki"
 
@@ -19020,7 +18505,6 @@ msgid "Wait"
 msgstr "Várakozás"
 
 #, fuzzy
-#| msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "percet minden köteg között. (Ez attól függ, mennyi idő szükséges a felfűtés befejezéséhez.)"
 
@@ -19691,9 +19175,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 #, fuzzy
-#| msgid ""
-#| "Auto-Arrange\n"
-#| "Did you know that you can auto-arrange all the objects in your project?"
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19703,9 +19184,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 #, fuzzy
-#| msgid ""
-#| "Auto-Orient\n"
-#| "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19804,11 +19282,9 @@ msgstr ""
 "Oszd fel a nyomatokat több tálcára\n"
 "Tudtad, hogy a sok részből álló modellt nyomtatásra kész tálcákra oszthatod? Így egyszerűbben nyomon követheted a nyomtatásra váró tárgyakat."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 #, fuzzy
-#| msgid ""
-#| "Speed up your print with Adaptive Layer Height\n"
-#| "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19826,9 +19302,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Different types of supports]
 #, fuzzy
-#| msgid ""
-#| "Different types of supports\n"
-#| "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19838,9 +19311,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 #, fuzzy
-#| msgid ""
-#| "Printing Silk Filament\n"
-#| "Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19858,9 +19328,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 #, fuzzy
-#| msgid ""
-#| "Set parameters for multiple objects\n"
-#| "Did you know that you can set slicing parameters for all selected objects at once?"
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19878,9 +19345,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 #, fuzzy
-#| msgid ""
-#| "Flush into support/objects/infill\n"
-#| "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19896,11 +19360,9 @@ msgstr ""
 "Szilárdság javítása\n"
 "Tudtad, hogy több fal vagy nagyobb kitöltés használatával javíthatod a modell szilárdságát?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 #, fuzzy
-#| msgid ""
-#| "When do you need to print with the printer door opened?\n"
-#| "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19910,9 +19372,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 #, fuzzy
-#| msgid ""
-#| "Avoid warping\n"
-#| "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

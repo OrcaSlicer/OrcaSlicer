@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:18-0300\n"
+"POT-Creation-Date: 2026-06-17 14:21-0300\n"
 "PO-Revision-Date: 2026-06-17 10:29-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -96,9 +96,12 @@ msgid "Latest version"
 msgstr "Última versão"
 
 #, fuzzy
-#| msgid "Support painting"
 msgid "Support Painting"
 msgstr "Pintura de Suportes"
+
+#, fuzzy
+msgid "Apply"
+msgstr "Aplicar"
 
 msgid "On highlighted overhangs only"
 msgstr "Apenas em saliências destacadas"
@@ -107,7 +110,6 @@ msgid "Erase all"
 msgstr "Apagar tudo"
 
 #, fuzzy
-#| msgid "Highlight overhang areas"
 msgid "Highlight overhangs"
 msgstr "Realçar áreas com saliências"
 
@@ -179,7 +181,6 @@ msgid "Done"
 msgstr "Concluído"
 
 #, fuzzy
-#| msgid "Support Generated"
 msgid "Support generated"
 msgstr "Suporte Gerado"
 
@@ -196,7 +197,6 @@ msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Posicionar na face"
 
 #, fuzzy
-#| msgid "Lay on face"
 msgid "Lay on Face"
 msgstr "Apoiar face à superfície"
 
@@ -205,7 +205,6 @@ msgid "Filament count exceeds the maximum number that painting tool supports. On
 msgstr "A contagem de filamentos excede o número máximo que a ferramenta de pintura suporta. Apenas os primeiros %1% filamentos estarão disponíveis na ferramenta de pintura."
 
 #, fuzzy
-#| msgid "Color painting"
 msgid "Color Painting"
 msgstr "Pintura de cores"
 
@@ -333,11 +332,6 @@ msgstr "Gizmo-Rotacionar"
 msgid "Optimize orientation"
 msgstr "Otimizar orientação"
 
-#, fuzzy
-#| msgid "Apply"
-msgid "Apply"
-msgstr "Aplicar"
-
 msgid "Scale"
 msgstr "Escala"
 
@@ -378,12 +372,10 @@ msgid "Scale ratios"
 msgstr "Proporções de escala"
 
 #, fuzzy
-#| msgid "Object Operations"
 msgid "Object operations"
 msgstr "Operações de Objeto"
 
 #, fuzzy
-#| msgid "Volume Operations"
 msgid "Volume operations"
 msgstr "Operações de Volume"
 
@@ -391,24 +383,24 @@ msgid "Translate"
 msgstr "Translacionar"
 
 #, fuzzy
-#| msgid "Group Operations"
 msgid "Group operations"
 msgstr "Operações de Grupo"
 
 #, fuzzy
-#| msgid "Set Orientation"
 msgid "Set orientation"
 msgstr "Definir Orientação"
 
 #, fuzzy
-#| msgid "Set Scale"
 msgid "Set scale"
 msgstr "Definir Escala"
 
 #, fuzzy
-#| msgid "Reset Position"
 msgid "Reset position"
 msgstr "Redefinir Posição"
+
+#, fuzzy
+msgid "Reset rotation"
+msgstr "Redefinir rotação"
 
 msgid "Object coordinates"
 msgstr "Coordenadas do objeto"
@@ -702,7 +694,6 @@ msgid "Cut by Plane"
 msgstr "Cortar por Plano"
 
 #, fuzzy
-#| msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "As arestas abertas podem ser causadas pela ferramenta de corte, você quer corrigí-las agora?"
 
@@ -772,7 +763,6 @@ msgid "Show wireframe"
 msgstr "Mostrar malha"
 
 #, fuzzy
-#| msgid "Can't apply when processing preview."
 msgid "Unable to apply when processing preview"
 msgstr "Não é possível aplicar quando a pré-visualização do processo está em andamento."
 
@@ -798,7 +788,6 @@ msgid "Remove selection"
 msgstr "Remover seleção"
 
 #, fuzzy
-#| msgid "Entering Seam painting"
 msgid "Entering seam painting"
 msgstr "Entrando na pintura de costura"
 
@@ -823,9 +812,6 @@ msgid "Angle"
 msgstr "Ângulo"
 
 #, fuzzy
-#| msgid ""
-#| "Embedded\n"
-#| "depth"
 msgid "Embedded depth"
 msgstr ""
 "Profundidade\n"
@@ -1399,11 +1385,6 @@ msgstr "Distância do centro do SVG até a superfície do modelo."
 msgid "Reset distance"
 msgstr "Redefinir distância"
 
-#, fuzzy
-#| msgid "Reset rotation"
-msgid "Reset rotation"
-msgstr "Redefinir rotação"
-
 msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr "Travar/destravar o ângulo de rotação ao arrastar acima da superfície."
 
@@ -1634,7 +1615,6 @@ msgid "Notice"
 msgstr "Aviso"
 
 #, fuzzy
-#| msgid "Undef"
 msgid "Undefined"
 msgstr "Indefinido"
 
@@ -1658,12 +1638,10 @@ msgid "Machine"
 msgstr "Máquina"
 
 #, fuzzy
-#| msgid "Configuration package was loaded, but some values were not recognized."
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "O pacote de configuração foi carregado, mas alguns valores não foram reconhecidos."
 
-#, boost-format, fuzzy
-#| msgid "Configuration file \"%1%\" was loaded, but some values were not recognized."
+#, fuzzy, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "O arquivo de configuração \"%1%\" foi carregado, mas alguns valores não foram reconhecidos."
 
@@ -1846,7 +1824,6 @@ msgid "Some presets are modified."
 msgstr "Algumas predefinições foram modificadas."
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project, discard or save changes as new presets."
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Você pode manter as predefinições modificadas no novo projeto, descartar ou salvar as alterações como novas predefinições."
 
@@ -2048,8 +2025,7 @@ msgstr "Renomear"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Falha na inicialização da interface do OrcaSlicer"
 
-#, boost-format, fuzzy
-#| msgid "Fatal error, exception caught: %1%"
+#, fuzzy, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Erro fatal, exceção capturada: %1%"
 
@@ -2075,7 +2051,10 @@ msgid "Strength"
 msgstr "Resistência"
 
 #, fuzzy
-#| msgid "Top Minimum Shell Thickness"
+msgid "Top solid layers"
+msgstr "Camadas sólidas superiores"
+
+#, fuzzy
 msgid "Top minimum shell thickness"
 msgstr "Espessura Mínima da Casca de Topo"
 
@@ -2083,12 +2062,10 @@ msgid "Top Surface Density"
 msgstr "Densidade da Superfície Superior"
 
 #, fuzzy
-#| msgid "Bottom Solid Layers"
 msgid "Bottom solid layers"
 msgstr "Camadas Sólidas Inferiores"
 
 #, fuzzy
-#| msgid "Bottom Minimum Shell Thickness"
 msgid "Bottom minimum shell thickness"
 msgstr "Espessura Mínima da Casca de Base"
 
@@ -2099,7 +2076,6 @@ msgid "Ironing"
 msgstr "Alisamento"
 
 #, fuzzy
-#| msgid "Fuzzy Skin"
 msgid "Fuzzy skin"
 msgstr "Textura Difusa"
 
@@ -2107,7 +2083,6 @@ msgid "Extruders"
 msgstr "Extrusoras"
 
 #, fuzzy
-#| msgid "Extrusion Width"
 msgid "Extrusion width"
 msgstr "Largura da Extrusão"
 
@@ -2118,22 +2093,22 @@ msgid "Bed adhesion"
 msgstr "Adesão à mesa"
 
 #, fuzzy
-#| msgid "Add part"
 msgid "Add Part"
 msgstr "Adicionar peça"
 
 #, fuzzy
-#| msgid "Add negative part"
 msgid "Add Negative Part"
 msgstr "Adicionar peça negativa"
 
 #, fuzzy
-#| msgid "Add support blocker"
+msgid "Add Modifier"
+msgstr "Adicionar Modificador"
+
+#, fuzzy
 msgid "Add Support Blocker"
 msgstr "Adicionar bloqueador de suporte"
 
 #, fuzzy
-#| msgid "Add support enforcer"
 msgid "Add Support Enforcer"
 msgstr "Adicionar reforço de suporte"
 
@@ -2234,17 +2209,14 @@ msgid "Text"
 msgstr "Texto"
 
 #, fuzzy
-#| msgid "Height range Modifier"
 msgid "Height Range Modifier"
 msgstr "Modificador de intervalo de altura"
 
 #, fuzzy
-#| msgid "Add settings"
 msgid "Add Settings"
 msgstr "Adicionar configurações"
 
 #, fuzzy
-#| msgid "Change type"
 msgid "Change Type"
 msgstr "Alterar tipo"
 
@@ -2261,12 +2233,10 @@ msgid "Change part type"
 msgstr "Mudar tipo de peça"
 
 #, fuzzy
-#| msgid "Set as an individual object"
 msgid "Set as An Individual Object"
 msgstr "Definir como objeto individual"
 
 #, fuzzy
-#| msgid "Set as individual objects"
 msgid "Set as Individual Objects"
 msgstr "Definir como objetos individuais"
 
@@ -2286,7 +2256,6 @@ msgid "Automatically drops the selected object to the build plate"
 msgstr "Solta automaticamente o objeto selecionado na placa de impressão"
 
 #, fuzzy
-#| msgid "Fix model"
 msgid "Fix Model"
 msgstr "Corrigir modelo"
 
@@ -2358,22 +2327,18 @@ msgid "Edit in Parameter Table"
 msgstr "Editar na Tabela de Parâmetros"
 
 #, fuzzy
-#| msgid "Convert from inches"
 msgid "Convert from Inches"
 msgstr "Converter de polegadas"
 
 #, fuzzy
-#| msgid "Restore to inches"
 msgid "Restore to Inch"
 msgstr "Restaurar para polegadas"
 
 #, fuzzy
-#| msgid "Convert from meters"
 msgid "Convert from Meters"
 msgstr "Converter de metros"
 
 #, fuzzy
-#| msgid "Restore to meters"
 msgid "Restore to Meter"
 msgstr "Restaurar para metros"
 
@@ -2390,37 +2355,30 @@ msgid "Mesh boolean operations including union and subtraction"
 msgstr "Operações booleanas de malha, incluindo união e subtração"
 
 #, fuzzy
-#| msgid "Along X axis"
 msgid "Along X Axis"
 msgstr "Ao longo do eixo X"
 
 #, fuzzy
-#| msgid "Mirror along the X axis"
 msgid "Mirror along the X Axis"
 msgstr "Espelhar ao longo do eixo X"
 
 #, fuzzy
-#| msgid "Along Y axis"
 msgid "Along Y Axis"
 msgstr "Ao longo do eixo Y"
 
 #, fuzzy
-#| msgid "Mirror along the Y axis"
 msgid "Mirror along the Y Axis"
 msgstr "Espelhar ao longo do eixo Y"
 
 #, fuzzy
-#| msgid "Along Z axis"
 msgid "Along Z Axis"
 msgstr "Ao longo do eixo Z"
 
 #, fuzzy
-#| msgid "Mirror along the Z axis"
 msgid "Mirror along the Z Axis"
 msgstr "Espelhar ao longo do eixo Z"
 
 #, fuzzy
-#| msgid "Mirror Object"
 msgid "Mirror object"
 msgstr "Espelhar objeto"
 
@@ -2452,7 +2410,6 @@ msgid "Show Labels"
 msgstr "Mostrar Etiquetas"
 
 #, fuzzy
-#| msgid "To objects"
 msgid "To Objects"
 msgstr "Para objetos"
 
@@ -2460,7 +2417,6 @@ msgid "Split the selected object into multiple objects"
 msgstr "Dividir o objeto selecionado em vários objetos"
 
 #, fuzzy
-#| msgid "To parts"
 msgid "To Parts"
 msgstr "Para peças"
 
@@ -2489,7 +2445,6 @@ msgid "Delete this filament"
 msgstr "Apagar este filamento"
 
 #, fuzzy
-#| msgid "Select all"
 msgid "Select All"
 msgstr "Selecionar Tudo"
 
@@ -2503,7 +2458,6 @@ msgid "Select all objects on all plates"
 msgstr "Selecionar todos os objetos em todas as placas"
 
 #, fuzzy
-#| msgid "Delete all"
 msgid "Delete All"
 msgstr "Apagar Tudo"
 
@@ -2637,7 +2591,6 @@ msgid "Click the icon to repair model object"
 msgstr "Clique no ícone para consertar o objeto modelo"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object settings"
 msgid "Right click the icon to drop the object settings"
 msgstr "Clique com o botão direito no ícone para descartar as configurações do objeto"
 
@@ -2645,12 +2598,10 @@ msgid "Click the icon to reset all settings of the object"
 msgstr "Clique no ícone para redefinir todas as configurações do objeto"
 
 #, fuzzy
-#| msgid "Right button click the icon to drop the object printable property"
 msgid "Right click the icon to drop the object printable property"
 msgstr "Clique com o botão direito no ícone para descartar a propriedade imprimível do objeto"
 
 #, fuzzy
-#| msgid "Click the icon to toggle printable property of the object"
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Clique no ícone para alternar a propriedade imprimível do objeto"
 
@@ -2658,7 +2609,6 @@ msgid "Click the icon to edit support painting of the object"
 msgstr "Clique no ícone para editar a pintura de suporte do objeto"
 
 #, fuzzy
-#| msgid "Click the icon to edit color painting of the object"
 msgid "Click the icon to edit color painting for the object"
 msgstr "Clique no ícone para editar a pintura de cor do objeto"
 
@@ -2676,11 +2626,6 @@ msgstr "Falha ao obter os dados do modelo no arquivo atual."
 
 msgid "Generic"
 msgstr "Genérico"
-
-#, fuzzy
-#| msgid "Add Modifier"
-msgid "Add Modifier"
-msgstr "Adicionar Modificador"
 
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr "Mude para o modo de configuração por objeto para editar modificadores."
@@ -2704,11 +2649,6 @@ msgid "To save cut correspondence you can delete all connectors from all related
 msgstr "Para salvar a correspondência de corte, você pode excluir todos os conectores de todos os objetos relacionados."
 
 #, fuzzy
-#| msgid ""
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed.\n"
-#| "\n"
-#| "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2742,17 +2682,14 @@ msgid "Group manipulation"
 msgstr "Manipulação de grupo"
 
 #, fuzzy
-#| msgid "Object Settings to modify"
 msgid "Object Settings to Modify"
 msgstr "Configurações de objeto para modificar"
 
 #, fuzzy
-#| msgid "Part Settings to modify"
 msgid "Part Settings to Modify"
 msgstr "Configurações de peça para modificar"
 
 #, fuzzy
-#| msgid "Layer range Settings to modify"
 msgid "Layer Range Settings to Modify"
 msgstr "Configurações de Intervalo de Camada para modificar"
 
@@ -2781,7 +2718,6 @@ msgid "If the first selected item is a part, the second should be a part in the 
 msgstr "Se o primeiro item selecionado for uma peça, o segundo deve ser uma peça no mesmo objeto."
 
 #, fuzzy
-#| msgid "The type of the last solid object part is not to be changed."
 msgid "The type of the last solid object part cannot be changed."
 msgstr "O tipo da última peça do objeto sólido não deve ser alterado."
 
@@ -2901,22 +2837,18 @@ msgid "1x1 Grid: %d mm"
 msgstr "Grade 1x1: %d mm"
 
 #, fuzzy
-#| msgid "Detail."
 msgid "More"
 msgstr "Mais"
 
 #, fuzzy
-#| msgid "Open Preferences."
 msgid "Open Preferences"
 msgstr "Abrir Preferências."
 
 #, fuzzy
-#| msgid "Open next tip."
 msgid "Open next tip"
 msgstr "Abrir próxima dica."
 
 #, fuzzy
-#| msgid "Open Documentation in web browser."
 msgid "Open documentation in web browser"
 msgstr "Abrir Documentação no navegador."
 
@@ -2948,12 +2880,10 @@ msgid "Enter Custom G-code used on current layer:"
 msgstr "Insira o G-code personalizado usado na camada atual:"
 
 #, fuzzy
-#| msgid "Jump to Layer"
 msgid "Jump to layer"
 msgstr "Ir para a Camada"
 
 #, fuzzy
-#| msgid "Please enter the layer number"
 msgid "Please enter the layer number."
 msgstr "Por favor, insira o número da camada"
 
@@ -3033,7 +2963,6 @@ msgid "Auto Refill"
 msgstr "Recarga Automática"
 
 #, fuzzy
-#| msgid "Load Filament"
 msgid "Load"
 msgstr "Carregar"
 
@@ -3041,7 +2970,6 @@ msgid "Unload"
 msgstr "Descarregar"
 
 #, fuzzy
-#| msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Escolha um espaço do AMS e pressione o botão \"Carregar\" ou \"Descarregar\" para carregar ou descarregar automaticamente o filamento."
 
@@ -3152,7 +3080,6 @@ msgid "Cut filament"
 msgstr "Cortar filamento"
 
 #, fuzzy
-#| msgid "Pull back current filament"
 msgid "Pull back the current filament"
 msgstr "Retirar o filamento atual"
 
@@ -3193,7 +3120,6 @@ msgid "No matching items..."
 msgstr ""
 
 #, fuzzy
-#| msgid "Deselect all"
 msgid "Deselect All"
 msgstr "Desselecionar Tudo"
 
@@ -3251,7 +3177,6 @@ msgid "Arranging canceled."
 msgstr "Organização cancelada."
 
 #, fuzzy
-#| msgid "Arranging is done but there are unpacked items. Reduce spacing and try again."
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "A organização foi concluída, mas há itens desembalados. Reduza o espaçamento e tente novamente."
 
@@ -3320,7 +3245,6 @@ msgid "Please check the printer network connection."
 msgstr "Por favor, verifique a conexão de rede da impressora."
 
 #, fuzzy
-#| msgid "Abnormal print file data. Please slice again."
 msgid "Abnormal print file data: please slice again."
 msgstr "Dados de arquivo de impressão anormais. Por favor, fatie novamente."
 
@@ -3334,7 +3258,6 @@ msgid "Cloud service connection failed. Please try again."
 msgstr "Falha na conexão com o serviço de nuvem. Por favor, tente novamente."
 
 #, fuzzy
-#| msgid "Print file not found. Please slice again."
 msgid "Print file not found; please slice again."
 msgstr "Arquivo de impressão não encontrado. Por favor, fatie novamente."
 
@@ -3348,7 +3271,6 @@ msgid "Failed to upload file to ftp. Please try again."
 msgstr "Falha ao enviar o arquivo via FTP. Por favor, tente novamente."
 
 #, fuzzy
-#| msgid "Check the current status of the bambu server by clicking on the link above."
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Verifique o estado atual do servidor Bambu clicando no link acima."
 
@@ -3356,12 +3278,10 @@ msgid "The size of the print file is too large. Please adjust the file size and 
 msgstr "O tamanho do arquivo de impressão é muito grande. Por favor, ajuste o tamanho do arquivo e tente novamente."
 
 #, fuzzy
-#| msgid "Print file not found, please slice it again and send it for printing."
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Arquivo de impressão não encontrado. Por favor, fatie-o novamente e envie para impressão."
 
 #, fuzzy
-#| msgid "Failed to upload print file to FTP. Please check the network status and try again."
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Falha ao enviar o arquivo de impressão via FTP. Por favor, verifique o estado da rede e tente novamente."
 
@@ -3414,7 +3334,6 @@ msgid "Sending G-code file over LAN"
 msgstr "Enviando arquivo de G-code via LAN"
 
 #, fuzzy
-#| msgid "Sending G-code file to SD card"
 msgid "Sending G-code file to SD card"
 msgstr "Enviando arquivo de G-code para o cartão SD"
 
@@ -3486,7 +3405,6 @@ msgid "Importing SLA archive"
 msgstr "Importando arquivo SLA"
 
 #, fuzzy
-#| msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer preset first before importing that SLA archive."
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "O arquivo SLA não contém nenhuma predefinição. Por favor, ative algumas predefinições de impressora SLA antes de importar esse arquivo SLA."
 
@@ -3500,7 +3418,6 @@ msgid "The imported SLA archive did not contain any presets. The current SLA pre
 msgstr "O arquivo SLA importado não contém nenhuma predefinição. As predefinições SLA atuais foram usadas como alternativa."
 
 #, fuzzy
-#| msgid "You cannot load SLA project with a multi-part object on the bed"
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Você não pode carregar um projeto SLA com um objeto muilti-peças na mesa"
 
@@ -3529,7 +3446,6 @@ msgid "Install failed"
 msgstr "Falha na instalação"
 
 #, fuzzy
-#| msgid "Portions copyright"
 msgid "License Info"
 msgstr "Partes com direitos autorais"
 
@@ -3648,7 +3564,6 @@ msgid "Custom Color"
 msgstr "Cor Personalizada"
 
 #, fuzzy
-#| msgid "Dynamic flow Calibration"
 msgid "Dynamic flow calibration"
 msgstr "Calibração dinâmica do fluxo"
 
@@ -3657,6 +3572,10 @@ msgstr "A temperatura do bico e a velocidade volumétrica máxima afetarão os r
 
 msgid "Nozzle Diameter"
 msgstr "Diâmetro do bico"
+
+#, fuzzy
+msgid "Plate Type"
+msgstr "Tipo de Placa"
 
 msgid "Nozzle temperature"
 msgstr "Temperatura do bico"
@@ -3677,7 +3596,6 @@ msgid "mm³"
 msgstr "mm³"
 
 #, fuzzy
-#| msgid "Start calibration"
 msgid "Start"
 msgstr "Iniciar calibração"
 
@@ -3689,6 +3607,10 @@ msgstr "Calibração concluída. Por favor, encontre a linha de extrusão mais u
 
 msgid "Save"
 msgstr "Salvar"
+
+#, fuzzy
+msgid "Back"
+msgstr "Atrás"
 
 msgid "Example"
 msgstr "Exemplo"
@@ -3787,7 +3709,6 @@ msgid "Enable AMS"
 msgstr "Ativar AMS"
 
 #, fuzzy
-#| msgid "Print with filaments in the AMS"
 msgid "Print with filament in the AMS"
 msgstr "Imprimir com filamentos no AMS"
 
@@ -3795,12 +3716,10 @@ msgid "Disable AMS"
 msgstr "Desativar AMS"
 
 #, fuzzy
-#| msgid "Print with the filament mounted on the back of chassis"
 msgid "Print with filament on external spool"
 msgstr "Imprimir com o filamento montado na parte de trás do chassi"
 
 #, fuzzy
-#| msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It take hours to absorb the moisture, and low temperatures also slow down the process."
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Por favor, mude o dessecante quando estiver muito molhado. O indicador pode não representar com precisão nos casos a seguir: quando a tampa está aberta ou quando o dessecante é trocado. Leva algumas horas para absorver a umidade, e baixas temperaturas também atrasam o processo."
 
@@ -3820,12 +3739,10 @@ msgid "Do not Enable AMS"
 msgstr "Não ativar AMS"
 
 #, fuzzy
-#| msgid "Print using materials mounted on the back of the case"
 msgid "Print using filament on external spool."
 msgstr "Imprimir usando materiais montados na parte de trás da caixa"
 
 #, fuzzy
-#| msgid "Print with filaments in AMS"
 msgid "Print with filament in AMS"
 msgstr "Imprimir com filamentos no AMS"
 
@@ -3851,7 +3768,6 @@ msgid "The printer does not currently support auto refill."
 msgstr "A impressora atualmente não suporta recarga automática."
 
 #, fuzzy
-#| msgid "AMS filament backup is not enabled, please enable it in the AMS settings."
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "O backup de filamento do AMS não está ativado, por favor ative-o nas configurações do AMS."
 
@@ -3875,7 +3791,6 @@ msgid "Insertion update"
 msgstr "Atualização de inserção"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament. This takes about 20 seconds."
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "O AMS irá ler automaticamente as informações do filamento ao inserir um novo filamento da Bambu Lab. Isso leva cerca de 20 segundos."
 
@@ -3886,12 +3801,10 @@ msgid "When inserting a new filament, the AMS will not automatically read its in
 msgstr "Ao inserir um novo filamento, o AMS não irá ler automaticamente suas informações, deixando-o em branco para você inserir manualmente."
 
 #, fuzzy
-#| msgid "Power on update"
 msgid "Update on startup"
 msgstr "Atualização de inicialização"
 
 #, fuzzy
-#| msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools."
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "O AMS irá ler automaticamente as informações do filamento inserido na inicialização. Levará cerca de 1 minuto. O processo de leitura irá girar as bobinas de filamento."
 
@@ -3947,7 +3860,6 @@ msgid "Failed to download the plug-in. Please check your firewall settings and V
 msgstr "Falha ao baixar o plug-in. Verifique as configurações do seu firewall e software VPN e tente novamente."
 
 #, fuzzy
-#| msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Falha ao instalar o plug-in. O plug-in pode estar em uso. Reinicie o OrcaSlicer e tente novamente. Também verifique se ele está bloqueado ou excluído pelo software antivírus."
 
@@ -3970,7 +3882,6 @@ msgid "Go Home"
 msgstr "Ir para Ínicio"
 
 #, fuzzy
-#| msgid "A error occurred. Maybe memory of system is not enough or it's a bug of the program"
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Ocorreu um erro. Talvez a memória do sistema não seja suficiente ou seja um bug do programa"
 
@@ -3979,12 +3890,10 @@ msgid "A fatal error occurred: \"%1%\""
 msgstr "Ocorreu um erro fatal: \"%1%\""
 
 #, fuzzy
-#| msgid "Please save project and restart the program."
 msgid "Please save your project and restart the application."
 msgstr "Por favor, salve o projeto e reinicie o programa."
 
 #, fuzzy
-#| msgid "Processing G-code from Previous file..."
 msgid "Processing G-Code from previous file…"
 msgstr "Processando G-code do arquivo anterior…"
 
@@ -4050,7 +3959,6 @@ msgid "G-code file exported to %1%"
 msgstr "Arquivo G-code exportado para %1%"
 
 #, fuzzy
-#| msgid "Unknown error when exporting G-code."
 msgid "Unknown error with G-code export"
 msgstr "Erro desconhecido ao exportar G-code."
 
@@ -4065,7 +3973,6 @@ msgstr ""
 "Arquivo de origem %2%."
 
 #, fuzzy
-#| msgid "Copying of the temporary G-code to the output G-code failed"
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Cópia do G-code temporário para o G-code de saída falhou"
 
@@ -4113,7 +4020,6 @@ msgid "Invalid file format."
 msgstr "Formato de arquivo inválido."
 
 #, fuzzy
-#| msgid "Error! Invalid model"
 msgid "Error: invalid model"
 msgstr "Erro! Modelo inválido"
 
@@ -4121,7 +4027,6 @@ msgid "The selected file contains no geometry."
 msgstr "O arquivo selecionado não contém geometria."
 
 #, fuzzy
-#| msgid "The selected file contains several disjoint areas. This is not supported."
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "O arquivo selecionado contém várias áreas disjuntas. Isso não é suportado."
 
@@ -4149,10 +4054,6 @@ msgid "Please check.\n"
 msgstr "Por favor, verifique.\n"
 
 #, fuzzy
-#| msgid ""
-#| "Nozzle may be blocked when the temperature is out of recommended range.\n"
-#| "Please make sure whether to use the temperature to print.\n"
-#| "\n"
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4167,9 +4068,6 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "A temperatura do bico recomendada para este tipo de filamento é [%d, %d] graus Celsius."
 
 #, fuzzy
-#| msgid ""
-#| "Too small max volumetric speed.\n"
-#| "Reset to 0.5."
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4177,15 +4075,11 @@ msgstr ""
 "Velocidade volumétrica máxima muito baixa.\n"
 "Redefinir para 0,5."
 
-#, boost-format, c-format, fuzzy
-#| msgid "Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. The maximum safe temperature for the material is %d"
+#, fuzzy, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "A temperatura da câmara atual está mais alta do que a temperatura segura do material, pode resultar em amolecimento e entupimento do material. A temperatura máxima segura para o material é %d"
 
 #, fuzzy
-#| msgid ""
-#| "Too small layer height.\n"
-#| "Reset to 0.2."
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4194,9 +4088,6 @@ msgstr ""
 "Redefinir para 0,2."
 
 #, fuzzy
-#| msgid ""
-#| "Too small ironing spacing.\n"
-#| "Reset to 0.1."
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4214,12 +4105,6 @@ msgstr ""
 "A altura da primeira camada será redefinida para 0.2."
 
 #, fuzzy
-#| msgid ""
-#| "This setting is only used for model size tunning with small value in some cases.\n"
-#| "For example, when model size has small error and hard to be assembled.\n"
-#| "For large size tuning, please use model scale function.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4233,12 +4118,6 @@ msgstr ""
 "O valor será redefinido para 0."
 
 #, fuzzy
-#| msgid ""
-#| "Too large elephant foot compensation is unreasonable.\n"
-#| "If really have serious elephant foot effect, please check other settings.\n"
-#| "For example, whether bed temperature is too high.\n"
-#| "\n"
-#| "The value will be reset to 0."
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4331,10 +4210,6 @@ msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Mas máquinas com estrutura I3 não gerarão vídeos de timelapse."
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings and enable spiral mode automatically\n"
-#| "No  - Give up using spiral mode this time"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4706,7 +4581,6 @@ msgid "Print settings"
 msgstr "Configurações de Impressão"
 
 #, fuzzy
-#| msgid "Filament Settings"
 msgid "Filament settings"
 msgstr "Configurações do Filamento"
 
@@ -4731,8 +4605,7 @@ msgstr "String vazia"
 msgid "Value is out of range."
 msgstr "O valor está fora do intervalo."
 
-#, boost-format, c-format, fuzzy
-#| msgid "%s can't be a percentage"
+#, fuzzy, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s não pode ser uma percentagem"
 
@@ -4973,7 +4846,6 @@ msgid "Total"
 msgstr "Total"
 
 #, fuzzy
-#| msgid "Total Estimation"
 msgid "Total estimation"
 msgstr "Estimativa Total"
 
@@ -5053,12 +4925,10 @@ msgid "Usage"
 msgstr "Uso"
 
 #, fuzzy
-#| msgid "Layer Height (mm)"
 msgid "Layer height (mm)"
 msgstr "Altura da Camada (mm)"
 
 #, fuzzy
-#| msgid "Line Width (mm)"
 msgid "Line width (mm)"
 msgstr "Largura da Linha (mm)"
 
@@ -5075,7 +4945,6 @@ msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
 
 #, fuzzy
-#| msgid "Fan Speed (%)"
 msgid "Fan speed (%)"
 msgstr "Velocidade do Ventilador (%)"
 
@@ -5090,6 +4959,10 @@ msgstr "Taxa de fluxo volumétrico real (mm³/s)"
 
 msgid "Seams"
 msgstr "Costuras"
+
+#, fuzzy
+msgid "Filament changes"
+msgstr "Mudanças de filamento"
 
 msgid "Options"
 msgstr "Opções"
@@ -5113,7 +4986,6 @@ msgid "Print"
 msgstr "Imprimir"
 
 #, fuzzy
-#| msgid "Physical Printer"
 msgid "Printer"
 msgstr "Impressora"
 
@@ -5232,7 +5104,6 @@ msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Bico direito: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 #, fuzzy
-#| msgid "Tool Move"
 msgid "Tool move"
 msgstr "Mover Ferramenta"
 
@@ -5240,12 +5111,10 @@ msgid "Tool Rotate"
 msgstr "Rotacionar Ferramenta"
 
 #, fuzzy
-#| msgid "Move Object"
 msgid "Move object"
 msgstr "Mover Objeto"
 
 #, fuzzy
-#| msgid "Auto Orientation options"
 msgid "Auto orientation options"
 msgstr "Opções de Orientação Automática"
 
@@ -5378,7 +5247,6 @@ msgid "Section View"
 msgstr "Vista de Seção"
 
 #, fuzzy
-#| msgid "Assemble Control"
 msgid "Assembly Control"
 msgstr "Controle de Montagem"
 
@@ -5408,7 +5276,6 @@ msgid "A G-code path goes beyond the max print height."
 msgstr "Um caminho de G-code ultrapassa a altura máxima de impressão."
 
 #, fuzzy
-#| msgid "A G-code path goes beyond the plate boundaries."
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "Um caminho de G-code ultrapassa a borda da placa."
 
@@ -5470,7 +5337,6 @@ msgid "Micro lidar calibration"
 msgstr "Calibração do micro lidar"
 
 #, fuzzy
-#| msgid "Bed Leveling"
 msgid "Bed leveling"
 msgstr "Nivelamento da mesa"
 
@@ -5550,7 +5416,6 @@ msgstr ""
 "na impressora, como mostrado na figura:"
 
 #, fuzzy
-#| msgid "Invalid input."
 msgid "Invalid input"
 msgstr "Entrada inválida."
 
@@ -5561,7 +5426,6 @@ msgid "Open a new window"
 msgstr "Abrir uma nova janela"
 
 #, fuzzy
-#| msgid "Application is closing"
 msgid "Closing application"
 msgstr "Aplicativo está fechando"
 
@@ -5811,7 +5675,6 @@ msgid "Paste clipboard"
 msgstr "Colar da área de transferência"
 
 #, fuzzy
-#| msgid "Delete selected"
 msgid "Delete Selected"
 msgstr "Excluir seleção"
 
@@ -5822,7 +5685,6 @@ msgid "Deletes all objects"
 msgstr "Exclui todos os objetos"
 
 #, fuzzy
-#| msgid "Clone selected"
 msgid "Clone Selected"
 msgstr "Clonar selecionado"
 
@@ -5986,13 +5848,11 @@ msgstr "&Visualizar"
 msgid "&Help"
 msgstr "&Ajuda"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A file exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Existe um arquivo com o mesmo nome: %s, deseja sobrescrevê-lo?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "A config exists with the same name: %s, do you want to overwrite it?"
+#, fuzzy, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Existe uma configuração com o mesmo nome: %s, deseja sobrescrevê-la?"
 
@@ -6018,7 +5878,6 @@ msgstr[0] "Foi exportada uma configuração (%d). (Apenas configurações não d
 msgstr[1] "Foram exportadas %d configurações. (Apenas configurações não do sistema)"
 
 #, fuzzy
-#| msgid "Export result"
 msgid "Export Result"
 msgstr "Resultado da exportação"
 
@@ -6070,7 +5929,6 @@ msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "O reprodutor está com problemas. Por favor, reinstale o reprodutor do sistema."
 
 #, fuzzy
-#| msgid "The player is not loaded, please click \"play\" button to retry."
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "O reprodutor não está carregado, por favor clique no botão \"Reproduzir\" para tentar novamente."
 
@@ -6093,7 +5951,6 @@ msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "Liveview via LAN está desativado. Por favor, ative a liveview na tela da impressora."
 
 #, fuzzy
-#| msgid "Please enter the IP of printer to connect."
 msgid "Please enter the IP of the printer to connect."
 msgstr "Por favor, digite o IP da impressora para conectar."
 
@@ -6395,7 +6252,6 @@ msgid "Input access code"
 msgstr "Digite o código de acesso"
 
 #, fuzzy
-#| msgid "Can't find my devices?"
 msgid "Can't find devices?"
 msgstr "Não consegue encontrar meus dispositivos?"
 
@@ -6421,17 +6277,14 @@ msgid "illegal suffix:"
 msgstr "sufixo ilegal:"
 
 #, fuzzy
-#| msgid "The name is not allowed to be empty."
 msgid "The name field is not allowed to be empty."
 msgstr "O nome não pode ficar vazio."
 
 #, fuzzy
-#| msgid "The name is not allowed to start with space character."
 msgid "The name is not allowed to start with a space."
 msgstr "O nome não pode começar com um espaço."
 
 #, fuzzy
-#| msgid "The name is not allowed to end with space character."
 msgid "The name is not allowed to end with a space."
 msgstr "O nome não pode terminar com um espaço."
 
@@ -6455,7 +6308,6 @@ msgid "Switching failed"
 msgstr "Falha na troca"
 
 #, fuzzy
-#| msgid "Printing Progress"
 msgid "Printing progress"
 msgstr "Progresso da Impressão"
 
@@ -6475,9 +6327,6 @@ msgid "Clear"
 msgstr "Limpar"
 
 #, fuzzy
-#| msgid ""
-#| "You have completed printing the mall model, \n"
-#| "but the synchronization of rating information has failed."
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6566,8 +6415,7 @@ msgstr "Baixando…"
 msgid "Cloud Slicing..."
 msgstr "Fatiando na Nuvem…"
 
-#, boost-format, c-format, fuzzy
-#| msgid "In Cloud Slicing Queue, there are %s tasks ahead."
+#, fuzzy, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "Na Fila de Fatiamento na Nuvem, existem %s tarefas na frente."
 
@@ -6592,7 +6440,6 @@ msgid "Please select an AMS slot before calibration"
 msgstr "Selecione um espaço AMS antes da calibração"
 
 #, fuzzy
-#| msgid "Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "Não é possível ler as informações do filamento: o filamento está carregado na cabeça da ferramenta, por favor descarregue o filamento e tente novamente."
 
@@ -6825,7 +6672,6 @@ msgid "3D Mouse disconnected."
 msgstr "Mouse 3D desconectado."
 
 #, fuzzy
-#| msgid "Configuration can update now."
 msgid "A new configuration is available. Update now?"
 msgstr "A configuração pode ser atualizada agora."
 
@@ -6851,17 +6697,14 @@ msgid "Undo integration failed."
 msgstr "A desintegração falhou."
 
 #, fuzzy
-#| msgid "Exporting."
 msgid "Exporting"
 msgstr "Exportando."
 
 #, fuzzy
-#| msgid "Software has New version."
 msgid "An update is available!"
 msgstr "O software tem uma nova versão."
 
 #, fuzzy
-#| msgid "Goto download page."
 msgid "Go to download page"
 msgstr "Ir para a página de download."
 
@@ -6990,7 +6833,6 @@ msgid "Enable detection of build plate position"
 msgstr "Ativar detecção da posição da placa de impressão"
 
 #, fuzzy
-#| msgid "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "A etiqueta de localização da placa de impressão é detectada e a impressão é pausada se a etiqueta não estiver na faixa predefinida."
 
@@ -7037,7 +6879,6 @@ msgid "First Layer Inspection"
 msgstr "Inspeção da Primeira Camada"
 
 #, fuzzy
-#| msgid "Auto-recovery from step loss"
 msgid "Auto-recover from step loss"
 msgstr "Recuperação automática de perda de passo"
 
@@ -7051,7 +6892,6 @@ msgid "Allow Prompt Sound"
 msgstr "Permitir som de alerta"
 
 #, fuzzy
-#| msgid "Filament Tangle Detect"
 msgid "Filament Tangle Detection"
 msgstr "Detecção de emaranhado de filamento"
 
@@ -7204,11 +7044,6 @@ msgstr "Materiais usados"
 msgid "Estimated time"
 msgstr "Tempo estimado"
 
-#, fuzzy
-#| msgid "Filament changes"
-msgid "Filament changes"
-msgstr "Mudanças de filamento"
-
 msgid "Set the number of AMS installed on the nozzle."
 msgstr "Defina o número do AMS instalado no bico."
 
@@ -7315,7 +7150,6 @@ msgid "Ejecting of device %s (%s) has failed."
 msgstr "A ejeção do dispositivo %s (%s) falhou."
 
 #, fuzzy
-#| msgid "Previous unsaved project detected, do you want to restore it?"
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Projeto não salvo anterior detectado, deseja restaurá-lo?"
 
@@ -7323,12 +7157,10 @@ msgid "Restore"
 msgstr "Restaurar"
 
 #, fuzzy
-#| msgid "The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass."
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "A temperatura atual da mesa aquecida está relativamente alta. O bico pode ficar obstruído ao imprimir este filamento em um compartimento fechado. Por favor, abra a porta frontal e/ou remova o vidro superior."
 
 #, fuzzy
-#| msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged."
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "A dureza do bico necessária para o filamento é maior do que a dureza padrão do bico da impressora. Por favor substitua o bico endurecido ou o filamento, caso contrário o bico será desgastado ou danificado."
 
@@ -7380,7 +7212,6 @@ msgid "The 3MF file version %s is newer than %s's version %s, found the followin
 msgstr "A versão do 3MF %s é mais recente do que a versão do %s %s, encontradas as seguintes chaves não reconhecidas:"
 
 #, fuzzy
-#| msgid "You'd better upgrade your software.\n"
 msgid "You should update your software.\n"
 msgstr "Será melhor atualizar o seu software.\n"
 
@@ -7403,7 +7234,6 @@ msgid "Invalid values found in the 3MF:"
 msgstr "Valores inválidos encontrados no 3MF:"
 
 #, fuzzy
-#| msgid "Please correct them in the param tabs"
 msgid "Please correct them in the Param tabs"
 msgstr "Por favor, corrija-os nas guias de parâmetros"
 
@@ -7426,12 +7256,10 @@ msgid "Customized Preset"
 msgstr "Predefinição Personalizada"
 
 #, fuzzy
-#| msgid "Name of components inside STEP file is not UTF8 format!"
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "O nome dos componentes dentro do arquivo STEP não está no formato UTF-8!"
 
 #, fuzzy
-#| msgid "The name may show garbage characters!"
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "O nome pode exibir caracteres inválidos!"
 
@@ -7448,10 +7276,7 @@ msgstr "Objetos com volume zero removidos"
 msgid "The volume of the object is zero"
 msgstr "O volume do objeto é zero"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The object from file %s is too small, and maybe in meters or inches.\n"
-#| " Do you want to scale to millimeters?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7463,10 +7288,6 @@ msgid "Object too small"
 msgstr "Objeto muito pequeno"
 
 #, fuzzy
-#| msgid ""
-#| "This file contains several objects positioned at multiple heights.\n"
-#| "Instead of considering them as multiple objects, should \n"
-#| "the file be loaded as a single object having multiple parts?"
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7483,7 +7304,6 @@ msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Carregar esses arquivos como um único objeto com múltiplas peças?\n"
 
 #, fuzzy
-#| msgid "Object with multiple parts was detected"
 msgid "An object with multiple parts was detected"
 msgstr "Objeto com múltiplas peças foi detectado"
 
@@ -7519,17 +7339,13 @@ msgid "Export AMF file:"
 msgstr "Exportar arquivo AMF:"
 
 #, fuzzy
-#| msgid "Save file as:"
 msgid "Save file as"
 msgstr "Salvar arquivo como:"
 
 msgid "Export OBJ file:"
 msgstr "Exportar arquivo OBJ:"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The file %s already exists\n"
-#| "Do you want to replace it?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7544,10 +7360,6 @@ msgid "Delete object which is a part of cut object"
 msgstr "Excluir objeto que é uma peça do objeto cortado"
 
 #, fuzzy
-#| msgid ""
-#| "You try to delete an object which is a part of a cut object.\n"
-#| "This action will break a cut correspondence.\n"
-#| "After that model consistency can't be guaranteed."
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7573,7 +7385,6 @@ msgid "Unable to replace with more than one volume"
 msgstr "Não é possível substituir por mais de um volume"
 
 #, fuzzy
-#| msgid "Error during replace"
 msgid "Error during replacement"
 msgstr "Erro durante a substituição"
 
@@ -7584,7 +7395,6 @@ msgid "Select a new file"
 msgstr "Selecione um novo arquivo"
 
 #, fuzzy
-#| msgid "File for the replace wasn't selected"
 msgid "File for the replacement wasn't selected"
 msgstr "O arquivo para a substituição não foi selecionado"
 
@@ -7676,7 +7486,6 @@ msgid "Sync now"
 msgstr "Sincronizar agora"
 
 #, fuzzy
-#| msgid "You can keep the modified presets to the new project or discard them"
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Você pode manter as predefinições modificadas no novo projeto ou descartá-las"
 
@@ -7687,9 +7496,6 @@ msgid "Load project"
 msgstr "Carregar Projeto"
 
 #, fuzzy
-#| msgid ""
-#| "Failed to save the project.\n"
-#| "Please check whether the folder exists online or if other programs open the project file."
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7707,7 +7513,6 @@ msgid "Preparing 3MF file..."
 msgstr "Preparando o arquivo 3MF…"
 
 #, fuzzy
-#| msgid "Download failed, unknown file format."
 msgid "Download failed; unknown file format."
 msgstr "Baixar falhou, formato de arquivo desconhecido."
 
@@ -7715,7 +7520,6 @@ msgid "Downloading project..."
 msgstr "Baixando projeto…"
 
 #, fuzzy
-#| msgid "Download failed, File size exception."
 msgid "Download failed; File size exception."
 msgstr "Baixar falhou, erro no tamanho do arquivo."
 
@@ -7742,12 +7546,10 @@ msgid "The selected file"
 msgstr "O arquivo selecionado"
 
 #, fuzzy
-#| msgid "does not contain valid G-code."
 msgid "Does not contain valid G-code."
 msgstr "não contém G-code válido."
 
 #, fuzzy
-#| msgid "Error occurs while loading G-code file"
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Erro ocorreu ao carregar o arquivo de G-code"
 
@@ -7778,7 +7580,6 @@ msgid "Import geometry only"
 msgstr "Importar apenas a geometria"
 
 #, fuzzy
-#| msgid "Only one G-code file can be opened at the same time."
 msgid "Only one G-code file can be opened at a time."
 msgstr "Apenas um arquivo de G-code pode ser aberto de cada vez."
 
@@ -7786,12 +7587,10 @@ msgid "G-code loading"
 msgstr "Carregamento do G-code"
 
 #, fuzzy
-#| msgid "G-code files cannot be loaded with models together!"
 msgid "G-code files and models cannot be loaded together!"
 msgstr "Arquivos de G-code não podem ser carregados junto com modelos!"
 
 #, fuzzy
-#| msgid "Cannot add models when in preview mode!"
 msgid "Unable to add models in preview mode"
 msgstr "Não é possível adicionar modelos no modo de pré-visualização!"
 
@@ -7799,7 +7598,6 @@ msgid "All objects will be removed, continue?"
 msgstr "Todos os objetos serão removidos, continuar?"
 
 #, fuzzy
-#| msgid "The current project has unsaved changes, save it before continue?"
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "O projeto atual tem alterações não salvas, salvar antes de continuar?"
 
@@ -7872,9 +7670,6 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Dados de arquivo de impressão anormais. Por favor, fatie novamente"
 
 #, fuzzy
-#| msgid ""
-#| "Print By Object: \n"
-#| "Suggest to use auto-arrange to avoid collisions when printing."
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7960,8 +7755,7 @@ msgstr "Triângulos: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "Use \"Corrigir Modelo\" para reparar a malha."
 
-#, boost-format, c-format, fuzzy
-#| msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to non-zero."
+#, fuzzy, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Placa %d: %s não é sugerida para ser usado para imprimir filamento %s (%s). Se você ainda quiser fazer esta impressão, por favor defina a temperatura de mesa deste filamento para diferente de zero."
 
@@ -7990,7 +7784,6 @@ msgid "rear"
 msgstr "trás"
 
 #, fuzzy
-#| msgid "Switching the language requires application restart.\n"
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Alternanr o idioma requer reiniciar o aplicativo.\n"
 
@@ -8019,7 +7812,6 @@ msgid "Others"
 msgstr "Outros"
 
 #, fuzzy
-#| msgid "Changing the region will log out your account.\n"
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Mudar a região fará logout da sua conta.\n"
 
@@ -8096,7 +7888,6 @@ msgid "Set the page opened on startup."
 msgstr "Define a página aberta na inicialização."
 
 #, fuzzy
-#| msgid "Enable dark mode"
 msgid "Enable dark Mode"
 msgstr "Ativar modo escuro"
 
@@ -8173,7 +7964,6 @@ msgid "Auto backup"
 msgstr "Backup automático"
 
 #, fuzzy
-#| msgid "Backup your project periodically for restoring from the occasional crash."
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Faça backup do seu projeto periodicamente para restaurar de falhas ocasionais."
 
@@ -8467,7 +8257,6 @@ msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Sincronização automática de predefinições do usuário (Impressora/Filamento/Processo)"
 
 #, fuzzy
-#| msgid "Update built-in Presets automatically."
 msgid "Update built-in presets automatically."
 msgstr "Atualizar automaticamente Predefinições integradas."
 
@@ -8546,7 +8335,6 @@ msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Associar arquivos 3MF ao OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Se ativado, define OrcaSlicer como aplicativo padrão para abrir arquivos 3MF."
 
@@ -8560,7 +8348,6 @@ msgid "Associate STL files to OrcaSlicer"
 msgstr "Associar arquivos STL ao OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Se ativado, define OrcaSlicer como aplicativo padrão para abrir arquivos STL."
 
@@ -8568,7 +8355,6 @@ msgid "Associate STEP files to OrcaSlicer"
 msgstr "Associar arquivos STEP ao OrcaSlicer"
 
 #, fuzzy
-#| msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Se ativado, define OrcaSlicer como aplicativo padrão para abrir arquivos STEP."
 
@@ -8669,7 +8455,6 @@ msgid "Other"
 msgstr "Outro"
 
 #, fuzzy
-#| msgid "Mouse wheel reverses when zooming"
 msgid "Reverse scroll direction while zooming"
 msgstr "O botão de roda do mouse inverte ao fazer zoom"
 
@@ -8704,12 +8489,10 @@ msgid "Save debug settings"
 msgstr "Salvar configurações de depuração"
 
 #, fuzzy
-#| msgid "DEBUG settings have been saved successfully!"
 msgid "Debug settings have been saved successfully!"
 msgstr "As configurações de depuração foram salvas com sucesso!"
 
 #, fuzzy
-#| msgid "Cloud environment switched, please login again!"
 msgid "Cloud environment switched; please login again!"
 msgstr "Mudar o ambiente de nuvem, Por favor, faça login novamente!"
 
@@ -8729,7 +8512,6 @@ msgid "Left filaments"
 msgstr "Filamentos da esquerda"
 
 #, fuzzy
-#| msgid "AMS filaments"
 msgid "AMS filament"
 msgstr "Filamentos AMS"
 
@@ -8764,7 +8546,6 @@ msgid "Unsupported"
 msgstr "Não suportado"
 
 #, fuzzy
-#| msgid "Add/Remove filaments"
 msgid "Add/Remove filament"
 msgstr "Adicionar/Remover filamentos"
 
@@ -8802,7 +8583,6 @@ msgid "Plate name"
 msgstr "Nome da placa"
 
 #, fuzzy
-#| msgid "Same as Global Bed Type"
 msgid "Same as Global Plate Type"
 msgstr "Mesmo que o Tipo de Placa Global"
 
@@ -8840,7 +8620,6 @@ msgid "Log Out"
 msgstr "Sair"
 
 #, fuzzy
-#| msgid "Slice all plate to obtain time and filament estimation"
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Fatiar todas as placas para obter estimativa de tempo e filamento"
 
@@ -8902,7 +8681,6 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr "A predefinição \"%1%\" já existe e é incompatível com a impressora atual."
 
 #, fuzzy
-#| msgid "Please note that saving will overwrite this preset."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Por favor, note que a ação de salvar sobrescreverá esta predefinição."
 
@@ -9033,7 +8811,6 @@ msgid "The selected printer (%s) is incompatible with the print file configurati
 msgstr "A impressora selecionada (%s) é incompatível com a configuração do arquivo de impressão (%s). Ajuste a predefinição da impressora na página de preparo ou escolha uma impressora compatível nesta página."
 
 #, fuzzy
-#| msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Quando o modo vaso espiral está ativado, máquinas com estrutura I3 não irão gerar vídeos timelapse."
 
@@ -9053,7 +8830,6 @@ msgid "The printer type selected when generating G-code is not consistent with t
 msgstr "O tipo de impressora selecionado ao gerar o G-code não está consistente com a impressora atualmente selecionada. É recomendado que você use o mesmo tipo de impressora para fatiar."
 
 #, fuzzy
-#| msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing."
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Há alguns filamentos desconhecidos nos mapeamentos AMS. Por favor, verifique se eles são os filamentos necessários. Se estiverem corretos, pressione \"Confirmar\" para iniciar a impressão."
 
@@ -9186,7 +8962,6 @@ msgid "Storage needs to be inserted before printing."
 msgstr "O armazenamento precisa estar inserido antes de imprimir."
 
 #, fuzzy
-#| msgid "Cannot send the print job to a printer whose firmware is required to get updated."
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Não é possível enviar o trabalho de impressão para uma impressora cujo firmware precisa ser atualizado."
 
@@ -9242,7 +9017,6 @@ msgid "Connection failed. Click the icon to retry"
 msgstr "Falha na coexão.  Clique no icon para tentar novamente"
 
 #, fuzzy
-#| msgid "Cannot send the print task when the upgrade is in progress"
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Não é possível enviar a tarefa de impressão quando a atualização está em progresso"
 
@@ -9253,7 +9027,6 @@ msgid "Storage needs to be inserted before send to printer."
 msgstr "O armazenamento precisa estar inserido antes de enviar para a impressora."
 
 #, fuzzy
-#| msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "A impressora deve estar na mesma LAN do OrcaSlicer."
 
@@ -9270,7 +9043,6 @@ msgid "Sending failed, please try again!"
 msgstr "Falha no envio, tente novamente!"
 
 #, fuzzy
-#| msgid "Slice ok."
 msgid "Slice complete"
 msgstr "Fatiamento ok."
 
@@ -9287,12 +9059,10 @@ msgid "Failed to publish login request"
 msgstr "Falha ao publicar a solicitação de login"
 
 #, fuzzy
-#| msgid "Get ticket from device timeout"
 msgid "Timeout getting ticket from device"
 msgstr "Limite de tempo excedido ao obter o ticket do dispositivo"
 
 #, fuzzy
-#| msgid "Get ticket from server timeout"
 msgid "Timeout getting ticket from server"
 msgstr "Limite de tempo excedido ao obter o ticket do servidor"
 
@@ -9400,7 +9170,6 @@ msgid "Click to reset all settings to the last saved preset."
 msgstr "Clique para redefinir todas as configurações para a última predefinição salva."
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Uma torre de preparo é necessária para um timelapse suave. Pode haver falhas no modelo sem a torre de preparo. Tem certeza de que deseja desativar a torre de preparo?"
 
@@ -9417,7 +9186,6 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "Habilitar a altura Z precisa e a torre de preparação juntas pode causar erros de fatiamento. Deseja habilitar a altura Z precisa mesmo assim?"
 
 #, fuzzy
-#| msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Uma torre de preparo é necessária para um timelapse suave. Pode haver falhas no modelo sem a torre de preparo. Deseja ativar a torre de preparo?"
 
@@ -9439,10 +9207,6 @@ msgstr ""
 "0 distância Z superior, 0 espaçamento de interface, padrão retilíneo entrelaçado e desabilitar altura da camada de suporte independente."
 
 #, fuzzy
-#| msgid ""
-#| "Change these settings automatically?\n"
-#| "Yes - Change these settings automatically\n"
-#| "No  - Do not change these settings for me"
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9596,7 +9360,6 @@ msgid "Top/bottom shells"
 msgstr "Cascas de topo/base"
 
 #, fuzzy
-#| msgid "First layer speed"
 msgid "First layer speed"
 msgstr "Velocidade da primeira camada"
 
@@ -9625,7 +9388,6 @@ msgid "Raft"
 msgstr "Jangada"
 
 #, fuzzy
-#| msgid "Support filament"
 msgid "Filament for Supports"
 msgstr "Filamento de suporte"
 
@@ -9689,7 +9451,6 @@ msgid "Recommended nozzle temperature"
 msgstr "Temperatura recomendada do bico"
 
 #, fuzzy
-#| msgid "Recommended nozzle temperature range of this filament. 0 means no set"
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Faixa de temperatura do bico recomendada para este filamento. 0 significa não definido"
 
@@ -9712,7 +9473,6 @@ msgid "Cool Plate"
 msgstr "Placa Fria"
 
 #, fuzzy
-#| msgid "Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura da mesa quando a Placa Fria está instalada. O valor 0 significa que o filamento não suporta impressão na Placa Fria."
 
@@ -9720,12 +9480,10 @@ msgid "Textured Cool Plate"
 msgstr "Placa Fria Texturizada"
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Temperatura da mesa quando a Placa Fria Texturizada está instalada. O valor 0 significa que o filamento não suporta impressão na Placa Fria Texturizada."
 
 #, fuzzy
-#| msgid "Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Temperatura da mesa quando a Placa de Engenharia está instalada. O valor 0 significa que o filamento não suporta impressão na Placa de Engenharia."
 
@@ -9733,12 +9491,10 @@ msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Placa PEI Lisa / Placa de Alta Temperatura"
 
 #, fuzzy
-#| msgid "Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Temperatura da mesa quando a Placa PEI Lisa/Placa de Alta Temperatura está instalado. O valor 0 significa que o filamento não suporta a impressão no Placa PEI Lisa/Placa de Alta Temperatura."
 
 #, fuzzy
-#| msgid "Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Temperatura da mesa quando a Placa PEI Texturizada está instalado. O valor 0 significa que o filamento não suporta impressão na Placa PEI Texturizada."
 
@@ -9755,7 +9511,6 @@ msgid "Min fan speed threshold"
 msgstr "Limiar de velocidade mínima do ventilador"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "A velocidade do ventilador de resfriamento de peças começará a funcionar na velocidade mínima quando o tempo estimado da camada não for mais longo do que o tempo da camada ajustado. Quando o tempo da camada for menor que o limiar, a velocidade do ventilador é interpolada entre a velocidade mínima e máxima de acordo com o tempo de impressão da camada"
 
@@ -9763,7 +9518,6 @@ msgid "Max fan speed threshold"
 msgstr "Limiar de velocidade máxima do ventilador"
 
 #, fuzzy
-#| msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "A velocidade do ventilador de resfriamento de peças será máxima quando o tempo estimado da camada for menor que o valor ajustado"
 
@@ -9987,8 +9741,7 @@ msgstr ""
 "Tem certeza de que deseja excluir a predefinição selecionada?\n"
 "Se a predefinição corresponde a um filamento atualmente em uso em sua impressora, redefina as informações do filamento para esse espaço."
 
-#, boost-format, fuzzy
-#| msgid "Are you sure to %1% the selected preset?"
+#, fuzzy, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Tem certeza de %1% a predefinição selecionada?"
 
@@ -10034,11 +9787,6 @@ msgstr "Verificação de Segurança de Temperatura"
 msgid "Continue"
 msgstr "Continue"
 
-#, fuzzy
-#| msgid "Back"
-msgid "Back"
-msgstr "Atrás"
-
 msgid "Don't warn again for this preset"
 msgstr "Não avisar novamente para essa predifinição"
 
@@ -10054,7 +9802,6 @@ msgid "Click to reset current value and attach to the global value."
 msgstr "Clique para redefinir o valor atual e anexá-lo ao valor global."
 
 #, fuzzy
-#| msgid "Click to drop current modify and reset to saved value."
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Clique para descartar a modificação atual e redefinir para o valor salvo."
 
@@ -10062,7 +9809,6 @@ msgid "Process Settings"
 msgstr "Configurações do Processo"
 
 #, fuzzy
-#| msgid "Unsaved Changes"
 msgid "unsaved changes"
 msgstr "Alterações não salvas"
 
@@ -10070,7 +9816,6 @@ msgid "Transfer or discard changes"
 msgstr "Transferir ou descartar alterações"
 
 #, fuzzy
-#| msgid "Old Value"
 msgid "Old value"
 msgstr "Valor Antigo"
 
@@ -10127,7 +9872,6 @@ msgid "Click the right mouse button to display the full text."
 msgstr "Clique com o botão direito do mouse para exibir o texto completo."
 
 #, fuzzy
-#| msgid "All changes will not be saved"
 msgid "No changes will be saved."
 msgstr "Todas as alterações não serão salvas"
 
@@ -10677,7 +10421,6 @@ msgid "Arrow Up"
 msgstr "Seta para cima"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive Y direction"
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Mover seleção 10 mm na direção Y positiva"
 
@@ -10685,7 +10428,6 @@ msgid "Arrow Down"
 msgstr "Seta para baixo"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative Y direction"
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Mover seleção 10 mm na direção Y negativa"
 
@@ -10693,7 +10435,6 @@ msgid "Arrow Left"
 msgstr "Seta para esquerda"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in negative X direction"
 msgid "Move selection 10mm in negative X direction"
 msgstr "Mover seleção 10 mm na direção X negativa"
 
@@ -10701,17 +10442,14 @@ msgid "Arrow Right"
 msgstr "Seta para direita"
 
 #, fuzzy
-#| msgid "Move selection 10 mm in positive X direction"
 msgid "Move selection 10mm in positive X direction"
 msgstr "Mover seleção 10 mm na direção X positiva"
 
 #, fuzzy
-#| msgid "Movement step set to 1 mm"
 msgid "Movement step set to 1mm"
 msgstr "Passo de movimento configurado para 1 mm"
 
 #, fuzzy
-#| msgid "Keyboard 1-9: set filament for object/part"
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Teclado 1-9: ajustar filamento para objeto/peça"
 
@@ -10809,7 +10547,6 @@ msgid "Set extruder number for the objects and parts"
 msgstr "Definir o número da extrusora para os objetos e peças"
 
 #, fuzzy
-#| msgid "Delete objects, parts, modifiers"
 msgid "Delete objects, parts, modifiers"
 msgstr "Excluir objetos, peças, modificadores"
 
@@ -10863,7 +10600,6 @@ msgid "Network plug-in update"
 msgstr "Atualização do plug-in de rede"
 
 #, fuzzy
-#| msgid "Click OK to update the Network plug-in when Orca Slicer launches next time."
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "Clique em OK para atualizar o plug-in de rede quando o OrcaSlicer for iniciado novamente."
 
@@ -11009,12 +10745,10 @@ msgid "Are you sure you want to update? This will take about 10 minutes. Do not 
 msgstr "Tem certeza de que deseja atualizar? Isso levará cerca de 10 minutos. Não desligue a energia enquanto a impressora estiver atualizando."
 
 #, fuzzy
-#| msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Uma atualização importante foi detectada e precisa ser executada antes que a impressão possa continuar. Deseja atualizar agora? Você também pode atualizar posteriormente em 'Atualizar firmware'."
 
 #, fuzzy
-#| msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "A versão do firmware está anormal. Reparar e atualizar é necessário antes de imprimir. Você deseja atualizar agora? Você também pode atualizar mais tarde na impressora ou atualizar da próxima vez que iniciar o Orca."
 
@@ -11039,7 +10773,6 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Falha ao copiar o arquivo %1% para %2%: %3%"
 
 #, fuzzy
-#| msgid "Need to check the unsaved changes before configuration updates."
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "É necessário verificar as alterações não salvas antes das atualizações de configuração."
 
@@ -11055,8 +10788,7 @@ msgstr "Abrir arquivo G-code:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Um objeto tem uma primeira camada vazia e não pode ser impresso. Por favor, corte a base ou habilite os suportes."
 
-#, boost-format, fuzzy
-#| msgid "Object can't be printed for empty layer between %1% and %2%."
+#, fuzzy, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "O objeto não pode ser impresso devido a uma camada vazia entre %1% e %2%."
 
@@ -11065,7 +10797,6 @@ msgid "Object: %1%"
 msgstr "Objeto: %1%"
 
 #, fuzzy
-#| msgid "Maybe parts of the object at these height are too thin, or the object has faulty mesh"
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Talvez partes do objeto nessa altura sejam muito finas, ou o objeto tenha uma malha com falhas"
 
@@ -11076,7 +10807,6 @@ msgid "Filament change extrusion role G-code"
 msgstr ""
 
 #, fuzzy
-#| msgid "No object can be printed. Maybe too small"
 msgid "No object can be printed. It may be too small."
 msgstr "Nenhum objeto pode ser impresso. Talvez seja muito pequeno"
 
@@ -11122,8 +10852,7 @@ msgstr " não pode ser colocado na "
 msgid "Internal Bridge"
 msgstr "Ponte interna"
 
-#, boost-format, fuzzy
-#| msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
+#, fuzzy, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "Falha ao calcular a largura da linha de %1%. Não é possível obter o valor de \"%2%\". "
 
@@ -11137,7 +10866,6 @@ msgid "too many files"
 msgstr "muitos arquivos"
 
 #, fuzzy
-#| msgid "file too large"
 msgid "File too large"
 msgstr "arquivo muito grande"
 
@@ -11160,7 +10888,6 @@ msgid "invalid header or corrupted"
 msgstr "cabeçalho inválido ou corrompido"
 
 #, fuzzy
-#| msgid "unsupported multidisk"
 msgid "Saving to RAID is not supported."
 msgstr "multidisco não suportado"
 
@@ -11210,7 +10937,6 @@ msgid "invalid filename"
 msgstr "nome de arquivo inválido"
 
 #, fuzzy
-#| msgid "buffer too small"
 msgid "Buffer too small"
 msgstr "buffer muito pequeno"
 
@@ -11221,7 +10947,6 @@ msgid "file not found"
 msgstr "arquivo não encontrado"
 
 #, fuzzy
-#| msgid "archive too large"
 msgid "Archive too large"
 msgstr "arquivo muito grande"
 
@@ -11231,8 +10956,7 @@ msgstr "validação falhou"
 msgid "write callback failed"
 msgstr "falha na chamada de escrita"
 
-#, boost-format, fuzzy
-#| msgid "%1% is too close to exclusion area, there may be collisions when printing."
+#, fuzzy, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% está muito perto da área de exclusão, pode haver colisões durante a impressão."
 
@@ -11257,7 +10981,6 @@ msgid " is too close to others, and collisions may be caused.\n"
 msgstr " está muito perto de outros, e colisões podem ocorrer.\n"
 
 #, fuzzy
-#| msgid " is too close to exclusion area, and collisions will be caused.\n"
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " está muito perto da área de exclusão, e ocorrerão colisões.\n"
 
@@ -11292,7 +11015,6 @@ msgid "Please select \"By object\" print sequence to print multiple objects in s
 msgstr "Por favor, selecione a sequência de impressão \"Por objeto\" para imprimir vários objetos no modo vaso espiral."
 
 #, fuzzy
-#| msgid "The spiral vase mode does not work when an object contains more than one materials."
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "O modo de vaso espiral não funciona quando um objeto contém mais de um material."
 
@@ -11327,27 +11049,22 @@ msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprint
 msgstr "A torre de preparo atualmente só é suportada para os G-code do tipo Marlin, RepRap/Sprinter, RepRapFirmware e Repetier."
 
 #, fuzzy
-#| msgid "The prime tower is not supported in \"By object\" print."
 msgid "A prime tower is not supported in “By object” print."
 msgstr "A torre de preparo não é suportada na impressão \"Por objeto\"."
 
 #, fuzzy
-#| msgid "The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "A torre de preparo não é suportada quando a altura de camada adaptativa está ativa. Isso requer que todos os objetos tenham a mesma altura de camada."
 
 #, fuzzy
-#| msgid "The prime tower requires \"support gap\" to be multiple of layer height."
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "A torre de preparo requer que o \"vão de suporte\" seja múltiplo da altura da camada."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects have the same layer heights."
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "A torre de preparo requer que todos os objetos tenham as mesmas alturas de camada."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are printed over the same number of raft layers."
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "A torre de preparo requer que todos os objetos sejam impressos sobre o mesmo número de camadas da jangada."
 
@@ -11355,7 +11072,6 @@ msgid "The prime tower is only supported for multiple objects if they are printe
 msgstr "A torre de preparo só é suportada para vários objetos se eles forem impressos com a mesma support_top_z_distance."
 
 #, fuzzy
-#| msgid "The prime tower requires that all objects are sliced with the same layer heights."
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "A torre de preparo requer que todos os objetos sejam fatiados com as mesmas alturas de camada."
 
@@ -11366,12 +11082,10 @@ msgid "One or more object were assigned an extruder that the printer does not ha
 msgstr "Um ou mais objetos foram atribuídos a uma extrusora que a impressora não possui."
 
 #, fuzzy
-#| msgid "Too small line width"
 msgid "Line width too small"
 msgstr "Largura de linha muito pequena"
 
 #, fuzzy
-#| msgid "Too large line width"
 msgid "Line width too large"
 msgstr "Largura de linha muito grande"
 
@@ -11379,7 +11093,6 @@ msgid "Printing with multiple extruders of differing nozzle diameters. If suppor
 msgstr "Impressão com múltiplas extrusoras de diferentes diâmetros de bicos. Se o suporte for impresso com o filamento atual (support_filament == 0 ou support_interface_filament == 0), todos os bicos devem ter o mesmo diâmetro."
 
 #, fuzzy
-#| msgid "The prime tower requires that support has the same layer height with object."
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "A torre de preparo requer que o suporte tenha a mesma altura de camada do objeto."
 
@@ -11405,7 +11118,6 @@ msgid "Support enforcers are used but support is not enabled. Please enable supp
 msgstr "Os reforços de suporte são usados, mas o suporte não está habilitado. Por favor, habilite o suporte."
 
 #, fuzzy
-#| msgid "Layer height cannot exceed nozzle diameter."
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "A altura da camada não pode exceder o diâmetro do bico."
 
@@ -11486,7 +11198,6 @@ msgid "Generating G-code"
 msgstr "Gerando G-code"
 
 #, fuzzy
-#| msgid "Failed processing of the filename_format template."
 msgid "Processing of the filename_format template failed."
 msgstr "Falha no processamento do gabarito filename_format."
 
@@ -11518,7 +11229,6 @@ msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 app
 msgstr ""
 
 #, fuzzy
-#| msgid "Bed exclude area"
 msgid "Excluded bed area"
 msgstr "Área de exclusão da mesa"
 
@@ -11535,7 +11245,6 @@ msgid "Elephant foot compensation"
 msgstr "Compensação de pé de elefante"
 
 #, fuzzy
-#| msgid "Shrinks the first layer on build plate to compensate for elephant foot effect."
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Encolhe a primeira camada na placa de impressão para compensar o efeito de pé de elefante."
 
@@ -11558,7 +11267,6 @@ msgstr ""
 "As camadas subsequentes tornam-se linearmente mais densas pela altura especificada em elefant_foot_compensation_layers."
 
 #, fuzzy
-#| msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Altura de fatiamento para cada camada. Altura de camada menor significa mais precisão e maior tempo de impressão."
 
@@ -11566,7 +11274,6 @@ msgid "Printable height"
 msgstr "Altura de impressão"
 
 #, fuzzy
-#| msgid "Maximum printable height which is limited by mechanism of printer."
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "Altura máxima de impressão limitada pelo mecanismo da impressora."
 
@@ -11646,7 +11353,6 @@ msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Ignorar verificações de revogação de certificado HTTPS"
 
 #, fuzzy
-#| msgid "Ignore HTTPS certificate revocation checks in case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Ignorar verificações de revogação de certificado HTTPS em caso de pontos de distribuição ausentes ou offline. Pode-se querer habilitar esta opção para certificados autoassinados se a conexão falhar."
 
@@ -11666,7 +11372,6 @@ msgid "Avoid crossing walls"
 msgstr "Evitar atravessar paredes"
 
 #, fuzzy
-#| msgid "Detour to avoid traveling across walls, which may cause blobs on the surface."
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Desviar para evitar atravessar paredes, que pode causar irregularidades na superfície."
 
@@ -11674,7 +11379,6 @@ msgid "Avoid crossing walls - Max detour length"
 msgstr "Evitar atravessar paredes - Distância máximo do desvio"
 
 #, fuzzy
-#| msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Distância máxima de desvio para evitar atravessar paredes. Não desviar se a distância de desvio for maior que esse valor. A distancia do desvio pode ser especificada como um valor absoluto ou como porcentagem (por exemplo, 50%) de um caminho de deslocamento direto. Zero para desativar."
 
@@ -11688,72 +11392,58 @@ msgid "Bed temperature for layers except the initial one. A value of 0 means the
 msgstr "Temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa Fria SuperTack."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa Fria."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa Fria Texturizada."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa de Engenharia."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa de Alta Temperatura."
 
 #, fuzzy
-#| msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa PEI Texturizada."
 
 #, fuzzy
-#| msgid "First layer"
 msgid "First layer"
 msgstr "Primeira camada"
 
 #, fuzzy
-#| msgid "First layer bed temperature"
 msgid "First layer bed temperature"
 msgstr "Temperatura da mesa na primeira camada"
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Temperatura da mesa na primeira camada. O valor 0 significa que o filamento não suporta a impressão na Placa Fria SuperTack."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura da mesa na primeira camada. O valor 0 significa que o filamento não suporta a impressão na Placa Fria."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Temperatura da mesa na primeira camada. O valor 0 significa que o filamento não suporta a impressão na Placa Fria Texturizada."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Temperatura da mesa na primeira camada. O valor 0 significa que o filamento não suporta a impressão na Placa de Engenharia."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Temperatura da mesa na primeira camada. O valor 0 significa que o filamento não suporta a impressão na Placa de Alta Temperatura."
 
 #, fuzzy
-#| msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Temperatura da mesa na primeira camada. O valor 0 significa que o filamento não suporta a impressão na Placa PEI Texturizada."
 
 #, fuzzy
-#| msgid "Bed types supported by the printer."
 msgid "Plate types supported by the printer"
 msgstr "Tipos de placa suportadas pela impressora."
 
@@ -11788,7 +11478,6 @@ msgid "Bottom shell thickness"
 msgstr "Espessura da casca de base"
 
 #, fuzzy
-#| msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers."
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "O número de camadas sólidas da base é aumentado ao fatiar se a espessura calculada pelas camadas de casca de base for mais fina do que este valor. Isso pode evitar que a casca de base seja muito fina quando a altura da camada é pequena. 0 significa que esta configuração está desativada e a espessura da casca de base é absolutamente determinada pelas camadas de casca de base."
 
@@ -12196,12 +11885,10 @@ msgstr ""
 "Quando Detectar parede saliente não está habilitado, esta opção é ignorada e a reversão acontece em todas as camadas pares, sempre."
 
 #, fuzzy
-#| msgid "Slow down for overhang"
 msgid "Slow down for overhangs"
 msgstr "Reduzir velocidade em saliências"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing down for different overhang degree."
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "Ative esta opção para diminuir a velocidade de impressão para diferentes de degraus de saliência."
 
@@ -12248,7 +11935,6 @@ msgid "Brim width"
 msgstr "Largura da borda"
 
 #, fuzzy
-#| msgid "Distance from model to the outermost brim line."
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Distância do modelo até a linha da borda mais externa."
 
@@ -12262,7 +11948,6 @@ msgid "Brim-object gap"
 msgstr "Espaço entre a borda e objeto"
 
 #, fuzzy
-#| msgid "A gap between innermost brim line and object can make brim be removed more easily."
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Um espaço entre a linha mais interna da borda e o objeto pode facilitar a remoção da borda."
 
@@ -12283,16 +11968,10 @@ msgstr ""
 "Nota: o valor resultante não será afetado pela taxa de fluxo da primeira camada."
 
 #, fuzzy
-#| msgid "Brim follows compensated outline"
 msgid "Brim follows compensated outline"
 msgstr "Borda segue contorno compensado"
 
 #, fuzzy
-#| msgid ""
-#| "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
-#| "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
-#| "\n"
-#| "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12348,7 +12027,6 @@ msgid "Condition"
 msgstr "Condição"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Uma expressão booleana usando os valores de configuração de um perfil de impressora ativo. Se essa expressão for avaliada como true, esse perfil será considerado compatível com o perfil de impressora ativo."
 
@@ -12356,12 +12034,10 @@ msgid "Select profiles"
 msgstr "Selecionar perfis"
 
 #, fuzzy
-#| msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Uma expressão booleana usando os valores de configuração de um perfil de impressão ativo. Se essa expressão for avaliada como true, esse perfil será considerado compatível com o perfil de impressão ativo."
 
 #, fuzzy
-#| msgid "Print sequence, layer by layer or object by object."
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Sequência de impressão, camada por camada ou objeto por objeto."
 
@@ -12384,7 +12060,6 @@ msgid "Slow printing down for better layer cooling"
 msgstr "Diminuir a velocidade de impressão para melhor resfriamento de camada"
 
 #, fuzzy
-#| msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "Ative esta opção para diminuir a velocidade de impressão para que o tempo da camada final não seja menor do que o limiar de tempo da camada em \"Limiar de velocidade máxima do ventilador\", para que a camada possa ser resfriada por mais tempo. Isso pode melhorar a qualidade de resfriamento para detalhes pequenos."
 
@@ -12392,7 +12067,6 @@ msgid "Normal printing"
 msgstr "Impressão normal"
 
 #, fuzzy
-#| msgid "The default acceleration of both normal printing and travel except initial layer."
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "A aceleração padrão tanto para a impressão normal quanto para o movimento, exceto na primeira camada."
 
@@ -12439,7 +12113,6 @@ msgid "Don't support bridges"
 msgstr "Não suportar pontes"
 
 #, fuzzy
-#| msgid "Don't support the whole bridge area which make support very large. Bridges can usually be printed directly without support if not very long."
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Não suportar toda a área da ponte que faz com que o suporte seja muito grande. Pontes geralmente podem ser impressas diretamente sem suporte se não forem muito longas."
 
@@ -12528,7 +12201,6 @@ msgid "Max bridge length"
 msgstr "Comprimento máximo de ponte"
 
 #, fuzzy
-#| msgid "Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Comprimento máximo de pontes que não precisam de suporte. Defina como 0 se desejar que todas as pontes tenham suporte, e defina como um valor muito grande se não desejar que nenhuma ponte tenha suporte."
 
@@ -12536,7 +12208,6 @@ msgid "End G-code"
 msgstr "G-code de finalização"
 
 #, fuzzy
-#| msgid "End G-code when finishing the entire print."
 msgid "Add end G-Code when finishing the entire print."
 msgstr "G-code de finalização ao terminar a impressão completa."
 
@@ -12547,7 +12218,6 @@ msgid "Insert G-code between objects. This parameter will only come into effect 
 msgstr "Insira o G-code entre objetos. Este parâmetro só terá efeito quando você imprimir seus modelos objeto por objeto."
 
 #, fuzzy
-#| msgid "End G-code when finishing the printing of this filament."
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "G-code de finalização ao terminar a impressão deste filamento."
 
@@ -12579,7 +12249,6 @@ msgid "Top surface pattern"
 msgstr "Padrão de superfície superior"
 
 #, fuzzy
-#| msgid "Line pattern of top surface infill."
 msgid "This is the line pattern for top surface infill."
 msgstr "Padrão de linha do preenchimento da superfície superior."
 
@@ -12611,7 +12280,6 @@ msgid "Bottom surface pattern"
 msgstr "Padrão de superfície inferior"
 
 #, fuzzy
-#| msgid "Line pattern of bottom surface infill, not bridge infill."
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Padrão de linha do preenchimento da superfície inferior, não do preenchimento da ponte."
 
@@ -12625,7 +12293,6 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "Largura da linha da parede externa. Se expresso como porcentagem, será calculado sobre o diâmetro do bico."
 
 #, fuzzy
-#| msgid "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality."
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "Velocidade da parede externa que é a mais externo e visível. Geralmente é mais lenta que a velocidade da parede interna para obter melhor qualidade."
 
@@ -12706,7 +12373,6 @@ msgid "Height to rod"
 msgstr "Altura até a haste"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Distância da ponta do bico até a haste inferior. Usado para evitar colisões na impressão por objeto."
 
@@ -12714,12 +12380,10 @@ msgid "Height to lid"
 msgstr "Altura até a tampa"
 
 #, fuzzy
-#| msgid "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Distância da ponta do bico à tampa. Usado para evitar colisões na impressão por objeto."
 
 #, fuzzy
-#| msgid "Clearance radius around extruder. Used for collision avoidance in by-object printing."
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Raio de folga ao redor da extrusora. Usado para evitar colisões na impressão por objeto."
 
@@ -12857,7 +12521,6 @@ msgid "Keep fan always on"
 msgstr "Manter o ventilador sempre ligado"
 
 #, fuzzy
-#| msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Habilitar esta configuração significa que o ventilador de resfriamento da peça nunca será desligado completamente e funcionará pelo menos na velocidade mínima para reduzir a frequência de inícios e paradas."
 
@@ -12879,7 +12542,6 @@ msgid "Layer time"
 msgstr "Tempo da camada"
 
 #, fuzzy
-#| msgid "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "O ventilador de resfriamento de peças será ativado para camadas cujo tempo estimado seja menor que esse valor. A velocidade do ventilador é interpolada entre as velocidades mínima e máxima do ventilador de acordo com o tempo de impressão da camada."
 
@@ -12906,7 +12568,6 @@ msgid "Required nozzle HRC"
 msgstr "HRC do bico requerido"
 
 #, fuzzy
-#| msgid "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC."
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "HRC mínimo do bico necessário para imprimir o filamento. Zero significa que não há verificação do HRC do bico."
 
@@ -12947,7 +12608,6 @@ msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric s
 msgstr "Velocidade volumétrica ao purgar filamento. 0 indica a velocidade volumétrica máxima."
 
 #, fuzzy
-#| msgid "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero."
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Essa configuração representa quanto volume de filamento pode ser derretido e extrudado por segundo. A velocidade de impressão é limitada pela velocidade volumétrica máxima, no caso de configurações de velocidade muito altas e irrazoáveis. Não pode ser zero."
 
@@ -12982,7 +12642,6 @@ msgid "By Highest Temp"
 msgstr "Por Maior Temperatura"
 
 #, fuzzy
-#| msgid "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate."
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "O diâmetro do filamento é usado para calcular a extrusão no G-code, portanto, é importante e deve ser preciso."
 
@@ -13057,7 +12716,6 @@ msgid "Unloading speed"
 msgstr "Velocidade de descarregamento"
 
 #, fuzzy
-#| msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Velocidade usada para descarregar o filamento na torre de limpeza (não afeta a parte inicial do descarregamento logo após o moldeamento)."
 
@@ -13176,7 +12834,6 @@ msgid "Density"
 msgstr "Densidade"
 
 #, fuzzy
-#| msgid "Filament density. For statistics only."
 msgid "Filament density, for statistical purposes only."
 msgstr "Densidade do filamento. Apenas para estatística."
 
@@ -13184,7 +12841,6 @@ msgid "g/cm³"
 msgstr "g/cm³"
 
 #, fuzzy
-#| msgid "The material type of filament."
 msgid "Filament material type"
 msgstr "O tipo de material do filamento."
 
@@ -13216,7 +12872,6 @@ msgid "Softening temperature"
 msgstr "Temperatura de amolecimento"
 
 #, fuzzy
-#| msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging."
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "O material amolece a esta temperatura, portanto, quando a temperatura da mesa for igual ou maior que ela, é altamente recomendável abrir a porta da frente e/ou remover o vidro superior para evitar entupimentos."
 
@@ -13224,7 +12879,6 @@ msgid "Price"
 msgstr "Preço"
 
 #, fuzzy
-#| msgid "Filament price. For statistics only."
 msgid "Filament price, for statistical purposes only."
 msgstr "Preço do filamento. Apenas para estatística."
 
@@ -13244,7 +12898,6 @@ msgid "Sparse infill direction"
 msgstr "Direção do preenchimento esparso"
 
 #, fuzzy
-#| msgid "Angle for sparse infill pattern, which controls the start or main direction of line."
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Ângulo para o padrão de preenchimento esparso, que controla a direção inicial ou principal da linha."
 
@@ -13292,7 +12945,6 @@ msgid "Sparse infill pattern"
 msgstr "Padrão de preenchimento esparso"
 
 #, fuzzy
-#| msgid "Line pattern for internal sparse infill."
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Padrão de linha para preenchimento esparso interno."
 
@@ -13427,12 +13079,10 @@ msgid "Acceleration of travel moves."
 msgstr "Aceleração dos movimentos de deslocamento."
 
 #, fuzzy
-#| msgid "Acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Aceleração do preenchimento da superfície superior. Usar um valor menor pode melhorar a qualidade da superfície superior."
 
 #, fuzzy
-#| msgid "Acceleration of outer wall. Using a lower value can improve quality."
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Aceleração da parede externa. Usar um valor menor pode melhorar a qualidade."
 
@@ -13449,7 +13099,6 @@ msgid "Acceleration of internal solid infill. If the value is expressed as a per
 msgstr "Aceleração do preenchimento sólido interno. Se o valor for expresso como uma porcentagem (por exemplo, 100%), será calculado com base na aceleração padrão."
 
 #, fuzzy
-#| msgid "Acceleration of the first layer. Using a lower value can improve build plate adhesion."
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Aceleração da primeira camada. Usar um valor menor pode melhorar a adesão à placa de impressão."
 
@@ -13509,27 +13158,22 @@ msgid "Line width of the first layer. If expressed as a %, it will be computed o
 msgstr "Largura da linha da primeira camada. Se expresso como uma %, será calculado sobre o diâmetro do bico."
 
 #, fuzzy
-#| msgid "First layer height"
 msgid "First layer height"
 msgstr "Altura da primeira camada"
 
 #, fuzzy
-#| msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Altura da primeira camada. Tornar a altura da primeira camada mais espessa pode melhorar a adesão à placa de impressão."
 
 #, fuzzy
-#| msgid "Speed of the first layer except the solid infill part."
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Velocidade da primeira camada, exceto a parte de preenchimento sólido."
 
 #, fuzzy
-#| msgid "First layer infill"
 msgid "First layer infill"
 msgstr "Preenchimento da primeira camada"
 
 #, fuzzy
-#| msgid "Speed of solid infill part of the first layer."
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Velocidade da parte de preenchimento sólido da primeira camada."
 
@@ -13540,7 +13184,6 @@ msgid "Travel speed of the first layer."
 msgstr "Velocidade de deslocamento da primeira camada."
 
 #, fuzzy
-#| msgid "Number of slow layers"
 msgid "This is the number of top interface layers."
 msgstr "Número de camadas lentas"
 
@@ -13548,12 +13191,10 @@ msgid "The first few layers are printed slower than normal. The speed is gradual
 msgstr "As primeiras camadas são impressas mais lentamente do que o normal. A velocidade é aumentada gradualmente de forma linear sobre o número especificado de camadas."
 
 #, fuzzy
-#| msgid "First layer nozzle temperature"
 msgid "First layer nozzle temperature"
 msgstr "Temperatura do bico da primeira camada"
 
 #, fuzzy
-#| msgid "Nozzle temperature for printing the first layer when using this filament."
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Temperatura do bico para imprimir a primeira camada com este filamento."
 
@@ -13625,7 +13266,6 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "Controle da velocidade de alisamento para cada filamento. Isso permite customizar a velocidade de impressão das linhas de alisamento para cada tipo de filamento."
 
 #, fuzzy
-#| msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Movimento aleatório durante a impressão da parede, de modo que a superfície tenha uma aparência áspera. Essa configuração controla a posição difusa."
 
@@ -13648,7 +13288,6 @@ msgid "Fuzzy skin thickness"
 msgstr "Espessura da textura difusa"
 
 #, fuzzy
-#| msgid "The width within which to jitter. It's advised to be below outer wall line width."
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "A largura dentro da qual tremer. É aconselhável que seja menor do que a largura da linha da parede externa."
 
@@ -13796,7 +13435,6 @@ msgid "Don't print gap fill with a length is smaller than the threshold specifie
 msgstr "Não imprimir preenchimento de lacuna com um comprimento menor que o limiar especificado (em mm). Esta configuração se aplica ao preenchimento superior, inferior e sólido e, se estiver usando o gerador de perímetro clássico, ao preenchimento de lacuna de parede."
 
 #, fuzzy
-#| msgid "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly."
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Velocidade de preenchimento de vão. Vazios geralmente têm largura de linha irregular e devem ser impressas mais lentamente."
 
@@ -13828,7 +13466,6 @@ msgid "Scan first layer"
 msgstr "Escanear primeira camada"
 
 #, fuzzy
-#| msgid "Enable this to enable the camera on printer to check the quality of first layer."
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Habilitar isso para ativar a câmera na impressora para verificar a qualidade da primeira camada."
 
@@ -13845,7 +13482,6 @@ msgid "Nozzle type"
 msgstr "Tipo de bico"
 
 #, fuzzy
-#| msgid "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed."
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "O material metálico do bico. Isso determina a resistência ao desgaste do bico e que tipo de filamento pode ser impresso."
 
@@ -13862,7 +13498,6 @@ msgid "Nozzle HRC"
 msgstr "Bico HRC"
 
 #, fuzzy
-#| msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "A dureza do bico. Zero significa que não há verificação da dureza do bico durante o fatiamento."
 
@@ -13950,7 +13585,6 @@ msgid "money/h"
 msgstr "dinheiro/h"
 
 #, fuzzy
-#| msgid "Support control chamber temperature"
 msgid "Support controlling chamber temperature"
 msgstr "Controlar a temperatura da câmara de suporte"
 
@@ -14014,7 +13648,6 @@ msgid "Infill combination"
 msgstr "Combinar preenchimento"
 
 #, fuzzy
-#| msgid "Automatically Combine sparse infill of several layers to print together to reduce time. Wall is still printed with original layer height."
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Combina automaticamente o preenchimento esparso de várias camadas para imprimir juntas e reduzir o tempo. A parede ainda é impressa com a altura original da camada."
 
@@ -14124,12 +13757,10 @@ msgid "Line width of internal sparse infill. If expressed as a %, it will be com
 msgstr "Largura da linha do preenchimento esparso interno. Se expresso como %, será calculado sobre o diâmetro do bico."
 
 #, fuzzy
-#| msgid "Infill/Wall overlap"
 msgid "Infill/wall overlap"
 msgstr "Sobreposição de preenchimento/parede"
 
-#, fuzzy, no-boost-format, no-c-format
-#| msgid "Infill area is enlarged slightly to overlap with wall for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
+#, fuzzy, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "A área de preenchimento é aumentada ligeiramente para se sobrepor à parede para uma melhor ligação. O valor percentual é relativo à largura da linha do preencimento esparso. Defina este valor como ~10-15% para minimizar uma potencial sobre extrusão e acumulo de material resultando em superfícies superiores ásperas."
 
@@ -14141,7 +13772,6 @@ msgid "Top solid infill area is enlarged slightly to overlap with wall for bette
 msgstr "A área de preenchimento sólido é ligeiramente alargada para se sobrepor à parede para melhor adesão e para minimizar a aparência de furos onde o preenchimento encontra as paredes. Um valor de 25-30% é um bom ponto de partida, minimizando a aparência dos buracos. O valor percentual é relativo à largura da linha do preenchimento esparso."
 
 #, fuzzy
-#| msgid "Speed of internal sparse infill."
 msgid "This is the speed for internal sparse infill."
 msgstr "Velocidade do preenchimento esparso interno."
 
@@ -14161,7 +13791,6 @@ msgid "Maximum width of a segmented region"
 msgstr "Largura máxima de uma região segmentada"
 
 #, fuzzy
-#| msgid "Maximum width of a segmented region. Zero disables this feature."
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Largura máxima de uma região segmentada. Zero desativa essa funcionalidade."
 
@@ -14208,12 +13837,10 @@ msgid "The distance from the outside of a model where interlocking structures wi
 msgstr "A distância da parte externa de um modelo onde estruturas intertravadas não serão geradas, medida em células."
 
 #, fuzzy
-#| msgid "Ironing Type"
 msgid "Ironing type"
 msgstr "Tipo de Alisamento"
 
 #, fuzzy
-#| msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed."
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "O alisamento usa um pequeno fluxo para imprimir na mesma altura da superfície novamente para deixá-la mais lisa. Esta configuração controla qual camada está sendo alisada."
 
@@ -14221,12 +13848,10 @@ msgid "No ironing"
 msgstr "Sem alisamento"
 
 #, fuzzy
-#| msgid "Top surfaces"
 msgid "All top surfaces"
 msgstr "Superfícies superiores"
 
 #, fuzzy
-#| msgid "Topmost surface"
 msgid "Topmost surface only"
 msgstr "Superfície superior mais alta"
 
@@ -14240,12 +13865,10 @@ msgid "The pattern that will be used when ironing."
 msgstr "O padrão que será usado durante o alisamento."
 
 #, fuzzy
-#| msgid "The amount of material to extrude during ironing. Relative to flow of normal layer height. Too high value results in overextrusion on the surface."
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "A quantidade de material a extrudar durante o alisamento. Relativo ao fluxo da altura normal da camada. Um valor muito alto resulta em superextrusão na superfície."
 
 #, fuzzy
-#| msgid "The distance between the lines of ironing."
 msgid "This is the distance between the lines used for ironing."
 msgstr "A distância entre as linhas do alisamento."
 
@@ -14253,7 +13876,6 @@ msgid "The distance to keep from the edges. A value of 0 sets this to half of th
 msgstr "A distância a ser mantida das bordas. Um valor de 0 define isso como metade do diâmetro do bico."
 
 #, fuzzy
-#| msgid "Print speed of ironing lines."
 msgid "This is the print speed for ironing lines."
 msgstr "Velocidade de impressão das linhas do alisamento."
 
@@ -14316,12 +13938,10 @@ msgid "Clumping detection G-code"
 msgstr "G-code para detecção de aglomeração"
 
 #, fuzzy
-#| msgid "Supports silent mode"
 msgid "Silent Mode"
 msgstr "Suporta modo silencioso"
 
 #, fuzzy
-#| msgid "Whether the machine supports silent mode in which machine use lower acceleration to print."
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Se a máquina suporta o modo silencioso, no qual a máquina usa uma aceleração mais baixa para imprimir."
 
@@ -14592,7 +14212,6 @@ msgstr ""
 "Para desativar o modelador de entrada, use o tipo Desativar."
 
 #, fuzzy
-#| msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "A velocidade do ventilador de resfriamento de peças pode ser aumentada quando o resfriamento automático está habilitado. Este é o limite máximo de velocidade do ventilador de resfriamento de peças."
 
@@ -14711,7 +14330,6 @@ msgid "Nozzle volume"
 msgstr "Volume do bico"
 
 #, fuzzy
-#| msgid "Volume of nozzle between the cutter and the end of nozzle."
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Volume do bico entre o cortador e a extremidade do bico."
 
@@ -14749,7 +14367,6 @@ msgid "Start end points"
 msgstr "Pontos de início e fim"
 
 #, fuzzy
-#| msgid "The start and end points which is from cutter area to garbage can."
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Os pontos de início e fim que vão da área do cortador até a lata de lixo."
 
@@ -14757,7 +14374,6 @@ msgid "Reduce infill retraction"
 msgstr "Reduzir retração durante o preenchimento"
 
 #, fuzzy
-#| msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "Não retrair quando o movimento está na área de preenchimento completamente. Isso significa que o vazamento não pode ser visto. Isso pode reduzir o número de retratações para modelos complexos e economizar tempo de impressão, mas torna a geração de fatiamento e G-code mais lenta."
 
@@ -14768,7 +14384,6 @@ msgid "Filename format"
 msgstr "Formato do nome do arquivo"
 
 #, fuzzy
-#| msgid "Users can define the project file name when exporting."
 msgid "Users can decide project file names when exporting."
 msgstr "O usuário pode definir o nome do arquivo do projeto ao exportar."
 
@@ -14793,8 +14408,7 @@ msgstr "Área maxima de um furo na base do modelo antes que ele seja preenchido 
 msgid "Detect overhang walls"
 msgstr "Detectar paredes salientes"
 
-#, boost-format, c-format, fuzzy
-#| msgid "Detect the overhang percentage relative to line width and use different speed to print. For 100%% overhang, bridge speed is used."
+#, fuzzy, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Detecta a porcentagem relativa de saliência em relação a largura do perímetro e usa uma velocidade diferente de impressão. Para saliências 100%%, a velocidade de ponte é usada."
 
@@ -14822,12 +14436,10 @@ msgid "Line width of inner wall. If expressed as a %, it will be computed over t
 msgstr "Largura de linha da parede interna. Se expressado como %, será computado de acordo com o diâmetro do bico."
 
 #, fuzzy
-#| msgid "Speed of inner wall."
 msgid "This is the speed for inner walls."
 msgstr "Velocidade da parede interna."
 
 #, fuzzy
-#| msgid "Number of walls of every layer."
 msgid "This is the number of walls per layer."
 msgstr "Número de paredes em cada camada."
 
@@ -14875,7 +14487,6 @@ msgid "Raft contact Z distance"
 msgstr "Distância Z de contato da jangada"
 
 #, fuzzy
-#| msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Espaço Z entre a balsa e o objeto. Se a Distância Z Superior do Suporte for 0, este valor é ignorado e o objeto é impresso em contato direto com a balsa (sem espaço)."
 
@@ -14883,27 +14494,22 @@ msgid "Raft expansion"
 msgstr "Expansão da jangada"
 
 #, fuzzy
-#| msgid "Expand all raft layers in XY plane."
 msgid "This expands all raft layers in XY plane."
 msgstr "Expandir todas as camadas da jangada no plano XY."
 
 #, fuzzy
-#| msgid "First layer density"
 msgid "First layer density"
 msgstr "Densidade da primeira camada"
 
 #, fuzzy
-#| msgid "Density of the first raft or support layer."
 msgid "This is the density of the first raft or support layer."
 msgstr "Densidade da primeira camada da jangada ou do suporte."
 
 #, fuzzy
-#| msgid "First layer expansion"
 msgid "First layer expansion"
 msgstr "Expansão da primeira camada"
 
 #, fuzzy
-#| msgid "Expand the first raft or support layer to improve bed plate adhesion."
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Expanda a primeira camada da jangada ou do suporte para melhorar a adesão à placa da mesa de impressão."
 
@@ -14914,7 +14520,6 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "O objeto será elevado por este número de camadas de suporte. Use esta função para evitar empenamento ao imprimir ABS."
 
 #, fuzzy
-#| msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller value means higher resolution and more time to slice."
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "O caminho do G-code é gerado após simplificar o contorno dos modelos para evitar excesso de pontos e linhas de G-code. Um valor menor significa maior resolução e mais tempo para fatiar."
 
@@ -14928,17 +14533,14 @@ msgid "Retract amount before wipe"
 msgstr "Quantidade de retração antes da limpeza"
 
 #, fuzzy
-#| msgid "The length of fast retraction before wipe, relative to retraction length."
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "O comprimento da retração rápida antes da limpeza, em relação ao comprimento da retração."
 
 #, fuzzy
-#| msgid "Retract when change layer"
 msgid "Retract on layer change"
 msgstr "Retrair ao mudar de camada"
 
 #, fuzzy
-#| msgid "Force a retraction when changes layer."
 msgid "This forces a retraction on layer changes."
 msgstr "Forçar uma retração ao mudar de camada."
 
@@ -14949,7 +14551,6 @@ msgid "Some amount of material in extruder is pulled back to avoid ooze during l
 msgstr "Alguma quantidade de material na extrusora é puxada para dentro para evitar vazamento durante deslocamentos longos. Defina zero para desativar a retração."
 
 #, fuzzy
-#| msgid "Long retraction when cut (beta)"
 msgid "Long retraction when cut (beta)"
 msgstr "Retração longa quando cortado (beta)"
 
@@ -14972,7 +14573,6 @@ msgid "Z-hop height"
 msgstr "Altura de Z-hop"
 
 #, fuzzy
-#| msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Sempre que a retração é feita, o bico é levantado um pouco para criar folga entre o bico e a impressão. Isso evita que o bico atinja a impressão ao se mover. Usar linhas em espiral para levantar z pode evitar stringing."
 
@@ -15052,7 +14652,6 @@ msgid "When the retraction is compensated after changing tool, the extruder will
 msgstr "Quando a retração é compensada após a troca de ferramenta, a extrusora empurrará essa quantidade adicional de filamento."
 
 #, fuzzy
-#| msgid "Retraction Speed"
 msgid "Retraction speed"
 msgstr "Velocidade de retração"
 
@@ -15060,7 +14659,6 @@ msgid "Speed for retracting filament from the nozzle."
 msgstr "Velocidade para retração do filamento do bico."
 
 #, fuzzy
-#| msgid "De-retraction Speed"
 msgid "Deretraction speed"
 msgstr "Velocidade de desretração"
 
@@ -15086,7 +14684,6 @@ msgid "Seam position"
 msgstr "Posição da costura"
 
 #, fuzzy
-#| msgid "The start position to print each part of outer wall."
 msgid "This is the starting position for each part of the outer wall."
 msgstr "A posição inicial para imprimir cada parte da parede externa."
 
@@ -15227,7 +14824,6 @@ msgid "Skirt distance"
 msgstr "Distância da saia"
 
 #, fuzzy
-#| msgid "The distance from the skirt to the brim or the object."
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "A distância da saia para a borda ou objeto."
 
@@ -15241,7 +14837,6 @@ msgid "Skirt height"
 msgstr "Altura da saia"
 
 #, fuzzy
-#| msgid "How many layers of skirt. Usually only one layer."
 msgid "Number of skirt layers: usually only one"
 msgstr "Quantas camadas de saia. Geralmente apenas uma camada."
 
@@ -15281,7 +14876,6 @@ msgid "Skirt loops"
 msgstr "Voltas da saia"
 
 #, fuzzy
-#| msgid "Number of loops for the skirt. Zero means disabling skirt."
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Número de voltas da saia. Zero significa desativar a saia."
 
@@ -15312,7 +14906,6 @@ msgid "Minimum sparse infill threshold"
 msgstr "Limiar mínimo de preenchimento esparso"
 
 #, fuzzy
-#| msgid "Sparse infill areas smaller than this threshold value are replaced by internal solid infill."
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Áreas de preenchimento esparso menores que este valor limiar são substituídas por preenchimento sólido interno."
 
@@ -15341,12 +14934,10 @@ msgid "Line width of internal solid infill. If expressed as a %, it will be comp
 msgstr "Largura da linha de preenchimento sólido interno. Se expresso como uma %, será calculado sobre o diâmetro do bico."
 
 #, fuzzy
-#| msgid "Speed of internal solid infill, not the top and bottom surface."
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Velocidade de preenchimento sólido interno, não a superfície superior e inferior."
 
 #, fuzzy
-#| msgid "Spiralize smooths out the Z moves of the outer contour. And turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "A espiralização suaviza os movimentos Z do contorno externo. E transforma um modelo sólido em uma impressão de parede única com camadas inferiores sólidas. O modelo final gerado não tem costura."
 
@@ -15378,7 +14969,6 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "Define a taxa de fluxo de acabamento ao finalizar a espiral. Normalmente a transição em espiral dimensiona a taxa de fluxo de 100% a 0% durante a última volta, o que pode em alguns casos levar à subextrusão no final da espiral."
 
 #, fuzzy
-#| msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe nozzle."
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Se o modo suave ou tradicional for selecionado, um vídeo em timelapse será gerado para cada impressão. Após cada camada ser impressa, uma captura de tela é feita com a câmera da câmara. Todas essas capturas de tela são compostas em um vídeo em timelapse quando a impressão é concluída. Se o modo suave for selecionado, o cabeçote se moverá para fora após cada camada ser impressa e então tirará uma captura de tela. Como o filamento derretido pode vazar do bico durante o processo de tirar uma captura de tela, é necessário uma torre de preparo para o modo suave para limpar o bico."
 
@@ -15414,12 +15004,10 @@ msgid "Start G-code"
 msgstr "G-code Inicial"
 
 #, fuzzy
-#| msgid "Start G-code when starting the entire print."
 msgid "G-code added when starting a print."
 msgstr "G-code inicial ao iniciar a impressão completa."
 
 #, fuzzy
-#| msgid "Start G-code when starting the printing of this filament."
 msgid "G-code added when the printer starts using this filament"
 msgstr "G-code inicial ao iniciar a impressão deste filamento."
 
@@ -15505,7 +15093,6 @@ msgid "Enable support"
 msgstr "Ativar suporte"
 
 #, fuzzy
-#| msgid "Enable support generation."
 msgid "This enables support generation."
 msgstr "Ativar a geração de suporte."
 
@@ -15528,7 +15115,6 @@ msgid "Support/object XY distance"
 msgstr "Distância XY entre suporte e objeto"
 
 #, fuzzy
-#| msgid "XY separation between an object and its support."
 msgid "This controls the XY separation between an object and its support."
 msgstr "Separação XY entre um objeto e seu suporte."
 
@@ -15548,7 +15134,6 @@ msgid "On build plate only"
 msgstr "Apenas na placa de impressão"
 
 #, fuzzy
-#| msgid "Don't create support on model surface, only on build plate."
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Não criar suporte na superfície do modelo, apenas na placa de impressão."
 
@@ -15568,7 +15153,6 @@ msgid "Top Z distance"
 msgstr "Distância Z superior"
 
 #, fuzzy
-#| msgid "Z gap between the support's top and object."
 msgid "Z gap between the support's top and object."
 msgstr "Espaço Z entre o topo do suporte e o objeto."
 
@@ -15576,7 +15160,6 @@ msgid "Bottom Z distance"
 msgstr "Distância Z inferior"
 
 #, fuzzy
-#| msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Espaço Z entre o objeto e a base do suporte. Se a Distância Z Superior do Suporte for 0 e a base tiver camadas de interface, este valor é ignorado e o suporte é impresso em contato direto com o objeto (sem espaço)."
 
@@ -15600,12 +15183,10 @@ msgid "Line width of support. If expressed as a %, it will be computed over the 
 msgstr "Largura da linha de suporte. Se expresso como %, será calculado sobre o diâmetro do bico."
 
 #, fuzzy
-#| msgid "Interface use loop pattern"
 msgid "Loop pattern interface"
 msgstr "Interface usa padrão de volta"
 
 #, fuzzy
-#| msgid "Cover the top contact layer of the supports with loops. Disabled by default."
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Cobrir a camada de contato superior dos suportes com voltas. Desativado por padrão."
 
@@ -15645,12 +15226,10 @@ msgid "Bottom interface spacing"
 msgstr "Espaçamento da interface inferior"
 
 #, fuzzy
-#| msgid "Spacing of bottom interface lines. Zero means solid interface."
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Espaçamento das linhas de interface inferior. Zero significa interface sólida."
 
 #, fuzzy
-#| msgid "Speed of support interface."
 msgid "This is the speed for support interfaces."
 msgstr "Velocidade da interface de suporte."
 
@@ -15680,7 +15259,6 @@ msgid "Interface pattern"
 msgstr "Padrão de interface"
 
 #, fuzzy
-#| msgid "Line pattern of support interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric."
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "Padrão de linha de interface de suporte. O padrão padrão para interface de suporte não solúvel é Reticulado, enquanto o padrão padrão para interface de suporte solúvel é Concêntrico."
 
@@ -15691,12 +15269,10 @@ msgid "Base pattern spacing"
 msgstr "Espaçamento do padrão de base"
 
 #, fuzzy
-#| msgid "Spacing between support lines."
 msgid "This determines the spacing between support lines."
 msgstr "Espaçamento entre as linhas de suporte."
 
 #, fuzzy
-#| msgid "Normal Support expansion"
 msgid "Normal support expansion"
 msgstr "Expansão normal de suporte"
 
@@ -15704,7 +15280,6 @@ msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Expanda (+) ou contraia (-) a extensão horizontal do suporte normal."
 
 #, fuzzy
-#| msgid "Speed of support."
 msgid "This is the speed for support."
 msgstr "Velocidade do suporte."
 
@@ -15743,9 +15318,6 @@ msgid "Threshold angle"
 msgstr "Ângulo limiar"
 
 #, fuzzy
-#| msgid ""
-#| "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
-#| "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15879,7 +15451,6 @@ msgstr ""
 "Se habilitado, este parâmetro também define uma variável G-code chamada chamber_temperature, que pode ser usada para passar a temperatura desejada da câmara para sua macro de início de impressão ou uma macro de absorção de calor como esta: PRINT_START (outras variáveis) CHAMBER_TEMP=[chamber_temperature]. Isso pode ser útil se sua impressora não suportar comandos M141/M191 ou se você desejar lidar com a absorção de calor na macro de início de impressão se nenhum aquecedor de câmara ativo estiver instalado."
 
 #, fuzzy
-#| msgid "Nozzle temperature for layers after the initial one."
 msgid "Nozzle temperature after the first layer"
 msgstr "Temperatura do bico para camadas após a inicial."
 
@@ -15887,7 +15458,6 @@ msgid "Detect thin walls"
 msgstr "Detectar paredes finas"
 
 #, fuzzy
-#| msgid "Detect thin walls which can't contain two line widths, and use single line to print. Maybe not printed very well, because it's not a closed loop."
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Detecta paredes finas que não podem conter duas larguras de linha, e usa uma linha única para imprimir. Talvez não seja impresso muito bem, porque não é uma volta fechada."
 
@@ -15907,7 +15477,6 @@ msgid "Line width for top surfaces. If expressed as a %, it will be computed ove
 msgstr "Largura da linha para superfícies superiores. Se expressa em %, será calculada sobre o diâmetro do bico."
 
 #, fuzzy
-#| msgid "Speed of top surface infill which is solid."
 msgid "This is the speed for solid top surface infill."
 msgstr "Velocidade de preenchimento da superfície superior, que é sólida."
 
@@ -15915,20 +15484,13 @@ msgid "Top shell layers"
 msgstr "Camadas de topo da casca"
 
 #, fuzzy
-#| msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than top shell thickness, the top shell layers will be increased."
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Este é o número de camadas sólidas da casca do topo, incluindo a camada da superfície superior. Quando a espessura calculada por este valor for menor do que a espessura da casca do topo, as camadas da casca do topo serão aumentadas."
-
-#, fuzzy
-#| msgid "Top solid layers"
-msgid "Top solid layers"
-msgstr "Camadas sólidas superiores"
 
 msgid "Top shell thickness"
 msgstr "Espessura da casca do topo"
 
 #, fuzzy
-#| msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is absolutely determined by top shell layers."
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "O número de camadas sólidas superiores é aumentado ao fatiar se a espessura calculada pelas camadas da casca do topo for menor do que este valor. Isso pode evitar que a casca seja muito fina quando a altura da camada é pequena. 0 significa que esta configuração está desativada e a espessura da casca do topo é determinada exclusivamente pelas camadas da casca do topo."
 
@@ -15949,7 +15511,6 @@ msgstr ""
 "AVISO: Reduzir este valor pode afetar negativamente a aderência à mesa."
 
 #, fuzzy
-#| msgid "Speed of travel which is faster and without extrusion."
 msgid "This is the speed at which traveling is done."
 msgstr "Velocidade de deslocamento mais rápida e sem extrusão."
 
@@ -15957,12 +15518,10 @@ msgid "Wipe while retracting"
 msgstr "Limpar enquanto retrai"
 
 #, fuzzy
-#| msgid "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Movimentar o bico ao longo do último caminho de extrusão ao retrair para limpar o material vazado no bico. Isso pode minimizar a formação de blobs quando imprimir uma nova peça após o deslocamento."
 
 #, fuzzy
-#| msgid "Wipe Distance"
 msgid "Wipe distance"
 msgstr "Distância de Limpeza"
 
@@ -15980,7 +15539,6 @@ msgstr ""
 "Definir um valor na configuração de quantidade de retração antes da limpeza abaixo executará qualquer retração em excesso antes da limpeza, caso contrário, será realizada após."
 
 #, fuzzy
-#| msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "A torre de limpeza pode ser usada para limpar o resíduo no bico e estabilizar a pressão na câmara dentro do bico, a fim de evitar defeitos de aparência ao imprimir objetos."
 
@@ -15997,7 +15555,6 @@ msgid "Flush multiplier"
 msgstr "Multiplicador de purga"
 
 #, fuzzy
-#| msgid "The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table."
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Os volumes de purga reais são iguais ao multiplicador de purga multiplicado pelos volumes de purga na tabela."
 
@@ -16005,12 +15562,10 @@ msgid "Prime volume"
 msgstr "Volume de preparo"
 
 #, fuzzy
-#| msgid "The volume of material to prime extruder on tower."
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "O volume de material para preparar a extrusora na torre."
 
 #, fuzzy
-#| msgid "Width of the prime tower."
 msgid "This is the width of prime towers."
 msgstr "Largura da torre de preparo."
 
@@ -16125,12 +15680,10 @@ msgid "Infill gap."
 msgstr "Vão entre preenchimentos."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "A purga após a troca de filamento será feita dentro do preenchimento dos objetos. Isso pode reduzir a quantidade de resíduos e diminuir o tempo de impressão. Se as paredes forem impressas com filamento transparente, o preenchimento de cor mista será visível do lado de fora. Isso não terá efeito, a menos que a torre de preparo esteja ativa."
 
 #, fuzzy
-#| msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect, unless the prime tower is enabled."
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "A purga após a troca de filamento será feita dentro do suporte dos objetos. Isso pode reduzir a quantidade de resíduos e diminuir o tempo de impressão. Isso não terá efeito, a menos que a torre de preparo esteja ativa."
 
@@ -16165,7 +15718,6 @@ msgid "X-Y hole compensation"
 msgstr "Compensação de furos XY"
 
 #, fuzzy
-#| msgid "Holes in objects will expand or contract in the XY plane by the configured value. Positive values make holes bigger, negative values make holes smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Os furos nos objetos irão expandir ou contrair no plano XY pelo valor definido. Valores positivos aumentam os furos, valores negativos reduzem os furos. Essa função é usada para ajustar ligeiramente os tamanhos quando os objetos têm problemas de montagem."
 
@@ -16173,7 +15725,6 @@ msgid "X-Y contour compensation"
 msgstr "Compensação de contornos XY"
 
 #, fuzzy
-#| msgid "Contours of objects will expand or contract in the XY plane by the configured value. Positive values make contours bigger, negative values make contours smaller. This function is used to adjust sizes slightly when the objects have assembling issues."
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Os contornos dos objetos irão expandir ou contrair no plano XY pelo valor definido. Valores positivos aumentam os contornos, valores negativos reduzem os contornos. Essa função é usada para ajustar ligeiramente os tamanhos quando os objetos têm problemas de montagem."
 
@@ -16225,7 +15776,6 @@ msgid "Relative extrusion is recommended when using \"label_objects\" option. So
 msgstr "A extrusão relativa é recomendada ao usar a opção \"label_objects\". Algumas extrusoras funcionam melhor com esta opção desmarcada (modo de extrusão absoluta). A torre de limpeza é compatível apenas com o modo relativo. É recomendado na maioria das impressoras. O padrão é ativado."
 
 #, fuzzy
-#| msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "O gerador de parede clássico produz paredes com largura de extrusão constante e para áreas muito finas é usado preenchimento de vão. O motor Arachne produz paredes com largura de extrusão variável."
 
@@ -16236,7 +15786,6 @@ msgid "Wall transition length"
 msgstr "Comprimento da transição de parede"
 
 #, fuzzy
-#| msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Ao fazer a transição entre diferentes números de paredes à medida que a peça fica mais fina, uma certa quantidade de espaço é designada para dividir ou unir os segmentos da parede. É expresso como uma porcentagem sobre o diâmetro do bico."
 
@@ -16325,7 +15874,6 @@ msgid "Export 3MF"
 msgstr "Exportar 3MF"
 
 #, fuzzy
-#| msgid "Export project as 3MF."
 msgid "This exports the project as a 3MF file."
 msgstr "Exportar projeto como 3MF."
 
@@ -16333,7 +15881,6 @@ msgid "Export slicing data"
 msgstr "Exportar dados de fatiamento"
 
 #, fuzzy
-#| msgid "Export slicing data to a folder."
 msgid "Export slicing data to a folder"
 msgstr "Exportar dados de fatiamento para uma pasta."
 
@@ -16362,7 +15909,6 @@ msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Fatiar as placas: 0-todas as placas, i-placa i, outros-inválido"
 
 #, fuzzy
-#| msgid "Show command help."
 msgid "This shows command help."
 msgstr "Mostra ajuda do comando."
 
@@ -16388,7 +15934,6 @@ msgid "mtcpp"
 msgstr "mtcpp"
 
 #, fuzzy
-#| msgid "max triangle count per plate for slicing."
 msgid "max triangle count per plate for slicing"
 msgstr "contagem máxima de triângulos por placa para fatiar."
 
@@ -16396,7 +15941,6 @@ msgid "mstpp"
 msgstr "mstpp"
 
 #, fuzzy
-#| msgid "max slicing time per plate in seconds."
 msgid "max slicing time per plate in seconds"
 msgstr "tempo máximo de fatiamento por placa em segundos."
 
@@ -16416,7 +15960,6 @@ msgid "Output Model Info"
 msgstr "Emitir Informações do Modelo"
 
 #, fuzzy
-#| msgid "Output the model's information."
 msgid "This outputs the model’s information."
 msgstr "Emitir as informações do modelo."
 
@@ -16424,7 +15967,6 @@ msgid "Export Settings"
 msgstr "Exportar Configurações"
 
 #, fuzzy
-#| msgid "Export settings to a file."
 msgid "This exports settings to a file."
 msgstr "Exportar configurações para um arquivo."
 
@@ -16513,7 +16055,6 @@ msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Carregar configurações de processo/máquina atualizadas ao usar Atualizar"
 
 #, fuzzy
-#| msgid "Load uptodate process/machine settings from the specified file when using uptodate."
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Carregar configurações de processo/máquina atualizadas do arquivo especificado ao usar Atualizar."
 
@@ -16551,7 +16092,6 @@ msgid "Output directory"
 msgstr "Diretório de saída"
 
 #, fuzzy
-#| msgid "Output directory for the exported files."
 msgid "This is the output directory for exported files."
 msgstr "Diretório de saída para os arquivos exportados."
 
@@ -16989,17 +16529,14 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr "A geração da malha do arquivo do modelo falhou ou não há forma válida."
 
 #, fuzzy
-#| msgid "The supplied file couldn't be read because it's empty"
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "O arquivo fornecido não pôde ser lido porque está vazio"
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Formato de arquivo desconhecido. O arquivo de entrada deve ter extensão .stl, .obj, .amf(.xml)."
 
 #, fuzzy
-#| msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Formato de arquivo desconhecido. O arquivo de entrada deve ter extensão .3mf ou .zip.amf."
 
@@ -17052,7 +16589,6 @@ msgid "Finish"
 msgstr "Terminar"
 
 #, fuzzy
-#| msgid "How to use calibration result?"
 msgid "How can I use calibration results?"
 msgstr "Como usar o resultado da calibração?"
 
@@ -17131,9 +16667,6 @@ msgid "The input value size must be 3."
 msgstr "O tamanho do valor de entrada deve ser 3."
 
 #, fuzzy
-#| msgid ""
-#| "This machine type can only hold 16 history results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-#| "Do you still want to continue the calibration?"
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -17145,8 +16678,7 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Apenas um dos resultados com o mesmo nome: %s será salvo. Tem certeza que deseja sobrescrever os outros resultados?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
+#, fuzzy, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Já existe um resultado de calibração histórico com o mesmo nome: %s. Apenas um dos resultados com o mesmo nome é salvo. Tem certeza que deseja sobrescrever o resultado histórico?"
 
@@ -17158,8 +16690,7 @@ msgstr ""
 "Dentro da mesma extrusora, o nome (%s) deve ser único quando o tipo de filamento, o diâmetro do bico e o fluxo do bico forem os mesmos.\n"
 "Tem certeza de que deseja sobrescrever o resultado histórico?"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Este tipo de máquina só pode salvar %d resultados por bico. Este resultado não será salvo."
 
@@ -17241,12 +16772,6 @@ msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion 
 msgstr "A Calibração da Taxa de Fluxo mede a relação entre os volumes de extrusão esperados e reais. A configuração padrão funciona bem em impressoras Bambu Lab e filamentos oficiais, pois foram pré-calibrados e ajustados. Para um filamento regular, geralmente você não precisará realizar uma Calibração da Taxa de Fluxo a menos que ainda veja os defeitos listados após ter feito outras calibrações. Para mais detalhes, consulte o artigo na wiki."
 
 #, fuzzy
-#| msgid ""
-#| "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, sparkling-particled, or have a high-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
-#| "\n"
-#| "The calibration results may vary between each calibration or filament. We are still improving the accuracy and compatibility of this calibration through firmware updates over time.\n"
-#| "\n"
-#| "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17294,7 +16819,6 @@ msgid "Please find the best line on your plate"
 msgstr "Por favor, encontre a melhor linha em sua placa"
 
 #, fuzzy
-#| msgid "Please find the corner with the perfect degree of extrusion"
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Por favor, encontre o canto com o grau perfeito de extrusão"
 
@@ -17384,11 +16908,6 @@ msgstr "Fluxo do Bico"
 msgid "Nozzle Info"
 msgstr "Informações de Bico"
 
-#, fuzzy
-#| msgid "Plate Type"
-msgid "Plate Type"
-msgstr "Tipo de Placa"
-
 msgid "Filament position"
 msgstr "Posição do filamento"
 
@@ -17460,15 +16979,13 @@ msgid "Success to get history result"
 msgstr "Sucesso ao obter o resultado anterior"
 
 #, fuzzy
-#| msgid "Refreshing the historical Flow Dynamics Calibration records"
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Atualizando os registros históricos de Calibração de Dinâmica de Fluxo"
 
 msgid "Action"
 msgstr "Ação"
 
-#, boost-format, c-format, fuzzy
-#| msgid "This machine type can only hold %d history results per nozzle."
+#, fuzzy, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Este tipo de máquina só pode salvar %d resultados por bico."
 
@@ -18094,12 +17611,10 @@ msgid "Create"
 msgstr "Criar"
 
 #, fuzzy
-#| msgid "Vendor is not selected, please reselect vendor."
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "O fornecedor não está selecionado, por favor reselecione o fornecedor."
 
 #, fuzzy
-#| msgid "Custom vendor is missing, please input custom vendor."
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "O fornecedor personalizado está faltando, por favor insira o fornecedor personalizado."
 
@@ -18110,12 +17625,10 @@ msgid "Filament type is not selected, please reselect type."
 msgstr "O tipo de filamento não está selecionado, por favor reselecione o tipo."
 
 #, fuzzy
-#| msgid "Filament serial is not entered, please enter serial."
 msgid "Filament serial missing; please input serial."
 msgstr "O serial do filamento não foi inserido, por favor insira o serial."
 
 #, fuzzy
-#| msgid "There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Pode haver caracteres de escape na entrada de fornecedor ou serial do filamento. Por favor, exclua e insira novamente."
 
@@ -18123,17 +17636,13 @@ msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Todas as entradas no fornecedor personalizado ou serial são espaços. Por favor, insira novamente."
 
 #, fuzzy
-#| msgid "The vendor cannot be a number. Please re-enter."
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "O fornecedor não pode ser um número. Por favor, insira novamente."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Você ainda não selecionou uma impressora ou predefinição. Por favor, selecione pelo menos uma."
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The Filament name %s you created already exists.\n"
-#| "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
+#, fuzzy, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -18180,7 +17689,6 @@ msgid "Create Type"
 msgstr "Tipo de Criação"
 
 #, fuzzy
-#| msgid "The model was not found, please reselect vendor."
 msgid "The model was not found; please reselect vendor."
 msgstr "O modelo não foi encontrado, por favor reselecione o fornecedor."
 
@@ -18222,7 +17730,6 @@ msgid "Exception in obtaining file size, please import again."
 msgstr "Exceção ao obter o tamanho do arquivo, por favor importe novamente."
 
 #, fuzzy
-#| msgid "Preset path was not found, please reselect vendor."
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Caminho da predefinição não encontrado, por favor reselecione o fornecedor."
 
@@ -18230,12 +17737,10 @@ msgid "The printer model was not found, please reselect."
 msgstr "O modelo da impressora não foi encontrado, por favor reselecione."
 
 #, fuzzy
-#| msgid "The nozzle diameter was not found, please reselect."
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "O diâmetro do bico não foi encontrado, por favor reselecione."
 
 #, fuzzy
-#| msgid "The printer preset was not found, please reselect."
 msgid "The printer preset was not found; please reselect."
 msgstr "A predefinição de impressora não foi encontrada, por favor reselecione."
 
@@ -18252,16 +17757,10 @@ msgid "You have not yet chosen which printer preset to create based on. Please c
 msgstr "Você ainda não escolheu em qual predefinição de impressora basear-se. Por favor escolha o fornecedor e modelo da impressora"
 
 #, fuzzy
-#| msgid "You have entered an illegal input in the printable area section on the first page. Please check before creating it."
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Você inseriu uma entrada ilegal na seção de área imprimível na primeira página. Por favor, verifique antes de criar."
 
 #, fuzzy
-#| msgid ""
-#| "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-#| "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-#| "and filament and process presets without the same preset name will be reserve.\n"
-#| "\tCancel: Do not create a preset, return to the creation interface."
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -18286,7 +17785,6 @@ msgid "Create process presets failed. As follows:\n"
 msgstr "Falha ao criar predefinições de processo. Como segue:\n"
 
 #, fuzzy
-#| msgid "Vendor was not found, please reselect."
 msgid "Vendor was not found; please reselect."
 msgstr "Fornecedor não encontrado, por favor selecione novamente."
 
@@ -18294,7 +17792,6 @@ msgid "Current vendor has no models, please reselect."
 msgstr "O fornecedor atual não possui modelos, por favor selecione novamente."
 
 #, fuzzy
-#| msgid "You have not selected the vendor and model or entered the custom vendor and model."
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Você não selecionou um fornecedor e modelo nem colocou fornecedor e modelo personalizados."
 
@@ -18308,7 +17805,6 @@ msgid "Please check bed printable shape and origin input."
 msgstr "Por favor, verifique o formato imprimível da mesa e a entrada de origem."
 
 #, fuzzy
-#| msgid "You have not yet selected the printer to replace the nozzle, please choose."
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Você ainda não selecionou a impressora para substituir o bico, por favor escolha."
 
@@ -18356,9 +17852,6 @@ msgid "Filament Created"
 msgstr "Filamento criado"
 
 #, fuzzy
-#| msgid ""
-#| "Please go to filament setting to edit your presets if you need.\n"
-#| "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed has a significant impact on printing quality. Please set them carefully."
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -18413,10 +17906,7 @@ msgstr "falha ao abrir o arquivo zip para escrita"
 msgid "Export successful"
 msgstr "Exportação bem-sucedida"
 
-#, boost-format, c-format, fuzzy
-#| msgid ""
-#| "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\n"
-#| "If not, a time suffix will be added, and you can modify the name after creation."
+#, fuzzy, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18449,7 +17939,6 @@ msgstr ""
 "Pode ser compartilhado com outros."
 
 #, fuzzy
-#| msgid "Only display printer names with changes to printer, filament, and process presets."
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Exibir apenas nomes de impressoras com alterações nas predefinições de impressora, filamento e processo."
 
@@ -18477,7 +17966,6 @@ msgid "Please select at least one printer or filament."
 msgstr "Por favor, selecione pelo menos uma impressora ou filamento."
 
 #, fuzzy
-#| msgid "Please select a type you want to export"
 msgid "Please select a preset type you want to export"
 msgstr "Por favor, selecione um tipo que deseja exportar"
 
@@ -18542,7 +18030,6 @@ msgid "Edit Preset"
 msgstr "Editar Predefinição"
 
 #, fuzzy
-#| msgid "For more information, please check out Wiki"
 msgid "For more information, please check out our Wiki"
 msgstr "Para mais informações, por favor consulte a Wiki"
 
@@ -19030,7 +18517,6 @@ msgid "Wait"
 msgstr "Aguarde"
 
 #, fuzzy
-#| msgid "minute each batch. (It depends on how long it takes to complete the heating.)"
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "minuto por cada lote. (Depende de quanto tempo leva para completar o aquecimento.)"
 
@@ -19701,9 +19187,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 #, fuzzy
-#| msgid ""
-#| "Auto-Arrange\n"
-#| "Did you know that you can auto-arrange all the objects in your project?"
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19713,9 +19196,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Auto-Orient]
 #, fuzzy
-#| msgid ""
-#| "Auto-Orient\n"
-#| "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19813,11 +19293,9 @@ msgstr ""
 "Divida suas impressões em placas\n"
 "Você sabia que pode dividir um modelo que tem diversas peças em placas individuais distintas prontas para imprimir? Isso simplifica o processo de manter o controle de todas as peças."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 #, fuzzy
-#| msgid ""
-#| "Speed up your print with Adaptive Layer Height\n"
-#| "Did you know that you can print a model even faster, by using the Adaptive Layer Height option? Check it out!"
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19835,9 +19313,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Different types of supports]
 #, fuzzy
-#| msgid ""
-#| "Different types of supports\n"
-#| "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models, while saving filament and improving print speed. Check them out!"
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19847,9 +19322,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 #, fuzzy
-#| msgid ""
-#| "Printing Silk Filament\n"
-#| "Did you know that Silk filament needs special consideration to print it successfully? Higher temperature and lower speed are always recommended for the best results."
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19867,9 +19339,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 #, fuzzy
-#| msgid ""
-#| "Set parameters for multiple objects\n"
-#| "Did you know that you can set slicing parameters for all selected objects at once?"
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19887,9 +19356,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 #, fuzzy
-#| msgid ""
-#| "Flush into support/objects/infill\n"
-#| "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19905,11 +19371,9 @@ msgstr ""
 "Melhorar a resistência\n"
 "Você sabia que pode usar mais voltas de parede e maior densidade de preenchimento esparso mais alta para melhorar a resistência do modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 #, fuzzy
-#| msgid ""
-#| "When do you need to print with the printer door opened?\n"
-#| "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19919,9 +19383,6 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 #, fuzzy
-#| msgid ""
-#| "Avoid warping\n"
-#| "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
