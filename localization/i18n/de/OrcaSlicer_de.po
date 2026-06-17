@@ -5614,10 +5614,10 @@ msgstr "Bearbeitungsbereich vergrößern/verkleinern"
 msgid "Sequence"
 msgstr "Reihenfolge"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Objektauswahl"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Teilauswahl"
 
 msgid "number keys"

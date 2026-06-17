@@ -5643,10 +5643,10 @@ msgstr "Изменить размер инструмента"
 msgid "Sequence"
 msgstr "Последовательность"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"

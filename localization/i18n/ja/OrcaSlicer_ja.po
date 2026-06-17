@@ -5392,10 +5392,10 @@ msgstr "編集領域を拡大/縮小"
 msgid "Sequence"
 msgstr "順番"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"

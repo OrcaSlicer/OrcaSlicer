@@ -5264,10 +5264,10 @@ msgstr "增加/减小编辑区域"
 msgid "Sequence"
 msgstr "顺序"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "对象选择"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "零件选择"
 
 msgid "number keys"

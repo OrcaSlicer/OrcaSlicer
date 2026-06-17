@@ -5373,10 +5373,10 @@ msgstr "편집 영역 증가/감소"
 msgid "Sequence"
 msgstr "순서"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"

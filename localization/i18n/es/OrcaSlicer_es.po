@@ -5608,10 +5608,10 @@ msgstr "Incrementar/disminuir el área de edición"
 msgid "Sequence"
 msgstr "Secuencia"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Selección de objetos"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Selección de partes"
 
 msgid "number keys"

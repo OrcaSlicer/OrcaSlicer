@@ -5461,10 +5461,10 @@ msgstr "Zvětšit/zmenšit editační oblast"
 msgid "Sequence"
 msgstr "Sekvence"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Výběr objektu"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Výběr části"
 
 msgid "number keys"
@@ -5651,7 +5651,7 @@ msgstr "Popisky"
 msgid "Paint Toolbar"
 msgstr "Panel malování"
 
-msgid "part selection"
+msgid "Part selection"
 msgstr "výběr části"
 
 msgid "Explosion Ratio"

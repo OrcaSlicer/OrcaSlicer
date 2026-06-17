@@ -5353,10 +5353,10 @@ msgid "Sequence"
 msgstr "ลำดับ"
 
 #, fuzzy
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "การเลือกวัตถุ"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "การเลือกชิ้นส่วน"
 
 msgid "number keys"

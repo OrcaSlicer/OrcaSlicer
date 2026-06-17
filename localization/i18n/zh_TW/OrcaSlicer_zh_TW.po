@@ -5310,10 +5310,10 @@ msgstr "增加/減小編輯區域"
 msgid "Sequence"
 msgstr "順序"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"

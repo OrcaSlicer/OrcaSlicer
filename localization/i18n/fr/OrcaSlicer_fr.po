@@ -5622,10 +5622,10 @@ msgstr "Augmenter/diminuer la zone d'édition"
 msgid "Sequence"
 msgstr "Séquence"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Sélection d’objet"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Sélection de pièce"
 
 msgid "number keys"

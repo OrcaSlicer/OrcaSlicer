@@ -5523,10 +5523,10 @@ msgstr "Szerkesztési terület növelése/csökkentése"
 msgid "Sequence"
 msgstr "Sorrend"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "Objektum kijelölés"
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr "Alkatrész kijelölés"
 
 msgid "number keys"

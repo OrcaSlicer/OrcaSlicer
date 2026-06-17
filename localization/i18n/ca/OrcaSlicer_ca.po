@@ -5527,10 +5527,10 @@ msgstr "Incrementar/reduir àrea edició"
 msgid "Sequence"
 msgstr "Seqüència"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"

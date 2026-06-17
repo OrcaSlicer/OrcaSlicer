@@ -5489,10 +5489,10 @@ msgstr "Padidinti / sumažinti redagavimo sritį"
 msgid "Sequence"
 msgstr "Seka"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr ""
 
-msgid "Part Selection"
+msgid "Part selection"
 msgstr ""
 
 msgid "number keys"
