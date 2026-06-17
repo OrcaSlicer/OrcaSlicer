@@ -7458,7 +7458,7 @@ void Tab::switch_excluder(int extruder_id)
                 if (extruder_id2 > 0)
                     index = get_index_for_extruder(extruder_id2);
                 is_extruder = true;
-            } else if (page->title().StartsWith("Speed limitation")) {
+            } else if (page->title().StartsWith("Motion ability")) {
                 index = get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id, 2);
             }
         }
