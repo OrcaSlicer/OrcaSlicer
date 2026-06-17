@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 17:12-0300\n"
+"POT-Creation-Date: 2026-06-17 18:00+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -187,13 +187,13 @@ msgid "Support Generated"
 msgstr "已生成支撑"
 
 msgid "Entering Paint-on supports"
-msgstr ""
+msgstr "进入手绘支撑"
 
 msgid "Leaving Paint-on supports"
-msgstr ""
+msgstr "离开手绘支撑"
 
 msgid "Paint-on supports editing"
-msgstr ""
+msgstr "手绘支撑编辑"
 
 msgid "Gizmo-Place on Face"
 msgstr "选择底面"
@@ -282,13 +282,13 @@ msgid "To:"
 msgstr "到："
 
 msgid "Entering color painting"
-msgstr ""
+msgstr "进入颜色绘制"
 
 msgid "Leaving color painting"
-msgstr ""
+msgstr "离开颜色绘制"
 
 msgid "Color painting editing"
-msgstr ""
+msgstr "颜色绘制编辑"
 
 msgid "Paint-on fuzzy skin"
 msgstr "手绘绒毛表面"
@@ -310,13 +310,13 @@ msgid "Enable painted fuzzy skin for this object"
 msgstr "为此对象启用手绘绒毛表面"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr ""
+msgstr "进入手绘绒毛表面"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr ""
+msgstr "离开手绘绒毛表面"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr ""
+msgstr "手绘绒毛表面编辑"
 
 msgid "Move"
 msgstr "移动"
@@ -704,13 +704,13 @@ msgid "Delete connector"
 msgstr "删除连接器"
 
 msgid "Entering Cut gizmo"
-msgstr ""
+msgstr "进入切割小工具"
 
 msgid "Leaving Cut gizmo"
-msgstr ""
+msgstr "离开切割小工具"
 
 msgid "Cut gizmo editing"
-msgstr ""
+msgstr "切割小工具编辑"
 
 msgid "Mesh name"
 msgstr "网格名称"
@@ -1566,10 +1566,10 @@ msgid "Flip by Face 2"
 msgstr "通过面2翻转"
 
 msgid "Entering Measure gizmo"
-msgstr ""
+msgstr "进入测量小工具"
 
 msgid "Leaving Measure gizmo"
-msgstr ""
+msgstr "离开测量小工具"
 
 msgid "Assemble"
 msgstr "组合"
@@ -1596,22 +1596,19 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "警告:请选择点或圆特征。"
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"It is recommended to assemble objects first,\n"
+"because they are restricted to the bed \n"
 "and only parts can be lifted."
-msgstr ""
-"建议先装配物体，\n"
-"因为物体被限制在打印平台上，\n"
-"只有零件可以被抬起。"
+msgstr "建议先组合对象，\n因为对象被固定在打印床上，\n只有零件可以被抬起。"
 
 msgid "Face and face assembly"
 msgstr "面对面装配"
 
 msgid "Entering Assembly gizmo"
-msgstr ""
+msgstr "进入装配小工具"
 
 msgid "Leaving Assembly gizmo"
-msgstr ""
+msgstr "离开装配小工具"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1670,8 +1667,8 @@ msgstr "AMF 文件"
 msgid "3MF files"
 msgstr "3MF 文件"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF 文件"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF 文件"
 
 msgid "G-code files"
 msgstr "G-code 文件"
@@ -1889,14 +1886,14 @@ msgid ""
 "the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your "
 "local preset."
-msgstr ""
+msgstr "云同步冲突：之前已从云端删除了同名预设。\n“删除”将删除您的本地预设。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
 "Cloud sync conflict: there was an unexpected or unidentified preset "
 "conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
-msgstr ""
+msgstr "云同步冲突：发生了意外或无法识别的预设冲突。\n“拉取”将下载云端副本。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -3144,43 +3141,49 @@ msgid "The minmum temperature should not be less than "
 msgstr "最低温度不可低于 "
 
 msgid "Type to filter..."
-msgstr ""
+msgstr "输入以筛选……"
 
 msgid "All"
 msgstr "所有"
 
 msgid "No selected items..."
-msgstr ""
+msgstr "未选择任何项目……"
 
 msgid "All items selected..."
-msgstr ""
+msgstr "已选择全部项目……"
 
 msgid "No matching items..."
-msgstr ""
+msgstr "没有匹配的项目……"
 
 msgid "Deselect All"
 msgstr "全部取消选中"
 
 msgid "Select visible"
-msgstr ""
+msgstr "选择可见项"
 
 msgid "Deselect visible"
-msgstr ""
+msgstr "取消选择可见项"
 
 msgid "Filter selected"
-msgstr ""
+msgstr "筛选已选项"
 
 msgid "Filter nonSelected"
-msgstr ""
+msgstr "筛选未选项"
 
 msgid "Simple settings"
-msgstr ""
+msgstr "简单设置"
 
 msgid "Advanced settings"
 msgstr "高级设置"
 
 msgid "Expert settings"
-msgstr ""
+msgstr "专家设置"
+
+msgid "Developer mode"
+msgstr "开发者模式"
+
+msgid "Launch troubleshoot center"
+msgstr "启动故障排查中心"
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3431,7 +3434,7 @@ msgid "There is no valid surface for text projection."
 msgstr "没有有效的表面用于文字投影。"
 
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "发生了意外错误"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "用于第一层优化的热预处理"
@@ -5264,11 +5267,8 @@ msgstr "增加/减小编辑区域"
 msgid "Sequence"
 msgstr "顺序"
 
-msgid "Object Selection"
+msgid "Object selection"
 msgstr "对象选择"
-
-msgid "Part Selection"
-msgstr "零件选择"
 
 msgid "number keys"
 msgstr "数字键"
@@ -5451,9 +5451,6 @@ msgstr "标签"
 msgid "Paint Toolbar"
 msgstr "上色工具条"
 
-msgid "part selection"
-msgstr "零件选择"
-
 msgid "Explosion Ratio"
 msgstr "爆炸比例"
 
@@ -5478,7 +5475,7 @@ msgstr "体积："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5694,11 +5691,11 @@ msgstr "打印单盘"
 msgid "Export G-code file"
 msgstr "导出G-code文件"
 
-msgid "Send"
-msgstr "发送"
-
 msgid "Export plate sliced file"
 msgstr "导出单盘切片文件"
+
+msgid "Send"
+msgstr "发送"
 
 msgid "Export all sliced file"
 msgstr "导出所有切片文件"
@@ -6350,8 +6347,8 @@ msgid ""
 "The .gcode.3mf file contains no G-code data. Please slice it with Orca "
 "Slicer and export a new .gcode.3mf file."
 msgstr ""
-".gcode.3mf文件中不包含G-code数据。请使用Orca Slicer进行切片并导出新的."
-"gcode.3mf文件。"
+".gcode.3mf文件中不包含G-code数据。请使用Orca Slicer进行切片并导出新"
+"的.gcode.3mf文件。"
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -7697,7 +7694,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "选中的模型不可分裂。"
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "禁用自动落板以保留 Z 轴定位？\n"
 
 msgid "Object with floating parts was detected"
@@ -8705,10 +8702,10 @@ msgstr "逆戟鲸切片器文件关联"
 msgid ""
 "File associations for the Microsoft Store version are managed by Windows "
 "Settings."
-msgstr ""
+msgstr "Microsoft Store 版本的文件关联由 Windows 设置管理。"
 
 msgid "Open Windows Default Apps Settings"
-msgstr ""
+msgstr "打开 Windows 默认应用设置"
 
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "将 3MF 文件关联到 OrcaSlicer"
@@ -8739,9 +8736,6 @@ msgstr "将网页链接关联到OrcaSlicer"
 
 msgid "Developer"
 msgstr "开发者"
-
-msgid "Developer mode"
-msgstr "开发者模式"
 
 msgid "Skip AMS blacklist check"
 msgstr "跳过AMS黑名单检查"
@@ -9507,7 +9501,7 @@ msgid ""
 msgstr "文件上传超时。请检查固件版本是否支持此操作或验证打印机是否正常工作。"
 
 msgid "Sending failed, please try again!"
-msgstr ""
+msgstr "发送失败，请重试！"
 
 msgid "Slice ok."
 msgstr "切片完成."
@@ -9797,8 +9791,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "在录制无工具头延时摄影视频时，建议添加“延时摄影擦料塔”\n"
 "右键单击打印板的空白位置，选择“添加标准模型”->“延时摄影擦料塔”。"
@@ -11258,13 +11252,13 @@ msgid "New version of Orca Slicer"
 msgstr "新版本的Orca Slicer"
 
 msgid "Check on Microsoft Store"
-msgstr ""
+msgstr "在 Microsoft Store 中查看"
 
-msgid "Check on Github"
-msgstr "在 Github 上查看"
+msgid "Check on GitHub"
+msgstr "在 GitHub 上查看"
 
 msgid "Open Microsoft Store"
-msgstr ""
+msgstr "打开 Microsoft Store"
 
 msgid "Skip this Version"
 msgstr "跳过本版本"
@@ -11272,7 +11266,7 @@ msgstr "跳过本版本"
 #, c-format, boost-format
 msgid ""
 "New version available: %s. Please update OrcaSlicer from the Microsoft Store."
-msgstr ""
+msgstr "有新版本可用：%s。请从 Microsoft Store 更新 OrcaSlicer。"
 
 msgid "Confirm and Update Nozzle"
 msgstr "确认并更新喷嘴"
@@ -11380,7 +11374,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "自动灭火系统"
 
 msgid "Beta"
-msgstr ""
+msgstr "测试版"
 
 msgid "Update firmware"
 msgstr "更新固件"
@@ -12092,6 +12086,15 @@ msgstr "启用第三方网络连接"
 
 msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "允许通过第三方网络连接控制BambuLab的打印机"
+
+msgid "Use 3MF instead of G-code"
+msgstr "使用 3MF 代替 G-code"
+
+msgid ""
+"Enable this if the printer accepts a 3MF file as the print job. When "
+"enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a "
+"plain .gcode file."
+msgstr "如果打印机接受 3MF 文件作为打印任务，请启用此选项。启用后，Orca Slicer 将以 .gcode.3mf 格式发送切片文件，而不是普通的 .gcode 文件。"
 
 msgid "Printer Agent"
 msgstr "打印机代理"
@@ -14360,7 +14363,7 @@ msgstr "如果填充图案支持，使用多线进行填充。"
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 轴屈曲偏置优化（实验性）"
 
-#, fuzzy, c-format, boost-format
+#, fuzzy
 msgid ""
 "Tightens the gyroid wave along the Z (vertical) axis at low infill density "
 "to shorten the effective vertical column length and improve Z-axis "
@@ -14555,8 +14558,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 或 %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "稀疏填充的加速度。如果该值表示为百分比（例如100%），则将根据默认加速度进行计"
 "算。"
@@ -14683,10 +14686,10 @@ msgstr "满速风扇在"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "风扇速度将从“禁用第一层”的零转速，线性上升到“全风扇速度层”的最大转速。\n"
 "如果低于“禁用风扇第一层”，则“全风扇速度第一层”将被忽略，在这种情况下，风扇将"
@@ -15637,16 +15640,13 @@ msgstr ""
 "影响坡度小于此角度（度）的墙壁。\n"
 "合理的取值为 35。设置为 0 以禁用。"
 
-msgid "°"
-msgstr "°"
-
 msgid "Don't alternate fill direction"
 msgstr "不交替填充方向"
 
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr "在使用 Z 层抗锯齿时禁用交替填充方向。"
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr "最小 Z 高度"
 
 msgid ""
@@ -16699,8 +16699,8 @@ msgid "Role base wipe speed"
 msgstr "自动擦拭速度"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17560,8 +17560,8 @@ msgstr "激活温度控制"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18467,11 +18467,11 @@ msgid "Debug level"
 msgstr "调试等级"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"设置调试日志的等级。0:fatal， 1:error， 2:warning， 3:info， 4:debug， 5:"
-"trace\n"
+"设置调试日志的等级。0:fatal， 1:error， 2:warning， 3:info， 4:debug， "
+"5:trace\n"
 
 msgid "Log file"
 msgstr "日志文件"
@@ -19203,10 +19203,10 @@ msgid ""
 msgstr ""
 "请从我们的wiki中找到动态流量校准的详细信息。\n"
 "\n"
-"通常情况下，校准是不必要的。当您开始单色/单耗材打印，并在打印开始菜单中勾选"
-"了“动态流量校准”选项时，打印机将按照旧的方式在打印前校准耗材；当您开始多色/多"
-"耗材打印时，打印机将在每次换耗材时使用默认的补偿参数，这在大多数情况下会产生"
-"良好的效果。\n"
+"通常情况下，校准是不必要的。当您开始单色/单耗材打印，并在打印开始菜单中勾选了"
+"“动态流量校准”选项时，打印机将按照旧的方式在打印前校准耗材；当您开始多色/多耗"
+"材打印时，打印机将在每次换耗材时使用默认的补偿参数，这在大多数情况下会产生良"
+"好的效果。\n"
 "\n"
 "有些情况可能导致校准结果不可靠，例如打印板的附着力不足。清洗构建或者使用胶水"
 "可以增强打印板的附着力。您可以在我们的wiki上找到更多相关信息。\n"
@@ -20195,8 +20195,8 @@ msgstr ""
 "你想重写预设吗"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "我们将会把预设重命名为“供应商类型名 @ 您选择的打印机”\n"
@@ -20742,19 +20742,19 @@ msgid "Authorizing..."
 msgstr "正在授权..."
 
 msgid "Error. Can't get api token for authorization"
-msgstr ""
+msgstr "错误。无法获取用于授权的 API 令牌"
 
 msgid "Could not parse server response."
-msgstr ""
+msgstr "无法解析服务器响应。"
 
 msgid "Error saving session to file"
-msgstr ""
+msgstr "保存会话到文件时出错"
 
 msgid "Error session check"
 msgstr "会话检查出错"
 
 msgid "Error during file upload"
-msgstr ""
+msgstr "文件上传过程中出错"
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -21124,8 +21124,8 @@ msgid ""
 "to this wiki: Printing Tips for High Temp / Engineering materials."
 msgstr ""
 "打印此耗材时，可能有喷嘴堵塞、渗漏、翘曲和层间强度低的风险。为了获得更好的结"
-"果，请参考此英文wiki：Printing Tips for High Temp / Engineering "
-"materials（“高温/工程材料的打印技巧”）"
+"果，请参考此英文wiki：Printing Tips for High Temp / Engineering materials"
+"（“高温/工程材料的打印技巧”）"
 
 msgid ""
 "To get better transparent or translucent results with the corresponding "
@@ -21193,8 +21193,8 @@ msgid ""
 "wiki: PVA Printing Guide."
 msgstr ""
 "这是一种水溶性支撑耗材，通常只用作支撑结构，不用于模型本体。打印此类耗材需要"
-"满足较多条件，为了获得更好的打印质量，请参考这个英文wiki：PVA Printing "
-"Guide（“PVA打印指南”）"
+"满足较多条件，为了获得更好的打印质量，请参考这个英文wiki：PVA Printing Guide"
+"（“PVA打印指南”）"
 
 msgid ""
 "This is a non-water-soluble support filament, and usually it is only for the "
@@ -21483,103 +21483,103 @@ msgid "Flashforge local API requires both serial number and access code."
 msgstr "Flashforge 本地 API 同时需要序列号和访问码。"
 
 msgid "Printer returned an error"
-msgstr ""
+msgstr "打印机返回了一个错误"
 
 msgid "Missing system_info in response"
-msgstr ""
+msgstr "响应中缺少 system_info"
 
 msgid "Missing printer serial number in response"
-msgstr ""
+msgstr "响应中缺少打印机序列号"
 
 msgid "Error parsing response"
-msgstr ""
+msgstr "解析响应时出错"
 
 msgid "ElegooLink not detected"
-msgstr ""
+msgstr "未检测到 ElegooLink"
 
 msgid "Invalid access code"
-msgstr ""
+msgstr "访问码无效"
 
 msgid "CC2 device not detected"
-msgstr ""
+msgstr "未检测到 CC2 设备"
 
 msgid "Connection to ElegooLink is working correctly."
-msgstr ""
+msgstr "与 ElegooLink 的连接正常。"
 
 msgid "Could not connect to ElegooLink"
-msgstr ""
+msgstr "无法连接到 ElegooLink。"
 
 #, boost-format
 msgid "Error code: %1%"
-msgstr ""
+msgstr "错误代码：%1%"
 
 msgid "Upload failed"
-msgstr ""
+msgstr "上传失败"
 
 msgid ""
 "The file has been transferred, but some unknown errors occurred. Please "
 "check the device page for the file and try to start printing again."
-msgstr ""
+msgstr "文件已传输，但发生了一些未知错误。请在设备页面查看该文件，然后重新尝试开始打印。"
 
 msgid "Failed to open file for upload."
-msgstr ""
+msgstr "无法打开要上传的文件。"
 
 msgid "Failed to read file chunk for upload."
-msgstr ""
+msgstr "无法读取要上传的文件块。"
 
 msgid "CC2 upload failed"
-msgstr ""
+msgstr "CC2 上传失败"
 
 msgid "The file is empty or could not be read."
-msgstr ""
+msgstr "文件为空或无法读取。"
 
 msgid "Failed to calculate file checksum."
-msgstr ""
+msgstr "计算文件校验和失败。"
 
 msgid "Error code not found"
-msgstr ""
+msgstr "未找到错误代码"
 
 msgid ""
 "The printer is busy, Please check the device page for the file and try to "
 "start printing again."
-msgstr ""
+msgstr "打印机繁忙，请在设备页面查看该文件，然后重新尝试开始打印。"
 
 msgid "The file is lost, please check and try again."
-msgstr ""
+msgstr "文件丢失，请检查后重试。"
 
 msgid "The file is corrupted, please check and try again."
-msgstr ""
+msgstr "文件已损坏，请检查后重试。"
 
 msgid "Transmission abnormality, please check and try again."
-msgstr ""
+msgstr "传输异常，请检查后重试。"
 
 msgid "The file does not match the printer, please check and try again."
-msgstr ""
+msgstr "文件与打印机不匹配，请检查后重试。"
 
 msgid "Start print timeout"
-msgstr ""
+msgstr "开始打印超时"
 
 msgid "Start print failed"
-msgstr ""
+msgstr "开始打印失败"
 
 msgid "Connected to CrealityPrint successfully!"
-msgstr ""
+msgstr "已成功连接到 CrealityPrint！"
 
 msgid "Could not connect to CrealityPrint"
-msgstr ""
+msgstr "无法连接到 CrealityPrint。"
 
 msgid ""
 "Connection timed out. Please check if the printer and computer network are "
 "functioning properly, and confirm that they are on the same network."
-msgstr ""
+msgstr "连接超时。请检查打印机和计算机网络是否正常工作，并确认它们处于同一网络中。"
 
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
-msgstr ""
+msgstr "无法解析主机名/IP/URL，请检查后重试。"
 
 msgid ""
 "File/data transfer interrupted. Please check the printer and network, then "
 "try it again."
-msgstr ""
+msgstr "文件/数据传输中断。请检查打印机和网络，然后重试。"
 
 msgid "The provided state is not correct."
 msgstr "提供的状态不正确。"
@@ -21632,10 +21632,10 @@ msgid "Please select single object."
 msgstr "请选中单个对象。"
 
 msgid "Entering Brim Ears"
-msgstr ""
+msgstr "进入耳状帽檐"
 
 msgid "Leaving Brim Ears"
-msgstr ""
+msgstr "离开耳状帽檐"
 
 msgid "Zoom Out"
 msgstr "缩小"
@@ -21647,7 +21647,7 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr "加载跳过对象信息失败。请再试一次。"
 
 msgid "Failed to create the temporary folder."
-msgstr ""
+msgstr "创建临时文件夹失败。"
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -21795,98 +21795,98 @@ msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
 
 msgid "PresetBundle"
-msgstr ""
+msgstr "预设包"
 
 msgid "Bundle folder does not exist."
-msgstr ""
+msgstr "预设包文件夹不存在。"
 
 msgid "Failed to open folder."
-msgstr ""
+msgstr "无法打开文件夹。"
 
 msgid "Delete selected bundle from folder and all presets loaded from it?"
-msgstr ""
+msgstr "从文件夹中删除选定的预设包以及从中加载的所有预设吗？"
 
 msgid "Delete Bundle"
-msgstr ""
+msgstr "删除预设包"
 
 msgid "Failed to remove bundle."
-msgstr ""
+msgstr "移除预设包失败。"
 
 msgid "Remove Bundle"
-msgstr ""
+msgstr "移除预设包"
 
 msgid "Unsubscribe bundle?"
-msgstr ""
+msgstr "取消订阅预设包吗？"
 
 msgid "UnsubscribeBundle"
-msgstr ""
+msgstr "取消订阅预设包"
 
 msgid "Failed to unsubscribe bundle."
-msgstr ""
+msgstr "取消订阅预设包失败。"
 
 msgid "Unsubscribe Bundle"
-msgstr ""
+msgstr "取消订阅预设包"
 
 msgid "ExportPresetBundle"
-msgstr ""
+msgstr "导出预设包"
 
 msgid "Save preset bundle"
-msgstr ""
+msgstr "保存预设包"
 
 msgid ""
 "Performing desktop integration failed - boost::filesystem::canonical did not "
 "return appimage path."
-msgstr ""
+msgstr "执行桌面集成失败 - boost::filesystem::canonical 未返回 AppImage 路径。"
 
 msgid "Performing desktop integration failed - Could not find executable."
-msgstr ""
+msgstr "执行桌面集成失败 - 无法找到可执行文件。"
 
 msgid ""
 "Performing desktop integration failed because the application directory was "
 "not found."
-msgstr ""
+msgstr "执行桌面集成失败，因为未找到应用程序目录。"
 
 msgid ""
 "Performing desktop integration failed - could not create Gcodeviewer desktop "
 "file. OrcaSlicer desktop file was probably created successfully."
-msgstr ""
+msgstr "执行桌面集成失败 - 无法创建 Gcodeviewer 桌面文件。OrcaSlicer 桌面文件可能已成功创建。"
 
 msgid ""
-"Performing downloader desktop integration failed - boost::filesystem::"
-"canonical did not return appimage path."
-msgstr ""
+"Performing downloader desktop integration failed - "
+"boost::filesystem::canonical did not return appimage path."
+msgstr "执行下载器桌面集成失败 - boost::filesystem::canonical 未返回 AppImage 路径。"
 
 msgid ""
 "Performing downloader desktop integration failed - Could not find executable."
-msgstr ""
+msgstr "执行下载器桌面集成失败 - 无法找到可执行文件。"
 
 msgid ""
 "Performing downloader desktop integration failed because the application "
 "directory was not found."
-msgstr ""
+msgstr "执行下载器桌面集成失败，因为未找到应用程序目录。"
 
 msgid "Desktop Integration"
-msgstr ""
+msgstr "桌面集成"
 
 msgid ""
 "Desktop Integration sets this binary to be searchable by the system.\n"
 "\n"
 "Press \"Perform\" to proceed."
-msgstr ""
+msgstr "桌面集成会将此二进制文件设置为可被系统搜索到。\n\n按“执行”以继续。"
 
 msgid "The download has failed"
-msgstr ""
+msgstr "下载失败"
 
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
-msgstr ""
+msgstr "无法在 %1% 处创建文件"
 
 msgid "Archive preview"
-msgstr ""
+msgstr "存档预览"
 
 msgid "Open File"
-msgstr ""
+msgstr "打开文件"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -22264,6 +22264,21 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid ""
+#~ "It is recommended to assemble objects first,\n"
+#~ "because the objects is restriced to bed \n"
+#~ "and only parts can be lifted."
+#~ msgstr ""
+#~ "建议先装配物体，\n"
+#~ "因为物体被限制在打印平台上，\n"
+#~ "只有零件可以被抬起。"
+
+#~ msgid "part selection"
+#~ msgstr "零件选择"
+
+#~ msgid "°"
+#~ msgstr "°"
 
 #~ msgid ""
 #~ "Controls the density (spacing) of external bridge lines. Default is "
@@ -22653,9 +22668,6 @@ msgstr ""
 
 #~ msgid "Mouse wheel:"
 #~ msgstr "鼠标滚轮："
-
-#~ msgid "Object selection"
-#~ msgstr "对象选择"
 
 #~ msgid "Pass 1"
 #~ msgstr "粗调"
