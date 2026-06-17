@@ -199,13 +199,13 @@ msgid "Support Generated"
 msgstr "Support generiert"
 
 msgid "Entering Paint-on supports"
-msgstr ""
+msgstr "Eingabe in Paint-on Supports"
 
 msgid "Leaving Paint-on supports"
-msgstr ""
+msgstr "Verlassen von Paint-on Supports"
 
 msgid "Paint-on supports editing"
-msgstr ""
+msgstr "Bearbeiten von Paint-on Supports"
 
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-auf Fläche platzieren"
@@ -296,13 +296,13 @@ msgid "To:"
 msgstr "An:"
 
 msgid "Entering color painting"
-msgstr ""
+msgstr "Farben aufmalen beginnen"
 
 msgid "Leaving color painting"
-msgstr ""
+msgstr "Farben aufmalen verlassen"
 
 msgid "Color painting editing"
-msgstr ""
+msgstr "Farben aufmalen bearbeiten"
 
 msgid "Paint-on fuzzy skin"
 msgstr "Fuzzy Skin einfärben"
@@ -326,13 +326,13 @@ msgid "Enable painted fuzzy skin for this object"
 msgstr "Erlaube gemalten Fuzzy Skin für dieses Objekt"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr ""
+msgstr "Paint-on Fuzzy Skin beginnen"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr ""
+msgstr "Paint-on Fuzzy Skin verlassen"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr ""
+msgstr "Paint-on Fuzzy Skin bearbeiten"
 
 msgid "Move"
 msgstr "Bewegen"
@@ -729,13 +729,13 @@ msgid "Delete connector"
 msgstr "Verbinder löschen"
 
 msgid "Entering Cut gizmo"
-msgstr ""
+msgstr "Cut Gizmo benutzen"
 
 msgid "Leaving Cut gizmo"
-msgstr ""
+msgstr "Cut Gizmo verlassen"
 
 msgid "Cut gizmo editing"
-msgstr ""
+msgstr "Cut Gizmo bearbeiten"
 
 msgid "Mesh name"
 msgstr "Netzname"
@@ -1619,10 +1619,10 @@ msgid "Flip by Face 2"
 msgstr "Umdrehen durch Fläche 2"
 
 msgid "Entering Measure gizmo"
-msgstr ""
+msgstr "Measure Gizmo benutzen"
 
 msgid "Leaving Measure gizmo"
-msgstr ""
+msgstr "Measure Gizmo verlassen"
 
 msgid "Assemble"
 msgstr "Zusammenbauen"
@@ -1663,10 +1663,10 @@ msgid "Face and face assembly"
 msgstr "Face und Face Zusammenbau"
 
 msgid "Entering Assembly gizmo"
-msgstr ""
+msgstr "Assembly Gizmo benutzen"
 
 msgid "Leaving Assembly gizmo"
-msgstr ""
+msgstr "Assembly Gizmo verlassen"
 
 msgid "Ctrl+"
 msgstr "Strg +"
@@ -1971,6 +1971,10 @@ msgid ""
 "Delete will delete your local preset. Force push overwrites it with your "
 "local preset."
 msgstr ""
+"Cloud-Synchronisationskonflikt: Ein Profil mit demselben Namen wurde zuvor "
+"aus der Cloud gelöscht.\n"
+"Delete löscht Ihr lokales Profil. Force Push überschreibt es mit Ihrem "
+"lokalen Profil."
 
 msgid ""
 "Cloud sync conflict: there was an unexpected or unidentified preset "
@@ -1978,6 +1982,10 @@ msgid ""
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
 msgstr ""
+"Cloud-Synchronisationskonflikt: Es gab einen unerwarteten oder nicht "
+"identifizierten Profilkonflikt.\n"
+"Pull lädt die Cloud-Kopie herunter. Force Push überschreibt sie mit Ihrem "
+"lokalen Profil."
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -3298,43 +3306,43 @@ msgid "The minmum temperature should not be less than "
 msgstr "Die minimale Temperatur sollte nicht weniger als "
 
 msgid "Type to filter..."
-msgstr ""
+msgstr "Tippen zum Filtern..."
 
 msgid "All"
 msgstr "Alle"
 
 msgid "No selected items..."
-msgstr ""
+msgstr "Keine ausgewählten Elemente..."
 
 msgid "All items selected..."
-msgstr ""
+msgstr "Alle Elemente ausgewählt..."
 
 msgid "No matching items..."
-msgstr ""
+msgstr "Keine passenden Elemente..."
 
 msgid "Deselect All"
 msgstr "Alle abwählen"
 
 msgid "Select visible"
-msgstr ""
+msgstr "Sichtbare auswählen"
 
 msgid "Deselect visible"
-msgstr ""
+msgstr "Sichtbare abwählen"
 
 msgid "Filter selected"
-msgstr ""
+msgstr "Ausgewählte filtern"
 
 msgid "Filter nonSelected"
-msgstr ""
+msgstr "Nicht ausgewählte filtern"
 
 msgid "Simple settings"
-msgstr ""
+msgstr "Einfache Einstellungen"
 
 msgid "Advanced settings"
 msgstr "Erweiterte Einstellungen"
 
 msgid "Expert settings"
-msgstr ""
+msgstr "Experteneinstellungen"
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3620,7 +3628,7 @@ msgid "There is no valid surface for text projection."
 msgstr "Da ist keine gültige Oberfläche für die Textprojektion."
 
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Thermische Vorkonditionierung zur Optimierung der ersten Schicht"
@@ -9360,9 +9368,11 @@ msgid ""
 "File associations for the Microsoft Store version are managed by Windows "
 "Settings."
 msgstr ""
+"Dateizuordnungen für die Microsoft Store-Version werden über die Windows-"
+"Einstellungen verwaltet."
 
 msgid "Open Windows Default Apps Settings"
-msgstr ""
+msgstr "Windows-Standardanwendungen öffnen"
 
 #, fuzzy
 msgid "Associate 3MF files to OrcaSlicer"
@@ -12168,13 +12178,13 @@ msgid "New version of Orca Slicer"
 msgstr "Neue Version von Orca Slicer"
 
 msgid "Check on Microsoft Store"
-msgstr ""
+msgstr "im Microsoft Store überprüfen"
 
 msgid "Check on Github"
 msgstr "Auf Github überprüfen"
 
 msgid "Open Microsoft Store"
-msgstr ""
+msgstr "Microsoft Store öffnen"
 
 msgid "Skip this Version"
 msgstr "Überspringe diese Version"
@@ -12183,6 +12193,8 @@ msgstr "Überspringe diese Version"
 msgid ""
 "New version available: %s. Please update OrcaSlicer from the Microsoft Store."
 msgstr ""
+"Neue Version verfügbar: %s. Bitte aktualisieren Sie OrcaSlicer über den "
+"Microsoft Store."
 
 msgid "Confirm and Update Nozzle"
 msgstr "Bestätigen und Düse aktualisieren"
@@ -12301,7 +12313,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "Automatisches Feuerlöschsystem"
 
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 msgid "Update firmware"
 msgstr "Firmware aktualisieren"
@@ -13725,6 +13737,10 @@ msgid ""
 "The actual bridge flow used is calculated by multiplying this value with the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"Der tatsächliche Brückenfluss wird berechnet, indem dieser Wert mit dem "
+"Filamentflussverhältnis und, falls festgelegt, dem Objektflussverhältnis "
+"multipliziert wird."
+
 
 msgid ""
 "Line width of the Bridge. If expressed as a %, it will be computed over the "
@@ -23030,19 +23046,19 @@ msgid "Authorizing..."
 msgstr "Autorisierung..."
 
 msgid "Error. Can't get api token for authorization"
-msgstr ""
+msgstr "Fehler. Kann kein API-Token für die Autorisierung erhalten"
 
 msgid "Could not parse server response."
-msgstr ""
+msgstr "Konnte Serverantwort nicht analysieren"
 
 msgid "Error saving session to file"
-msgstr ""
+msgstr "Fehler beim Speichern der Sitzung in Datei"
 
 msgid "Error session check"
 msgstr "Fehler bei der Sitzungsüberprüfung"
 
 msgid "Error during file upload"
-msgstr ""
+msgstr "Fehler beim Hochladen der Datei"
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -23866,103 +23882,111 @@ msgstr ""
 "Zugriffscode."
 
 msgid "Printer returned an error"
-msgstr ""
+msgstr "Drucker hat einen Fehler zurückgegeben"
 
 msgid "Missing system_info in response"
-msgstr ""
+msgstr "Fehlende Systeminformationen in der Antwort"
 
 msgid "Missing printer serial number in response"
-msgstr ""
+msgstr "Fehlende Drucker-Seriennummer in der Antwort"
 
 msgid "Error parsing response"
-msgstr ""
+msgstr "Fehler beim Analysieren der Antwort"
 
 msgid "ElegooLink not detected"
-msgstr ""
+msgstr "ElegooLink nicht erkannt"
 
 msgid "Invalid access code"
-msgstr ""
+msgstr "Ungültiger Zugriffscode"
 
 msgid "CC2 device not detected"
-msgstr ""
+msgstr "CC2-Gerät nicht erkannt"
 
 msgid "Connection to ElegooLink is working correctly."
-msgstr ""
+msgstr "Verbindung zu ElegooLink funktioniert korrekt."
 
 msgid "Could not connect to ElegooLink"
-msgstr ""
+msgstr "Konnte keine Verbindung zu ElegooLink herstellen"
 
 #, boost-format
 msgid "Error code: %1%"
-msgstr ""
+msgstr "Fehlercode: %1%"
 
 msgid "Upload failed"
-msgstr ""
+msgstr "Hochladen fehlgeschlagen"
 
 msgid ""
 "The file has been transferred, but some unknown errors occurred. Please "
 "check the device page for the file and try to start printing again."
 msgstr ""
+"Die Datei wurde übertragen, aber es sind einige unbekannte Fehler aufgetreten. "
+"Bitte überprüfen Sie die Geräte-Seite für die Datei und versuchen Sie "
+"erneut, den Druck zu starten."
 
 msgid "Failed to open file for upload."
-msgstr ""
+msgstr "Fehler beim Öffnen der Datei für den Upload."
 
 msgid "Failed to read file chunk for upload."
-msgstr ""
+msgstr "Fehler beim Lesen des Dateiabschnitts für den Upload."
 
 msgid "CC2 upload failed"
-msgstr ""
+msgstr "CC2-Upload fehlgeschlagen"
 
 msgid "The file is empty or could not be read."
-msgstr ""
+msgstr "Die Datei ist leer oder konnte nicht gelesen werden."
 
 msgid "Failed to calculate file checksum."
-msgstr ""
+msgstr "Fehler beim Berechnen der Datei-Checksumme."
 
 msgid "Error code not found"
-msgstr ""
+msgstr "Fehlercode nicht gefunden"
 
 msgid ""
 "The printer is busy, Please check the device page for the file and try to "
 "start printing again."
 msgstr ""
+"Der Drucker ist beschäftigt. Bitte überprüfen Sie die Geräte-Seite für die "
+"Datei und versuchen Sie erneut, den Druck zu starten."
 
 msgid "The file is lost, please check and try again."
-msgstr ""
+msgstr "Die Datei ist verloren, bitte überprüfen Sie sie und versuchen Sie es erneut."
 
 msgid "The file is corrupted, please check and try again."
-msgstr ""
+msgstr "Die Datei ist beschädigt, bitte überprüfen Sie sie und versuchen Sie es erneut."
 
 msgid "Transmission abnormality, please check and try again."
-msgstr ""
+msgstr "Übertragungsanomalie, bitte überprüfen Sie sie und versuchen Sie es erneut."
 
 msgid "The file does not match the printer, please check and try again."
-msgstr ""
+msgstr "Die Datei stimmt nicht mit dem Drucker überein, bitte überprüfen Sie sie und versuchen Sie es erneut."
 
 msgid "Start print timeout"
-msgstr ""
+msgstr "Druckstart-Zeitüberschreitung"
 
 msgid "Start print failed"
-msgstr ""
+msgstr "Druckstart fehlgeschlagen"
 
 msgid "Connected to CrealityPrint successfully!"
-msgstr ""
+msgstr "Erfolgreich mit CrealityPrint verbunden!"
 
 msgid "Could not connect to CrealityPrint"
-msgstr ""
+msgstr "Konnte keine Verbindung zu CrealityPrint herstellen"
 
 msgid ""
 "Connection timed out. Please check if the printer and computer network are "
 "functioning properly, and confirm that they are on the same network."
 msgstr ""
+"Zeitüberschreitung der Verbindung. Bitte überprüfen Sie, ob der Drucker und "
+"das Computernetzwerk ordnungsgemäß funktionieren, und bestätigen Sie, dass "
+"sie sich im selben Netzwerk befinden."
 
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
-msgstr ""
+msgstr "Der Hostname/IP/URL konnte nicht analysiert werden, bitte überprüfen Sie ihn und versuchen Sie es erneut."
 
 msgid ""
 "File/data transfer interrupted. Please check the printer and network, then "
 "try it again."
-msgstr ""
+msgstr "Datei-/Datenübertragung unterbrochen. Bitte überprüfen Sie den Drucker und das Netzwerk und versuchen Sie es erneut."
 
 msgid "The provided state is not correct."
 msgstr "Der bereitgestellte Status ist nicht korrekt."
@@ -24021,10 +24045,10 @@ msgid "Please select single object."
 msgstr "Bitte wählen Sie ein einzelnes Objekt aus."
 
 msgid "Entering Brim Ears"
-msgstr ""
+msgstr "Mausohren benutzen"
 
 msgid "Leaving Brim Ears"
-msgstr ""
+msgstr "Mausohren verlassen"
 
 msgid "Zoom Out"
 msgstr "Vergrößern"
@@ -24038,7 +24062,7 @@ msgstr ""
 "es erneut."
 
 msgid "Failed to create the temporary folder."
-msgstr ""
+msgstr "Erstellen des temporären Ordners fehlgeschlagen."
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -24196,98 +24220,116 @@ msgid "Calculating, please wait..."
 msgstr "Berechnung läuft, bitte warten..."
 
 msgid "PresetBundle"
-msgstr ""
+msgstr "Preset-Bündel"
 
 msgid "Bundle folder does not exist."
-msgstr ""
+msgstr "Bündelordner existiert nicht."
 
 msgid "Failed to open folder."
-msgstr ""
+msgstr "Ordner konnte nicht geöffnet werden."
 
 msgid "Delete selected bundle from folder and all presets loaded from it?"
-msgstr ""
+msgstr "Ausgewähltes Bündel aus dem Ordner und alle daraus geladenen Presets löschen?"
 
 msgid "Delete Bundle"
-msgstr ""
+msgstr "Bündel löschen"
 
 msgid "Failed to remove bundle."
-msgstr ""
+msgstr "Bündel konnte nicht entfernt werden."
 
 msgid "Remove Bundle"
-msgstr ""
+msgstr "Bündel entfernen"
 
 msgid "Unsubscribe bundle?"
-msgstr ""
+msgstr "Bündel abbestellen?"
 
 msgid "UnsubscribeBundle"
-msgstr ""
+msgstr "Bündel abbestellen"
 
 msgid "Failed to unsubscribe bundle."
-msgstr ""
+msgstr "Bündel konnte nicht abbestellt werden."
 
 msgid "Unsubscribe Bundle"
-msgstr ""
+msgstr "Bündel abbestellen"
 
 msgid "ExportPresetBundle"
-msgstr ""
+msgstr "Preset-Bündel exportieren"
 
 msgid "Save preset bundle"
-msgstr ""
+msgstr "Preset-Bündel speichern"
 
 msgid ""
 "Performing desktop integration failed - boost::filesystem::canonical did not "
 "return appimage path."
 msgstr ""
+"Fehler bei der Desktop-Integration - boost::filesystem::canonical hat nicht "
+"den Pfad zur AppImage-Datei zurückgegeben."
 
 msgid "Performing desktop integration failed - Could not find executable."
 msgstr ""
+"Fehler bei der Desktop-Integration - Ausführbare Datei konnte nicht "
+"gefunden werden."
 
 msgid ""
 "Performing desktop integration failed because the application directory was "
 "not found."
 msgstr ""
+"Fehler bei der Desktop-Integration, da das Anwendungsverzeichnis nicht "
+"gefunden wurde."
 
 msgid ""
 "Performing desktop integration failed - could not create Gcodeviewer desktop "
 "file. OrcaSlicer desktop file was probably created successfully."
 msgstr ""
+"Fehler bei der Desktop-Integration - konnte die Gcodeviewer-Desktop-Datei "
+"nicht erstellen. Die OrcaSlicer-Desktop-Datei wurde wahrscheinlich erfolgreich "
+"erstellt."
+
 
 msgid ""
 "Performing downloader desktop integration failed - boost::filesystem::"
 "canonical did not return appimage path."
 msgstr ""
+"Fehler bei der Desktop-Integration des Downloaders - boost::filesystem::canonical hat nicht den Pfad zur AppImage-Datei zurückgegeben."
+
 
 msgid ""
 "Performing downloader desktop integration failed - Could not find executable."
 msgstr ""
+"Fehler bei der Desktop-Integration des Downloaders - Ausführbare Datei konnte nicht gefunden werden."
+
 
 msgid ""
 "Performing downloader desktop integration failed because the application "
 "directory was not found."
 msgstr ""
+"Fehler bei der Desktop-Integration des Downloaders, da das Anwendungsverzeichnis nicht gefunden wurde."
 
 msgid "Desktop Integration"
-msgstr ""
+msgstr "Desktop-Integration"
 
 msgid ""
 "Desktop Integration sets this binary to be searchable by the system.\n"
 "\n"
 "Press \"Perform\" to proceed."
 msgstr ""
+"Die Desktop-Integration sorgt dafür, dass dieses Binary vom System gefunden ""werden kann.\n"
+"\n"
+"Drücken Sie \"Ausführen\", um fortzufahren."
 
 msgid "The download has failed"
-msgstr ""
+msgstr "Der Download ist fehlgeschlagen"
 
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
-msgstr ""
+msgstr "Datei kann nicht unter %1% erstellt werden"
 
 msgid "Archive preview"
-msgstr ""
+msgstr "Archivvorschau"
 
 msgid "Open File"
-msgstr ""
+msgstr "Datei öffnen"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -24413,6 +24455,10 @@ msgid ""
 "the surface quality of your overhangs? However, it can cause wall "
 "inconsistencies so use carefully!"
 msgstr ""
+"Reverse on even\n"
+"Wussten Sie, dass die Funktion <b>Reverse on even</b> die Oberflächenqualität "
+"Ihrer Überhänge erheblich verbessern kann? Allerdings kann sie Wandinkonsistenzen"
+"verursachen, daher vorsichtig verwenden!"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
