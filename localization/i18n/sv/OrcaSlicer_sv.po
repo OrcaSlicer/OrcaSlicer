@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-08 00:18+0800\n"
+"POT-Creation-Date: 2026-06-17 18:00+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -188,6 +188,15 @@ msgstr "Klar"
 msgid "Support Generated"
 msgstr "Support skapad"
 
+msgid "Entering Paint-on supports"
+msgstr ""
+
+msgid "Leaving Paint-on supports"
+msgstr ""
+
+msgid "Paint-on supports editing"
+msgstr ""
+
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Place on Face"
 
@@ -276,6 +285,15 @@ msgstr "Färgläggning använder: Filament %1%"
 msgid "To:"
 msgstr "Till:"
 
+msgid "Entering color painting"
+msgstr ""
+
+msgid "Leaving color painting"
+msgstr ""
+
+msgid "Color painting editing"
+msgstr ""
+
 msgid "Paint-on fuzzy skin"
 msgstr "Paint-on fuzzy skin"
 
@@ -295,6 +313,15 @@ msgstr ""
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Enable painted fuzzy skin for this object"
+
+msgid "Entering Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Leaving Paint-on fuzzy skin"
+msgstr ""
+
+msgid "Paint-on fuzzy skin editing"
+msgstr ""
 
 msgid "Move"
 msgstr "Flytta"
@@ -682,6 +709,15 @@ msgstr "Cut by line"
 
 msgid "Delete connector"
 msgstr "Delete connector"
+
+msgid "Entering Cut gizmo"
+msgstr ""
+
+msgid "Leaving Cut gizmo"
+msgstr ""
+
+msgid "Cut gizmo editing"
+msgstr ""
 
 msgid "Mesh name"
 msgstr "Mesh namn"
@@ -1548,6 +1584,12 @@ msgstr "Parallel distance:"
 msgid "Flip by Face 2"
 msgstr "Flip by Face 2"
 
+msgid "Entering Measure gizmo"
+msgstr ""
+
+msgid "Leaving Measure gizmo"
+msgstr ""
+
 msgid "Assemble"
 msgstr "Montera"
 
@@ -1573,16 +1615,19 @@ msgid "Warning: please select Point's or Circle's feature."
 msgstr "Warning: please select Point's or Circle's feature."
 
 msgid ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
+"It is recommended to assemble objects first,\n"
+"because they are restricted to the bed \n"
 "and only parts can be lifted."
 msgstr ""
-"It is recommended to assemble the objects first,\n"
-"because the objects is restriced to bed \n"
-"and only parts can be lifted."
 
 msgid "Face and face assembly"
-msgstr "Face and face assembly"
+msgstr ""
+
+msgid "Entering Assembly gizmo"
+msgstr ""
+
+msgid "Leaving Assembly gizmo"
+msgstr ""
 
 msgid "Ctrl+"
 msgstr "Ctrl +"
@@ -1642,8 +1687,8 @@ msgstr "AMF files"
 msgid "3MF files"
 msgstr "3MF files"
 
-msgid "Gcode 3MF files"
-msgstr "Gcode 3MF files"
+msgid "G-code 3MF files"
+msgstr "G-code 3MF files"
 
 msgid "G-code files"
 msgstr "G-code files"
@@ -1858,6 +1903,20 @@ msgstr ""
 
 msgid ""
 "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local "
+"preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: a preset with the same name was previously deleted from "
+"the cloud.\n"
+"Delete will delete your local preset. Force push overwrites it with your "
+"local preset."
+msgstr ""
+
+msgid ""
+"Cloud sync conflict: there was an unexpected or unidentified preset "
+"conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
 msgstr ""
@@ -3150,6 +3209,52 @@ msgstr "The maximum temperature cannot exceed "
 msgid "The minmum temperature should not be less than "
 msgstr "The minmum temperature should not be less than "
 
+msgid "Type to filter..."
+msgstr ""
+
+msgid "All"
+msgstr "Allt"
+
+msgid "No selected items..."
+msgstr ""
+
+msgid "All items selected..."
+msgstr ""
+
+msgid "No matching items..."
+msgstr ""
+
+msgid "Deselect All"
+msgstr "Avmarkera alla"
+
+msgid "Select visible"
+msgstr ""
+
+msgid "Deselect visible"
+msgstr ""
+
+msgid "Filter selected"
+msgstr ""
+
+msgid "Filter nonSelected"
+msgstr ""
+
+msgid "Simple settings"
+msgstr ""
+
+msgid "Advanced settings"
+msgstr "Advanced settings"
+
+msgid "Expert settings"
+msgstr ""
+
+#, fuzzy
+msgid "Developer mode"
+msgstr "Utvecklingsläge"
+
+msgid "Launch troubleshoot center"
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3427,6 +3532,9 @@ msgstr "Font doesn't have any shape for given text."
 
 msgid "There is no valid surface for text projection."
 msgstr "There is no valid surface for text projection."
+
+msgid "An unexpected error occurred"
+msgstr ""
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Thermal Preconditioning for first layer optimization"
@@ -5344,10 +5452,7 @@ msgstr "Öka/minska redigeringsområdet"
 msgid "Sequence"
 msgstr "Sekvens"
 
-msgid "Object Selection"
-msgstr ""
-
-msgid "Part Selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
@@ -5536,9 +5641,6 @@ msgstr "Etiketter"
 msgid "Paint Toolbar"
 msgstr "Färgläggningsverktyg"
 
-msgid "part selection"
-msgstr "val av delar"
-
 msgid "Explosion Ratio"
 msgstr "Explosions Förhållande"
 
@@ -5563,7 +5665,7 @@ msgstr "Volym:"
 msgid "Size:"
 msgstr "Storlek:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5792,11 +5894,11 @@ msgstr "Skriv ut byggplattan"
 msgid "Export G-code file"
 msgstr "Exportera G-kod filen"
 
-msgid "Send"
-msgstr "Skicka"
-
 msgid "Export plate sliced file"
 msgstr "Exportera byggplattans beredda fil"
+
+msgid "Send"
+msgstr "Skicka"
 
 msgid "Export all sliced file"
 msgstr "Exportera alla beredda filer"
@@ -7896,7 +7998,7 @@ msgstr ""
 msgid "The selected object couldn't be split."
 msgstr "Det valda objektet kan inte delas."
 
-msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
 
 msgid "Object with floating parts was detected"
@@ -8575,9 +8677,6 @@ msgstr "Group user filament presets"
 msgid "Group user filament presets based on selection"
 msgstr "Group user filament presets based on selection"
 
-msgid "All"
-msgstr "Allt"
-
 msgid "By type"
 msgstr "By type"
 
@@ -8949,6 +9048,14 @@ msgstr "Download Network Plug-in"
 msgid "Associate files to OrcaSlicer"
 msgstr "Associerade filer till Orca Slicer"
 
+msgid ""
+"File associations for the Microsoft Store version are managed by Windows "
+"Settings."
+msgstr ""
+
+msgid "Open Windows Default Apps Settings"
+msgstr ""
+
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Associerade 3MF filer till Orca Slicer"
 
@@ -8980,10 +9087,6 @@ msgstr "Associate web links to OrcaSlicer"
 
 msgid "Developer"
 msgstr "Utvecklare"
-
-#, fuzzy
-msgid "Developer mode"
-msgstr "Utvecklingsläge"
 
 msgid "Skip AMS blacklist check"
 msgstr "Hoppa över kontrollen av AMS svarta lista"
@@ -9791,6 +9894,9 @@ msgstr ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 
+msgid "Sending failed, please try again!"
+msgstr ""
+
 msgid "Slice ok."
 msgstr "Beredning klar."
 
@@ -10111,8 +10217,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "När du spelar in timelapse utan verktygshuvud rekommenderas att du lägger "
 "till ett \"Timelapse Wipe Tower\".\n"
@@ -10241,6 +10347,9 @@ msgstr "Set speed for external and internal bridges"
 
 msgid "Travel speed"
 msgstr "Förflyttnings hastighet"
+
+msgid "Junction Deviation"
+msgstr "Junction Deviation"
 
 msgid "Jerk(XY)"
 msgstr "Jerk(XY)"
@@ -11118,9 +11227,6 @@ msgstr ""
 "And unused printer filaments will be automatically added to the end of the "
 "list."
 
-msgid "Advanced settings"
-msgstr "Advanced settings"
-
 msgid "Add unused AMS filaments to filaments list."
 msgstr "Add unused AMS filaments to filaments list."
 
@@ -11180,8 +11286,8 @@ msgstr ""
 msgid ""
 "Timelapse is not supported because Print sequence is set to \"By object\"."
 msgstr ""
-"Timelapse stöds inte eftersom utskrifts sekvensen är inställd på \"Per objekt"
-"\"."
+"Timelapse stöds inte eftersom utskrifts sekvensen är inställd på \"Per "
+"objekt\"."
 
 msgid ""
 "You selected external and AMS filament at the same time in an extruder, you "
@@ -11619,11 +11725,22 @@ msgstr "En ny nätverksplugin (%s) är tillgänglig. Vill du installera den?"
 msgid "New version of Orca Slicer"
 msgstr "Ny version av Orca Slicer"
 
-msgid "Check on Github"
+msgid "Check on Microsoft Store"
+msgstr ""
+
+msgid "Check on GitHub"
+msgstr ""
+
+msgid "Open Microsoft Store"
 msgstr ""
 
 msgid "Skip this Version"
 msgstr "Hoppa över denna version"
+
+#, c-format, boost-format
+msgid ""
+"New version available: %s. Please update OrcaSlicer from the Microsoft Store."
+msgstr ""
 
 msgid "Confirm and Update Nozzle"
 msgstr "Bekräfta och uppdatera nozzeln"
@@ -11737,6 +11854,9 @@ msgstr "Cutting Module"
 
 msgid "Auto Fire Extinguishing System"
 msgstr "Auto Fire Extinguishing System"
+
+msgid "Beta"
+msgstr ""
 
 msgid "Update firmware"
 msgstr "Uppdatera programvara"
@@ -12514,6 +12634,15 @@ msgstr "Use 3rd-party print host"
 msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "Allow controlling BambuLab's printer through 3rd party print hosts."
 
+msgid "Use 3MF instead of G-code"
+msgstr ""
+
+msgid ""
+"Enable this if the printer accepts a 3MF file as the print job. When "
+"enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a "
+"plain .gcode file."
+msgstr ""
+
 msgid "Printer Agent"
 msgstr "Printer Agent"
 
@@ -12943,7 +13072,7 @@ msgid "External bridge density"
 msgstr "External bridge density"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines.\n"
 "Theoretically, 100% means a solid bridge, but due to the tendency of bridge "
 "extrusions to sag, 100% may not be sufficient.\n"
 "\n"
@@ -12957,18 +13086,14 @@ msgid ""
 "  - Pros: Can create a string-like first layer. Faster and with better "
 "cooling because there is more space for air to circulate around the extruded "
 "bridge.\n"
-"  - Cons: May lead to sagging and poorer surface finish.\n"
-"\n"
-"Recommended range: Minimum 10% - Maximum 125%."
+"  - Cons: May lead to sagging and poorer surface finish."
 msgstr ""
 
 msgid "Internal bridge density"
 msgstr "Internal bridge density"
 
 msgid ""
-"Controls the density (spacing) of internal bridge lines. Default is 100%. "
-"100% means a solid internal bridge.\n"
-"\n"
+"Controls the density (spacing) of internal bridge lines.\n"
 "Internal bridges act as intermediate support between sparse infill and top "
 "solid infill and can strongly affect top surface quality.\n"
 "\n"
@@ -13003,11 +13128,9 @@ msgid ""
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
-"Bridge line width is expressed either as an absolute value or as a "
-"percentage of the active nozzle diameter (percentages are computed from the "
-"nozzle diameter).\n"
+"Line width of the Bridge. If expressed as a %, it will be computed over the "
+"nozzle diameter.\n"
 "Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
 "\n"
 "The maximum value is 100% or the nozzle diameter.\n"
@@ -13577,9 +13700,9 @@ msgid ""
 "quality for needle and small details."
 msgstr ""
 "Aktivera detta val för att sänka utskifts hastigheten för att göra den sista "
-"lager tiden inte kortare än lager tidströskeln \"Max fläkthastighets tröskel"
-"\", detta så att lager kan kylas under en längre tid. Detta kan förbättra "
-"kylnings kvaliteten för små detaljer"
+"lager tiden inte kortare än lager tidströskeln \"Max fläkthastighets "
+"tröskel\", detta så att lager kan kylas under en längre tid. Detta kan "
+"förbättra kylnings kvaliteten för små detaljer"
 
 msgid "Normal printing"
 msgstr "Normal utskrift"
@@ -14941,7 +15064,6 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
 "Tightens the gyroid wave along the Z (vertical) axis at low infill density "
 "to shorten the effective vertical column length and improve Z-axis "
@@ -15150,8 +15272,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² eller %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Acceleration av gles utfyllnad. Om värdet uttrycks som en procentsats (t.ex. "
 "100%) kommer det att beräknas baserat på standard accelerationen."
@@ -15197,9 +15319,6 @@ msgstr ""
 
 msgid "Default jerk."
 msgstr "Default jerk."
-
-msgid "Junction Deviation"
-msgstr "Junction Deviation"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -15287,16 +15406,16 @@ msgstr "Full fläkthastighet vid lager"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 
 msgid "layer"
 msgstr "layer"
@@ -16299,16 +16418,13 @@ msgid ""
 "A reasonable value is 35. Set to 0 to disable."
 msgstr ""
 
-msgid "°"
-msgstr "°"
-
 msgid "Don't alternate fill direction"
 msgstr ""
 
 msgid "Disable alternating fill direction when using Z contouring."
 msgstr ""
 
-msgid "Minimum z height"
+msgid "Minimum Z height"
 msgstr ""
 
 msgid ""
@@ -17432,13 +17548,13 @@ msgid "Role base wipe speed"
 msgstr "Role base wipe speed"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 
@@ -18367,8 +18483,8 @@ msgstr "Activate temperature control"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18378,8 +18494,8 @@ msgid ""
 "heater is installed."
 msgstr ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -19368,11 +19484,11 @@ msgid "Debug level"
 msgstr "Felsökningsnivå"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"Välj felsöknings nivå. 0:allvarlig, 1:fel, 2:varning, 3:info, 4:felsök, 5:"
-"spåra\n"
+"Välj felsöknings nivå. 0:allvarlig, 1:fel, 2:varning, 3:info, 4:felsök, "
+"5:spåra\n"
 
 msgid "Log file"
 msgstr ""
@@ -21203,12 +21319,12 @@ msgstr ""
 "Vill du skriva om det?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 
 msgid "Create Printer/Nozzle"
@@ -21289,9 +21405,6 @@ msgstr "Printer inställningar"
 
 msgid "Filament Preset Template"
 msgstr "Filament inställnings mall"
-
-msgid "Deselect All"
-msgstr "Avmarkera alla"
 
 msgid "Process Preset Template"
 msgstr "Mall för process inställning"
@@ -21797,7 +21910,19 @@ msgstr ""
 msgid "Authorizing..."
 msgstr ""
 
+msgid "Error. Can't get api token for authorization"
+msgstr ""
+
+msgid "Could not parse server response."
+msgstr ""
+
+msgid "Error saving session to file"
+msgstr ""
+
 msgid "Error session check"
+msgstr ""
+
+msgid "Error during file upload"
 msgstr ""
 
 #, c-format, boost-format
@@ -22588,6 +22713,105 @@ msgstr "Could not connect to Flashforge via serial"
 msgid "Flashforge local API requires both serial number and access code."
 msgstr ""
 
+msgid "Printer returned an error"
+msgstr ""
+
+msgid "Missing system_info in response"
+msgstr ""
+
+msgid "Missing printer serial number in response"
+msgstr ""
+
+msgid "Error parsing response"
+msgstr ""
+
+msgid "ElegooLink not detected"
+msgstr ""
+
+msgid "Invalid access code"
+msgstr ""
+
+msgid "CC2 device not detected"
+msgstr ""
+
+msgid "Connection to ElegooLink is working correctly."
+msgstr ""
+
+msgid "Could not connect to ElegooLink"
+msgstr ""
+
+#, boost-format
+msgid "Error code: %1%"
+msgstr ""
+
+msgid "Upload failed"
+msgstr ""
+
+msgid ""
+"The file has been transferred, but some unknown errors occurred. Please "
+"check the device page for the file and try to start printing again."
+msgstr ""
+
+msgid "Failed to open file for upload."
+msgstr ""
+
+msgid "Failed to read file chunk for upload."
+msgstr ""
+
+msgid "CC2 upload failed"
+msgstr ""
+
+msgid "The file is empty or could not be read."
+msgstr ""
+
+msgid "Failed to calculate file checksum."
+msgstr ""
+
+msgid "Error code not found"
+msgstr ""
+
+msgid ""
+"The printer is busy, Please check the device page for the file and try to "
+"start printing again."
+msgstr ""
+
+msgid "The file is lost, please check and try again."
+msgstr ""
+
+msgid "The file is corrupted, please check and try again."
+msgstr ""
+
+msgid "Transmission abnormality, please check and try again."
+msgstr ""
+
+msgid "The file does not match the printer, please check and try again."
+msgstr ""
+
+msgid "Start print timeout"
+msgstr ""
+
+msgid "Start print failed"
+msgstr ""
+
+msgid "Connected to CrealityPrint successfully!"
+msgstr ""
+
+msgid "Could not connect to CrealityPrint"
+msgstr ""
+
+msgid ""
+"Connection timed out. Please check if the printer and computer network are "
+"functioning properly, and confirm that they are on the same network."
+msgstr ""
+
+msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
+msgstr ""
+
+msgid ""
+"File/data transfer interrupted. Please check the printer and network, then "
+"try it again."
+msgstr ""
+
 msgid "The provided state is not correct."
 msgstr "The provided state is not correct."
 
@@ -22641,6 +22865,12 @@ msgstr "Brätte Öron"
 msgid "Please select single object."
 msgstr "Please select single object."
 
+msgid "Entering Brim Ears"
+msgstr ""
+
+msgid "Leaving Brim Ears"
+msgstr ""
+
 msgid "Zoom Out"
 msgstr "Zoom Out"
 
@@ -22649,6 +22879,9 @@ msgstr "Zoom In"
 
 msgid "Load skipping objects information failed. Please try again."
 msgstr "Load skipping objects information failed. Please try again."
+
+msgid "Failed to create the temporary folder."
+msgstr ""
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -22800,6 +23033,100 @@ msgstr "Number of triangular facets"
 
 msgid "Calculating, please wait..."
 msgstr "Calculating, please wait..."
+
+msgid "PresetBundle"
+msgstr ""
+
+msgid "Bundle folder does not exist."
+msgstr ""
+
+msgid "Failed to open folder."
+msgstr ""
+
+msgid "Delete selected bundle from folder and all presets loaded from it?"
+msgstr ""
+
+msgid "Delete Bundle"
+msgstr ""
+
+msgid "Failed to remove bundle."
+msgstr ""
+
+msgid "Remove Bundle"
+msgstr ""
+
+msgid "Unsubscribe bundle?"
+msgstr ""
+
+msgid "UnsubscribeBundle"
+msgstr ""
+
+msgid "Failed to unsubscribe bundle."
+msgstr ""
+
+msgid "Unsubscribe Bundle"
+msgstr ""
+
+msgid "ExportPresetBundle"
+msgstr ""
+
+msgid "Save preset bundle"
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - boost::filesystem::canonical did not "
+"return appimage path."
+msgstr ""
+
+msgid "Performing desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed because the application directory was "
+"not found."
+msgstr ""
+
+msgid ""
+"Performing desktop integration failed - could not create Gcodeviewer desktop "
+"file. OrcaSlicer desktop file was probably created successfully."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - "
+"boost::filesystem::canonical did not return appimage path."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed - Could not find executable."
+msgstr ""
+
+msgid ""
+"Performing downloader desktop integration failed because the application "
+"directory was not found."
+msgstr ""
+
+msgid "Desktop Integration"
+msgstr ""
+
+msgid ""
+"Desktop Integration sets this binary to be searchable by the system.\n"
+"\n"
+"Press \"Perform\" to proceed."
+msgstr ""
+
+msgid "The download has failed"
+msgstr ""
+
+#. TRN %1% = file path
+#, boost-format
+msgid "Can't create file at %1%"
+msgstr ""
+
+msgid "Archive preview"
+msgstr ""
+
+msgid "Open File"
+msgstr ""
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -23208,6 +23535,12 @@ msgstr ""
 "ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten "
 "för vridning?"
 
+#~ msgid "part selection"
+#~ msgstr "val av delar"
+
+#~ msgid "°"
+#~ msgstr "°"
+
 #~ msgid ""
 #~ "The Wipe option is not available when using the Firmware Retraction "
 #~ "mode.\n"
@@ -23551,9 +23884,6 @@ msgstr ""
 
 #~ msgid "Mouse wheel:"
 #~ msgstr "Mus hjul:"
-
-#~ msgid "Object selection"
-#~ msgstr "Object selection"
 
 #~ msgid "Pass 1"
 #~ msgstr "Pass 1"

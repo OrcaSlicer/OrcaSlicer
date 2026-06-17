@@ -525,7 +525,7 @@ void Selection::center()
 
 void Selection::drop()
 {
-    if (this->get_bounding_box().min.z() < SINKING_Z_THRESHOLD) {
+    if (std::abs(this->get_bounding_box().min.z()) < -SINKING_Z_THRESHOLD) {
         return; // shouldnt happen, but better check anyways, already checked in append_menu_item_drop()
     }
 
