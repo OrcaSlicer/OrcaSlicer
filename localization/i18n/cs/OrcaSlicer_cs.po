@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 17:42+0800\n"
+"POT-Creation-Date: 2026-06-17 18:00+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -5464,9 +5464,6 @@ msgstr "Sekvence"
 msgid "Object selection"
 msgstr "Výběr objektu"
 
-msgid "Part selection"
-msgstr "Výběr části"
-
 msgid "number keys"
 msgstr "číselné klávesy"
 
@@ -5650,9 +5647,6 @@ msgstr "Popisky"
 
 msgid "Paint Toolbar"
 msgstr "Panel malování"
-
-msgid "Part selection"
-msgstr "výběr části"
 
 msgid "Explosion Ratio"
 msgstr "Poměr rozložení"
@@ -16451,9 +16445,6 @@ msgstr ""
 "Ovlivňuje obvody se sklonem menším než tento úhel (ve stupních).\n"
 "Doporučená hodnota je 35. Nastavte 0 pro vypnutí."
 
-msgid "°"
-msgstr "°"
-
 msgid "Don't alternate fill direction"
 msgstr "Nestřídat směr výplně"
 
@@ -23544,3 +23535,6 @@ msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může "
 "vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "°"
+#~ msgstr "°"
