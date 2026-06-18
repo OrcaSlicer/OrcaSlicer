@@ -5102,7 +5102,7 @@ msgid "Object selection"
 msgstr "Selección de objetos"
 
 msgid "number keys"
-msgstr "Teclas numéricas"
+msgstr "teclas numéricas"
 
 msgid "Number keys can quickly change the color of objects"
 msgstr "Las teclas numéricas pueden cambiar rápidamente el color de los objetos"
@@ -6610,7 +6610,7 @@ msgstr ""
 "para otorgar una calificación positiva (4 o 5 estrellas)."
 
 msgid "click to add machine"
-msgstr "Haga clic para añadir máquina"
+msgstr "clic para añadir máquina"
 
 msgid "Status"
 msgstr "Estado"
@@ -9793,8 +9793,8 @@ msgstr "Perfil %1%"
 
 msgid "The following preset will be deleted too:"
 msgid_plural "The following presets will be deleted too:"
-msgstr[0] "El siguiente perfil también se eliminará."
-msgstr[1] "Los siguientes perfiles también se eliminarán."
+msgstr[0] "El siguiente perfil también se eliminará:"
+msgstr[1] "Los siguientes perfiles también se eliminarán:"
 
 msgid ""
 "Are you sure to delete the selected preset?\n"
@@ -10902,7 +10902,7 @@ msgstr ""
 "Comprueba la versión de tu firmware y actualiza tu tipo de G-code a «Marlin 2»."
 
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
-msgstr "Input shaping solo es compatible con Klipper, RepRapFirmware y Marlin 2"
+msgstr "Input shaping solo es compatible con Klipper, RepRapFirmware y Marlin 2."
 
 msgid "Grouping error: "
 msgstr "Error de agrupación: "
@@ -17014,7 +17014,7 @@ msgstr "Saltar Calibración2"
 
 #, c-format, boost-format
 msgid "flow ratio : %s "
-msgstr "Factor de flujo: %s "
+msgstr "factor de flujo: %s "
 
 msgid "Please choose a block with smoothest top surface."
 msgstr "Por favor, escoja un bloque con la superficie superior más lisa."
