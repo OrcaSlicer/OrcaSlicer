@@ -1018,19 +1018,25 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("wipe_tower_center_pos_y", new ConfigOptionFloat(stop_pos.y()));
                 config.set_key_value("wipe_tower_center_pos_valid", new ConfigOptionBool(true));
 
-                auto flush_v_speed = m_print_config->filament_flush_volumetric_speed.values;
-                auto flush_temps = m_print_config->filament_flush_temp.values;
-                auto filament_cooling_before_tower = m_print_config->filament_cooling_before_tower.values;
-                for (size_t idx = 0; idx < flush_v_speed.size(); ++idx) {
-                    if (flush_v_speed[idx] == 0)
-                        flush_v_speed[idx] = m_print_config->filament_max_volumetric_speed.get_at(idx);
+                size_t num_filaments = gcodegen.config().filament_type.values.size();
+                if (num_filaments == 0)
+                    num_filaments = 1;
+                std::vector<double> flush_v_speed(num_filaments);
+                std::vector<int> flush_temps(num_filaments);
+                std::vector<double> filament_cooling_before_tower(num_filaments);
+                for (size_t idx = 0; idx < num_filaments; ++idx) {
+                    double v = m_print_config->filament_flush_volumetric_speed.get_at(idx);
+                    if (v == 0)
+                        v = m_print_config->filament_max_volumetric_speed.get_at(idx);
+                    flush_v_speed[idx] = v;
+
+                    int t = m_print_config->filament_flush_temp.get_at(idx);
+                    if (t == 0)
+                        t = m_print_config->nozzle_temperature_range_high.get_at(idx);
+                    flush_temps[idx] = t;
+
+                    filament_cooling_before_tower[idx] = m_print_config->filament_cooling_before_tower.get_at(idx);
                 }
-                for (size_t idx = 0; idx < flush_temps.size(); ++idx) {
-                    if (flush_temps[idx] == 0)
-                        flush_temps[idx] = m_print_config->nozzle_temperature_range_high.get_at(idx);
-                }
-                if (filament_cooling_before_tower.size() < m_print_config->filament_type.values.size())
-                    filament_cooling_before_tower.resize(m_print_config->filament_type.values.size(), m_print_config->filament_cooling_before_tower.get_at(0));
                 if (tcr.is_contact || gcodegen.m_layer_index == 0)
                     std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
                 config.set_key_value("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
@@ -8546,19 +8552,25 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         dyn_config.set_key_value("nozzle_temperature_initial_layer", new ConfigOptionInts(first_layer_temps));
     }
 
-    auto flush_v_speed = m_print->config().filament_flush_volumetric_speed.values;
-    auto flush_temps = m_print->config().filament_flush_temp.values;
-    auto filament_cooling_before_tower = m_print->config().filament_cooling_before_tower.values;
-    for (size_t idx = 0; idx < flush_v_speed.size(); ++idx) {
-        if (flush_v_speed[idx] == 0)
-            flush_v_speed[idx] = m_print->config().filament_max_volumetric_speed.get_at(idx);
+    size_t num_filaments = m_config.filament_type.values.size();
+    if (num_filaments == 0)
+        num_filaments = 1;
+    std::vector<double> flush_v_speed(num_filaments);
+    std::vector<int> flush_temps(num_filaments);
+    std::vector<double> filament_cooling_before_tower(num_filaments);
+    for (size_t idx = 0; idx < num_filaments; ++idx) {
+        double v = m_config.filament_flush_volumetric_speed.get_at(idx);
+        if (v == 0)
+            v = m_config.filament_max_volumetric_speed.get_at(idx);
+        flush_v_speed[idx] = v;
+
+        int t = m_config.filament_flush_temp.get_at(idx);
+        if (t == 0)
+            t = m_config.nozzle_temperature_range_high.get_at(idx);
+        flush_temps[idx] = t;
+
+        filament_cooling_before_tower[idx] = m_config.filament_cooling_before_tower.get_at(idx);
     }
-    for (size_t idx = 0; idx < flush_temps.size(); ++idx) {
-        if (flush_temps[idx] == 0)
-            flush_temps[idx] = m_print->config().nozzle_temperature_range_high.get_at(idx);
-    }
-    if (filament_cooling_before_tower.size() < m_print->config().filament_type.values.size())
-        filament_cooling_before_tower.resize(m_print->config().filament_type.values.size(), m_print->config().filament_cooling_before_tower.get_at(0));
     std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
     dyn_config.set_key_value("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
     dyn_config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));

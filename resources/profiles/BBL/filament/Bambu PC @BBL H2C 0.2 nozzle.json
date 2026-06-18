@@ -51,8 +51,8 @@
 		"4"
 	],
 	"filament_flush_temp": [
-		"280",
-		"280"
+		"0",
+		"0"
 	],
 	"nozzle_temperature": [
 		"280",
@@ -93,7 +93,6 @@
 		"10",
 		"10"
 	],
-
 	"counter_coef_2": [
 		"0.0081"
 	],

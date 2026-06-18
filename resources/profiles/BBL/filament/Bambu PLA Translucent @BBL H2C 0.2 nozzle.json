@@ -61,8 +61,8 @@
 		"200"
 	],
 	"filament_flush_temp": [
-		"230",
-		"230"
+		"0",
+		"0"
 	],
 	"nozzle_temperature": [
 		"230",
