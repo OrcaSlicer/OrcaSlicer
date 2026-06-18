@@ -35,10 +35,10 @@ struct Calib_Params
 {
     Calib_Params() : mode(CalibMode::Calib_None){};
     int extruder_id = 0;
-    double    start, end, step;
-    bool      print_numbers;
-    double freqStartX, freqEndX, freqStartY, freqEndY;
-    int test_model;
+    double    start = 0.0, end = 1.0, step = 0.1;
+    bool      print_numbers = false;
+    double freqStartX = 0.0, freqEndX = 1.0, freqStartY = 0.0, freqEndY = 1.0;
+    int test_model = 0;
     std::string shaper_type;
     std::vector<double> accelerations;
     std::vector<double> speeds;
