@@ -11667,8 +11667,17 @@ msgstr "Pijl naar rechts"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Verplaats de selectie 10mm in een positieve X richting"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Verplaats de selectie 10mm in een positieve Z richting"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Verplaats de selectie 10mm in een negatieve Z richting"
+
 msgid "Movement step set to 1 mm"
 msgstr "Bewegingsinterval ingesteld op 1mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Bewegingsinterval ingesteld op 0.1mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Toets 1-9: kies filament voor het object/onderdeel"

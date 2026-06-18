@@ -11089,8 +11089,17 @@ msgstr "右箭头"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "X方向移动 10mm"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Z方向移动 10mm"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Z方向移动 10mm"
+
 msgid "Movement step set to 1 mm"
 msgstr "沿X、Y轴以1mm为步进移动对象"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "沿X、Y轴以0.1mm为步进移动对象"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "按键1-9：设置对象/零件的耗材丝"

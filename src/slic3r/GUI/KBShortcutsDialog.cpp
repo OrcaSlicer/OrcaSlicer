@@ -235,7 +235,10 @@ void KBShortcutsDialog::fill_shortcuts()
             {L("Arrow Down"), L("Move selection 10 mm in negative Y direction")},
             {L("Arrow Left"), L("Move selection 10 mm in negative X direction")},
             {L("Arrow Right"), L("Move selection 10 mm in positive X direction")},
+            {"[", L("Move selection 10 mm in positive Z direction")},
+            {"'", L("Move selection 10 mm in negative Z direction")},
             {shift + L("Any arrow"), L("Movement step set to 1 mm")},
+            {ctrl + alt + L("Any arrow"), L("Movement step set to 0.1 mm")},
             {L("Esc"), L("Deselect all")},
             {"1-9", L("Keyboard 1-9: set filament for object/part")},
             {ctrl + "0", L("Camera view - Default")},
@@ -274,6 +277,8 @@ void KBShortcutsDialog::fill_shortcuts()
         Shortcuts gizmos_shortcuts = {
             {L("Esc"), L("Deselect all")},
             {shift, L("Move: press to snap by 1mm")},
+            {ctrl + alt + L("Arrow Up"), L("Movement step set to 0.1 mm")},
+            {ctrl + alt + L("Arrow Down"), L("Movement step set to 0.1 mm")},
             {ctrl + L("Mouse wheel"), L("Support/Color Painting: adjust pen radius")},
             {alt + L("Mouse wheel"), L("Support/Color Painting: adjust section position")},
         };

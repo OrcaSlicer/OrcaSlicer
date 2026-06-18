@@ -11472,8 +11472,17 @@ msgstr "Mũi tên phải"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng X dương"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Di chuyển lựa chọn 10 mm theo hướng Z dương"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Di chuyển lựa chọn 10 mm theo hướng Z âm"
+
 msgid "Movement step set to 1 mm"
 msgstr "Bước di chuyển được đặt thành 1 mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Bước di chuyển được đặt thành 0.1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "bàn phím 1-9: đặt filament cho đối tượng/phần"

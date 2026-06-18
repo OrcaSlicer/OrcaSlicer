@@ -11792,8 +11792,17 @@ msgstr "Jobbra nyíl"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Kijelölés mozgatása 10 mm-rel pozitív X irányban"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Kijelölés mozgatása 10 mm-rel pozitív Z irányban"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Kijelölés mozgatása 10 mm-rel negatív Z irányban"
+
 msgid "Movement step set to 1 mm"
 msgstr "Mozgatás lépéstávolsága 1mm-re állítva"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Mozgatás lépéstávolsága 0.1mm-re állítva"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "filament hozzárendelése az objektumhoz/tárgyhoz"

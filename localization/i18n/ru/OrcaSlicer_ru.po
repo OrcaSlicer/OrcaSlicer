@@ -11935,8 +11935,17 @@ msgstr "Стрелка вправо"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Перемещение выбранного на 10 мм по оси X+"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Перемещение выбранного на 10 мм по оси Z+"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Перемещение выбранного на 10 мм по оси Z-"
+
 msgid "Movement step set to 1 mm"
 msgstr "Зафиксировать шаг перемещения на 1 мм"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Зафиксировать шаг перемещения на 0.1 мм"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Клавиши 1-9: задать пруток для модели/части модели"

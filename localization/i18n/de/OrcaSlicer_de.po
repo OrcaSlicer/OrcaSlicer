@@ -12004,8 +12004,17 @@ msgstr "Pfeil rechts"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Auswahl 10 mm in positiver X-Richtung verschieben"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Auswahl 10 mm in positiver Z-Richtung verschieben"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Auswahl 10 mm in negativer Z-Richtung verschieben"
+
 msgid "Movement step set to 1 mm"
 msgstr "Bewegungsschritt auf 1 mm eingestellt"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Bewegungsschritt auf 0.1 mm eingestellt"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Tastatur 1-9: Filament für Objekt/Teil einstellen"
