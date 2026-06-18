@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
+#include <boost/system/error_code.hpp>
 #include <iostream>
 
 using namespace Slic3r;
@@ -90,8 +91,7 @@ int main(int argc, char* argv[])
 
     for (const auto& vendor_name : vendor_names) {
         const std::string json_path = (fs::path(profiles_path) / (vendor_name + ".json")).string();
-        const Semver ver = get_version_from_json(json_path);
-        const std::string ver_str = ver.valid() ? ver.to_string() : "";
+        const std::string ver_str   = get_vendor_cache_key(json_path);
 
         const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
         Slic3r::PresetBundle::VendorCache vc;
