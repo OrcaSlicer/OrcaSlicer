@@ -14,7 +14,6 @@
 #include <array>
 #include <cmath>
 #include <functional>
-#include <libslic3r/PrintConfig.hpp>
 #include <limits>
 #include <unordered_map>
 #include <utility>

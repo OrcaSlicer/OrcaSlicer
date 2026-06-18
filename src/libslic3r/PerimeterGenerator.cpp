@@ -1276,8 +1276,8 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
             ExPolygons wo_infill = offset_ex(ExPolygons{island_region}, -inset);
             std::tie(extra_perimeters, filled_area) = WaveOverhangs::generate(infill_area, this->lower_slices_polygons(), this->config->wall_loops,
                                                                            0, this->config->wo_spacing/2, 0.7, this->config->wo_pattern, this->config->wo_spacing,
-                                                                           overhang_flow.nozzle_diameter(), overhang_flow, overhang_flow.mm3_per_mm()
-                                                                           /*todo: add a flow ratio param*/, m_scaled_resolution, 0, 0.05, false, false,
+                                                                           overhang_flow.nozzle_diameter(), overhang_flow, overhang_flow.mm3_per_mm()*this->config->bridge_flow,
+                                                                           m_scaled_resolution, 0, 0.05, false, false,
                                                                            0.0, 0.0, 90.0);
         } else {
             // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
