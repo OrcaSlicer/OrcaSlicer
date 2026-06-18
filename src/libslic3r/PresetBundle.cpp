@@ -8,7 +8,6 @@
 #include <boost/crc.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/map.hpp>
-#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 #include "PrintConfig.hpp"
@@ -2292,8 +2291,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         // Then load remaining vendors from per-vendor caches.
         auto try_vendor_cache = [&](const std::string& vendor_name) -> bool {
             const std::string json_path = (dir / (vendor_name + ".json")).string();
-            const Semver      ver       = get_version_from_json(json_path);
-            const std::string ver_str   = ver.valid() ? ver.to_string() : "";
+            const std::string ver_str   = get_vendor_cache_key(json_path);
             vendor_json_versions[vendor_name] = ver_str;
 
             VendorCache vc;
@@ -2342,6 +2340,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     const auto json_load_t0 = std::chrono::steady_clock::now();
     PresetsConfigSubstitutions  substitutions;
     std::string                 errors_cummulative;
+    std::set<std::string>       errored_vendors; // vendors whose JSON parse failed — skip their cache save
     // first = true means no vendor has been loaded yet (from cache or JSON).
     // false = at least one vendor was applied from the per-vendor cache above.
     bool first = validation_mode || cache_miss_vendors.size() == vendor_json_versions.size();
@@ -2385,6 +2384,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
                 throw err;
             errors_cummulative += err.what();
             errors_cummulative += "\n";
+            errored_vendors.insert(orca_lib_vendor);
         }
     }
 
@@ -2421,6 +2421,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
                 throw std::runtime_error(parallel_errors[i]);
             errors_cummulative += parallel_errors[i];
             errors_cummulative += "\n";
+            errored_vendors.insert(other_vendors[i]);
             continue;
         }
         if (!parallel_bundles[i])
@@ -2455,10 +2456,14 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from JSON in " << json_ms << " ms";
     }
 
-    // Save per-vendor binary caches for vendors that had to be parsed from JSON.
-    if (!validation_mode && !cache_miss_vendors.empty() && errors_cummulative.empty()) {
+    // Save per-vendor binary caches for vendors that parsed successfully.
+    // Vendors whose JSON produced a parse error are skipped individually so one
+    // bad vendor does not block caching of all others.
+    if (!validation_mode && !cache_miss_vendors.empty()) {
         const auto save_t0 = std::chrono::steady_clock::now();
         for (const auto& vendor_name : cache_miss_vendors) {
+            if (errored_vendors.count(vendor_name))
+                continue;
             const bool is_orca_lib = (vendor_name == ORCA_FILAMENT_LIBRARY);
             const std::string ver_str = vendor_json_versions.count(vendor_name)
                                         ? vendor_json_versions.at(vendor_name) : "";
@@ -6092,6 +6097,19 @@ struct CacheFileHeader {
 #pragma pack(pop)
 static_assert(sizeof(CacheFileHeader) == 20, "CacheFileHeader must be 20 bytes");
 
+// Returns the string used as vendor_json_version in the cache validity check.
+// For versioned vendors this is the Semver string from the JSON.
+// For version-less vendors we use the file mtime so any edit invalidates the cache.
+static std::string get_vendor_cache_key(const std::string& json_path)
+{
+    const Semver ver = get_version_from_json(json_path);
+    if (ver.valid())
+        return ver.to_string();
+    boost::system::error_code ec;
+    const std::time_t mtime = boost::filesystem::last_write_time(json_path, ec);
+    return ec ? std::string{} : ("mtime:" + std::to_string(mtime));
+}
+
 template<class T>
 static void save_blob(const std::string& path, const T& obj)
 {
@@ -6185,7 +6203,7 @@ void PresetBundle::VendorCache::capture(const PresetBundle& bundle,
                            bool                capture_filament_maps)
 {
     cache_version        = CACHE_VERSION;
-    config_options_count = print_config_def.options.size();
+    config_options_count = static_cast<uint32_t>(print_config_def.options.size());
     vendor_json_version  = vendor_json_ver;
 
     print_presets.clear();
@@ -6196,66 +6214,17 @@ void PresetBundle::VendorCache::capture(const PresetBundle& bundle,
     config_maps.clear();
     filament_id_maps.clear();
 
-    // Vendor profile
+    // Vendor profile — copy directly; VendorProfile now carries its own serialize()
     auto vp_it = bundle.vendors.find(vendor_id);
-    if (vp_it != bundle.vendors.end()) {
-        const VendorProfile& vp = vp_it->second;
-        profile.id                = vp.id;
-        profile.name              = vp.name;
-        profile.config_version    = vp.config_version.valid() ? vp.config_version.to_string() : "";
-        profile.config_update_url = vp.config_update_url;
-        profile.changelog_url     = vp.changelog_url;
-        profile.models.clear();
-        for (const auto& model : vp.models) {
-            CachedPrinterModel cm;
-            cm.id         = model.id;
-            cm.name       = model.name;
-            cm.model_id   = model.model_id;
-            cm.family     = model.family;
-            cm.technology = static_cast<int>(model.technology);
-            for (const auto& v : model.variants)
-                cm.variants.push_back(v.name);
-            cm.default_materials                   = model.default_materials;
-            cm.not_support_bed_types               = model.not_support_bed_types;
-            cm.bed_model                           = model.bed_model;
-            cm.bed_texture                         = model.bed_texture;
-            cm.image_bed_type                      = model.image_bed_type;
-            cm.bottom_texture_end_name             = model.bottom_texture_end_name;
-            cm.use_double_extruder_default_texture = model.use_double_extruder_default_texture;
-            cm.bottom_texture_rect                 = model.bottom_texture_rect;
-            cm.middle_texture_rect                 = model.middle_texture_rect;
-            cm.hotend_model                        = model.hotend_model;
-            profile.models.push_back(std::move(cm));
-        }
-        profile.default_filaments.clear();
-        for (const auto& f : vp.default_filaments)
-            profile.default_filaments.push_back(f);
-        profile.default_sla_materials.clear();
-        for (const auto& m : vp.default_sla_materials)
-            profile.default_sla_materials.push_back(m);
-    }
+    if (vp_it != bundle.vendors.end())
+        profile = vp_it->second;
 
-    // Presets — only those belonging to this vendor
-    auto capture_col = [&](const PresetCollection& coll, std::vector<CachedPreset>& out) {
+    // Presets — only those belonging to this vendor; Preset now carries its own serialize()
+    auto capture_col = [&](const PresetCollection& coll, std::vector<Preset>& out) {
         for (const Preset& p : coll()) {
             if (!p.is_system) continue;
             if (p.vendor == nullptr || p.vendor->id != vendor_id) continue;
-            CachedPreset cp;
-            cp.type                     = static_cast<int>(p.type);
-            cp.name                     = p.name;
-            cp.alias                    = p.alias;
-            cp.file                     = p.file;
-            cp.version                  = p.version.valid() ? p.version.to_string() : "";
-            cp.vendor_id                = vendor_id;
-            cp.filament_id              = p.filament_id;
-            cp.setting_id               = p.setting_id;
-            cp.description              = p.description;
-            cp.renamed_from             = p.renamed_from;
-            cp.is_system                = p.is_system;
-            cp.is_visible               = p.is_visible;
-            cp.m_from_orca_filament_lib = p.m_from_orca_filament_lib;
-            cp.config                   = p.config;
-            out.push_back(std::move(cp));
+            out.push_back(p); // vendor pointer not serialized; apply() reconstructs it
         }
     };
     capture_col(bundle.prints,        print_presets);
@@ -6273,55 +6242,23 @@ void PresetBundle::VendorCache::capture(const PresetBundle& bundle,
 void PresetBundle::VendorCache::apply(PresetBundle& bundle) const
 {
     // Restore vendor profile (additive — does not reset the bundle)
+    bundle.vendors.emplace(profile.id, profile);
+
+    // Restore presets; vendor pointer is reconstructed from profile.id since all
+    // presets in this cache belong to the same vendor.
+    const VendorProfile* vp = nullptr;
     {
-        VendorProfile vp(profile.id);
-        vp.name              = profile.name;
-        vp.config_update_url = profile.config_update_url;
-        vp.changelog_url     = profile.changelog_url;
-        if (!profile.config_version.empty()) {
-            auto v = Semver::parse(profile.config_version);
-            if (v) vp.config_version = *v;
-        }
-        for (const auto& cm : profile.models) {
-            VendorProfile::PrinterModel model;
-            model.id         = cm.id;
-            model.name       = cm.name;
-            model.model_id   = cm.model_id;
-            model.family     = cm.family;
-            model.technology = static_cast<PrinterTechnology>(cm.technology);
-            for (const auto& v : cm.variants)
-                model.variants.emplace_back(v);
-            model.default_materials                   = cm.default_materials;
-            model.not_support_bed_types               = cm.not_support_bed_types;
-            model.bed_model                           = cm.bed_model;
-            model.bed_texture                         = cm.bed_texture;
-            model.image_bed_type                      = cm.image_bed_type;
-            model.bottom_texture_end_name             = cm.bottom_texture_end_name;
-            model.use_double_extruder_default_texture = cm.use_double_extruder_default_texture;
-            model.bottom_texture_rect                 = cm.bottom_texture_rect;
-            model.middle_texture_rect                 = cm.middle_texture_rect;
-            model.hotend_model                        = cm.hotend_model;
-            vp.models.push_back(std::move(model));
-        }
-        for (const auto& f : profile.default_filaments)
-            vp.default_filaments.insert(f);
-        for (const auto& m : profile.default_sla_materials)
-            vp.default_sla_materials.insert(m);
-        bundle.vendors.emplace(profile.id, std::move(vp));
+        auto it = bundle.vendors.find(profile.id);
+        if (it != bundle.vendors.end())
+            vp = &it->second;
     }
 
-    // Restore presets
-    auto apply_col = [&](const std::vector<CachedPreset>& cached,
-                          PresetCollection&                coll,
-                          bool                             is_filaments) {
-        for (const auto& cp : cached) {
-            Semver version;
-            if (!cp.version.empty()) {
-                auto v = Semver::parse(cp.version);
-                if (v) version = *v;
-            }
+    auto apply_col = [&](const std::vector<Preset>& cached,
+                          PresetCollection&           coll,
+                          bool                        is_filaments) {
+        for (const Preset& cp : cached) {
             DynamicPrintConfig config = cp.config;
-            Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), /*select=*/false, version);
+            Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), /*select=*/false, cp.version);
             p.is_system                = true;
             p.is_visible               = cp.is_visible;
             p.alias                    = cp.alias;
@@ -6330,11 +6267,7 @@ void PresetBundle::VendorCache::apply(PresetBundle& bundle) const
             p.setting_id               = cp.setting_id;
             p.description              = cp.description;
             p.m_from_orca_filament_lib = cp.m_from_orca_filament_lib;
-            if (!cp.vendor_id.empty()) {
-                auto it = bundle.vendors.find(cp.vendor_id);
-                if (it != bundle.vendors.end())
-                    p.vendor = &it->second;
-            }
+            p.vendor                   = vp;
             if (is_filaments)
                 coll.set_printer_hold_alias(p.alias, p);
         }
