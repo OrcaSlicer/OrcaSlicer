@@ -2394,7 +2394,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("adaptive_pressure_advance_overhangs", coBools);
     def->label = L("Enable adaptive pressure advance for overhangs (beta)");
     def->tooltip = L("Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, "
-                     "as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n");
+                     "as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+					 "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools{ false });
 
