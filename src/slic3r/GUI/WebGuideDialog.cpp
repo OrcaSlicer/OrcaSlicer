@@ -1,4 +1,4 @@
-﻿#include "WebGuideDialog.hpp"
+#include "WebGuideDialog.hpp"
 #include "ConfigWizard.hpp"
 
 #include <boost/filesystem/operations.hpp>
