@@ -152,7 +152,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
     // check if old/new_value is color
     if (m_old_color.IsEmpty()) {
         if (!m_new_color.IsEmpty())
-            m_old_value = _L("Undef");
+            m_old_value = _L("Undefined");
     }
     else {
         m_old_color_bmp = get_bitmap(m_old_color);
@@ -161,7 +161,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
 
     if (m_new_color.IsEmpty()) {
         if (!m_old_color.IsEmpty())
-            m_new_value = _L("Undef");
+            m_new_value = _L("Undefined");
     }
     else {
         m_new_color_bmp = get_bitmap(m_new_color);
@@ -790,7 +790,7 @@ static std::string none{"none"};
 UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, const std::string &app_config_key, int act_buttons)
     : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                caption + ": " + _L("Unsaved Changes"),
+                caption + ": " + _L("unsaved changes"),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX)
@@ -889,7 +889,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     wxBoxSizer *top_title_oldv = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *top_title_oldv_h = new wxBoxSizer(wxHORIZONTAL);
 
-    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
+    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, _L("Old value"), wxDefaultPosition, wxDefaultSize, 0);
     static_oldv_title->SetFont(::Label::Body_13);
     static_oldv_title->Wrap(-1);
     static_oldv_title->SetForegroundColour(*wxWHITE);
@@ -1076,7 +1076,7 @@ void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name
         if (action == Action::Undef)
             text = _L("Click the right mouse button to display the full text.");
         else if (action == Action::Discard)
-            text = ActionButtons::DONT_SAVE & m_buttons ? _L("All changes will not be saved") :_L("All changes will be discarded.");
+            text = ActionButtons::DONT_SAVE & m_buttons ? _L("No changes will be saved.") :_L("All changes will be discarded.");
         else {
             if (preset_name.empty())
                 text = action == Action::Save           ? _L("Save the selected options.") :
@@ -1202,7 +1202,7 @@ wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConf
                     return "";
                 return from_u8(_utf8(names[it - def.enum_values.begin()]));
             }
-        return _L("Undef");
+        return _L("Undefined");
     }
     return from_u8(_utf8(names[val]));
 }
@@ -1283,7 +1283,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
                 return from_u8(value_str);
             }
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coBool:
         return config.opt_bool(opt_key) ? "true" : "false";
@@ -1298,7 +1298,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (opt_idx < values->size())
                 return values->get_at(opt_idx) ? "true" : "false";
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coPercent:
         return from_u8((boost::format("%1%%%") % int(config.optptr(opt_key)->getFloat())).str());
@@ -1313,7 +1313,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (opt_idx < values->size())
                 return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coFloat:
         return double_to_string(config.opt_float(opt_key));
@@ -1328,7 +1328,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (values && opt_idx < values->size())
                 return double_to_string(values->get_at(opt_idx));
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coString:
         return from_u8(config.opt_string(opt_key));

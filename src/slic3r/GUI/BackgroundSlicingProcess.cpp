@@ -77,12 +77,11 @@ std::pair<std::string, std::vector<size_t>> SlicingProcessCompletedEvent::format
 	try {
 		this->rethrow_exception();
     } catch (const std::bad_alloc &ex) {
-        wxString errmsg = GUI::from_u8(boost::format(_utf8(L("A error occurred. Maybe memory of system is not enough or it's a bug "
-			                  "of the program"))).str());
+        wxString errmsg = GUI::from_u8(boost::format(_utf8(L("An error occurred. The system may have run out of memory, or a bug may have occurred."))).str());
         error = std::string(errmsg.ToUTF8()) + "\n" + std::string(ex.what());
     } catch (const HardCrash &ex) {
         error = GUI::format(_u8L("A fatal error occurred: \"%1%\""), ex.what()) + "\n" +
-                            _u8L("Please save project and restart the program.");
+                            _u8L("Please save your project and restart the application.");
     } catch (PlaceholderParserError &ex) {
 		error = ex.what();
 		monospace = 1;
@@ -200,7 +199,7 @@ void BackgroundSlicingProcess::process_fff()
 	//BBS: add the logic to process from an existed gcode file
 	if (m_print->finished()) {
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file")%__LINE__;
-		m_fff_print->set_status(80, _utf8(L("Processing G-code from Previous file...")));
+		m_fff_print->set_status(80, _utf8(L("Processing G-Code from previous file\u2026")));
 		wxCommandEvent evt(m_event_slicing_completed_id);
 		// Post the Slicing Finished message for the G-code viewer to update.
 		// Passing the timestamp 
@@ -869,7 +868,7 @@ void BackgroundSlicingProcess::export_gcode()
 	}
 	catch (...)
 	{
-		throw Slic3r::ExportError(_utf8(L("Unknown error when exporting G-code.")));
+		throw Slic3r::ExportError(_utf8(L("Unknown error with G-code export")));
 	}
 	switch (copy_ret_val) {
 	case CopyFileResult::SUCCESS: break; // no error
@@ -920,7 +919,7 @@ void BackgroundSlicingProcess::prepare_upload()
 		    m_print->set_status(95, _utf8(L("Running post-processing scripts")));
 		    std::string error_message;
 		    if (copy_file(m_temp_output_path, source_path.string(), error_message) != SUCCESS)
-		    	throw Slic3r::RuntimeError(_utf8(L("Copying of the temporary G-code to the output G-code failed")));
+		    	throw Slic3r::RuntimeError(_utf8(L("Copying of the temporary G-code to the output G-code failed.")));
             m_upload_job.upload_data.upload_path = m_fff_print->print_statistics().finalize_output_path(m_upload_job.upload_data.upload_path.string());
 		    // Orca: skip post-processing scripts for BBL printers as we have run them already in finalize_gcode()
 		    // todo: do we need to copy the file?

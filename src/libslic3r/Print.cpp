@@ -671,13 +671,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 //juedge the exclude area
                 if (!intersection(exclude_polys, convex_hull_no_offset).empty()) {
                     if (single_object_exception.string.empty()) {
-                        single_object_exception.string = (boost::format(L("%1% is too close to exclusion area, there may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string = (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
                         // single_object_exception.object = instance.model_instance->get_object();
                         //ORCA: Pass ModelInstance instead of ModelObject
                         single_object_exception.object = instance.model_instance;
                     }
                     else {
-                        single_object_exception.string += "\n"+(boost::format(L("%1% is too close to exclusion area, there may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string += "\n"+(boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
                         single_object_exception.object = nullptr;
                     }
                     //if (polygons) {
@@ -1040,7 +1040,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         /*if (warning) {
             warning->string += L("Prime Tower is too close to exclusion area, there may be collisions when printing.\n");
         }*/
-        return {L("Prime Tower") + L(" is too close to exclusion area, and collisions will be caused.\n")};
+        return {L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n")};
     }
     if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
@@ -1350,7 +1350,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (std::any_of(all_regions.begin() + 1, all_regions.end(), [ra = all_regions.front()](const auto rb) {
                 return !Layer::is_perimeter_compatible(ra, rb);
             })) {
-                return {L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, "spiral_mode"};
+                return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
             }
         }
     }
@@ -1446,14 +1446,14 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             return { L("The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors.")};
 
         if ((m_config.print_sequence == PrintSequence::ByObject) && extruders.size() > 1)
-            return { L("The prime tower is not supported in \"By object\" print."), nullptr, "enable_prime_tower" };
+            return { L("A prime tower is not supported in \u201cBy object\u201d print."), nullptr, "enable_prime_tower" };
 
         // BBS: When prime tower is on, object layer and support layer must be aligned. So support gap should be multiple of object layer height.
         for (size_t i = 0; i < m_objects.size(); i++) {
             const PrintObject* object = m_objects[i];
             const SlicingParameters& slicing_params = object->slicing_parameters();
             if (object->config().adaptive_layer_height) {
-                return  { L("The prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."), object, "adaptive_layer_height" };
+                return  { L("A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."), object, "adaptive_layer_height" };
             }
 
             if (!object->config().enable_support)
@@ -1461,7 +1461,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
             double gap_layers = slicing_params.gap_object_support / slicing_params.layer_height;
             if (gap_layers - (int)gap_layers > EPSILON) {
-                return {L("The prime tower requires \"support gap\" to be multiple of layer height."), object};
+                return {L("A prime tower requires any \u201csupport gap\u201d to be a multiple of layer height."), object};
             }
         }
 #endif
@@ -1474,9 +1474,9 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 const SlicingParameters &slicing_params = object->slicing_parameters();
                 if (std::abs(slicing_params.first_print_layer_height - slicing_params0.first_print_layer_height) > EPSILON ||
                     std::abs(slicing_params.layer_height             - slicing_params0.layer_height            ) > EPSILON)
-                    return {L("The prime tower requires that all objects have the same layer heights."), object, "initial_layer_print_height"};
+                    return {L("A prime tower requires that all objects have the same layer height."), object, "initial_layer_print_height"};
                 if (slicing_params.raft_layers() != slicing_params0.raft_layers())
-                    return {L("The prime tower requires that all objects are printed over the same number of raft layers."), object, "raft_layers"};
+                    return {L("A prime tower requires that all objects are printed over the same number of raft layers."), object, "raft_layers"};
                 // BBS: support gap can be multiple of object layer height, remove _L()
 #if 0
                 if (slicing_params0.gap_object_support != slicing_params.gap_object_support ||
@@ -1484,7 +1484,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     return {L("The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."), object};
 #endif
                 if (!equal_layering(slicing_params, slicing_params0))
-                    return  { L("The prime tower requires that all objects are sliced with the same layer heights."), object };
+                    return  { L("A prime tower requires that all objects are sliced with the same layer height."), object };
                 if (has_custom_layering) {
                     auto &lh         = layer_height_profile(i);
                     auto &lh_tallest = layer_height_profile(tallest_object_idx);
@@ -1550,10 +1550,10 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (extrusion_width_min == 0) {
                 // Default "auto-generated" extrusion width is always valid.
             } else if (extrusion_width_min <= layer_height) {
-                    err_msg = L("Too small line width");
+                    err_msg = L("Line width too small");
                     return false;
                 } else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
-                err_msg = L("Too large line width");
+                err_msg = L("Line width too large");
 				return false;
 			}
 			return true;
@@ -1575,7 +1575,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 // BBS
 #if 0
                 if (this->has_wipe_tower() && object->config().independent_support_layer_height) {
-                    return {L("The prime tower requires that support has the same layer height with object."), object, "support_filament"};
+                    return {L("A prime tower requires that support has the same layer height as the object."), object, "support_filament"};
                 }
 #endif
 
@@ -1676,7 +1676,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         return { err_msg, object, "bridge_line_width" };
                     }
                     if (!allow_thin_bridge_width && bridge_width <= layer_height) {
-                        err_msg = L("Too small line width");
+                        err_msg = L("Line width too small");
                         return { err_msg, object, "bridge_line_width" };
                     }
                 }

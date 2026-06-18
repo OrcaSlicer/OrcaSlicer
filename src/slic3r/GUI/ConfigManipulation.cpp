@@ -109,8 +109,7 @@ void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *conf
 
     if (config->has("nozzle_temperature")) {
         if (config->opt_int("nozzle_temperature", 0) < temperature_range_low || config->opt_int("nozzle_temperature", 0) > temperature_range_high) {
-            wxString msg_text = _(L("Nozzle may be blocked when the temperature is out of recommended range.\n"
-                "Please make sure whether to use the temperature to print.\n\n"));
+            wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
             MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
             is_msg_dlg_already_exist = true;
@@ -132,8 +131,7 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
         if (config->opt_int("nozzle_temperature_initial_layer", 0) < temperature_range_low ||
             config->opt_int("nozzle_temperature_initial_layer", 0) > temperature_range_high)
         {
-            wxString msg_text = _(L("Nozzle may be blocked when the temperature is out of recommended range.\n"
-                "Please make sure whether to use the temperature to print.\n\n"));
+            wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
             MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
             is_msg_dlg_already_exist = true;
@@ -152,7 +150,7 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
     float max_volumetric_speed = config->has("filament_max_volumetric_speed") ? config->opt_float("filament_max_volumetric_speed", (float) 0.5) : 0.5;
     // BBS: limite the min max_volumetric_speed
     if (max_volumetric_speed < 0.5) {
-        const wxString     msg_text = _(L("Too small max volumetric speed.\nReset to 0.5."));
+        const wxString     msg_text = _(L("Too small max volumetric speed.\nValue was reset to 0.5"));
         MessageDialog      dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -172,8 +170,7 @@ void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
         int chamber_min_temp, chamber_max_temp;
     if (MaterialType::get_chamber_temperature_range(filament_type, chamber_min_temp, chamber_max_temp)) {
             if (chamber_max_temp < config->option<ConfigOptionInts>("chamber_temperature")->get_at(0)) {
-                wxString msg_text = wxString::Format(_L("Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. "
-                                                        "The maximum safe temperature for the material is %d"), chamber_max_temp);
+                wxString msg_text = wxString::Format(_L("Current chamber temperature is higher than the material\'s safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"), chamber_max_temp);
                 MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
                 is_msg_dlg_already_exist = true;
                 dialog.ShowModal();
@@ -200,7 +197,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     auto gpreset = GUI::wxGetApp().preset_bundle->printers.get_edited_preset();
     if (layer_height < EPSILON)
     {
-        const wxString msg_text = _(L("Too small layer height.\nReset to 0.2."));
+        const wxString msg_text = _(L("Layer height too small\nIt has been reset to 0.2"));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -227,7 +224,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     //BBS: ironing_spacing shouldn't be too small or equal to zero
     if (config->opt_float("ironing_spacing") < 0.05)
     {
-        const wxString msg_text = _(L("Too small ironing spacing.\nReset to 0.1."));
+        const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -238,7 +235,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
     if (config->opt_float("support_ironing_spacing") < 0.05)
     {
-        const wxString msg_text = _(L("Too small ironing spacing.\nReset to 0.1."));
+        const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -262,10 +259,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (abs(config->option<ConfigOptionFloat>("xy_hole_compensation")->value) > 2)
     {
-        const wxString msg_text = _(L("This setting is only used for model size tunning with small value in some cases.\n"
-                                      "For example, when model size has small error and hard to be assembled.\n"
-                                      "For large size tuning, please use model scale function.\n\n"
-                                      "The value will be reset to 0."));
+        const wxString msg_text = _(L("This setting is only used for tuning model size by small amounts.\nFor example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n\nThe value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -277,10 +271,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (abs(config->option<ConfigOptionFloat>("xy_contour_compensation")->value) > 2)
     {
-        const wxString msg_text = _(L("This setting is only used for model size tunning with small value in some cases.\n"
-                                      "For example, when model size has small error and hard to be assembled.\n"
-                                      "For large size tuning, please use model scale function.\n\n"
-                                      "The value will be reset to 0."));
+        const wxString msg_text = _(L("This setting is only used for tuning model size by small amounts.\nFor example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n\nThe value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -292,10 +283,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->option<ConfigOptionFloat>("elefant_foot_compensation")->value > 1)
     {
-        const wxString msg_text = _(L("Too large elephant foot compensation is unreasonable.\n"
-                                      "If really have serious elephant foot effect, please check other settings.\n"
-                                      "For example, whether bed temperature is too high.\n\n"
-                                      "The value will be reset to 0."));
+        const wxString msg_text = _(L("The elephant foot compensation value is too large.\nIf there are significant elephant foot issues, please check other settings.\nThe bed temperature may be too high, for example.\n\nThe value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -1074,9 +1062,7 @@ int ConfigManipulation::show_spiral_mode_settings_dialog(bool is_object_config)
         msg_text += _(L(" But machines with I3 structure will not generate timelapse videos."));
     }
     if (!is_object_config)
-        msg_text += "\n\n" + _(L("Change these settings automatically?\n"
-            "Yes - Change these settings and enable spiral mode automatically\n"
-            "No  - Give up using spiral mode this time"));
+        msg_text += "\n\n" + _(L("Change these settings automatically\?\nYes - Change these settings and enable spiral/vase mode automatically\nNo  - Cancel enabling spiral mode"));
 
     MessageDialog dialog(wxGetApp().plater(), msg_text, "",
         wxICON_WARNING | (!is_object_config ? wxYES | wxNO : wxOK));

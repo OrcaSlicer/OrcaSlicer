@@ -5409,7 +5409,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             std::string last_backup = last;
             std::string originfile;
             if (Slic3r::has_restore_data(last_backup, originfile)) {
-                auto result = MessageDialog(this->q, _L("Previous unsaved project detected, do you want to restore it?"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Restore"), wxYES_NO | wxYES_DEFAULT | wxCENTRE).ShowModal();
+                auto result = MessageDialog(this->q, _L("Previously unsaved items have been detected. Do you want to restore them\?"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Restore"), wxYES_NO | wxYES_DEFAULT | wxCENTRE).ShowModal();
                 if (result == wxID_YES) {
                     this->q->load_project(from_path(last_backup), from_path(originfile));
                     Slic3r::backup_soon();
@@ -5609,9 +5609,9 @@ wxColour Plater::get_next_color_for_filament()
 wxString Plater::get_slice_warning_string(GCodeProcessorResult::SliceWarning& warning)
 {
     if (warning.msg == BED_TEMP_TOO_HIGH_THAN_FILAMENT) {
-        return _L("The current hot bed temperature is relatively high. The nozzle may be clogged when printing this filament in a closed enclosure. Please open the front door and/or remove the upper glass.");
+        return _L("The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass.");
     } else if (warning.msg == NOZZLE_HRC_CHECKER) {
-        return _L("The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be attrited or damaged.");
+        return _L("The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged.");
     } else if (warning.msg == NOT_SUPPORT_TRADITIONAL_TIMELAPSE) {
         return _L("Enabling traditional timelapse photography may cause surface imperfections. It is recommended to change to smooth mode.");
     } else if (warning.msg == NOT_GENERATE_TIMELAPSE) {
@@ -6092,7 +6092,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                  file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
                                 text += "\n";
                                 wxString context = text;
-                                wxString append = _L("You'd better upgrade your software.\n");
+                                wxString append = _L("You should update your software.\n");
                                 context += "\n\n";
                                 context += append;
                                 log_and_show_3mf_info(context, newer_3mf_title);
@@ -6161,7 +6161,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                      file_version.to_string(), slic3r_version.to_string());
                                     text += "\n";
                                     wxString context = text;
-                                    wxString append = _L("You'd better upgrade your software.\n");
+                                    wxString append = _L("You should update your software.\n");
                                     context += "\n\n";
                                     context += append;
                                     log_and_show_3mf_info(context, bambu_project_title);
@@ -6293,7 +6293,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             for (std::map<std::string, std::string>::iterator it=validity.begin(); it!=validity.end(); ++it)
                                 error_message += "-" + it->first + ": " + it->second + "\n";
                             error_message += "\n";
-                            error_message += _u8L("Please correct them in the param tabs");
+                            error_message += _u8L("Please correct them in the Param tabs");
                             notify_manager->bbl_show_3mf_warn_notification(error_message);
                         }
                     }
@@ -6581,7 +6581,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (!isUtf8StepFile) {
                                 const auto no_warn = wxGetApp().app_config->get_bool("step_not_utf8_no_warn");
                                 if (!no_warn) {
-                                    MessageDialog dlg(nullptr, _L("Name of components inside STEP file is not UTF8 format!") + "\n\n" + _L("The name may show garbage characters!"),
+                                    MessageDialog dlg(nullptr, _L("Component name(s) inside step file not in UTF8 format!") + "\n\n" + _L("Because of unsupported text encoding, garbage characters may appear!"),
                                                       wxString(SLIC3R_APP_FULL_NAME " - ") + _L("Attention!"), wxOK | wxICON_INFORMATION);
                                     dlg.show_dsa_button(_L("Remember my choice."));
                                     dlg.ShowModal();
@@ -6694,7 +6694,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 else if (model.looks_like_saved_in_meters()) {
                     // BBS do not handle look like in meters
                     MessageDialog dlg(q,
-                                      format_wxstr(_L("The object from file %s is too small, and maybe in meters or inches.\n Do you want to scale to millimeters?"),
+                                      format_wxstr(_L("The object from file %s is too small, and may be in meters or inches.\n Do you want to scale to millimeters\?"),
                                                    from_path(filename)),
                                       _L("Object too small"), wxICON_QUESTION | wxYES_NO);
                     int           answer = dlg.ShowModal();
@@ -6702,7 +6702,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 } else if (model.looks_like_imperial_units()) {
                     // BBS do not handle look like in meters
                     MessageDialog dlg(q,
-                                      format_wxstr(_L("The object from file %s is too small, and maybe in meters or inches.\n Do you want to scale to millimeters?"),
+                                      format_wxstr(_L("The object from file %s is too small, and may be in meters or inches.\n Do you want to scale to millimeters\?"),
                                                    from_path(filename)),
                                       _L("Object too small"), wxICON_QUESTION | wxYES_NO);
                     int           answer = dlg.ShowModal();
@@ -6733,10 +6733,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             }
 
              if (!is_project_file && model.looks_like_multipart_object()) {
-               MessageDialog msg_dlg(q, _L(
-                    "This file contains several objects positioned at multiple heights.\n"
-                    "Instead of considering them as multiple objects, should \n"
-                    "the file be loaded as a single object having multiple parts?") + "\n",
+               MessageDialog msg_dlg(q, _L("This file contains several objects positioned at multiple heights.\nInstead of considering them as multiple objects, should \nthe file be loaded as a single object with multiple parts\?") + "\n",
                     _L("Multi-part object detected"), wxICON_WARNING | wxYES | wxNO);
                 if (msg_dlg.ShowModal() == wxID_YES) {
                     model.convert_multipart_object(filaments_cnt);
@@ -6834,7 +6831,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         int single_object_answer = false;
         if (ask_multi) {
             RichMessageDialog dlg(q, _L("Load these files as a single object with multiple parts?\n"),
-                _L("Object with multiple parts was detected"), wxICON_QUESTION | wxYES_NO);
+                _L("An object with multiple parts was detected"), wxICON_QUESTION | wxYES_NO);
 
             dlg.ShowCheckBox(_L("Auto-Drop"), true);
             single_object_answer = dlg.ShowModal();
@@ -7295,7 +7292,7 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         case FT_3MF:
         {
             output_file.replace_extension("3mf");
-            dlg_title = _L("Save file as:");
+            dlg_title = _L("Save file as");
             break;
         }
         case FT_OBJ:
@@ -7327,7 +7324,7 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         boost::system::error_code ec;
         if (boost::filesystem::exists(into_u8(out_path), ec)) {
             auto result = MessageBox(q->GetHandle(),
-                wxString::Format(_L("The file %s already exists\nDo you want to replace it?"), out_path),
+                wxString::Format(_L("The file %s already exists.\nDo you want to replace it\?"), out_path),
                 _L("Confirm Save As"),
                 MB_YESNO | MB_ICONWARNING);
             if (result != IDYES)
@@ -7461,9 +7458,7 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
     ModelObject *obj = model.objects[obj_idx];
     if (obj->is_cut()) {
         InfoDialog dialog(q, _L("Delete object which is a part of cut object"),
-                          _L("You try to delete an object which is a part of a cut object.\n"
-                             "This action will break a cut correspondence.\n"
-                             "After that model consistency can't be guaranteed."),
+                          _L("You are trying to delete an object which is a part of a cut object.\nThis action will break a cut correspondence.\nAfter that, model consistency can\'t be guaranteed."),
                           false, wxYES | wxCANCEL | wxCANCEL_DEFAULT | wxICON_WARNING);
         dialog.SetButtonLabel(wxID_YES, _L("Delete"));
         if (dialog.ShowModal() == wxID_CANCEL)
@@ -8387,7 +8382,7 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
     }
 
     if (new_model.objects.size() > 1 || new_model.objects.front()->volumes.size() > 1) {
-        MessageDialog dlg(q, _L("Unable to replace with more than one volume"), _L("Error during replace"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+        MessageDialog dlg(q, _L("Unable to replace with more than one volume"), _L("Error during replacement"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
         dlg.ShowModal();
         return false;
     }
@@ -8479,7 +8474,7 @@ void Plater::priv::replace_with_stl()
 
     fs::path out_path = dialog.GetPath().ToUTF8().data();
     if (out_path.empty()) {
-        MessageDialog dlg(q, _L("File for the replace wasn't selected"), _L("Error during replace"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+        MessageDialog dlg(q, _L("File for the replacement wasn\'t selected"), _L("Error during replacement"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
         dlg.ShowModal();
         return;
     }
@@ -8563,7 +8558,7 @@ void Plater::priv::replace_all_with_stl()
 
     fs::path out_path = dialog.GetPath().ToUTF8().data();
     if (out_path.empty()) {
-        MessageDialog dlg(q, _L("Directory for the replace wasn't selected"), _L("Error during replace"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+        MessageDialog dlg(q, _L("Directory for the replace wasn't selected"), _L("Error during replacement"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
         dlg.ShowModal();
         return;
     }
@@ -12032,8 +12027,8 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     auto check = [this,&transfer_preset_changes](bool yes_or_no) {
         m_new_project_and_check_state = true;
         wxString header = _L("Some presets are modified.") + "\n" +
-            (yes_or_no ? _L("You can keep the modified presets to the new project or discard them") :
-                _L("You can keep the modified presets to the new project, discard or save changes as new presets."));
+            (yes_or_no ? _L("You can keep the modified presets for the new project or discard them") :
+                _L("You can keep the modified presets for the new project, discard, or save changes as new presets."));
         int act_buttons = ActionButtons::KEEP | ActionButtons::REMEMBER_CHOISE;
         if (!yes_or_no)
             act_buttons |= ActionButtons::SAVE;
@@ -12253,7 +12248,7 @@ int Plater::save_project(bool saveAs)
         save_strategy = save_strategy | SaveStrategy::FullPathSources;
     }
     if (export_3mf(into_path(filename), save_strategy) < 0) {
-        MessageDialog(this, _L("Failed to save the project.\nPlease check whether the folder exists online or if other programs open the project file."),
+        MessageDialog(this, _L("Failed to save the project.\nPlease check whether the folder exists online or if other programs have the project file open."),
             _L("Save project"), wxOK | wxICON_WARNING).ShowModal();
         return wxID_CANCEL;
     }
@@ -12368,7 +12363,7 @@ void Plater::import_model_id(wxString download_info)
 
             //check file suffix
             if (!extension.Contains(".3mf")) {
-                msg = _L("Download failed, unknown file format.");
+                msg = _L("Download failed; unknown file format.");
                 return;
             }
 
@@ -12443,7 +12438,7 @@ void Plater::import_model_id(wxString download_info)
                     }
 
                     if (size_limit) {
-                        msg = _L("Download failed, File size exception.");
+                        msg = _L("Download failed; File size exception.");
                     }
                     else {
                         msg = wxString::Format(_L("Project downloaded %d%%"), percent);
@@ -13707,8 +13702,8 @@ void Plater::load_gcode(const wxString& filename)
     p->preview->get_canvas3d()->zoom_to_plate(0);
 
     if (p->preview->get_canvas3d()->get_gcode_layers_zs().empty()) {
-        MessageDialog(this, _L("The selected file") + ":\n" + filename + "\n" + _L("does not contain valid G-code."),
-            wxString(GCODEVIEWER_APP_NAME) + " - " + _L("Error occurs while loading G-code file"), wxCLOSE | wxICON_WARNING | wxCENTRE).ShowModal();
+        MessageDialog(this, _L("The selected file") + ":\n" + filename + "\n" + _L("Does not contain valid G-code."),
+            wxString(GCODEVIEWER_APP_NAME) + " - " + _L("An Error has occurred while loading the G-code file."), wxCLOSE | wxICON_WARNING | wxCENTRE).ShowModal();
         set_project_filename(DEFAULT_PROJECT_NAME);
     } else {
         set_project_filename(filename);
@@ -14178,7 +14173,7 @@ bool Plater::load_files(const wxArrayString& filenames)
     else if (normal_paths.empty()){
         //only gcode files
         if (gcode_paths.size() > 1) {
-            show_info(this, _L("Only one G-code file can be opened at the same time."), _L("G-code loading"));
+            show_info(this, _L("Only one G-code file can be opened at a time."), _L("G-code loading"));
             return false;
         }
         load_gcode(from_path(gcode_paths.front()));
@@ -14186,7 +14181,7 @@ bool Plater::load_files(const wxArrayString& filenames)
     }
 
     if (!gcode_paths.empty()) {
-        show_info(this, _L("G-code files cannot be loaded with models together!"), _L("G-code loading"));
+        show_info(this, _L("G-code files and models cannot be loaded together!"), _L("G-code loading"));
         return false;
     }
 
@@ -14238,7 +14233,7 @@ bool Plater::load_files(const wxArrayString& filenames)
     if (this->m_only_gcode || this->m_exported_file) {
         if ((loadfiles_type == LoadFilesType::SingleOther)
             || (loadfiles_type == LoadFilesType::MultipleOther)) {
-            show_info(this, _L("Cannot add models when in preview mode!"), _L("Add Models"));
+            show_info(this, _L("Unable to add models in preview mode"), _L("Add Models"));
             return false;
         }
     }
@@ -14558,7 +14553,7 @@ void Plater::reset(bool apply_presets_change) { p->reset(apply_presets_change); 
 void Plater::reset_with_confirm()
 {
     if (p->model.objects.empty() || MessageDialog(static_cast<wxWindow *>(this), _L("All objects will be removed, continue?"),
-                                                  wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Delete all"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE)
+                                                  wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Delete All"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE)
                                             .ShowModal() == wxID_YES) {
         reset();
         // BBS: jump to plater panel
@@ -14575,7 +14570,7 @@ int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check)
         return wxID_NO;
     }
 
-    MessageDialog dlg(static_cast<wxWindow*>(this), _L("The current project has unsaved changes, save it before continue?"),
+    MessageDialog dlg(static_cast<wxWindow*>(this), _L("The current project has unsaved changes. Would you like to save before continuing\?"),
         wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE);
     dlg.show_dsa_button(_L("Remember my choice."));
     auto choise = wxGetApp().app_config->get("save_project_choise");
@@ -16637,7 +16632,7 @@ void Plater::config_change_notification(const DynamicPrintConfig &config, const 
         if (seq_print && view3d_canvas && view3d_canvas->is_initialized() && view3d_canvas->is_rendering_enabled()) {
             NotificationManager* notify_manager = get_notification_manager();
             if (seq_print->value == PrintSequence::ByObject) {
-                std::string info_text = _u8L("Print By Object: \nSuggest to use auto-arrange to avoid collisions when printing.");
+                std::string info_text = _u8L("Print By Object: \nWe suggest using auto-arrange to avoid collisions when printing.");
                 notify_manager->bbl_show_seqprintinfo_notification(info_text);
             }
             else
@@ -18307,8 +18302,7 @@ void Plater::post_process_string_object_exception(StringObjectException &err)
                         break;
                     }
                 }
-                err.string = format(_L("Plate %d: %s is not suggested to be used to print filament %s (%s). "
-                                       "If you still want to do this print job, please set this filament's bed temperature to non-zero."),
+                err.string = format(_L("Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament\'s bed temperature to a number that is not zero."),
                              err.params[0], err.params[1], err.params[2], filament_name);
                 err.string += "\n";
             }

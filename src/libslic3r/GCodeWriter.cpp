@@ -462,10 +462,10 @@ std::string GCodeWriter::set_input_shaping(char axis, float damp, float freq, st
         break;
     }
     case gcfMarlinLegacy: {
-        throw std::runtime_error(_u8L("Input shaping is not supported by Marlin < 2.1.2.\nCheck your firmware version and update your G-code flavor to ´Marlin 2´"));
+        throw std::runtime_error(_u8L("Input shaping is not supported by Marlin < 2.1.2.\nCheck your firmware version and update your G-code flavor to ´Marlin 2´."));
     }
     default:
-        throw std::runtime_error(_u8L("Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"));
+        throw std::runtime_error(_u8L("Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."));
     }
     if (!gcode.str().empty()) {
         if (GCodeWriter::full_gcode_comment) {

@@ -29,10 +29,10 @@
 static std::map<int, std::string> error_messages = {
     {1, L("The device cannot handle more conversations. Please retry later.")},
     {2, L("Player is malfunctioning. Please reinstall the system player.")},
-    {100, L("The player is not loaded, please click \"play\" button to retry.")},
-    {101, L("The player is not loaded, please click \"play\" button to retry.")},
-    {102, L("The player is not loaded, please click \"play\" button to retry.")},
-    {103, L("The player is not loaded, please click \"play\" button to retry.")},
+    {100, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {101, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {102, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {103, L("The player is not loaded; please click the \"play\" button to retry.")},
     {104, L("The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize.")}
 };
 
@@ -330,7 +330,7 @@ void MediaPlayCtrl::Play()
     if (!m_remote_proto) { // not support tutk
         m_failed_code = -1;
         m_url = "bambu:///local/";
-        Stop(_L("Please enter the IP of printer to connect."));
+        Stop(_L("Please enter the IP of the printer to connect."));
         return;
     }
 
