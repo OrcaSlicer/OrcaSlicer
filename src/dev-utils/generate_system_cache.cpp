@@ -90,31 +90,36 @@ int main(int argc, char* argv[])
     int    saved = 0, failed = 0;
 
     for (const auto& vendor_name : vendor_names) {
-        const std::string json_path = (fs::path(profiles_path) / (vendor_name + ".json")).string();
-        const std::string ver_str   = get_vendor_cache_key(json_path);
+        try {
+            const std::string json_path = (fs::path(profiles_path) / (vendor_name + ".json")).string();
+            const std::string ver_str   = get_vendor_cache_key(json_path);
 
-        const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
-        Slic3r::PresetBundle::VendorCache vc;
-        vc.capture(*preset_bundle, vendor_name, ver_str, is_orca_lib);
+            const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
+            Slic3r::PresetBundle::VendorCache vc;
+            vc.capture(*preset_bundle, vendor_name, ver_str, is_orca_lib);
 
-        const std::string cache_path =
-            (fs::path(profiles_path) / (vendor_name + ".cache")).make_preferred().string();
-        vc.save(cache_path);
+            const std::string cache_path =
+                (fs::path(profiles_path) / (vendor_name + ".cache")).make_preferred().string();
+            vc.save(cache_path);
 
-        // Verify the file was written and can be reloaded.
-        Slic3r::PresetBundle::VendorCache verify;
-        if (!verify.load(cache_path) || !verify.is_valid(ver_str)) {
-            std::cerr << "WARNING: verification failed for " << cache_path << "\n";
+            // Verify the file was written and can be reloaded.
+            Slic3r::PresetBundle::VendorCache verify;
+            if (!verify.load(cache_path) || !verify.is_valid(ver_str)) {
+                std::cerr << "ERROR: " << vendor_name << ": verification failed\n";
+                ++failed;
+            } else {
+                std::cout << "  [ok] " << vendor_name << ".cache"
+                          << "  (" << vc.print_presets.size()    << " print, "
+                          <<           vc.filament_presets.size() << " filament, "
+                          <<           vc.printer_presets.size()  << " printer)\n";
+                total_print    += vc.print_presets.size();
+                total_filament += vc.filament_presets.size();
+                total_printer  += vc.printer_presets.size();
+                ++saved;
+            }
+        } catch (const std::exception& ex) {
+            std::cerr << "ERROR: " << vendor_name << ": " << ex.what() << "\n";
             ++failed;
-        } else {
-            std::cout << "  [ok] " << vendor_name << ".cache"
-                      << "  (" << vc.print_presets.size()    << " print, "
-                      <<           vc.filament_presets.size() << " filament, "
-                      <<           vc.printer_presets.size()  << " printer)\n";
-            total_print    += vc.print_presets.size();
-            total_filament += vc.filament_presets.size();
-            total_printer  += vc.printer_presets.size();
-            ++saved;
         }
     }
 
