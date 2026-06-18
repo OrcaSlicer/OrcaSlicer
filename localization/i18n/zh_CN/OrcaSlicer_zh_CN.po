@@ -187,13 +187,13 @@ msgid "Support Generated"
 msgstr "已生成支撑"
 
 msgid "Entering Paint-on supports"
-msgstr ""
+msgstr "进入手绘支撑"
 
 msgid "Leaving Paint-on supports"
-msgstr ""
+msgstr "离开手绘支撑"
 
 msgid "Paint-on supports editing"
-msgstr ""
+msgstr "手绘支撑编辑"
 
 msgid "Gizmo-Place on Face"
 msgstr "选择底面"
@@ -282,13 +282,13 @@ msgid "To:"
 msgstr "到："
 
 msgid "Entering color painting"
-msgstr ""
+msgstr "进入颜色绘制"
 
 msgid "Leaving color painting"
-msgstr ""
+msgstr "离开颜色绘制"
 
 msgid "Color painting editing"
-msgstr ""
+msgstr "颜色绘制编辑"
 
 msgid "Paint-on fuzzy skin"
 msgstr "手绘绒毛表面"
@@ -310,13 +310,13 @@ msgid "Enable painted fuzzy skin for this object"
 msgstr "为此对象启用手绘绒毛表面"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr ""
+msgstr "进入手绘绒毛表面"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr ""
+msgstr "离开手绘绒毛表面"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr ""
+msgstr "手绘绒毛表面编辑"
 
 msgid "Move"
 msgstr "移动"
@@ -704,13 +704,13 @@ msgid "Delete connector"
 msgstr "删除连接器"
 
 msgid "Entering Cut gizmo"
-msgstr ""
+msgstr "进入切割小工具"
 
 msgid "Leaving Cut gizmo"
-msgstr ""
+msgstr "离开切割小工具"
 
 msgid "Cut gizmo editing"
-msgstr ""
+msgstr "切割小工具编辑"
 
 msgid "Mesh name"
 msgstr "网格名称"
@@ -1566,10 +1566,10 @@ msgid "Flip by Face 2"
 msgstr "通过面2翻转"
 
 msgid "Entering Measure gizmo"
-msgstr ""
+msgstr "进入测量小工具"
 
 msgid "Leaving Measure gizmo"
-msgstr ""
+msgstr "离开测量小工具"
 
 msgid "Assemble"
 msgstr "组合"
@@ -1599,16 +1599,16 @@ msgid ""
 "It is recommended to assemble objects first,\n"
 "because they are restricted to the bed \n"
 "and only parts can be lifted."
-msgstr ""
+msgstr "建议先组合对象，\n因为对象被固定在打印床上，\n只有零件可以被抬起。"
 
 msgid "Face and face assembly"
 msgstr "面对面装配"
 
 msgid "Entering Assembly gizmo"
-msgstr ""
+msgstr "进入装配小工具"
 
 msgid "Leaving Assembly gizmo"
-msgstr ""
+msgstr "离开装配小工具"
 
 msgid "Ctrl+"
 msgstr "Ctrl+"
@@ -1886,14 +1886,14 @@ msgid ""
 "the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your "
 "local preset."
-msgstr ""
+msgstr "云同步冲突：之前已从云端删除了同名预设。\n“删除”将删除您的本地预设。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
 "Cloud sync conflict: there was an unexpected or unidentified preset "
 "conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local "
 "preset."
-msgstr ""
+msgstr "云同步冲突：发生了意外或无法识别的预设冲突。\n“拉取”将下载云端副本。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -3141,49 +3141,49 @@ msgid "The minmum temperature should not be less than "
 msgstr "最低温度不可低于 "
 
 msgid "Type to filter..."
-msgstr ""
+msgstr "输入以筛选……"
 
 msgid "All"
 msgstr "所有"
 
 msgid "No selected items..."
-msgstr ""
+msgstr "未选择任何项目……"
 
 msgid "All items selected..."
-msgstr ""
+msgstr "已选择全部项目……"
 
 msgid "No matching items..."
-msgstr ""
+msgstr "没有匹配的项目……"
 
 msgid "Deselect All"
 msgstr "全部取消选中"
 
 msgid "Select visible"
-msgstr ""
+msgstr "选择可见项"
 
 msgid "Deselect visible"
-msgstr ""
+msgstr "取消选择可见项"
 
 msgid "Filter selected"
-msgstr ""
+msgstr "筛选已选项"
 
 msgid "Filter nonSelected"
-msgstr ""
+msgstr "筛选未选项"
 
 msgid "Simple settings"
-msgstr ""
+msgstr "简单设置"
 
 msgid "Advanced settings"
 msgstr "高级设置"
 
 msgid "Expert settings"
-msgstr ""
+msgstr "专家设置"
 
 msgid "Developer mode"
 msgstr "开发者模式"
 
 msgid "Launch troubleshoot center"
-msgstr ""
+msgstr "启动故障排查中心"
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3434,7 +3434,7 @@ msgid "There is no valid surface for text projection."
 msgstr "没有有效的表面用于文字投影。"
 
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "发生了意外错误"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "用于第一层优化的热预处理"
@@ -8702,10 +8702,10 @@ msgstr "逆戟鲸切片器文件关联"
 msgid ""
 "File associations for the Microsoft Store version are managed by Windows "
 "Settings."
-msgstr ""
+msgstr "Microsoft Store 版本的文件关联由 Windows 设置管理。"
 
 msgid "Open Windows Default Apps Settings"
-msgstr ""
+msgstr "打开 Windows 默认应用设置"
 
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "将 3MF 文件关联到 OrcaSlicer"
@@ -9501,7 +9501,7 @@ msgid ""
 msgstr "文件上传超时。请检查固件版本是否支持此操作或验证打印机是否正常工作。"
 
 msgid "Sending failed, please try again!"
-msgstr ""
+msgstr "发送失败，请重试！"
 
 msgid "Slice ok."
 msgstr "切片完成."
@@ -11252,13 +11252,13 @@ msgid "New version of Orca Slicer"
 msgstr "新版本的Orca Slicer"
 
 msgid "Check on Microsoft Store"
-msgstr ""
+msgstr "在 Microsoft Store 中查看"
 
 msgid "Check on GitHub"
 msgstr "在 GitHub 上查看"
 
 msgid "Open Microsoft Store"
-msgstr ""
+msgstr "打开 Microsoft Store"
 
 msgid "Skip this Version"
 msgstr "跳过本版本"
@@ -11266,7 +11266,7 @@ msgstr "跳过本版本"
 #, c-format, boost-format
 msgid ""
 "New version available: %s. Please update OrcaSlicer from the Microsoft Store."
-msgstr ""
+msgstr "有新版本可用：%s。请从 Microsoft Store 更新 OrcaSlicer。"
 
 msgid "Confirm and Update Nozzle"
 msgstr "确认并更新喷嘴"
@@ -11374,7 +11374,7 @@ msgid "Auto Fire Extinguishing System"
 msgstr "自动灭火系统"
 
 msgid "Beta"
-msgstr ""
+msgstr "测试版"
 
 msgid "Update firmware"
 msgstr "更新固件"
@@ -12088,13 +12088,13 @@ msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "允许通过第三方网络连接控制BambuLab的打印机"
 
 msgid "Use 3MF instead of G-code"
-msgstr ""
+msgstr "使用 3MF 代替 G-code"
 
 msgid ""
 "Enable this if the printer accepts a 3MF file as the print job. When "
 "enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a "
 "plain .gcode file."
-msgstr ""
+msgstr "如果打印机接受 3MF 文件作为打印任务，请启用此选项。启用后，Orca Slicer 将以 .gcode.3mf 格式发送切片文件，而不是普通的 .gcode 文件。"
 
 msgid "Printer Agent"
 msgstr "打印机代理"
@@ -20742,19 +20742,19 @@ msgid "Authorizing..."
 msgstr "正在授权..."
 
 msgid "Error. Can't get api token for authorization"
-msgstr ""
+msgstr "错误。无法获取用于授权的 API 令牌"
 
 msgid "Could not parse server response."
-msgstr ""
+msgstr "无法解析服务器响应。"
 
 msgid "Error saving session to file"
-msgstr ""
+msgstr "保存会话到文件时出错"
 
 msgid "Error session check"
 msgstr "会话检查出错"
 
 msgid "Error during file upload"
-msgstr ""
+msgstr "文件上传过程中出错"
 
 #, c-format, boost-format
 msgid "Mismatched type of print host: %s"
@@ -21483,103 +21483,103 @@ msgid "Flashforge local API requires both serial number and access code."
 msgstr "Flashforge 本地 API 同时需要序列号和访问码。"
 
 msgid "Printer returned an error"
-msgstr ""
+msgstr "打印机返回了一个错误"
 
 msgid "Missing system_info in response"
-msgstr ""
+msgstr "响应中缺少 system_info"
 
 msgid "Missing printer serial number in response"
-msgstr ""
+msgstr "响应中缺少打印机序列号"
 
 msgid "Error parsing response"
-msgstr ""
+msgstr "解析响应时出错"
 
 msgid "ElegooLink not detected"
-msgstr ""
+msgstr "未检测到 ElegooLink"
 
 msgid "Invalid access code"
-msgstr ""
+msgstr "访问码无效"
 
 msgid "CC2 device not detected"
-msgstr ""
+msgstr "未检测到 CC2 设备"
 
 msgid "Connection to ElegooLink is working correctly."
-msgstr ""
+msgstr "与 ElegooLink 的连接正常。"
 
 msgid "Could not connect to ElegooLink"
-msgstr ""
+msgstr "无法连接到 ElegooLink。"
 
 #, boost-format
 msgid "Error code: %1%"
-msgstr ""
+msgstr "错误代码：%1%"
 
 msgid "Upload failed"
-msgstr ""
+msgstr "上传失败"
 
 msgid ""
 "The file has been transferred, but some unknown errors occurred. Please "
 "check the device page for the file and try to start printing again."
-msgstr ""
+msgstr "文件已传输，但发生了一些未知错误。请在设备页面查看该文件，然后重新尝试开始打印。"
 
 msgid "Failed to open file for upload."
-msgstr ""
+msgstr "无法打开要上传的文件。"
 
 msgid "Failed to read file chunk for upload."
-msgstr ""
+msgstr "无法读取要上传的文件块。"
 
 msgid "CC2 upload failed"
-msgstr ""
+msgstr "CC2 上传失败"
 
 msgid "The file is empty or could not be read."
-msgstr ""
+msgstr "文件为空或无法读取。"
 
 msgid "Failed to calculate file checksum."
-msgstr ""
+msgstr "计算文件校验和失败。"
 
 msgid "Error code not found"
-msgstr ""
+msgstr "未找到错误代码"
 
 msgid ""
 "The printer is busy, Please check the device page for the file and try to "
 "start printing again."
-msgstr ""
+msgstr "打印机繁忙，请在设备页面查看该文件，然后重新尝试开始打印。"
 
 msgid "The file is lost, please check and try again."
-msgstr ""
+msgstr "文件丢失，请检查后重试。"
 
 msgid "The file is corrupted, please check and try again."
-msgstr ""
+msgstr "文件已损坏，请检查后重试。"
 
 msgid "Transmission abnormality, please check and try again."
-msgstr ""
+msgstr "传输异常，请检查后重试。"
 
 msgid "The file does not match the printer, please check and try again."
-msgstr ""
+msgstr "文件与打印机不匹配，请检查后重试。"
 
 msgid "Start print timeout"
-msgstr ""
+msgstr "开始打印超时"
 
 msgid "Start print failed"
-msgstr ""
+msgstr "开始打印失败"
 
 msgid "Connected to CrealityPrint successfully!"
-msgstr ""
+msgstr "已成功连接到 CrealityPrint！"
 
 msgid "Could not connect to CrealityPrint"
-msgstr ""
+msgstr "无法连接到 CrealityPrint。"
 
 msgid ""
 "Connection timed out. Please check if the printer and computer network are "
 "functioning properly, and confirm that they are on the same network."
-msgstr ""
+msgstr "连接超时。请检查打印机和计算机网络是否正常工作，并确认它们处于同一网络中。"
 
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
-msgstr ""
+msgstr "无法解析主机名/IP/URL，请检查后重试。"
 
 msgid ""
 "File/data transfer interrupted. Please check the printer and network, then "
 "try it again."
-msgstr ""
+msgstr "文件/数据传输中断。请检查打印机和网络，然后重试。"
 
 msgid "The provided state is not correct."
 msgstr "提供的状态不正确。"
@@ -21632,10 +21632,10 @@ msgid "Please select single object."
 msgstr "请选中单个对象。"
 
 msgid "Entering Brim Ears"
-msgstr ""
+msgstr "进入耳状帽檐"
 
 msgid "Leaving Brim Ears"
-msgstr ""
+msgstr "离开耳状帽檐"
 
 msgid "Zoom Out"
 msgstr "缩小"
@@ -21647,7 +21647,7 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr "加载跳过对象信息失败。请再试一次。"
 
 msgid "Failed to create the temporary folder."
-msgstr ""
+msgstr "创建临时文件夹失败。"
 
 #, c-format, boost-format
 msgid "/%d Selected"
@@ -21795,98 +21795,98 @@ msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
 
 msgid "PresetBundle"
-msgstr ""
+msgstr "预设包"
 
 msgid "Bundle folder does not exist."
-msgstr ""
+msgstr "预设包文件夹不存在。"
 
 msgid "Failed to open folder."
-msgstr ""
+msgstr "无法打开文件夹。"
 
 msgid "Delete selected bundle from folder and all presets loaded from it?"
-msgstr ""
+msgstr "从文件夹中删除选定的预设包以及从中加载的所有预设吗？"
 
 msgid "Delete Bundle"
-msgstr ""
+msgstr "删除预设包"
 
 msgid "Failed to remove bundle."
-msgstr ""
+msgstr "移除预设包失败。"
 
 msgid "Remove Bundle"
-msgstr ""
+msgstr "移除预设包"
 
 msgid "Unsubscribe bundle?"
-msgstr ""
+msgstr "取消订阅预设包吗？"
 
 msgid "UnsubscribeBundle"
-msgstr ""
+msgstr "取消订阅预设包"
 
 msgid "Failed to unsubscribe bundle."
-msgstr ""
+msgstr "取消订阅预设包失败。"
 
 msgid "Unsubscribe Bundle"
-msgstr ""
+msgstr "取消订阅预设包"
 
 msgid "ExportPresetBundle"
-msgstr ""
+msgstr "导出预设包"
 
 msgid "Save preset bundle"
-msgstr ""
+msgstr "保存预设包"
 
 msgid ""
 "Performing desktop integration failed - boost::filesystem::canonical did not "
 "return appimage path."
-msgstr ""
+msgstr "执行桌面集成失败 - boost::filesystem::canonical 未返回 AppImage 路径。"
 
 msgid "Performing desktop integration failed - Could not find executable."
-msgstr ""
+msgstr "执行桌面集成失败 - 无法找到可执行文件。"
 
 msgid ""
 "Performing desktop integration failed because the application directory was "
 "not found."
-msgstr ""
+msgstr "执行桌面集成失败，因为未找到应用程序目录。"
 
 msgid ""
 "Performing desktop integration failed - could not create Gcodeviewer desktop "
 "file. OrcaSlicer desktop file was probably created successfully."
-msgstr ""
+msgstr "执行桌面集成失败 - 无法创建 Gcodeviewer 桌面文件。OrcaSlicer 桌面文件可能已成功创建。"
 
 msgid ""
 "Performing downloader desktop integration failed - "
 "boost::filesystem::canonical did not return appimage path."
-msgstr ""
+msgstr "执行下载器桌面集成失败 - boost::filesystem::canonical 未返回 AppImage 路径。"
 
 msgid ""
 "Performing downloader desktop integration failed - Could not find executable."
-msgstr ""
+msgstr "执行下载器桌面集成失败 - 无法找到可执行文件。"
 
 msgid ""
 "Performing downloader desktop integration failed because the application "
 "directory was not found."
-msgstr ""
+msgstr "执行下载器桌面集成失败，因为未找到应用程序目录。"
 
 msgid "Desktop Integration"
-msgstr ""
+msgstr "桌面集成"
 
 msgid ""
 "Desktop Integration sets this binary to be searchable by the system.\n"
 "\n"
 "Press \"Perform\" to proceed."
-msgstr ""
+msgstr "桌面集成会将此二进制文件设置为可被系统搜索到。\n\n按“执行”以继续。"
 
 msgid "The download has failed"
-msgstr ""
+msgstr "下载失败"
 
 #. TRN %1% = file path
 #, boost-format
 msgid "Can't create file at %1%"
-msgstr ""
+msgstr "无法在 %1% 处创建文件"
 
 msgid "Archive preview"
-msgstr ""
+msgstr "存档预览"
 
 msgid "Open File"
-msgstr ""
+msgstr "打开文件"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
