@@ -563,8 +563,17 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
                     std::string_view sv(scan_line);
                     while (!sv.empty() && (sv.back() == '\n' || sv.back() == '\r')) sv.remove_suffix(1);
                     sv.remove_prefix(1);
-                    if (sv == Slic3r::GCodeProcessor::reserved_tag(Slic3r::GCodeProcessor::ETags::Layer_Change))
+                    if (sv == Slic3r::GCodeProcessor::reserved_tag(Slic3r::GCodeProcessor::ETags::Layer_Change)) {
                         ++pre_scan_layer_id;
+                    } else {
+                        std::string_view sv_trimmed = sv;
+                        while (!sv_trimmed.empty() && sv_trimmed.front() == ' ')
+                            sv_trimmed.remove_prefix(1);
+                        if (sv_trimmed == "MACHINE_START_GCODE_END")
+                            machine_start_gcode_end_line_id = scan_line_id;
+                        else if (sv_trimmed == "MACHINE_END_GCODE_START")
+                            machine_end_gcode_start_line_id = scan_line_id;
+                    }
                 }
 
                 if (Slic3r::GCodeReader::GCodeLine::cmd_starts_with(scan_line, "T")) {
