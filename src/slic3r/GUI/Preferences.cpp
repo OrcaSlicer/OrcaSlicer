@@ -1727,9 +1727,9 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_filament_sync_mode);
 
     //// ONLINE > Network plugin
-    g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);
+    g_sizer->Add(create_item_title(_L("Bambu network plug-in")), 1, wxEXPAND);
 
-    auto item_enable_plugin    = create_item_checkbox(_L("Enable network plug-in"), "", "installed_networking");
+    auto item_enable_plugin    = create_item_checkbox(_L("Enable Bambu network plug-in"), "", "installed_networking");
     g_sizer->Add(item_enable_plugin);
 
     m_network_version_sizer = new wxBoxSizer(wxHORIZONTAL);
