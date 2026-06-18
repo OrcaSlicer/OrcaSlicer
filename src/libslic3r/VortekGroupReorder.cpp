@@ -519,6 +519,33 @@ void GroupReorder::reorder_extruders(
                 }
                 tool_ordering.m_nozzle_status = best_nozzle_status;
                 BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Dynamic plan produced " << dynamic_plan_res.size() << " layer results";
+
+                // H2C FIX: Reconstruct and update LayeredNozzleGroupResult with the per-layer nozzle maps.
+                // Without this, the wipe tower and post-processing steps fallback to default mapping and
+                // omit M632/precool commands, causing PETG to contaminate PLA (making PLA brittle).
+                std::vector<std::vector<int>> layer_filament_nozzle_maps;
+                layer_filament_nozzle_maps.reserve(dynamic_plan_res.size());
+                for (const auto& res : dynamic_plan_res) {
+                    layer_filament_nozzle_maps.push_back(res.fil_nozzle_match);
+                }
+                auto existing_group_result = tool_ordering.m_print->get_layered_nozzle_group_result();
+                auto used_fils = existing_group_result ? existing_group_result->get_used_filaments() : std::vector<unsigned int>();
+                
+                auto new_layered_result_opt = Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult::create(
+                    layer_filament_nozzle_maps,
+                    grouping_context.nozzle_info.nozzle_list,
+                    used_fils,
+                    filament_sequences
+                );
+                if (new_layered_result_opt) {
+                    tool_ordering.m_print->set_nozzle_group_result(
+                        std::make_shared<Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult>(*new_layered_result_opt)
+                    );
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Updated Print's LayeredNozzleGroupResult with dynamic layer maps. Size: "
+                                           << layer_filament_nozzle_maps.size();
+                } else {
+                    BOOST_LOG_TRIVIAL(error) << "[H2C-GR] Failed to create new LayeredNozzleGroupResult from dynamic plan";
+                }
             } else {
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-GR] Dynamic plan empty, falling back to static reorder";
                 Slic3r::reorder_filaments_for_multi_nozzle_extruder(

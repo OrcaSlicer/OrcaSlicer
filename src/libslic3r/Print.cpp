@@ -1483,11 +1483,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             double filament_diam = m_config.filament_diameter.get_at(extruder_idx);
             if (nozzle_diam - EPSILON > first_nozzle_diam || nozzle_diam + EPSILON < first_nozzle_diam
                 || std::abs((filament_diam - first_filament_diam) / first_filament_diam) > 0.1) {
-                // return { L("Different nozzle diameters and different filament diameters may not work well when prime tower is enabled. It's very experimental, please proceed with caucious.") };
+                if (warning && warning->string.empty()) {
                     warning->string = L("Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution.");
                     warning->opt_key = "nozzle_diameter";
-                    break;
                 }
+                break;
+            }
         }
 
         if (! m_config.use_relative_e_distances)
@@ -1642,7 +1643,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         // Orca: use organic as default
                         object->config().support_style == smsDefault) {
 
-                        if (warning) {
+                        if (warning && warning->string.empty()) {
                             // Orca: check the support wall count and the base pattern
                             if (object->config().tree_support_wall_count > 1 &&
                                 object->config().support_base_pattern != SupportMaterialPattern::smpNone &&
@@ -1669,11 +1670,11 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
                             return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
                     }
-                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning && warning) {
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning && warning && warning->string.empty()) {
                     // Orca: check if the Lightning base pattern selected
                     warning->string  = L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
                     warning->opt_key = "support_base_pattern";
-                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpNone && warning) {
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpNone && warning && warning->string.empty()) {
                     // Orca: check if the Hollow base pattern selected
                     warning->string  = L("The Hollow base pattern is not supported by this support type; Rectilinear will be used instead.");
                     warning->opt_key = "support_base_pattern";
@@ -1682,7 +1683,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
             // Do we have custom support data that would not be used?
             // Notify the user in that case.
-            if (! object->has_support() && warning) {
+            if (! object->has_support() && warning && warning->string.empty()) {
                 for (const ModelVolume* mv : object->model_object()->volumes) {
                     bool has_enforcers = mv->is_support_enforcer() ||
                         (mv->is_model_part() && mv->supported_facets.has_facets(*mv, EnforcerBlockerType::ENFORCER));
@@ -1842,7 +1843,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     // check if print speed/accel/jerk is higher than the maximum speed of the printer
-    if (warning) {
+    if (warning && warning->string.empty()) {
         try {
             auto check_motion_ability_object_setting = [&](const std::vector<std::string>& keys_to_check, double limit) -> std::string {
                 std::string warning_key;
@@ -1995,7 +1996,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             BOOST_LOG_TRIVIAL(warning) << "Orca: validate motion ability failed: " << e.what() << std::endl;
         }
     }
-    if (!this->has_same_shrinkage_compensations()){
+    if (!this->has_same_shrinkage_compensations() && warning && warning->string.empty()){
         warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments does not match.");
         warning->opt_key = "";
     }
