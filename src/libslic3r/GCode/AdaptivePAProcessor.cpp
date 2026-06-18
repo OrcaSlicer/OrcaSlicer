@@ -279,7 +279,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     significant_change = std::fabs(predicted_pa) > 1e-12;
                 } else {
                     double relative_change = std::fabs((predicted_pa - m_last_predicted_pa) / m_last_predicted_pa);
-                    significant_change = (relative_change >= 0.10); // 10% threshold
+                    significant_change = (relative_change >= 0.03); // 3% threshold
                 }
                 
                 if (significant_change) {
