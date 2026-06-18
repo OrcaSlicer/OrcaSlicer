@@ -1,4 +1,4 @@
-#include "WebGuideDialog.hpp"
+﻿#include "WebGuideDialog.hpp"
 #include "ConfigWizard.hpp"
 
 #include <boost/filesystem/operations.hpp>
@@ -191,11 +191,10 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
 GuideFrame::~GuideFrame()
 {
     m_destroy = true;
-    if (m_load_task && m_load_task->joinable()) {
+    *m_cancel_token = true; // signal any queued CallAfter lambdas before join
+    if (m_load_task && m_load_task->joinable())
         m_load_task->join();
-        delete m_load_task;
-        m_load_task = nullptr;
-    }
+    m_load_task.reset();
     if (m_browser) {
         delete m_browser;
         m_browser = nullptr;
@@ -362,11 +361,11 @@ void GuideFrame::OnNavigationComplete(wxWebViewEvent &evt)
                 }
             } else {
                 // Steps 3+4 are slow — delegate to background thread.
-                m_load_task = new boost::thread(boost::bind(&GuideFrame::LoadProfileData, this));
+                m_load_task = std::make_unique<boost::thread>(boost::bind(&GuideFrame::LoadProfileData, this));
             }
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", init error: " << e.what();
-            m_load_task = new boost::thread(boost::bind(&GuideFrame::LoadProfileData, this));
+            m_load_task = std::make_unique<boost::thread>(boost::bind(&GuideFrame::LoadProfileData, this));
         }
     }
 
@@ -1580,8 +1579,11 @@ int GuideFrame::LoadProfileData()
         if (!m_destroy)
             save_guide_cache();
 
-        wxGetApp().CallAfter([this] {
-            if (!m_destroy)
+        // Capture the cancel token by value (shared_ptr) so the lambda doesn't
+        // touch `this` if GuideFrame is destroyed before the event fires.
+        auto tok = m_cancel_token;
+        wxGetApp().CallAfter([this, tok] {
+            if (!*tok)
                 on_profile_loaded();
         });
     } catch (const std::exception& e) {

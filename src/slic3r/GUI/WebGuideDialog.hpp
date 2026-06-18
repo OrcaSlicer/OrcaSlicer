@@ -31,9 +31,12 @@
 #include "slic3r/Utils/PresetUpdater.hpp"
 
 #include <atomic>
+#include <memory>
 #include <unordered_map>
 
 #include <nlohmann/json.hpp>
+
+#include <boost/thread.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -120,7 +123,10 @@ private:
     //First Load
     bool bFirstComplete{false};
     std::atomic<bool> m_destroy{false};
-    boost::thread* m_load_task{ nullptr };
+    // Shared cancel token captured by CallAfter lambdas so they don't touch
+    // `this` after the destructor has run and the object is freed.
+    std::shared_ptr<std::atomic<bool>> m_cancel_token{std::make_shared<std::atomic<bool>>(false)};
+    std::unique_ptr<boost::thread> m_load_task;
 
     // User Config
     bool PrivacyUse;
