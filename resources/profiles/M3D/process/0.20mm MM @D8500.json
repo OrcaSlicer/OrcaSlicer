@@ -41,6 +41,5 @@
 	"top_surface_speed": "40",
 	"travel_speed": "100",
 	"wall_loops": "2",
-	"wipe_tower_extra_spacing": "200%",
-	"wipe_tower_filament": "2"
+	"wipe_tower_extra_spacing": "200%"
 }

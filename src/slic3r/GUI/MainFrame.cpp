@@ -46,6 +46,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "BindDialog.hpp"
 #include "../Utils/MacDarkMode.hpp"
+#include "../Utils/PrintHost.hpp"
 
 #include <fstream>
 #include <string_view>
@@ -2025,6 +2026,26 @@ wxBoxSizer* MainFrame::create_side_tools()
                     });
 
                 p->append_button(send_gcode_btn);
+
+                // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
+                // also offer exporting the sliced .gcode.3mf bundle
+                const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+                const auto* use_3mf_opt    = printer_config.option<ConfigOptionBool>("use_3mf");
+                if (use_3mf_opt != nullptr && use_3mf_opt->value) {
+                    SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
+                    export_sliced_file_btn->SetCornerRadius(0);
+                    export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                        m_print_btn->SetLabel(_L("Export plate sliced file"));
+                        m_print_select = eExportSlicedFile;
+                        m_print_enable = get_enable_print_status();
+                        m_print_btn->Enable(m_print_enable);
+                        this->Layout();
+                        fit_tab_labels(); // ORCA on label change
+                        p->Dismiss();
+                        });
+                    p->append_button(export_sliced_file_btn);
+                }
+
                 p->append_button(export_gcode_btn);
             }
             else {
@@ -2539,15 +2560,29 @@ static wxMenu* generate_help_menu()
     wxMenu* helpMenu = new wxMenu();
 
     // shortcut key
-    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of the keyboard shortcuts"),
+    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of keyboard shortcuts"),
         [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(); });
     // Show Beginner's Tutorial
     append_menu_item(helpMenu, wxID_ANY, _L("Setup Wizard"), _L("Setup Wizard"), [](wxCommandEvent &) {wxGetApp().ShowUserGuide();});
 
     helpMenu->AppendSeparator();
+
     // Open Config Folder
     append_menu_item(helpMenu, wxID_ANY, _L("Show Configuration Folder"), _L("Show Configuration Folder"),
         [](wxCommandEvent&) { Slic3r::GUI::desktop_open_datadir_folder(); });
+
+    helpMenu->AppendSeparator();
+
+    // Troubleshoot center
+    append_menu_item(helpMenu, wxID_ANY, _L("Troubleshoot Center"), "",
+        [](wxCommandEvent&) { wxGetApp().troubleshoot(); });
+
+    append_menu_item(helpMenu, wxID_ANY, _L("Open Network Test"), _L("Open Network Test"), [](wxCommandEvent&) {
+            NetworkTestDialog dlg(wxGetApp().mainframe);
+            dlg.ShowModal();
+        });
+
+    helpMenu->AppendSeparator();
 
     append_menu_item(helpMenu, wxID_ANY, _L("Show Tip of the Day"), _L("Show Tip of the Day"), [](wxCommandEvent&) {
         wxGetApp().plater()->get_dailytips()->open();
@@ -2565,11 +2600,6 @@ static wxMenu* generate_help_menu()
             wxGetApp().check_new_version_sf(true, 1);
         }, "", nullptr, []() {
             return true;
-        });
-
-    append_menu_item(helpMenu, wxID_ANY, _L("Open Network Test"), _L("Open Network Test"), [](wxCommandEvent&) {
-            NetworkTestDialog dlg(wxGetApp().mainframe);
-            dlg.ShowModal();
         });
 
     // About
@@ -2777,6 +2807,21 @@ void MainFrame::init_menubar_as_editor()
             []() { return true; }, this);
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
+
+        fileMenu->AppendSeparator();
+        append_menu_item(fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+            [this](wxCommandEvent&) {
+                if (!wxGetApp().is_user_login()) {
+                    MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
+                        _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                    info_dlg.ShowModal();
+                    return;
+                }
+                wxGetApp().restart_sync_user_preset();
+            }, "", nullptr,
+            [this]() {
+                return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
+            }, this);
 
         fileMenu->AppendSeparator();
 
@@ -3252,6 +3297,25 @@ void MainFrame::init_menubar_as_editor()
             plater()->get_current_canvas3D()->force_set_focus();
         },
         "", nullptr, []() { return true; }, this);
+
+    append_menu_item(
+        m_topbar->GetTopMenu(), wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+        [this](wxCommandEvent&) {
+            if (!wxGetApp().is_user_login()) {
+                MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
+                    _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                info_dlg.ShowModal();
+                return;
+            }
+            if (m_plater)
+                m_plater->get_notification_manager()->push_notification(
+                    into_u8(_L("Syncing presets from cloud\u2026")));
+            wxGetApp().restart_sync_user_preset();
+        }, "", nullptr,
+        [this]() {
+            return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
+        }, this);
+
     //m_topbar->AddDropDownMenuItem(preference_item);
     //m_topbar->AddDropDownMenuItem(printer_item);
     //m_topbar->AddDropDownMenuItem(language_item);
@@ -3989,6 +4053,13 @@ void MainFrame::set_print_button_to_default(PrintSelectType select_type)
             m_print_enable = get_enable_print_status() && can_send_gcode();
         m_print_btn->Enable(m_print_enable);
         this->Layout();
+    } else if (select_type == PrintSelectType::eExportSlicedFile) {
+        m_print_btn->SetLabel(_L("Export plate sliced file"));
+        m_print_select = eExportSlicedFile;
+        if (m_print_enable)
+            m_print_enable = get_enable_print_status();
+        m_print_btn->Enable(m_print_enable);
+        this->Layout();
     } else {
         // unsupport
         return;
@@ -4162,15 +4233,12 @@ void MainFrame::load_printer_url()
         return;
 
     auto     cfg = preset_bundle.printers.get_edited_preset().config;
-    wxString url = cfg.opt_string("print_host_webui").empty() ? cfg.opt_string("print_host") : cfg.opt_string("print_host_webui");
+    wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
     wxString apikey;
     const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
     if (cfg.has("printhost_apikey") && (host_type == htPrusaLink || host_type == htPrusaConnect))
         apikey = cfg.opt_string("printhost_apikey");
     if (!url.empty()) {
-        if (!url.Lower().starts_with("http"))
-            url = wxString::Format("http://%s", url);
-
         load_printer_url(url, apikey);
     }
 }

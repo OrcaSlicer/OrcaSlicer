@@ -28,12 +28,6 @@
 	"slow_down_layer_time": [
 		"8"
 	],
-	"hot_plate_temp_initial_layer": [
-		"55"
-	],
-	"hot_plate_temp": [
-		"55"
-	],
 	"filament_vendor": [
 		"Generic"
 	],
@@ -60,5 +54,23 @@
 		"Qidi Q1 Pro 0.8 nozzle",
 		"Qidi X-Plus 4 0.6 nozzle",
 		"Qidi X-Plus 4 0.8 nozzle"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"hot_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
 	]
 }

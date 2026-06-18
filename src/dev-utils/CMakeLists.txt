@@ -28,22 +28,34 @@ function(encoding_check TARGET)
         # Obtain target source files
         get_target_property(T_SOURCES ${TARGET} SOURCES)
 
-        # Define top-level encoding check target for this ${TARGET}
-        add_custom_target(encoding-check-${TARGET}
-            DEPENDS encoding-check ${T_SOURCES}
-            COMMENT "Checking source files encodings for target ${TARGET}"
-        )
+        set(STAMP_FILE  "${CMAKE_CURRENT_BINARY_DIR}/encoding-check-${TARGET}.stamp")
+        set(RSP_FILE    "${CMAKE_CURRENT_BINARY_DIR}/encoding-check-${TARGET}.rsp")
 
-        # Add checking of each source file as a subcommand of encoding-check-${TARGET}
+        # Resolve absolute paths
+        set(ABS_SOURCES "")
         foreach(file ${T_SOURCES})
-            add_custom_command(TARGET encoding-check-${TARGET} PRE_BUILD
-                COMMAND $<TARGET_FILE:encoding-check> ${TARGET} ${file}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            )
+            if(IS_ABSOLUTE "${file}")
+                list(APPEND ABS_SOURCES "${file}")
+            else()
+                list(APPEND ABS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
+            endif()
         endforeach()
 
-        # This adds dependency on encoding-check-${TARGET} to ${TARET}
-        # via the global-encoding-check
+        # Write response file at configure time
+        string(REPLACE ";" "\n" RSP_CONTENT "${ABS_SOURCES}")
+        file(WRITE "${RSP_FILE}" "${RSP_CONTENT}")
+
+        # Single process call via response file — no command line length limit
+        add_custom_command(
+            OUTPUT  "${STAMP_FILE}"
+            DEPENDS encoding-check ${ABS_SOURCES}
+            COMMENT "Checking source files encodings for target ${TARGET}"
+            COMMAND $<TARGET_FILE:encoding-check> ${TARGET} "@${RSP_FILE}"
+            COMMAND ${CMAKE_COMMAND} -E touch "${STAMP_FILE}"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+
+        add_custom_target(encoding-check-${TARGET} DEPENDS "${STAMP_FILE}")
         add_dependencies(global-encoding-check encoding-check-${TARGET})
         add_dependencies(${TARGET} global-encoding-check)
     endif()

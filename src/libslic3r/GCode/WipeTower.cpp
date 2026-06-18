@@ -3881,7 +3881,7 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
     for (auto &used : m_used_filament_length) // reset used filament stats
         used = 0.f;
 
-    int wall_filament = get_wall_filament_for_all_layer();
+    int wall_filament_id = get_wall_filament_for_all_layer();
 
     std::vector<WipeTower::ToolChangeResult> layer_result;
     int index = 0;
@@ -3909,24 +3909,24 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         ToolChangeResult finish_layer_tcr;
         ToolChangeResult timelapse_wall;
 
-        auto get_wall_filament_for_this_layer = [this, &layer, &wall_filament]() -> int {
+        auto get_wall_filament_for_this_layer = [this, &layer, &wall_filament_id]() -> int {
             if (layer.tool_changes.size() == 0)
                 return -1;
 
             int candidate_id = -1;
             for (size_t idx = 0; idx < layer.tool_changes.size(); ++idx) {
                 if (idx == 0) {
-                    if (layer.tool_changes[idx].old_tool == wall_filament)
-                        return wall_filament;
-                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament].category) {
+                    if (layer.tool_changes[idx].old_tool == wall_filament_id)
+                        return wall_filament_id;
+                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament_id].category) {
                         candidate_id = layer.tool_changes[idx].old_tool;
                     }
                 }
-                if (layer.tool_changes[idx].new_tool == wall_filament) {
-                    return wall_filament;
+                if (layer.tool_changes[idx].new_tool == wall_filament_id) {
+                    return wall_filament_id;
                 }
 
-                if ((candidate_id == -1) && (m_filpar[layer.tool_changes[idx].new_tool].category == m_filpar[wall_filament].category))
+                if ((candidate_id == -1) && (m_filpar[layer.tool_changes[idx].new_tool].category == m_filpar[wall_filament_id].category))
                     candidate_id = layer.tool_changes[idx].new_tool;
             }
             return candidate_id == -1 ? layer.tool_changes[0].new_tool : candidate_id;

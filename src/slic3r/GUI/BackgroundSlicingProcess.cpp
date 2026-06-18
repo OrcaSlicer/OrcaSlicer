@@ -675,13 +675,13 @@ bool BackgroundSlicingProcess::empty() const
 	return m_print->empty();
 }
 
-StringObjectException BackgroundSlicingProcess::validate(StringObjectException *warning, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons)
+StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons)
 {
 	assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
     m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
-    return m_print->validate(warning, collison_polygons, height_polygons);
+    return m_print->validate(warnings, collison_polygons, height_polygons);
 }
 
 // Apply config over the print. Returns false, if the new config values caused any of the already

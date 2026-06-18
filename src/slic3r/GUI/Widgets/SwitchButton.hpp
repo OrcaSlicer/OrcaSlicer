@@ -5,9 +5,14 @@
 #include "StateColor.hpp"
 #include "StaticBox.hpp"
 
+#include <vector>
+#include <wx/sizer.h>
 #include <wx/tglbtn.h>
 
 wxDECLARE_EVENT(wxCUSTOMEVT_SWITCH_POS, wxCommandEvent);
+wxDECLARE_EVENT(wxCUSTOMEVT_MULTISWITCH_SELECTION, wxCommandEvent);
+
+class Button;
 
 class SwitchButton : public wxBitmapToggleButton
 {
@@ -58,6 +63,8 @@ public:
     void msw_rescale() { Rescale(); }
 
     bool Enable(bool enable = true) override;
+    void SetDevMode(bool enable = true);
+    bool GetDevMode() const {return m_dev_mode;};
 
 protected:
     void doRender(wxDC& dc) override;
@@ -73,7 +80,61 @@ private:
 private:
     int      m_selection { 0 };
     bool     m_pressed   { false };
-    wxString m_tooltips[3];
+    bool     m_enabled   { true };
+    bool     m_dev_mode  { false };
+    wxString   m_tooltips[4];
+    StateColor dot_active;
+    StateColor dot_dimmed;
+    StateColor text_color;
+    StateColor track_background;
+    StateColor track_border;
+};
+
+class MultiSwitchButton : public StaticBox
+{
+public:
+    MultiSwitchButton(wxWindow *parent = nullptr, wxWindowID id = wxID_ANY, const wxPoint &pos = wxDefaultPosition,
+                      const wxSize &size = wxDefaultSize, long style = 0);
+    ~MultiSwitchButton();
+
+    int AppendOption(const wxString &option, void *clientData = nullptr);
+    void SetOptions(const std::vector<wxString> &options);
+    void DeleteAllOptions();
+
+    unsigned int GetCount() const;
+
+    int      GetSelection() const;
+    void     SetSelection(int index);
+    wxString GetSelectedText() const;
+
+    wxString GetOptionText(unsigned int index) const;
+    void     SetOptionText(unsigned int index, const wxString &text);
+
+    void *GetOptionData(unsigned int index) const;
+    void  SetOptionData(unsigned int index, void *clientData);
+
+    void SetBackgroundColor(const StateColor &color);
+    void SetTextColor(const StateColor &color);
+    void SetButtonCornerRadius(double radius);
+    void SetButtonPadding(const wxSize &padding);
+
+    void Rescale();
+
+protected:
+    void button_clicked(wxCommandEvent &event);
+    void update_button_styles();
+
+    bool send_selection_event();
+
+private:
+    std::vector<Button *> btns;
+    wxBoxSizer           *sizer = nullptr;
+    int                   sel   = -1;
+
+    StateColor m_bg_color;
+    StateColor m_text_color;
+    double     m_button_radius;
+    wxSize     m_button_padding;
 };
 
 class SwitchBoard : public wxWindow

@@ -23,6 +23,7 @@
 #include "PrePrintChecker.hpp"
 
 #include "DeviceCore/DevConfig.h"
+#include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
@@ -1572,10 +1573,11 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             if (target_machine_nozzle_id < flow_type_of_machine.size()) {
                 if (flow_type_of_machine[target_machine_nozzle_id] != used_extruders_flow[it->first]) {
                     wxString pos;
+                    auto sai_nz_pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
                     if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID) {
-                        pos = _L("left nozzle");
+                        pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     } else if ((target_machine_nozzle_id == MAIN_EXTRUDER_ID)) {
-                        pos = _L("right nozzle");
+                        pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     }
 
                     error_message = wxString::Format(_L("The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "
@@ -1908,58 +1910,6 @@ bool SyncAmsInfoDialog::is_blocking_printing(MachineObject *obj_)
     }
 
     return false;
-}
-
-bool SyncAmsInfoDialog::is_same_nozzle_diameters(NozzleType &tag_nozzle_type, float &nozzle_diameter)
-{
-    bool is_same_nozzle_diameters = true;
-
-    float       preset_nozzle_diameters;
-    std::string preset_nozzle_type;
-
-    DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-
-    MachineObject *obj_ = dev->get_selected_machine();
-    if (obj_ == nullptr) return true;
-
-    try {
-        PresetBundle *preset_bundle        = wxGetApp().preset_bundle;
-        auto          opt_nozzle_diameters = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
-
-        const ConfigOptionEnumsGenericNullable *nozzle_type = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnumsGenericNullable>("nozzle_type");
-        std::vector<std::string>                preset_nozzle_types(nozzle_type->size());
-        for (size_t idx = 0; idx < nozzle_type->size(); ++idx) preset_nozzle_types[idx] = NozzleTypeEumnToStr[NozzleType(nozzle_type->values[idx])];
-
-        std::vector<std::string> machine_nozzle_types(obj_->GetExtderSystem()->GetTotalExtderCount());
-        for (size_t idx = 0; idx < obj_->GetExtderSystem()->GetTotalExtderCount(); ++idx) machine_nozzle_types[idx] = obj_->GetExtderSystem()->GetNozzleType(idx);
-
-        auto used_filaments = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_filaments();                                  // 1 based
-        auto filament_maps  = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(preset_bundle->project_config); // 1 based
-
-        std::vector<int> used_extruders; // 0 based
-        for (auto f : used_filaments) {
-            int filament_extruder = filament_maps[f - 1] - 1;
-            if (std::find(used_extruders.begin(), used_extruders.end(), filament_extruder) == used_extruders.end()) used_extruders.emplace_back(filament_extruder);
-        }
-        std::sort(used_extruders.begin(), used_extruders.end());
-
-        // TODO [tao wang] : add idx mapping
-        tag_nozzle_type = obj_->GetExtderSystem()->GetNozzleType(0);
-
-        if (opt_nozzle_diameters != nullptr) {
-            for (auto i = 0; i < used_extruders.size(); i++) {
-                auto extruder           = used_extruders[i];
-                preset_nozzle_diameters = float(opt_nozzle_diameters->get_at(extruder));
-                if (preset_nozzle_diameters != obj_->GetExtderSystem()->GetNozzleDiameter(0)) { is_same_nozzle_diameters = false; }
-            }
-        }
-
-    } catch (...) {}
-
-    nozzle_diameter = preset_nozzle_diameters;
-
-    return is_same_nozzle_diameters;
 }
 
 bool SyncAmsInfoDialog::is_same_nozzle_type(std::string &filament_type, NozzleType &tag_nozzle_type)

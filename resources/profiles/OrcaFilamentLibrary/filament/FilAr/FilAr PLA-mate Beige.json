@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Beige",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "filament_id": "FILAR0032",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#D8C4A0"
+    ]
+}

@@ -546,8 +546,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase *, ModelConfig *> const &configs)
 {
     for (auto &k : keys) {
-        if (/*k == "adaptive_layer_height" || */ k == "independent_support_layer_height" || k == "enable_support" ||
-            k == "detect_thin_wall" || k == "tree_support_adaptive_layer_height")
+        if (k == "independent_support_layer_height" || k == "enable_support" || k == "detect_thin_wall")
             config->set_key_value(k, new ConfigOptionBool(true));
         else if (k == "wall_loops")
             config->set_key_value(k, new ConfigOptionInt(0));
@@ -572,7 +571,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 {
     PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
 
-    auto gcflavor = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+    const GCodeFlavor gcflavor = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+
+    // Orca: use booleans to avoid repeated comparisons with enum values
+    const bool gcf_is_marlin_firmware = gcflavor == GCodeFlavor::gcfMarlinFirmware;
+    const bool gcf_is_klipper = gcflavor == GCodeFlavor::gcfKlipper;
 
     bool have_volumetric_extrusion_rate_slope = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope")->value > 0;
     float have_volumetric_extrusion_rate_slope_segment_length = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope_segment_length")->value;
@@ -593,9 +596,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_field(el, have_perimeters);
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
-    // sparse_infill_filament uses the same logic as in Print::extruders()
+    // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
-        "minimum_sparse_infill_area", "sparse_infill_filament", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
+        "minimum_sparse_infill_area", "sparse_infill_filament_id", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
 
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
@@ -605,6 +608,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
     bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
+
+    // gyroid_optimized only applies when the sparse infill pattern is gyroid;
+    // hide the whole line otherwise.
+    toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid);
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
@@ -652,8 +659,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("bottom_surface_density", has_bottom_shell);
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
-        "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle",
-        "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "solid_infill_filament",
+        "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
+        "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id",
         })
         toggle_field(el, have_infill || has_solid_infill);
 
@@ -672,23 +679,28 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         "top_surface_acceleration", "travel_acceleration", "bridge_acceleration", "sparse_infill_acceleration", "internal_solid_infill_acceleration"})
         toggle_field(el, have_default_acceleration);
 
-    bool machine_supports_junction_deviation = false;
-    if (gcflavor == gcfMarlinFirmware) {
-        if (const auto *machine_jd = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")) {
-            machine_supports_junction_deviation = !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
-        }
-    }
-    toggle_line("default_junction_deviation", gcflavor == gcfMarlinFirmware);
-    if (machine_supports_junction_deviation) {
-        toggle_field("default_junction_deviation", true);
-        toggle_field("default_jerk", false);
-        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"})
+    const bool junction_deviation_enabled =
+        gcf_is_marlin_firmware &&
+        [&]() {
+            const auto *machine_jd = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
+            return machine_jd && !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
+        }();
+
+    toggle_line("default_junction_deviation", gcf_is_marlin_firmware);
+    toggle_field("default_junction_deviation", junction_deviation_enabled);
+    toggle_field("default_jerk", !junction_deviation_enabled);
+
+    const std::initializer_list<const char*> jerk_options = {
+        "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk",
+        "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"
+    };
+
+    if (junction_deviation_enabled) {
+        for (auto el : jerk_options)
             toggle_line(el, false);
     } else {
-        toggle_field("default_junction_deviation", false);
-        toggle_field("default_jerk", true);
-        bool have_default_jerk = config->has("default_jerk") && config->opt_float("default_jerk") > 0;
-        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"}) {
+        const bool have_default_jerk = config->has("default_jerk") && config->opt_float("default_jerk") > 0;
+        for (auto el : jerk_options) {
             toggle_line(el, true);
             toggle_field(el, have_default_jerk);
         }
@@ -708,8 +720,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     toggle_field("brim_width", have_brim_width);
     toggle_field("brim_flow_ratio", have_brim);
-    // wall_filament uses the same logic as in Print::extruders()
-    toggle_field("wall_filament", have_perimeters || have_brim);
+    // Wall filament selectors use the same logic as in Print::extruders().
+    toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
+    toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
 
     bool have_brim_ear = (config->opt_enum<BrimType>("brim_type") == btEar);
     const auto brim_width = config->opt_float("brim_width");
@@ -742,19 +755,20 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
-    bool support_is_normal_tree = support_is_tree && support_style != smsTreeOrganic &&
-    // Orca: use organic as default
-    support_style != smsDefault;
-    bool support_is_organic = support_is_tree && !support_is_normal_tree;
-    // settings shared by normal and organic trees
-    for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter" })
-        toggle_line(el, support_is_normal_tree);
+    bool support_is_organic = support_is_tree && (support_style == smsTreeOrganic || support_style == smsDefault);
+    bool support_is_normal_tree = support_is_tree && !support_is_organic;
+
+    // hide settings that are not used by tree supports
+    toggle_line("support_threshold_overlap", !support_is_tree); // ORCA: tree supports do not use Threshold Overlap
     // settings specific to normal trees
-    for (auto el : {"tree_support_auto_brim", "tree_support_brim_width", "tree_support_adaptive_layer_height"})
+    for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter", "tree_support_auto_brim", "tree_support_brim_width"})
         toggle_line(el, support_is_normal_tree);
     // settings specific to organic trees
     for (auto el : {"tree_support_branch_angle_organic", "tree_support_branch_distance_organic", "tree_support_branch_diameter_organic", "tree_support_angle_slow", "tree_support_tip_diameter", "tree_support_top_rate", "tree_support_branch_diameter_angle"})
         toggle_line(el, support_is_organic);
+    // ORCA: Independent support layer height is not compatible with organic tree supports,
+    // as they rely on the support layers being the same as the object layers to determine where to place branches.
+    toggle_line("independent_support_layer_height", have_support_material && !support_is_organic);
 
     toggle_field("tree_support_brim_width", support_is_tree && !config->opt_bool("tree_support_auto_brim"));
     // tree support use max_bridge_length instead of bridge_no_support
@@ -788,9 +802,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("raft_contact_distance", have_raft && !have_support_soluble);
 
-    // Orca: Raft, grid, snug and organic supports use these two parameters to control the size & density of the "brim"/flange
-    for (auto el : { "raft_first_layer_expansion", "raft_first_layer_density"})
-        toggle_field(el, have_support_material && !(support_is_normal_tree && !have_raft));
+    // Orca: First-layer density is available for supports broadly.
+    toggle_field("raft_first_layer_density", have_support_material);
+    // Orca: For regular tree (Slim/Strong) without raft, hide first-layer expansion.
+    // Keep it enabled for non-tree supports, organic tree, hybrid tree, and any raft case.
+    toggle_field("raft_first_layer_expansion",
+                 have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
     for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
@@ -828,9 +845,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && config->opt_bool("enable_tower_interface_features"));
-
-    for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"})
-        toggle_line(el, !bSEMM);
 
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 
@@ -900,8 +914,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("wipe_speed",!is_role_based_wipe_speed);
 
     for (auto el : {"accel_to_decel_enable", "accel_to_decel_factor"})
-        toggle_line(el, gcflavor == gcfKlipper);
-    if(gcflavor == gcfKlipper)
+        toggle_line(el, gcf_is_klipper);
+    if(gcf_is_klipper)
         toggle_field("accel_to_decel_factor", config->opt_bool("accel_to_decel_enable"));
 
     bool have_make_overhang_printable = config->opt_bool("make_overhang_printable");
@@ -957,6 +971,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options);
+
+    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning;
+    for (auto el : { "lightning_overhang_angle", "lightning_prune_angle", "lightning_straightening_angle" })
+        toggle_line(el, lightning_options);
         
     // Adaptative Cubic and support cubic infill patterns do not support infill rotation.
     bool FillAdaptive = (pattern == InfillPattern::ipAdaptiveCubic || pattern == InfillPattern::ipSupportCubic);

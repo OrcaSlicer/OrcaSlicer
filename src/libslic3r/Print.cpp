@@ -133,6 +133,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "fan_cooling_layer_time",
         "full_fan_speed_layer",
         "fan_kickstart",
+        "part_cooling_fan_min_pwm",
         "fan_speedup_overhangs",
         "fan_speedup_time",
         "filament_colour",
@@ -237,7 +238,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "bed_temperature_formula",
         "filament_notes",
         "process_notes",
-        "printer_notes"
+        "printer_notes",
+        "use_3mf"
     };
 
     static std::unordered_set<std::string> steps_ignore;
@@ -360,6 +362,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_filament"
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"
+            || opt_key == "tool_change_on_wipe_tower"
             || opt_key == "purge_in_prime_tower"
             || opt_key == "z_offset"
             || opt_key == "support_multi_bed_types"
@@ -1253,14 +1256,23 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
     return ret;
 }
 
-// Orca: this g92e0 regex is used copied from PrusaSlicer
-// Matches "G92 E0" with various forms of writing the zero and with an optional comment.
-boost::regex regex_g92e0 { "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$" };
-
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
-//BBS: refine seq-print validation logic.....FIXME:StringObjectException *warning can only contain one warning, but there might be many warnings, need a vector<StringObjectException>
-StringObjectException Print::validate(StringObjectException *warning, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
+//BBS: refine seq-print validation logic
+StringObjectException Print::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
+    auto add_warning = [warnings](StringObjectException w) {
+        w.is_warning = true;
+        if (warnings != nullptr)
+            warnings->push_back(std::move(w));
+    };
+    auto warn = [&](std::string msg, std::string opt_key = "", const ObjectBase* object = nullptr) {
+        StringObjectException w;
+        w.string  = std::move(msg);
+        w.opt_key = std::move(opt_key);
+        w.object  = object;
+        add_warning(std::move(w));
+    };
+
     std::vector<unsigned int> extruders = this->extruders();
     unsigned int nozzles = m_config.nozzle_diameter.size();
 
@@ -1275,9 +1287,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         if (!ret.string.empty())
         {
             ret.type = STRING_EXCEPT_FILAMENTS_DIFFERENT_TEMP;
-            if (ret.is_warning && warning != nullptr) {
-                *warning = ret;
-                //return {};
+            if (ret.is_warning) {
+                add_warning(ret);
             }else
                 return ret;
         }
@@ -1303,32 +1314,26 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
     else {
         //BBS
-        auto ret = layered_print_cleareance_valid(*this, warning);
+        StringObjectException layer_warning;
+        auto ret = layered_print_cleareance_valid(*this, &layer_warning);
         if (!ret.string.empty()) {
             ret.type = STRING_EXCEPT_OBJECT_COLLISION_IN_LAYER_PRINT;
             return ret;
         }
+        if (!layer_warning.string.empty())
+            add_warning(layer_warning);
     }
 
     if (m_config.enable_prime_tower) {
         for (const PrintObject* object : m_objects) {
-            if (object->config().precise_z_height.value && warning != nullptr) {
-                StringObjectException warningtemp;
-                warningtemp.string     = L("Enabling both precise Z height and the prime tower may cause slicing errors.");
-                warningtemp.opt_key    = "precise_z_height";
-                warningtemp.is_warning = true;
-                *warning               = warningtemp;
+            if (object->config().precise_z_height.value) {
+                warn(L("Enabling both precise Z height and the prime tower may cause slicing errors."), "precise_z_height");
                 break;
             }
         }
     } else {
-        if (m_config.enable_wrapping_detection && warning!=nullptr) {
-            StringObjectException warningtemp;
-            warningtemp.string     = L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
-            warningtemp.opt_key    = "enable_prime_tower";
-            warningtemp.is_warning = true;
-            *warning               = warningtemp;
-        }
+        if (m_config.enable_wrapping_detection)
+            warn(L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model."), "enable_prime_tower");
     }
 
     if (m_config.spiral_mode) {
@@ -1424,8 +1429,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             if (nozzle_diam - EPSILON > first_nozzle_diam || nozzle_diam + EPSILON < first_nozzle_diam
                 || std::abs((filament_diam - first_filament_diam) / first_filament_diam) > 0.1) {
                 // return { L("Different nozzle diameters and different filament diameters may not work well when prime tower is enabled. It's very experimental, please proceed with caucious.") };
-                    warning->string = L("Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution.");
-                    warning->opt_key = "nozzle_diameter";
+                    warn(L("Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."), "nozzle_diameter");
                     break;
                 }
         }
@@ -1543,12 +1547,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         auto validate_extrusion_width = [min_nozzle_diameter, max_nozzle_diameter](const ConfigBase &config, const char *opt_key, double layer_height, std::string &err_msg) -> bool {
             double extrusion_width_min = config.get_abs_value(opt_key, min_nozzle_diameter);
             double extrusion_width_max = config.get_abs_value(opt_key, max_nozzle_diameter);
-        	if (extrusion_width_min == 0) {
-        		// Default "auto-generated" extrusion width is always valid.
-        	} else if (extrusion_width_min <= layer_height) {
-                err_msg = L("Too small line width");
-				return false;
-			} else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
+            if (extrusion_width_min == 0) {
+                // Default "auto-generated" extrusion width is always valid.
+            } else if (extrusion_width_min <= layer_height) {
+                    err_msg = L("Too small line width");
+                    return false;
+                } else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
                 err_msg = L("Too large line width");
 				return false;
 			}
@@ -1582,22 +1586,15 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         // Orca: use organic as default
                         object->config().support_style == smsDefault) {
 
-                        if (warning) {
-                            // Orca: check the support wall count and the base pattern
-                            if (object->config().tree_support_wall_count > 1 &&
-                                object->config().support_base_pattern != SupportMaterialPattern::smpNone &&
-                                object->config().support_base_pattern != SupportMaterialPattern::smpDefault) {
-                                warning->string = L("For Organic supports, two walls are supported only with the Hollow/Default base pattern.");
-                                warning->opt_key = "support_base_pattern";
-                            }
+                        // Orca: check the support wall count and the base pattern
+                        if (object->config().tree_support_wall_count > 1 &&
+                            object->config().support_base_pattern != SupportMaterialPattern::smpNone &&
+                            object->config().support_base_pattern != SupportMaterialPattern::smpDefault)
+                            warn(L("For Organic supports, two walls are supported only with the Hollow/Default base pattern."), "support_base_pattern");
 
-                            // Orca: check if the Lightning base pattern selected
-                            if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning) {
-                                warning->string = L(
-                                    "The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
-                                warning->opt_key = "support_base_pattern";
-                            }
-                        }
+                        // Orca: check if the Lightning base pattern selected
+                        if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning)
+                            warn(L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead."), "support_base_pattern");
 
                         float extrusion_width = std::min(
                             support_material_flow(object).width(),
@@ -1609,28 +1606,23 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
                             return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
                     }
-                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning && warning) {
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning) {
                     // Orca: check if the Lightning base pattern selected
-                    warning->string  = L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
-                    warning->opt_key = "support_base_pattern";
-                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpNone && warning) {
+                    warn(L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead."), "support_base_pattern");
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpNone) {
                     // Orca: check if the Hollow base pattern selected
-                    warning->string  = L("The Hollow base pattern is not supported by this support type; Rectilinear will be used instead.");
-                    warning->opt_key = "support_base_pattern";
+                    warn(L("The Hollow base pattern is not supported by this support type; Rectilinear will be used instead."), "support_base_pattern");
                 }
             }
 
             // Do we have custom support data that would not be used?
             // Notify the user in that case.
-            if (! object->has_support() && warning) {
+            if (! object->has_support()) {
                 for (const ModelVolume* mv : object->model_object()->volumes) {
                     bool has_enforcers = mv->is_support_enforcer() ||
                         (mv->is_model_part() && mv->supported_facets.has_facets(*mv, EnforcerBlockerType::ENFORCER));
                     if (has_enforcers) {
-                        StringObjectException warningtemp;
-                        warningtemp.string = L("Support enforcers are used but support is not enabled. Please enable support.");
-                        warningtemp.object  = object;
-                        *warning            = warningtemp;
+                        warn(L("Support enforcers are used but support is not enabled. Please enable support."), "", object);
                         break;
                     }
                 }
@@ -1670,30 +1662,83 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 				for (const PrintRegion &region : object->all_regions())
                     if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
 		            	return  {err_msg, object, opt_key};
+
+            const bool allow_thin_bridge_width = object->config().thick_bridges && object->config().thick_internal_bridges;
+            for (const PrintRegion &region : object->all_regions()) {
+                const auto &bridge_width_opt = region.config().bridge_line_width;
+                for (FlowRole bridge_role : { frPerimeter, frInfill, frSolidInfill, frTopSolidInfill }) {
+                    const double nozzle_diameter = m_config.nozzle_diameter.get_at(region.extruder(bridge_role) - 1);
+                    const double bridge_width    = bridge_width_opt.get_abs_value(nozzle_diameter);
+                    if (bridge_width <= 0.)
+                        continue;
+                    if (bridge_width > nozzle_diameter) {
+                        err_msg = L("Bridge line width must not exceed nozzle diameter");
+                        return { err_msg, object, "bridge_line_width" };
+                    }
+                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                        err_msg = L("Too small line width");
+                        return { err_msg, object, "bridge_line_width" };
+                    }
+                }
+            }
         }
     }
 
     // Orca: G92 E0 is not supported when using absolute extruder addressing
-    // This check is copied from PrusaSlicer, the original author is Vojtech Bubnik
-    if(!is_BBL_printer()) {
-        bool before_layer_gcode_resets_extruder =
-            boost::regex_search(m_config.before_layer_change_gcode.value, regex_g92e0);
-        bool layer_gcode_resets_extruder = boost::regex_search(m_config.layer_change_gcode.value, regex_g92e0);
-        if (m_config.use_relative_e_distances) {
-            // See GH issues #6336 #5073
-            if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
-                !before_layer_gcode_resets_extruder && !layer_gcode_resets_extruder)
-                return {L("Relative extruder addressing requires resetting the extruder position at each layer to "
-                          "prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."),
-                        nullptr, "before_layer_change_gcode"};
-        } else if (before_layer_gcode_resets_extruder)
-            return {L("\"G92 E0\" was found in before_layer_gcode, which is incompatible with absolute extruder "
+    // This check is modified from PrusaSlicer, the original author is Vojtech Bubnik
+    // Orca: case‑sensitive match for exactly "G92 E0" (uppercase G and E only) 
+    // because gcode is case sensitive and G92 e0 satisfies the regex but causes a slicing error
+    // https://github.com/OrcaSlicer/OrcaSlicer/issues/13927
+
+	    // Matches any case of "G92 E0" (original pattern)
+    static const boost::regex regex_g92e0 {
+        "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+    };
+    // Matches only the exact uppercase "G92 E0"
+    static const boost::regex regex_g92e0_correct {
+        "^[ \\t]*G92[ \\t]*E(0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$"
+    };
+
+    const bool before_has_g92_any = boost::regex_search(
+        m_config.before_layer_change_gcode.value, regex_g92e0);
+    const bool layer_has_g92_any  = boost::regex_search(
+        m_config.layer_change_gcode.value, regex_g92e0);
+
+    if (m_config.use_relative_e_distances) {
+        // Relative mode: "G92 E0" is required to reset extruder position.
+        const bool before_has_g92_exact = boost::regex_search(
+            m_config.before_layer_change_gcode.value, regex_g92e0_correct);
+        const bool layer_has_g92_exact  = boost::regex_search(
+            m_config.layer_change_gcode.value, regex_g92e0_correct);
+
+        // Wrong case found?
+        if (before_has_g92_any && !before_has_g92_exact)
+            return {L("\"G92 E0\" was found in before_layer_change_gcode, but the G or E are not uppercase. "
+                      "Please change them to the exact uppercase \"G92 E0\"."),
+                    nullptr, "before_layer_change_gcode"};
+        if (layer_has_g92_any && !layer_has_g92_exact)
+            return {L("\"G92 E0\" was found in layer_change_gcode, but the G or E are not uppercase. "
+                      "Please change them to the exact uppercase \"G92 E0\"."),
+                    nullptr, "layer_change_gcode"};
+
+        // Only Marlin flavours need the reset; BBL printers do not.
+        if ((m_config.gcode_flavor == gcfMarlinLegacy || m_config.gcode_flavor == gcfMarlinFirmware) &&
+            !is_BBL_printer() &&
+            !before_has_g92_exact && !layer_has_g92_exact)
+            return {L("Relative extruder addressing requires resetting the extruder position at each layer to "
+                      "prevent loss of floating point accuracy. Add \"G92 E0\" to layer_gcode."),
+                    nullptr, "before_layer_change_gcode"};
+    } else {
+        // Absolute mode: any occurrence of "G92 E0" is incompatible.
+        if (before_has_g92_any)
+            return {L("\"G92 E0\" was found in before_layer_change_gcode, which is incompatible with absolute extruder "
                       "addressing."),
                     nullptr, "before_layer_change_gcode"};
-        else if (layer_gcode_resets_extruder)
-            return {L("\"G92 E0\" was found in layer_gcode, which is incompatible with absolute extruder addressing."),
+        if (layer_has_g92_any)
+            return {L("\"G92 E0\" was found in layer_change_gcode, which is incompatible with absolute extruder "
+                      "addressing."),
                     nullptr, "layer_change_gcode"};
-    }
+	}
 
     const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
     assert(bed_type_def != nullptr);
@@ -1729,7 +1774,11 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     // check if print speed/accel/jerk is higher than the maximum speed of the printer
-    if (warning) {
+    if (warnings) {
+        // The motion-ability checks are mutually exclusive (gated on warning_key), so collect the
+        // single one that fires into a local and push it once - separate from the precise-wall and
+        // shrinkage warnings below.
+        StringObjectException motion_warning;
         try {
             auto check_motion_ability_object_setting = [&](const std::vector<std::string>& keys_to_check, double limit) -> std::string {
                 std::string warning_key;
@@ -1753,47 +1802,45 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             };
             std::string warning_key;
 
-            // check jerk
-            if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
-                m_default_object_config.inner_wall_jerk == 1) {
-               warning->string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
-               if (m_default_object_config.outer_wall_jerk == 1)
-                    warning_key = "outer_wall_jerk";
-               else if (m_default_object_config.inner_wall_jerk == 1)
-                    warning_key = "inner_wall_jerk";
-               else
-                    warning_key = "default_jerk";
-
-               warning->opt_key = warning_key;
-            }
-
-            if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
-               std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
-                                                         "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
-               const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
-               warning_key.clear();
-               if (m_default_object_config.default_jerk > 0)
-                    warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
-               if (!warning_key.empty()) {
-                    warning->string = L(
-                        "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\nOrca will "
-                        "automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\nYou can adjust the "
-                        "maximum jerk setting in your printer's configuration to get higher speeds.");
-                    warning->opt_key = warning_key;
-               }
-            }
-
-            // Check junction deviation
             const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
-            // Orca: Only marlin FW supports max junction deviation. Dont display warning if firmware is not supporting it.
-            const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
-            if (warning_key.empty() && m_default_object_config.default_junction_deviation.value > max_junction_deviation && support_max_junction_deviation) {
-                warning->string  = L( "Junction deviation setting exceeds the printer's maximum value "
-                                      "(machine_max_junction_deviation).\nOrca will "
-                                      "automatically cap the junction deviation to ensure it doesn't surpass the printer's "
-                                      "capabilities.\nYou can adjust the "
-                                      "machine_max_junction_deviation value in your printer's configuration to get higher limits.");
-                warning->opt_key = warning_key;
+            const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
+
+            // check jerk
+            if (!ignore_jerk_validation) {
+                if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
+                    m_default_object_config.inner_wall_jerk == 1) {
+                   motion_warning.string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
+                   if (m_default_object_config.outer_wall_jerk == 1)
+                        warning_key = "outer_wall_jerk";
+                   else if (m_default_object_config.inner_wall_jerk == 1)
+                        warning_key = "inner_wall_jerk";
+                   else
+                        warning_key = "default_jerk";
+
+                   motion_warning.opt_key = warning_key;
+                }
+
+                if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
+                   std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
+                                                             "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
+                   const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
+                   warning_key.clear();
+                   warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
+                   if (!warning_key.empty()) {
+                        motion_warning.string = L(
+                            "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
+                            "Orca will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
+                            "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
+                        motion_warning.opt_key = warning_key;
+                   }
+                }
+            }
+            // check junction deviation
+            else if (m_default_object_config.default_junction_deviation.value > max_junction_deviation) {
+                motion_warning.string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
+                                      "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
+                                      "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
+                motion_warning.opt_key = "default_junction_deviation";
             }
             
             // check acceleration
@@ -1828,12 +1875,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                     };
                warning_key = check_motion_ability_object_setting(accel_to_check, max_accel);
                if (!warning_key.empty()) {
-                    warning->string  = L("The acceleration setting exceeds the printer's maximum acceleration "
+                    motion_warning.string  = L("The acceleration setting exceeds the printer's maximum acceleration "
                                           "(machine_max_acceleration_extruding).\nOrca will "
                                           "automatically cap the acceleration speed to ensure it doesn't surpass the printer's "
                                           "capabilities.\nYou can adjust the "
                                           "machine_max_acceleration_extruding value in your printer's configuration to get higher speeds.");
-                    warning->opt_key = warning_key;
+                    motion_warning.opt_key = warning_key;
                }
                if (support_travel_acc) {
                     const auto max_travel = m_config.machine_max_acceleration_travel.values[0];
@@ -1843,13 +1890,13 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         };
                         warning_key = check_motion_ability_object_setting(accel_to_check, max_travel);
                         if (!warning_key.empty()) {
-                            warning->string = L(
+                            motion_warning.string = L(
                                 "The travel acceleration setting exceeds the printer's maximum travel acceleration "
                                 "(machine_max_acceleration_travel).\nOrca will "
                                 "automatically cap the travel acceleration speed to ensure it doesn't surpass the printer's "
                                 "capabilities.\nYou can adjust the "
                                 "machine_max_acceleration_travel value in your printer's configuration to get higher speeds.");
-                            warning->opt_key = warning_key;
+                            motion_warning.opt_key = warning_key;
                         }
                     }
                }
@@ -1875,19 +1922,17 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             // }
 
             // check wall sequence and precise outer wall
-            if (m_default_region_config.precise_outer_wall && m_default_region_config.wall_sequence != WallSequence::InnerOuter) {
-                warning->string  = L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.");
-                warning->opt_key = "precise_outer_wall";
-            }
+            if (m_default_region_config.precise_outer_wall && m_default_region_config.wall_sequence != WallSequence::InnerOuter)
+                warn(L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."), "precise_outer_wall");
 
         } catch (std::exception& e) {
             BOOST_LOG_TRIVIAL(warning) << "Orca: validate motion ability failed: " << e.what() << std::endl;
         }
+        if (!motion_warning.string.empty())
+            add_warning(motion_warning);
     }
-    if (!this->has_same_shrinkage_compensations()){
-        warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments does not match.");
-        warning->opt_key = "";
-    }
+    if (!this->has_same_shrinkage_compensations())
+        warn(L("Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."));
     return {};
 }
 
@@ -1970,7 +2015,7 @@ Flow Print::brim_flow() const
         frPerimeter,
         // Flow::new_from_config_width takes care of the percent to value substitution
 		width,
-        (float)m_config.nozzle_diameter.get_at(m_print_regions.front()->config().wall_filament-1),
+        (float)m_config.nozzle_diameter.get_at(m_print_regions.front()->config().outer_wall_filament_id-1),
 		(float)this->skirt_first_layer_height());
 }
 
@@ -2584,7 +2629,8 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     gcode.do_export(this, path.c_str(), result, thumbnail_cb);
     gcode.export_layer_filaments(result);
     //BBS
-    result->conflict_result = m_conflict_result;
+    if (result != nullptr)
+        result->conflict_result = m_conflict_result;
     return path.c_str();
 }
 
@@ -3497,6 +3543,24 @@ std::string Print::output_filename(const std::string &filename_base) const
     config.set_key_value("plate_number", new ConfigOptionString(get_plate_number_formatted()));
     config.set_key_value("model_name", new ConfigOptionString(get_model_name()));
 
+    // the same type of filament contains multiple names, support exporting according to the filament name
+    auto full_print_config = this->full_print_config();
+    const ConfigOptionStrings* filament_settings_id = full_print_config.option<ConfigOptionStrings>("filament_settings_id");
+    std::string filament_name = "";
+    auto extruders = this->extruders(true);
+    if(!extruders.empty()) {
+        // first extruder is the default extruder
+        int extruder_id = extruders.front();
+        if(filament_settings_id->values.size() > extruder_id) {
+            filament_name = filament_settings_id->values[extruder_id];
+        }
+    }
+    size_t end_pos = filament_name.find_first_of("@");
+    if (end_pos != std::string::npos) {
+        filament_name = filament_name.substr(0, end_pos);
+    }
+    config.set_key_value("filament_name", new ConfigOptionString(filament_name));
+
     return this->PrintBase::output_filename(m_config.filename_format.value, ".gcode", filename_base, &config);
 }
 
@@ -3589,9 +3653,12 @@ DynamicConfig PrintStatistics::config() const
     config.set_key_value("total_cost",                new ConfigOptionFloat(this->total_cost));
     config.set_key_value("total_toolchanges",         new ConfigOptionInt(this->total_toolchanges));
     config.set_key_value("total_weight",              new ConfigOptionFloat(this->total_weight));
+    config.set_key_value("extruded_weight_total",     new ConfigOptionFloat(this->total_weight));
+    config.set_key_value("extruded_volume_total",     new ConfigOptionFloat(this->total_extruded_volume));
     config.set_key_value("total_wipe_tower_cost",     new ConfigOptionFloat(this->total_wipe_tower_cost));
     config.set_key_value("total_wipe_tower_filament", new ConfigOptionFloat(this->total_wipe_tower_filament));
     config.set_key_value("initial_tool",              new ConfigOptionInt(static_cast<int>(this->initial_tool)));
+    config.set_key_value("initial_extruder",          new ConfigOptionInt(static_cast<int>(this->initial_tool)));
     return config;
 }
 
@@ -3600,8 +3667,8 @@ DynamicConfig PrintStatistics::placeholders()
     DynamicConfig config;
     for (const std::string key : {
         "print_time", "normal_print_time", "silent_print_time",
-        "used_filament", "extruded_volume", "total_cost", "total_weight",
-        "initial_tool", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
+        "used_filament", "extruded_volume", "extruded_volume_total", "total_cost", "total_weight", "extruded_weight_total",
+        "initial_tool", "initial_extruder", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
         config.set_key_value(key, new ConfigOptionString(std::string("{") + key + "}"));
     return config;
 }

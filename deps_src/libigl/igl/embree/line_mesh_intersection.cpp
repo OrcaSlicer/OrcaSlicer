@@ -12,8 +12,8 @@
 #include <cstdio>
 #include <vector>
 
-#include <igl/per_vertex_normals.h>
-#include <igl/embree/EmbreeIntersector.h>
+#include "../per_vertex_normals.h"
+#include "EmbreeIntersector.h"
 
 template <typename ScalarMatrix, typename IndexMatrix>
 IGL_INLINE ScalarMatrix igl::embree::line_mesh_intersection
@@ -41,7 +41,7 @@ IGL_INLINE ScalarMatrix igl::embree::line_mesh_intersection
   // Shoot rays from the source to the target
   for (unsigned i=0; i<ray_pos.rows(); ++i)
   {
-    igl::Hit A,B;
+    igl::Hit<float> A,B;
     // Shoot ray A
     Eigen::RowVector3d A_pos = ray_pos.row(i) + tol * ray_dir.row(i);
     Eigen::RowVector3d A_dir = -ray_dir.row(i);
