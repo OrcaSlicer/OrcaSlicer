@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:21-0300\n"
+"POT-Creation-Date: 2026-06-18 09:16-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -7888,10 +7888,10 @@ msgstr ""
 msgid "Color only"
 msgstr ""
 
-msgid "Network plug-in"
+msgid "Bambu network plug-in"
 msgstr ""
 
-msgid "Enable network plug-in"
+msgid "Enable Bambu network plug-in"
 msgstr ""
 
 msgid "Network plug-in version"
@@ -8004,6 +8004,9 @@ msgid "debug"
 msgstr ""
 
 msgid "trace"
+msgstr ""
+
+msgid "Network plug-in"
 msgstr ""
 
 msgid "Reload"
@@ -11749,7 +11752,9 @@ msgstr ""
 msgid "Enable adaptive pressure advance for overhangs (beta)"
 msgstr ""
 
-msgid "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+msgid ""
+"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
 msgstr ""
 
 msgid "Pressure advance for bridges"

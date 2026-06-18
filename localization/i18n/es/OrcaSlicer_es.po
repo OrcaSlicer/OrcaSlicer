@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 14:21-0300\n"
+"POT-Creation-Date: 2026-06-18 09:16-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -8291,11 +8291,11 @@ msgstr "Filamento y color"
 msgid "Color only"
 msgstr "Solo color"
 
-msgid "Network plug-in"
-msgstr "Plugin de red"
+msgid "Bambu network plug-in"
+msgstr ""
 
-msgid "Enable network plug-in"
-msgstr "Activar el plugin de red"
+msgid "Enable Bambu network plug-in"
+msgstr ""
 
 msgid "Network plug-in version"
 msgstr "Versión del plugin de red"
@@ -8420,6 +8420,9 @@ msgstr "depurar"
 
 msgid "trace"
 msgstr "traza"
+
+msgid "Network plug-in"
+msgstr "Plugin de red"
 
 msgid "Reload"
 msgstr "Recargar"
@@ -12577,8 +12580,10 @@ msgstr ""
 msgid "Enable adaptive pressure advance for overhangs (beta)"
 msgstr "Activación del Avance de Presión Adaptativo para Voladizos (beta)"
 
-msgid "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-msgstr "Habilitar PA adaptable para voladizos, así como cuando el flujo cambia dentro de una misma característica. Se trata de una opción experimental, ya que si el perfil PA no se ajusta con precisión, causará problemas de uniformidad en las superficies externas antes y después de los voladizos.\n"
+msgid ""
+"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgstr ""
 
 msgid "Pressure advance for bridges"
 msgstr "Pressure advance para puentes"
@@ -19377,7 +19382,8 @@ msgstr ""
 "Divide tus impresiones en camas\n"
 "¿Sabías que puedes dividir un modelo con muchas piezas en camas individuales listas para imprimir? Esto simplificará el proceso de seguimiento de todas las piezas."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 #, fuzzy
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
@@ -19454,7 +19460,8 @@ msgstr ""
 "Mejorar la resistencia\n"
 "¿Sabías que puedes utilizar más bucles de perímetro y mayor densidad de relleno de baja densidad para mejorar la resistencia del modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 #, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
@@ -19471,6 +19478,12 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Enable network plug-in"
+#~ msgstr "Activar el plugin de red"
+
+#~ msgid "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+#~ msgstr "Habilitar PA adaptable para voladizos, así como cuando el flujo cambia dentro de una misma característica. Se trata de una opción experimental, ya que si el perfil PA no se ajusta con precisión, causará problemas de uniformidad en las superficies externas antes y después de los voladizos.\n"
 
 #~ msgid "Perform"
 #~ msgstr "Realizar"
