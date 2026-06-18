@@ -104,7 +104,6 @@
 		"10",
 		"10"
 	],
-
 	"counter_limit_max": [
 		"-0.015"
 	],
@@ -113,5 +112,9 @@
 	],
 	"hole_limit_max": [
 		"0.174"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14"
 	]
 }

@@ -84,7 +84,6 @@
 		"10",
 		"10"
 	],
-
 	"compatible_printers": [
 		"Bambu Lab H2C 0.2 nozzle"
 	],
@@ -93,5 +92,9 @@
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
+	],
+	"filament_preheat_temperature_delta": [
+		"10",
+		"10"
 	]
 }

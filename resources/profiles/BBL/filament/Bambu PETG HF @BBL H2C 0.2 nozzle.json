@@ -101,7 +101,6 @@
 		"10",
 		"10"
 	],
-
 	"counter_coef_2": [
 		"0.0058"
 	],
@@ -125,5 +124,9 @@
 	],
 	"hole_limit_min": [
 		"0.09"
+	],
+	"filament_ramming_travel_time_nc": [
+		"0",
+		"0"
 	]
 }

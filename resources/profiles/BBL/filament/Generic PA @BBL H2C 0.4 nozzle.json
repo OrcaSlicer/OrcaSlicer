@@ -79,5 +79,9 @@
 	"long_retractions_when_ec": [
 		"1",
 		"1"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14"
 	]
 }

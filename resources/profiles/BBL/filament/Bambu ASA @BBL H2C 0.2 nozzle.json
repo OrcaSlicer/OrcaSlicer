@@ -86,7 +86,6 @@
 		"10",
 		"10"
 	],
-
 	"counter_coef_2": [
 		"0.0094"
 	],
@@ -110,5 +109,9 @@
 	],
 	"hole_limit_min": [
 		"0.1261"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14"
 	]
 }

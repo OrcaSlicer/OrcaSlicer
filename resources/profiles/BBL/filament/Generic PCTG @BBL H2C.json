@@ -76,5 +76,9 @@
 	"retraction_distances_when_ec": [
 		"10",
 		"10"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14"
 	]
 }
