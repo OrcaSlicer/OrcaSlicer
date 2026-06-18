@@ -585,10 +585,20 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         //    event.Veto();
         //    return;
         //}
-        auto check = [](bool yes_or_no) {
+        bool preset_changes_saved = false;
+        bool preset_changes_saved_to_project = false;
+        auto check = [&preset_changes_saved, &preset_changes_saved_to_project](bool yes_or_no) {
+            preset_changes_saved = false;
+            preset_changes_saved_to_project = false;
             if (yes_or_no)
                 return true;
-            return wxGetApp().check_and_save_current_preset_changes(_L("Application is closing"), _L("Closing Application while some presets are modified."));
+            return wxGetApp().check_and_save_current_preset_changes(
+                _L("Application is closing"),
+                _L("Closing Application while some presets are modified."),
+                true,
+                false,
+                &preset_changes_saved,
+                &preset_changes_saved_to_project);
         };
 
         // BBS: close save project
@@ -597,6 +607,24 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             event.Veto();
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< "cancelled by close_with_confirm selection";
             return;
+        }
+        if (event.CanVeto() && preset_changes_saved && preset_changes_saved_to_project && !m_plater->get_project_filename(".3mf").IsEmpty()) {
+            int save_project_result = MessageDialog(
+                static_cast<wxWindow*>(this),
+                _L("The current project contains saved profile changes.\nDo you want to save the project before closing?"),
+                wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"),
+                wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE)
+                .ShowModal();
+            if (save_project_result == wxID_CANCEL) {
+                event.Veto();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cancelled while confirming project save after preset save";
+                return;
+            }
+            if (save_project_result == wxID_YES && m_plater->save_project() == wxID_CANCEL) {
+                event.Veto();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cancelled while saving project after preset save";
+                return;
+            }
         }
         if (event.CanVeto() && !wxGetApp().check_print_host_queue()) {
             event.Veto();
