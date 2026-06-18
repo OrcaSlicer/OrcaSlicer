@@ -424,6 +424,11 @@ jobs:
           $profiles = Get-ChildItem -Recurse -Path build -Directory -Filter profiles |
             Where-Object { $_.FullName -match 'resources' } | Select-Object -First 1
           if (-not $profiles) { Write-Error "profiles directory not found in build tree"; exit 1 }
+          # Add the slicer's runtime DLL directory to PATH so generate_system_cache.exe
+          # can resolve its dependencies (TKernel.dll etc.) without a full install step.
+          $dll_dir = Get-ChildItem -Recurse -Path build -Filter "TKernel.dll" |
+            Select-Object -First 1 | Select-Object -ExpandProperty DirectoryName
+          if ($dll_dir) { $env:PATH = "$dll_dir;$env:PATH" }
           & $tool.FullName --path $profiles.FullName --log_level 2
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's

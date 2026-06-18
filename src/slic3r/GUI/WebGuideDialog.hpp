@@ -86,8 +86,6 @@ public:
     void on_profile_loaded();
     bool BuildProfileDataFromPresetBundle();
     bool BuildProfileDataFromBundledCache();
-    bool try_load_guide_cache();
-    void save_guide_cache() const;
     int SaveProfile();
     int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
 

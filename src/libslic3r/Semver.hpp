@@ -191,9 +191,10 @@ public:
 		return os;
 	}
 
-	// cereal: round-trip through the string representation
+	// cereal: round-trip through the standard 3-part string (major.minor.patch).
+	// to_string() uses a BBS 4-part format that semver_parse() cannot read back.
 	template<class Archive>
-	std::string save_minimal(const Archive&) const { return to_string(); }
+	std::string save_minimal(const Archive&) const { return to_string_sf(); }
 	template<class Archive>
 	void load_minimal(const Archive&, const std::string& s) {
 		if (auto v = Semver::parse(s)) *this = std::move(*v);
