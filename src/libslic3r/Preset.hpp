@@ -16,6 +16,14 @@
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+
 //BBS: change system directories
 #define PRESET_SYSTEM_DIR      "system"
 #define PRESET_USER_DIR        "user"
@@ -114,6 +122,10 @@ extern Semver get_version_from_json(std::string file_path);
 //BBS: add a function to load the key-values from xxx.json
 extern int get_values_from_json(std::string file_path, std::vector<std::string>& keys, std::map<std::string, std::string>& key_values);
 
+// Returns the cache key for a vendor JSON: the Semver string for versioned
+// vendors, or "mtime:<unix_timestamp>" for vendors without a version field.
+extern std::string get_vendor_cache_key(const std::string& json_path);
+
 extern ConfigFileType guess_config_file_type(const boost::property_tree::ptree &tree);
 
 extern void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil_to_default, const DynamicPrintConfig& defaults);
@@ -131,6 +143,9 @@ public:
         PrinterVariant() {}
         PrinterVariant(const std::string &name) : name(name) {}
         std::string                 name;
+
+        template<class Archive>
+        void serialize(Archive& ar) { ar(name); }
     };
 
     struct PrinterModel {
@@ -162,6 +177,15 @@ public:
         }
 
         const PrinterVariant* variant(const std::string &name) const { return const_cast<PrinterModel*>(this)->variant(name); }
+
+        template<class Archive>
+        void serialize(Archive& ar)
+        {
+            ar(id, name, model_id, family, technology, variants, default_materials,
+               not_support_bed_types, bed_model, bed_texture, image_bed_type,
+               bottom_texture_end_name, use_double_extruder_default_texture,
+               bottom_texture_rect, middle_texture_rect, hotend_model);
+        }
     };
     std::vector<PrinterModel>          models;
 
@@ -172,6 +196,13 @@ public:
     VendorProfile(std::string id) : id(std::move(id)) {}
 
     bool 		valid() const { return ! name.empty() && ! id.empty() && config_version.valid(); }
+
+    template<class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(id, name, config_version, config_update_url, changelog_url,
+           models, default_filaments, default_sla_materials);
+    }
 
     // Load VendorProfile from an ini file.
     // If `load_all` is false, only the header with basic info (name, version, URLs) is loaded.
@@ -425,12 +456,25 @@ public:
 
     // BBS: move constructor to public
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
-
-protected:
+    // Default constructor is public so cereal can default-construct elements when
+    // deserializing std::vector<Preset> (std::allocator is not a cereal::access friend).
     Preset() = default;
 
+protected:
     friend class        PresetCollection;
     friend class        PresetBundle;
+    friend class        cereal::access;
+
+    // Serializes the fields needed to reconstruct a system preset from a binary cache.
+    // The vendor pointer is NOT serialized — apply() reconstructs it from VendorCache::profile.id.
+    template<class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(type, name, alias, file, version,
+           filament_id, setting_id, description,
+           renamed_from, is_system, is_visible,
+           m_from_orca_filament_lib, config);
+    }
 };
 
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);

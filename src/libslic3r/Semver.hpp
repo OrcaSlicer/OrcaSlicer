@@ -190,6 +190,15 @@ public:
 		os << self.to_string();
 		return os;
 	}
+
+	// cereal: round-trip through the string representation
+	template<class Archive>
+	std::string save_minimal(const Archive&) const { return to_string(); }
+	template<class Archive>
+	void load_minimal(const Archive&, const std::string& s) {
+		if (auto v = Semver::parse(s)) *this = std::move(*v);
+	}
+
 private:
 	semver_t ver;
 

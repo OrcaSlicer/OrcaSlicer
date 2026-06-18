@@ -152,6 +152,17 @@ Semver get_version_from_json(std::string file_path)
     }
 }
 
+std::string get_vendor_cache_key(const std::string& json_path)
+{
+    const Semver ver = get_version_from_json(json_path);
+    if (ver.valid())
+        return ver.to_string();
+    // No version field — use mtime as change fingerprint so edits invalidate the cache.
+    boost::system::error_code ec;
+    const std::time_t mtime = boost::filesystem::last_write_time(json_path, ec);
+    return ec ? std::string{} : ("mtime:" + std::to_string(mtime));
+}
+
 //BBS: add a function to load the key-values from xxx.json
 int get_values_from_json(std::string file_path, std::vector<std::string>& keys, std::map<std::string, std::string>& key_values)
 {
