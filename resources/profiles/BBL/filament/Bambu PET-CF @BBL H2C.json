@@ -72,8 +72,8 @@
 		"0.167"
 	],
 	"filament_flush_temp": [
-		"0",
-		"0"
+		"270",
+		"270"
 	],
 	"nozzle_temperature": [
 		"270",
@@ -108,6 +108,7 @@
 		"10",
 		"10"
 	],
+
 	"counter_limit_max": [
 		"-0.015"
 	],

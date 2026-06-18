@@ -52,8 +52,8 @@
 		"18"
 	],
 	"filament_flush_temp": [
-		"0",
-		"0"
+		"220",
+		"220"
 	],
 	"nozzle_temperature": [
 		"220",
@@ -84,6 +84,7 @@
 		"10",
 		"10"
 	],
+
 	"compatible_printers": [
 		"Bambu Lab H2C 0.2 nozzle"
 	],
