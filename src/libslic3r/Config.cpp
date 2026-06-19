@@ -33,6 +33,7 @@ using namespace nlohmann;
 //FIXME for GCodeFlavor and gcfMarlin (for forward-compatibility conversion)
 // This is not nice, likely it would be better to pass the ConfigSubstitutionContext to handle_legacy().
 #include "PrintConfig.hpp"
+#include "VortekPlateMapping.hpp"
 
 namespace Slic3r {
 
@@ -544,6 +545,12 @@ std::string ConfigBase::opt_serialize(const t_config_option_key &opt_key) const
 {
     const ConfigOption* opt = this->option(opt_key);
     assert(opt != nullptr);
+
+    std::string serialized;
+    if (Vortek::PlateMapping::get_variant_override_serialized(this, opt_key, serialized)) {
+        return serialized;
+    }
+
     return opt->serialize();
 }
 
@@ -1509,6 +1516,15 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
     for (const std::string &opt_key : this->keys())
     {
         const ConfigOption* opt = this->option(opt_key);
+
+        // H2C: check if this option has variant overrides and serialize as JSON array via Vortek layer
+        std::vector<std::string> override_strings;
+        if (Vortek::PlateMapping::get_variant_override_values(this, opt_key, override_strings)) {
+            json j_array(override_strings);
+            j[opt_key] = j_array;
+            continue;
+        }
+
         if ( opt->is_scalar() ) {
             if (opt->type() == coString && (opt_key != "bed_custom_texture" && opt_key != "bed_custom_model"))
                 //keep \n, \r, \t

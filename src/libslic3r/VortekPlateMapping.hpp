@@ -136,6 +136,18 @@ public:
         const Slic3r::DynamicPrintConfig& new_full_config,
         std::unordered_set<std::string>& print_diff_set
     );
+
+    /**
+     * @brief Checks if a configuration has variant overrides for an option key,
+     * and returns the serialized string (comma-separated list).
+     */
+    static bool get_variant_override_serialized(const Slic3r::ConfigBase* config, const std::string& opt_key, std::string& out_serialized);
+
+    /**
+     * @brief Checks if a configuration has variant overrides for an option key,
+     * and returns the list of values.
+     */
+    static bool get_variant_override_values(const Slic3r::ConfigBase* config, const std::string& opt_key, std::vector<std::string>& out_values);
 };
 
 } // namespace Vortek

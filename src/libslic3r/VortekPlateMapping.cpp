@@ -573,4 +573,107 @@ void PlateMapping::handle_h2c_print_diff(
     }
 }
 
+bool PlateMapping::get_variant_override_serialized(const Slic3r::ConfigBase* config, const std::string& opt_key, std::string& out_serialized)
+{
+    if (!config) return false;
+    const auto* dpc = dynamic_cast<const Slic3r::DynamicPrintConfig*>(config);
+    if (!dpc) return false;
+
+    const auto& overrides = dpc->variant_overrides();
+    
+    // Helper to format double nicely
+    auto double_to_string = [](double v) {
+        if (std::floor(v) == v) {
+            return std::to_string(static_cast<long long>(v));
+        }
+        std::string s = std::to_string(v);
+        s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+        if (!s.empty() && s.back() == '.') {
+            s.pop_back();
+        }
+        return s;
+    };
+
+    // 1. Try strings map first (preserves percent notation e.g. "50%")
+    auto it_str = overrides.strings.find(opt_key);
+    if (it_str != overrides.strings.end() && !it_str->second.empty()) {
+        const auto& override_strings = it_str->second;
+        if (override_strings.size() > 1) {
+            std::string serialized = "";
+            for (size_t i = 0; i < override_strings.size(); ++i) {
+                if (i > 0) serialized += ",";
+                serialized += override_strings[i];
+            }
+            out_serialized = serialized;
+            return true;
+        }
+    }
+
+    // 2. Fallback to floats map
+    auto it_fl = overrides.floats.find(opt_key);
+    if (it_fl != overrides.floats.end() && !it_fl->second.empty()) {
+        const auto& override_floats = it_fl->second;
+        if (override_floats.size() > 1) {
+            std::string serialized = "";
+            for (size_t i = 0; i < override_floats.size(); ++i) {
+                if (i > 0) serialized += ",";
+                serialized += double_to_string(override_floats[i]);
+            }
+            out_serialized = serialized;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool PlateMapping::get_variant_override_values(const Slic3r::ConfigBase* config, const std::string& opt_key, std::vector<std::string>& out_values)
+{
+    if (!config) return false;
+    const auto* dpc = dynamic_cast<const Slic3r::DynamicPrintConfig*>(config);
+    if (!dpc) return false;
+
+    const auto& overrides = dpc->variant_overrides();
+
+    // Helper to format double nicely
+    auto double_to_string = [](double v) {
+        if (std::floor(v) == v) {
+            return std::to_string(static_cast<long long>(v));
+        }
+        std::string s = std::to_string(v);
+        s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+        if (!s.empty() && s.back() == '.') {
+            s.pop_back();
+        }
+        return s;
+    };
+
+    // 1. Try strings map first
+    auto it_str = overrides.strings.find(opt_key);
+    if (it_str != overrides.strings.end() && !it_str->second.empty()) {
+        const auto& override_strings = it_str->second;
+        if (override_strings.size() > 1) {
+            out_values = override_strings;
+            return true;
+        }
+    }
+
+    // 2. Fallback to floats map
+    auto it_fl = overrides.floats.find(opt_key);
+    if (it_fl != overrides.floats.end() && !it_fl->second.empty()) {
+        const auto& override_floats = it_fl->second;
+        if (override_floats.size() > 1) {
+            std::vector<std::string> values;
+            values.reserve(override_floats.size());
+            for (double v : override_floats) {
+                values.push_back(double_to_string(v));
+            }
+            out_values = std::move(values);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 } // namespace Vortek
