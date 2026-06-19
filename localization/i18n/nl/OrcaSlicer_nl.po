@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -8051,6 +8051,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -12839,9 +12848,8 @@ msgstr ""
 msgid "Travel speed of the first layer."
 msgstr ""
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Number of slow layers"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr ""
@@ -14716,6 +14724,10 @@ msgstr "Filament om  ondersteuning (support) te printen. \"Standaard\" betekent 
 
 msgid "Top interface layers"
 msgstr "Bovenste interface lagen"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Number of slow layers"
 
 msgid "Bottom interface layers"
 msgstr "Onderste interfacelagen"
@@ -17474,6 +17486,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Kan niet kalibreren: misschien omdat het bereik van de ingestelde kalibratiewaarde te groot is, of omdat de stap te klein is"
 
+msgid "Physical Printer"
+msgstr "Fysieke printer"
+
 msgid "Print Host upload"
 msgstr "Host-upload afdrukken"
 
@@ -18832,9 +18847,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Dit is het aantal bovenste interfacelagen."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fysieke printer"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Bed Leveling"

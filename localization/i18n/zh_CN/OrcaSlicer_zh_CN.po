@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -8117,6 +8117,15 @@ msgstr "阴影"
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr "在写实渲染中渲染投射到打印板上的阴影。"
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "抗锯齿"
 
@@ -13188,9 +13197,8 @@ msgstr "首层空驶速度"
 msgid "Travel speed of the first layer."
 msgstr "首层空驶速度"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "慢速打印层数"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr ""
@@ -15202,6 +15210,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "顶部接触面层数"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "慢速打印层数"
 
 msgid "Bottom interface layers"
 msgstr "底部接触面层数"
@@ -18092,6 +18104,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "无法校准：可能是校准值范围过大，或者是补偿过小"
 
+msgid "Physical Printer"
+msgstr "物理打印机"
+
 msgid "Print Host upload"
 msgstr "打印主机上传"
 
@@ -19455,9 +19470,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "顶部接触面层数"
-
-#~ msgid "Physical Printer"
-#~ msgstr "物理打印机"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "热床调平"

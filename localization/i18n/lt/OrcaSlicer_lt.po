@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -8123,6 +8123,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13061,9 +13070,8 @@ msgstr "Pradinio sluoksnio judėjimo greitis"
 msgid "Travel speed of the first layer."
 msgstr "Pradinio sluoksnio judėjimo greitis."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Viršutinių sąsajos sluoksnių skaičius"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Keli pirmieji sluoksniai spausdinami lėčiau nei įprastai. Greitis palaipsniui linijiniu būdu didinamas per nurodytą sluoksnių skaičių."
@@ -15019,6 +15027,10 @@ msgstr "Gija skirta spausdinti atramos sąsają. \"Numatytoji\" reiškia, kad at
 
 msgid "Top interface layers"
 msgstr "Viršutiniai sąsajos sluoksniai"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Viršutinių sąsajos sluoksnių skaičius"
 
 msgid "Bottom interface layers"
 msgstr "Apatiniai sąsajos sluoksniai"
@@ -17878,6 +17890,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Nepavyksta sukalibruoti: galbūt dėl to, kad nustatytas kalibravimo vertės intervalas yra per didelis arba žingsnis yra per mažas"
 
+msgid "Physical Printer"
+msgstr "Fizinis spausdintuvas"
+
 msgid "Print Host upload"
 msgstr "Įkėlimas spausdinimui tinkle"
 
@@ -19239,9 +19254,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Viršutinių sąsajos sluoksnių skaičius."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fizinis spausdintuvas"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Lyginimas pagal spausdinimo pagrindą"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -8036,6 +8036,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -12811,9 +12820,8 @@ msgstr ""
 msgid "Travel speed of the first layer."
 msgstr ""
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Number of slow layers"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr ""
@@ -14687,6 +14695,10 @@ msgstr "Filament för att skriva ut supportens anläggningsyta. ” Standard” 
 
 msgid "Top interface layers"
 msgstr "Översta gränssnitts lager"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Number of slow layers"
 
 msgid "Bottom interface layers"
 msgstr "Botten gränssnitts lager"
@@ -17440,6 +17452,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Går inte att kalibrera: kan bero på att det inställda kalibreringsvärdet är för stort, eller att steget är för litet"
 
+msgid "Physical Printer"
+msgstr "Fysisk printer"
+
 msgid "Print Host upload"
 msgstr "Uppladdning utskriftsvärd"
 
@@ -18768,9 +18783,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Antal topp gränssnitts lager"
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fysisk printer"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Justering av Byggplattan"

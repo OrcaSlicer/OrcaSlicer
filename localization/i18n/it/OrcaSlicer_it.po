@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -8146,6 +8146,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13159,9 +13168,8 @@ msgstr "Velocità spostamento primo strato"
 msgid "Travel speed of the first layer."
 msgstr "Velocità di spostamento del primo strato."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Numero di strati lenti"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "I primi strati vengono stampati più lentamente del normale. La velocità viene gradualmente aumentata in modo lineare sul numero di strati specificato."
@@ -15159,6 +15167,10 @@ msgstr "Filamento per la stampa delle interfacce di supporto. \"Predefinito\" in
 
 msgid "Top interface layers"
 msgstr "Strati interfaccia superiore"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Numero di strati lenti"
 
 msgid "Bottom interface layers"
 msgstr "Strati interfaccia inferiore"
@@ -18052,6 +18064,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Impossibile calibrare: forse perché l'intervallo di valori di calibrazione impostato è troppo ampio o l'incremento è troppo piccolo"
 
+msgid "Physical Printer"
+msgstr "Stampante fisica"
+
 msgid "Print Host upload"
 msgstr "Caricamento host di stampa"
 
@@ -19413,9 +19428,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Numero di strati dell'interfaccia superiore."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Stampante fisica"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Livellamento piatto"

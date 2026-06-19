@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -8163,6 +8163,15 @@ msgstr "Schatten"
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr "Zeigt geworfene Schatten auf der Platte in der realistischen Ansicht an."
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Kantenglättung"
 
@@ -13260,9 +13269,8 @@ msgstr "Geschwindigkeit der ersten Schicht"
 msgid "Travel speed of the first layer."
 msgstr "Bewegungsgeschwindigkeit der ersten Schicht"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Anzahl der langsamen Schichten"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Die ersten paar Schichten werden langsamer als normal gedruckt. Die Geschwindigkeit wird allmählich linear über die angegebene Anzahl von Schichten erhöht."
@@ -15275,6 +15283,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "Obere Schnittstellenschichten"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Anzahl der langsamen Schichten"
 
 msgid "Bottom interface layers"
 msgstr "Untere Schnittstellenschichten"
@@ -18172,6 +18184,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Kalibrierung nicht möglich: Möglicherweise, weil der eingestellte Kalibrierungswertebereich zu groß ist oder der Schritt zu klein ist"
 
+msgid "Physical Printer"
+msgstr "Drucker"
+
 msgid "Print Host upload"
 msgstr "Hochladen zum Druck-Host"
 
@@ -19537,9 +19552,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Anzahl der oberen Schnittstellenschichten"
-
-#~ msgid "Physical Printer"
-#~ msgstr "Drucker"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Druckbettnivellierung"

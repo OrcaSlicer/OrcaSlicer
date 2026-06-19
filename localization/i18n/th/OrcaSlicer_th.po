@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2026-06-04 12:39+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -8136,6 +8136,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "ต่อต้านนามแฝง"
 
@@ -13160,9 +13169,8 @@ msgstr "ความเร็วในการเดินทางชั้น
 msgid "Travel speed of the first layer."
 msgstr "ความเร็วเดินหัวเปล่าของเลเยอร์แรก"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "จำนวนชั้นที่ช้า"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "สองสามชั้นแรกจะพิมพ์ช้ากว่าปกติ ความเร็วจะค่อยๆ เพิ่มขึ้นในลักษณะเชิงเส้นตามจำนวนเลเยอร์ที่ระบุ"
@@ -15165,6 +15173,10 @@ msgstr "เส้นพลาสติกสำหรับพิมพ์ส่
 
 msgid "Top interface layers"
 msgstr "เลเยอร์อินเทอร์เฟซบนสุด"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "จำนวนชั้นที่ช้า"
 
 msgid "Bottom interface layers"
 msgstr "เลเยอร์อินเทอร์เฟซด้านล่าง"
@@ -18058,6 +18070,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "ไม่สามารถสอบเทียบ: อาจเป็นเพราะช่วงค่าการสอบเทียบที่ตั้งไว้ใหญ่เกินไป หรือขั้นตอนเล็กเกินไป"
 
+msgid "Physical Printer"
+msgstr "เครื่องพิมพ์ทางกายภาพ"
+
 msgid "Print Host upload"
 msgstr "อัพโหลดโฮสต์การพิมพ์"
 
@@ -19420,9 +19435,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "จำนวนเลเยอร์อินเทอร์เฟซบนสุด"
-
-#~ msgid "Physical Printer"
-#~ msgstr "เครื่องพิมพ์ทางกายภาพ"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "การปรับระดับฐานพิมพ์"

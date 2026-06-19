@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -8163,6 +8163,15 @@ msgstr "Sombras"
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr "Los objetos renderizados proyectan sombras sobre la cama en la vista realista."
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13272,9 +13281,8 @@ msgstr "Velocidad de desplazamiento en la primera capa"
 msgid "Travel speed of the first layer."
 msgstr "Velocidad de movimientos de desplazamiento en la primera capa."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Número de capas lentas"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Las primeras capas se imprimen más lentamente de lo normal. La velocidad se incrementa gradualmente de una forma lineal sobre el número específicado de capas."
@@ -15287,6 +15295,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "Capas de la interfaz superior"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Número de capas lentas"
 
 msgid "Bottom interface layers"
 msgstr "Capas de la interfaz inferior"
@@ -18185,6 +18197,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "No es posible calibrar debido a que el valor del rango de calibración es muy grande, o el incremento es muy pequeño"
 
+msgid "Physical Printer"
+msgstr "Impresora física"
+
 msgid "Print Host upload"
 msgstr "Mandar al servidor de impresión"
 
@@ -19550,9 +19565,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Número de capas de interfaz superior."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Impresora física"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Nivelación de la cama"

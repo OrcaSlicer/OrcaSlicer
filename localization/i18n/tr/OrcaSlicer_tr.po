@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -8138,6 +8138,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13120,9 +13129,8 @@ msgstr "İlk katman seyahat hızı"
 msgid "Travel speed of the first layer."
 msgstr "İlk katman seyahat hızı."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Yavaş katman sayısı"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "İlk birkaç katman normalden daha yavaş yazdırılır. Hız, belirtilen katman sayısı boyunca doğrusal bir şekilde kademeli olarak artırılır."
@@ -15079,6 +15087,10 @@ msgstr "Filament baskı desteği arayüzü. \"Varsayılan\", destek arayüzü i�
 
 msgid "Top interface layers"
 msgstr "Üst arayüz katmanları"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Yavaş katman sayısı"
 
 msgid "Bottom interface layers"
 msgstr "Alt arayüz katmanları"
@@ -17968,6 +17980,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Kalibre edilemiyor: ayarlanan kalibrasyon değeri aralığı çok büyük veya adım çok küçük olduğu için olabilir"
 
+msgid "Physical Printer"
+msgstr "Fiziksel Yazıcı"
+
 msgid "Print Host upload"
 msgstr "Yazıcı Bağlantı Ayarları"
 
@@ -19329,9 +19344,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Üst arayüz katmanlarının sayısı."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fiziksel Yazıcı"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Yatak Tesviyesi"

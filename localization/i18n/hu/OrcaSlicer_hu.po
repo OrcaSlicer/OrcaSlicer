@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -8141,6 +8141,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Élsimítás"
 
@@ -13178,9 +13187,8 @@ msgstr "Első réteg mozgási sebessége"
 msgid "Travel speed of the first layer."
 msgstr "Az első réteg mozgási sebessége."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Lassú rétegek száma"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Az első néhány réteg a normálnál lassabban nyomtatódik. A sebesség a megadott rétegszámon keresztül fokozatosan, lineárisan növekszik."
@@ -15191,6 +15199,10 @@ msgstr "Filament a támasz érintkező felületének nyomtatásához. Az \"Alap�
 
 msgid "Top interface layers"
 msgstr "Felső érintkező rétegek"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Lassú rétegek száma"
 
 msgid "Bottom interface layers"
 msgstr "Alsó érintkező rétegek"
@@ -18072,6 +18084,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Nem lehet kalibrálni: előfordulhat, hogy a beállított kalibrációs értéktartomány túl nagy, vagy a lépésköz túl kicsi"
 
+msgid "Physical Printer"
+msgstr "Fizikai nyomtató"
+
 msgid "Print Host upload"
 msgstr "Feltöltés a nyomtatóra"
 
@@ -19435,9 +19450,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "A felső érintkező rétegek száma."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fizikai nyomtató"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Asztalszintezés"

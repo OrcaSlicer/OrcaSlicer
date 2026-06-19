@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -8144,6 +8144,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13090,9 +13099,8 @@ msgstr "Prędkość przemieszczenia pierwszej warstwy"
 msgid "Travel speed of the first layer."
 msgstr "Prędkość przemieszczenia dla pierwszej warstwy"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Liczba warstw o niższej prędkości"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Pierwsze kilka warstw jest drukowane wolniej niż zwykle. Prędkość jest stopniowo zwiększana w sposób liniowy przez określoną liczbę warstw."
@@ -15048,6 +15056,10 @@ msgstr "Filament do drukowania warstw łączących podpory z modelem. „Domyśl
 
 msgid "Top interface layers"
 msgstr "Górne warstwy łączące"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Liczba warstw o niższej prędkości"
 
 msgid "Bottom interface layers"
 msgstr "Dolne warstwy łączące"
@@ -17900,6 +17912,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Nie można skalibrować: być może zakres ustawionych wartości kalibracyjnych jest zbyt duży, lub krok jest zbyt mały"
 
+msgid "Physical Printer"
+msgstr "Fizyczna drukarka"
+
 msgid "Print Host upload"
 msgstr "Przesyłanie do hosta drukowania"
 
@@ -19264,9 +19279,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Liczba górnych warstw łączących"
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fizyczna drukarka"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Poziomowanie stołu"

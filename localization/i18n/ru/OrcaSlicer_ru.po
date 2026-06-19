@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -8411,6 +8411,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13656,9 +13665,8 @@ msgstr "Холостые перемещения"
 msgid "Travel speed of the first layer."
 msgstr "Ограничение скорости холостых перемещений печатающей головы на первом слое (относительно стола). Можно указать процент от основной скорости холостых перемещений."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Количество медленных слоёв"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Первые несколько слоёв печатаются медленнее, чем обычно. Скорость линейно увеличивается в заданном диапазоне слоёв."
@@ -15806,6 +15814,10 @@ msgstr "Материал для печати связующего слоя по�
 
 msgid "Top interface layers"
 msgstr "Связующие слои сверху"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Количество медленных слоёв"
 
 msgid "Bottom interface layers"
 msgstr "Связующие слои снизу"
@@ -18882,6 +18894,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Невозможно выполнить калибровку: возможно, установленный диапазон значений калибровки слишком велик или шаг слишком мал"
 
+msgid "Physical Printer"
+msgstr "Физический принтер"
+
 msgid "Print Host upload"
 msgstr "Загрузка на хост печати"
 
@@ -20273,9 +20288,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Количество связующих слоёв сверху."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Физический принтер"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Выравнивание стола"

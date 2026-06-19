@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -8153,6 +8153,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13103,9 +13112,8 @@ msgstr "Швидкість переміщення першого шару"
 msgid "Travel speed of the first layer."
 msgstr "Швидкість переміщення першого шару"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Кількість повільних шарів"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Перші кілька шарів друкуються повільніше, ніж зазвичай. Швидкість поступовозбільшується лінійним чином за заданою кількістю шарів."
@@ -15062,6 +15070,10 @@ msgstr "Філамент для друку підтримки. «За замов
 
 msgid "Top interface layers"
 msgstr "Верхній шар підтримки"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Кількість повільних шарів"
 
 msgid "Bottom interface layers"
 msgstr "Нижні шари підтримки"
@@ -17912,6 +17924,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Неможливо калібрувати: можливо, через те, що діапазон встановлених значень калібрування занадто великий, або крок занадто малий"
 
+msgid "Physical Printer"
+msgstr "Фізичний принтер"
+
 msgid "Print Host upload"
 msgstr "Завантаження хоста друку"
 
@@ -19273,9 +19288,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Кількість верхніх шарів підтримки"
-
-#~ msgid "Physical Printer"
-#~ msgstr "Фізичний принтер"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Вирівнювання столу"

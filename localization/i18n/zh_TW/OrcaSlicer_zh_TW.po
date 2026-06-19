@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -8174,6 +8174,15 @@ msgstr "陰影"
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr "在擬真檢視中於列印板上算繪投射陰影。"
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "抗鋸齒"
 
@@ -13246,9 +13255,8 @@ msgstr "首層空駛速度"
 msgid "Travel speed of the first layer."
 msgstr "首層空駛速度"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "慢速列印層數"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "減慢前幾層的列印速度。列印速度會逐漸加速到滿速。"
@@ -15255,6 +15263,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "頂部接觸面層數"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "慢速列印層數"
 
 msgid "Bottom interface layers"
 msgstr "底部接觸面層數"
@@ -18139,6 +18151,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "無法校正：可能是設定的校正值範圍太大，或步距太小"
 
+msgid "Physical Printer"
+msgstr "實體列印設備"
+
 msgid "Print Host upload"
 msgstr "列印主機上傳"
 
@@ -19525,9 +19540,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "頂部接觸面層數"
-
-#~ msgid "Physical Printer"
-#~ msgstr "實體列印設備"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "熱床調平"

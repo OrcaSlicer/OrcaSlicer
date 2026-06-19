@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -8154,6 +8154,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13149,9 +13158,8 @@ msgstr "Velocitat de desplaçament de la capa inicial"
 msgid "Travel speed of the first layer."
 msgstr "Velocitat de desplaçament de la capa inicial"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Nombre de capes lentes"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Les primeres capes s'imprimeixen més lentament del normal. La velocitat augmenta gradualment de manera lineal sobre el nombre especificat de capes."
@@ -15109,6 +15117,10 @@ msgstr "Filament per imprimir interfície de suport. \"Per defecte\" vol dir que
 
 msgid "Top interface layers"
 msgstr "Capes de la interfície superior"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Nombre de capes lentes"
 
 msgid "Bottom interface layers"
 msgstr "Capes de la interfície inferior"
@@ -18005,6 +18017,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "No es pot calibrar: potser perquè l'interval de valors de calibratge establert és massa gran o perquè el pas és massa petit"
 
+msgid "Physical Printer"
+msgstr "Impressora Física"
+
 msgid "Print Host upload"
 msgstr "Pujada al amfitrió( host ) d'impressió"
 
@@ -19366,9 +19381,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Nombre de capes d'interfície superior"
-
-#~ msgid "Physical Printer"
-#~ msgstr "Impressora Física"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Anivellament del llit"

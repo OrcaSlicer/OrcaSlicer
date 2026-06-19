@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -8154,6 +8154,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13161,9 +13170,8 @@ msgstr "Cestovní rychlost první vrstvy"
 msgid "Travel speed of the first layer."
 msgstr "Rychlost přejezdu první vrstvy."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Počet pomalých vrstev"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Prvních několik vrstev se tiskne pomaleji než obvykle. Rychlost se postupně zvyšuje lineárně po stanovený počet vrstev."
@@ -15160,6 +15168,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "Vrstvy rozhraní horního povrchu"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Počet pomalých vrstev"
 
 msgid "Bottom interface layers"
 msgstr "Spodní rozhraní vrstvami"
@@ -18044,6 +18056,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Nelze kalibrovat: možná je nastavený rozsah kalibračních hodnot příliš velký nebo je krok příliš malý"
 
+msgid "Physical Printer"
+msgstr "Fyzická tiskárna"
+
 msgid "Print Host upload"
 msgstr "Nahrání na tiskový server"
 
@@ -19404,9 +19419,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Počet horních rozhraní vrstev."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fyzická tiskárna"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Vyrovnání podložky"

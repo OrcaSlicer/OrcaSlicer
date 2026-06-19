@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -8131,6 +8131,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13072,9 +13081,8 @@ msgstr "초기 레이어 이동 속도"
 msgid "Travel speed of the first layer."
 msgstr "초기 레이어 이동 속도"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "저속 레이어 수"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "처음 몇 개의 레이어는 평소보다 느리게 출력됩니다. 속도는 지정된 레이어 수에 걸쳐 선형 방식으로 점차 증가합니다."
@@ -15025,6 +15033,10 @@ msgstr "서포트 및 라프트 접점을 출력하기 위한 필라멘트. \"�
 
 msgid "Top interface layers"
 msgstr "상단 접점 레이어"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "저속 레이어 수"
 
 msgid "Bottom interface layers"
 msgstr "하단 접점 레이어"
@@ -17884,6 +17896,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "교정할 수 없음: 설정된 교정 값 범위가 너무 크거나 단계가 너무 작기 때문일 수 있습니다"
 
+msgid "Physical Printer"
+msgstr "물리 프린터"
+
 msgid "Print Host upload"
 msgstr "출력 호스트 업로드"
 
@@ -19245,9 +19260,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "상단 접점 레이어 수"
-
-#~ msgid "Physical Printer"
-#~ msgstr "물리 프린터"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "베드 레벨링"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -8091,6 +8091,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -13013,9 +13022,8 @@ msgstr "Tốc độ di chuyển lớp đầu tiên"
 msgid "Travel speed of the first layer."
 msgstr "Tốc độ di chuyển của lớp đầu tiên."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Số lượng lớp chậm"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Vài lớp đầu tiên được in chậm hơn bình thường. Tốc độ được tăng dần theo cách tuyến tính qua số lượng lớp được chỉ định."
@@ -14971,6 +14979,10 @@ msgstr "Filament để in giao diện support. \"Mặc định\" có nghĩa là 
 
 msgid "Top interface layers"
 msgstr "Lớp giao diện trên"
+
+#, fuzzy
+msgid "This is the number of top interface layers."
+msgstr "Số lượng lớp chậm"
 
 msgid "Bottom interface layers"
 msgstr "Lớp giao diện dưới"
@@ -17833,6 +17845,9 @@ msgstr ""
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Không thể hiệu chỉnh: có thể do phạm vi giá trị hiệu chỉnh được đặt quá lớn, hoặc bước quá nhỏ"
 
+msgid "Physical Printer"
+msgstr "Máy in vật lý"
+
 msgid "Print Host upload"
 msgstr "Tải lên máy chủ in"
 
@@ -19194,9 +19209,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Số lượng lớp giao diện trên."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Máy in vật lý"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "San bằng đế"
