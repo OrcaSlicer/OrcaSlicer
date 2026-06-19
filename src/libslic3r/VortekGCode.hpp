@@ -59,6 +59,11 @@ public:
     );
 
     static void update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode);
+
+private:
+    static int get_original_filament_index(const Slic3r::GCode& gcode, int filament_id);
+    static std::vector<double> remap_floats_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments);
+    static std::vector<int> remap_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments);
 };
 
 } // namespace Vortek

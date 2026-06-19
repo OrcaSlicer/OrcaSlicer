@@ -164,7 +164,7 @@ void GCode::write_filament_start(
     }
 }
 
-static int get_original_filament_index(const Slic3r::GCode& gcode, int filament_id)
+int GCode::get_original_filament_index(const Slic3r::GCode& gcode, int filament_id)
 {
     auto group_result = gcode.m_print->get_layered_nozzle_group_result();
     if (!group_result)
@@ -192,7 +192,7 @@ static int get_original_filament_index(const Slic3r::GCode& gcode, int filament_
     return idx >= 0 ? idx : filament_id;
 }
 
-static std::vector<double> remap_floats_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
+std::vector<double> GCode::remap_floats_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
 {
     std::vector<double> dst(num_filaments, 0.0);
     auto opt = dynamic_cast<const Slic3r::ConfigOptionFloats*>(gcode.m_print->ori_full_print_config().option(key));
@@ -209,7 +209,7 @@ static std::vector<double> remap_floats_by_filament_vortek(const Slic3r::GCode& 
     return dst;
 }
 
-static std::vector<int> remap_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
+std::vector<int> GCode::remap_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
 {
     std::vector<int> dst(num_filaments, 0);
     auto opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_print->ori_full_print_config().option(key));
