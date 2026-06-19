@@ -3156,15 +3156,23 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         std::string gcode;
         gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
 		
-		if ((print.default_object_config().outer_wall_acceleration.value > 0)) {
-            gcode += m_writer.set_print_acceleration((unsigned int)floor(print.default_object_config().outer_wall_acceleration.value + 0.5));
-        }
-
-        if (print.default_object_config().outer_wall_jerk.value > 0) {
-            double jerk = print.default_object_config().outer_wall_jerk.value;
-            gcode += m_writer.set_jerk_xy(jerk);
-        }
-
+		// Acceleration and jerk: Use outer wall jerk then default if missing
+		double targetAcceleration = 0.0;
+		if (print.default_object_config().outer_wall_acceleration.value > 0) {
+			targetAcceleration = print.default_object_config().outer_wall_acceleration.value;
+		} else if (print.default_object_config().default_acceleration.value > 0) {
+			targetAcceleration = print.default_object_config().default_acceleration.value;
+		}
+		double targetJerk = 0.0;
+		if (print.default_object_config().outer_wall_jerk.value > 0) {
+			targetJerk = print.default_object_config().outer_wall_jerk.value;
+		} else if (print.default_object_config().default_jerk.value > 0) {
+			targetJerk = print.default_object_config().default_jerk.value;
+		}
+		//If values were found, set them
+		if (targetAcceleration > 0) {gcode += m_writer.set_print_acceleration((unsigned int)floor(targetAcceleration + 0.5));}
+		if (targetJerk > 0) {gcode += m_writer.set_jerk_xy(targetJerk);}
+		
         auto params = print.calib_params();
 
         CalibPressureAdvanceLine pa_test(this);
