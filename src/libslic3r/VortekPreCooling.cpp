@@ -463,7 +463,17 @@ void PreCooling::apply_config(const Slic3r::PrintConfig& config, size_t filament
         }
 
         processor.m_pre_cooling_temp.resize(filament_count, 0);
+        bool is_h2c = WipeTower::is_h2c_printer(config);
         for (size_t i = 0; i < filament_count; ++i) {
+            if (is_h2c) {
+                if (i < config.filament_pre_cooling_temperature_nc.size()) {
+                    auto val = config.filament_pre_cooling_temperature_nc.get_at(i);
+                    if (val > 0) {
+                        processor.m_pre_cooling_temp[i] = val;
+                        continue;
+                    }
+                }
+            }
             if (i < config.filament_pre_cooling_temperature.size())
                 processor.m_pre_cooling_temp[i] = config.filament_pre_cooling_temperature.get_at(i);
         }
