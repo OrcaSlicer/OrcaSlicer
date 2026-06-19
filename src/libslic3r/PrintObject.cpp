@@ -1297,6 +1297,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
+            || opt_key == "top_surface_hole_contraction"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
             || opt_key == "internal_solid_filament_id"
@@ -1684,6 +1685,27 @@ void PrintObject::detect_surfaces_type()
                             top.clear();
                             surfaces_append(top, diff_ex(top_polygons, bottom), stTop);
                         }
+                    }
+
+                    // ORCA: Contract the holes left in the top surfaces by raised features so the top
+                    // solid infill extends slightly underneath them and covers a larger area.
+                    const float top_hole_contraction = scale_(layerm->region().config().top_surface_hole_contraction.value);
+                    if (top_hole_contraction > 0.f && ! top.empty()) {
+                        const ExPolygons top_expolys = to_expolygons(top);
+                        // Outer boundary of the top surfaces (holes filled). Used to keep the contraction
+                        // confined to the holes so the outer edge of the top surface does not grow.
+                        ExPolygons top_filled;
+                        top_filled.reserve(top_expolys.size());
+                        for (const ExPolygon &ex : top_expolys)
+                            top_filled.emplace_back(ex.contour);
+                        // Clip to actual material so genuine voids in the part (real through-holes) are
+                        // not covered - only feature footprints, which are solid, get filled.
+                        const ExPolygons clip = intersection_ex(top_filled, layerm_slices_surfaces);
+                        // A positive offset grows the outer contour outward and shrinks the holes inward;
+                        // clipping back to the original (hole-free) area keeps only the hole-shrinking effect.
+                        ExPolygons contracted = intersection_ex(offset_ex(top_expolys, top_hole_contraction), clip);
+                        top.clear();
+                        surfaces_append(top, std::move(contracted), stTop);
                     }
 
         #ifdef SLIC3R_DEBUG_SLICE_PROCESSING

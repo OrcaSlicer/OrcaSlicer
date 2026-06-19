@@ -2116,6 +2116,17 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(100));
+    def = this->add("top_surface_hole_contraction", coFloat);
+    def->label = L("Top surface hole contraction");
+    def->category = L("Strength");
+    def->tooltip = L("When a feature sits on top of a surface, a hole is left in the top surface around the feature's "
+                     "footprint. This shrinks those holes inward by the specified distance, so the top solid infill "
+                     "extends slightly underneath the feature and covers a larger area. This can reduce gaps and "
+                     "improve the surface quality around raised features. Set to 0 to disable.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
