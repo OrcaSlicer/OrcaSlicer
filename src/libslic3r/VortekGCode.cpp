@@ -195,13 +195,13 @@ int GCode::get_original_filament_index(const Slic3r::GCode& gcode, int filament_
 std::vector<double> GCode::remap_floats_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
 {
     std::vector<double> dst(num_filaments, 0.0);
-    auto opt = dynamic_cast<const Slic3r::ConfigOptionFloats*>(gcode.m_print->ori_full_print_config().option(key));
+    auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<double>*>(gcode.m_print->ori_full_print_config().option(key));
     for (size_t i = 0; i < num_filaments; ++i) {
         int idx = get_original_filament_index(gcode, i);
         if (opt && idx >= 0 && idx < (int)opt->values.size()) {
             dst[i] = opt->get_at(idx);
         } else {
-            auto fallback_opt = dynamic_cast<const Slic3r::ConfigOptionFloats*>(gcode.m_config.option(key));
+            auto fallback_opt = dynamic_cast<const Slic3r::ConfigOptionVector<double>*>(gcode.m_config.option(key));
             if (fallback_opt && i < fallback_opt->values.size())
                 dst[i] = fallback_opt->get_at(i);
         }
@@ -212,13 +212,13 @@ std::vector<double> GCode::remap_floats_by_filament_vortek(const Slic3r::GCode& 
 std::vector<int> GCode::remap_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
 {
     std::vector<int> dst(num_filaments, 0);
-    auto opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_print->ori_full_print_config().option(key));
+    auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<int>*>(gcode.m_print->ori_full_print_config().option(key));
     for (size_t i = 0; i < num_filaments; ++i) {
         int idx = get_original_filament_index(gcode, i);
         if (opt && idx >= 0 && idx < (int)opt->values.size()) {
             dst[i] = opt->get_at(idx);
         } else {
-            auto fallback_opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_config.option(key));
+            auto fallback_opt = dynamic_cast<const Slic3r::ConfigOptionVector<int>*>(gcode.m_config.option(key));
             if (fallback_opt && i < fallback_opt->values.size())
                 dst[i] = fallback_opt->get_at(i);
         }
