@@ -6241,8 +6241,11 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
 
 bool GUI_App::check_preset_parent_available(const std::pair<std::string, std::map<std::string, std::string>>& preset_data)
 {
-    std::string inherits_name = preset_data.second.at(BBL_JSON_KEY_INHERITS);
-    // // If contains "fdm_", "@System", and "@base", is a common base template that doesn't need to be installed
+    auto it = preset_data.second.find(BBL_JSON_KEY_INHERITS);
+    if (it == preset_data.second.end() || it->second.empty())
+        return true;
+    const std::string& inherits_name = it->second;
+    // If contains "fdm_", "@System", and "@base", is a common base template that doesn't need to be installed
     if (inherits_name.find("fdm_") != std::string::npos || inherits_name.find("@System") != std::string::npos || inherits_name.find("@base") != std::string::npos)
         return true;
 
