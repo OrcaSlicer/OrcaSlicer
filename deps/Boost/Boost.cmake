@@ -11,7 +11,7 @@ if (APPLE AND CMAKE_OSX_ARCHITECTURES)
 endif ()
 
 set(_options "")
-if (MSVC)
+if (MSVC AND DEP_DEBUG)
     set(_options "FORWARD_CONFIG")
 endif ()
 
