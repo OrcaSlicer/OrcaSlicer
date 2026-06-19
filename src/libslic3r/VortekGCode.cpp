@@ -7,6 +7,7 @@
 
 #include "VortekGCode.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "PlaceholderParser.hpp"
 
@@ -160,6 +161,105 @@ void GCode::write_filament_start(
         int initial_nozzle_id = NOZZLE_ID_FOR_GCODE(group_result,
             group_result->get_first_nozzle_for_filament(initial_extruder_id)->group_id);
         file.write_format(";VT%d H%d\n", initial_extruder_id, initial_nozzle_id);
+    }
+}
+
+static int get_original_filament_index(const Slic3r::GCode& gcode, int filament_id)
+{
+    auto group_result = gcode.m_print->get_layered_nozzle_group_result();
+    if (!group_result)
+        return filament_id;
+
+    auto nozzle_info = group_result->get_first_nozzle_for_filament(filament_id);
+    if (!nozzle_info)
+        return filament_id;
+
+    auto opt_extruder_type = dynamic_cast<const Slic3r::ConfigOptionEnumsGeneric*>(gcode.m_config.option("extruder_type"));
+    if (!opt_extruder_type)
+        return filament_id;
+
+    Slic3r::ExtruderType extruder_type = Slic3r::ExtruderType(opt_extruder_type->get_at(nozzle_info->extruder_id));
+    Slic3r::NozzleVolumeType nozzle_volume_type = nozzle_info->volume_type;
+
+    int idx = gcode.m_print->ori_full_print_config().get_index_for_extruder(
+        filament_id + 1,
+        "filament_self_index",
+        extruder_type,
+        nozzle_volume_type,
+        "filament_extruder_variant"
+    );
+
+    return idx >= 0 ? idx : filament_id;
+}
+
+static std::vector<double> remap_floats_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
+{
+    std::vector<double> dst(num_filaments, 0.0);
+    auto opt = dynamic_cast<const Slic3r::ConfigOptionFloats*>(gcode.m_print->ori_full_print_config().option(key));
+    for (size_t i = 0; i < num_filaments; ++i) {
+        int idx = get_original_filament_index(gcode, i);
+        if (opt && idx >= 0 && idx < (int)opt->values.size()) {
+            dst[i] = opt->get_at(idx);
+        } else {
+            auto fallback_opt = dynamic_cast<const Slic3r::ConfigOptionFloats*>(gcode.m_config.option(key));
+            if (fallback_opt && i < fallback_opt->values.size())
+                dst[i] = fallback_opt->get_at(i);
+        }
+    }
+    return dst;
+}
+
+static std::vector<int> remap_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
+{
+    std::vector<int> dst(num_filaments, 0);
+    auto opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_print->ori_full_print_config().option(key));
+    for (size_t i = 0; i < num_filaments; ++i) {
+        int idx = get_original_filament_index(gcode, i);
+        if (opt && idx >= 0 && idx < (int)opt->values.size()) {
+            dst[i] = opt->get_at(idx);
+        } else {
+            auto fallback_opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_config.option(key));
+            if (fallback_opt && i < fallback_opt->values.size())
+                dst[i] = fallback_opt->get_at(i);
+        }
+    }
+    return dst;
+}
+
+void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
+{
+    size_t num_filaments = gcode.m_config.filament_type.values.size();
+    if (num_filaments == 0)
+        return;
+
+    gcode.placeholder_parser().set("filament_max_volumetric_speed",       new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed", num_filaments)));
+    gcode.placeholder_parser().set("filament_pre_cooling_temperature",    new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature", num_filaments)));
+    gcode.placeholder_parser().set("filament_pre_cooling_temperature_nc", new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature_nc", num_filaments)));
+    gcode.placeholder_parser().set("filament_ramming_travel_time",       new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_ramming_travel_time", num_filaments)));
+    gcode.placeholder_parser().set("filament_ramming_travel_time_nc",    new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_ramming_travel_time_nc", num_filaments)));
+    gcode.placeholder_parser().set("filament_cooling_before_tower",       new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_cooling_before_tower", num_filaments)));
+    gcode.placeholder_parser().set("nozzle_temperature_initial_layer",    new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "nozzle_temperature_initial_layer", num_filaments)));
+    gcode.placeholder_parser().set("nozzle_temperature",                  new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "nozzle_temperature", num_filaments)));
+    gcode.placeholder_parser().set("first_layer_temperature",             new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "nozzle_temperature_initial_layer", num_filaments)));
+
+    gcode.placeholder_parser().set("retraction_distances_when_cut",       new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "retraction_distances_when_cut", num_filaments)));
+    gcode.placeholder_parser().set("filament_map", new Slic3r::ConfigOptionInts(gcode.m_config.filament_map));
+
+    {
+        auto flush_v_speed  = remap_floats_by_filament_vortek(gcode, "filament_flush_volumetric_speed", num_filaments);
+        auto filament_max_v = remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed", num_filaments);
+        auto flush_temps    = remap_ints_by_filament_vortek(gcode, "filament_flush_temp", num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i) {
+            if (flush_v_speed[i] == 0)
+                flush_v_speed[i] = filament_max_v[i];
+            if (flush_temps[i] == 0) {
+                auto opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_config.option("nozzle_temperature_range_high"));
+                if (opt && i < opt->values.size())
+                    flush_temps[i] = opt->get_at(i);
+            }
+        }
+        gcode.placeholder_parser().set("flush_volumetric_speeds", new Slic3r::ConfigOptionFloats(flush_v_speed));
+        gcode.placeholder_parser().set("flush_temperatures",      new Slic3r::ConfigOptionInts(flush_temps));
     }
 }
 

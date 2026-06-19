@@ -57,6 +57,8 @@ public:
         Slic3r::GCode::GCodeOutputStream& file,
         Slic3r::Print& print
     );
+
+    static void update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode);
 };
 
 } // namespace Vortek

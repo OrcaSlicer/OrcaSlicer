@@ -8954,6 +8954,12 @@ void GCode::update_placeholder_parser_with_variant_params()
     if (!m_print)
         return;
 
+    const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(m_print);
+    if (is_h2c_multi_nozzle) {
+        Vortek::GCode::update_placeholder_parser_with_variant_params(*this);
+        return;
+    }
+
     size_t num_filaments = m_config.filament_type.values.size();
     if (num_filaments == 0)
         return;
