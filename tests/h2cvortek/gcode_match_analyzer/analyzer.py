@@ -39,6 +39,26 @@ class GCodeParser:
         self.slice_info = {}
         self.model_settings = {}
 
+        # Objects tracking for strength analysis
+        self.object_stats = defaultdict(lambda: {
+            'min_x': float('inf'), 'max_x': float('-inf'),
+            'min_y': float('inf'), 'max_y': float('-inf'),
+            'min_z': float('inf'), 'max_z': float('-inf'),
+            'extrusion': 0.0,
+            'retractions': 0,
+            'tools_used': set(),
+            'moves_count': 0
+        })
+        self.object_names = {}
+        
+        self.global_min_x = float('inf')
+        self.global_max_x = float('-inf')
+        self.global_min_y = float('inf')
+        self.global_max_y = float('-inf')
+        self.global_min_z = float('inf')
+        self.global_max_z = float('-inf')
+        self.global_retractions = 0
+
     def _parse_key_value_string(self, content):
         params = {}
         # Parse XML metadata key/value
@@ -83,6 +103,9 @@ class GCodeParser:
                         try:
                             content = z.read(name).decode('utf-8', errors='ignore')
                             self.slice_info = self._parse_key_value_string(content)
+                            # Custom parse object tags:
+                            for match in re.finditer(r'<object\s+identify_id="(\d+)"\s+name="([^"]+)"', content):
+                                self.object_names[int(match.group(1))] = match.group(2)
                         except Exception as e:
                             print(f"Warning: Failed to parse slice_info.config: {e}", file=sys.stderr)
                     elif name.endswith("model_settings.config"):
@@ -128,6 +151,18 @@ class GCodeParser:
             with open(self.filepath, 'r', encoding='utf-8', errors='ignore') as f:
                 self._parse_stream(f)
                 
+        # Fallback: if no object_id was found but we have print moves, treat the entire print as a single object
+        if not self.object_stats and self.total_extrusion > 0:
+            self.object_stats[0] = {
+                'min_x': self.global_min_x, 'max_x': self.global_max_x,
+                'min_y': self.global_min_y, 'max_y': self.global_max_y,
+                'min_z': self.global_min_z, 'max_z': self.global_max_z,
+                'extrusion': self.total_extrusion,
+                'retractions': self.global_retractions,
+                'tools_used': set(self.extrusion_by_tool.keys()),
+                'moves_count': self.total_lines
+            }
+                
         # Merge project_settings into config_params for consistency in correctness rules
         for k, v in self.project_settings.items():
             if isinstance(v, list):
@@ -145,6 +180,8 @@ class GCodeParser:
         current_tool = -1
         current_z = 0.0
         current_feature = "Unknown"
+        current_object_id = -1
+        last_seen_object_name = None
         
         # Compile regexes for speed
         z_re = re.compile(r'\b[Gg][01]\b.*?[Zz]([-+]?\d*\.\d+|\d+)')
@@ -163,6 +200,11 @@ class GCodeParser:
                 if config_match:
                     key, val = config_match.groups()
                     self.config_params[key.strip()] = val.strip()
+                # Parse object name comments
+                if line_str.startswith("; OBJECT:"):
+                    obj_name_match = re.match(r'^;\s*OBJECT:\s*(.*)', line_str)
+                    if obj_name_match:
+                        last_seen_object_name = obj_name_match.group(1).strip()
 
             if line_idx < 1000 and not current_layer and not line_str.startswith("; CHANGE_LAYER"):
                 self.header_lines.append(line_str)
@@ -190,6 +232,14 @@ class GCodeParser:
             if current_layer > 0:
                 self.layers[current_layer].append(line_str)
             
+            # Track active object ID
+            if "; OBJECT_ID:" in line_str:
+                obj_match = re.search(r'; OBJECT_ID:\s*(\d+)', line_str)
+                if obj_match:
+                    current_object_id = int(obj_match.group(1))
+                    if last_seen_object_name and current_object_id not in self.object_names:
+                        self.object_names[current_object_id] = last_seen_object_name
+
             # Track toolchanges (T0-T4)
             t_match = t_re.match(line_str)
             if t_match and not line_str.startswith("T100") and not line_str.startswith("T65"):
@@ -201,16 +251,54 @@ class GCodeParser:
             # Track extrusion and feature stats
             if current_tool != -1 and (line_str.startswith("G1") or line_str.startswith("G0") or line_str.startswith("G2") or line_str.startswith("G3")):
                 e_match = e_re.search(line_str)
+                x_match = re.search(r'\b[Xx](-?\d*\.\d+|-?\d+)', line_str)
+                y_match = re.search(r'\b[Yy](-?\d*\.\d+|-?\d+)', line_str)
+                
+                if x_match:
+                    x_val = float(x_match.group(1))
+                    self.global_min_x = min(self.global_min_x, x_val)
+                    self.global_max_x = max(self.global_max_x, x_val)
+                if y_match:
+                    y_val = float(y_match.group(1))
+                    self.global_min_y = min(self.global_min_y, y_val)
+                    self.global_max_y = max(self.global_max_y, y_val)
+                if current_z > 0:
+                    self.global_min_z = min(self.global_min_z, current_z)
+                    self.global_max_z = max(self.global_max_z, current_z)
+                
+                # Update object stats
+                if current_object_id != -1:
+                    stats = self.object_stats[current_object_id]
+                    stats['tools_used'].add(current_tool)
+                    stats['moves_count'] += 1
+                    if x_match:
+                        x_val = float(x_match.group(1))
+                        stats['min_x'] = min(stats['min_x'], x_val)
+                        stats['max_x'] = max(stats['max_x'], x_val)
+                    if y_match:
+                        y_val = float(y_match.group(1))
+                        stats['min_y'] = min(stats['min_y'], y_val)
+                        stats['max_y'] = max(stats['max_y'], y_val)
+                    if current_z > 0:
+                        stats['min_z'] = min(stats['min_z'], current_z)
+                        stats['max_z'] = max(stats['max_z'], current_z)
+
                 if e_match:
                     e_val = float(e_match.group(1))
                     if e_val > 0:
                         self.total_extrusion += e_val
                         self.extrusion_by_tool[current_tool] += e_val
                         self.extrusion_by_feature[current_feature][current_tool] += e_val
+                        if current_object_id != -1:
+                            self.object_stats[current_object_id]['extrusion'] += e_val
                         
                         # Keep track of actual printing Z heights
                         if current_layer > 0:
                             self.layer_z_heights[current_layer] = current_z
+                    elif e_val < 0:
+                        self.global_retractions += 1
+                        if current_object_id != -1:
+                            self.object_stats[current_object_id]['retractions'] += 1
                 
                 # Track feedrates
                 f_match = f_re.search(line_str)
@@ -784,12 +872,226 @@ class GCodeComparator:
                 
         return "\n".join(metadata_report)
 
+class PrintStrengthCalculator:
+    def __init__(self, parser, correctness_issues):
+        self.parser = parser
+        self.correctness_issues = correctness_issues
+        
+    def calculate(self):
+        results = {}
+        
+        # 1. Retrieve global config parameters
+        # Filament types (comma/semicolon separated)
+        filament_type_str = self.parser.config_params.get("filament_type", "PLA").replace(";", ",")
+        filaments = [f.strip() for f in filament_type_str.split(",") if f.strip()]
+        
+        # Nozzle temperatures
+        nozzle_temp_str = self.parser.config_params.get("nozzle_temperature", "220").replace(";", ",")
+        nozzle_temps = []
+        for x in nozzle_temp_str.split(","):
+            try: nozzle_temps.append(int(float(x.strip())))
+            except: nozzle_temps.append(220)
+            
+        nozzle_temp_low_str = self.parser.config_params.get("nozzle_temperature_range_low", "190").replace(";", ",")
+        nozzle_temps_low = []
+        for x in nozzle_temp_low_str.split(","):
+            try: nozzle_temps_low.append(int(float(x.strip())))
+            except: nozzle_temps_low.append(190)
+            
+        nozzle_temp_high_str = self.parser.config_params.get("nozzle_temperature_range_high", "240").replace(";", ",")
+        nozzle_temps_high = []
+        for x in nozzle_temp_high_str.split(","):
+            try: nozzle_temps_high.append(int(float(x.strip())))
+            except: nozzle_temps_high.append(240)
+            
+        # Chamber temperatures (for ABS/ASA strength)
+        chamber_temp_str = self.parser.config_params.get("chamber_temperature", "0").replace(";", ",")
+        chamber_temps = []
+        for x in chamber_temp_str.split(","):
+            try: chamber_temps.append(int(float(x.strip())))
+            except: chamber_temps.append(0)
+            
+        # Layer height & nozzle diameter
+        try: layer_height = float(self.parser.config_params.get("layer_height", "0.2"))
+        except: layer_height = 0.2
+        
+        nozzle_dia_str = self.parser.config_params.get("nozzle_diameter", "0.4").replace(";", ",")
+        nozzle_dias = []
+        for x in nozzle_dia_str.split(","):
+            try: nozzle_dias.append(float(x.strip()))
+            except: nozzle_dias.append(0.4)
+            
+        # Infill density and pattern
+        infill_density_str = self.parser.config_params.get("sparse_infill_density", "15%").replace("%", "")
+        try: infill_density = float(infill_density_str)
+        except: infill_density = 15.0
+        
+        infill_pattern = self.parser.config_params.get("sparse_infill_pattern", "gyroid").lower()
+        
+        # Wall loops
+        try: wall_loops = int(float(self.parser.config_params.get("wall_loops", "2")))
+        except: wall_loops = 2
+        
+        # Calculate for each parsed object
+        for obj_id, stats in self.parser.object_stats.items():
+            if stats['moves_count'] == 0:
+                continue
+                
+            # Geometry check ( Aspect Ratio )
+            width = stats['max_x'] - stats['min_x'] if stats['max_x'] > stats['min_x'] else 0.0
+            depth = stats['max_y'] - stats['min_y'] if stats['max_y'] > stats['min_y'] else 0.0
+            height = stats['max_z'] - stats['min_z'] if stats['max_z'] > stats['min_z'] else 0.0
+            
+            min_width = min(width, depth) if width > 0 and depth > 0 else max(width, depth)
+            aspect_ratio = height / min_width if min_width > 0 else 0.0
+            
+            # Determine tools used and evaluate factors
+            material_factors = []
+            temp_factors = []
+            layer_factors = []
+            h2c_sync_factors = []
+            
+            for tool in stats['tools_used']:
+                # 1. Material Factor
+                mat = "PLA"
+                if tool < len(filaments):
+                    mat = filaments[tool].upper()
+                
+                f_mat = 1.0
+                if "TPU" in mat:
+                    f_mat = 1.4
+                elif "PA-CF" in mat or "PPA-CF" in mat or "PPS-CF" in mat or "PA" in mat:
+                    f_mat = 1.25
+                elif "PETG-CF" in mat or "PETG" in mat or "PCTG" in mat:
+                    f_mat = 1.1
+                elif "ABS" in mat or "ASA" in mat:
+                    c_temp = chamber_temps[tool] if tool < len(chamber_temps) else 0
+                    f_mat = 1.05 if c_temp >= 40 else 0.9
+                material_factors.append(f_mat)
+                
+                # 2. Temperature Factor
+                t_print = nozzle_temps[tool] if tool < len(nozzle_temps) else 220
+                t_low = nozzle_temps_low[tool] if tool < len(nozzle_temps_low) else 190
+                t_high = nozzle_temps_high[tool] if tool < len(nozzle_temps_high) else 240
+                
+                f_temp = 1.0
+                if t_high > t_low:
+                    if t_print >= t_high - 5:
+                        f_temp = 1.05
+                    elif t_print <= t_low + 5:
+                        f_temp = 0.8
+                    else:
+                        f_temp = 0.8 + 0.25 * ((t_print - t_low) / (t_high - t_low))
+                temp_factors.append(f_temp)
+                
+                # 3. Layer Height to Nozzle Diameter Ratio Factor
+                n_dia = nozzle_dias[tool] if tool < len(nozzle_dias) else 0.4
+                r = layer_height / n_dia if n_dia > 0 else 0.5
+                f_layer = 1.0
+                if r < 0.2:
+                    f_layer = 0.95
+                elif r > 0.6:
+                    f_layer = 0.75
+                else:
+                    f_layer = 1.05 - 0.25 * abs(r - 0.35)
+                layer_factors.append(f_layer)
+                
+                # 4. H2C Correctness & Sync Factor
+                # Count issues related to this tool
+                tool_issues = 0
+                for issue in self.correctness_issues:
+                    if f"T{tool}" in issue.get('desc', ''):
+                        tool_issues += 1
+                f_sync = 1.0 - 0.1 * min(3, tool_issues)
+                h2c_sync_factors.append(f_sync)
+                
+            # Average tool-based factors
+            avg_f_mat = sum(material_factors) / len(material_factors) if material_factors else 1.0
+            avg_f_temp = sum(temp_factors) / len(temp_factors) if temp_factors else 1.0
+            avg_f_layer = sum(layer_factors) / len(layer_factors) if layer_factors else 1.0
+            avg_f_sync = sum(h2c_sync_factors) / len(h2c_sync_factors) if h2c_sync_factors else 1.0
+            
+            # 5. Structure Factor (Infill & Walls)
+            pattern_mult = 1.0
+            if infill_pattern in ['gyroid', 'honeycomb', 'cubic']:
+                pattern_mult = 1.05
+            elif infill_pattern in ['grid', 'triangles']:
+                pattern_mult = 1.0
+            elif infill_pattern in ['rectilinear', 'line']:
+                pattern_mult = 0.9
+            elif infill_pattern in ['concentric']:
+                pattern_mult = 0.8
+                
+            import math
+            d_weight = infill_density / 100.0
+            f_struct = 0.4 * (1.0 - math.exp(-0.5 * wall_loops)) + 0.6 * (d_weight * pattern_mult) + 0.3
+            f_struct = min(1.1, f_struct)
+            
+            # 6. Retraction Quality Factor
+            # stats['extrusion'] is in mm, stats['retractions'] is count
+            ret_density = stats['retractions'] / stats['extrusion'] if stats['extrusion'] > 0 else 0.0
+            f_ret = 1.0
+            if ret_density > 0.8:
+                f_ret = 0.85
+            elif ret_density < 0.1:
+                f_ret = 1.02
+            else:
+                f_ret = 1.02 - 0.24 * (ret_density - 0.1)
+                
+            # 7. Geometry Aspect Ratio Factor
+            f_geom = 1.0
+            if aspect_ratio > 4.0:
+                f_geom = max(0.5, 1.0 - 0.08 * (aspect_ratio - 4.0))
+            if min_width > 0 and min_width < 5.0:
+                f_geom *= 0.85
+            f_geom = max(0.5, f_geom)
+            
+            # Calculate final Print Strength Index (PSI)
+            psi = 100.0 * avg_f_mat * avg_f_temp * avg_f_layer * f_struct * f_ret * avg_f_sync * f_geom
+            psi = min(100.0, max(10.0, psi))
+            
+            # Determine qualitative rating
+            if psi >= 90.0:
+                rating = "Excellent (Очень высокая)"
+            elif psi >= 75.0:
+                rating = "Good (Высокая / Стандартная)"
+            elif psi >= 55.0:
+                rating = "Fair (Средняя / Требует осторожности)"
+            else:
+                rating = "Poor (Хрупкая / Высокий риск расслоения)"
+                
+            # Store details
+            obj_name = self.parser.object_names.get(obj_id, f"Component {obj_id}" if obj_id != 0 else "Combined Model")
+            results[obj_id] = {
+                'name': obj_name,
+                'dimensions': (width, depth, height),
+                'aspect_ratio': aspect_ratio,
+                'min_width_mm': min_width,
+                'extrusion_mm': stats['extrusion'],
+                'retractions_count': stats['retractions'],
+                'tools_used': list(stats['tools_used']),
+                'psi': psi,
+                'rating': rating,
+                'factors': {
+                    'material_factor': avg_f_mat,
+                    'temperature_factor': avg_f_temp,
+                    'layer_factor': avg_f_layer,
+                    'structure_factor': f_struct,
+                    'retraction_factor': f_ret,
+                    'h2c_sync_factor': avg_f_sync,
+                    'geometry_factor': f_geom
+                }
+            }
+            
+        return results
+
 def main():
     parser = argparse.ArgumentParser(description="H2C G-code Correctness and Match Analyzer")
     parser.add_argument("-f1", "--file1", required=True, help="Path to first G-code file (BBL or OrcaSlicer)")
     parser.add_argument("-f2", "--file2", help="Path to second G-code file for comparison")
     parser.add_argument("-o", "--output", help="Output reports prefix path (defaults to desktop/cwd when --to-file is set)")
     parser.add_argument("--to-file", action="store_true", help="Save reports to files instead of printing to console")
+    parser.add_argument("--strength", action="store_true", help="Enable print strength estimation for components")
     
     args = parser.parse_args()
     
@@ -817,6 +1119,12 @@ def main():
 
     # If single file mode
     if not args.file2:
+        # Calculate strength if requested
+        strength_results = None
+        if args.strength:
+            strength_calc = PrintStrengthCalculator(p1, issues)
+            strength_results = strength_calc.calculate()
+
         # Write JSON output for agent analysis
         result_json = {
             'file': p1.filepath,
@@ -831,6 +1139,8 @@ def main():
             'flush_by_tool': dict(p1.flush_by_tool),
             'issues': issues
         }
+        if strength_results:
+            result_json['strength_estimation'] = strength_results
         
         # Build text report string
         report_text_lines = []
@@ -868,6 +1178,24 @@ def main():
                 report_text_lines.append(f"    Type: {issue['type']}\n")
                 report_text_lines.append(f"    Desc: {issue['desc']}\n\n")
                 
+        if args.strength and strength_results:
+            report_text_lines.append("--- 5. PRINT STRENGTH ESTIMATION ---\n")
+            for obj_id, res in sorted(strength_results.items()):
+                w, d, h = res['dimensions']
+                report_text_lines.append(f"  Object: {res['name']}\n")
+                report_text_lines.append(f"    Dimensions (W x D x H):  {w:.1f} x {d:.1f} x {h:.1f} mm\n")
+                report_text_lines.append(f"    Aspect Ratio (H / W_min): {res['aspect_ratio']:.2f}\n")
+                report_text_lines.append(f"    Extrusion:               {res['extrusion_mm']:.2f} mm\n")
+                report_text_lines.append(f"    Retractions:             {res['retractions_count']}\n")
+                report_text_lines.append(f"    Tools Used:              {', '.join('T' + str(t) for t in res['tools_used'])}\n")
+                report_text_lines.append(f"    Print Strength Index:    {res['psi']:.1f} / 100.0\n")
+                report_text_lines.append(f"    Rating:                  {res['rating']}\n")
+                report_text_lines.append(f"    Individual Factors:\n")
+                for f_name, f_val in sorted(res['factors'].items()):
+                    hr_name = f_name.replace('_', ' ').title()
+                    report_text_lines.append(f"      - {hr_name}: {f_val:.3f}\n")
+                report_text_lines.append("\n")
+
         report_text = "".join(report_text_lines)
         
         if args.to_file:
@@ -905,6 +1233,16 @@ def main():
         
         comp_stats['file1_issues'] = issues1
         comp_stats['file2_issues'] = issues2
+
+        strength_results1 = None
+        strength_results2 = None
+        if args.strength:
+            calc1 = PrintStrengthCalculator(p1, issues1)
+            strength_results1 = calc1.calculate()
+            calc2 = PrintStrengthCalculator(p2, issues2)
+            strength_results2 = calc2.calculate()
+            comp_stats['file1_strength'] = strength_results1
+            comp_stats['file2_strength'] = strength_results2
         
         # Build comparison text report string
         report_text_lines = []
@@ -1003,6 +1341,27 @@ def main():
                 report_text_lines.append(f"  Issue {idx} [Layer {issue['layer']}, Line {issue['line']}]:\n")
                 report_text_lines.append(f"    Type: {issue['type']}\n")
                 report_text_lines.append(f"    Desc: {issue['desc']}\n\n")
+                
+        if args.strength and strength_results1 and strength_results2:
+            report_text_lines.append("--- 11. PRINT STRENGTH COMPARISON ---\n")
+            report_text_lines.append(f"  {'Component / Object':<30} | {'File 1 (BBL) PSI':<18} | {'File 2 (Orca) PSI':<18} | {'PSI Diff':<10}\n")
+            report_text_lines.append("-" * 88 + "\n")
+            
+            all_obj_ids = sorted(list(set(strength_results1.keys()) | set(strength_results2.keys())))
+            for obj_id in all_obj_ids:
+                res1 = strength_results1.get(obj_id)
+                res2 = strength_results2.get(obj_id)
+                
+                name1 = res1['name'] if res1 else "<missing>"
+                name2 = res2['name'] if res2 else "<missing>"
+                name = name1 if name1 != "<missing>" else name2
+                
+                psi1_str = f"{res1['psi']:.1f} ({res1['rating'].split(' ')[0]})" if res1 else "N/A"
+                psi2_str = f"{res2['psi']:.1f} ({res2['rating'].split(' ')[0]})" if res2 else "N/A"
+                diff_str = f"{res1['psi'] - res2['psi']:+.1f}" if (res1 and res2) else "N/A"
+                
+                report_text_lines.append(f"  {name:<30} | {psi1_str:<18} | {psi2_str:<18} | {diff_str:<10}\n")
+            report_text_lines.append("\n")
                 
         report_text = "".join(report_text_lines)
         

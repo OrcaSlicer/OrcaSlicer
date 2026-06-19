@@ -23,6 +23,46 @@ This tool is designed to analyze the slicing quality of G-code files generated f
    - Compares flushing volumes across logically mapped tool channels.
    - Performs command-by-command analysis of logically aligned toolchange blocks.
 
+3. **Print Strength Estimation (Add-on Mode)**:
+   - Computes a qualitative and quantitative Print Strength Index (PSI, scale 0-100) per sliced component object.
+   - Evaluates:
+     - Plastic material profile mechanics (ABS, PETG, PLA, TPU, PA-CF).
+     - Extrusion temperature ranges and nozzle limits.
+     - Layer height to nozzle diameter ratios.
+     - Infill pattern/density structure and perimeter wall loops.
+     - Retraction frequencies (checks filament grinding risks).
+     - Geometric aspect ratios (tall/slender structural penalties).
+     - Preheating/precooling/scheduling sync issues penalty impact.
+
+---
+
+## Print Strength Index (PSI)
+
+The **Print Strength Index (PSI)** is a heuristic engineering metric (scale 0-100) estimating the interlaminar bonding strength and structural durability of sliced components. It is calculated using a multiplicative factor model:
+
+$$\text{PSI} = 100 \times F_{\text{material}} \times F_{\text{temperature}} \times F_{\text{layer}} \times F_{\text{structure}} \times F_{\text{retraction}} \times F_{\text{sync}} \times F_{\text{geometry}}$$
+
+### Evaluation Factors:
+- **Material ($F_{\text{material}}$)**: High-bonding plastics boost strength (TPU: `1.4`, PA-CF: `1.25`, PETG: `1.1`), while warp-prone materials (ABS/ASA) are penalized unless printed with an active heated chamber ($\ge 40^\circ\text{C}$).
+- **Temperature ($F_{\text{temperature}}$)**: Compares print temperatures against low/high limits. Printing close to the material's maximum temperature improves interlayer fusion, yielding a higher index.
+- **Layer Ratio ($F_{\text{layer}}$)**: Analyzes the layer height to nozzle diameter ratio. The mechanical sweet spot is near `0.35`. Tall layer heights (>0.6 ratio) suffer from weak contact area, while very thin layers (<0.2 ratio) increase shearing susceptibility.
+- **Structure ($F_{\text{structure}}$)**: Evaluates perimeter wall count and sparse infill settings. Multidirectional patterns (Gyroid, Honeycomb, Cubic) distribute load much better than concentric/rectilinear patterns.
+- **Retraction ($F_{\text{retraction}}$)**: High retraction frequencies can grind filament, causing micro-clogs, pressure drops, and weak layer starts.
+- **Sync ($F_{\text{sync}}$)**: Applies a 10% penalty per preheating/precooling/scheduler sync error found in the toolchange sequence.
+- **Geometry ($F_{\text{geometry}}$)**: Applies a structural penalty for tall and slender column geometries (high $H / W_{\text{min}}$ aspect ratio) due to higher moment bending sensitivity and faster heat dissipation stress.
+
+### Qualitative Ratings:
+- **PSI $\ge 90$**: Excellent (Очень высокая)
+- **PSI $75 - 89$**: Good (Высокая / Стандартная)
+- **PSI $55 - 74$**: Fair (Средняя / Требует осторожности)
+- **PSI $< 55$**: Poor (Хрупкая / Высокий риск расслоения)
+
+### Scientific Research & References:
+1. **Sun, Q., Rizvi, G. M., Bellehumeur, C. T., & Gu, P. (2008).** *Effect of processing conditions on the bonding quality of FDM polymer filaments.* Rapid Prototyping Journal. [DOI: 10.1108/13552540810862028](https://doi.org/10.1108/13552540810862028) — Establishes the relationship between FDM parameter thermal profiles (cooling rate, nozzle temp) and bond neck-growth/fusion.
+2. **Li, L., Sun, Q., Bellehumeur, C., & Gu, P. (2002).** *Investigation of bond formation in three-dimensional printing of polymer parts.* Polymer Engineering & Science. [DOI: 10.1002/pen.11036](https://doi.org/10.1002/pen.11036) — Explains the physical welding process (molecular chain diffusion and thermal sintering) occurring at the interfaces.
+3. **Coogan, T. J., & Kazmer, D. O. (2017).** *Bond strength in material extrusion 3D printing.* Rapid Prototyping Journal. [DOI: 10.1108/RPJ-03-2016-0050](https://doi.org/10.1108/RPJ-03-2016-0050) — Analyzes the mechanical properties and anisotropic shear failures of the layers under tension.
+4. **McIlroy, C., & Olmsted, P. D. (2017).** *Disentanglement effects on interlayer bonding in 3D printing.* Polymer. [DOI: 10.1016/j.polymer.2017.06.051](https://doi.org/10.1016/j.polymer.2017.06.051) — Details polymer chain disentanglement under high-shear extrusion and its critical impact on interdiffusion at the weld.
+
 ---
 
 ## Usage
@@ -57,4 +97,5 @@ python3 analyzer.py -f1 /path/to/10bbl.gcode -f2 /path/to/16orca.gcode --to-file
 * `-f1` / `--file1`: Path to the first G-code file (required).
 * `-f2` / `--file2`: Path to the second G-code file for comparison (optional).
 * `--to-file`: Flag to write output to files instead of console (optional).
+* `--strength`: Enable print strength estimation for components (optional).
 * `-o` / `--output`: Output file prefix (optional, active only when `--to-file` is set; defaults to Desktop or current directory).
