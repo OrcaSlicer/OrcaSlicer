@@ -350,7 +350,7 @@ msgid "Gizmo-Scale"
 msgstr "Инструмент изменения размера"
 
 msgid "Error: Please close all toolbar menus first"
-msgstr "Ошибка: пожалуйста, сначала закройте все меню панели инструментов."
+msgstr "Ошибка: сначала закройте текущий инструмент."
 
 msgid "in"
 msgstr "дюйм"
@@ -2808,18 +2808,18 @@ msgstr "Переименование"
 
 msgid "The following model object has been repaired"
 msgid_plural "The following model objects have been repaired"
-msgstr[0] "Следующая модель была успешно починена"
-msgstr[1] "Следующие модели были успешно починены"
-msgstr[2] "Следующие модели были успешно починены"
+msgstr[0] "Следующая модель была успешно восстановлена"
+msgstr[1] "Следующие модели были успешно восстановлены"
+msgstr[2] "Следующие модели были успешно восстановлены"
 
 msgid "Failed to repair the following model object"
 msgid_plural "Failed to repair the following model objects"
-msgstr[0] "Не удалось починить следующую модель"
-msgstr[1] "Не удалось починить следующие модели"
-msgstr[2] "Не удалось починить следующие модели"
+msgstr[0] "Не удалось восстановить следующую модель"
+msgstr[1] "Не удалось восстановить следующие модели"
+msgstr[2] "Не удалось восстановить следующие модели"
 
 msgid "Repairing was canceled"
-msgstr "Ремонт был отменён"
+msgstr "Восстановление отменено"
 
 # Опять пример "лоскутного одеяла", перед этой строкой слайсер добавляет слово
 # "Модель".
@@ -2827,11 +2827,10 @@ msgstr "Ремонт был отменён"
 msgid "\"%s\" will exceed 1 million faces after this subdivision, which may increase slicing time. Do you want to continue?"
 msgstr "«%s» после сглаживания будет иметь более 1 миллиона полигонов, что может замедлить нарезку. Продолжить?"
 
-# надо посмотреть в коде, когда вызывается и что подставляет (+ есть ли
-# "лоскуты")
+# Как будто нет смысла переводить, кнопка сглаживания автоматически отключается, если сетка модели повреждена
 #, c-format, boost-format
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
-msgstr "Сетка детали «%s» содержит ошибки. Сначала исправьте их."
+msgstr "Сетка модели «%s» содержит ошибки. Выполните её восстановление."
 
 msgid "Additional process preset"
 msgstr "Доп. профиль настроек"
@@ -5445,32 +5444,30 @@ msgstr "Траектория перемещения в G-коде выходит
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "Печать двумя и более прутками TPU не поддерживается."
 
-# Подставляется ID экструдера. Используется для двухэкструдерных Bambu и
-# тулченджеров. Чтобы не мешать в одном месте "инструмент-насадка", лучше
-# взять более универсальное "экструдер". Подставляется в последующее
-# сообщение.
+# Подставляется ID экструдера (число). Используется для двухэкструдерных Bambu, IDEX и тулченджеров. Чтобы не мешать в одном месте "инструмент-насадка", лучше взять более универсальное "экструдер". Подставляется в последующее сообщение. UPD: проверил в коде, строка используется только в одном месте, поэтому "экструдер" можно перенести в них и обойти проблему с лишней переменной.
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr "%d экструдер"
+msgstr "%d"
 
+# Подставляется номер материала (по порядку), предыдущая 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "%s назначен на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
+msgstr "Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "%s назначены на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
+msgstr "Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
 
 # Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при
-# превышении высоты через подъём при откате оно не выводится. Квадратные
-# скобки – костыль для обхода кривизны системы локализации.
+# превышении высоты через подъём при откате оно не выводится. Последнее
+# предложение – костыль для обхода кривизны системы локализации.
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "%s назначен на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
+msgstr "Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "%s назначены на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
+msgstr "Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
 
 msgid "Open wiki for more information."
 msgstr "Подробнее на Вики."
@@ -5938,7 +5935,7 @@ msgid "Show object overhang highlight in 3D scene."
 msgstr "Подсвечивать нависания у модели в окне подготовки."
 
 msgid "Show Selected Outline (beta)"
-msgstr "Показать контур выбранной модели"
+msgstr "Показать контур выбранного"
 
 msgid "Show outline around selected object in 3D scene."
 msgstr "Отображение контура вокруг выбранных моделей в окне подготовки."
@@ -9110,13 +9107,12 @@ msgstr "Слишком длинное имя."
 msgid "Cost %dg filament and %d changes more than optimal grouping."
 msgstr "Будет затрачено на %d г материала и на %d смен больше, чем при оптимальной группировке."
 
-# используется в двух местах. В одном из них перевод ломает порядок слов в
-# предложении.
+# используется в двух местах: в настройках диаметра сопла (X mm nozzle) и в подстановке в "The hardness of current material ...".
 msgid "nozzle"
 msgstr "сопло"
 
 msgid "both extruders"
-msgstr "оба экструдера"
+msgstr "обоих экструдерах"
 
 msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Совет: после замены сопла в принтере необходимо обновить его настройки («Принтер» → «Части принтера»)."
@@ -9780,9 +9776,11 @@ msgstr "Обдув определённого слоя"
 msgid "Part cooling fan"
 msgstr "Вентилятор обдува модели"
 
+# Порог усиления обдува
 msgid "Min fan speed threshold"
 msgstr "Минимальный обдув слоя"
 
+# Убрать первое предложение?
 #, fuzzy
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr ""
@@ -9792,9 +9790,11 @@ msgstr ""
 "\n"
 "Примечание: указанный здесь процент скорости берётся за основу при включении «Постоянного обдува»."
 
+# Порог замедления печати, Предельный обдув
 msgid "Max fan speed threshold"
 msgstr "Максимальный обдув слоя"
 
+# Убрать первое предложение?
 #, fuzzy
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr ""
@@ -11478,7 +11478,7 @@ msgstr ""
 "Если хотите получить более высокие скорости, вы можете изменить это значение в настройках принтера (вкладка «Ограничение принтера»)."
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "Параметр точной стенки будет проигнорирован для последовательностей стен «внешняя-внутренняя» или «внутренняя-внешняя-внутренняя»."
+msgstr "Настройка «Точные периметры» игнорируется при порядке печати периметров снаружи внутрь или навстречу."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Компенсация усадки материала не будет использоваться, поскольку усадка у используемых материалов не совпадает."
@@ -11951,7 +11951,6 @@ msgstr ""
 msgid "Top surface flow ratio"
 msgstr "Поток верхней поверхности"
 
-# ???1
 msgid ""
 "This factor affects the amount of material for top solid infill. You can decrease it slightly to have smooth surface finish.\n"
 "\n"
@@ -12091,10 +12090,7 @@ msgid "Precise wall"
 msgstr "Точные периметры"
 
 msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr ""
-"Повышение точности оболочки за счёт регулировки расстояния между внешними стенками. Это также позволяет уменьшить расслоение слоёв.\n"
-"\n"
-"Внимание: Эта настройка будет игнорироваться при печати периметров «Изнутри наружу» и «Навстречу»."
+msgstr "Немного увеличивает расстояние между внешним и внутренним периметром. Позволяет улучшить точность и однородность поверхности. Предназначено для компенсации накопления переэкструзии при печати периметров «Изнутри наружу» и не влияет на другие режимы."
 
 msgid "Only one wall on top surfaces"
 msgstr "Только один периметр на верхней поверхности"
@@ -15457,8 +15453,9 @@ msgstr "Включено"
 msgid "Skirt type"
 msgstr "Тип юбки"
 
+# Про расширенное описание см. в комментарии к перевод подсказки настройки "Skirt minimum extrusion length" 
 msgid "Combined - single skirt for all objects, Per object - individual object skirt."
-msgstr "Выбор типа печатаемой юбки - одна общая для всех моделей или отдельные юбки для каждой модели."
+msgstr "Выбор типа печатаемой юбки – одна общая для всех моделей или отдельные юбки для каждой модели.\n\nВнимание: при создании индивидуальных юбок проверка пересечения не совершается, из-за чего при близком расположении моделей они могут накладываться друг на друга. В таких случаях рекомендуется понизить количество контуров."
 
 # Отдельный (антоним к "совместный")
 msgid "Per object"
@@ -15477,19 +15474,18 @@ msgstr "Скорость юбки"
 msgid "Speed of skirt, in mm/s. Zero means use default layer extrusion speed."
 msgstr "Ограничение скорости движения головы (относительно стола) при печати юбки (мм/с). 0 – соблюдать ограничение слоя."
 
+# (Мин.) Длина прутка для печати юбки, Минимальная экструзия для юбки, Мин. расход для юбки
 msgid "Skirt minimum extrusion length"
-msgstr "Минимальная длина юбки"
+msgstr "Мин. расход для юбки"
 
+# Всё пытался понять, о чём речь в последнем абзаце, и почему это здесь. Оказалось (коммит 2a8b39a), что это предупреждение о том, что при выборе режима отдельной юбки у каждой модели не совершается проверок на коллизию линий, и при их близком расположении они могут накладываться друг на друга, поэтому в случае чего надо увеличить расстояние/уменьшить расход для юбки. Increase loop number in such case – ошибочное высказывание. Переместил это предупреждение в подсказку к типу юбки, где ему и место.
 msgid ""
 "Minimum filament extrusion length in mm when printing the skirt. Zero means this feature is disabled.\n"
 "\n"
 "Using a non-zero value is useful if the printer is set up to print without a prime line.\n"
 "Final number of loops is not taking into account while arranging or validating objects distance. Increase loop number in such case."
 msgstr ""
-"Минимальное количество пластика, которое должно быть выдавлено при печати юбки в миллиметрах. 0 - функция отключена.\n"
-"\n"
-"Необходимо, если принтер настроен на печать без стартовой линии очистки сопла.\n"
-"При расстановке или проверке расстояния между моделями игнорируется конечное число петель юбки, поэтому если их недостаточно, то увеличьте их количество."
+"Минимальная длина прутка для прочистки на юбке (в миллиметрах). Позволяет автоматически расчитывать количество контуров юбки для её использования в качестве альтернативы линии прочистки.\n\n0 – отключить автоматический расчёт."
 
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
 msgstr "Скорость печати в экспортированном G-коде будет замедлена, если расчётное время печати слоя меньше заданного здесь значения, для обеспечения лучшего охлаждения этих слоёв."
@@ -16487,7 +16483,7 @@ msgid "When transitioning between different numbers of walls as the part becomes
 msgstr "Задаёт длину перехода между периметрами при изменении их количества (с чётного на нечётное, и обратно). Чем больше значение, тем плавнее переход, и наоборот: чем меньше, тем резче. Указывается в процентах от диаметра сопла."
 
 msgid "Wall transitioning filter margin"
-msgstr "Граница фильтрации переходов между периметрами"
+msgstr "Допустимое отклонение ширины"
 
 msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
 msgstr "Параметр расширяет допустимый диапазон значений ширины периметров, чтобы уменьшить частые изменения их количества на тонких стенках, что улучшает качество печати. Однако слишком большой диапазон может привести к недоэкструзии или переэкструзии. Указывается в процентах от диаметра сопла. Например, для сопла 0,4 мм оптимальным считается значение 25% (0,1 мм)."
@@ -18267,14 +18263,17 @@ msgstr "Невозможно выполнить булеву операцию н
 msgid "Mesh Boolean"
 msgstr "Булевы операции"
 
+# Одновременно тип операции и кнопка выполнения
 msgid "Union"
-msgstr "Объединение"
+msgstr "Объединить"
 
+# Одновременно тип операции и кнопка выполнения
 msgid "Difference"
-msgstr "Разность"
+msgstr "Вычесть"
 
+# Одновременно тип операции и кнопка выполнения
 msgid "Intersection"
-msgstr "Пересечение"
+msgstr "Сохранить пересечение"
 
 msgid "Source Volume"
 msgstr "Исходный объём"
@@ -18649,7 +18648,7 @@ msgstr ""
 "Нажмите «Синхронизировать пользовательские профили», чтобы включить функцию синхронизации."
 
 msgid "Printer Setting"
-msgstr "Настройка принтера"
+msgstr "Настроить принтер"
 
 msgid "Printer config bundle(.orca_printer)"
 msgstr "Printer config bundle(.orca_printer) - Пакет профилей принтера"
@@ -19720,7 +19719,7 @@ msgstr "Доступна новая версия сетевого плагина
 
 #, fuzzy, c-format, boost-format
 msgid "Current version: %s"
-msgstr "Текущая версия:"
+msgstr "Текущая версия: %s"
 
 msgid "Update to version:"
 msgstr "Обновление до версии:"
