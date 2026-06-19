@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <cctype>
 
 namespace Slic3r {
 
@@ -302,6 +303,14 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
         const auto last = line.find_last_not_of(" \t\r\n");
         line = line.substr(first, last - first + 1);
         
+        // Only numbers, commas and dots are allowed (no letters or other characters)
+        for (char c : line) {
+            if (!std::isdigit(static_cast<unsigned char>(c)) && c != ',' && c != '.') {
+                return "Line " + std::to_string(line_number) +
+                       ": only numbers, commas and dots are allowed";
+            }
+        }
+
         // Count commas to validate format (should be exactly 2 for 3 values)
         int comma_count = 0;
         for (char c : line) {
@@ -310,7 +319,7 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
         
         if (comma_count != 2) {
             return "Line " + std::to_string(line_number) + 
-                   ": must contain exactly 3 comma-separated values (PA, flow, accel)";
+                   ": must contain exactly 3 comma-separated values (PA, flow, acceleration)";
         }
         
         // Parse and validate the values
@@ -328,9 +337,9 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
                 return "Line " + std::to_string(line_number) + ": missing flow value";
             double flow = std::stod(value);
             
-            // Parse accel
+            // Parse acceleration
             if (!std::getline(line_stream, value, ','))
-                return "Line " + std::to_string(line_number) + ": missing accel value";
+                return "Line " + std::to_string(line_number) + ": missing acceleration value";
             double accel = std::stod(value);
             
             // Validate constraints
@@ -341,7 +350,7 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
                 return "Line " + std::to_string(line_number) + ": flow value must be greater than PA value";
             }
             if (accel <= flow) {
-                return "Line " + std::to_string(line_number) + ": accel value must be greater than flow value";
+                return "Line " + std::to_string(line_number) + ": acceleration value must be greater than flow value";
             }
         } catch (const std::exception&) {
             return "Line " + std::to_string(line_number) + ": invalid numeric value";
