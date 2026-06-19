@@ -1,6 +1,6 @@
 {
 	"name": "SeeMeCNC",
-	"version": "2.4.0.00",
+	"version": "2.4.0.01",
 	"force_update": "1",
 	"description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers",
 	"machine_model_list": [
@@ -34,6 +34,22 @@
 		}
 	],
 	"process_list": [
+		{
+			"name": "SeeMeCNC process base 0.4mm",
+			"sub_path": "process/SeeMeCNC_process_base_0.4mm.json"
+		},
+		{
+			"name": "SeeMeCNC process base 0.5mm",
+			"sub_path": "process/SeeMeCNC_process_base_0.5mm.json"
+		},
+		{
+			"name": "SeeMeCNC process base 0.7mm",
+			"sub_path": "process/SeeMeCNC_process_base_0.7mm.json"
+		},
+		{
+			"name": "SeeMeCNC process base 1.0mm",
+			"sub_path": "process/SeeMeCNC_process_base_1.0mm.json"
+		},
 		{
 			"name": "SeeMeCNC process base",
 			"sub_path": "process/SeeMeCNC_process_base.json"

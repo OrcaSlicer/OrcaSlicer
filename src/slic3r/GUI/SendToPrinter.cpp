@@ -61,10 +61,10 @@ static const std::map<int, std::string> error_messages = {
     {SendToPrinterDialog::SEND_ERR, L("File upload failed, please try again.")}
 };
 
-static std::string ParseErrorCode(int errorcde)
+static wxString ParseErrorCode(int errorcde)
 {
     auto it = error_messages.find(errorcde);
-    if (it != error_messages.end()) { return it->second; }
+    if (it != error_messages.end()) { return _L(it->second); }
     return "";
 }
 
@@ -176,17 +176,17 @@ void SendToPrinterDialog::on_rename_enter()
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line = _L("The name is not allowed to be empty.");
+        info_line = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line = _L("The name is not allowed to start with space character.");
+        info_line = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line = _L("The name is not allowed to end with space character.");
+        info_line = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -367,7 +367,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, _L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -1446,7 +1446,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
-		wxString msg_text = _L("Cannot send the print task when the upgrade is in progress");
+		wxString msg_text = _L("Cannot send print tasks when an update is in progress");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
@@ -1477,7 +1477,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
     }
     else if (status == PrintDialogStatus::PrintStatusNotOnTheSameLAN) {
-        wxString msg_text = _L("The printer is required to be in the same LAN as Orca Slicer.");
+        wxString msg_text = _L("The printer is required to be on the same LAN as Orca Slicer.");
         update_print_status_msg(msg_text, true, true);
         Enable_Send_Button(false);
         Enable_Refresh_Button(true);
@@ -1982,7 +1982,7 @@ void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::s
             if (ParseErrorCode(resp_ec) != "")
                 update_print_status_msg(ParseErrorCode(resp_ec), false, true);
             else
-                update_print_status_msg("Sending failed, please try again!", false, true);
+                update_print_status_msg(_L("Sending failed, please try again!"), false, true);
             m_filetransfer_uploadfile_job.reset();
             m_filetransfer_uploadfile_job = nullptr;
         }

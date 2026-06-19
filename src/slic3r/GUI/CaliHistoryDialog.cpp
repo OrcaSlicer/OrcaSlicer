@@ -304,7 +304,7 @@ void HistoryWindow::reqeust_history_result(MachineObject* obj)
             cali_info.use_nozzle_volume_type = false;
             cali_info.use_extruder_id        = false;
             CalibUtils::emit_get_PA_calib_infos(cali_info);
-            m_tips->SetLabel(_L("Refreshing the historical Flow Dynamics Calibration records"));
+            m_tips->SetLabel(_L("Refreshing the previous Flow Dynamics Calibration records"));
             BOOST_LOG_TRIVIAL(info) << "request calib history";
         }
     }
@@ -476,7 +476,7 @@ int HistoryWindow::get_extruder_id()
 void HistoryWindow::on_click_new_button(wxCommandEvent& event)
 {
     if (curr_obj && curr_obj->get_printer_series() == PrinterSeries::SERIES_P1P && m_calib_results_history.size() >= 16) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d history results per nozzle."), 16), wxEmptyString, wxICON_WARNING | wxOK);
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle."), 16), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
@@ -913,8 +913,7 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
 
         if (iter != m_history_results.end()) {
 
-            wxString duplicate_name_info = wxString::Format(_L("There is already a historical calibration result with the same name: %s. Only one of the results with the same name "
-                                                      "is saved. Are you sure you want to override the historical result?"), m_new_result.name);
+            wxString duplicate_name_info = wxString::Format(_L("There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result\?"), m_new_result.name);
 
             duplicate_name_info = wxString::Format(_L("Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
                                                       "Are you sure you want to override the historical result?"), m_new_result.name);

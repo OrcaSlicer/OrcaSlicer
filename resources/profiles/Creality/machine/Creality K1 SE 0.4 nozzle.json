@@ -123,7 +123,7 @@
 	"default_filament_profile": [
 		"Creality Generic PLA @K1-all"
 	],
-	"machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM204 S2000\nG1 Z3 F600\nM83\nG92 E0\nG1 Z1 F600",
+	"machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM204 S2000\nM104 S[nozzle_temperature_initial_layer]\nG1 Z3 F600\nM83\nG92 E0\nG1 Z1 F600",
 	"machine_end_gcode": "END_PRINT",
 	"scan_first_layer": "0",
 	"thumbnails_format": "PNG",
