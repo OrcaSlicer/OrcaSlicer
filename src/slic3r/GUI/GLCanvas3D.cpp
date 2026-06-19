@@ -2793,22 +2793,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                                 TriangleMesh mesh = print_object->get_mesh(slaposDrillHoles);
 	                            assert(! mesh.empty());
                                 mesh.transform(sla_print->sla_trafo(*m_model->objects[volume.object_idx()]).inverse());
-#if ENABLE_SMOOTH_NORMALS
-                                volume.model.init_from(mesh, true);
-#else
                                 volume.model.init_from(mesh);
                                 volume.mesh_raycaster = std::make_unique<GUI::MeshRaycaster>(std::make_shared<TriangleMesh>(mesh));
-#endif // ENABLE_SMOOTH_NORMALS
                             }
                             else {
 	                        	// Reload the original volume.
-#if ENABLE_SMOOTH_NORMALS
-                                volume.model.init_from(m_model->objects[volume.object_idx()]->volumes[volume.volume_idx()]->mesh(), true);
-#else
                                 const TriangleMesh& new_mesh = m_model->objects[volume.object_idx()]->volumes[volume.volume_idx()]->mesh();
                                 volume.model.init_from(new_mesh);
                                 volume.mesh_raycaster = std::make_unique<GUI::MeshRaycaster>(std::make_shared<TriangleMesh>(new_mesh));
-#endif // ENABLE_SMOOTH_NORMALS
                             }
 	                    }
                     	//FIXME it is an ugly hack to write the timestamp into the "offsets" field to not have to add another member variable
@@ -10001,11 +9993,7 @@ void GLCanvas3D::_load_sla_shells()
         const TriangleMesh& mesh, const ColorRGBA& color, bool outside_printer_detection_enabled) {
         m_volumes.volumes.emplace_back(new GLVolume(color));
         GLVolume& v = *m_volumes.volumes.back();
-#if ENABLE_SMOOTH_NORMALS
-        v.model.init_from(mesh, true);
-#else
         v.model.init_from(mesh);
-#endif // ENABLE_SMOOTH_NORMALS
         v.shader_outside_printer_detection_enabled = outside_printer_detection_enabled;
         v.composite_id.volume_id = volume_id;
         v.set_instance_offset(unscale(instance.shift.x(), instance.shift.y(), 0.0));

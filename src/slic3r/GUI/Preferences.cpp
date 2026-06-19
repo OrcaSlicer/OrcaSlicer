@@ -1578,6 +1578,15 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_shadows);
 
+   
+    auto item_realistic_smooth_normals = create_item_checkbox(
+        _L("Smooth normals"),
+        _L("Applies smooth normals to the realistic view.\n\nRequires manual scene reload to take effect "
+                                "(right-click on 3D view → \"Reload All\")."),
+        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
+    );
+    g_sizer->Add(item_realistic_smooth_normals);
+
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
 
