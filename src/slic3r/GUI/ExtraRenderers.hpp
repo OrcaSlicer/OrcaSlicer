@@ -28,6 +28,15 @@ public:
         m_bmp(other.m_bmp)
     { }
 
+    DataViewBitmapText& operator=(const DataViewBitmapText &other)
+    {
+        if (this != &other) {
+            m_text = other.m_text;
+            m_bmp = other.m_bmp;
+        }
+        return *this;
+    }
+
     void SetText(const wxString &text)      { m_text = text; }
     wxString GetText() const                { return m_text; }
     void SetBitmap(const wxBitmap &bmp)     { m_bmp = bmp; }
@@ -132,13 +141,9 @@ private:
 class BitmapChoiceRenderer : public wxDataViewCustomRenderer
 {
 public:
-    BitmapChoiceRenderer(wxDataViewCellMode mode =
-//#ifdef __WXOSX__
-//        wxDATAVIEW_CELL_INERT
-//#else
-        wxDATAVIEW_CELL_EDITABLE
-//#endif
-        , int align = wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL
+    BitmapChoiceRenderer(
+        wxDataViewCellMode mode = wxDATAVIEW_CELL_EDITABLE,
+        int align = wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL
     ) : wxDataViewCustomRenderer(wxT("DataViewBitmapText"), mode, align) {}
 
     bool SetValue(const wxVariant& value) override;

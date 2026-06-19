@@ -16,8 +16,17 @@ class wxSecretStore;
 
 namespace Slic3r {
 
-// Forward declaration
+// Forward declarations
 class AppConfig;
+struct BundleMetadata;
+
+// Outcome of a token-refresh attempt: decides whether a 401 should log the user
+// out (AuthRejected) or be treated as a recoverable condition (Transient).
+enum class RefreshResult {
+    Success,       // new tokens obtained
+    AuthRejected,  // server definitively rejected the refresh token -> logout is correct
+    Transient      // network/server problem -> keep the session and retry later
+};
 
 // Constants for OAuth loopback server
 namespace auth_constants {
@@ -39,12 +48,12 @@ struct ProfileUpsert {
     std::string id;
     std::string name;
     nlohmann::json content;
-    std::string updated_at;
-    std::string created_at;
+    long long updated_time;
+    long long created_time;
 };
 
 struct SyncPullResponse {
-    std::string next_cursor;
+    long long next_cursor;
     std::vector<ProfileUpsert> upserts;
     std::vector<std::string> deletes;
 };
@@ -52,14 +61,14 @@ struct SyncPullResponse {
 struct SyncPushResult {
     bool success;
     int http_code;
-    std::string new_updated_at;
+    long long new_updated_time;
     ProfileUpsert server_version;
     bool server_deleted;
     std::string error_message;
 };
 
 struct SyncState {
-    std::string last_sync_timestamp;
+    long long last_sync_timestamp;
 };
 
 #endif // ORCA_SYNC_STRUCTS_DEFINED
@@ -87,6 +96,8 @@ public:
         std::string access_token;
         std::string refresh_token;
         std::string user_id;
+        // Orca auth semantics: user_name is the unique Orca Cloud username (orca_xxxxx),
+        // user_nickname is the display name shown in the UI when available.
         std::string user_name;
         std::string user_nickname;
         std::string user_avatar;
@@ -108,10 +119,14 @@ public:
     explicit OrcaCloudServiceAgent(std::string log_dir);
     ~OrcaCloudServiceAgent() override;
 
+    std::string get_id() const override { return ORCA_CLOUD_PROVIDER; }
+
     // Configuration
     void configure_urls(AppConfig* app_config);
     void set_api_base_url(const std::string& url);
     void set_auth_base_url(const std::string& url);
+    void set_cloud_base_url(const std::string& url);
+    std::string get_cloud_base_url() const { return cloud_base_url; }
     void set_use_encrypted_token_file(bool use);
     bool get_use_encrypted_token_file() const;
 
@@ -157,6 +172,7 @@ public:
     int connect_server() override;
     bool is_server_connected() override;
     int refresh_connection() override;
+    bool is_refresh_running() const { return refresh_running.load(); }
     int start_subscribe(std::string module) override;
     int stop_subscribe(std::string module) override;
     int add_subscribe(std::vector<std::string> dev_list) override;
@@ -168,7 +184,12 @@ public:
     // ========================================================================
     int get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets) override;
     std::string request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
-    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
+    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) override;
+    SyncPushResult sync_push(const std::string& profile_id,
+                             const std::string& name,
+                             const nlohmann::json& content,
+                             const std::string& original_updated_time = "",
+                             bool force                               = false);
     int get_setting_list(std::string bundle_version, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int get_setting_list2(std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int delete_setting(std::string setting_id) override;
@@ -199,6 +220,7 @@ public:
     int get_model_mall_home_url(std::string* url) override;
     int get_model_mall_detail_url(std::string* url, std::string id) override;
     int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body) override;
+    int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body) override;
 
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Analytics & Tracking
@@ -222,8 +244,6 @@ public:
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Extra Features
     // ========================================================================
-    int set_extra_http_header(std::map<std::string, std::string> extra_headers) override;
-    std::string get_studio_info_url() override;
     int get_mw_user_preference(std::function<void(std::string)> callback) override;
     int get_mw_user_4ulist(int seed, int limit, std::function<void(std::string)> callback) override;
     std::string get_version() override;
@@ -231,9 +251,8 @@ public:
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Callbacks
     // ========================================================================
-    int set_on_user_login_fn(OnUserLoginFn fn) override;
-    int set_on_server_connected_fn(OnServerConnectedFn fn) override;
-    int set_on_http_error_fn(OnHttpErrorFn fn) override;
+    int set_on_server_connected_fn(AppOnServerConnectedFn fn) override;
+    int set_on_http_error_fn(AppOnHttpErrorFn fn) override;
     int set_get_country_code_fn(GetCountryCodeFn fn) override;
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
@@ -244,6 +263,14 @@ public:
     const SyncState& get_sync_state() const { return sync_state; }
 
     // ========================================================================
+    // Orca-Specific: Bundle Subscription
+    // ========================================================================
+    bool unsubscribe_bundle(const std::string& bundle_id);
+    std::string get_bundle_url(const std::string& bundle_id) const;
+    int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
+    int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
+
+    // ========================================================================
     // Additional Public Methods - Auth
     // ========================================================================
     void set_session_handler(SessionHandler handler);
@@ -252,25 +279,29 @@ public:
     const PkceBundle& pkce();
     void regenerate_pkce();
 
-    void persist_refresh_token(const std::string& token);
-    bool load_refresh_token(std::string& out_token);
-    void clear_refresh_token();
+    void persist_user_secret(const std::string& secret);
+    bool load_user_secret(std::string& out_secret);
+    void clear_user_secret();
 
     // Token refresh helpers
-    bool refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
-    bool refresh_from_storage(const std::string& reason, bool async = false);
-    bool refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
-    bool refresh_session_with_token(const std::string& refresh_token);
+    bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
+    RefreshResult refresh_from_storage(const std::string& reason, bool async = false);
+    RefreshResult refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
+    RefreshResult refresh_session_with_token(const std::string& refresh_token);
 
-    // Session state helpers
+    // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
     bool set_user_session(const std::string& token,
                           const std::string& user_id,
                           const std::string& username,
-                          const std::string& name,
                           const std::string& nickname,
                           const std::string& avatar,
-                          const std::string& refresh_token = "");
+                          const std::string& refresh_token = "",
+                          bool persist = true);
+    // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
+    bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
+
+    static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
 
 private:
     // Sync protocol helpers
@@ -279,12 +310,20 @@ private:
         std::function<void(int http_code, const std::string& error)> on_error
     );
 
-    SyncPushResult sync_push(
-        const std::string& profile_id,
-        const std::string& name,
-        const nlohmann::json& content,
-        const std::string& original_updated_at = ""
-    );
+    // Shared result of one HTTP attempt by the data methods (get/post/put/delete).
+    struct HttpResult {
+        bool         success{false};
+        unsigned int status{0};
+        std::string  body;
+    };
+
+    // Applies the "retry once on 401" policy for the data HTTP methods.
+    // `res` holds the first response; `perform` re-issues the request after a
+    // successful refresh. Returns true if the auth error should be SUPPRESSED
+    // (i.e. the session must be kept rather than logged out).
+    bool resolve_unauthorized(HttpResult& res,
+                              const std::function<HttpResult()>& perform,
+                              const std::string& reason);
 
     // HTTP request helpers
     int http_get(const std::string& path, std::string* response_body, unsigned int* http_code);
@@ -292,7 +331,7 @@ private:
     int http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
     int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code);
     std::map<std::string, std::string> data_headers();
-    bool attempt_refresh_after_unauthorized(const std::string& reason);
+    RefreshResult attempt_refresh_after_unauthorized(const std::string& reason);
 
     // Auth HTTP helpers
     bool http_post_token(const std::string& body, std::string* response_body, unsigned int* http_code, const std::string& url = "");
@@ -302,7 +341,6 @@ private:
     void compute_fallback_path();
     bool decode_jwt_expiry(const std::string& token, std::chrono::system_clock::time_point& out_tp);
     bool should_refresh_locked(std::chrono::seconds skew) const;
-    void invoke_user_login_callback(int online_login, bool login);
 
     // Callback invocation
     void invoke_server_connected_callback(int return_code, int reason_code);
@@ -317,6 +355,7 @@ private:
     std::string config_dir;
     std::string api_base_url;
     std::string auth_base_url;
+    std::string cloud_base_url;
     std::string country_code;
     std::map<std::string, std::string> extra_headers;
     std::map<std::string, std::string> auth_headers;
@@ -325,7 +364,7 @@ private:
 
     // Member variables - auth state
     PkceBundle pkce_bundle;
-    std::string refresh_fallback_path;
+    std::string secret_fallback_path;
     SessionHandler session_handler;
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
@@ -341,9 +380,8 @@ private:
     std::string sync_state_path;
 
     // Callbacks
-    OnUserLoginFn on_user_login_fn;
-    OnServerConnectedFn on_server_connected_fn;
-    OnHttpErrorFn on_http_error_fn;
+    AppOnServerConnectedFn on_server_connected_fn;
+    AppOnHttpErrorFn on_http_error_fn;
     GetCountryCodeFn get_country_code_fn;
     QueueOnMainFn queue_on_main_fn;
     mutable std::mutex callback_mutex;

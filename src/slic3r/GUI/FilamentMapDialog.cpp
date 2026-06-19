@@ -2,6 +2,7 @@
 #include "PartPlate.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/Label.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
@@ -214,7 +215,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     main_sizer->Add(bottom_panel, 0, wxEXPAND);
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
-    m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancle, this);
+    m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancel, this);
     SetEscapeId(wxID_CANCEL);
     Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
         if (e.GetKeyCode() == WXK_ESCAPE) {
@@ -285,7 +286,7 @@ void FilamentMapDialog::on_ok(wxCommandEvent &event)
     EndModal(wxID_OK);
 }
 
-void FilamentMapDialog::on_cancle(wxCommandEvent &event) { EndModal(wxID_CANCEL); }
+void FilamentMapDialog::on_cancel(wxCommandEvent &event) { EndModal(wxID_CANCEL); }
 
 void FilamentMapDialog::update_panel_status(PageType page)
 {

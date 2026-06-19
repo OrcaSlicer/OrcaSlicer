@@ -1,10 +1,14 @@
 {
-    "type": "filament",
+	"type": "filament",
 	"setting_id": "GFSL98",
-    "name": "QIDI PLA-CF @Qidi Q2C 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI PLA-CF@Q2C-Series",
-    "pressure_advance": ["0.034"],
-	"compatible_printers": ["Qidi Q2C 0.4 nozzle"]
+	"name": "QIDI PLA-CF @Qidi Q2C 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PLA-CF@Q2C-Series",
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
 }

@@ -14,8 +14,9 @@
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <boost/log/trivial.hpp>
 
@@ -79,33 +80,47 @@ bool GLGizmoFdmSupports::on_init()
     // BBS
     m_shortcut_key = WXK_CONTROL_L;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
-    const wxString shift = _L("Shift+");
+    m_desc["perform"]            = _L("Apply");
+    m_desc["on_overhangs_only"]  = _L("On highlighted overhangs only");
+    m_desc["remove_all"]         = _L("Erase all");
+    m_desc["highlight_by_angle"] = _L("Highlight overhangs");
+    m_desc["tool_type"]          = _L("Tool type");
+    m_desc["gap_fill"]           = _L("Gap fill");
+    m_desc["reset_direction"]    = _L("Reset direction");
+    m_desc["clipping_of_view"]   = _L("Section view");
+    m_desc["cursor_size"]        = _L("Brush size");
+    m_desc["smart_fill_angle"]   = _L("Smart fill angle");
+    m_desc["gap_area"]           = _L("Gap area");
 
-    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
-    m_desc["clipping_of_view"]      = _L("Section view");
-    m_desc["reset_direction"]       = _L("Reset direction");
-    m_desc["cursor_size_caption"]   = ctrl + _L("Mouse wheel");
-    m_desc["cursor_size"]           = _L("Pen size");
-    m_desc["enforce_caption"]       = _L("Left mouse button");
-    m_desc["enforce"]               = _L("Enforce supports");
-    m_desc["block_caption"]         = _L("Right mouse button");
-    m_desc["block"]                 = _L("Block supports");
-    m_desc["remove_caption"]        = shift + _L("Left mouse button");
-    m_desc["remove"]                = _L("Erase");
-    m_desc["remove_all"]            = _L("Erase all painting");
-    m_desc["highlight_by_angle"]    = _L("Highlight overhang areas");
-    m_desc["gap_fill"]              = _L("Gap fill");
-    m_desc["perform"]               = _L("Perform");
-    m_desc["gap_area_caption"]      = ctrl + _L("Mouse wheel");
-    m_desc["gap_area"]              = _L("Gap area");
-    m_desc["tool_type"]             = _L("Tool type");
-    m_desc["smart_fill_angle_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["smart_fill_angle"]      = _L("Smart fill angle");
-    m_desc["on_overhangs_only"] = _L("On overhangs only");
+
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
+
+    std::pair<wxString, wxString> enforce_shortcut  = {_L("Left mouse button"),         _L("Enforce supports")};
+    std::pair<wxString, wxString> block_shortcut    = {_L("Right mouse button"),        _L("Block supports")};
+    std::pair<wxString, wxString> remove_shortcut   = {shift + _L("Left mouse button"), _L("Erase")};
+    std::pair<wxString, wxString> clipping_shortcut = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
+
+    m_shortcuts_brush = {
+        enforce_shortcut, 
+        block_shortcut, 
+        remove_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        clipping_shortcut
+    };
+
+    m_shortcuts_bucket_fill = {
+        enforce_shortcut, 
+        block_shortcut, 
+        remove_shortcut,
+        {ctrl + _L("Mouse wheel"),  m_desc["smart_fill_angle"]},
+        clipping_shortcut
+    };
+
+    m_shortcuts_gap_fill = {
+        {ctrl + _L("Mouse wheel"), _L("Gap area")}
+    };
 
     memset(&m_print_instance, 0, sizeof(m_print_instance));
     return true;
@@ -176,6 +191,12 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     if (! m_c->selection_info()->model_object())
         return;
 
+    float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+
     // BBS
     wchar_t old_tool = m_current_tool;
 
@@ -194,6 +215,9 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     //BBS
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
@@ -204,11 +228,10 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     const float highlight_slider_left   = m_imgui->calc_text_size(m_desc.at("highlight_by_angle")).x + m_imgui->scaled(1.5f);
     const float reset_button_slider_left = m_imgui->calc_text_size(m_desc.at("reset_direction")).x + m_imgui->scaled(1.5f) + ImGui::GetStyle().FramePadding.x * 2;
     const float on_overhangs_only_width  = m_imgui->calc_text_size(m_desc["on_overhangs_only"]).x + m_imgui->scaled(1.5f);
-    const float remove_btn_width        = m_imgui->calc_text_size(m_desc.at("remove_all")).x + m_imgui->scaled(1.5f);
     const float filter_btn_width        = m_imgui->calc_text_size(m_desc.at("perform")).x + m_imgui->scaled(1.5f);
     const float gap_area_txt_width = m_imgui->calc_text_size(m_desc.at("gap_area")).x + m_imgui->scaled(1.5f);
     const float smart_fill_angle_txt_width = m_imgui->calc_text_size(m_desc.at("smart_fill_angle")).x + m_imgui->scaled(1.5f);
-    const float buttons_width           = remove_btn_width + filter_btn_width + m_imgui->scaled(1.5f);
+    const float buttons_width           = filter_btn_width + m_imgui->scaled(1.5f);
     const float empty_button_width      = m_imgui->calc_button_size("").x;
 
     const float tips_width           = m_imgui->calc_text_size(_L("Auto support threshold angle: ") + " 90 ").x + m_imgui->scaled(1.5f);
@@ -228,7 +251,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
     const float sliders_width = m_imgui->scaled(7.0f);
-    const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_left_width + sliders_width - space_size;
+    const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
     float drag_pos_times     = 0.7;
 
@@ -243,30 +266,24 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill") };
     for (int i = 0; i < tool_ids.size(); i++) {
-        std::string  str_label = std::string("##");
-        std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
+        //std::string  str_label = std::string("##");
+        //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
 
         if (i != 0) ImGui::SameLine((empty_button_width + m_imgui->scaled(1.75f)) * i + m_imgui->scaled(1.3f));
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));                     // ORCA Removes button background on dark mode
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));                       // ORCA: Fixes icon rendered without colors while using Light theme
-        if (m_current_tool == tool_ids[i]) {
-            ImGui::PushStyleColor(ImGuiCol_Button,          ImVec4(0.f, 0.59f, 0.53f, 0.25f));  // ORCA use orca color for selected tool / brush
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,   ImVec4(0.f, 0.59f, 0.53f, 0.25f));  // ORCA use orca color for selected tool / brush
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive,    ImVec4(0.f, 0.59f, 0.53f, 0.30f));  // ORCA use orca color for selected tool / brush
-            ImGui::PushStyleColor(ImGuiCol_Border,          ImGuiWrapper::COL_ORCA);            // ORCA use orca color for border on selected tool / brush
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0);
-        }
-        bool btn_clicked = ImGui::Button(into_u8(btn_name).c_str());
-        if (m_current_tool == tool_ids[i])
-        {
-            ImGui::PopStyleColor(4);
-            ImGui::PopStyleVar(2);
-        }
-        ImGui::PopStyleColor(2);
-        ImGui::PopStyleVar(1);
+        bool is_active = m_current_tool == tool_ids[i];
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * scale);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(4.f * scale, 4.f * scale));
+        ImGui::PushStyleColor(ImGuiCol_Text         , ImVec4(1,1,1,1)); // ORCA Fixes icon rendered without colors while using Light theme
+        ImGui::PushStyleColor(ImGuiCol_Button       , is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(0,0,0,0));         // ORCA
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(.6f,.6f,.6f,.2f)); // ORCA
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0,0,0,0));         // ORCA
+        ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA
+        ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA matched color for fixing flicker on click
+        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale)); // ORCA glyph_button for fixing unequal paddings
+        ImGui::PopStyleColor(6);
+        ImGui::PopStyleVar(3);
 
         if (btn_clicked && m_current_tool != tool_ids[i]) {
             m_current_tool = tool_ids[i];
@@ -280,11 +297,6 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
             m_imgui->tooltip(tool_tips[i], max_tooltip_width);
         }
     }
-
-    m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(format_wxstr(_L("Allows painting only on facets selected by: \"%1%\""), m_desc["highlight_by_angle"]), max_tooltip_width);
-    ImGui::Separator();
 
     if (m_current_tool != old_tool)
         this->tool_changed(old_tool, m_current_tool);
@@ -300,7 +312,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
@@ -312,7 +324,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
     } else if (m_current_tool == ImGui::FillButtonIcon) {
@@ -320,16 +332,19 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         m_tool_type = ToolType::SMART_FILL;
 
         ImGui::AlignTextToFramePadding();
-        m_imgui->text(m_desc.at("smart_fill_angle"));
-        std::string format_str = std::string("%.f") + I18N::translate_utf8("", "Face angle threshold, placed after the number with no whitespace in between.");
+        m_imgui->text(m_desc["smart_fill_angle"]);
+        std::string format_str = std::string("%.f") + I18N::translate_utf8("°",
+                                                                            "Face angle threshold,"
+                                                                            "placed after the number with no whitespace in between.");
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
-        if (m_imgui->bbl_slider_float_style("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax, format_str.data(), 1.0f, true))
+        if (m_imgui->bbl_slider_float_style("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax,
+                                            format_str.data(), 1.0f, true))
             for (auto& triangle_selector : m_triangle_selectors) {
                 triangle_selector->seed_fill_unselect_all_triangles();
                 triangle_selector->request_update_render_data();
             }
-        ImGui::SameLine(drag_left_width);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
     } else if (m_current_tool == ImGui::GapFillIcon) {
@@ -342,11 +357,33 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(sliders_width);
         std::string format_str = std::string("%.2f") + I18N::translate_utf8("", "Triangle patch area threshold,""triangle patch will be merged to neighbor if its area is less than threshold");
         m_imgui->bbl_slider_float_style("##gap_area", &TriangleSelectorPatch::gap_area, TriangleSelectorPatch::GapAreaMin, TriangleSelectorPatch::GapAreaMax, format_str.data(), 1.0f, true);
-        ImGui::SameLine(drag_left_width);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        // Apply gap fill button
+        if (m_imgui->button(m_desc.at("perform"))) {
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
+
+            for (int i = 0; i < m_triangle_selectors.size(); i++) {
+                TriangleSelectorPatch* ts_mm = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
+                ts_mm->update_selector_triangles();
+                ts_mm->request_update_render_data(true);
+            }
+            update_model_object();
+            m_parent.set_as_dirty();
+        }
     }
 
+    if (m_current_tool != ImGui::GapFillIcon) {
+        m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(format_wxstr(_L("Allows painting only on facets selected by: \"%1%\""), m_desc["highlight_by_angle"]),
+                             max_tooltip_width);
+    }
+
+
+    ImGui::Separator();
     float position_before_text_y = ImGui::GetCursorPos().y;
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["highlight_by_angle"]);
@@ -380,63 +417,39 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         }
         ImGui::EndTooltip();
     }
-    ImGui::SameLine(drag_left_width);
+    ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##angle_threshold_deg_input", &m_highlight_by_angle_threshold_deg, 0.05f, 0.0f, 0.0f, "%.2f");
 
-    if (m_current_tool != ImGui::GapFillIcon) {
-        ImGui::Separator();
-        if (m_c->object_clipper()->get_position() == 0.f) {
-            ImGui::AlignTextToFramePadding();
-            m_imgui->text(m_desc.at("clipping_of_view"));
-        }
-        else {
-            if (m_imgui->button(m_desc.at("reset_direction"))) {
-                wxGetApp().CallAfter([this]() {
-                        m_c->object_clipper()->set_position_by_ratio(-1., false);
-                    });
-            }
-        }
-
-        auto clp_dist = float(m_c->object_clipper()->get_position());
-        ImGui::SameLine(sliders_left_width);
-        ImGui::PushItemWidth(sliders_width);
-        bool b_bbl_slider_float = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-
-        ImGui::SameLine(drag_left_width);
-        ImGui::PushItemWidth(1.5 * slider_icon_width);
-        bool b_drag_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-        if (b_bbl_slider_float || b_drag_input) m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
-    }
-
     ImGui::Separator();
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(caption_max, x, get_cur_y);
-
-    float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
-
-    ImGui::SameLine();
-
-    // Perform button is for gap fill
-    if (m_current_tool == ImGui::GapFillIcon) {
-        if (m_imgui->button(m_desc.at("perform"))) {
-            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
-
-            for (int i = 0; i < m_triangle_selectors.size(); i++) {
-                TriangleSelectorPatch* ts_mm = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
-                ts_mm->update_selector_triangles();
-                ts_mm->request_update_render_data(true);
-            }
-            update_model_object();
-            m_parent.set_as_dirty();
+    if (m_c->object_clipper()->get_position() == 0.f) {
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("clipping_of_view"));
+    }
+    else {
+        if (m_imgui->button(m_desc.at("reset_direction"))) {
+            wxGetApp().CallAfter([this]() {
+                    m_c->object_clipper()->set_position_by_ratio(-1., false);
+                });
         }
     }
+    auto clp_dist = float(m_c->object_clipper()->get_position());
+    ImGui::SameLine(sliders_left_width);
+    ImGui::PushItemWidth(sliders_width);
+    bool b_bbl_slider_float = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
+
+    ImGui::SameLine(drag_left_width + sliders_left_width);
+    ImGui::PushItemWidth(1.5 * slider_icon_width);
+    bool b_drag_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
+
+    if (b_bbl_slider_float || b_drag_input) m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
+    
+    ImGui::Separator();
+
+    render_tooltip_button(x, y);
 
     ImGui::SameLine();
-
+    m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_fdm_support_painted() == false);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject *        mo  = m_c->selection_info()->model_object();
@@ -451,11 +464,18 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         update_model_object();
         m_parent.set_as_dirty();
     }
-    ImGui::PopStyleVar(2);
+    m_imgui->disabled_end();
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
 
     GizmoImguiEnd();
 
     // BBS
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -471,53 +491,22 @@ void GLGizmoFdmSupports::tool_changed(wchar_t old_tool, wchar_t new_tool)
     }
 }
 
-void GLGizmoFdmSupports::show_tooltip_information(float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 15.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            // BBS
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        std::vector<std::string> tip_items;
-        switch (m_tool_type) {
-            case ToolType::BRUSH:
-                tip_items = {"enforce", "block", "remove", "cursor_size", "clipping_of_view"};
-                break;
-            case ToolType::BUCKET_FILL:
-                break;
-            case ToolType::SMART_FILL:
-                tip_items = {"enforce", "block", "remove", "smart_fill_angle", "clipping_of_view"};
-                break;
-            case ToolType::GAP_FILL:
-                tip_items = {"gap_area"};
-                break;
+void GLGizmoFdmSupports::render_tooltip_button(float x, float y) {
+    auto get_shortcuts = [this]() -> std::vector<std::pair<wxString, wxString>> {
+        switch (m_current_tool) {
+            case ImGui::CircleButtonIcon:
+            case ImGui::SphereButtonIcon:
+                return m_shortcuts_brush;
+            case ImGui::FillButtonIcon:
+                return m_shortcuts_bucket_fill;
+            case ImGui::GapFillIcon:
+                return m_shortcuts_gap_fill;
             default:
-                break;
+                return {};
         }
-        for (const auto &t : tip_items) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
+    };
+    
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, get_shortcuts(), x, y);
 }
 
 // BBS
@@ -861,7 +850,7 @@ void GLGizmoFdmSupports::run_thread()
         if (!m_print_instance.print_object->support_layers().size())
         {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ",no support layer found, update status to 100%\n";
-            print->set_status(100, L("Support Generated"));
+            print->set_status(100, L("Support generated"));
             goto _finished;
         }
         GLModel::Geometry init_data;
@@ -875,7 +864,7 @@ void GLGizmoFdmSupports::run_thread()
         }
         m_support_volume->model.init_from(std::move(init_data));
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished extrusionentity_to_verts, update status to 100%";
-        print->set_status(100, L("Support Generated"));
+        print->set_status(100, L("Support generated"));
         
         record_timestamp();
     }

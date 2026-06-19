@@ -1,0 +1,119 @@
+{
+	"type": "machine",
+	"name": "Elegoo Neptune 4 0.4 nozzle",
+	"from": "system",
+	"setting_id": "EN404",
+	"instantiation": "true",
+	"inherits": "fdm_elegoo_3dp_001_common",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 4",
+	"default_print_profile": "0.20mm Standard @Elegoo N4 0.4 nozzle",
+	"gcode_flavor": "klipper",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"printable_area": [
+		"0x0",
+		"230x0",
+		"230x230",
+		"0x230"
+	],
+	"extruder_offset": [
+		"-1x-2"
+	],
+	"printable_height": "265",
+	"retract_lift_below": [
+		"264"
+	],
+	"machine_max_acceleration_extruding": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_retracting": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_x": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_y": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_z": [
+		"300",
+		"300"
+	],
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"10000",
+		"10000"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"retraction_minimum_travel": [
+		"0.8"
+	],
+	"printer_structure": "i3",
+	"cooling_tube_length": "5",
+	"enable_filament_ramming": "1",
+	"nozzle_volume": "90",
+	"max_layer_height": [
+		"0.28"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"retract_before_wipe": [
+		"0%"
+	],
+	"retraction_length": [
+		"0.8"
+	],
+	"retraction_speed": [
+		"60"
+	],
+	"retract_length_toolchange": [
+		"2"
+	],
+	"scan_first_layer": "0",
+	"auxiliary_fan": "0",
+	"single_extruder_multi_material": "1",
+	"change_filament_gcode": "M600",
+	"machine_pause_gcode": "M600",
+	"default_filament_profile": [
+		"Elegoo PLA @EN4 Series"
+	],
+	"extruder_clearance_radius": "47",
+	"extruder_clearance_height_to_rod": "34",
+	"extruder_clearance_height_to_lid": "34",
+	"printer_technology": "FFF",
+	"machine_start_gcode": ";;===== date: 20240520 =====================\nM400 ; wait for buffer to clear\n;[printer_model]\n;initial_filament:{filament_type[initial_extruder]}\n;curr_bed_type={curr_bed_type}\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140\nM190 S[bed_temperature_initial_layer_single]\nG90\nG28 ;home\nG1 Z10 F300\nG1 X{print_bed_max[0]*0.5-50} Y0.5 F6000\nG1 Z0.4 F300\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\nG1 X{print_bed_max[0]*0.5+50} E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X{print_bed_max[0]*0.5+47} F3000\nG92 E0 ;Reset Extruder\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0\n",
+	"machine_end_gcode": ";PRINT_END\nG90 ;Absolute positionning\nM83 ; extruder relative mode\nG92 E0 ; zero the extruder\nG1 E-1.5 F1800\nG2 I1 J0 Z{max_layer_z+0.5} F3000 ; lower z a little\nG90\nG1 X10 Y{print_bed_max[1]*0.8} Z{min(max_layer_z+50, printable_height)} E-5 F{travel_speed*60} ; Move print head up\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84 X Y E ;Disable all steppers but Z",
+	"thumbnails": [
+		"320x320/COLPIC/#30394F",
+		"160x160/COLPIC/#30394F",
+		"160x160/PNG"
+	],
+	"thumbnails_format": "COLPIC",
+	"renamed_from": "Elegoo Neptune 4 (0.4 nozzle)"
+}

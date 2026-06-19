@@ -124,14 +124,15 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
 
     float starting_flowrate  = float(m_config.spiral_starting_flow_ratio.value);
     float finishing_flowrate = float(m_config.spiral_finishing_flow_ratio.value);
+    const float min_segment_length = std::max(float(EPSILON), 2 * float(m_config.resolution.value));
 
     float len = 0.f;
     SpiralVase::SpiralPoint last_point = previous_layer != NULL && previous_layer->size() >0? previous_layer->at(previous_layer->size()-1): SpiralVase::SpiralPoint(0,0);
-    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate]
+    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_length]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
         if (line.cmd_is("G1")) {
             // Orca: Filter out retractions at layer change
-            if (line.retracting(reader) || (line.extruding(reader) && line.dist_XY(reader) < EPSILON)) return;
+            if (line.retracting(reader) || (line.extruding(reader) && line.dist_XY(reader) < min_segment_length)) return;
             if (line.has_z() && !(line.has_x() || line.has_y())) {
                 // If this is the initial Z move of the layer, replace it with a
                 // (redundant) move to the last Z of previous layer.
@@ -175,7 +176,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                                     // Remove tiny movement
                                     // We need to figure out the distance of this new line!
                                     float modified_dist_XY = SpiralVaseHelpers::distance(last_point, target);
-                                    if (modified_dist_XY < 0.001)
+                                    if (modified_dist_XY < min_segment_length)
                                         line.clear();
                                     else {
                                         line.set(X, target.x);

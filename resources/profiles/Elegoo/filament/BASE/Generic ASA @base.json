@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @base",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"filament_id": "GASAB00",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_type": [
+		"ASA"
+	]
+}

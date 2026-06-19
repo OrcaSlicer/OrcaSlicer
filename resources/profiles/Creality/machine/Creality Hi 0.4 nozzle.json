@@ -1,146 +1,196 @@
 {
-    "type": "machine",
-    "name": "Creality Hi 0.4 nozzle",
-    "inherits": "fdm_creality_common",
-    "from": "system",
-    "setting_id": "GM001",
-    "instantiation": "true",
-    "printer_model": "Creality Hi",
-    "gcode_flavor": "klipper",
-    "printer_structure": "i3",
-    "default_print_profile": "0.20mm Standard @Creality Hi",
-    "nozzle_diameter": [
-        "0.4"
-    ],
-    "nozzle_type": "hardened_steel",
-    "nozzle_volume": "183",
-    "printer_variant": "0.4",
-    "printable_area": [
-        "0x0",
-        "260x0",
-        "260x260",
-        "0x260"
-    ],
-    "printable_height": "300",
-    "auxiliary_fan": "0",
-    "support_air_filtration": "0",
-    "support_multi_bed_types": "1",
-    "machine_max_acceleration_e": [
-        "5000",
-        "5000"
-    ],
-    "machine_max_acceleration_extruding": [
-        "12000",
-        "12000"
-    ],
-    "machine_max_acceleration_retracting": [
-        "5000",
-        "5000"
-    ],
-    "machine_max_acceleration_travel": [
-        "12000",
-        "12000"
-    ],
-    "machine_max_acceleration_x": [
-        "12000",
-        "12000"
-    ],
-    "machine_max_acceleration_y": [
-        "12000",
-        "12000"
-    ],
-    "machine_max_acceleration_z": [
-        "1000",
-        "1000"
-    ],
-    "machine_max_speed_e": [
-        "50",
-        "50"
-    ],
-    "machine_max_speed_x": [
-        "500",
-        "500"
-    ],
-    "machine_max_speed_y": [
-        "500",
-        "500"
-    ],
-    "machine_max_speed_z": [
-        "30",
-        "30"
-    ],
-    "machine_max_jerk_e": [
-        "2.5",
-        "2.5"
-    ],
-    "machine_max_jerk_x": [
-        "12",
-        "12"
-    ],
-    "machine_max_jerk_y": [
-        "12",
-        "12"
-    ],
-    "machine_max_jerk_z": [
-        "2",
-        "2"
-    ],
-    "max_layer_height": [
-        "0.32"
-    ],
-    "min_layer_height": [
-        "0.08"
-    ],
-    "printer_settings_id": "Creality",
-    "purge_in_prime_tower": "0",
-    "retraction_minimum_travel": [
-        "0.5"
-    ],
-    "retract_before_wipe": [
-        "70%"
-    ],
-    "retraction_length": [
-        "0.8"
-    ],
-    "retract_length_toolchange": [
-        "0"
-    ],
-    "retraction_speed": [
-        "40"
-    ],
-    "deretraction_speed": [
-        "40"
-    ],
-    "retract_lift_below": [
-        "299"
-    ],
-    "retract_when_changing_layer": [
-        "1"
-    ],
-    "enable_filament_ramming": "0",
-    "extruder_clearance_height_to_lid": "301",
-    "extruder_clearance_height_to_rod": "27",
-    "extruder_clearance_radius": "55",
-    "z_hop": [
-        "0.4"
-    ],
-    "z_hop_types": [
-        "Auto Lift"
-    ],
-    "wipe_distance": [
-        "2"
-    ],
-    "single_extruder_multi_material": "1",
-    "machine_load_filament_time": "105",
-    "machine_pause_gcode": "PAUSE",
-    "change_filament_gcode": "G2 Z{z_after_toolchange + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X260 Y180 F30000\nG1 Z{z_after_toolchange} F600",
-    "default_filament_profile": [
-        "Creality Generic PLA @Hi-all"
-    ],
-    "machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM109 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 X0 Y0 E15 F6000\nG1 X150 Y0 E15 F6000\nG92 E0\nG1 Z1 F600",
-    "machine_end_gcode": "END_PRINT",
-    "scan_first_layer": "0",
-    "thumbnails": [
-        "96x96/PNG, 300x300/PNG"
-    ]
+	"type": "machine",
+	"name": "Creality Hi 0.4 nozzle",
+	"inherits": "fdm_creality_common",
+	"from": "system",
+	"setting_id": "GM001",
+	"instantiation": "true",
+	"printer_model": "Creality Hi",
+	"gcode_flavor": "klipper",
+	"printer_structure": "i3",
+	"default_print_profile": "0.20mm Standard @Creality Hi",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"nozzle_type": "hardened_steel",
+	"nozzle_volume": "183",
+	"printer_variant": "0.4",
+	"printable_area": [
+		"0x0",
+		"260x0",
+		"260x260",
+		"0x260"
+	],
+	"printable_height": "300",
+	"auxiliary_fan": "0",
+	"support_air_filtration": "0",
+	"support_multi_bed_types": "1",
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"12000",
+		"12000"
+	],
+	"machine_max_acceleration_retracting": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_x": [
+		"12000",
+		"12000"
+	],
+	"machine_max_acceleration_y": [
+		"12000",
+		"12000"
+	],
+	"machine_max_acceleration_z": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_e": [
+		"50",
+		"50"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"machine_max_jerk_e": [
+		"2.5",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"12",
+		"12"
+	],
+	"machine_max_jerk_y": [
+		"12",
+		"12"
+	],
+	"machine_max_jerk_z": [
+		"2",
+		"2"
+	],
+	"max_layer_height": [
+		"0.32"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"printer_settings_id": "Creality",
+	"purge_in_prime_tower": "0",
+	"retraction_minimum_travel": [
+		"0.5"
+	],
+	"retract_before_wipe": [
+		"70%"
+	],
+	"retraction_length": [
+		"0.8"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
+	"retraction_speed": [
+		"40"
+	],
+	"deretraction_speed": [
+		"40"
+	],
+	"retract_lift_below": [
+		"299"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"enable_filament_ramming": "0",
+	"extruder_clearance_height_to_lid": "20",
+	"extruder_clearance_height_to_rod": "27",
+	"extruder_clearance_radius": "55",
+	"z_hop": [
+		"0.4"
+	],
+	"z_hop_types": [
+		"Auto Lift"
+	],
+	"wipe_distance": [
+		"2"
+	],
+	"single_extruder_multi_material": "1",
+	"machine_load_filament_time": "105",
+	"machine_pause_gcode": "PAUSE",
+	"change_filament_gcode": "G2 Z{z_after_toolchange + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X260 Y180 F30000\nG1 Z{z_after_toolchange} F600",
+	"default_filament_profile": [
+		"Creality Generic PLA @Hi-all"
+	],
+	"machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM104 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 E0.8 F300\nG1 X0 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG1 X150 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG92 E0\nG1 Z1 F600",
+	"machine_end_gcode": "G1 X0 Y180 F8000\nEND_PRINT",
+	"scan_first_layer": "0",
+	"thumbnails": [
+		"96x96",
+		"300x300"
+	],
+	"bbl_use_printhost": "0",
+	"bed_exclude_area": "0x0",
+	"bed_mesh_max": "99999,99999",
+	"bed_mesh_min": "-99999,-99999",
+	"bed_mesh_probe_distance": "50,50",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+	"best_object_pos": "0.5,0.5",
+	"cooling_tube_length": "0",
+	"cooling_tube_retraction": "0",
+	"creality_flush_time": "105",
+	"disable_m73": "0",
+	"emit_machine_limits_to_gcode": "1",
+	"extra_loading_move": "0",
+	"fan_kickstart": "0",
+	"fan_speedup_overhangs": "1",
+	"fan_speedup_time": "0",
+	"high_current_on_filament_swap": "0",
+	"host_type": "octoprint",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+	"machine_LED_light_exist": "1",
+	"machine_min_extruding_rate": "0,0",
+	"machine_min_travel_rate": "0,0",
+	"machine_platform_motion_enable": "0",
+	"machine_unload_filament_time": "0",
+	"manual_filament_change": "0",
+	"nozzle_hrc": "0",
+	"parking_pos_retraction": "0",
+	"preferred_orientation": "0",
+	"prime_tower_position_type": "Left Upper",
+	"print_host": "http://172.23.209.71:4408/",
+	"print_host_webui": "http://172.23.209.71:4408/",
+	"printer_technology": "FFF",
+	"printhost_authorization_type": "key",
+	"printhost_ssl_ignore_revoke": "0",
+	"silent_mode": "0",
+	"support_chamber_temp_control": "1",
+	"thumbnails_format": "PNG",
+	"time_cost": "0",
+	"time_lapse_gcode": "{if !spiral_mode && print_sequence != \"by object\" && layer_num != 0}\n;don't support timelapse gcode in spiral_mode and by object sequence for I3 structure printer\n;time lapse begin\nM5001 G92 E0\nM5001 G17\nM5001 G2 Z{layer_z + 0.4} I0.86 J0.86 P1 F20000 ; spiral lift a little\nM5001 G1 X0 Y180 F24000 ; move to safe pos\nM5001 P15\nM5001 M400 P300\nM5001 G92 E0\n;time lapse end\n{endif}",
+	"use_firmware_retraction": "0",
+	"use_relative_e_distances": "1",
+	"z_offset": "0",
+	"extruder_colour": "#018001",
+	"extruder_offset": "0x0",
+	"retract_lift_above": "0",
+	"retract_lift_enforce": "All Surfaces",
+	"retract_restart_extra": "0",
+	"retract_restart_extra_toolchange": "0",
+	"wipe": "1"
 }

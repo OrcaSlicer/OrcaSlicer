@@ -1,14 +1,14 @@
 {
-    "type": "machine_model",
-    "name": "Artillery M1 Pro",
-    "model_id": "Artillery-M1-Pro",
-    "nozzle_diameter": "0.2;0.4;0.6;0.8",
-    "machine_tech": "FFF",
-    "family": "Artillery",
-    "bed_model": "artillery_m1_pro_buildplate_model.stl",
-    "bed_texture": "artillery_m1_pro_buildplate_texture.svg",
-    "hotend_model": "",
+	"type": "machine_model",
+	"name": "Artillery M1 Pro",
+	"model_id": "Artillery-M1-Pro",
+	"nozzle_diameter": "0.2;0.4;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "Artillery",
+	"bed_model": "artillery_m1_pro_buildplate_model.stl",
+	"bed_texture": "artillery_m1_pro_buildplate_texture.svg",
+	"hotend_model": "",
 	"default_bed_type": "Textured PEI Plate",
 	"not_support_bed_type": "Engineering Plate;Textured Cool Plate;Smooth PEI Plate",
-    "default_materials": "Artillery PLA Basic;Artillery ABS;Artillery ASA;Artillery PA;Artillery PA-CF;Artillery PC;Artillery PET;Artillery PETG Basic;Artillery PETG-CF;Artillery PLA Basic;Artillery PLA Matte;Artillery PLA Silk;Artillery PLA-CF;Artillery PVA;Artillery TPU;Artillery PLA"
+	"default_materials": "Artillery PLA Basic;Artillery ABS;Artillery ASA;Artillery PA;Artillery PA-CF;Artillery PC;Artillery PET;Artillery PETG Basic;Artillery PETG-CF;Artillery PLA Basic;Artillery PLA Matte;Artillery PLA Silk;Artillery PLA-CF;Artillery PVA;Artillery TPU;Artillery PLA"
 }
