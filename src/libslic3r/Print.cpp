@@ -3524,7 +3524,14 @@ void Print::_make_wipe_tower()
                 // and tool_change() calls.
                 bool nozzle_already_loaded = false;
                 if (Vortek::WipeTower::is_h2c_printer(this)) {
-                    nozzle_already_loaded = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) && group_result && (prev_nozzle_filament == (int)filament_id);
+                    int old_nozzle_id = -1;
+                    if (group_result) {
+                        auto old_nozzle_info = group_result->get_nozzle_for_filament(old_filament_id, layer_idx);
+                        if (old_nozzle_info) {
+                            old_nozzle_id = old_nozzle_info->group_id;
+                        }
+                    }
+                    nozzle_already_loaded = (old_nozzle_id == nozzle_id) && (prev_nozzle_filament == (int)filament_id);
                 }
 
                 float volume_to_purge = 0;
