@@ -33,8 +33,10 @@ jobs:
       - name: set outputs
         id: set_outputs
         env:
-          # Keep macOS cache keys and paths architecture-specific.
-          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && 'windows' || 'linux-clang') }}
+          # Keep macOS/Linux cache keys architecture-specific. amd64 Linux passes
+          # no arch (key stays 'linux-clang', preserving the existing cache);
+          # aarch64 gets its own 'linux-clang-aarch64' key.
+          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && 'windows' || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
           dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || '/OrcaSlicer_dep' }}
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
