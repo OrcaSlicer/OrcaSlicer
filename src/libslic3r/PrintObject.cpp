@@ -4,6 +4,7 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "Clipper2Utils.hpp"
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
@@ -25,6 +26,8 @@
 #include "format.hpp"
 #include "AABBTreeLines.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <float.h>
 #include <iterator>
@@ -1688,24 +1691,65 @@ void PrintObject::detect_surfaces_type()
                     }
 
                     // ORCA: Contract the holes left in the top surfaces by raised features so the top
-                    // solid infill extends slightly underneath them and covers a larger area.
-                    const float top_hole_contraction = scale_(layerm->region().config().top_surface_hole_contraction.value);
-                    if (top_hole_contraction > 0.f && ! top.empty()) {
+                    // solid infill extends underneath them and covers a larger area. A plain mm value
+                    // shrinks every hole inward by that distance; a percentage shrinks each hole on its
+                    // own until its area is reduced by that percentage (e.g. 50% turns a 10mm² hole into 5mm²).
+                    const ConfigOptionFloatOrPercent &hole_contraction = layerm->region().config().top_surface_hole_contraction;
+                    if (hole_contraction.value > 0. && ! top.empty()) {
                         const ExPolygons top_expolys = to_expolygons(top);
-                        // Outer boundary of the top surfaces (holes filled). Used to keep the contraction
-                        // confined to the holes so the outer edge of the top surface does not grow.
-                        ExPolygons top_filled;
-                        top_filled.reserve(top_expolys.size());
+                        // Envelope = the top surfaces with their interior holes filled. Built from the
+                        // outer contours only, so the outer edge of the top area never grows.
+                        Polygons contours;
+                        contours.reserve(top_expolys.size());
                         for (const ExPolygon &ex : top_expolys)
-                            top_filled.emplace_back(ex.contour);
-                        // Clip to actual material so genuine voids in the part (real through-holes) are
-                        // not covered - only feature footprints, which are solid, get filled.
-                        const ExPolygons clip = intersection_ex(top_filled, layerm_slices_surfaces);
-                        // A positive offset grows the outer contour outward and shrinks the holes inward;
-                        // clipping back to the original (hole-free) area keeps only the hole-shrinking effect.
-                        ExPolygons contracted = intersection_ex(offset_ex(top_expolys, top_hole_contraction), clip);
-                        top.clear();
-                        surfaces_append(top, std::move(contracted), stTop);
+                            contours.emplace_back(ex.contour);
+                        const ExPolygons envelope = union_ex(contours);
+                        // The holes are every enclosed region that is not top surface. Computing them as
+                        // (envelope - top) rather than from each ExPolygon's hole loops correctly handles
+                        // features whose footprint encloses a top-surface island (rings, the letter "O",
+                        // ...), where the top surface splits into several ExPolygons - the island stays
+                        // top and only the true footprint (e.g. the annulus) is treated as the hole.
+                        const ExPolygons holes = diff_ex(envelope, top_expolys);
+                        if (! holes.empty()) {
+                            const ExPolygons &material = layerm_slices_surfaces;
+                            // Shrink each hole. Use Clipper2's offset (round joins) which, unlike Clipper1's
+                            // default miter offset, does not spike or self-intersect on concave corners, so
+                            // it behaves correctly for non-simple hole shapes.
+                            ExPolygons shrunk_holes;
+                            if (hole_contraction.percent) {
+                                // Reduce each hole's area by the requested percentage. The needed inward
+                                // distance depends on the individual hole's shape, so solve per hole.
+                                const double keep = std::clamp(1. - hole_contraction.value / 100., 0., 1.);
+                                for (const ExPolygon &hole : holes) {
+                                    const double a0 = hole.area();
+                                    const double target = a0 * keep;
+                                    if (target <= 0.)
+                                        continue; // hole fully covered
+                                    const ExPolygons hole_ex { hole };
+                                    // Binary search the inward (negative) offset matching the target area.
+                                    // Area shrinks monotonically with the offset distance.
+                                    double lo = 0., hi = std::sqrt(a0);
+                                    for (int it = 0; it < 18; ++ it) {
+                                        const double mid = 0.5 * (lo + hi);
+                                        if (area(offset_ex_2(hole_ex, -mid)) > target) lo = mid; else hi = mid;
+                                    }
+                                    append(shrunk_holes, offset_ex_2(hole_ex, -0.5 * (lo + hi)));
+                                }
+                            } else {
+                                // Constant inward distance for every hole.
+                                shrunk_holes = offset_ex_2(holes, -double(scale_(hole_contraction.value)));
+                            }
+                            // Holes that must stay open: the shrunk feature footprints, plus the full extent
+                            // of any genuine void (a real through-hole carries no material below and must not
+                            // be covered).
+                            append(shrunk_holes, diff_ex(holes, material));
+                            const ExPolygons holes_keep_open = union_ex(shrunk_holes);
+                            // The new top area is the envelope minus the (now smaller) holes; the outer edge
+                            // stays fixed because the envelope shares the top surfaces' outer contour.
+                            ExPolygons contracted = diff_ex(envelope, holes_keep_open);
+                            top.clear();
+                            surfaces_append(top, std::move(contracted), stTop);
+                        }
                     }
 
         #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
