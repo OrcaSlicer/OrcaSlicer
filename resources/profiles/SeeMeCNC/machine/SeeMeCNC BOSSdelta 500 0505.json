@@ -1,1 +1,23 @@
-{"type":"machine_model","name":"SeeMeCNC BOSSdelta 500 0505","bed_texture":"SeeMeCNC_Buildplate_texture.png","default_materials":"SeeMeCNC PLA;SeeMeCNC ABS;SeeMeCNC PETG;SeeMeCNC PETG-CF;SeeMeCNC PA-CF;SeeMeCNC TPU","nozzle_diameter":"0.4;0.5;0.7;1.0","machine_tech":"FFF","family":"SeeMeCNC BOSSdelta 500 0505","thumbnail":"SeeMeCNC BOSSdelta 500 0505_cover.png","machine_load_filament_time":"4","machine_unload_filament_time":"4","model_id":"SEEMECNC_BOSSDELTA_500_0505","description":"SeeMeCNC configurations","fan_speedup_time":"0.5","fan_speedup_overhangs":"1","retraction_minimum_travel":["2"],"travel_slope":["3"],"purge_in_prime_tower":"1"}
+{
+	"type": "machine_model",
+	"name": "SeeMeCNC BOSSdelta 500 0505",
+	"bed_texture": "SeeMeCNC_Buildplate_texture.png",
+	"default_materials": "SeeMeCNC PLA;SeeMeCNC ABS;SeeMeCNC PETG;SeeMeCNC PETG-CF;SeeMeCNC PA-CF;SeeMeCNC TPU",
+	"nozzle_diameter": "0.4;0.5;0.7;1.0",
+	"machine_tech": "FFF",
+	"family": "SeeMeCNC BOSSdelta 500 0505",
+	"thumbnail": "SeeMeCNC BOSSdelta 500 0505_cover.png",
+	"machine_load_filament_time": "4",
+	"machine_unload_filament_time": "4",
+	"model_id": "SEEMECNC_BOSSDELTA_500_0505",
+	"description": "SeeMeCNC configurations",
+	"fan_speedup_time": "0.5",
+	"fan_speedup_overhangs": "1",
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"travel_slope": [
+		"3"
+	],
+	"purge_in_prime_tower": "1"
+}
