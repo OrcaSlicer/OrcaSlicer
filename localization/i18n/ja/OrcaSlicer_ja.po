@@ -18650,8 +18650,8 @@ msgstr ""
 "タイムラプス\n"
 "カメラの活用は、モニタリングだけでなく、自慢のタイムラプスビデオも生成できます。"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -18659,8 +18659,8 @@ msgstr ""
 "自動レイアウト\n"
 "自動レイアウトでプレートを最大限利用できます。"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -18749,9 +18749,9 @@ msgstr ""
 "複数のプレートに分割\n"
 "一つのモデルを分割し、複数のプレートで造形することもできます。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -18765,8 +18765,8 @@ msgstr ""
 "サポートペイント\n"
 "サポートは塗り絵のように生成することができます。"
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -18774,8 +18774,8 @@ msgstr ""
 "さまざまなサポートタイプ\n"
 "いろんなサポートタイプをつかえます、ツリータイプではフィラメントも節約できるし、造形時間も短縮できます。"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -18791,8 +18791,8 @@ msgstr ""
 "接着力を高めるには？\n"
 "ブリムを活用してください。"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -18808,8 +18808,8 @@ msgstr ""
 "オブジェクトを積み重ね\n"
 "複数のオブジェクトを積み重ねて造形できます。"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -18825,9 +18825,9 @@ msgstr ""
 "強度の向上\n"
 "壁面層数やインフィルの充填密度を増やして造形強度を向上できます。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -18835,8 +18835,8 @@ msgstr ""
 "プリンターのドアを開けたまま印刷する必要があるのはどんなときですか？\n"
 "エンクロージャーの温度が高い状態で低温のフィラメントをプリントする場合、プリンターのドアを開けると、エクストルーダーやホットエンドが詰まる確率が下がることをご存知ですか？これについてはWikiに詳しい情報があります。"
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19632,7 +19632,6 @@ msgstr ""
 #~ msgstr "接触面を造形時に線の距離です。0はソリッド接触面です。"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "小部分の厚さ下限。モデルに厚さがこの値以下になる部分を造形しません。"
 

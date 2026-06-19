@@ -19010,8 +19010,8 @@ msgstr ""
 "타임랩스\n"
 "각 출력 중에 타임랩스 비디오를 생성할 수 있다는 것을 알고 계섰나요?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19019,8 +19019,8 @@ msgstr ""
 "자동 정렬\n"
 "프로젝트의 모든 객체를 자동 정렬할 수 있다는 것을 알고 계섰나요?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19118,9 +19118,9 @@ msgstr ""
 "출력을 플레이트로 분할\n"
 "부품이 많은 모델을 출력할 준비가 된 개별 플레이트로 분할할 수 있다는 사실을 알고 계섰나요? 이렇게 하면 모든 부품을 추적하는 프로세스가 간소화됩니다."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19136,8 +19136,8 @@ msgstr ""
 "서포트 칠하기\n"
 "서포트의 위치를 칠할 수 있다는 것을 알고 계섰나요? 이 기능을 사용하면 실제로 필요한 모델 부위에만 서포트 재료를 쉽게 배치할 수 있습니다."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19145,8 +19145,8 @@ msgstr ""
 "다양한 유형의 서포트\n"
 "여러 유형의 서포트 중에서 선택할 수 있다는 것을 알고 계섰나요? 트리 서포트는 필라멘트를 절약하고 출력 속도를 향상시키면서 유기 모델에 적합합니다. 확인해 보세요!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19162,8 +19162,8 @@ msgstr ""
 "접착력이 더 좋아지는 브림\n"
 "모델을 출력할 때 베드 표면과의 접촉면이 작을 경우 브림을 사용하는 것이 권장된다는 사실을 알고 계섰나요?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19179,8 +19179,8 @@ msgstr ""
 "객체 쌓기\n"
 "물건을 통째로 쌓을 수 있다는 사실을 알고 계섰나요?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19196,9 +19196,9 @@ msgstr ""
 "강도 향상\n"
 "더 많은 외벽과 더 높은 드문 채우기 밀도를 사용하여 모델의 강도를 높일 수 있다는 사실을 알고 계섰나요?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19206,8 +19206,8 @@ msgstr ""
 "프린터 도어를 연 상태로 출력해야 하는 경우\n"
 "더 높은 프린터 내부 온도로 낮은 온도의 필라멘트를 출력할 때 프린터 도어를 열면 압출기/핫엔드가 막힐 가능성을 줄일 수 있다는 것을 알고 계섰나요? 이에 대한 자세한 내용은 Wiki에서 확인하세요."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19750,7 +19750,6 @@ msgstr ""
 #~ msgstr "AMS는 필라멘트 정보가 업데이트된 후 뱀부 필라멘트의 잔여 용량을 추정할 것입니다. 출력하는 동안 남은 용량이 자동으로 업데이트됩니다."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "The recommended minimum temperature is less than 190℃ or the recommended maximum temperature is greater than 300℃.\n"
 #~ msgstr "권장 최저 온도는 190도 미만 또는 권장 최고 온도는 300도 이상입니다.\n"
 
@@ -20402,7 +20401,6 @@ msgstr ""
 #~ msgstr "출력물의 벽 두께를 한 번 두껍게 한 다음 다시 한 번 더 얇게 하는 것을 방지합니다. 이 마진은 다음의 범위로 압출 너비를 확장합니다: [최소 벽 너비 - 마진, 2 * 최소 벽 너비 + 마진]. 이 마진이 증가하면 변환 횟수가 줄어들어 압출 시작/중지 횟수와 이동 시간이 줄어듭니다. 그러나, 큰 압출 너비 변동은 압출 과다 또는 압출 과소 문제를 일으킬 수 있습니다. 노즐 직경을 기준으로 백분율로 표시됩니다"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "얇은 형상의 최소 두께. 이 값보다 얇은 모델 형상은 출력되지 않으며, 최소 형상 크기보다 두꺼운 형상은 최소 벽 너비로 확대됩니다. 노즐 직경에 대한 백분율로 표시됩니다"
 

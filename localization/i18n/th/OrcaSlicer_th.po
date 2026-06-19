@@ -12936,7 +12936,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "การเพิ่มประสิทธิภาพอคติ Z-buckling (ทดลอง)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "กระชับคลื่นไจรอยด์ตามแนวแกน Z (แนวตั้ง) ที่ความหนาแน่นของไส้ในต่ำ เพื่อลดความยาวคอลัมน์แนวตั้งที่มีประสิทธิภาพให้สั้นลง และปรับปรุงความต้านทานการโก่งงอของการบีบอัดในแกน Z การใช้เส้นพลาสติกจะยังคงอยู่ ไม่มีผลกระทบที่ความหนาแน่นของไส้ในแบบโปร่งประมาณ ~30% และสูงกว่า ใช้เมื่อตั้งค่ารูปแบบไส้ในแบบกระจายเป็น Gyroid เท่านั้น"
 
@@ -19181,8 +19181,8 @@ msgstr ""
 "ไทม์แลปส์\n"
 "คุณรู้ไหมว่าคุณสามารถสร้างวิดีโอไทม์แลปส์ระหว่างการพิมพ์แต่ละครั้งได้"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19190,8 +19190,8 @@ msgstr ""
 "จัดเรียงอัตโนมัติ\n"
 "คุณรู้ไหมว่าคุณสามารถจัดเรียงออบเจ็กต์ทั้งหมดในโครงการของคุณได้โดยอัตโนมัติ"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19289,9 +19289,9 @@ msgstr ""
 "แบ่งงานพิมพ์ของคุณออกเป็นจาน\n"
 "คุณรู้ไหมว่าคุณสามารถแบ่งแบบจำลองที่มีชิ้นส่วนจำนวนมากออกเป็นเพลตแต่ละอันที่พร้อมพิมพ์ได้ สิ่งนี้จะทำให้กระบวนการติดตามทุกส่วนง่ายขึ้น"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19307,8 +19307,8 @@ msgstr ""
 "ส่วนรองรับการวาดภาพ\n"
 "คุณรู้ไหมว่าคุณสามารถทาสีตำแหน่งของส่วนรองรับของคุณได้? คุณสมบัตินี้ทำให้ง่ายต่อการวางวัสดุรองรับเฉพาะส่วนของรุ่นที่ต้องการจริงๆ"
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19316,8 +19316,8 @@ msgstr ""
 "ส่วนรองรับประเภทต่างๆ\n"
 "คุณรู้ไหมว่าคุณสามารถเลือกส่วนรองรับได้หลายประเภท? Tree ส่วนรองรับ ใช้งานได้ดีกับโมเดลออร์แกนิก ในขณะที่ประหยัดเส้นพลาสติกและปรับปรุงความเร็วในการพิมพ์ ตรวจสอบพวกเขาออก!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19333,8 +19333,8 @@ msgstr ""
 "ขอบยึดชิ้นงานเพื่อการยึดเกาะที่ดีขึ้น\n"
 "คุณรู้หรือไม่ว่าเมื่อแบบจำลองที่พิมพ์มีส่วนติดต่อขนาดเล็กกับพื้นผิวการพิมพ์ ขอแนะนำให้ใช้ขอบยึดชิ้นงาน"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19350,8 +19350,8 @@ msgstr ""
 "ซ้อนวัตถุ\n"
 "คุณรู้ไหมว่าคุณสามารถซ้อนวัตถุโดยรวมได้?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19367,9 +19367,9 @@ msgstr ""
 "ปรับปรุงความแข็งแรง\n"
 "คุณรู้ไหมว่าคุณสามารถใช้ลูปติดผนังได้มากขึ้นและมีความหนาแน่นของไส้ในแบบโปร่งที่สูงขึ้นเพื่อปรับปรุงความแข็งแกร่งของแบบจำลอง"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19377,8 +19377,8 @@ msgstr ""
 "เมื่อใดที่คุณจำเป็นต้องพิมพ์โดยเปิดประตูเครื่องพิมพ์?\n"
 "คุณรู้หรือไม่ว่าการเปิดประตูเครื่องพิมพ์สามารถลดโอกาสที่ชุดดันเส้น/ฮอตเอนด์จะอุดตันเมื่อพิมพ์เส้นพลาสติกที่มีอุณหภูมิต่ำลงและมีอุณหภูมิของกรอบที่สูงขึ้น ข้อมูลเพิ่มเติมเกี่ยวกับเรื่องนี้ใน Wiki"
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

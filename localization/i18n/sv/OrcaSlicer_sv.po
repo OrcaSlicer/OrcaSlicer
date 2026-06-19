@@ -18543,8 +18543,8 @@ msgstr ""
 "Timelapse\n"
 "Visste du att du kan generera en timelapse video under varje utskrift?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -18552,8 +18552,8 @@ msgstr ""
 "Placera Automatiskt\n"
 "Visste du att du automatiskt kan ordna alla objekt i ditt projekt?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -18642,9 +18642,9 @@ msgstr ""
 "Dela upp dina utskrifter i byggytor\n"
 "Visste du att du kan dela upp en modell med många delar i enskilda byggytor som är färdiga att skrivas ut? Detta förenklar processen att hålla reda på alla delar."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -18660,8 +18660,8 @@ msgstr ""
 "Support målning\n"
 "Visste du att du kan måla platsen för dina support? Denna funktion gör det enkelt att placera support material endast på de delar av modellen som faktiskt behöver det."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -18669,8 +18669,8 @@ msgstr ""
 "Olika typer av support\n"
 "Visste du att du kan välja mellan flera typer av support? Trädsupport fungerar bra för organiska modeller samtidigt som du sparar glödtråd och förbättrar utskriftshastigheten. Kolla in dem!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -18686,8 +18686,8 @@ msgstr ""
 "Brim för bättre vidhäftning\n"
 "Visste du att när printade modeller har ett litet kontakt område med byggplattan rekommenderas det att använda en Brim?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -18703,8 +18703,8 @@ msgstr ""
 "Stapla objekt\n"
 "Visste du att du kan stapla objekt som en hel?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -18720,9 +18720,9 @@ msgstr ""
 "Förbättra styrkan\n"
 "Visste du att du kan använda fler väggslingor och högre gles fyllningstäthet för att förbättra modellens styrka?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -18730,8 +18730,8 @@ msgstr ""
 "När behöver du skriva ut med printer dörren öppen?\n"
 "Visste du att en öppen printer dörr kan minska risken för igensättning av extruder/hotend vid utskrift av filament med lägre temperatur och högre kapslingstemperatur? Det finns mer information om detta i Wiki."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19763,7 +19763,6 @@ msgstr ""
 #~ msgstr "Avstånd mellan gränssnitts linjer. 0 betyder solid gränssnitt"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "Minsta tjocklek på tunna funktioner. Modellfunktioner som är tunnare än detta värde skrivs inte ut, medan funktioner som är tjockare än minsta funktionsstorlek kommer att utvidgas till minsta väggbredd. Det uttrycks som en procentandel över nozzelns diameter"
 

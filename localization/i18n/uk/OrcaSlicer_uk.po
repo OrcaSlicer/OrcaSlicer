@@ -19036,8 +19036,8 @@ msgstr ""
 "Таймлапс\n"
 "Чи знаєте ви, що ви можете генерувати відео під час кожного друку?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19045,8 +19045,8 @@ msgstr ""
 "Автоматичне впорядкування\n"
 "Чи знаєте ви, що можна автоматично розташувати всі об'єкти в проєкті?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19144,9 +19144,9 @@ msgstr ""
 "Розбийте відбитки на пластини\n"
 "Чи знаєте ви, що можна розділити модель з великою кількістю деталей на окремі столи, готові до друку? Це спростить процес відстеження всіхдеталей."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19162,8 +19162,8 @@ msgstr ""
 "Опорне забарвлення\n"
 "Ти знав, що можеш намалювати розташування своїх опор? Ця функція спрощуєрозміщення матеріалу опори тільки на тих перерізах моделі, які в цьомупотребують."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19171,8 +19171,8 @@ msgstr ""
 "Різні типи опор\n"
 "Чи знаєте ви, що можна вибрати один із кількох типів опор? Підтримка Tree відмінно працює для органічних моделей, зберігаючи при цьому ниткинапруження і підвищуючи швидкість друку. Перевірте їх!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19188,8 +19188,8 @@ msgstr ""
 "Кайма для кращого прилипання\n"
 "Чи знаєте ви, що при друці моделей які мають невелику площу контакту з поверхнею друку, рекомендується використовувати кайму?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19205,8 +19205,8 @@ msgstr ""
 "Стек об’єктів\n"
 "Чи знаєте ви, що можна складати об’єкти як одне ціле?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19222,9 +19222,9 @@ msgstr ""
 "Підвищення міцності\n"
 "Чи знаєте ви, що для підвищення міцності моделі можна використовувати більшепериметрів та вищу щільність заповнення?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19232,8 +19232,8 @@ msgstr ""
 "Коли потрібно друкувати з відкритими дверцятами принтера\n"
 "Чи знаєте ви, що відкриття дверцят принтера може знизити ймовірність засмічення екструдера/гарячого блока при друку низькотемпературного філаменту при вищій температурі усередині корпусу? Більше інформації знаходиться в Вікі."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19783,7 +19783,6 @@ msgstr ""
 #~ msgstr "AMS зчитує інформацію про витратний матеріал Bambu та розраховує його залишкову ємність на котушці. Залишкова ємність автоматично оновлюється в процесі друку."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "The recommended minimum temperature is less than 190℃ or the recommended maximum temperature is greater than 300℃.\n"
 #~ msgstr "Мінімально рекомендована температура менше 190 градусів або максимально рекомендована температура більше 300 градусів.\n"
 

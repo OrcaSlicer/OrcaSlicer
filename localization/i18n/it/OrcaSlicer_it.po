@@ -19174,8 +19174,8 @@ msgstr ""
 "Timelapse\n"
 "Sapevi che puoi generare un video timelapse durante ogni stampa?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19183,8 +19183,8 @@ msgstr ""
 "Disposizione automatica\n"
 "Sapevi che puoi disporre automaticamente tutti gli oggetti del tuo progetto?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19282,9 +19282,9 @@ msgstr ""
 "Dividi le stampe in piatti\n"
 "Sapevi che puoi dividere un modello con molte parti in singoli piatti pronti per la stampa? Ciò semplificherà il processo di monitoraggio di tutte le parti."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19300,8 +19300,8 @@ msgstr ""
 "Dipingi i supporti\n"
 "Sapevi che è possibile dipingere la posizione dei supporti? Questa funzione consente di posizionare facilmente il materiale di supporto solo sulle sezioni del modello che ne hanno effettivamente bisogno."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19309,8 +19309,8 @@ msgstr ""
 "Diversi tipi di supporti\n"
 "Sapevi che è possibile scegliere tra diversi tipi di supporti? I supporti ad albero funzionano benissimo per i modelli organici, risparmiando filamento e migliorando la velocità di stampa. Scopriteli!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19326,8 +19326,8 @@ msgstr ""
 "Tesa per una migliore adesione\n"
 "Sapevi che quando i modelli stampati hanno una piccola interfaccia di contatto con il piano di stampa, si consiglia di utilizzare una tesa?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19343,8 +19343,8 @@ msgstr ""
 "Impila oggetti\n"
 "Sapevi che è possibile impilare gli oggetti come se fossero un tutt'uno?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19360,9 +19360,9 @@ msgstr ""
 "Migliorare la resistenza\n"
 "Sapevi che è possibile utilizzare un maggior numero di perimetri di stampa e una maggiore densità di riempimento sparso per migliorare la resistenza del modello?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19370,8 +19370,8 @@ msgstr ""
 "Quando è necessario stampare con lo sportello della stampante aperto?\n"
 "Sapevi che aprendo lo sportello della stampante puoi ridurre la probabilità di intasamento dell'estrusore/camera di estrusione quando si stampa un filamento a bassa temperatura con una temperatura dell'involucro più elevata?Maggiori informazioni su questo nel Wiki."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

@@ -19129,8 +19129,8 @@ msgstr ""
 "Timelapse\n"
 "Sabies que pots generar un vídeo timelapse durant cada impressió?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19138,8 +19138,8 @@ msgstr ""
 "Ordenació Automàtica\n"
 "Sabies que pots ordenar automàticament tots els objectes del teu projecte?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19237,9 +19237,9 @@ msgstr ""
 "Partir les impressions en varies plaques\n"
 "Sabíeu que podeu partir un model que tingui moltes peces en plaques individuals preparades per imprimir? Això simplificarà el procés de fer un seguiment de totes les peces."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19255,8 +19255,8 @@ msgstr ""
 "Pintura de suport\n"
 "Sabies que pots pintar la ubicació dels teus suports? Aquesta característica facilita la col·locació del material de suport només a les seccions del model que realment el necessiten."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19264,8 +19264,8 @@ msgstr ""
 "Diferents tipus de suports\n"
 "Sabies que pots triar entre múltiples tipus de suports? Els suports en Arbre funcionen molt bé per a models orgànics, alhora que estalvien filament i milloren la velocitat d'impressió. Fes-hi un cop d'ull!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19281,8 +19281,8 @@ msgstr ""
 "Vora d'Adherència per a una millor subjecció\n"
 "Sabíeu que quan els models d'impressió tenen una interfície de contacte petita amb la superfície d'impressió, es recomana utilitzar una Vora d'Adherència?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19298,8 +19298,8 @@ msgstr ""
 "Apilar objectes\n"
 "Sabies que pots apilar objectes en un de sol?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19315,9 +19315,9 @@ msgstr ""
 "Millorar la força\n"
 "Sabíeu que podeu utilitzar més bucles de perímetre i una densitat de farciment més alta per millorar la resistència del model?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19325,8 +19325,8 @@ msgstr ""
 "Quan cal imprimir amb la porta de la impressora oberta\n"
 "Sabíeu que obrir la porta de la impressora pot reduir la probabilitat d'obstrucció de l'extrusora/broquet en imprimir filaments a baixa temperatura amb una temperatura de cambra més alta? Més informació al respecte a la Wiki."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -20558,7 +20558,6 @@ msgstr ""
 #~ msgstr "Espaiat de les línies de la interfície. Zero significa interfície sòlida"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "Gruix mínim dels elements fins. Els elements del model que siguin més prims que aquest valor no s'imprimiran, mentre que les entitats més gruixudes que la mida mínima s'ampliaran a l'amplada mínima del perímetre. S'expressa en percentatge sobre el diàmetre del broquet"
 
@@ -20752,7 +20751,6 @@ msgstr ""
 #~ msgstr "El vostre objecte sembla massa gran. Es reduirà automàticament per adaptar-se al llit."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Shift+G"
 #~ msgstr "⌘+Maj+G"
 
@@ -20843,7 +20841,6 @@ msgstr ""
 #~ msgstr "La mida del fitxer supera el límit de pujada de 100 MB. Si us plau, carregueu el vostre fitxer a través del panell."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Maximum print speed when purging"
 #~ msgstr "Màxima velocitat d'impressió en purgar"
 
@@ -20860,7 +20857,6 @@ msgstr ""
 #~ msgstr "Obrir Studio"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Over 4 systems/handy are using remote access, you can close some and try again."
 #~ msgstr "Hi ha més de 4 sistemes / pràctics que utilitzen accés remot, podeu tancar-ne alguns i tornar-ho a provar."
 
@@ -20877,32 +20873,26 @@ msgstr ""
 #~ msgstr "Placa Base"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Actions For Unsaved Changes"
 #~ msgstr "Canvis no desats"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Preset Value"
 #~ msgstr "Valor predefinit esquerre"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Modified Value"
 #~ msgstr "Valor modificat"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Use Preset Value"
 #~ msgstr "Perfil d'usuari"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Save Modified Value"
 #~ msgstr "Desa el fitxer com a:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid ""
 #~ "\n"
 #~ "Would you like to save these changed settings(modified value)?"
@@ -20911,7 +20901,6 @@ msgstr ""
 #~ "Voleu desar aquests paràmetres canviats (valor modificat)?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid ""
 #~ "\n"
 #~ "Would you like to keep these changed settings(modified value) after switching preset?"
@@ -20920,7 +20909,6 @@ msgstr ""
 #~ "Voleu mantenir aquests paràmetres modificats després de canviar el perfil?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid ""
 #~ "\n"
 #~ "Do you want to keep your current modified settings, or use preset settings?"
@@ -20929,7 +20917,6 @@ msgstr ""
 #~ "Voleu mantenir la configuració modificada actual o utilitzar la configuració predeterminada?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid ""
 #~ "\n"
 #~ "Do you want to save your current modified settings?"

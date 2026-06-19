@@ -13022,7 +13022,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 軸挫曲偏置最佳化（實驗性）"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度時，沿 Z（垂直）軸收緊螺旋體波形，以縮短有效垂直柱長度並提升 Z 軸抗壓挫曲能力。線材用量維持不變。在約 30% 稀疏填充密度及以上時無效果。僅在稀疏填充圖案設為螺旋體時適用。"
 
@@ -19268,8 +19268,8 @@ msgstr ""
 "縮時錄影\n"
 "您知道嗎？您可以每次列印時產生一段縮時錄影。"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19277,8 +19277,8 @@ msgstr ""
 "自動擺放\n"
 "您知道嗎？您可以自動擺放專案中的所有物件。"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19386,9 +19386,9 @@ msgstr ""
 "您知道嗎？您可以把一個有很多零件的模型安排到多個獨立的列印板，\n"
 "然後列印出來，這將簡化對所有零件的管理。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19406,8 +19406,8 @@ msgstr ""
 "您知道嗎？您可以手動繪製增加/隱藏支撐的位置，此功能使僅將支撐\n"
 "材料放置在實際需要的模型截面上變得容易。"
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19416,8 +19416,8 @@ msgstr ""
 "您知道嗎？有多種可選的支撐類型，有機樹狀支撐非常適合人物/動物模型，\n"
 "同時可以節線材並提高列印速度。試試看！"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19435,8 +19435,8 @@ msgstr ""
 "您知道嗎？當模型與熱床表面的接觸面積較小時，建議使用 Brim 以提\n"
 "高列印成功率。"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19452,8 +19452,8 @@ msgstr ""
 "組合物體\n"
 "您知道嗎？您可以把多個物件組合為一個整體。"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19471,9 +19471,9 @@ msgstr ""
 "您知道嗎？您可以使用更多的牆層數和更高的疏散填充密度來提高模型\n"
 "強度。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19481,8 +19481,8 @@ msgstr ""
 "什麼時候需要打開列印設備門列印？\n"
 "您知道嗎？在列印低溫線材且機箱內溫度較高的情況下，打開列印設備門可以降低擠出機或熱端堵塞的機率。更多資訊請參閱 Wiki。"
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

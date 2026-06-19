@@ -13041,7 +13041,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-Buckling-Bias-Optimierung (experimentell)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Strafft die Gyroid-Welle entlang der Z-Achse (vertikal) bei geringer Fülldichte, um die effektive vertikale Säulenlänge zu verkürzen und die Z-Achsen-Kompressions-Knickfestigkeit zu verbessern. Der Filamentverbrauch bleibt erhalten. Keine Auswirkung bei ~30% einfacher Fülldichte und darüber. Gilt nur, wenn das einfache Füllmuster auf Gyroid eingestellt ist."
 
@@ -19303,8 +19303,8 @@ msgstr ""
 "Zeitraffer\n"
 "Wussten Sie, dass Sie während jedes Drucks ein Zeitraffervideo erstellen können?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19312,8 +19312,8 @@ msgstr ""
 "Automatisch anordnen\n"
 "Wussten Sie, dass Sie alle Objekte in Ihrem Projekt automatisch anordnen können?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19411,9 +19411,9 @@ msgstr ""
 "Drucke in mehrere Druckplatten aufteilen\n"
 "Wussten Sie, dass Sie ein Modell, das aus vielen Teilen besteht, in einzelne Druckplatten aufteilen können? Dadurch wird es einfacher, den Überblick über alle Teile zu behalten."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19429,8 +19429,8 @@ msgstr ""
 "Stützen malen\n"
 "Wussten Sie, dass Sie die Position der Stützen aufmalen können? Diese Funktion macht es möglich, das Stützmaterial nur auf die Bereiche des Modells zu platzieren, die es tatsächlich benötigen."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19438,8 +19438,8 @@ msgstr ""
 "Verschiedene Arten von Stützstrukturen\n"
 "Wussten Sie, dass Sie zwischen verschiedenen Arten von Stützen wählen können? Baumstützen eignet sich hervorragend für organische Modelle, sparen Filament und erhöhen die Druckgeschwindigkeit. Probiere sie aus!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19455,8 +19455,8 @@ msgstr ""
 "Rand für bessere Haftung\n"
 "Wussten Sie, dass bei gedruckten Modellen, die eine kleine Kontaktfläche mit der Druckoberfläche haben, die Verwendung eines Randes empfohlen wird?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19472,8 +19472,8 @@ msgstr ""
 "Objekte stapeln\n"
 "Wussten Sie, dass Sie Objekte als Ganzes stapeln können?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19489,9 +19489,9 @@ msgstr ""
 "Festigkeit verbessern\n"
 "Wussten Sie, dass Sie die Festigkeit des Modells durch mehr Wandschleifen und eine höhere Dichte der Füllung verbessern können?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19499,8 +19499,8 @@ msgstr ""
 "Wenn mit geöffneter Druckertür gedruckt werden muss\n"
 "Wussten Sie, dass das Öffnen der Druckertür die Wahrscheinlichkeit eines Verstopfens des Extruders/Hotends beim Drucken von Filamenten mit niedriger Temperatur und höherer Gehäusetemperatur verringern kann? Weitere Informationen dazu finden Sie im Wiki."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -21074,7 +21074,6 @@ msgstr ""
 #~ msgstr "Abstand der Schnittstellenlinien. Null bedeutet feste Schnittstelle"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "Mindestdicke für dünne Features. Modellfeatures, die dünner als dieser Wert sind, werden nicht gedruckt, während Features, die dicker als die Mindestfeaturegröße sind, auf die Mindestwandbreite verbreitert werden. Bezogen als Prozentsatz auf Düsendurchmesser."
 

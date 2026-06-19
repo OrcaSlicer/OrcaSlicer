@@ -4034,12 +4034,12 @@ msgid "Bed Shape"
 msgstr "Yatak Şekli"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
 msgstr "%s için %d°C'nin üzerinde bir minimum sıcaklık önerilir.\n"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
 msgstr "%s için %d°C'nin altında bir maksimum sıcaklık önerilir.\n"
 
@@ -13269,7 +13269,7 @@ msgid "Fuzzy skin generator mode"
 msgstr "Pütürlü yüzey oluşturma modu"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
@@ -19092,8 +19092,8 @@ msgstr ""
 "Timelapse\n"
 "Her baskı sırasında timelapse video oluşturabileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19101,8 +19101,8 @@ msgstr ""
 "Otomatik Düzenleme\n"
 "Projenizdeki tüm nesneleri otomatik olarak düzenleyebileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19200,9 +19200,9 @@ msgstr ""
 "Baskılarınızı plakalara ayırın\n"
 "Çok sayıda parçası olan bir modeli baskıya hazır ayrı kalıplara bölebileceğinizi biliyor muydunuz? Bu, tüm parçaları takip etme sürecini basitleştirecektir."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19218,8 +19218,8 @@ msgstr ""
 "Destek boyama\n"
 "Desteklerinizin yerini boyayabileceğinizi biliyor muydunuz? Bu özellik, destek malzemesinin yalnızca modelin gerçekten ihtiyaç duyulan bölümlerine yerleştirilmesini kolaylaştırır."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19227,8 +19227,8 @@ msgstr ""
 "Farklı destek türleri\n"
 "Birden fazla destek türü arasından seçim yapabileceğinizi biliyor muydunuz? Ağaç destekleri organik modeller için harika çalışır, filamentten tasarruf sağlar ve baskı hızını artırır. Onlara bir göz atın!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19244,8 +19244,8 @@ msgstr ""
 "Daha iyi yapışma için kenar\n"
 "Baskı modellerinde baskı yüzeyi ile küçük bir temas arayüzü bulunduğunda siperlik kullanılması tavsiye edildiğini biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19261,8 +19261,8 @@ msgstr ""
 "Nesneleri yığınla\n"
 "Nesneleri bir bütün olarak istifleyebileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19278,9 +19278,9 @@ msgstr ""
 "Gücü artırın\n"
 "Modelin gücünü artırmak için daha fazla duvar halkası ve daha yüksek seyrek dolgu yoğunluğu kullanabileceğinizi biliyor muydunuz?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19288,8 +19288,8 @@ msgstr ""
 "Yazıcı kapısı açıkken yazdırmanız gerektiğinde\n"
 "Yazıcı kapısının açılmasının, daha yüksek muhafaza sıcaklığıyla daha düşük sıcaklıktaki filamenti yazdırırken ekstrüder/sıcak ucun tıkanma olasılığını azaltabileceğini biliyor muydunuz? Bununla ilgili daha fazla bilgiyi Wiki'de bulabilirsiniz."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"

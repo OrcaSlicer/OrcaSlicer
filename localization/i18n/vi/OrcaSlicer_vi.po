@@ -18957,8 +18957,8 @@ msgstr ""
 "Timelapse\n"
 "Bạn có biết rằng bạn có thể tạo video timelapse trong mỗi lần in không?"
 
-#: resources/data/hints.ini: [hint:Auto-Arrange]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -18966,8 +18966,8 @@ msgstr ""
 "Tự động sắp xếp\n"
 "Bạn có biết rằng bạn có thể tự động sắp xếp tất cả các đối tượng trong dự án của bạn không?"
 
-#: resources/data/hints.ini: [hint:Auto-Orient]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19065,9 +19065,9 @@ msgstr ""
 "Chia bản in thành các bản\n"
 "Bạn có biết rằng bạn có thể chia model có nhiều phần thành các bản riêng lẻ sẵn sàng in không? Điều này sẽ đơn giản hóa quy trình theo dõi tất cả các phần."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19083,8 +19083,8 @@ msgstr ""
 "Vẽ support\n"
 "Bạn có biết rằng bạn có thể vẽ vị trí của support không? Tính năng này giúp dễ dàng đặt vật liệu support chỉ trên các phần của model thực sự cần nó."
 
-#: resources/data/hints.ini: [hint:Different types of supports]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19092,8 +19092,8 @@ msgstr ""
 "Các loại support khác nhau\n"
 "Bạn có biết rằng bạn có thể chọn từ nhiều loại support không? Support cây hoạt động tuyệt vời cho model hữu cơ, đồng thời tiết kiệm filament và cải thiện tốc độ in. Hãy xem chúng!"
 
-#: resources/data/hints.ini: [hint:Printing Silk Filament]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19109,8 +19109,8 @@ msgstr ""
 "Vành để bám dính tốt hơn\n"
 "Bạn có biết rằng khi model được in có giao diện tiếp xúc nhỏ với bề mặt in, khuyến nghị sử dụng vành không?"
 
-#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19126,8 +19126,8 @@ msgstr ""
 "Xếp chồng đối tượng\n"
 "Bạn có biết rằng bạn có thể xếp chồng đối tượng thành một đối tượng nguyên không?"
 
-#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19143,9 +19143,9 @@ msgstr ""
 "Cải thiện độ bền\n"
 "Bạn có biết rằng bạn có thể sử dụng nhiều vòng thành hơn và mật độ infill thưa cao hơn để cải thiện độ bền của model không?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19153,8 +19153,8 @@ msgstr ""
 "Khi nào bạn cần in với cửa máy in mở?\n"
 "Bạn có biết rằng mở cửa máy in có thể giảm xác suất tắc extruder/hotend khi in filament nhiệt độ thấp hơn với nhiệt độ vỏ bọc cao hơn không? Thêm thông tin về điều này trong Wiki."
 
-#: resources/data/hints.ini: [hint:Avoid warping]
 # TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19264,7 +19264,6 @@ msgstr ""
 #~ msgstr "Ghi đè góc bắc cầu. Nếu để là không, góc bắc cầu sẽ được tính tự động. Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên ngoài. Sử dụng 180° cho góc không."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#,
 #~ msgid ""
 #~ "Internal bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for internal bridges. Use 180° for zero angle.\n"
 #~ "\n"
