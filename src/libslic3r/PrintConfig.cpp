@@ -2118,19 +2118,18 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionPercent(100));
     def = this->add("top_surface_hole_contraction", coFloat);
     def = this->add("top_surface_hole_contraction", coFloatOrPercent);
+    def = this->add("top_surface_hole_contraction", coFloat);
     def->label = L("Top surface hole contraction");
     def->category = L("Strength");
-    def->tooltip = L("When a feature sits on top of a surface, a hole is left in the top surface around the feature's "
-                     "footprint. This shrinks those holes so the top solid infill extends underneath the feature and "
-                     "covers a larger area, reducing gaps and improving surface quality around raised features.\n"
-                     "When set as a distance (mm), every hole is contracted inward by that distance. When set as a "
-                     "percentage, each hole's area is reduced by that percentage (e.g. 50% turns a 10mm² hole into "
-                     "5mm² and a 20mm² hole into 10mm²). Set to 0 to disable.");
-    def->sidetext = L("mm or %");
-    def->ratio_over = "";
+    def->tooltip = L("When raised features sit on a top surface, they split it into separate top areas with covered "
+                     "gaps in between. This fills the direct gaps between top surfaces so the top solid infill covers "
+                     "a larger, more continuous area, reducing weak spots around the features. Only gaps that lie "
+                     "directly between two top surfaces and are narrower than about twice this value are bridged; "
+                     "dead-end gaps and the outer edge are left untouched. Set to 0 to disable.");
+    def->sidetext = L("mm");
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, true));
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
