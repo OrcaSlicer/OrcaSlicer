@@ -1859,7 +1859,7 @@ void PreferencesDialog::create_items()
     // managed by Windows Settings; the runtime registry toggles below cannot work.
     // Show a minimal page that sends the user to Windows' Default Apps settings instead.
     if (is_running_in_msix()) {
-        m_pref_tabs->AppendItem(_L("Associate"));
+        m_pref_tabs->AppendItem(_L("Associated Files"));
         f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
         g_sizer = f_sizers.back();
         g_sizer->AddGrowableCol(0, 1);
@@ -1875,7 +1875,7 @@ void PreferencesDialog::create_items()
         g_sizer->AddSpacer(FromDIP(10));
         sizer_page->Add(g_sizer, 0, wxEXPAND);
     } else {
-    m_pref_tabs->AppendItem(_L("Associate"));
+    m_pref_tabs->AppendItem(_L("Associated Files"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
