@@ -13069,7 +13069,7 @@ msgid "First layer height"
 msgstr "Wysokość pierwszej warstwy"
 
 #, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Wysokość pierwszej warstwy. Nieznaczne zwiększenie grubości pierwszej warstwy może poprawić przyczepność do stołu"
 
 #, fuzzy

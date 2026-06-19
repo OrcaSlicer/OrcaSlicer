@@ -12926,7 +12926,7 @@ msgstr "Largeur de la ligne de la couche initiale. Si elle est exprimée en %, e
 msgid "First layer height"
 msgstr "Hauteur de couche initiale"
 
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Hauteur de la première couche. Augmenter la hauteur de la première couche peut améliorer l’adhérence au plateau."
 
 msgid "This is the speed for the first layer except for solid infill sections."

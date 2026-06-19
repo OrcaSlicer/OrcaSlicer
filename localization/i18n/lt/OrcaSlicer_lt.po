@@ -13040,7 +13040,7 @@ msgid "First layer height"
 msgstr "Pradinio sluoksnio aukštis"
 
 #, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Pradinio sluoksnio aukštis. Šiek tiek padidinus pradinio sluoksnio aukštį galima pagerinti pagrindo plokštės sukibimą."
 
 #, fuzzy

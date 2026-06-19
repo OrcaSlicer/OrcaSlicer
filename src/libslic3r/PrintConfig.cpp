@@ -3347,7 +3347,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_print_height", coFloat);
     def->label = L("First layer height");
     def->category = L("Quality");
-    def->tooltip = L("This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion.");
+    def->tooltip = L("Height of the first layer. Making the first layer height thicker can improve build plate adhesion.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.2));

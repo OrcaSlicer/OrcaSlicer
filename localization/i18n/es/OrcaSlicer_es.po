@@ -13251,7 +13251,7 @@ msgid "First layer height"
 msgstr "Altura de la primera capa"
 
 #, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Altura de la primera capa. Hacer que la altura de la primera capa sea ligeramente más gruesa puede mejorar la adherencia con la cama de impresión."
 
 #, fuzzy

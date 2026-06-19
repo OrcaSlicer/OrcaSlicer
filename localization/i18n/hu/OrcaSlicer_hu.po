@@ -13157,7 +13157,7 @@ msgid "First layer height"
 msgstr "Kezdő rétegmagasság"
 
 #, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Kezdőréteg magassága. A vastagabb kezdőréteg javíthatja a tárgy asztalhoz való tapadását"
 
 #, fuzzy

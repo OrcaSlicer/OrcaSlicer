@@ -12375,7 +12375,7 @@ msgstr ""
 msgid "First layer height"
 msgstr ""
 
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr ""
 
 msgid "This is the speed for the first layer except for solid infill sections."
