@@ -1379,16 +1379,14 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: min_temp=" << min_temp << " max_temp=" << max_temp << " delta=" << (max_temp - min_temp);
 
             if (max_temp > min_temp && (max_temp - min_temp) >= 20) {
-                if (warning != nullptr) {
-                    StringObjectException warningtemp;
-                    warningtemp.string = (boost::format(
-                        L("You are printing filaments with a significant temperature difference (%1%°C) in Prime Saving purge mode. This is not recommended due to poor interlayer adhesion and risk of tower collapse. Please use Standard purge mode instead.")) 
-                        % (max_temp - min_temp)).str();
-                    warningtemp.opt_key    = "prime_volume_mode";
-                    warningtemp.is_warning = true;
-                    warningtemp.type       = STRING_EXCEPT_PRIME_TOWER_TEMP_DIFFERENCE;
-                    *warning               = warningtemp;
-                }
+                StringObjectException warningtemp;
+                warningtemp.string = (boost::format(
+                    L("You are printing filaments with a significant temperature difference (%1%°C) in Prime Saving purge mode. This is not recommended due to poor interlayer adhesion and risk of tower collapse. Please use Standard purge mode instead.")) 
+                    % (max_temp - min_temp)).str();
+                warningtemp.opt_key    = "prime_volume_mode";
+                warningtemp.is_warning = true;
+                warningtemp.type       = STRING_EXCEPT_PRIME_TOWER_TEMP_DIFFERENCE;
+                add_warning(std::move(warningtemp));
             }
         }
     } else {
