@@ -78,6 +78,13 @@ class Print;
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
         unsigned int                                        total_filament_changes;
         unsigned int                                        total_extruder_changes;
+        float                                               total_filament_load_time;
+        float                                               total_filament_unload_time;
+        float                                               total_tool_change_time;
+        float                                               total_travel_distance;
+        unsigned int                                        total_travel_moves;
+        float                                               total_seam_gap_distance;
+        float                                               total_seam_scarf_distance;
 
         PrintEstimatedStatistics() { reset(); }
 
@@ -95,6 +102,13 @@ class Print;
             used_filaments_per_role.clear();
             total_filament_changes = 0;
             total_extruder_changes = 0;
+            total_filament_load_time = 0.0f;
+            total_filament_unload_time = 0.0f;
+            total_tool_change_time = 0.0f;
+            total_travel_distance = 0.0f;
+            total_travel_moves = 0;
+            total_seam_gap_distance = 0.0f;
+            total_seam_scarf_distance = 0.0f;
         }
     };
 
@@ -186,6 +200,10 @@ class Print;
             float temperature{ 0.0f }; // Celsius degrees
 // ORCA: Add Pressure Advance visualization support
             float pressure_advance{ 0.0f };
+            // ORCA: Add Acceleration visualization support
+            float acceleration{ 0.0f }; // mm/s^2
+            // ORCA: Add Jerk visualization support
+            float jerk{ 0.0f }; // mm/s
             std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
             float layer_duration{ 0.0f }; // s
             unsigned int layer_id{ 0 };
@@ -247,6 +265,9 @@ class Print;
         std::vector<NozzleType> nozzle_type;
         // first key stores filaments, second keys stores the layer ranges(enclosed) that use the filaments
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
+        std::vector<unsigned int> nozzle_change_sequence;
+        std::vector<unsigned int> filament_change_sequence;
+        std::vector<int> optimal_assignment;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
 
@@ -284,6 +305,9 @@ class Print;
             limit_filament_maps = other.limit_filament_maps;
             filament_printable_reuslt = other.filament_printable_reuslt;
             layer_filaments = other.layer_filaments;
+            filament_change_sequence = other.filament_change_sequence;
+            nozzle_change_sequence = other.nozzle_change_sequence;
+            optimal_assignment = other.optimal_assignment;
             filament_change_count_map = other.filament_change_count_map;
             initial_layer_time = other.initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
@@ -1074,6 +1098,7 @@ class Print;
         // per-nozzle machine limits (filament_map_2 / get_config_idx_for_filament).
         float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;

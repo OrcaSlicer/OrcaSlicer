@@ -56,6 +56,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/BitmapComboBox.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
+    GUI/CrealityDiscoveryDialog.cpp
+    GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
     GUI/Calibration.cpp
@@ -170,6 +172,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmosManager.hpp
     GUI/Gizmos/GLGizmoSVG.cpp
     GUI/Gizmos/GLGizmoSVG.hpp
+    GUI/Gizmos/GLGizmoUtils.cpp
+    GUI/Gizmos/GLGizmoUtils.hpp
     #GUI/Gizmos/GLGizmoText.cpp
     #GUI/Gizmos/GLGizmoText.hpp
     GUI/GLCanvas3D.cpp
@@ -301,6 +305,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/KBShortcutsDialog.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
+    GUI/LinuxDisplayBackend.cpp
+    GUI/LinuxDisplayBackend.hpp
     GUI/MainFrame.cpp
     GUI/MainFrame.hpp
     GUI/MarkdownTip.cpp
@@ -325,6 +331,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mouse3DController.hpp
     GUI/MsgDialog.cpp
     GUI/MsgDialog.hpp
+    GUI/MultiChoiceDialog.hpp
+    GUI/MultiChoiceDialog.cpp
     GUI/MultiMachine.cpp
     GUI/MultiMachine.hpp
     GUI/MultiMachineManagerPage.cpp
@@ -373,6 +381,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/PlateSettingsDialog.hpp
     GUI/Preferences.cpp
     GUI/Preferences.hpp
+    GUI/PresetBundleDialog.cpp
+    GUI/PresetBundleDialog.hpp
+    GUI/ExportPresetBundleDialog.cpp
+    GUI/ExportPresetBundleDialog.hpp
     GUI/PresetComboBoxes.cpp
     GUI/PresetComboBoxes.hpp
     GUI/PresetHints.cpp
@@ -382,6 +394,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
     GUI/PrinterWebView.cpp
+    GUI/PrinterWebViewHandler.cpp
+    GUI/PrinterWebViewHandler.hpp
     GUI/PrinterWebView.hpp
     GUI/PrintHostDialogs.cpp
     GUI/PrintHostDialogs.hpp
@@ -454,6 +468,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/TextLines.hpp
     GUI/TickCode.cpp
     GUI/TickCode.hpp
+    GUI/TroubleshootDialog.cpp
+    GUI/TroubleshootDialog.hpp
     GUI/UnsavedChangesDialog.cpp
     GUI/UnsavedChangesDialog.hpp
     GUI/UpdateDialogs.cpp
@@ -486,6 +502,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/Button.hpp
     GUI/Widgets/CheckBox.cpp
     GUI/Widgets/CheckBox.hpp
+    GUI/Widgets/CheckList.cpp
+    GUI/Widgets/CheckList.hpp
     GUI/Widgets/ComboBox.cpp
     GUI/Widgets/ComboBox.hpp
     GUI/Widgets/DialogButtons.cpp
@@ -566,6 +584,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/ColorSpaceConvert.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
+    Utils/CrealityPrintAgent.cpp
+    Utils/CrealityPrintAgent.hpp
+    Utils/CrealityHostDiscovery.cpp
+    Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
@@ -576,8 +598,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/ESP3D.hpp
     Utils/FileHelp.cpp
     Utils/FileHelp.hpp
-    Utils/FixModelByWin10.cpp
-    Utils/FixModelByWin10.hpp
+    Utils/FixModelByCgal.cpp
+    Utils/FixModelByCgal.hpp
     Utils/FlashAir.cpp
     Utils/FlashAir.hpp
     Utils/Flashforge.cpp
@@ -612,6 +634,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/SnapmakerPrinterAgent.hpp
     Utils/MoonrakerPrinterAgent.cpp
     Utils/MoonrakerPrinterAgent.hpp
+    Utils/Moonraker.cpp
+    Utils/Moonraker.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp
@@ -645,6 +669,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/UndoRedo.cpp
     Utils/UndoRedo.hpp
     Utils/WebSocketClient.hpp
+    Utils/3DPrinterOS.hpp
+    Utils/3DPrinterOS.cpp
     Utils/WxFontUtils.cpp
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
@@ -673,6 +699,8 @@ if (APPLE)
             GUI/Mouse3DHandlerMac.mm
             GUI/InstanceCheckMac.mm
             GUI/InstanceCheckMac.h
+            GUI/DeepLinkHandlerMac.mm
+            GUI/DeepLinkHandlerMac.h
             GUI/GUI_UtilsMac.mm
             GUI/wxMediaCtrl2.mm
             GUI/wxMediaCtrl2.h
@@ -736,7 +764,7 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html GLEW::GLEW OpenGL::GL hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
 
 
 if (MSVC)
@@ -787,16 +815,24 @@ if (UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
     find_package(GTK${SLIC3R_GTK} REQUIRED)
     pkg_check_modules(LIBSECRET REQUIRED libsecret-1)
+    pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
     if (FLATPAK)
         # I don't know why this is needed, but for whatever reason slic3r isn't
         # linking to X11 and webkit2gtk. force it.
         find_package(X11 REQUIRED)
-        pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
         target_link_libraries(libslic3r_gui ${X11_LIBRARIES} ${webkit2gtk_LIBRARIES})
     endif()
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS} ${webkit2gtk_INCLUDE_DIRS})
     target_link_libraries(libslic3r_gui ${GTK${SLIC3R_GTK}_LIBRARIES} fontconfig ${LIBSECRET_LIBRARIES})
 
+    # Propagate GDK backend detection results as compile definitions so that
+    # LinuxDisplayBackend.cpp can include the right GDK headers.
+    if (wxHAVE_GDK_X11)
+        target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_X11)
+    endif ()
+    if (wxHAVE_GDK_WAYLAND)
+        target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_WAYLAND)
+    endif ()
 
     # We add GStreamer for bambu:/// support.
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)

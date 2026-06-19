@@ -14,6 +14,8 @@ on:
      - 'resources/**'
      - ".github/workflows/build_*.yml"
      - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
+     - 'tests/**'
 
   pull_request:
     branches:
@@ -30,6 +32,8 @@ on:
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
+     - 'tests/**'
 
 
   schedule:
@@ -136,13 +140,13 @@ jobs:
           files: "ctest_results.xml"
       - name: Delete Test Artifact
         if: success()
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: ${{ github.sha }}-tests
   flatpak:
     name: "Flatpak"
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
       volumes:
         - /usr/local/lib/android:/usr/local/lib/android

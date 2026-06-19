@@ -14,7 +14,7 @@
 #include "slic3r/GUI/CameraUtils.hpp"
 
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <igl/unproject.h>
 

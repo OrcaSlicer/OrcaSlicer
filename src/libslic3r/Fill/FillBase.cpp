@@ -308,7 +308,9 @@ std::pair<float, Point> Fill::_infill_direction(const Surface *surface) const
     } else if (this->layer_id != size_t(-1) && !fixed_angle) {
         // alternate fill direction
         //Orca: Do not alternate direction if Fill.fixed_angle is true
-        out_angle += this->_layer_angle(this->layer_id / surface->thickness_layers);
+        if (!this->dont_alternate_fill_direction) {
+            out_angle += this->_layer_angle(this->layer_id / surface->thickness_layers);
+        }
     } else {
 //    	printf("Layer_ID undefined!\n");
     }
@@ -1023,7 +1025,7 @@ void mark_boundary_segments_touching_infill(
 #endif // INFILL_DEBUG_OUTPUT
 
 	EdgeGrid::Grid grid;
-    // Make sure that the the grid is big enough for queries against the thick segment.
+    // Make sure that the grid is big enough for queries against the thick segment.
 	grid.set_bbox(boundary_bbox.inflated(distance_colliding * 1.43));
 	// Inflate the bounding box by a thick line width.
 	grid.create(boundary, coord_t(std::max(clip_distance, distance_colliding) + scale_(10.)));

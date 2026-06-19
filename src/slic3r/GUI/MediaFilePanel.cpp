@@ -477,7 +477,7 @@ void MediaFilePanel::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
         return;
     }
     if (!m_remote_proto && m_local_proto) { // not support tutk
-        m_image_grid->SetStatus(m_bmp_failed, _L("Please enter the IP of printer to connect."));
+        m_image_grid->SetStatus(m_bmp_failed, _L("Please enter the IP of the printer to connect."));
         fs->SetUrl("0");
         fs.reset();
         if (wxGetApp().show_modal_ip_address_enter_dialog(false, _L("LAN Connection Failed (Failed to view sdcard)"))) {

@@ -69,6 +69,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) {
@@ -113,7 +114,8 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     if (!current_setting.empty()) {
         auto compare  = [current_setting](string possible_setting) { return current_setting == possible_setting; };
         auto iterator = find_if(config_name_index.begin(), config_name_index.end(), compare);
-        current_index = iterator - config_name_index.begin();
+        if (iterator != config_name_index.end())
+            current_index = static_cast<unsigned int>(iterator - config_name_index.begin());
     }
 
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
@@ -150,7 +152,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_CATALAN,
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
-        wxLANGUAGE_VIETNAMESE
+        wxLANGUAGE_VIETNAMESE,
+        wxLANGUAGE_THAI
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
@@ -190,6 +193,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
     auto language = app_config->get(param);
     m_current_language_selected = -1;
     std::vector<wxString>::iterator iter;
@@ -256,6 +260,9 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_VIETNAMESE)) {
             language_name = wxString::FromUTF8("Tiếng Việt");
         }
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_THAI)) {
+            language_name = wxString::FromUTF8("\xE0\xB9\x84\xE0\xB8\x97\xE0\xB8\xA2");
+        }
 
         if (app_config->get(param) == vlist[i]->CanonicalName) {
             m_current_language_selected = i;
@@ -288,7 +295,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
             {
                 //check if the project has changed
                 if (wxGetApp().plater()->is_project_dirty()) {
-                    auto result = MessageDialog(static_cast<wxWindow*>(this), _L("The current project has unsaved changes, save it before continue?"),
+                    auto result = MessageDialog(static_cast<wxWindow*>(this), _L("The current project has unsaved changes. Would you like to save before continuing\?"),
                         wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE).ShowModal();
 
                     if (result == wxID_YES) {
@@ -300,7 +307,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                 // the dialog needs to be destroyed before the call to switch_language()
                 // or sometimes the application crashes into wxDialogBase() destructor
                 // so we put it into an inner scope
-                MessageDialog msg_wingow(nullptr, _L("Switching the language requires application restart.\n") + "\n" + _L("Do you want to continue?"),
+                MessageDialog msg_wingow(nullptr, _L("Switching languages requires the application to restart.\n") + "\n" + _L("Do you want to continue?"),
                                          L("Language selection"), wxICON_QUESTION | wxOK | wxCANCEL);
                 if (msg_wingow.ShowModal() == wxID_CANCEL) {
                     combobox->SetSelection(m_current_language_selected);
@@ -354,6 +361,7 @@ wxBoxSizer *PreferencesDialog::create_item_region_combobox(wxString title, wxStr
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
     m_sizer_combox->Add(combobox, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
 
     std::vector<wxString>::iterator iter;
@@ -393,7 +401,7 @@ wxBoxSizer *PreferencesDialog::create_item_region_combobox(wxString title, wxStr
         NetworkAgent* agent = wxGetApp().getAgent();
         AppConfig* config = GUI::wxGetApp().app_config;
         if (agent) {
-            MessageDialog msg_wingow(this, _L("Changing the region will log out your account.\n") + "\n" + _L("Do you want to continue?"), _L("Region selection"),
+            MessageDialog msg_wingow(this, _L("Changing the region will log you out of your account.\n") + "\n" + _L("Do you want to continue?"), _L("Region selection"),
                                      wxICON_QUESTION | wxOK | wxCANCEL);
             if (msg_wingow.ShowModal() == wxID_CANCEL) {
                 combobox->SetSelection(current_region);
@@ -433,6 +441,7 @@ wxBoxSizer *PreferencesDialog::create_item_loglevel_combobox(wxString title, wxS
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) { combobox->Append(*iter); }
@@ -924,6 +933,8 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetValue(app_config->get_bool(param));
     checkbox->SetToolTip(tip);
 
+    if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
+
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
     m_sizer_checkbox->Add(checkbox      , 0, wxALIGN_CENTER | wxRIGHT | wxLEFT, FromDIP(5));
 
@@ -955,8 +966,19 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
         }
+        else if (param == "stealth_mode") {
+            bool enabled = app_config->get_stealth_mode();
+            if (enabled) wxGetApp().on_stealth_mode_enter();
+            if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
+            if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
+        }
+        else if (param == "hide_login_side_panel") {
+            if (wxGetApp().mainframe && wxGetApp().mainframe->m_webview) {
+                wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
+            }
+        }
 
-        #ifdef __WXMSW__
+#ifdef __WXMSW__
         if (param == "associate_3mf") {
              bool pbool = app_config->get("associate_3mf") == "true" ? true : false;
              if (pbool) {
@@ -1004,11 +1026,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
         if (param == "developer_mode") {
             m_developer_mode_def = app_config->get("developer_mode");
-            if (m_developer_mode_def == "true") {
-                Slic3r::GUI::wxGetApp().save_mode(comDevelop);
-            } else {
-                Slic3r::GUI::wxGetApp().save_mode(comAdvanced);
-            }
+            Slic3r::GUI::wxGetApp().update_mode();
         }
 
         // webview  dump_vedio
@@ -1020,6 +1038,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             } else {
                 Slic3r::GUI::wxGetApp().update_internal_development();
             }
+        }
+
+        if (param == "show_unsupported_presets") {
+            wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
         if (param == "enable_high_low_temp_mixed_printing") {
@@ -1163,7 +1185,6 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetToolTip(tooltip);
     checkbox->SetValue(reg_to_current_instance); // If registered to the current instance, checkbox should be checked
-    checkbox->Enable(!reg_to_current_instance); // Since unregistering isn't supported, checkbox is disabled when checked
 
     // build text next to checkbox
     auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE);
@@ -1214,8 +1235,10 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     v_sizer->Add(registered_instance_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(DESIGN_LEFT_MARGIN));
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [=](wxCommandEvent& e) {
-        wxGetApp().associate_url(url_prefix.ToStdWstring());
-        checkbox->Disable();
+        if (checkbox->GetValue())
+            wxGetApp().associate_url(url_prefix.ToStdWstring());
+        else
+            wxGetApp().disassociate_url(url_prefix.ToStdWstring());
         update_current_association_str();
         e.Skip();
     });
@@ -1343,7 +1366,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_default_page);
 
 #ifdef _WIN32
-    auto item_darkmode         = create_item_darkmode(_L("Enable dark mode"), "", "dark_color_mode");
+    auto item_darkmode         = create_item_darkmode(_L("Enable dark Mode"), "", "dark_color_mode");
     g_sizer->Add(item_darkmode);
 #endif
 
@@ -1359,6 +1382,14 @@ void PreferencesDialog::create_items()
 
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
+
+    auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
+    g_sizer->Add(item_shared_profiles);
+
+#ifdef __linux__
+    auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
+    g_sizer->Add(item_window_button_pos);
+#endif
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);
@@ -1390,7 +1421,7 @@ void PreferencesDialog::create_items()
     auto item_step_dialog      = create_item_checkbox(_L("Show options when importing STEP file"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), "enable_step_mesh_setting");
     g_sizer->Add(item_step_dialog);
 
-    auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically for restoring from the occasional crash."));
+    auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
     g_sizer->Add(item_backup); 
 
     //// GENERAL > Preset
@@ -1483,11 +1514,16 @@ void PreferencesDialog::create_items()
     auto item_use_free_camera  = create_item_checkbox(_L("Use free camera"), _L("If enabled, use free camera. If not enabled, use constrained camera."), "use_free_camera");
     g_sizer->Add(item_use_free_camera);
 
-    auto swap_pan_rotate       = create_item_checkbox(_L("Swap pan and rotate mouse buttons"), _L("If enabled, swaps the left and right mouse buttons pan and rotate functions."), "swap_mouse_buttons");
-    g_sizer->Add(swap_pan_rotate);
-
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
+
+    std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
+    auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_left_mouse_drag);
+    auto item_middle_mouse_drag  = create_item_combobox(_L("Middle Mouse Drag"), _L("Set the action that dragging the middle mouse button should perform."), "middle_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_middle_mouse_drag);
+    auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_right_mouse_drag);
 
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
@@ -1511,6 +1547,88 @@ void PreferencesDialog::create_items()
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
+    //// GRAPHICS TAB
+    /////////////////////////////////////
+    m_pref_tabs->AppendItem(_L("Graphics"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// GRAPHICS > Realistic view
+    g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
+
+    auto item_realistic_phong = create_item_checkbox(
+        _L("Phong shading"),
+        _L("Uses Phong shading inside realistic view.")
+        , SETTING_OPENGL_REALISTIC_PHONG
+    );
+    g_sizer->Add(item_realistic_phong);
+
+    auto item_realistic_ssao = create_item_checkbox(
+        _L("SSAO ambient occlusion"),
+        _L("Applies SSAO in realistic view."),
+        SETTING_OPENGL_PHONG_SSAO
+    );
+    g_sizer->Add(item_realistic_ssao);
+
+    auto item_realistic_shadows = create_item_checkbox(
+        _L("Shadows"),
+        _L("Renders cast shadows on the plate in realistic view."),
+        SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
+    );
+    g_sizer->Add(item_realistic_shadows);
+
+    //// GRAPHICS > Anti-aliasing
+    g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
+
+    auto item_antialiasing = create_item_combobox(
+        _L("MSAA Multiplier"),
+        _L("Set the Multi-Sample Anti-Aliasing level.\n"
+           "Higher values result in smoother edges, but the impact on performance is exponential.\n"
+           "Lower values improve performance, at the cost of jagged edges.\n"
+           "If disabled, its recommended to enable FXAA to reduce jagged edges with minimal performance impact.\n\n"
+           "Requires application restart."),
+        SETTING_OPENGL_AA_SAMPLES,
+        {_L("Disabled"), "2x", "4x", "8x", "16x"},
+        {"0", "2", "4", "8", "16"}
+    );
+    g_sizer->Add(item_antialiasing);
+
+    auto item_fxaa = create_item_checkbox(
+        _L("FXAA post-processing"),
+        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+           "Useful for disabling or reducing the MSAA setting to improve performance.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_FXAA_ENABLED
+    );
+    g_sizer->Add(item_fxaa);
+
+    //// GRAPHICS > FPS
+    g_sizer->Add(create_item_title(_L("FPS")), 1, wxEXPAND);
+
+    auto item_fps_cap = create_item_spinctrl(
+        _L("FPS cap"),
+        _L("(0 = unlimited)"),
+        _L("FPS"),
+        _L("Limits viewport frame rate to reduce GPU load and power usage.\n"
+           "Set to 0 for unlimited frame rate."),
+        SETTING_OPENGL_FPS_CAP,
+        0,
+        240
+    );
+    g_sizer->Add(item_fps_cap);
+
+    auto item_fps_overlay = create_item_checkbox(
+        _L("Show FPS overlay"),
+        _L("Displays current viewport FPS in the top-right corner."),
+        SETTING_OPENGL_SHOW_FPS_OVERLAY
+    );
+    g_sizer->Add(item_fps_overlay);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
     //// ONLINE TAB 
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Online"));
@@ -1524,14 +1642,57 @@ void PreferencesDialog::create_items()
     auto item_region           = create_item_region_combobox(_L("Login region"), "");
     g_sizer->Add(item_region);
  
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This stops the transmission of data to Bambu's cloud services. Users who don't use BBL machines or use LAN mode only can safely turn on this function."), "stealth_mode");
+    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
     g_sizer->Add(item_stealth_mode);
+
+    auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");
+    g_sizer->Add(item_hide_login_side_panel);
 
     auto item_network_test     = create_item_button(_L("Network test"), _L("Test") + " " + dots, "", _L("Open Network Test"), []() {
         NetworkTestDialog dlg(wxGetApp().mainframe);
         dlg.ShowModal();
     });
     g_sizer->Add(item_network_test);
+
+    //// ONLINE > Cloud Providers
+    g_sizer->Add(create_item_title(_L("Cloud Providers")), 1, wxEXPAND);
+
+    {
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+        auto text = new wxStaticText(m_parent, wxID_ANY, _L("Enable Bambu Cloud"),
+            wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+        text->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        text->SetFont(::Label::Body_14);
+        text->SetToolTip(_L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
+        text->Wrap(DESIGN_TITLE_SIZE.x);
+
+        auto cb = new ::CheckBox(m_parent);
+        m_bambu_cloud_checkbox = cb;
+        cb->SetValue(app_config->has_cloud_provider(BBL_CLOUD_PROVIDER));
+        cb->SetToolTip(text->GetToolTipText());
+
+        cb->Bind(wxEVT_TOGGLEBUTTON, [this, cb](wxCommandEvent &e) {
+            e.Skip(); // let CheckBox::update() refresh the bitmap
+            if (cb->GetValue()) {
+                app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+            } else {
+                app_config->remove_cloud_provider(BBL_CLOUD_PROVIDER);
+            }
+            app_config->save();
+
+            // Update homepage visibility immediately
+            auto *mainframe = wxGetApp().mainframe;
+            if (mainframe && mainframe->m_webview)
+                mainframe->m_webview->SendCloudProvidersInfo();
+        });
+
+        sizer->Add(text, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
+        sizer->Add(cb, 0, wxALIGN_CENTER | wxRIGHT | wxLEFT, FromDIP(5));
+
+        g_sizer->Add(sizer);
+    }
 
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
@@ -1542,7 +1703,12 @@ void PreferencesDialog::create_items()
     auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
     g_sizer->Add(item_user_sync);
 
-    auto item_system_sync      = create_item_checkbox(_L("Update built-in Presets automatically."), "", "sync_system_preset");
+    if (app_config->get_stealth_mode()) {
+        if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(false);
+        if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
+    }
+
+    auto item_system_sync      = create_item_checkbox(_L("Update built-in presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 
     auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
@@ -1561,9 +1727,9 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_filament_sync_mode);
 
     //// ONLINE > Network plugin
-    g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);
+    g_sizer->Add(create_item_title(_L("Bambu network plug-in")), 1, wxEXPAND);
 
-    auto item_enable_plugin    = create_item_checkbox(_L("Enable network plug-in"), "", "installed_networking");
+    auto item_enable_plugin    = create_item_checkbox(_L("Enable Bambu network plug-in"), "", "installed_networking");
     g_sizer->Add(item_enable_plugin);
 
     m_network_version_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1680,6 +1846,26 @@ void PreferencesDialog::create_items()
     //// ASSOCIATE TAB 
     /////////////////////////////////////
 #ifdef _WIN32
+    // MSIX: associations are declared in the package manifest and defaults are
+    // managed by Windows Settings; the runtime registry toggles below cannot work.
+    // Show a minimal page that sends the user to Windows' Default Apps settings instead.
+    if (is_running_in_msix()) {
+        m_pref_tabs->AppendItem(_L("Associate"));
+        f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+        g_sizer = f_sizers.back();
+        g_sizer->AddGrowableCol(0, 1);
+
+        g_sizer->Add(create_item_title(_L("Associate files to OrcaSlicer")), 1, wxEXPAND);
+
+        auto item_open_default_apps = create_item_button(
+            _L("File associations for the Microsoft Store version are managed by Windows Settings."),
+            _L("Open Windows Default Apps Settings"), "", "",
+            []() { wxLaunchDefaultBrowser("ms-settings:defaultapps"); });
+        g_sizer->Add(item_open_default_apps);
+
+        g_sizer->AddSpacer(FromDIP(10));
+        sizer_page->Add(g_sizer, 0, wxEXPAND);
+    } else {
     m_pref_tabs->AppendItem(_L("Associate"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
@@ -1688,16 +1874,16 @@ void PreferencesDialog::create_items()
     //// ASSOCIATE > Extensions
     g_sizer->Add(create_item_title(_L("Associate files to OrcaSlicer")), 1, wxEXPAND);
 
-    auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open 3MF files.") , "associate_3mf");
+    auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open 3MF files.") , "associate_3mf");
     g_sizer->Add(item_associate_3mf);
 
     auto item_associate_drc = create_item_checkbox(_L("Associate DRC files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open DRC files."), "associate_drc");
     g_sizer->Add(item_associate_drc);
 
-    auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open STL files.") , "associate_stl");
+    auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open STL files.") , "associate_stl");
     g_sizer->Add(item_associate_stl);
 
-    auto item_associate_step   = create_item_checkbox(_L("Associate STEP files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open STEP files."), "associate_step");
+    auto item_associate_step   = create_item_checkbox(_L("Associate STEP files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open STEP files."), "associate_step");
     g_sizer->Add(item_associate_step);
 
     //// ASSOCIATE > WebLinks
@@ -1714,6 +1900,7 @@ void PreferencesDialog::create_items()
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
+    }
 #endif // _WIN32
 
     //////////////////////////
@@ -1727,11 +1914,17 @@ void PreferencesDialog::create_items()
     //// DEVELOPER > Settings
     g_sizer->Add(create_item_title(_L("Settings")), 1, wxEXPAND);
 
-    auto item_develop_mode     = create_item_checkbox(_L("Develop mode"), "", "developer_mode");
+    auto item_develop_mode     = create_item_checkbox(_L("Developer mode"), "", "developer_mode");
     g_sizer->Add(item_develop_mode);
 
     auto item_ams_blacklist    = create_item_checkbox(_L("Skip AMS blacklist check"), "", "skip_ams_blacklist_check");
     g_sizer->Add(item_ams_blacklist);
+
+    auto item_keep_painting    = create_item_checkbox(_L("(Experimental) Keep painted feature after mesh change"), _L("Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\nHighly experimental! Slow and may create artifact."), "keep_painting");
+    g_sizer->Add(item_keep_painting);
+
+    auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
+    g_sizer->Add(item_show_unsupported);
 
     g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
     auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");
@@ -1819,7 +2012,7 @@ void PreferencesDialog::create_shortcuts_page()
     auto item_zoom_view   = create_item_multiple_combobox(_L("Zoom view"), _L("Zoom view"), "rotate_view", keyboard_supported, mouse_supported);
 
     auto title_other = create_item_title(_L("Other"));
-    auto item_other  = create_item_checkbox(_L("Mouse wheel reverses when zooming"), _L("Mouse wheel reverses when zooming"), "mouse_wheel");
+    auto item_other  = create_item_checkbox(_L("Reverse scroll direction while zooming"), _L("Reverse scroll direction while zooming"), "mouse_wheel");
 
     sizer_page->Add(title_view_control, 0, wxTOP, 26);
     sizer_page->Add(item_rotate_view, 0, wxTOP, 8);
@@ -1875,7 +2068,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
 
     debug_button->Bind(wxEVT_LEFT_DOWN, [this, radio_group](wxMouseEvent &e) {
         // success message box
-        MessageDialog dialog(this, _L("Save debug settings"), _L("DEBUG settings have been saved successfully!"), wxNO_DEFAULT | wxYES_NO | wxICON_INFORMATION);
+        MessageDialog dialog(this, _L("Save debug settings"), _L("Debug settings have been saved successfully!"), wxNO_DEFAULT | wxYES_NO | wxICON_INFORMATION);
         dialog.SetSize(400,-1);
         switch (dialog.ShowModal()) {
         case wxID_NO: {
@@ -1936,7 +2129,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
                     agent->set_country_code(country_code);
                 }
                 ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM);  // ORCA VisibleButtons instead ButtonStyle 
-                confirm_dlg.update_text(_L("Cloud environment switched, please login again!"));
+                confirm_dlg.update_text(_L("Cloud environment switched; please login again!"));
                 confirm_dlg.on_show();
             }
 

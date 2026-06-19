@@ -33,18 +33,22 @@
 
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
+#include "slic3r/Utils/PresetUpdater.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "EditGCodeDialog.hpp"
-
+#include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
 
+#include "Widgets/ComboBox.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/SwitchButton.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "Widgets/ComboBox.hpp"
 #include "MarkdownTip.hpp"
 #include "Search.hpp"
 #include "BedShapeDialog.hpp"
@@ -58,6 +62,8 @@
 #endif // WIN32
 
 #include <algorithm>
+#include <cstdlib>
+#include <unordered_set>
 
 namespace Slic3r {
 
@@ -65,7 +71,20 @@ t_config_option_keys deep_diff(const ConfigBase &config_this, const ConfigBase &
 
 namespace GUI {
 
+namespace
+{
+int mode_to_selection(ConfigOptionMode mode)
+{
+    return mode == comExpert ? 2 :
+           mode == comAdvanced ? 1 :
+           0;
+}
+}
+
 #define DISABLE_UNDO_SYS
+
+// Forward declaration for early use; definitions live later in this translation unit.
+static void validate_custom_gcode_cb(Tab* tab, const wxString& title, const t_config_option_key& opt_key, const boost::any& value);
 
 static const std::vector<std::string> plate_keys = { "curr_bed_type", "skirt_start_angle", "first_layer_print_sequence", "first_layer_sequence_choice", "other_layers_print_sequence", "other_layers_sequence_choice", "print_sequence", "spiral_mode"};
 
@@ -214,9 +233,17 @@ void Tab::create_preset_tab()
                 if (m_type == Preset::TYPE_PRINTER && !m_presets_choice->is_selected_physical_printer())
                     m_preset_bundle->physical_printers.unselect_printer();
 
-                // select preset
-                std::string preset_name = m_presets_choice->GetString(selection).ToUTF8().data();
-                select_preset(Preset::remove_suffix_modified(preset_name));
+                // select preset — prefer stored internal name to avoid alias collisions
+                wxString stored_name = m_presets_choice->GetItemAlias(selection);
+                std::string preset_name;
+                if (!stored_name.empty()) {
+                    preset_name = Preset::remove_suffix_modified(stored_name.ToUTF8().data());
+                } else {
+                    std::string selected_label = Preset::remove_suffix_modified(
+                        m_presets_choice->GetString(selection).ToUTF8().data());
+                    preset_name = m_preset_bundle->get_preset_name_by_alias(m_type, selected_label);
+                }
+                select_preset(preset_name);
             }
         });
     }
@@ -387,17 +414,22 @@ void Tab::create_preset_tab()
 
     if (dynamic_cast<TabPrint*>(this) == nullptr) {
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
-        m_mode_icon->SetToolTip(_L("Show/Hide advanced parameters"));
+        m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
-            if(wxGetApp().get_mode() == comDevelop) return; // prevent change on dev mode
-            m_mode_view->SetValue(!m_mode_view->GetValue());
-            wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
-            evt.SetEventObject(m_mode_view);
-            m_mode_view->wxEvtHandler::ProcessEvent(evt);
+            if (wxGetApp().get_mode() == comDevelop || m_mode_view == nullptr)
+                return; // prevent change on dev mode
+
+            const int selection = m_mode_view->GetSelection();
+            m_mode_view->SelectAndNotify((selection + 1) % 3);
         });
         m_top_sizer->Add(m_mode_icon, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
-        m_mode_view = new SwitchButton(m_top_panel, wxID_ABOUT);
-        m_mode_view->SetToolTip(_L("Show/Hide advanced parameters"));
+        m_mode_view = new ModeSwitchButton(m_top_panel);
+        if (wxGetApp().get_mode() == comDevelop) {
+            m_mode_view->SetSelection(mode_to_selection(comExpert));
+            m_mode_view->Enable(false);
+        } else {
+            m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
+        }
         m_top_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
         m_top_sizer->Add( m_mode_view, 0, wxALIGN_CENTER_VERTICAL);
     }
@@ -411,56 +443,6 @@ void Tab::create_preset_tab()
     else
         m_top_panel->Hide();
 
-#if 0
-#ifdef _MSW_DARK_MODE
-    // Sizer with buttons for mode changing
-    if (wxGetApp().tabs_as_menu())
-#endif
-        m_mode_sizer = new ModeSizer(panel, int (0.5*em_unit(this)));
-
-    const float scale_factor = /*wxGetApp().*/em_unit(this)*0.1;// GetContentScaleFactor();
-    m_hsizer = new wxBoxSizer(wxHORIZONTAL);
-    sizer->Add(m_hsizer, 0, wxEXPAND | wxBOTTOM, 3);
-    m_hsizer->Add(m_presets_choice, 0, wxLEFT | wxRIGHT | wxTOP | wxALIGN_CENTER_VERTICAL, 3);
-    m_hsizer->AddSpacer(int(4*scale_factor));
-    m_hsizer->Add(m_btn_save_preset, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->AddSpacer(int(4 * scale_factor));
-    m_hsizer->Add(m_btn_delete_preset, 0, wxALIGN_CENTER_VERTICAL);
-    if (m_btn_edit_ph_printer) {
-        m_hsizer->AddSpacer(int(4 * scale_factor));
-        m_hsizer->Add(m_btn_edit_ph_printer, 0, wxALIGN_CENTER_VERTICAL);
-    }
-    m_hsizer->AddSpacer(int(/*16*/8 * scale_factor));
-    m_hsizer->Add(m_btn_hide_incompatible_presets, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->AddSpacer(int(8 * scale_factor));
-    m_hsizer->Add(m_question_btn, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->AddSpacer(int(32 * scale_factor));
-    m_hsizer->Add(m_undo_to_sys_btn, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->Add(m_undo_btn, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->AddSpacer(int(32 * scale_factor));
-    m_hsizer->Add(m_search_btn, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->AddSpacer(int(8*scale_factor));
-    m_hsizer->Add(m_btn_compare_preset, 0, wxALIGN_CENTER_VERTICAL);
-    m_hsizer->AddSpacer(int(16*scale_factor));
-    // m_hsizer->AddStretchSpacer(32);
-    // StretchSpacer has a strange behavior under OSX, so
-    // There is used just additional sizer for m_mode_sizer with right alignment
-    if (m_mode_sizer) {
-        auto mode_sizer = new wxBoxSizer(wxVERTICAL);
-        // Don't set the 2nd parameter to 1, making the sizer rubbery scalable in Y axis may lead
-        // to wrong vertical size assigned to wxBitmapComboBoxes, see GH issue #7176.
-        mode_sizer->Add(m_mode_sizer, 0, wxALIGN_RIGHT);
-        m_hsizer->Add(mode_sizer, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, wxOSX ? 15 : 10);
-    }
-
-    //Horizontal sizer to hold the tree and the selected page.
-    m_hsizer = new wxBoxSizer(wxHORIZONTAL);
-    sizer->Add(m_hsizer, 1, wxEXPAND, 0);
-
-    //left vertical sizer
-    m_left_sizer = new wxBoxSizer(wxVERTICAL);
-    m_hsizer->Add(m_left_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 3);
-#endif
     // tree
     m_tabctrl = new TabCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(20 * m_em_unit, -1),
         wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
@@ -522,6 +504,22 @@ void Tab::create_preset_tab()
         m_main_sizer->Add(m_extruder_switch, 0, wxALIGN_CENTER | wxTOP, m_em_unit);
     }
 #endif
+
+    if (dynamic_cast<TabFilament *>(this)) {
+        m_variant_combo = new MultiSwitchButton(panel);
+        m_variant_combo->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
+            evt.Skip();
+            switch_excluder(evt.GetInt());
+            reload_config();
+            update_changed_ui();
+            toggle_options();
+            if (m_active_page)
+                m_active_page->update_visibility(m_mode, true);
+            m_page_view->GetParent()->Layout();
+        });
+        m_variant_combo->Hide();
+        m_main_sizer->Add(m_variant_combo, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, m_em_unit);
+    }
 
     this->SetSizer(m_main_sizer);
     //this->Layout();
@@ -1265,16 +1263,13 @@ void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
+    if (m_type == Preset::TYPE_PRINT && m_config != nullptr)
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
 }
 
 void Tab::update_mode()
 {
     m_mode = wxGetApp().get_mode();
-
-    //BBS: GUI refactor
-    // update mode for ModeSizer
-    //if (m_mode_sizer)
-    //    m_mode_sizer->SetMode(m_mode);
 
     update_visibility();
 
@@ -1319,7 +1314,11 @@ void Tab::msw_rescale()
         bmp->msw_rescale();
 
     if (m_mode_view)
+    {
         m_mode_view->Rescale();
+    }
+    if (m_variant_combo)
+        m_variant_combo->Rescale();
 
     if (m_detach_preset_btn)
         m_detach_preset_btn->msw_rescale();
@@ -1385,6 +1384,8 @@ void Tab::sys_color_changed()
         m_active_page->sys_color_changed();
     if (m_extruder_switch)
         m_extruder_switch->Rescale();
+    if (m_variant_combo)
+        m_variant_combo->Rescale();
 
     //BBS: GUI refactor
     //Layout();
@@ -1497,6 +1498,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         return;
     }
 
+    if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
+        if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
+            printer_tab->on_gcode_flavor_changed();
+    }
+
     if (opt_key == "compatible_prints")
         this->compatible_widget_reload(m_compatible_prints);
     if (opt_key == "compatible_printers")
@@ -1551,8 +1557,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 
     if (opt_key == "single_extruder_multi_material"  ){
-        const auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
-        wxGetApp().sidebar().show_SEMM_buttons(bSEMM);
+        wxGetApp().sidebar().show_SEMM_buttons();
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
@@ -1565,7 +1570,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         bool timelapse_enabled = timelapse_type->value == TimelapseType::tlSmooth;
         if (!boost::any_cast<bool>(value) && timelapse_enabled) {
             bool set_enable_prime_tower = false;
-            MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"),
+            MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower\?"),
                               _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_NO) {
                 DynamicPrintConfig new_conf = *m_config;
@@ -1603,8 +1608,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 
     if (opt_key == "single_extruder_multi_material"  ){
-        const auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
-        wxGetApp().sidebar().show_SEMM_buttons(bSEMM);
+        wxGetApp().sidebar().show_SEMM_buttons();
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
@@ -1646,7 +1650,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (opt_key == "timelapse_type") {
         bool wipe_tower_enabled = m_config->option<ConfigOptionBool>("enable_prime_tower")->value;
         if (!wipe_tower_enabled && boost::any_cast<int>(value) == (int)TimelapseType::tlSmooth) {
-            MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"),
+            MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower\?"),
                               _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_YES) {
                 DynamicPrintConfig new_conf = *m_config;
@@ -1713,16 +1717,12 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             if (!is_soluble_filament(interface_filament_id)) {
                 msg_text = _L("When using support material for the support interface, we recommend the following settings:\n"
                               "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and disable independent support layer height.");
-                msg_text += "\n\n" + _L("Change these settings automatically?\n"
-                                        "Yes - Change these settings automatically\n"
-                                        "No  - Do not change these settings for me");
+                msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             } else {
                 msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
                               "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
                               "and use soluble materials for both support interface and support base.");
-                msg_text += "\n\n" + _L("Change these settings automatically?\n"
-                                        "Yes - Change these settings automatically\n"
-                                        "No  - Do not change these settings for me");
+                msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             }
             MessageDialog      dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
             DynamicPrintConfig new_conf = *m_config;
@@ -1771,8 +1771,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         
         auto new_value = boost::any_cast<std::string>(value);
         is_safe_to_rotate = is_safe_to_rotate || new_value.empty();
+        const bool had_previous_value = !m_last_sparse_infill_rotate_template_value.empty();
 
-        if (!is_safe_to_rotate) {
+        if (!is_safe_to_rotate && !had_previous_value) {
             wxString msg_text = _(
                 L("Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their "
                   "intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. "
@@ -1789,6 +1790,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 wxGetApp().plater()->update();
             }
         }
+
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
     }
 
     if(opt_key=="layer_height"){
@@ -1925,6 +1928,26 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             auto new_conf = *m_config;
             new_conf.set_key_value("max_layer_height", new ConfigOptionFloats(max_layer_height_from_nozzle));
             m_config_manipulation.apply(m_config, &new_conf);
+        }
+    }
+
+    if (opt_key == "parallel_printheads_count" || opt_key == "parallel_printheads_bed_exclude_areas") {
+        if (m_config->opt_bool("support_parallel_printheads")) {
+            const int count = opt_key == "parallel_printheads_count" ? boost::any_cast<int>(value) : m_config->opt_int("parallel_printheads_count");
+            if (auto *field = this->get_field("bed_exclude_area")) {
+                wxString exclude_area;
+                if (count > 0) {
+                    if (const auto *areas = m_config->option<ConfigOptionStrings>("parallel_printheads_bed_exclude_areas");
+                        areas != nullptr) {
+                        const size_t index = static_cast<size_t>(count - 1);
+                        if (index < areas->values.size())
+                            exclude_area = wxString::FromUTF8(areas->values[index]);
+                    }
+                }
+
+                field->set_value(exclude_area, true);
+                field->propagate_value();
+            }
         }
     }
 
@@ -2089,6 +2112,12 @@ void Tab::on_presets_changed()
     // Check if printer agent needs switching
     if (m_type == Preset::TYPE_PRINTER) {
         wxGetApp().switch_printer_agent();
+
+        // Trigger per-vendor preset update check
+        const Preset& printer_preset = m_preset_bundle->printers.get_edited_preset();
+        if (printer_preset.vendor) {
+            wxGetApp().get_preset_updater()->check_vendor_update(printer_preset.vendor->id);
+        }
     }
 
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
@@ -2288,13 +2317,14 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Line width"), L"param_line_width");
         optgroup->append_single_option_line("line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("initial_layer_line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("outer_wall_line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("inner_wall_line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("top_surface_line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("sparse_infill_line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("internal_solid_infill_line_width","quality_settings_line_width");
-        optgroup->append_single_option_line("support_line_width","quality_settings_line_width");
+        optgroup->append_single_option_line("initial_layer_line_width","quality_settings_line_width#first-layer");
+        optgroup->append_single_option_line("outer_wall_line_width","quality_settings_line_width#outer-wall");
+        optgroup->append_single_option_line("inner_wall_line_width","quality_settings_line_width#inner-wall");
+        optgroup->append_single_option_line("top_surface_line_width","quality_settings_line_width#top-surface");
+        optgroup->append_single_option_line("sparse_infill_line_width","quality_settings_line_width#sparse-infill");
+        optgroup->append_single_option_line("internal_solid_infill_line_width","quality_settings_line_width#internal-solid-infill");
+        optgroup->append_single_option_line("support_line_width","quality_settings_line_width#support");
+        optgroup->append_single_option_line("bridge_line_width","quality_settings_line_width#bridge");
 
         optgroup = page->new_optgroup(L("Seam"), L"param_seam");
         optgroup->append_single_option_line("seam_position", "quality_settings_seam#seam-position");
@@ -2324,6 +2354,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("xy_hole_compensation", "quality_settings_precision#x-y-compensation");
         optgroup->append_single_option_line("xy_contour_compensation", "quality_settings_precision#x-y-compensation");
         optgroup->append_single_option_line("elefant_foot_compensation", "quality_settings_precision#elephant-foot-compensation");
+        optgroup->append_single_option_line("elefant_foot_layers_density", "quality_settings_precision#elephant-foot-compensation-density");
         optgroup->append_single_option_line("elefant_foot_compensation_layers", "quality_settings_precision#elephant-foot-compensation");
         optgroup->append_single_option_line("precise_outer_wall", "quality_settings_precision#precise-wall");
         optgroup->append_single_option_line("precise_z_height", "quality_settings_precision#precise-z-height");
@@ -2340,16 +2371,26 @@ void TabPrint::build()
         optgroup->append_single_option_line("ironing_angle", "quality_settings_ironing#angle-offset");
         optgroup->append_single_option_line("ironing_angle_fixed", "quality_settings_ironing#fixed-angle");
 
+        optgroup = page->new_optgroup(L("Z contouring"), L"param_advanced");
+        optgroup->append_single_option_line("zaa_enabled", "quality_settings_z_contouring");
+        optgroup->append_single_option_line("zaa_minimize_perimeter_height", "quality_settings_z_contouring#minimize-wall-height-angle");
+        optgroup->append_single_option_line("zaa_min_z", "quality_settings_z_contouring#minimum-z-height");
+        optgroup->append_single_option_line("zaa_dont_alternate_fill_direction", "quality_settings_z_contouring#dont-alternate-fill-direction");
+        // Orca: it's not used yet, so hide it in UI for now
+        // optgroup->append_single_option_line("ironing_expansion");
+
         optgroup = page->new_optgroup(L("Wall generator"), L"param_wall_generator");
         optgroup->append_single_option_line("wall_generator", "quality_settings_wall_generator");
-        optgroup->append_single_option_line("wall_transition_angle", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("wall_transition_filter_deviation", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("wall_transition_length", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("wall_distribution_count", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("initial_layer_min_bead_width", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("min_bead_width", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("min_feature_size", "quality_settings_wall_generator#arachne");
-        optgroup->append_single_option_line("min_length_factor", "quality_settings_wall_generator#arachne");
+        optgroup->append_single_option_line("wall_transition_angle", "quality_settings_wall_generator#wall-transitioning-threshhold-angle");
+        optgroup->append_single_option_line("wall_transition_filter_deviation", "quality_settings_wall_generator#wall-transitioning-filter-margin");
+        optgroup->append_single_option_line("wall_transition_length", "quality_settings_wall_generator#wall-transitioning-length");
+        optgroup->append_single_option_line("wall_distribution_count", "quality_settings_wall_generator#wall-distribution-count");
+        optgroup->append_single_option_line("initial_layer_min_bead_width", "quality_settings_wall_generator#first-layer-minimum-wall-width");
+        optgroup->append_single_option_line("min_bead_width", "quality_settings_wall_generator#minimum-wall-width");
+        optgroup->append_single_option_line("min_feature_size", "quality_settings_wall_generator#minimum-feature-size");
+        optgroup->append_single_option_line("min_length_factor", "quality_settings_wall_generator#minimum-wall-length");
+        optgroup->append_single_option_line("wall_maximum_resolution", "quality_settings_wall_generator#maximum-wall-resolution");
+        optgroup->append_single_option_line("wall_maximum_deviation", "quality_settings_wall_generator#maximum-wall-deviation");
 
         optgroup = page->new_optgroup(L("Walls and surfaces"), L"param_wall_surface");
         optgroup->append_single_option_line("wall_sequence", "quality_settings_wall_and_surfaces#walls-printing-order");
@@ -2383,7 +2424,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Bridging"), L"param_bridge");
         optgroup->append_single_option_line("bridge_flow", "quality_settings_bridging#flow-ratio");
-	    optgroup->append_single_option_line("internal_bridge_flow", "quality_settings_bridging#flow-ratio");
+        optgroup->append_single_option_line("internal_bridge_flow", "quality_settings_bridging#flow-ratio");
         optgroup->append_single_option_line("bridge_density", "quality_settings_bridging#bridge-density");
         optgroup->append_single_option_line("internal_bridge_density", "quality_settings_bridging#bridge-density");
         optgroup->append_single_option_line("thick_bridges", "quality_settings_bridging#thick-bridges");
@@ -2424,6 +2465,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
+        optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
         optgroup->append_single_option_line("sparse_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");
         optgroup->append_single_option_line("skin_infill_density", "strength_settings_patterns#locked-zag");
@@ -2437,6 +2479,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("lateral_lattice_angle_1", "strength_settings_patterns#lateral-lattice");
         optgroup->append_single_option_line("lateral_lattice_angle_2", "strength_settings_patterns#lateral-lattice");
         optgroup->append_single_option_line("infill_overhang_angle", "strength_settings_patterns#lateral-honeycomb");
+        optgroup->append_single_option_line("lightning_overhang_angle", "strength_settings_patterns#lightning");
+        optgroup->append_single_option_line("lightning_prune_angle", "strength_settings_patterns#lightning");
+        optgroup->append_single_option_line("lightning_straightening_angle", "strength_settings_patterns#lightning");
         optgroup->append_single_option_line("infill_anchor_max", "strength_settings_infill#anchor");
         optgroup->append_single_option_line("infill_anchor", "strength_settings_infill#anchor");
         optgroup->append_single_option_line("internal_solid_infill_pattern", "strength_settings_infill#internal-solid-infill");
@@ -2451,6 +2496,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("extra_solid_infills", "strength_settings_infill#extra-solid-infill");
         optgroup->append_single_option_line("bridge_angle", "strength_settings_advanced#bridge-infill-direction");
         optgroup->append_single_option_line("internal_bridge_angle", "strength_settings_advanced#bridge-infill-direction"); // ORCA: Internal bridge angle override
+        optgroup->append_single_option_line("relative_bridge_angle", "strength_settings_advanced#relative-bridge-angle");
         optgroup->append_single_option_line("minimum_sparse_infill_area", "strength_settings_advanced#minimum-sparse-infill-threshold");
         optgroup->append_single_option_line("infill_combination", "strength_settings_advanced#infill-combination");
         optgroup->append_single_option_line("infill_combination_max_layer_height", "strength_settings_advanced#max-layer-height");
@@ -2503,19 +2549,23 @@ void TabPrint::build()
         optgroup->append_single_option_line("sparse_infill_acceleration", "speed_settings_acceleration#sparse-infill");
         optgroup->append_single_option_line("internal_solid_infill_acceleration", "speed_settings_acceleration#internal-solid-infill");
         optgroup->append_single_option_line("initial_layer_acceleration", "speed_settings_acceleration#initial-layer");
+        optgroup->append_single_option_line("initial_layer_travel_acceleration", "speed_settings_acceleration#initial-layer-travel");
         optgroup->append_single_option_line("top_surface_acceleration", "speed_settings_acceleration#top-surface");
         optgroup->append_single_option_line("travel_acceleration", "speed_settings_acceleration#travel");
         optgroup->append_single_option_line("accel_to_decel_enable", "speed_settings_acceleration");
         optgroup->append_single_option_line("accel_to_decel_factor", "speed_settings_acceleration");
 
-        optgroup = page->new_optgroup(L("Jerk(XY)"), L"param_jerk", 15);
+        optgroup = page->new_optgroup(L("Junction Deviation"), L"param_junction_deviation", 15);
         optgroup->append_single_option_line("default_junction_deviation", "speed_settings_jerk_xy#junction-deviation");
+
+        optgroup = page->new_optgroup(L("Jerk(XY)"), L"param_jerk", 15);
         optgroup->append_single_option_line("default_jerk", "speed_settings_jerk_xy#default");
         optgroup->append_single_option_line("outer_wall_jerk", "speed_settings_jerk_xy#outer-wall");
         optgroup->append_single_option_line("inner_wall_jerk", "speed_settings_jerk_xy#inner-wall");
         optgroup->append_single_option_line("infill_jerk", "speed_settings_jerk_xy#infill");
         optgroup->append_single_option_line("top_surface_jerk", "speed_settings_jerk_xy#top-surface");
         optgroup->append_single_option_line("initial_layer_jerk", "speed_settings_jerk_xy#initial-layer");
+        optgroup->append_single_option_line("initial_layer_travel_jerk", "speed_settings_jerk_xy#initial-layer-travel");
         optgroup->append_single_option_line("travel_jerk", "speed_settings_jerk_xy#travel");
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced", 15);
@@ -2541,7 +2591,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("raft_layers", "support_settings_raft");
         optgroup->append_single_option_line("raft_contact_distance", "support_settings_raft");
 
-        optgroup = page->new_optgroup(L("Support filament"), L"param_support_filament");
+        optgroup = page->new_optgroup(L("Filament for Supports"), L"param_support_filament");
         optgroup->append_single_option_line("support_filament", "support_settings_filament#base");
         optgroup->append_single_option_line("support_interface_filament", "support_settings_filament#interface");
         optgroup->append_single_option_line("support_interface_not_for_body", "support_settings_filament#avoid-interface-filament-for-base");
@@ -2615,9 +2665,12 @@ void TabPrint::build()
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
-        optgroup->append_single_option_line("wall_filament", "multimaterial_settings_filament_for_features#walls");
-        optgroup->append_single_option_line("sparse_infill_filament", "multimaterial_settings_filament_for_features#infill");
-        optgroup->append_single_option_line("solid_infill_filament", "multimaterial_settings_filament_for_features#solid-infill");
+        optgroup->append_single_option_line("outer_wall_filament_id", "multimaterial_settings_filament_for_features#outer-walls");
+        optgroup->append_single_option_line("inner_wall_filament_id", "multimaterial_settings_filament_for_features#inner-walls");
+        optgroup->append_single_option_line("sparse_infill_filament_id", "multimaterial_settings_filament_for_features#sparse-infill");
+        optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#internal-solid-infill");
+        optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#top-surface");
+        optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#bottom-surface");
         optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
 
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
@@ -2657,6 +2710,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("brim_type", "others_settings_brim#type");
         optgroup->append_single_option_line("brim_width", "others_settings_brim#width");
         optgroup->append_single_option_line("brim_object_gap", "others_settings_brim#brim-object-gap");
+        optgroup->append_single_option_line("brim_flow_ratio", "others_settings_brim#brim-flow-ratio");
         optgroup->append_single_option_line("brim_use_efc_outline", "others_settings_brim#brim-use-efc-outline");
         optgroup->append_single_option_line("combine_brims", "others_settings_brim#combine-brims");
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
@@ -2675,7 +2729,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("timelapse_type", "others_settings_special_mode#timelapse");
         optgroup->append_single_option_line("enable_wrapping_detection");
 
-        optgroup = page->new_optgroup(L("Fuzzy Skin"), L"fuzzy_skin");
+        optgroup = page->new_optgroup(L("Fuzzy skin"), L"fuzzy_skin");
         optgroup->append_single_option_line("fuzzy_skin", "others_settings_fuzzy_skin");
         optgroup->append_single_option_line("fuzzy_skin_mode", "others_settings_fuzzy_skin#fuzzy-skin-mode");
         optgroup->append_single_option_line("fuzzy_skin_noise_type", "others_settings_fuzzy_skin#noise-type");
@@ -2684,6 +2738,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("fuzzy_skin_scale", "others_settings_fuzzy_skin#skin-feature-size");
         optgroup->append_single_option_line("fuzzy_skin_octaves", "others_settings_fuzzy_skin#skin-noise-octaves");
         optgroup->append_single_option_line("fuzzy_skin_persistence", "others_settings_fuzzy_skin#skin-noise-persistence");
+        optgroup->append_single_option_line("fuzzy_skin_ripples_per_layer", "others_settings_fuzzy_skin#ripples-per-layer");
+        optgroup->append_single_option_line("fuzzy_skin_ripple_offset", "others_settings_fuzzy_skin#ripple-offset");
+        optgroup->append_single_option_line("fuzzy_skin_layers_between_ripple_offset", "others_settings_fuzzy_skin#layers-between-ripple-offset");
         optgroup->append_single_option_line("fuzzy_skin_first_layer", "others_settings_fuzzy_skin#apply-fuzzy-skin-to-first-layer");
 
         optgroup = page->new_optgroup(L("G-code output"), L"param_gcode");
@@ -2698,6 +2755,17 @@ void TabPrint::build()
         option.opt.multiline = true;
         // option.opt.height = 5;
         optgroup->append_single_option_line(option, "others_settings_g_code_output#filename-format");
+
+        optgroup = page->new_optgroup(L("Change extrusion role G-code"), L"param_gcode", 0);
+        optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
+            validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
+        };
+        optgroup->edit_custom_gcode = [this](const t_config_option_key& opt_key) { edit_custom_gcode(opt_key); };
+        option = optgroup->get_option("process_change_extrusion_role_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = 15;
+        optgroup->append_single_option_line(option);
 
         optgroup = page->new_optgroup(L("Post-processing Scripts"), L"param_gcode", 0);
         option = optgroup->get_option("post_process");
@@ -3485,8 +3553,8 @@ bool Tab::validate_custom_gcode(const wxString& title, const std::string& gcode)
         for (const std::string& keyword : tags)
             lines += ";" + keyword + "\n";
         wxString reports = format_wxstr(
-            _L_PLURAL("Following line %s contains reserved keywords.\nPlease remove it, or will beat G-code visualization and printing time estimation.",
-                      "Following lines %s contain reserved keywords.\nPlease remove them, or will beat G-code visualization and printing time estimation.",
+            _L_PLURAL("Following line %s contains reserved keywords.\nPlease remove it, or G-code visualization and print time estimation will be broken.",
+                      "Following lines %s contain reserved keywords.\nPlease remove them, or G-code visualization and print time estimation will be broken.",
                       tags.size()),
             lines);
         //wxMessageDialog dialog(wxGetApp().mainframe, reports, _L("Found reserved keywords in") + " " + _(title), wxICON_WARNING | wxOK);
@@ -3735,7 +3803,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
                                             // "filament_seam_gap"
                                         };
 
-    const int selection = 0; //m_variant_combo->GetSelection(); // TODO: Orca hack
+    const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
     auto opt = dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retraction_length"));
     const int extruder_idx = selection < 0 || selection >= static_cast<int>(opt->size()) ? 0 : selection;
 
@@ -3845,7 +3913,7 @@ void TabFilament::build()
         //BBS
         optgroup->append_single_option_line("temperature_vitrification", "material_basic_information#softening-temperature");
         optgroup->append_single_option_line("idle_temperature", "material_basic_information#idle-temperature");
-        Line line = { L("Recommended nozzle temperature"), L("Recommended nozzle temperature range of this filament. 0 means no set") };
+        Line line = { L("Recommended nozzle temperature"), L("Recommended nozzle temperature range of this filament. 0 means not set") };
         line.append_option(optgroup->get_option("nozzle_temperature_range_low"));
         line.append_option(optgroup->get_option("nozzle_temperature_range_high"));
         optgroup->append_line(line);
@@ -3881,8 +3949,8 @@ void TabFilament::build()
         //
 
         optgroup = page->new_optgroup(L("Print chamber temperature"), L"param_chamber_temp");
-        optgroup->append_single_option_line("chamber_temperature", "material_temperatures#print-chamber-temperature");
         optgroup->append_single_option_line("activate_chamber_temp_control", "material_temperatures#print-chamber-temperature");
+        optgroup->append_single_option_line("chamber_temperature", "material_temperatures#print-chamber-temperature");
 
         optgroup = page->new_optgroup(L("Print temperature"), L"param_extruder_temp");
         line = { L("Nozzle"), L("Nozzle temperature when printing") };
@@ -3900,35 +3968,35 @@ void TabFilament::build()
         optgroup->append_line(line);
 
         line = { L("Cool Plate"),
-                 L("Bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate.") };
+                 L("This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("cool_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("cool_plate_temp"));
         optgroup->append_line(line);
 
         line = { L("Textured Cool Plate"),
-                 L("Bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate.") };
+                 L("This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("textured_cool_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("textured_cool_plate_temp"));
         optgroup->append_line(line);
 
         line = { L("Engineering Plate"),
-                 L("Bed temperature when the Engineering Plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate.") };
+                 L("This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("eng_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("eng_plate_temp"));
         optgroup->append_line(line);
 
         line = { L("Smooth PEI Plate / High Temp Plate"),
-                 L("Bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate.") };
+                 L("This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("hot_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("hot_plate_temp"));
         optgroup->append_line(line);
 
         line = { L("Textured PEI Plate"),
-                 L("Bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate.") };
+                 L("This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("textured_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("textured_plate_temp"));
@@ -3989,12 +4057,12 @@ void TabFilament::build()
         optgroup->append_single_option_line("full_fan_speed_layer", "material_cooling#full-fan-speed-at-layer");
 
         optgroup = page->new_optgroup(L("Part cooling fan"), L"param_cooling_part_fan");
-        line = { L("Min fan speed threshold"), L("Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time") };
+        line = { L("Min fan speed threshold"), L("The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time.") };
         line.label_path = "material_cooling#material-part-cooling-fan";
         line.append_option(optgroup->get_option("fan_min_speed"));
         line.append_option(optgroup->get_option("fan_cooling_layer_time"));
         optgroup->append_line(line);
-        line = { L("Max fan speed threshold"), L("Part cooling fan speed will be max when the estimated layer time is shorter than the setting value") };
+        line = { L("Max fan speed threshold"), L("The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value.") };
         line.label_path = "material_cooling#material-part-cooling-fan";
         line.append_option(optgroup->get_option("fan_max_speed"));
         line.append_option(optgroup->get_option("slow_down_layer_time"));
@@ -4019,12 +4087,14 @@ void TabFilament::build()
         optgroup->append_single_option_line("activate_air_filtration", "material_cooling#activate-air-filtration");
 
         line = {L("During print"), ""};
+        line.append_option(optgroup->get_option("activate_air_filtration_during_print"));
         line.append_option(optgroup->get_option("during_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#during-print";
         optgroup->append_line(line);
 
 
         line = {L("Complete print"), ""};
+        line.append_option(optgroup->get_option("activate_air_filtration_on_completion"));
         line.append_option(optgroup->get_option("complete_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#complete-print";
         optgroup->append_line(line);
@@ -4042,6 +4112,17 @@ void TabFilament::build()
         };
         optgroup->edit_custom_gcode = edit_custom_gcode_fn;
         option = optgroup->get_option("filament_start_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = gcode_field_height;// 150;
+        optgroup->append_single_option_line(option);
+
+        optgroup = page->new_optgroup(L("Change extrusion role G-code"), L"param_gcode", 0);
+        optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
+            validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
+        };
+        optgroup->edit_custom_gcode = edit_custom_gcode_fn;
+        option = optgroup->get_option("filament_change_extrusion_role_gcode");
         option.opt.full_width = true;
         option.opt.is_code = true;
         option.opt.height = gcode_field_height;// 150;
@@ -4180,22 +4261,33 @@ void TabFilament::toggle_options()
         return;
     bool is_BBL_printer = false;
     if (m_preset_bundle) {
-      is_BBL_printer =
-          wxGetApp().preset_bundle->is_bbl_vendor();
+        is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
     }
-    bool is_multi_extruder = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1;
 
-    auto cfg = m_preset_bundle->printers.get_edited_preset().config;
+    auto printer_cfg = m_preset_bundle->printers.get_edited_preset().config;
+
     if (m_active_page->title() == L("Cooling")) {
-      bool has_enable_overhang_bridge_fan = m_config->opt_bool("enable_overhang_bridge_fan", 0);
-      for (auto el : {"overhang_fan_speed", "overhang_fan_threshold", "internal_bridge_fan_speed"}) // ORCA: Add support for separate internal bridge fan speed control
+        bool has_enable_overhang_bridge_fan = m_config->opt_bool("enable_overhang_bridge_fan", 0);
+        for (auto el : {"overhang_fan_speed", "overhang_fan_threshold", "internal_bridge_fan_speed"}) // ORCA: Add support for separate internal bridge fan speed control
             toggle_option(el, has_enable_overhang_bridge_fan);
 
-      toggle_option("additional_cooling_fan_speed", cfg.opt_bool("auxiliary_fan"));
+        // Orca: toggle dont slow down for external perimeters if
+        bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
+        toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling);
 
-      // Orca: toggle dont slow down for external perimeters if
-      bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
-      toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling);
+        toggle_line("additional_cooling_fan_speed", printer_cfg.opt_bool("auxiliary_fan"));
+
+        bool support_air_filtration = printer_cfg.opt_bool("support_air_filtration");
+        for (auto el : {"activate_air_filtration", "during_print_exhaust_fan_speed", "complete_print_exhaust_fan_speed"})
+            toggle_line(el, support_air_filtration);
+
+        if (support_air_filtration) {
+            bool activate_air_filtration = m_config->opt_bool("activate_air_filtration", 0);
+            toggle_option("activate_air_filtration_during_print", activate_air_filtration);
+            toggle_option("during_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_during_print", 0));
+            toggle_option("activate_air_filtration_on_completion", activate_air_filtration);
+            toggle_option("complete_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_on_completion", 0));
+        }
     }
     if (m_active_page->title() == L("Filament"))
     {
@@ -4216,7 +4308,7 @@ void TabFilament::toggle_options()
 
         bool support_multi_bed_types = std::find(bed_temp_keys.begin(), bed_temp_keys.end(), bed_temp_1st_layer_key) ==
                                            bed_temp_keys.end() ||
-                                       is_BBL_printer || cfg.opt_bool("support_multi_bed_types");
+                                       is_BBL_printer || printer_cfg.opt_bool("support_multi_bed_types");
 
         for (const auto& key : bed_temp_keys)
         {
@@ -4235,20 +4327,21 @@ void TabFilament::toggle_options()
         toggle_line("adaptive_pressure_advance_model", has_adaptive_pa && pa);
         toggle_line("adaptive_pressure_advance_bridges", has_adaptive_pa && pa);
 
-        bool is_pellet_printer = cfg.opt_bool("pellet_modded_printer");
+        bool is_pellet_printer = printer_cfg.opt_bool("pellet_modded_printer");
         toggle_line("pellet_flow_coefficient", is_pellet_printer);
         toggle_line("filament_diameter", !is_pellet_printer);
 
-        bool support_chamber_temp_control = this->m_preset_bundle->printers.get_edited_preset().config.opt_bool("support_chamber_temp_control");
-        toggle_line("chamber_temperature", support_chamber_temp_control);
+        toggle_line("activate_chamber_temp_control", printer_cfg.opt_bool("support_chamber_temp_control"));
 
-        std::string volumetric_speed_cos = m_config->opt_string("volumetric_speed_coefficients", 0u);
+        const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
+        const unsigned int variant_idx = (unsigned int) std::max(selection, 0);
+        std::string volumetric_speed_cos = m_config->opt_string("volumetric_speed_coefficients", variant_idx);
         bool enable_fit = volumetric_speed_cos != "0 0 0 0 0 0";
-        toggle_option("filament_adaptive_volumetric_speed", enable_fit, 256 + 0u);
+        toggle_option("filament_adaptive_volumetric_speed", enable_fit, 256 + variant_idx);
     }
 
     if (m_active_page->title() == L("Setting Overrides"))
-        update_filament_overrides_page(&cfg);
+        update_filament_overrides_page(&printer_cfg);
 
     if (m_active_page->title() == L("Multimaterial")) {
         // Orca: hide specific settings for BBL printers
@@ -4261,9 +4354,11 @@ void TabFilament::toggle_options()
         toggle_option("filament_multitool_ramming_volume", multitool_ramming);
         toggle_option("filament_multitool_ramming_flow", multitool_ramming);
 
-        const int extruder_idx = 0; // m_variant_combo->GetSelection(); // TODO: Orca hack
-        toggle_line("long_retractions_when_ec", is_multi_extruder && is_BBL_printer, 256 + extruder_idx);
-        toggle_line("retraction_distances_when_ec", is_multi_extruder && is_BBL_printer && m_config->opt_bool("long_retractions_when_ec", extruder_idx), 256 + extruder_idx);
+        bool is_BBL_multi_extruder = is_BBL_printer && printer_cfg.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1;
+        const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
+        const int extruder_idx = std::max(selection, 0);
+        toggle_line("long_retractions_when_ec", is_BBL_multi_extruder, 256 + extruder_idx);
+        toggle_line("retraction_distances_when_ec", is_BBL_multi_extruder && m_config->opt_bool("long_retractions_when_ec", extruder_idx), 256 + extruder_idx);
     }
 }
 
@@ -4360,6 +4455,7 @@ void TabPrinter::build_fff()
         create_line_with_widget(optgroup.get(), "printable_area", "custom-svg-and-png-bed-textures_124612", [this](wxWindow* parent) {
            return 	create_bed_shape_widget(parent);
         });
+        optgroup->append_single_option_line("parallel_printheads_count");
         Option option = optgroup->get_option("bed_exclude_area");
         option.opt.full_width = true;
         optgroup->append_single_option_line(option, "printer_basic_information_printable_space#excluded-bed-area");
@@ -4377,6 +4473,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
+        optgroup->append_single_option_line("use_3mf");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
         optgroup->append_single_option_line("enable_power_loss_recovery", "printer_basic_information_advanced#power-loss-recovery");
         //option  = optgroup->get_option("wrapping_exclude_area");
@@ -4435,6 +4532,8 @@ void TabPrinter::build_fff()
         line.append_option(optgroup->get_option("fan_speedup_overhangs"));
         optgroup->append_line(line);
         optgroup->append_single_option_line("fan_kickstart", "printer_basic_information_cooling_fan#fan-kick-start-time");
+        // ORCA: PWM floor for fans that won't spool at low duty cycles.
+        optgroup->append_single_option_line("part_cooling_fan_min_pwm", "printer_basic_information_cooling_fan#minimum-non-zero-part-cooling-fan-speed");
 
         optgroup = page->new_optgroup(L("Extruder Clearance"), "param_extruder_clearance");
         optgroup->append_single_option_line("extruder_clearance_radius", "printer_basic_information_extruder_clearance#radius");
@@ -4735,15 +4834,31 @@ PageShp TabPrinter::build_kinematics_page()
     optgroup->append_single_option_line("emit_machine_limits_to_gcode", "printer_motion_ability#emit-limits-to-g-code");
 
     // resonance avoidance ported over from qidi slicer
-    optgroup = page->new_optgroup(L("Resonance Avoidance"), "param_resonance_avoidance");
+    optgroup = page->new_optgroup(L("Resonance Compensation"), "param_resonance_avoidance");
     optgroup->append_single_option_line("resonance_avoidance", "printer_motion_ability#resonance-avoidance");
     // Resonance‑avoidance speed inputs
     {
         Line resonance_line = {L("Resonance Avoidance Speed"), L""};
-        resonance_line.label_path = "printer_motion_ability#resonance-avoidance-speed";
+        resonance_line.label_path = "printer_motion_ability#resonance-avoidance";
         resonance_line.append_option(optgroup->get_option("min_resonance_avoidance_speed"));
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
+    }
+    optgroup->append_single_option_line("input_shaping_emit", "printer_motion_ability#input-shaping");
+    optgroup->append_single_option_line("input_shaping_type", "printer_motion_ability#input-shaping-type");
+    {
+        Line freq_line = {L("Frequency"), L("The frequency of the anti-vibration signal will correspond to the natural frequency of the frame.")};
+        freq_line.label_path = "printer_motion_ability#input-shaping";
+        freq_line.append_option(optgroup->get_option("input_shaping_freq_x"));
+        freq_line.append_option(optgroup->get_option("input_shaping_freq_y"));
+        optgroup->append_line(freq_line);
+    }
+    {
+        Line damping_line = {L("Damping"), L("Damping ratio for the input shaping filter.")};
+        damping_line.label_path = "printer_motion_ability#input-shaping";
+        damping_line.append_option(optgroup->get_option("input_shaping_damp_x"));
+        damping_line.append_option(optgroup->get_option("input_shaping_damp_y"));
+        optgroup->append_line(damping_line);
     }
 
     const std::vector<std::string> speed_axes{
@@ -4790,7 +4905,7 @@ void TabPrinter::build_unregular_pages(bool from_initial_build/* = false*/)
 {
     size_t		n_before_extruders = 2;			//	Count of pages before Extruder pages
     auto        flavor = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-    bool		is_marlin_flavor = (flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfKlipper || flavor == gcfRepRapFirmware);
+    bool		is_marlin_flavor = (flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfKlipper || flavor == gcfRepRapFirmware || flavor == gcfRepetier);
 
     /* ! Freeze/Thaw in this function is needed to avoid call OnPaint() for erased pages
      * and be cause of application crash, when try to change Preset in moment,
@@ -4915,6 +5030,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("wipe_tower_type", "printer_multimaterial_wipe_tower");
         optgroup->append_single_option_line("purge_in_prime_tower", "printer_multimaterial_wipe_tower#purge-in-prime-tower");
         optgroup->append_single_option_line("enable_filament_ramming", "printer_multimaterial_wipe_tower#enable-filament-ramming");
+        optgroup->append_single_option_line("tool_change_on_wipe_tower", "printer_multimaterial_wipe_tower#tool-change-on-wipe-tower");
 
 
         optgroup = page->new_optgroup(L("Single extruder multi-material parameters"), "param_settings");
@@ -5187,6 +5303,115 @@ void TabPrinter::clear_pages()
     m_reset_to_filament_color = nullptr;
 }
 
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor)
+{
+    switch (flavor) {
+    case GCodeFlavor::gcfKlipper:
+        return {
+            InputShaperType::Default,
+            InputShaperType::ZV,
+            InputShaperType::MZV,
+            InputShaperType::ZVD,
+            InputShaperType::EI,
+            InputShaperType::TwoHumpEI,
+            InputShaperType::ThreeHumpEI,
+            InputShaperType::Disable
+        };
+    case GCodeFlavor::gcfRepRapFirmware:
+        return {
+            InputShaperType::Default,
+            InputShaperType::MZV,
+            InputShaperType::ZVD,
+            InputShaperType::ZVDD,
+            InputShaperType::ZVDDD,
+            InputShaperType::EI2,
+            InputShaperType::EI3,
+            InputShaperType::DAA,
+            InputShaperType::Disable
+        };
+    case GCodeFlavor::gcfMarlinFirmware:
+        return {
+            InputShaperType::ZV,
+            InputShaperType::Disable
+        };
+    default:
+        return {
+            InputShaperType::Default,
+            InputShaperType::Disable
+        };
+    }
+}
+
+void TabPrinter::update_input_shaper_menu(GCodeFlavor flavor)
+{
+    if (m_presets->get_edited_preset().printer_technology() != ptFFF)
+        return;
+
+    const std::vector<InputShaperType> allowed = input_shaper_types_for_flavor(flavor);
+    if (allowed.empty())
+        return;
+
+    const InputShaperType current = m_config->opt_enum<InputShaperType>("input_shaping_type");
+    const bool needs_reset = std::find(allowed.begin(), allowed.end(), current) == allowed.end();
+    const InputShaperType desired = needs_reset ? allowed.front() : current;
+
+    if (needs_reset && current != desired) {
+        DynamicPrintConfig new_conf = *m_config;
+        new_conf.set_key_value("input_shaping_type", new ConfigOptionEnum<InputShaperType>(desired));
+        m_config_manipulation.apply(m_config, &new_conf);
+    }
+
+    Page* owning_page = nullptr;
+    Field* field = get_field("input_shaping_type", &owning_page);
+    if (field == nullptr)
+        return;
+
+    auto choice_field = dynamic_cast<Choice*>(field);
+    if (choice_field == nullptr)
+        return;
+
+    auto combo = dynamic_cast<ComboBox*>(choice_field->getWindow());
+    if (combo == nullptr)
+        return;
+
+    const ConfigOptionDef* def = m_config->def()->get("input_shaping_type");
+    if (def == nullptr)
+        return;
+
+    const auto& labels = def->enum_labels;
+    const auto& values = def->enum_values;
+
+    wxWindowUpdateLocker locker(combo);
+    combo->Clear();
+
+    for (InputShaperType type : allowed) {
+        const size_t idx = static_cast<size_t>(type);
+        wxString label;
+        if (idx < labels.size() && !labels[idx].empty())
+            label = _(labels[idx]);
+        else if (idx < values.size())
+            label = wxString::FromUTF8(values[idx].c_str());
+        else
+            label = wxString::Format("%d", static_cast<int>(type));
+
+        combo->Append(label, wxNullBitmap,
+            reinterpret_cast<void*>(static_cast<uintptr_t>(static_cast<int>(type))));
+    }
+
+    if (combo->GetCount() == 0)
+        return;
+
+    choice_field->set_value(static_cast<int>(desired), false);
+}
+
+void TabPrinter::on_gcode_flavor_changed()
+{
+    auto* flavor_option = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+    if (!flavor_option)
+        return;
+    update_input_shaper_menu(flavor_option->value);
+}
+
 void TabPrinter::toggle_options()
 {
     if (!m_active_page || m_presets->get_edited_preset().printer_technology() == ptSLA)
@@ -5212,6 +5437,7 @@ void TabPrinter::toggle_options()
     //    toggle_option("change_filament_gcode", have_multiple_extruders);
     //}
     if (m_active_page->title() == L("Basic information")) {
+        const auto &printer_cfg = m_preset_bundle->printers.get_edited_preset().config;
 
         // SoftFever: hide BBL specific settings
         for (auto el : {"scan_first_layer", "bbl_calib_mark_logo", "bbl_use_printhost"})
@@ -5221,8 +5447,11 @@ void TabPrinter::toggle_options()
         for (auto el : {"use_firmware_retraction", "use_relative_e_distances", "support_multi_bed_types", "pellet_modded_printer", "bed_mesh_max", "bed_mesh_min", "bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "thumbnails"})
           toggle_line(el, !is_BBL_printer);
 
-        auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
+        bool gcf_is_marlin_firmware = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value == GCodeFlavor::gcfMarlinFirmware;
+        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf_is_marlin_firmware);
+
+        const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
+        toggle_line("parallel_printheads_count", support_parallel_printheads);
     }
     
 
@@ -5255,6 +5484,12 @@ void TabPrinter::toggle_options()
         toggle_option("extruders_count", !bSEMM);
         toggle_option("manual_filament_change", bSEMM);
         toggle_option("purge_in_prime_tower", bSEMM && supports_wipe_tower_2);
+
+        // Orca: "Tool change on wipe tower" only makes sense for multi-extruder (multi-toolhead) printers
+        // using a Type 2 wipe tower. SEMM already always travels to the tower as part of the purge,
+        // so the option is irrelevant there.
+        const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
+        toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
     }
     wxString extruder_number;
     long val = 1;
@@ -5295,7 +5530,7 @@ void TabPrinter::toggle_options()
         // some options only apply when not using firmware retraction
         vec.resize(0);
         vec = {"retraction_speed", "deretraction_speed",    "retract_before_wipe",
-               "retract_length",   "retract_restart_extra", "wipe",
+               "retract_length",   "retract_restart_extra",
                "wipe_distance"};
         for (auto el : vec)
             //BBS
@@ -5303,20 +5538,25 @@ void TabPrinter::toggle_options()
 
         bool wipe = retraction && m_config->opt_bool("wipe", variant_index);
         toggle_option("retract_before_wipe", wipe, i);
+        float retract_before_wipe = static_cast<ConfigOptionPercents*>(m_config->option("retract_before_wipe"))->values[variant_index];
 
-        if (use_firmware_retraction && wipe) {
+        if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {
             //wxMessageDialog dialog(parent(),
             MessageDialog dialog(parent(),
-                _(L("The Wipe option is not available when using the Firmware Retraction mode.\n"
-                    "\nShall I disable it in order to enable Firmware Retraction?")),
+                _(L("The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
+                    "\nShall I set it to 100% in order to enable Firmware Retraction?")),
                 _(L("Firmware Retraction")), wxICON_WARNING | wxYES | wxNO);
 
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_YES) {
                 auto wipe = static_cast<ConfigOptionBools*>(m_config->option("wipe")->clone());
-                for (size_t w = 0; w < wipe->values.size(); w++)
+                auto retract_before_wipe = static_cast<ConfigOptionPercents*>(m_config->option("retract_before_wipe")->clone());
+                for (size_t w = 0; w < wipe->values.size(); w++) {
                     wipe->values[w] = false;
+                    retract_before_wipe->values[w] = 100.0;
+                }
                 new_conf.set_key_value("wipe", wipe);
+                new_conf.set_key_value("retract_before_wipe", retract_before_wipe);
             }
             else {
                 new_conf.set_key_value("use_firmware_retraction", new ConfigOptionBool(false));
@@ -5339,18 +5579,26 @@ void TabPrinter::toggle_options()
 
     if (m_active_page->title() == L("Motion ability")) {
         auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+        update_input_shaper_menu(gcf);
+
+        // Orca: use booleans to avoid repeated comparisons with enum values
+        const bool gcf_is_marlin_legacy = gcf == GCodeFlavor::gcfMarlinLegacy;
+        const bool gcf_is_marlin_firmware = gcf == GCodeFlavor::gcfMarlinFirmware;
+        const bool gcf_is_klipper = gcf == GCodeFlavor::gcfKlipper;
+        const bool gcf_is_reprap_firmware = gcf == GCodeFlavor::gcfRepRapFirmware;
+
         bool silent_mode = m_config->opt_bool("silent_mode");
         int  max_field   = silent_mode ? 2 : 1;
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper, i);
-        toggle_line("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper);
+            toggle_option("machine_max_acceleration_travel", !gcf_is_marlin_legacy && !gcf_is_klipper, i);
+        toggle_line("machine_max_acceleration_travel", !gcf_is_marlin_legacy && !gcf_is_klipper);
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_junction_deviation", gcf == gcfMarlinFirmware, i);
-        toggle_line("machine_max_junction_deviation", gcf == gcfMarlinFirmware);
+            toggle_option("machine_max_junction_deviation", gcf_is_marlin_firmware, i);
+        toggle_line("machine_max_junction_deviation", gcf_is_marlin_firmware);
 
         // Check if junction deviation value is non-zero and firmware is Marlin
-        bool enable_jerk = gcf != gcfMarlinFirmware;
-        if (gcf == gcfMarlinFirmware) {
+        bool enable_jerk = !gcf_is_marlin_firmware;
+        if (gcf_is_marlin_firmware) {
             const auto *junction_deviation = m_config->option<ConfigOptionFloats>("machine_max_junction_deviation");
             if (junction_deviation != nullptr) {
                 const auto &values = junction_deviation->values;
@@ -5366,9 +5614,30 @@ void TabPrinter::toggle_options()
             toggle_option("machine_max_jerk_e", enable_jerk, i);
         }
 
+        bool emittable_limits = gcf_is_marlin_legacy || gcf_is_marlin_firmware || gcf_is_reprap_firmware;
+        toggle_option("emit_machine_limits_to_gcode", emittable_limits);
+
         bool resonance_avoidance = m_config->opt_bool("resonance_avoidance");
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
+
+        bool input_shaping_compatible = gcf_is_marlin_firmware || gcf_is_reprap_firmware;
+
+        for (auto is : {"input_shaping_emit", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y",
+                            "input_shaping_damp_x", "input_shaping_damp_y"})
+                toggle_line(is, input_shaping_compatible);
+
+        if (input_shaping_compatible) {
+            bool emit_machine_limits_to_gcode = m_config->opt_bool("emit_machine_limits_to_gcode");
+            toggle_option("input_shaping_emit", emit_machine_limits_to_gcode);
+            bool input_shaping_emit = emit_machine_limits_to_gcode && m_config->opt_bool("input_shaping_emit");
+            toggle_option("input_shaping_type", input_shaping_emit);
+            toggle_option("input_shaping_freq_x", input_shaping_emit);
+            toggle_option("input_shaping_freq_y", input_shaping_emit && !gcf_is_reprap_firmware);
+            toggle_option("input_shaping_damp_x", input_shaping_emit);
+            toggle_option("input_shaping_damp_y", input_shaping_emit && !gcf_is_reprap_firmware);
+        }
+
     }
 }
 
@@ -5658,7 +5927,7 @@ void Tab::update_btns_enabling()
     // and any user preset
     const Preset& preset = m_presets->get_edited_preset();
     m_btn_delete_preset->Show((m_type == Preset::TYPE_PRINTER && m_preset_bundle->physical_printers.has_selection())
-                              || (!preset.is_default && !preset.is_system));
+                              || preset.can_overwrite());
 
     //if (m_btn_edit_ph_printer)
     //    m_btn_edit_ph_printer->SetToolTip( m_preset_bundle->physical_printers.has_selection() ?
@@ -5839,7 +6108,7 @@ bool Tab::select_preset(
             Preset &current_preset = m_presets->get_selected_preset();
 
             // Obtain compatible filament and process presets for printers
-            if (m_preset_bundle && m_presets->get_preset_base(current_preset) == &current_preset && printer_tab && !current_preset.is_system) {
+            if (m_preset_bundle && m_presets->get_preset_base(current_preset) == &current_preset && printer_tab && !current_preset.is_system && !current_preset.is_from_bundle()) {
                 delete_third_printer = true;
                 for (const Preset &preset : m_preset_bundle->filaments.get_presets()) {
                     if (preset.is_compatible && !preset.is_default) {
@@ -5847,7 +6116,6 @@ bool Tab::select_preset(
                             filament_presets.push_front(preset);
                         else
                             filament_presets.push_back(preset);
-                        if (!preset.setting_id.empty()) { m_preset_bundle->filaments.set_sync_info_and_save(preset.name, preset.setting_id, "delete", 0); }
                     }
                 }
                 for (const Preset &preset : m_preset_bundle->prints.get_presets()) {
@@ -5856,13 +6124,11 @@ bool Tab::select_preset(
                             process_presets.push_front(preset);
                         else
                             process_presets.push_back(preset);
-                        if (!preset.setting_id.empty()) { m_preset_bundle->filaments.set_sync_info_and_save(preset.name, preset.setting_id, "delete", 0); }
                     }
                 }
             }
             if (!current_preset.setting_id.empty()) {
-                m_presets->set_sync_info_and_save(current_preset.name, current_preset.setting_id, "delete", 0);
-                wxGetApp().delete_preset_from_cloud(current_preset.setting_id);
+                wxGetApp().delete_preset_from_cloud(current_preset.setting_id, current_preset.file);
             }
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << current_preset.name << ", setting_id = " << current_preset.setting_id;
             BOOST_LOG_TRIVIAL(info) << boost::format("will delete current preset...");
@@ -5953,7 +6219,7 @@ bool Tab::select_preset(
 
                 for (const Preset &preset : filament_presets) {
                     if (!preset.setting_id.empty()) {
-                        wxGetApp().delete_preset_from_cloud(preset.setting_id);
+                        wxGetApp().delete_preset_from_cloud(preset.setting_id, preset.file);
                     }
                     BOOST_LOG_TRIVIAL(info) << "delete filament preset = " << preset.name << ", setting_id = " << preset.setting_id;
                     preset_bundle->filaments.delete_preset(preset.name);
@@ -5961,7 +6227,7 @@ bool Tab::select_preset(
 
                 for (const Preset &preset : process_presets) {
                     if (!preset.setting_id.empty()) {
-                        wxGetApp().delete_preset_from_cloud(preset.setting_id);
+                        wxGetApp().delete_preset_from_cloud(preset.setting_id, preset.file);
                     }
                     BOOST_LOG_TRIVIAL(info) << "delete print preset = " << preset.name << ", setting_id = " << preset.setting_id;
                     preset_bundle->prints.delete_preset(preset.name);
@@ -6273,6 +6539,9 @@ bool Tab::tree_sel_change_delayed(wxCommandEvent& event)
     if (m_extruder_switch) {
         m_main_sizer->Show(m_extruder_switch, !m_active_page->m_opt_id_map.empty());
         GetParent()->Layout();
+    } else if (m_variant_combo) {
+        m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && !m_active_page->m_opt_id_map.empty());
+        GetParent()->Layout();
     }
 
     auto throw_if_canceled = std::function<void()>([this](){
@@ -6370,6 +6639,10 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 //BBS: add project embedded preset relate logic
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
+    // ORCA: Validate before opening any save-name UI for filament presets.
+    if (!validate_filament_temperature_pairs())
+        return;
+
     // since buttons(and choices too) don't get focus on Mac, we set focus manually
     // to the treectrl so that the EVT_* events are fired for the input field having
     // focus currently.is there anything better than this ?
@@ -6584,7 +6857,7 @@ void Tab::delete_preset()
         //                            "Note, that these printers will be deleted after deleting the selected preset.", ph_printers_only.size()) + "\n\n";
         //}
         if (!ph_printers.empty() || !ph_printers_only.empty()) {
-            msg += _L_PLURAL("Following preset will be deleted too.", "Following presets will be deleted too.", ph_printers.size() + ph_printers_only.size());
+            msg += _L_PLURAL("The following preset will be deleted too:", "The following presets will be deleted too:", ph_printers.size() + ph_printers_only.size());
             for (const std::string &printer : ph_printers) msg += "\n    \"" + from_u8(printer) + "\",";
             for (const std::string &printer : ph_printers_only) msg += "\n    \"" + from_u8(printer) + "\",";
             msg.RemoveLast();
@@ -6596,7 +6869,7 @@ void Tab::delete_preset()
     if (is_base_preset && (current_preset.type == Preset::Type::TYPE_FILAMENT) && action == _utf8(L("Delete"))) {
         msg += from_u8(_u8L("Are you sure to delete the selected preset?\nIf the preset corresponds to a filament currently in use on your printer, please reset the filament information for that slot."));
     } else {
-        msg += from_u8((boost::format(_u8L("Are you sure to %1% the selected preset?")) % action).str());
+        msg += from_u8((boost::format(_u8L("Are you sure you want to %1% the selected preset\?")) % action).str());
     }
 
     //BBS: add project embedded preset logic and refine is_external
@@ -6778,26 +7051,37 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
                 presets.Add(from_u8(preset.name));
         }
 
-        wxMultiChoiceDialog dlg(parent, deps.dialog_title, deps.dialog_label, presets);
+        if(deps.type == Preset::TYPE_PRINTER){
+            deps.dialog_title = "Compatible printers";
+            deps.dialog_label = "Select printers";
+        }else{
+            deps.dialog_title = "Compatible process profiles";
+            deps.dialog_label = "Select profiles";
+        }
+
+        MultiChoiceDialog dlg(parent, deps.dialog_label, deps.dialog_title, presets);
         wxGetApp().UpdateDlgDarkUI(&dlg);
         // Collect and set indices of depending_presets marked as compatible.
         wxArrayInt selections;
         auto *compatible_printers = dynamic_cast<const ConfigOptionStrings*>(m_config->option(deps.key_list));
-        if (compatible_printers != nullptr || !compatible_printers->values.empty())
+        if (compatible_printers != nullptr && !compatible_printers->values.empty())
             for (auto preset_name : compatible_printers->values)
                 for (size_t idx = 0; idx < presets.GetCount(); ++idx)
-                    if (presets[idx] == preset_name) {
+                    if (presets[idx] == from_u8(preset_name)) {
                         selections.Add(idx);
                         break;
                     }
         dlg.SetSelections(selections);
+        dlg.SetSize(FromDIP(wxSize(360, 480)));
         std::vector<std::string> value;
         // Show the dialog.
         if (dlg.ShowModal() == wxID_OK) {
             selections.Clear();
             selections = dlg.GetSelections();
-            for (auto idx : selections)
-                value.push_back(presets[idx].ToUTF8().data());
+            // leave list empty if all items checked. this will check "All" checkbox automatically. also fixes unnecessary config change
+            if(selections.GetCount() != presets.GetCount())
+                for (auto idx : selections)
+                    value.push_back(presets[idx].ToUTF8().data());
             if (value.empty()) {
                 deps.checkbox->SetValue(1);
                 deps.btn->Disable();
@@ -6924,6 +7208,104 @@ bool Tab::validate_custom_gcodes()
     return valid;
 }
 
+// ORCA: Session-only suppression keys for temperature-pair safety warnings.
+static std::unordered_set<std::string> s_filament_temp_pair_warning_suppressed_for_session;
+
+// ORCA: Validate that first-layer and other-layer temperature pairs are within safety limits, and warn the user if not.
+bool Tab::validate_filament_temperature_pairs()
+{
+    if (m_type != Preset::TYPE_FILAMENT || m_presets == nullptr)
+        return true;
+
+    // Warn only for newly edited state, not for unchanged presets.
+    if (!m_presets->current_is_dirty())
+        return true;
+
+    Preset& edited_preset = m_presets->get_edited_preset();
+    DynamicPrintConfig& config = edited_preset.config;
+    const std::string suppress_key = edited_preset.name;
+    // User opted out for this preset during current app session.
+    if (!suppress_key.empty() && s_filament_temp_pair_warning_suppressed_for_session.count(suppress_key) > 0)
+        return true;
+
+    struct TempPairRule
+    {
+        wxString    label;
+        std::string first_layer_key;
+        std::string other_layer_key;
+        int         max_delta;
+    };
+
+    std::vector<TempPairRule> temp_pair_rules;
+    temp_pair_rules.push_back({_L("Nozzle"), "nozzle_temperature_initial_layer", "nozzle_temperature", 30});
+
+    // Derive bed labels/keys from curr_bed_type metadata (BedType order excludes btDefault).
+    if (const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
+        bed_type_def != nullptr) {
+        for (int bt = static_cast<int>(btPC); bt < static_cast<int>(btCount); ++bt) {
+            const BedType     bed_type  = static_cast<BedType>(bt);
+            const size_t      label_idx = static_cast<size_t>(bt - static_cast<int>(btPC));
+            const std::string first_key = get_bed_temp_1st_layer_key(bed_type);
+            const std::string other_key = get_bed_temp_key(bed_type);
+            if (first_key.empty() || other_key.empty())
+                continue;
+
+            wxString label = _(bed_type_def->enum_labels[label_idx]);
+            temp_pair_rules.push_back({label, first_key, other_key, 15});
+        }
+    }
+
+    wxString invalid_pairs;
+    int      invalid_count = 0;
+
+    for (const TempPairRule& rule : temp_pair_rules) {
+        if (!config.has(rule.first_layer_key) || !config.has(rule.other_layer_key))
+            continue;
+
+        const ConfigOptionInts* first_opt = config.option<ConfigOptionInts>(rule.first_layer_key);
+        const ConfigOptionInts* other_opt = config.option<ConfigOptionInts>(rule.other_layer_key);
+        if (first_opt == nullptr || other_opt == nullptr || first_opt->values.empty() || other_opt->values.empty())
+            continue;
+
+        const int first_temp = first_opt->get_at(0);
+        const int other_temp = other_opt->get_at(0);
+
+        // Keep existing semantics: 0 means unsupported/off for these temperatures.
+        if (first_temp <= 0 || other_temp <= 0)
+            continue;
+
+        const int delta = std::abs(first_temp - other_temp);
+        if (delta <= rule.max_delta)
+            continue;
+
+        const wxString deg_c   = wxString::FromUTF8("°C");
+        const wxString bullet  = wxString::FromUTF8("•");
+        invalid_pairs += wxString::Format(_L(" - %s:\n    %s first layer %d %s, other layers %d %s\n    %s max delta %d %s, current delta %d %s\n"),
+                                          rule.label, bullet, first_temp, deg_c, other_temp, deg_c, bullet, rule.max_delta, deg_c, delta, deg_c);
+        ++invalid_count;
+    }
+
+    if (invalid_count == 0)
+        return true;
+
+    wxString msg_text = _L("Some first-layer and other-layer temperature pairs exceed safety limits.\n");
+    msg_text += _L("\nInvalid pairs:\n");
+    msg_text += invalid_pairs;
+    msg_text += _L("\nYou can go back to edit values, or continue if this is intentional.");
+    msg_text += _L("\n\nContinue anyway?");
+
+    RichMessageDialog dialog(parent(), msg_text, _L("Temperature Safety Check"), wxYES | wxNO | wxICON_WARNING);
+    dialog.SetButtonLabel(wxID_YES, _L("Continue"), true);
+    dialog.SetButtonLabel(wxID_NO, _L("Back"));
+    dialog.ShowCheckBox(_L("Don't warn again for this preset"));
+    const int answer = dialog.ShowModal();
+    // Session-only suppression (does not modify/save filament preset data).
+    if (dialog.IsCheckBoxChecked() && !suppress_key.empty())
+        s_filament_temp_pair_warning_suppressed_for_session.insert(suppress_key);
+
+    return answer == wxID_YES;
+}
+
 void Tab::set_just_edit(bool just_edit)
 {
     m_just_edit = just_edit;
@@ -6942,6 +7324,41 @@ void Tab::set_just_edit(bool just_edit)
 ///         2: on_preset_loaded (extruder_id = -1)
 /// </summary>
 /// <param name="extruder_id"></param>
+
+std::vector<wxString> Tab::generate_extruder_options()
+{
+    std::vector<wxString> options;
+    if (m_type != Preset::TYPE_FILAMENT)
+        return options;
+
+    auto *variants = m_config->option<ConfigOptionStrings>("filament_extruder_variant");
+    if (!variants)
+        return options;
+
+    const std::vector<std::string> known_nozzle_types = {
+        get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow),
+        get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard),
+    };
+
+    for (const std::string &variant : variants->values) {
+        std::string drive;
+        std::string nozzle;
+
+        for (const std::string &nozzle_type : known_nozzle_types) {
+            if (variant.size() > nozzle_type.size() &&
+                variant.substr(variant.size() - nozzle_type.size()) == nozzle_type &&
+                variant[variant.size() - nozzle_type.size() - 1] == ' ') {
+                drive  = variant.substr(0, variant.size() - nozzle_type.size() - 1);
+                nozzle = nozzle_type;
+                break;
+            }
+        }
+
+        options.push_back(nozzle.empty() ? from_u8(variant) : wxString::Format(wxT("%s: %s"), from_u8(drive), from_u8(nozzle)));
+    }
+
+    return options;
+}
 
 void Tab::update_extruder_variants(int extruder_id)
 {
@@ -6967,10 +7384,25 @@ void Tab::update_extruder_variants(int extruder_id)
             GetParent()->Layout();
             return;
         }
+    } else if (m_variant_combo) {
+        if (extruder_id >= 0)
+            return;
+
+        const int selection = m_variant_combo->GetSelection();
+        auto      options   = generate_extruder_options();
+        m_variant_combo->SetOptions(options);
+
+        if (!options.empty())
+            m_variant_combo->SetSelection(selection < 0 || selection >= (int) options.size() ? 0 : selection);
+
+        m_variant_combo->Enable(options.size() > 1);
     }
     switch_excluder(extruder_id);
     if (m_extruder_switch) {
         m_main_sizer->Show(m_extruder_switch, m_active_page && !m_active_page->m_opt_id_map.empty());
+        GetParent()->Layout();
+    } else if (m_variant_combo) {
+        m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && m_active_page && !m_active_page->m_opt_id_map.empty());
         GetParent()->Layout();
     }
 }
@@ -6985,7 +7417,7 @@ void Tab::switch_excluder(int extruder_id)
         {}, {"", "filament_extruder_variant"},                   // Preset::TYPE_FILAMENT filament don't use id anymore
         {}, {"printer_extruder_id", "printer_extruder_variant"}, // Preset::TYPE_PRINTER
     };
-    if (extruder_id >= nozzle_volumes->size() || extruder_id >= extruders->size())
+    if (!m_variant_combo && (extruder_id >= (int)nozzle_volumes->size() || extruder_id >= (int)extruders->size()))
         extruder_id = 0;
     if (m_extruder_switch && m_type != Preset::TYPE_PRINTER) {
         int current_extruder = m_extruder_switch->GetValue() ? 1 : 0;
@@ -6993,15 +7425,25 @@ void Tab::switch_excluder(int extruder_id)
             extruder_id = current_extruder;
         else if (extruder_id != current_extruder)
             return;
+    } else if (m_variant_combo) {
+        int current_variant = m_variant_combo->GetSelection();
+        if (current_variant < 0)
+            current_variant = 0;
+        if (extruder_id == -1)
+            extruder_id = current_variant;
+        else if (extruder_id != current_variant)
+            return;
     }
     auto get_index_for_extruder =
             [this, &extruders, &nozzle_volumes, variant_keys = variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), NozzleVolumeType(nozzle_volumes->values[extruder_id]), variant_keys.second, stride);
     };
-    auto index = get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
+    auto index = m_variant_combo ? extruder_id : get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
     if (index < 0)
         return;
+    if (m_variant_combo)
+        m_variant_combo->SetClientData(reinterpret_cast<void *>(static_cast<std::uintptr_t>(index)));
     for (auto page : m_pages) {
         bool is_extruder = false;
         if (m_type == Preset::TYPE_PRINTER) {
@@ -7012,7 +7454,7 @@ void Tab::switch_excluder(int extruder_id)
                 if (extruder_id2 > 0)
                     index = get_index_for_extruder(extruder_id2);
                 is_extruder = true;
-            } else if (page->title().StartsWith("Speed limitation")) {
+            } else if (page->title().StartsWith("Motion ability")) {
                 index = get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id, 2);
             }
         }
@@ -7073,7 +7515,7 @@ void Tab::set_tooltips_text()
     //m_tt_non_system =		&m_ttg_white_bullet_ns;
     // Text to be shown on the "Undo user changes" button next to each input field.
     //m_tt_white_bullet =		_(L("WHITE BULLET icon indicates that the value is the same as in the last saved preset."));
-    m_tt_value_revert =		_(L("Click to drop current modify and reset to saved value."));
+    m_tt_value_revert =		_(L("Click to drop current modifications and reset to saved value."));
 }
 
 //BBS: GUI refactor

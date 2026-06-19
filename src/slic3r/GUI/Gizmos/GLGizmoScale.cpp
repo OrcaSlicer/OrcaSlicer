@@ -3,7 +3,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <wx/utils.h>
 
@@ -448,7 +448,29 @@ void GLGizmoScale3D::do_scale_uniform(const UpdateData& data)
     if (ratio > 0.0)
     {
         m_scale = m_starting.scale * ratio;
-        m_offset = Vec3d::Zero();
+        if (m_starting.ctrl_down && abs(ratio-1.0f)>0.001) {
+            m_scale.z() = m_starting.scale.z();
+            double local_offset_x = 0.5 * (m_scale.x() - m_starting.scale.x()) * m_starting.box.size().x();
+            double local_offset_y = 0.5 * (m_scale.y() - m_starting.scale.y()) * m_starting.box.size().y();
+            
+            Vec3d local_offset_vec = Vec3d::Zero();
+            switch (m_hover_id)
+            {
+                case 6: { local_offset_vec = Vec3d(-local_offset_x, -local_offset_y, 0.0); break; }
+                case 7: { local_offset_vec = Vec3d( local_offset_x, -local_offset_y, 0.0); break; }
+                case 8: { local_offset_vec = Vec3d( local_offset_x,  local_offset_y, 0.0); break; }
+                case 9: { local_offset_vec = Vec3d(-local_offset_x,  local_offset_y, 0.0); break; }
+                default: break;
+            }
+            
+            if (m_object_manipulation->is_world_coordinates()) {
+                m_offset = local_offset_vec;
+            } else {
+                m_offset = m_grabbers_tran.get_matrix_no_offset() * local_offset_vec;
+            }
+        } else {
+            m_offset = Vec3d::Zero();
+        }
     }
 }
 

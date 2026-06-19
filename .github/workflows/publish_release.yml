@@ -1,0 +1,128 @@
+name: Publish to draft release
+
+# Manually pulls the platform binaries produced by a "Build all" run and uploads
+# them to an existing DRAFT release. Decoupled from the build so you can test a
+# build first, then publish exactly that run's artifacts once you're happy.
+#
+# Trigger: Actions tab -> "Publish to draft release" -> Run workflow.
+# Locked to a single person: the first step aborts unless the actor matches the
+# `RELEASE_PUBLISHER` repo variable (set to "SoftFever"). To allow someone else,
+# change that variable: gh variable set RELEASE_PUBLISHER --body "<login>".
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID of the "Build all" workflow to pull binaries from (the number in the Actions run URL)'
+        required: true
+        type: string
+      tag:
+        description: 'Tag of the draft release to upload to (e.g. v2.4.0-beta)'
+        required: true
+        type: string
+
+permissions:
+  contents: write   # upload release assets
+  actions: read     # download artifacts from another run
+
+jobs:
+  publish:
+    name: Publish binaries to draft release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RUN_ID: ${{ inputs.run_id }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Restrict to the release publisher
+        env:
+          PUBLISHER: ${{ vars.RELEASE_PUBLISHER }}
+        run: |
+          if [ -z "$PUBLISHER" ]; then
+            echo "::error::RELEASE_PUBLISHER repo variable is not set."
+            exit 1
+          fi
+          if [ "${{ github.actor }}" != "$PUBLISHER" ]; then
+            echo "::error::Only @$PUBLISHER may run this workflow (you are @${{ github.actor }})."
+            exit 1
+          fi
+          echo "Authorized: @${{ github.actor }}"
+
+      - name: Verify target is a draft release
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft >/dev/null 2>&1; then
+            echo "::error::Release '$TAG' not found. Create the draft (with this tag) first."
+            exit 1
+          fi
+          is_draft=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
+          if [ "$is_draft" != "true" ]; then
+            echo "::error::Release '$TAG' is published, not a draft. Aborting to avoid touching a live release."
+            exit 1
+          fi
+
+      - name: Verify source build run
+        run: |
+          info=$(gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,conclusion,headBranch)
+          name=$(echo "$info" | jq -r '.workflowName')
+          conclusion=$(echo "$info" | jq -r '.conclusion')
+          branch=$(echo "$info" | jq -r '.headBranch')
+          echo "Source run #$RUN_ID: '$name' on '$branch' (conclusion: $conclusion)"
+          if [ "$conclusion" != "success" ]; then
+            echo "::warning::Source run did not conclude 'success' ($conclusion). Some assets may be missing."
+          fi
+
+      - name: Download release artifacts from build run
+        run: |
+          # Windows_V* (not Windows_*) keeps the MSIX Store artifact out: it goes to Partner Center, not GitHub releases.
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --dir artifacts \
+            -p 'OrcaSlicer_Windows_V*' \
+            -p 'OrcaSlicer_Mac_universal_*' \
+            -p 'OrcaSlicer_Linux_ubuntu_*' \
+            -p 'OrcaSlicer-Linux-flatpak_*' \
+            -p 'PDB'
+          echo "Downloaded artifact folders:"
+          ls -1 artifacts
+
+      - name: Assemble release assets
+        run: |
+          set -euo pipefail
+          mkdir -p upload
+
+          # gh run download auto-extracts each artifact into a folder, so the inner
+          # binaries are already unzipped. Copy the inner binary for each platform.
+          # -type f is required (some artifact *folders* are named "*.flatpak").
+
+          # Windows installer: the .exe inside the installer artifact, NOT the
+          # orca-slicer.exe that lives in the portable app folder.
+          find artifacts -type f -name '*.exe' -path '*OrcaSlicer_Windows_*' ! -path '*_portable*' -exec cp -v {} upload/ \;
+          # macOS universal DMG (profile-validator DMG isn't downloaded).
+          find artifacts -type f -name '*.dmg' -path '*OrcaSlicer_Mac_universal_*' -exec cp -v {} upload/ \;
+          # Linux AppImage.
+          find artifacts -type f -name '*.AppImage' -exec cp -v {} upload/ \;
+          # Flatpak bundles (x86_64 + aarch64).
+          find artifacts -type f -name '*.flatpak' -exec cp -v {} upload/ \;
+          # Windows debug symbols (PDB archive, for developers).
+          find artifacts -type f -name 'Debug_PDB_*.7z' -exec cp -v {} upload/ \;
+
+          # Portable Windows build is an unzipped folder artifact; re-zip it to the
+          # released filename (this one stays a .zip on the release).
+          portable_dir=$(find artifacts -maxdepth 1 -type d -name 'OrcaSlicer_Windows_*_portable' | head -n1)
+          if [ -n "${portable_dir:-}" ]; then
+            ( cd "$portable_dir" && zip -qr "$GITHUB_WORKSPACE/upload/$(basename "$portable_dir").zip" . )
+            echo "Zipped portable -> $(basename "$portable_dir").zip"
+          else
+            echo "::warning::Windows portable artifact not found."
+          fi
+
+          echo "Assets to upload:"
+          ls -lh upload
+          if [ -z "$(ls -A upload)" ]; then
+            echo "::error::No assets assembled. Check the run_id and that its artifacts haven't expired."
+            exit 1
+          fi
+
+      - name: Upload assets to draft release
+        run: |
+          gh release upload "$TAG" upload/* --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Uploaded to draft release: $TAG"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name'
