@@ -137,7 +137,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
 
-    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in when Orca Slicer launches next time."), LB_AUTO_WRAP);
+    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in the next time Orca Slicer launches."), LB_AUTO_WRAP);
     operation_tips->SetMinSize(wxSize(FromDIP(260), -1));
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
@@ -1059,7 +1059,7 @@ void PrintErrorDialog::init_button_list()
     init_button(FILAMENT_EXTRUDED, _L("Filament Extruded, Continue"));
     init_button(RETRY_FILAMENT_EXTRUDED, _L("Not Extruded Yet, Retry"));
     init_button(CONTINUE, _L("Finished, Continue"));
-    init_button(LOAD_VIRTUAL_TRAY, _L("Load Filament"));
+    init_button(LOAD_VIRTUAL_TRAY, _L("Load"));
     init_button(OK_BUTTON, _L("OK"));
     init_button(FILAMENT_LOAD_RESUME, _L("Filament Loaded, Resume"));
     init_button(JUMP_TO_LIVEVIEW, _L("View Liveview"));
