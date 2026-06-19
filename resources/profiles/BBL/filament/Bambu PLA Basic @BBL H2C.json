@@ -134,7 +134,6 @@
 		"10",
 		"10"
 	],
-
 	"counter_limit_min": [
 		"0.014"
 	],
@@ -146,5 +145,13 @@
 	],
 	"hole_limit_min": [
 		"0.05"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
 	]
 }

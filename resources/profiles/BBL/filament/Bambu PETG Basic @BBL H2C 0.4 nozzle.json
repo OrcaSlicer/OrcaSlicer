@@ -112,8 +112,15 @@
 		"10",
 		"10"
 	],
-
 	"overhang_fan_speed": [
 		"50"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
 	]
 }

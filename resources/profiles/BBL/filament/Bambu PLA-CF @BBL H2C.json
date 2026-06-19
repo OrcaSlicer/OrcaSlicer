@@ -92,7 +92,6 @@
 		"10",
 		"10"
 	],
-
 	"counter_coef_2": [
 		"0.0003"
 	],
@@ -116,5 +115,13 @@
 	],
 	"hole_limit_min": [
 		"0.048"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
 	]
 }

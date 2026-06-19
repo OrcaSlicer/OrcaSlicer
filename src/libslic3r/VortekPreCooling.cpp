@@ -244,7 +244,8 @@ void PreCooling::inject_cooling_heating_command(
         return;
 
     int extruder_id = get_valid_extruder_id(block.last_nozzle_id);
-    float ext_heating_rate = heating_rate[extruder_id];
+    int next_extruder_id = get_valid_extruder_id(block.next_nozzle_id);
+    float ext_heating_rate = heating_rate[next_extruder_id];
     float ext_cooling_rate = cooling_rate[extruder_id];
 
     auto add_M104_lines = [&](int gcode_id, int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType type, const std::string& comment = std::string()) {
@@ -319,12 +320,12 @@ void PreCooling::inject_cooling_heating_command(
         float heating_start_time = move_iter_upper->time[valid_machine_id] - (target_temp - curr_temp) / ext_heating_rate;
         auto heating_move_iter = std::upper_bound(move_iter_lower, move_iter_upper + 1, heating_start_time, [valid_machine_id = this->valid_machine_id](float time, const Slic3r::GCodeProcessorResult::MoveVertex& a) {return time < a.time[valid_machine_id]; });
         if (heating_move_iter == move_iter_lower) {
-            add_M104_lines(block.free_lower_gcode_id, extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
+            add_M104_lines(block.free_lower_gcode_id, next_extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
         }
         else {
             --heating_move_iter;
             heating_move_iter = adjust_iter(heating_move_iter, move_iter_lower, move_iter_upper, false);
-            add_M104_lines(heating_move_iter->gcode_id, extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
+            add_M104_lines(heating_move_iter->gcode_id, next_extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
         }
         return;
     }
@@ -345,7 +346,7 @@ void PreCooling::inject_cooling_heating_command(
         return;
     int cooling_temp = std::max((int)reuse_cool_floor, (int)curr_temp - real_delta_temp);
     add_M104_lines(block.free_lower_gcode_id, extruder_id, cooling_temp, block.last_filament_id, false, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreCooling, "Multi extruder pre cooling");
-    add_M104_lines(heating_move_iter->gcode_id, extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
+    add_M104_lines(heating_move_iter->gcode_id, next_extruder_id, target_temp, block.next_filament_id, true, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreHeating, "Multi extruder pre heating");
 }
 
 void PreCooling::build_by_filament_blocks(const std::vector<Slic3r::ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks_)
@@ -463,8 +464,8 @@ void PreCooling::apply_config(const Slic3r::PrintConfig& config, size_t filament
 
         processor.m_pre_cooling_temp.resize(filament_count, 0);
         for (size_t i = 0; i < filament_count; ++i) {
-            if (i < config.filament_pre_cooling_temperature_nc.size())
-                processor.m_pre_cooling_temp[i] = config.filament_pre_cooling_temperature_nc.get_at(i);
+            if (i < config.filament_pre_cooling_temperature.size())
+                processor.m_pre_cooling_temp[i] = config.filament_pre_cooling_temperature.get_at(i);
         }
 
         processor.m_filament_preheat_temperature_delta.resize(filament_count, 0.0);

@@ -91,5 +91,13 @@
 	"retraction_distances_when_ec": [
 		"10",
 		"10"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
 	]
 }

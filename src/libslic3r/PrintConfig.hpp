@@ -1490,7 +1490,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,              filament_max_volumetric_speed))
     // H2C TODO
     ((ConfigOptionFloatsNullable,      filament_ramming_volumetric_speed))//extruder change
+    ((ConfigOptionFloatsNullable,      filament_ramming_travel_time))
     ((ConfigOptionFloatsNullable,      filament_ramming_travel_time_nc))//nc:nozzle change
+    ((ConfigOptionIntsNullable,        filament_pre_cooling_temperature))
     ((ConfigOptionIntsNullable,        filament_pre_cooling_temperature_nc))
     ((ConfigOptionFloatsNullable,      filament_max_volumetric_speed_nc))
     ((ConfigOptionFloatsNullable,      filament_ramming_volumetric_speed_nc))

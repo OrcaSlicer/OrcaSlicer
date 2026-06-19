@@ -911,15 +911,16 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
         auto  is_need_precooling      = [&](bool extruder_change) -> bool
         {
             bool res = config.enable_pre_heating.value; 
+            if (extruder_change) return res && !config.filament_pre_cooling_temperature.is_nil(idx) && config.filament_pre_cooling_temperature.get_at(idx) != 0;
             return res && !config.filament_pre_cooling_temperature_nc.is_nil(idx) && config.filament_pre_cooling_temperature_nc.get_at(idx) != 0;
         };
         if (is_need_precooling(true)) {
             for (int i = 0; i < m_filpar[idx].precool_t.first.size(); i++) {
                 if (i >= hotend_cooling_rates.size() || config.hotend_cooling_rate.is_nil(i)) continue;
-                m_filpar[idx].precool_t.first[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature_nc.get_at(idx))) / float(hotend_cooling_rates[i]);
-                m_filpar[idx].precool_t_first_layer.first[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature_nc.get_at(idx))) /float(hotend_cooling_rates[i]);
+                m_filpar[idx].precool_t.first[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature.get_at(idx))) / float(hotend_cooling_rates[i]);
+                m_filpar[idx].precool_t_first_layer.first[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature.get_at(idx))) /float(hotend_cooling_rates[i]);
             }
-            m_filpar[idx].precool_target_temp.first = config.filament_pre_cooling_temperature_nc.get_at(idx);
+            m_filpar[idx].precool_target_temp.first = config.filament_pre_cooling_temperature.get_at(idx);
         }
 
         if (is_need_precooling(false)) {
@@ -935,7 +936,7 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     //set ramming reverse travel time during extruder change and nozzle change
     {
         m_filpar[idx].ramming_travel_time = {0, 0};
-        if (!config.filament_ramming_travel_time_nc.is_nil(idx)) m_filpar[idx].ramming_travel_time.first = float(config.filament_ramming_travel_time_nc.get_at(idx));
+        if (!config.filament_ramming_travel_time.is_nil(idx)) m_filpar[idx].ramming_travel_time.first = float(config.filament_ramming_travel_time.get_at(idx));
         if (!config.filament_ramming_travel_time_nc.is_nil(idx)) m_filpar[idx].ramming_travel_time.second = float(config.filament_ramming_travel_time_nc.get_at(idx));
     }
 }

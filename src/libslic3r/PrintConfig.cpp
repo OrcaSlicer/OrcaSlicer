@@ -2656,6 +2656,15 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsNullable{10});
 
+    def          = this->add("filament_pre_cooling_temperature", coInts);
+    def->label   = L("Pre-cooling temperature");
+    def->tooltip = L("To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.");
+    def->mode     = comDevelop;
+    def->sidetext = L(u8"\u2103" /* °C */);
+    def->min      = 0;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionIntsNullable{0});
+
     def          = this->add("filament_pre_cooling_temperature_nc", coInts);
     def->label   = L("Pre-cooling temperature");
     def->tooltip = L("To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.");
@@ -2701,6 +2710,14 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Time taken to switch tools. It's usually applicable for tool changers or multi-tool machines. "
                      "For single-extruder multi-material machines, it's typically 0. For statistics only.");
     def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat { 0. });
+
+    def = this->add("machine_switch_extruder_time", coFloat);
+    def->label = L("Switch extruder time");
+    def->tooltip = L("Time taken to switch extruders. For statistics only.");
+    def->sidetext = L("s");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
@@ -3044,6 +3061,14 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloats{10});
 
+    def           = this->add("filament_change_length_nc", coFloats);
+    def->label    = L("Filament ramming length (nozzle change)");
+    def->tooltip  = L("When changing the nozzle, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing.");
+    def->sidetext = L("mm");
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{10});
+
     def = this->add("filament_is_support", coBools);
     def->label = L("Support material");
     def->tooltip = L("Support material is commonly used to print supports and support interfaces.");
@@ -3068,6 +3093,16 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts{ 100 });
+
+    def          = this->add("filament_pre_cooling_temperature", coInts);
+    def->label   = L("Pre-cooling temperature");
+    def->tooltip = L(
+        "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled.");
+    def->mode     = comAdvanced;
+    def->sidetext = "°C";
+    def->min      = 0;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionIntsNullable{0});
 
     def          = this->add("filament_pre_cooling_temperature_nc", coInts);
     def->label   = L("Hotend change");
@@ -5703,6 +5738,16 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloatsNullable { 0. });
 
+    def = this->add("filament_ramming_travel_time", coFloats);
+    def->label = L("Ramming travel time");
+    def->tooltip = L("Time spent on the post-ramming travel move during an extruder change. "
+                     "0 disables the dedicated travel.");
+    def->sidetext = L("s");
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->min = 0;
+    def->set_default_value(new ConfigOptionFloatsNullable { 0. });
+
     def = this->add("filament_ramming_travel_time_nc", coFloats);
     def->label = L("Ramming travel time (nozzle change)");
     def->tooltip = L("Time spent on the post-ramming travel move during a nozzle change. "
@@ -7682,8 +7727,11 @@ void PrintConfigDef::init_filament_option_keys()
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "filament_colour",
         "default_filament_profile","retraction_distances_when_cut","long_retractions_when_cut"/*,"filament_seam_gap"*/,
-        "filament_pre_cooling_temperature_nc","filament_cooling_before_tower","filament_retract_length_nc",
-        "filament_prime_volume","filament_prime_volume_nc"
+        "filament_pre_cooling_temperature", "filament_pre_cooling_temperature_nc",
+        "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
+        "filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc",
+        "filament_cooling_before_tower", "filament_retract_length_nc",
+        "filament_prime_volume", "filament_prime_volume_nc"
     };
 
     m_filament_retract_keys = {
@@ -8562,8 +8610,6 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "wipe_tower_fillet_wall";
     } else if (opt_key == "extruder_clearance_max_radius") {
         opt_key = "extruder_clearance_radius";
-    } else if (opt_key == "machine_switch_extruder_time") {
-        opt_key = "machine_tool_change_time";
     }
     else if (opt_key == "wall_direction" && value == "auto") {
         value = "ccw";
@@ -8714,8 +8760,11 @@ std::set<std::string> print_options_with_variant = {
 std::set<std::string> filament_options_with_variant = {
     "filament_flow_ratio",
     "filament_max_volumetric_speed",
+    "filament_ramming_volumetric_speed",
     "filament_ramming_volumetric_speed_nc",
+    "filament_pre_cooling_temperature",
     "filament_pre_cooling_temperature_nc",
+    "filament_ramming_travel_time",
     "filament_ramming_travel_time_nc",
     "filament_preheat_temperature_delta",
     //"filament_extruder_id",
@@ -8756,9 +8805,6 @@ std::set<std::string> filament_options_with_variant = {
     "activate_air_filtration_on_completion",
     "during_print_exhaust_fan_speed",
     "complete_print_exhaust_fan_speed",
-    "filament_pre_cooling_temperature_nc",
-    "filament_cooling_before_tower",
-    "filament_retract_length_nc",
     "filament_prime_volume",
     "filament_prime_volume_nc"
 };

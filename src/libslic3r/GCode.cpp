@@ -3114,7 +3114,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // Vortek H2C support: expose cooling/heating rates and filament NC params
     this->placeholder_parser().set("hotend_cooling_rate", new ConfigOptionFloatsNullable(m_config.hotend_cooling_rate));
     this->placeholder_parser().set("hotend_heating_rate", new ConfigOptionFloatsNullable(m_config.hotend_heating_rate));
+    this->placeholder_parser().set("filament_pre_cooling_temperature", new ConfigOptionIntsNullable(print.config().filament_pre_cooling_temperature));
     this->placeholder_parser().set("filament_pre_cooling_temperature_nc", new ConfigOptionIntsNullable(print.config().filament_pre_cooling_temperature_nc));
+    this->placeholder_parser().set("filament_ramming_travel_time", new ConfigOptionFloatsNullable(print.config().filament_ramming_travel_time));
+    this->placeholder_parser().set("filament_ramming_travel_time_nc", new ConfigOptionFloatsNullable(print.config().filament_ramming_travel_time_nc));
     this->placeholder_parser().set("filament_cooling_before_tower", new ConfigOptionFloatsNullable(print.config().filament_cooling_before_tower));
     this->placeholder_parser().set("filament_retract_length_nc", new ConfigOptionFloatsNullable(print.config().filament_retract_length_nc));
     this->placeholder_parser().set("wipe_tower_center_pos_valid", print.config().wipe_tower_center_pos_valid.value);
@@ -8955,7 +8958,10 @@ void GCode::update_placeholder_parser_with_variant_params()
 
     // Filament options with nozzle variant offsets
     this->placeholder_parser().set("filament_max_volumetric_speed",       new ConfigOptionFloats(remap_floats_by_filament(m_config.filament_max_volumetric_speed)));
+    this->placeholder_parser().set("filament_pre_cooling_temperature",    new ConfigOptionInts(remap_ints_by_filament(m_config.filament_pre_cooling_temperature)));
     this->placeholder_parser().set("filament_pre_cooling_temperature_nc", new ConfigOptionInts(remap_ints_by_filament(m_config.filament_pre_cooling_temperature_nc)));
+    this->placeholder_parser().set("filament_ramming_travel_time",       new ConfigOptionFloats(remap_floats_by_filament(m_config.filament_ramming_travel_time)));
+    this->placeholder_parser().set("filament_ramming_travel_time_nc",    new ConfigOptionFloats(remap_floats_by_filament(m_config.filament_ramming_travel_time_nc)));
     this->placeholder_parser().set("filament_cooling_before_tower",       new ConfigOptionFloats(remap_floats_by_filament(m_config.filament_cooling_before_tower)));
     this->placeholder_parser().set("nozzle_temperature_initial_layer",    new ConfigOptionInts(remap_ints_by_filament(m_config.nozzle_temperature_initial_layer)));
     this->placeholder_parser().set("nozzle_temperature",                  new ConfigOptionInts(remap_ints_by_filament(m_config.nozzle_temperature)));

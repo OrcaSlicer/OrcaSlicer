@@ -1335,11 +1335,12 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_multitool_ramming", "filament_multitool_ramming_volume", "filament_multitool_ramming_flow", "activate_chamber_temp_control",
     "filament_long_retractions_when_cut","filament_retraction_distances_when_cut", "idle_temperature",
     //BBS filament change length while the extruder color
-    "filament_change_length","filament_flush_volumetric_speed","filament_flush_temp", "filament_cooling_before_tower",
+    "filament_change_length", "filament_change_length_nc", "filament_flush_volumetric_speed", "filament_flush_temp", "filament_cooling_before_tower",
     "long_retractions_when_ec", "retraction_distances_when_ec",
     // Orca H2C port: per-filament Vortek nozzle-swap parameters
-    "filament_pre_cooling_temperature_nc", "filament_retract_length_nc",
-    "filament_ramming_volumetric_speed_nc", "filament_ramming_travel_time_nc",
+    "filament_pre_cooling_temperature", "filament_pre_cooling_temperature_nc", "filament_retract_length_nc",
+    "filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc",
+    "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
     "filament_preheat_temperature_delta",
     // Orca H2C port: per-filament prime volumes (EC = extruder-change, NC = nozzle-change)
     "filament_prime_volume", "filament_prime_volume_nc"
@@ -1384,7 +1385,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset",
     // Orca H2C port: dual-nozzle / nozzle-change machine keys (only those with ConfigOptionDef in PrintConfig.cpp)
-    "extruder_max_nozzle_count", "machine_hotend_change_time",
+    "extruder_max_nozzle_count", "machine_hotend_change_time", "machine_switch_extruder_time",
     "hotend_cooling_rate", "hotend_heating_rate", "group_algo_with_time"
     };
 

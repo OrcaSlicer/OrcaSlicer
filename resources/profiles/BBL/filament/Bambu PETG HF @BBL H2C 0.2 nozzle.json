@@ -128,5 +128,13 @@
 	"filament_ramming_travel_time_nc": [
 		"0",
 		"0"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
 	]
 }

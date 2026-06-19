@@ -134,11 +134,18 @@
 		"10",
 		"10"
 	],
-
 	"hole_limit_max": [
 		"0.1261"
 	],
 	"hole_limit_min": [
 		"0.0336"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
 	]
 }
