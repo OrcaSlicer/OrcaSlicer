@@ -10083,7 +10083,9 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
             notification_manager->set_in_preview(false);
     }
     else if (current_panel == preview) {
-        q->invalid_all_plate_thumbnails();
+        // H2C Fix: Do not invalidate thumbnails on switching to Preview, 
+        // as View3D is hidden and offscreen rendering on hidden canvas fails on macOS, leaving thumbs blank/black.
+        // q->invalid_all_plate_thumbnails();
         if (old_panel == view3D)
             view3D->get_canvas3d()->unbind_event_handlers();
         else if (old_panel == assemble_view)
