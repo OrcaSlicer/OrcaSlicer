@@ -632,6 +632,7 @@ void GCodeProcessor::TimeProcessor::reset()
     filament_load_times = 0.0f;
     filament_unload_times = 0.0f;
     machine_tool_change_time = 0.0f;
+    machine_switch_extruder_time = 0.0f;
     hotend_change_times = 0.0f;
     // Reset G29 bed-leveling compensation time to default
     machine_prepare_compensation_time = 260.0f;
@@ -2179,6 +2180,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_time_processor.filament_load_times = static_cast<float>(config.machine_load_filament_time.value);
     m_time_processor.filament_unload_times = static_cast<float>(config.machine_unload_filament_time.value);
     m_time_processor.machine_tool_change_time = static_cast<float>(config.machine_tool_change_time.value);
+    m_time_processor.machine_switch_extruder_time = static_cast<float>(config.machine_switch_extruder_time.value);
     // Read G29 bed-leveling time from machine profile (replaces hardcoded 260s)
     m_time_processor.machine_prepare_compensation_time = static_cast<float>(config.machine_prepare_compensation_time.value);
 
@@ -2456,6 +2458,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     const ConfigOptionFloat* machine_tool_change_time = config.option<ConfigOptionFloat>("machine_tool_change_time");
     if (machine_tool_change_time != nullptr)
         m_time_processor.machine_tool_change_time = static_cast<float>(machine_tool_change_time->value);
+
+    const ConfigOptionFloat* machine_switch_extruder_time = config.option<ConfigOptionFloat>("machine_switch_extruder_time");
+    if (machine_switch_extruder_time != nullptr)
+        m_time_processor.machine_switch_extruder_time = static_cast<float>(machine_switch_extruder_time->value);
 
     const ConfigOptionFloat* machine_hotend_change_time = config.option<ConfigOptionFloat>("machine_hotend_change_time");
     if(machine_hotend_change_time != nullptr)
@@ -6195,7 +6201,7 @@ float GCodeProcessor::get_filament_unload_time(size_t extruder_id)
 float GCodeProcessor::get_extruder_change_time(size_t extruder_id)
 {
     //TODO: all extruder has the same value ?
-    return m_time_processor.machine_tool_change_time;
+    return m_time_processor.machine_switch_extruder_time > 0.0f ? m_time_processor.machine_switch_extruder_time : m_time_processor.machine_tool_change_time;
 }
 
 float GCodeProcessor::get_hotend_change_time()

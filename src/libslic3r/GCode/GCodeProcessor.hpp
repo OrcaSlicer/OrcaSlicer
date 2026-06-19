@@ -741,6 +741,7 @@ class Print;
             float hotend_change_times;
             //Orca:  time for tool change
             float machine_tool_change_time;
+            float machine_switch_extruder_time{0.0f};
             // G29 bed-leveling time from machine profile (replaces hardcoded 260s)
             float machine_prepare_compensation_time{260.0f};
 
