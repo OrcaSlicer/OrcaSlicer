@@ -1731,13 +1731,13 @@ void PrintObject::detect_surfaces_type()
                                     double lo = 0., hi = std::sqrt(a0);
                                     for (int it = 0; it < 18; ++ it) {
                                         const double mid = 0.5 * (lo + hi);
-                                        if (area(offset_ex_2(hole_ex, -mid)) > target) lo = mid; else hi = mid;
+                                        if (area(offset_ex_2(hole_ex, -mid, Clipper2Lib::JoinType::Miter)) > target) lo = mid; else hi = mid;
                                     }
-                                    append(shrunk_holes, offset_ex_2(hole_ex, -0.5 * (lo + hi)));
+                                    append(shrunk_holes, offset_ex_2(hole_ex, -0.5 * (lo + hi), Clipper2Lib::JoinType::Miter));
                                 }
                             } else {
                                 // Constant inward distance for every hole.
-                                shrunk_holes = offset_ex_2(holes, -double(scale_(hole_contraction.value)));
+                                shrunk_holes = offset_ex_2(holes, -double(scale_(hole_contraction.value)), Clipper2Lib::JoinType::Miter);
                             }
                             // Holes that must stay open: the shrunk feature footprints, plus the full extent
                             // of any genuine void (a real through-hole carries no material below and must not
