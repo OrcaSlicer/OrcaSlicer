@@ -1875,7 +1875,15 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 bridgeable_filtered = union_ex(offset_ex(last, perimeter_spacing), bridgeable_filtered);
                                 bridgeable_filtered = offset_ex(bridgeable_filtered, -perimeter_spacing);
                                 bridgeable_filtered = diff_ex(bridgeable_filtered, last, ApplySafetyOffset::Yes);
-                                bridgeable_filtered = opening_ex(bridgeable_filtered, perimeter_spacing); // filter noise from the diff_ex
+                                ExPolygons bridgeable_smoothed;
+                                for (const ExPolygon& span : bridgeable_filtered) {
+                                    ExPolygons span_opened = opening_ex(ExPolygons{ span }, perimeter_spacing);
+                                    if (area(span_opened) >= 0.5 * std::abs(span.area()))
+                                        append(bridgeable_smoothed, std::move(span_opened)); // big span: keep smoothed shape
+                                    else
+                                        bridgeable_smoothed.push_back(span);                 // small/middle span: keep full length
+                                }
+                                bridgeable_filtered = std::move(bridgeable_smoothed);
                                 bridgeable_filtered = offset_ex(bridgeable_filtered, perimeter_spacing);  // restore the size to the original bridgeable area
                                 // Safety measure: Keep the bridge mask from intruding deeper into the
                                 // supported anchor region (`last`) than the explicit anchor overlap.
