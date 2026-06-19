@@ -3155,7 +3155,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
         std::string gcode;
         gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
-        if ((print.default_object_config().outer_wall_acceleration.value > 0 && print.default_object_config().outer_wall_acceleration.value > 0)) {
+		
+		if ((print.default_object_config().outer_wall_acceleration.value > 0)) {
             gcode += m_writer.set_print_acceleration((unsigned int)floor(print.default_object_config().outer_wall_acceleration.value + 0.5));
         }
 
