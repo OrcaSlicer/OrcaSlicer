@@ -879,7 +879,9 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     std::map<ObjectID, ExtrusionEntityCollection>& brimMap,
     std::map<ObjectID, ExtrusionEntityCollection>& supportBrimMap,
     std::vector<std::pair<ObjectID, unsigned int>> &objPrintVec,
-    std::vector<unsigned int>& printExtruders)
+    std::vector<unsigned int>& printExtruders,
+    std::map<ObjectID, ExPolygons>* objectBrimAreasOut,
+    std::map<ObjectID, ExPolygons>* supportBrimAreasOut)
 {
     std::map<ObjectID, double> brim_width_map;
     std::map<ObjectID, ExPolygons> brimAreaMap;
@@ -928,12 +930,25 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
+    // Orca: keep translated brim footprints for skirt grouping.
+    auto translate_area_map = [plate_shift](const std::map<ObjectID, ExPolygons>& src) {
+        std::map<ObjectID, ExPolygons> dst = src;
+        for (auto& [_, areas] : dst)
+            for (ExPolygon& area : areas)
+                area.translate(plate_shift);
+        return dst;
+    };
+    if (objectBrimAreasOut != nullptr)
+        *objectBrimAreasOut = translate_area_map(brimAreaMap);
+    if (supportBrimAreasOut != nullptr)
+        *supportBrimAreasOut = translate_area_map(supportBrimAreaMap);
+
     const bool combine_brims     = print.config().combine_brims.value;
     const bool is_by_object      = (print.config().print_sequence == PrintSequence::ByObject);
     const bool can_combine_brims = combine_brims && !is_by_object;
 
     if (!can_combine_brims) {
-        // Orca: Generate brims separately for each object when multiple extruders are used
+        // Orca: Generate brims separately when brims cannot be combined.
         for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
             if (!iter->second.empty()) {
                 brimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));

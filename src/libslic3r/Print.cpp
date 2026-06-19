@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include <unordered_set>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
@@ -2442,7 +2443,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             start_time = (long long)Slic3r::Utils::get_current_time_utc();
 
         m_skirt.clear();
+        m_skirt_groups.clear();
         m_skirt_convex_hull.clear();
+        m_objectBrimAreas.clear();
+        m_supportBrimAreas.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
 
@@ -2536,7 +2540,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         if (this->has_brim()) {
             Polygons islands_area;
             make_brim(*this, this->make_try_cancel(), islands_area, m_brimMap,
-                m_supportBrimMap, objPrintVec, printExtruders);
+                m_supportBrimMap, objPrintVec, printExtruders, &m_objectBrimAreas, &m_supportBrimAreas);
             for (Polygon& poly_ex : islands_area)
                 poly_ex.douglas_peucker(SCALED_RESOLUTION);
             for (Polygon &poly : union_(this->first_layer_islands(), islands_area))
@@ -2658,11 +2662,13 @@ void Print::_make_skirt()
         skirt_height_z = std::max(skirt_height_z, object->m_layers[skirt_layers-1]->print_z);
     }
 
-    // Collect points from all layers contained in skirt height.
-    Points points;
+    struct ObjectSkirtHull {
+        PrintObject* object;
+        Polygon      hull;
+    };
 
-    // BBS
-    std::map<PrintObject*, Polygon> object_convex_hulls;
+    // Orca: build one local occupied hull per object from object and support geometry up to skirt height.
+    std::vector<ObjectSkirtHull> object_convex_hulls;
     for (PrintObject *object : m_objects) {
         Points object_points;
         // Get object layers up to skirt_height_z.
@@ -2680,30 +2686,13 @@ void Print::_make_skirt()
             layer->support_fills.collect_points(object_points);
         }
 
-        object_convex_hulls.insert({ object, Slic3r::Geometry::convex_hull(object_points) });
-
-        // Repeat points for each object copy.
-        for (const PrintInstance &instance : object->instances()) {
-            Points copy_points = object_points;
-            for (Point &pt : copy_points)
-                pt += instance.shift;
-            append(points, copy_points);
-        }
+        object_convex_hulls.push_back({ object, Slic3r::Geometry::convex_hull(object_points) });
     }
 
-    // Include the wipe tower.
-    append(points, this->first_layer_wipe_tower_corners());
-
-    // Unless draft shield is enabled, include all brims as well.
-    if (config().draft_shield == dsDisabled)
-        append(points, m_first_layer_convex_hull.points);
-
-    if (points.size() < 3)
-        // At least three points required for a convex hull.
+    if (object_convex_hulls.empty())
         return;
 
     this->throw_if_canceled();
-    Polygon convex_hull = Slic3r::Geometry::convex_hull(points);
 
     // Skirt may be printed on several layers, having distinct layer heights,
     // but loops must be aligned so can't vary width/spacing
@@ -2725,13 +2714,13 @@ void Print::_make_skirt()
         }
     }
 
-    // Initial offset of the brim inner edge from the object (possible with a support & raft).
-    // The skirt will touch the brim if the brim is extruded.
-    auto   distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
-    // Draw outlines from outside to inside.
+    // Initial skirt centerline offset from the occupied outline.
+    // The skirt will touch the occupied outline if skirt_distance is zero.
+    // Generate loops inward to outward; callers reverse them before G-code export.
     // Loop while we have less skirts than required or any extruder hasn't reached the min length if any.
-    std::vector<coordf_t> extruded_length(extruders.size(), 0.);
-    if (m_config.skirt_type == stCombined) {
+    auto append_skirt_loops_for_hull = [&](const Polygon& hull, ExtrusionEntityCollection& dst, bool collect_skirt_hull) {
+        float distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
+        std::vector<coordf_t> extruded_length(extruders.size(), 0.);
         for (size_t i = m_config.skirt_loops, extruder_idx = 0; i > 0; -- i) {
             this->throw_if_canceled();
             // Offset the skirt outside.
@@ -2739,8 +2728,8 @@ void Print::_make_skirt()
             // Generate the skirt centerline.
             Polygon loop;
             {
-                // BBS. skirt_distance is defined as the gap between skirt and outer most brim, so no need to add max_brim_width
-                Polygons loops = offset(convex_hull, distance, ClipperLib::jtRound, float(scale_(0.1)));
+                // Orca: the hull already represents the occupied outline used for this skirt.
+                Polygons loops = offset(hull, distance, ClipperLib::jtRound, float(scale_(0.1)));
                 Geometry::simplify_polygons(loops, scale_(0.05), &loops);
 			    if (loops.empty())
 				    break;
@@ -2756,7 +2745,7 @@ void Print::_make_skirt()
 				    (float)initial_layer_print_height  // this will be overridden at G-code export time
                 )));
             eloop.paths.back().polyline = Polyline3(loop.split_at_first_point());
-            m_skirt.append(eloop);
+            dst.append(eloop);
             if (m_config.min_skirt_length.value > 0) {
                 // The skirt length is limited. Sum the total amount of filament length extruded, in mm.
                 extruded_length[extruder_idx] += unscale<double>(loop.length()) * extruders_e_per_mm[extruder_idx];
@@ -2772,69 +2761,147 @@ void Print::_make_skirt()
                         ++ extruder_idx;
                 }
             } else {
-                // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
+                // The skirt length is not limited, extrude the skirt with the 1st extruder only.
             }
         }
-    } else {
-        m_skirt.clear();
-    }
-    // Brims were generated inside out, reverse to print the outmost contour first.
-    m_skirt.reverse();
 
-    // Remember the outer edge of the last skirt line extruded as m_skirt_convex_hull.
-    for (Polygon &poly : offset(convex_hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
-        append(m_skirt_convex_hull, std::move(poly.points));
+        if (collect_skirt_hull)
+            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
+                append(m_skirt_convex_hull, std::move(poly.points));
+    };
 
-    if (m_config.skirt_type == stPerObject) {
-        // BBS
-        for (auto obj_cvx_hull : object_convex_hulls) {
-            double object_skirt_distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
-            PrintObject* object = obj_cvx_hull.first;
-            object->m_skirt.clear();
-            extruded_length.assign(extruded_length.size(), 0.);
-            for (size_t i = m_config.skirt_loops.value, extruder_idx = 0; i > 0; -- i) {
-                object_skirt_distance += float(scale_(spacing));
-                Polygon loop;
-                {
-                    // BBS. skirt_distance is defined as the gap between skirt and outer most brim, so no need to add max_brim_width
-                    Polygons loops = offset(obj_cvx_hull.second, object_skirt_distance, ClipperLib::jtRound, float(scale_(0.1)));
-                    Geometry::simplify_polygons(loops, scale_(0.05), &loops);
-                    if (loops.empty())
-                        break;
-                    loop = loops.front();
-                }
+    m_skirt.clear();
+    m_skirt_groups.clear();
 
-                // Extrude the skirt loop.
-                ExtrusionLoop eloop(elrSkirt);
-                eloop.paths.emplace_back(ExtrusionPath(
-                    ExtrusionPath(
-                        erSkirt,
-                        (float)mm3_per_mm,         // this will be overridden at G-code export time
-                        flow.width(),
-                        (float)initial_layer_print_height  // this will be overridden at G-code export time
-                    )));
-                eloop.paths.back().polyline = Polyline3(loop.split_at_first_point());
-                object->m_skirt.append(std::move(eloop));
-                if (m_config.min_skirt_length.value > 0) {
-                    // The skirt length is limited. Sum the total amount of filament length extruded, in mm.
-                    extruded_length[extruder_idx] += unscale<double>(loop.length()) * extruders_e_per_mm[extruder_idx];
-                    if (extruded_length[extruder_idx] < m_config.min_skirt_length.value) {
-                        // Not extruded enough yet with the current extruder. Add another loop.
-                        if (i == 1)
-                            ++ i;
-                    } else {
-                        assert(extruded_length[extruder_idx] >= m_config.min_skirt_length.value);
-                        // Enough extruded with the current extruder. Extrude with the next one,
-                        // until the prescribed number of skirt loops is extruded.
-                        if (extruder_idx + 1 < extruders.size())
-                            ++ extruder_idx;
-                    }
-                } else {
-                    // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
-                }
+    if (m_config.skirt_type == stPerObject && m_config.print_sequence == PrintSequence::ByObject) {
+        for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
+            object_hull.object->m_skirt.clear();
+            append_skirt_loops_for_hull(object_hull.hull, object_hull.object->m_skirt, false);
+            object_hull.object->m_skirt.reverse();
+        }
+    } else if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
+        struct SkirtGroupItem {
+            Points       occupied_points;
+            bool         emits_skirt;
+        };
 
+        // Orca: group items represent occupied first-layer areas. Object items emit skirts;
+        // obstacle-only items, such as wipe tower, only force nearby object groups to merge.
+        std::vector<SkirtGroupItem> group_items;
+        const coord_t grouping_offset = scale_(m_config.skirt_distance.value + m_config.skirt_loops.value * spacing);
+        for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
+            PrintObject* object = object_hull.object;
+            Points occupied_points;
+            for (const PrintInstance &instance : object->instances()) {
+                Points copy_points = object_hull.hull.points;
+                for (Point &pt : copy_points)
+                    pt += instance.shift;
+                append(occupied_points, copy_points);
             }
-            object->m_skirt.reverse();
+
+            auto append_brim_points = [&occupied_points](const ExPolygons& areas) {
+                for (const ExPolygon& area : areas)
+                    append(occupied_points, area.contour.points);
+            };
+            if (auto it = m_objectBrimAreas.find(object->id()); it != m_objectBrimAreas.end())
+                append_brim_points(it->second);
+            if (auto it = m_supportBrimAreas.find(object->id()); it != m_supportBrimAreas.end())
+                append_brim_points(it->second);
+            if (occupied_points.size() < 3)
+                continue;
+
+            // Orca: include the object's brim/support-brim footprint before checking skirt collisions.
+            group_items.push_back({ std::move(occupied_points), true });
+        }
+
+        // Orca: the wipe tower contributes occupied area, but does not emit a skirt by itself.
+        Points wipe_tower_points = this->first_layer_wipe_tower_corners();
+        if (wipe_tower_points.size() >= 3)
+            group_items.push_back({ std::move(wipe_tower_points), false });
+
+        std::vector<size_t> parent(group_items.size());
+        std::iota(parent.begin(), parent.end(), 0);
+        // Orca: union-find keeps collision merging local without repeatedly rebuilding item lists.
+        auto find_parent = [&parent](size_t idx) {
+            while (parent[idx] != idx) {
+                parent[idx] = parent[parent[idx]];
+                idx = parent[idx];
+            }
+            return idx;
+        };
+        auto unite = [&parent, &find_parent](size_t a, size_t b) {
+            a = find_parent(a);
+            b = find_parent(b);
+            if (a != b)
+                parent[b] = a;
+        };
+
+        // Orca: combined skirt is the same grouping model with all items forced into one group.
+        if (m_config.skirt_type == stCombined && !group_items.empty())
+            for (size_t i = 1; i < group_items.size(); ++i)
+                unite(0, i);
+
+        auto build_grouped_points = [&]() {
+            struct GroupData {
+                Points points;
+                bool   emits_skirt = false;
+            };
+
+            std::map<size_t, GroupData> grouped;
+            for (size_t i = 0; i < group_items.size(); ++i) {
+                GroupData& group = grouped[find_parent(i)];
+                append(group.points, group_items[i].occupied_points);
+                group.emits_skirt = group.emits_skirt || group_items[i].emits_skirt;
+            }
+            return grouped;
+        };
+
+        bool groups_changed = m_config.skirt_type == stPerObject;
+        while (groups_changed) {
+            groups_changed = false;
+            auto grouped_points = build_grouped_points();
+            std::vector<std::pair<size_t, Polygon>> group_envelopes;
+            for (const auto& [root, group] : grouped_points) {
+                if (group.points.size() < 3)
+                    continue;
+
+                // Orca: emitting groups are expanded to their final skirt reach; obstacle groups are not.
+                Polygon envelope = Geometry::convex_hull(group.points);
+                if (group.emits_skirt) {
+                    // Orca: merge groups when a skirt envelope intersects another group or obstacle.
+                    Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
+                    if (envelopes.empty())
+                        continue;
+                    envelope = std::move(envelopes.front());
+                }
+                group_envelopes.emplace_back(root, std::move(envelope));
+            }
+
+            for (size_t i = 0; i < group_envelopes.size(); ++i) {
+                for (size_t j = i + 1; j < group_envelopes.size(); ++j) {
+                    const size_t root_i = find_parent(group_envelopes[i].first);
+                    const size_t root_j = find_parent(group_envelopes[j].first);
+                    if (root_i != root_j && !intersection(group_envelopes[i].second, group_envelopes[j].second).empty()) {
+                        unite(root_i, root_j);
+                        groups_changed = true;
+                    }
+                }
+            }
+        }
+
+        auto grouped_points = build_grouped_points();
+        for (auto& [_, group] : grouped_points) {
+            if (!group.emits_skirt || group.points.size() < 3)
+                continue;
+            // Orca: after merging, use the occupied outline directly; do not add skirt distance twice.
+            ExtrusionEntityCollection group_skirt;
+            append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
+            if (!group_skirt.empty()) {
+                group_skirt.reverse();
+                // Orca: keep m_skirt as a flattened compatibility mirror for preview/extents.
+                m_skirt.append(group_skirt.entities);
+                m_skirt_groups.push_back(std::move(group_skirt));
+            }
         }
     }
 }

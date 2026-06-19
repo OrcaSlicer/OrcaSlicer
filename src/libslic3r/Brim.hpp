@@ -1,6 +1,7 @@
 #ifndef slic3r_Brim_hpp_
 #define slic3r_Brim_hpp_
 
+#include "ExPolygon.hpp"
 #include "Point.hpp"
 
 #include<map>
@@ -19,7 +20,9 @@ void make_brim(const Print& print, PrintTryCancel try_cancel,
     Polygons& islands_area, std::map<ObjectID, ExtrusionEntityCollection>& brimMap,
     std::map<ObjectID, ExtrusionEntityCollection>& supportBrimMap,
     std::vector<std::pair<ObjectID, unsigned int>>& objPrintVec,
-    std::vector<unsigned int>& printExtruders);
+    std::vector<unsigned int>& printExtruders,
+    std::map<ObjectID, ExPolygons>* objectBrimAreasOut = nullptr,
+    std::map<ObjectID, ExPolygons>* supportBrimAreasOut = nullptr);
 
 // BBS: automatically make brim
 ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_cancel, Polygons &islands_area);
