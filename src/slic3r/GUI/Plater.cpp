@@ -2704,7 +2704,7 @@ Sidebar::Sidebar(Plater *parent)
             project_config.set_key_value("prime_volume_mode", new ConfigOptionEnum<PrimeVolumeMode>(dlg.get_mode()));
             wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
             wxGetApp().plater()->update_project_dirty_from_presets();
-            wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+            wxGetApp().plater()->on_config_change(wxGetApp().preset_bundle->full_config(false));
             p->plater->get_view3D_canvas3D()->reload_scene(true);
             p->plater->update();
         }
@@ -8570,7 +8570,7 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
                     project_config.set_key_value("prime_volume_mode", new ConfigOptionEnum<PrimeVolumeMode>(dlg.get_mode()));
                     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
                     wxGetApp().plater()->update_project_dirty_from_presets();
-                    wxPostEvent(plater, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, plater));
+                    wxGetApp().plater()->on_config_change(wxGetApp().preset_bundle->full_config(false));
                     plater->get_view3D_canvas3D()->reload_scene(true);
                     plater->update();
                 }
@@ -8684,6 +8684,7 @@ void Plater::priv::process_validation_warnings(const std::vector<StringObjectExc
 {
     // ValidateWarning stacks by text (m_multiple_types), so clear the stale set before re-adding.
     notification_manager->close_notification_of_type(NotificationType::ValidateWarning);
+    notification_manager->close_notification_of_type(NotificationType::ValidateWarningPrimeTowerTempDiff);
     for (const StringObjectException &warning : warnings)
         if (!warning.string.empty())
             process_validation_warning(warning);
