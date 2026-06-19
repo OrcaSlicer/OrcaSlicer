@@ -1816,10 +1816,10 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
         std::string warning;
         size_t i = 0;
         for (i = 0; i < std::min(warning_ranges.size(), size_t(5)); ++i)
-            warning += Slic3r::format(_(L("Object can't be printed for empty layer between %1% and %2%.")),
+            warning += Slic3r::format(_(L("The object has empty layers between %1% and %2% and can\u2019t be printed.")),
                                       warning_ranges[i].first, warning_ranges[i].second) + "\n";
         warning += Slic3r::format(_(L("Object: %1%")), object.model_object()->name) + "\n"
-            + _(L("Maybe parts of the object at these height are too thin, or the object has faulty mesh"));
+            + _(L("Parts of the object at these heights may be too thin or the object may have a faulty mesh."));
 
         const_cast<Print*>(object.print())->active_step_add_warning(
             PrintStateBase::WarningLevel::CRITICAL, warning, PrintStateBase::SlicingEmptyGcodeLayers);
@@ -2194,7 +2194,9 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
     
-    if(is_BBL_Printer())
+    // Orca: label_object_enabled reflects whether objects are labeled in the g-code (EXCLUDE_OBJECT /
+    // M486), which is driven by exclude_object for every printer
+    if(result != nullptr)
         result->label_object_enabled = m_enable_exclude_object;
     // Write the profiler measurements to file
     PROFILE_UPDATE();
@@ -2750,7 +2752,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         }
         if (initial_extruder_id == static_cast<unsigned int>(-1))
             // No object to print was found, cancel the G-code export.
-            throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
+            throw Slic3r::SlicingError(_(L("No object can be printed. It may be too small.")));
         // We don't allow switching of extruders per layer by Model::custom_gcode_per_print_z in sequential mode.
         // Use the extruder IDs collected from Regions.
         this->set_extruders(print.extruders());
@@ -2766,7 +2768,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         max_additional_fan = temp_max_additional_fan;
         if (tool_ordering.all_extruders().empty())
             // No object to print was found, cancel the G-code export.
-            throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
+            throw Slic3r::SlicingError(_(L("No object can be printed. It may be too small.")));
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
         // Orca: support all extruder priming
         initial_extruder_id = (wipe_tower_type == WipeTowerType::Type2 && has_wipe_tower && !print.config().single_extruder_multi_material_priming) ?
@@ -5149,44 +5151,30 @@ LayerResult GCode::process_layer(
     bool has_insert_wrapping_detection_gcode = false;
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
-    // Orca: Print unified global brim before any object.
-    // Only do this if `combine_brims` is enabled and we are printing by layer.
-    if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
-        const ObjectID unified_object_id = [&]() -> ObjectID {
-            ObjectID id;
-            bool     found = false;
-            for (const auto& [obj_id, brim] : print.m_brimMap) {
-                const bool has_printable_entities = std::any_of(brim.entities.begin(), brim.entities.end(),
-                                                                [](const ExtrusionEntity* ee) { return ee != nullptr; });
-                if (!has_printable_entities)
-                    continue;
-                if (found)
-                    return ObjectID();
-                id    = obj_id;
-                found = true;
-            }
-            return found ? id : ObjectID();
-        }();
-
-        if (unified_object_id.valid()) {
-            const auto it = print.m_brimMap.find(unified_object_id);
-            if (it != print.m_brimMap.end()) {
-                this->set_origin(0., 0.);
-                for (const ExtrusionEntity* ee : it->second.entities)
-                    if (ee != nullptr)
-                        gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
-
-                // Mark brim as printed for this object to avoid per-object brim emission later.
-                this->m_objsWithBrim.erase(unified_object_id);
-            }
-        }
-    }
-
     for (unsigned int extruder_id : layer_tools.extruders)
     {
-        if (print.config().skirt_type == stCombined && !print.skirt().empty())
-            gcode += generate_skirt(print, print.skirt(), Point(0, 0), layer.object()->config().skirt_start_angle, layer_tools, layer,
-                                    extruder_id);
+        if ((print.config().skirt_type == stCombined ||
+             (print.config().skirt_type == stPerObject && print.config().print_sequence == PrintSequence::ByLayer)) &&
+            !print.skirt_groups().empty()) {
+            bool skirt_generated_for_current_print_z = false;
+            for (const ExtrusionEntityCollection& skirt_group : print.skirt_groups()) {
+                if (skirt_group.empty())
+                    continue;
+
+                // Orca: each grouped skirt is emitted as its own collection so higher skirt layers
+                // follow the same per-group behavior as the first layer.
+                if (first_layer)
+                    m_skirt_done.clear();
+                else if (skirt_generated_for_current_print_z && !m_skirt_done.empty())
+                    m_skirt_done.pop_back();
+
+                std::string skirt_gcode = generate_skirt(print, skirt_group, Point(0, 0), layer.object()->config().skirt_start_angle,
+                                                          layer_tools, layer, extruder_id);
+                if (!skirt_gcode.empty())
+                    skirt_generated_for_current_print_z = true;
+                gcode += std::move(skirt_gcode);
+            }
+        }
 
         if (print.config().print_sequence == PrintSequence::ByLayer && m_enable_exclude_object && print.config().support_object_skip_flush.value) {
             std::vector<size_t> filament_instances_id;
@@ -5287,7 +5275,38 @@ LayerResult GCode::process_layer(
             }
         }
 
-        // We are almost ready to print. However, we must go through all the objects twice to print the the overridden extrusions first (infill/perimeter wiping feature):
+        // Orca: Print unified global brim after the skirt and before any object.
+        // Only do this if `combine_brims` is enabled and we are printing by layer.
+        if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
+            const ObjectID unified_object_id = [&]() -> ObjectID {
+                ObjectID id;
+                for (const auto& [obj_id, brim] : print.m_brimMap) {
+                    const bool has_printable_entities = std::any_of(brim.entities.begin(), brim.entities.end(),
+                                                                    [](const ExtrusionEntity* ee) { return ee != nullptr; });
+                    if (!has_printable_entities)
+                        continue;
+
+                    if (id.valid())
+                        return ObjectID();
+
+                    id = obj_id;
+                }
+                return id;
+            }();
+
+            if (unified_object_id.valid() && this->m_objsWithBrim.find(unified_object_id) != this->m_objsWithBrim.end()) {
+                const ExtrusionEntityCollection& unified_brim = print.m_brimMap.at(unified_object_id);
+                this->set_origin(0., 0.);
+                for (const ExtrusionEntity* ee : unified_brim.entities)
+                    if (ee != nullptr)
+                        gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
+
+                // Mark brim as printed for this object to avoid per-object brim emission later.
+                this->m_objsWithBrim.erase(unified_object_id);
+            }
+        }
+
+        // We are almost ready to print. However, we must go through all the objects twice to print the overridden extrusions first (infill/perimeter wiping feature):
         std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache;
         for (int print_wipe_extrusions = is_anything_overridden; print_wipe_extrusions>=0; --print_wipe_extrusions) {
             if (is_anything_overridden && print_wipe_extrusions == 0)
@@ -5325,7 +5344,7 @@ LayerResult GCode::process_layer(
                         gcode += std::move(skirt_gcode);
                     }
                 }
-                
+
                 const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
                 // To control print speed of the 1st object layer printed over raft interface.

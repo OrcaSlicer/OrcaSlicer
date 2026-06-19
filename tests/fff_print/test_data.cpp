@@ -10,9 +10,10 @@
 #include <cstdlib>
 #include <string>
 
-#include <boost/nowide/cstdio.hpp>
 #include <boost/filesystem.hpp>
 #include <libslic3r/ModelArrange.hpp>
+
+#include "test_utils.hpp"
 
 using namespace std;
 
@@ -282,14 +283,34 @@ void init_and_process_print(std::initializer_list<TriangleMesh> meshes, Slic3r::
 
 std::string gcode(Print & print)
 {
-	boost::filesystem::path temp = boost::filesystem::unique_path();
+    ScopedTemporaryFile temp(".gcode");
     print.set_status_silent();
     print.process();
     print.export_gcode(temp.string(), nullptr, nullptr);
     std::ifstream t(temp.string());
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-	boost::nowide::remove(temp.string().c_str());
 	return str;
+}
+
+std::set<double> layers_with_role(const std::string &gcode, const std::string &role)
+{
+    std::set<double> layers;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&layers, &role](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.extruding(self) && line.comment().find(role) != std::string_view::npos)
+            layers.insert(self.z());
+    });
+    return layers;
+}
+
+double max_z(const std::string &gcode)
+{
+    double z = 0.0;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&z](GCodeReader &self, const GCodeReader::GCodeLine &) {
+        z = std::max(z, static_cast<double>(self.z()));
+    });
+    return z;
 }
 
 Slic3r::Model model(const std::string &model_name, TriangleMesh &&_mesh)
@@ -338,7 +359,7 @@ std::string slice(std::initializer_list<TriangleMesh> meshes, std::initializer_l
 
 #include <catch2/catch_all.hpp>
 
-SCENARIO("init_print functionality", "[test_data][.]") {
+SCENARIO("init_print functionality", "[test_data]") {
 	GIVEN("A default config") {
 		Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
 		WHEN("init_print is called with a single mesh.") {

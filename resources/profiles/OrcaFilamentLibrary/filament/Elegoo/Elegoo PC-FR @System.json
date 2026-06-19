@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "OEPCFRS00",
 	"instantiation": "true",
+	"renamed_from": "Elegoo PC-FR",
 	"pressure_advance": [
 		"0.05"
 	],

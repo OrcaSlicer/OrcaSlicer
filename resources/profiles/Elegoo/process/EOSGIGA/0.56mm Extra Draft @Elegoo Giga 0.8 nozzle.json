@@ -1,5 +1,6 @@
 {
 	"inherits": "0.40mm Standard @Elegoo Giga 0.8 nozzle",
 	"instantiation": "true",
+	"renamed_from": "0.56mm Extra Draft @EOS Giga 0.8 nozzle",
 	"name": "0.56mm Extra Draft @Elegoo Giga 0.8 nozzle"
 }

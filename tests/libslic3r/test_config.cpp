@@ -315,6 +315,54 @@ SCENARIO("update_non_diff_values_to_base_config preserves child vectors when chi
     }
 }
 
+SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vector sizes",
+         "[Config][Variant]") {
+    // Regression: loading a user printer preset that inherits a non-BBL multi-extruder base and
+    // overrides stride-2 machine limits used to throw in ConfigOptionVector::set_only_diff
+    // ("invalid diff_index size"). The base's machine-limit vectors get length-extended by the
+    // nozzle count while it carries no printer_extruder_variant, so the base length (nozzles*2)
+    // no longer matches variant_index.size()*2. The throw was caught upstream and DELETED the
+    // user's preset file. The merge must instead degrade gracefully.
+    GIVEN("A 4-nozzle parent with stride-2 limits extended to nozzles*2 but no printer_extruder_variant") {
+        Slic3r::DynamicPrintConfig parent;
+        Slic3r::DynamicPrintConfig child;
+
+        parent.set_key_value("nozzle_diameter",
+            new Slic3r::ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+        parent.set_key_value("machine_max_acceleration_x",
+            new Slic3r::ConfigOptionFloats({25000, 25000, 25000, 25000, 25000, 25000, 25000, 25000}));
+
+        // Child user preset declares 4 extruder variants and overrides the machine limit.
+        child.set_key_value("printer_extruder_id",
+            new Slic3r::ConfigOptionInts({1, 2, 3, 4}));
+        child.set_key_value("printer_extruder_variant",
+            new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard",
+                                             "Direct Drive Standard", "Direct Drive Standard"}));
+        child.set_key_value("machine_max_acceleration_x",
+            new Slic3r::ConfigOptionFloats({8000, 8000, 8000, 8000, 8000, 8000, 8000, 8000}));
+
+        WHEN("update_diff_values_to_child_config merges the child overrides") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+
+            THEN("it does not throw on the legacy size mismatch") {
+                REQUIRE_NOTHROW(parent.update_diff_values_to_child_config(
+                    child, id_name, var_name,
+                    Slic3r::printer_options_with_variant_1,
+                    Slic3r::printer_options_with_variant_2));
+
+                AND_THEN("the child's overridden machine limit is preserved") {
+                    auto* mx = parent.option<Slic3r::ConfigOptionFloats>("machine_max_acceleration_x");
+                    REQUIRE(mx != nullptr);
+                    REQUIRE(mx->values.size() >= 2);
+                    REQUIRE_THAT(mx->values[0], Catch::Matchers::WithinAbs(8000.0, 1e-6));
+                    REQUIRE_THAT(mx->values[1], Catch::Matchers::WithinAbs(8000.0, 1e-6));
+                }
+            }
+        }
+    }
+}
+
 // SCENARIO("DynamicPrintConfig JSON serialization", "[Config]") {
 //     WHEN("DynamicPrintConfig is serialized and deserialized") {
 // 	auto now = std::chrono::high_resolution_clock::now();
