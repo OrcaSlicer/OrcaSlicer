@@ -89,8 +89,10 @@ void PreCooling::process_pre_cooling_and_heating(Slic3r::GCodeProcessor::TimePro
 
     std::map<int, std::vector<ExtruderFreeBlock>> per_extruder_free_blocks;
 
-    for (auto& block : m_extruder_free_blocks)
-        per_extruder_free_blocks[block.extruder_id].emplace_back(block);
+    for (auto& block : m_extruder_free_blocks) {
+        int phys_id = (block.extruder_id >= 0 && block.extruder_id < (int)physical_extruder_map.size()) ? physical_extruder_map[block.extruder_id] : block.extruder_id;
+        per_extruder_free_blocks[phys_id].emplace_back(block);
+    }
 
     for (auto& elem : per_extruder_free_blocks) {
         auto& extruder_free_blcoks = elem.second;
@@ -399,19 +401,25 @@ void PreCooling::build_by_extruder_blocks(const std::vector<Slic3r::ExtruderPreH
 {
     m_extruder_free_blocks.clear();
     std::map<int, std::vector<Slic3r::ExtruderPreHeating::ExtruderUsageBlcok>> per_extruder_usage_blocks;
-    for (auto& block : extruder_usage_blocks_)
-        per_extruder_usage_blocks[block.extruder_id].emplace_back(block);
+    for (auto& block : extruder_usage_blocks_) {
+        int phys_id = (block.extruder_id >= 0 && block.extruder_id < (int)physical_extruder_map.size()) ? physical_extruder_map[block.extruder_id] : block.extruder_id;
+        per_extruder_usage_blocks[phys_id].emplace_back(block);
+    }
 
     for (auto& elem : per_extruder_usage_blocks) {
-        size_t extruder_id = elem.first;
+        size_t physical_id = elem.first;
         auto& blocks = elem.second;
+        
+        int start_extruder_id = blocks.empty() ? (int)physical_id : blocks.front().extruder_id;
+        int end_extruder_id = blocks.empty() ? (int)physical_id : blocks.back().extruder_id;
+
         Slic3r::ExtruderPreHeating::ExtruderUsageBlcok start_filament_block;
-        start_filament_block.initialize_step_1(extruder_id, 0, -1, -1);
+        start_filament_block.initialize_step_1(start_extruder_id, 0, -1, -1);
         start_filament_block.initialize_step_2(machine_start_gcode_end_id);
         start_filament_block.initialize_step_3(machine_start_gcode_end_id, -1, machine_start_gcode_end_id, -1);
 
         Slic3r::ExtruderPreHeating::ExtruderUsageBlcok end_filament_block;
-        end_filament_block.initialize_step_1(extruder_id, machine_end_gcode_start_id, -1, -1);
+        end_filament_block.initialize_step_1(end_extruder_id, machine_end_gcode_start_id, -1, -1);
         end_filament_block.initialize_step_2(std::numeric_limits<int>::max());
         end_filament_block.initialize_step_3(std::numeric_limits<int>::max(), -1, std::numeric_limits<int>::max(), -1);
 
@@ -420,7 +428,6 @@ void PreCooling::build_by_extruder_blocks(const std::vector<Slic3r::ExtruderPreH
     }
 
     for (auto& elem : per_extruder_usage_blocks) {
-        size_t extruder_id = elem.first;
         const auto& extruder_usage_blocks = elem.second;
         for (auto iter = extruder_usage_blocks.begin(); iter != extruder_usage_blocks.end(); ++iter) {
             auto niter = std::next(iter);
@@ -435,7 +442,7 @@ void PreCooling::build_by_extruder_blocks(const std::vector<Slic3r::ExtruderPreH
             block.next_nozzle_id = niter->start_nozzle_id;
             if (block.last_nozzle_id == -1)
                 block.last_nozzle_id = block.next_nozzle_id;
-            block.extruder_id = extruder_id;
+            block.extruder_id = iter->extruder_id;
             block.partial_free_lower_id = iter->post_extrusion_start_id;
             block.partial_free_upper_id = iter->post_extrusion_end_id;
             block.ignore_cooling_before_tower = niter->ignore_cooling_before_tower;
