@@ -56,8 +56,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set +e
-          curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
-          unzip -q ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -g true -l 2
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
           exit ${PIPESTATUS[0]}
 
