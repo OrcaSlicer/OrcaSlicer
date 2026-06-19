@@ -33,6 +33,35 @@ class GCodeParser:
         
         # Extrusion multipliers / parameters from footer configuration
         self.config_params = {}
+        
+        # 3MF project metadata configurations
+        self.project_settings = {}
+        self.slice_info = {}
+        self.model_settings = {}
+
+    def _parse_key_value_string(self, content):
+        params = {}
+        # Parse XML metadata key/value
+        for match in re.finditer(r'key="([^"]+)"\s+value="([^"]*)"', content):
+            params[match.group(1)] = match.group(2)
+        # Parse text lines key=value or key:value
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith('<') or line.startswith(';'):
+                continue
+            if ':' in line:
+                k, v = line.split(':', 1)
+                k = k.strip().strip('"')
+                v = v.strip().strip('"').rstrip(',').strip('"')
+                if k not in params:
+                    params[k] = v
+            elif '=' in line:
+                k, v = line.split('=', 1)
+                k = k.strip().strip('"')
+                v = v.strip().strip('"').rstrip(',').strip('"')
+                if k not in params:
+                    params[k] = v
+        return params
 
     def parse(self):
         import zipfile
@@ -42,6 +71,31 @@ class GCodeParser:
         # Check if the file is a zip/3mf archive
         if zipfile.is_zipfile(self.filepath):
             with zipfile.ZipFile(self.filepath, 'r') as z:
+                # 1. Parse Metadata files if present
+                for name in z.namelist():
+                    if name.endswith("project_settings.config"):
+                        try:
+                            content = z.read(name).decode('utf-8', errors='ignore')
+                            self.project_settings = json.loads(content)
+                        except Exception as e:
+                            print(f"Warning: Failed to parse project_settings.config: {e}", file=sys.stderr)
+                    elif name.endswith("slice_info.config"):
+                        try:
+                            content = z.read(name).decode('utf-8', errors='ignore')
+                            self.slice_info = self._parse_key_value_string(content)
+                        except Exception as e:
+                            print(f"Warning: Failed to parse slice_info.config: {e}", file=sys.stderr)
+                    elif name.endswith("model_settings.config"):
+                        try:
+                            content = z.read(name).decode('utf-8', errors='ignore')
+                            if content.strip().startswith('{'):
+                                self.model_settings = json.loads(content)
+                            else:
+                                self.model_settings = self._parse_key_value_string(content)
+                        except Exception as e:
+                            print(f"Warning: Failed to parse model_settings.config: {e}", file=sys.stderr)
+
+                # 2. Parse G-code file inside ZIP
                 gcode_files = [n for n in z.namelist() if n.endswith(".gcode")]
                 if gcode_files:
                     with z.open(gcode_files[0], 'r') as f_zip:
@@ -69,10 +123,20 @@ class GCodeParser:
                         with open(newest_temp, 'r', encoding='utf-8', errors='ignore') as f:
                             self._parse_stream(f)
                     else:
-                        raise ValueError(f"No G-code file found inside ZIP archive '{self.filename}' and no temp sliced file found in system.")
+                        print(f"Warning: No G-code file found inside ZIP archive '{self.filename}' and no temp sliced file found in system. Slicing stats will be empty.", file=sys.stderr)
         else:
             with open(self.filepath, 'r', encoding='utf-8', errors='ignore') as f:
                 self._parse_stream(f)
+                
+        # Merge project_settings into config_params for consistency in correctness rules
+        for k, v in self.project_settings.items():
+            if isinstance(v, list):
+                if k == "filament_type":
+                    self.config_params[k] = ";".join(str(x) for x in v)
+                else:
+                    self.config_params[k] = ",".join(str(x) for x in v)
+            else:
+                self.config_params[k] = str(v)
 
     def _parse_stream(self, f):
         current_layer = 0
@@ -225,8 +289,8 @@ class GCodeAnalyzer:
         # 1. Parse nozzle mappings
         # In H2C config, filament_map maps tool index to hotend index (1-indexed in config, 0-indexed in firmware).
         # We try to extract these mappings from config parameters.
-        filament_map_str = self.parser.config_params.get("filament_map", "1,2,2,2,1")
-        filament_nozzle_map_str = self.parser.config_params.get("filament_nozzle_map", "0,3,2,0,1")
+        filament_map_str = self.parser.config_params.get("filament_map", "1,2,2,2,1").replace(";", ",")
+        filament_nozzle_map_str = self.parser.config_params.get("filament_nozzle_map", "0,3,2,0,1").replace(";", ",")
         
         try:
             filament_map = [int(x) - 1 for x in filament_map_str.split(",")] # Convert to 0-indexed hotend ID
@@ -407,7 +471,11 @@ class GCodeAnalyzer:
                 if "PETG" in f_type:
                     # check if pre-extrusion length is configured
                     pre_ext_len_str = self.parser.config_params.get("filament_tower_interface_pre_extrusion_length", "")
-                    pre_ext_lens = [float(x.strip()) for x in pre_ext_len_str.split(",")] if pre_ext_len_str else []
+                    if pre_ext_len_str:
+                        pre_ext_len_str = pre_ext_len_str.replace(";", ",")
+                        pre_ext_lens = [float(x.strip()) for x in pre_ext_len_str.split(",") if x.strip()]
+                    else:
+                        pre_ext_lens = []
                     if pre_ext_lens and target_tool < len(pre_ext_lens):
                         p_len = pre_ext_lens[target_tool]
                         if p_len == 0.0:
@@ -590,7 +658,7 @@ class GCodeComparator:
                 if mismatches or len(clean_b1) != len(clean_b2):
                     tc_mismatches.append({
                         'toolchange_idx': idx,
-                        'layer1': tc1['layer'],
+                    'layer1': tc1['layer'],
                         'layer2': tc2['layer'],
                         'diffs': mismatches,
                         'file1_len': len(clean_b1),
@@ -598,7 +666,123 @@ class GCodeComparator:
                     })
         stats['toolchange_mismatches'] = tc_mismatches
         
+        # Compare project settings if present
+        stats['project_metadata_diff'] = self.compare_project_settings()
+        
         return stats
+
+    def compare_project_settings(self):
+        bbl = self.p1.project_settings
+        orca = self.p2.project_settings
+        
+        # Categorized keys definitions
+        categories = {
+            "PRINT PROCESS & QUALITY (ПРОЦЕСС ПЕЧАТИ И КАЧЕСТВО)": [
+                "layer_height", "initial_layer_print_height", "layer_height_max", "layer_height_min",
+                "wall_loops", "wall_generator",
+                "top_shell_layers", "bottom_shell_layers", "top_shell_thickness", "bottom_shell_thickness",
+                "sparse_infill_density", "sparse_infill_pattern", "infill_direction",
+                "gap_fill_target", "detect_thin_wall", "detect_overhang_wall",
+                "seam_position", "enable_arc_fitting", "brim_type", "brim_width",
+                "sparse_infill_line_width", "outer_wall_line_width", "inner_wall_line_width"
+            ],
+            "SPEEDS & ACCELERATIONS (СКОРОСТИ И УСКОРЕНИЯ)": [
+                "initial_layer_speed", "initial_layer_infill_speed", "outer_wall_speed", "inner_wall_speed",
+                "sparse_infill_speed", "internal_solid_infill_speed", "top_surface_speed", "gap_infill_speed",
+                "travel_speed", "bridge_speed",
+                "default_acceleration", "initial_layer_acceleration", "outer_wall_acceleration", "inner_wall_acceleration", "travel_acceleration"
+            ],
+            "TEMPERATURE & COOLING (ТЕМПЕРАТУРЫ И ОХЛАЖДЕНИЕ)": [
+                "nozzle_temperature", "nozzle_temperature_initial_layer", "nozzle_temperature_range_high", "nozzle_temperature_range_low",
+                "bed_temperature", "bed_temperature_initial_layer", "cool_plate_temp", "eng_plate_temp",
+                "fan_min_speed", "fan_max_speed", "auxiliary_fan", "chamber_temperature"
+            ],
+            "FILAMENT & EXTRUSION (ПЛАСТИК И ЭКСТРУЗИЯ)": [
+                "filament_flow_ratio", "filament_density", "filament_diameter",
+                "filament_max_volumetric_speed", "filament_flush_temp", "filament_pre_cooling_temperature_nc",
+                "pressure_advance", "enable_pressure_advance"
+            ],
+            "PRINTER & RETRACTION (ПРИНТЕР И РЕТРАКЦИЯ)": [
+                "retraction_length", "retraction_speed", "z_hop_height", "z_hop_types"
+            ]
+        }
+        
+        all_categorized_keys = []
+        for keys in categories.values():
+            all_categorized_keys.extend(keys)
+            
+        # We also want to find any other keys that exist in both and differ
+        common_keys = set(bbl.keys()) & set(orca.keys())
+        other_differing_keys = []
+        for k in sorted(list(common_keys)):
+            if k not in all_categorized_keys:
+                if bbl[k] != orca[k]:
+                    other_differing_keys.append(k)
+                    
+        if other_differing_keys:
+            categories["OTHER COMMON SETTINGS (ДРУГИЕ ОБЩИЕ ПАРАМЕТРЫ)"] = other_differing_keys
+            
+        metadata_report = []
+        
+        # Check if we have project settings at all
+        if not bbl and not orca:
+            return "  No 3MF project settings found in either file.\n"
+            
+        for cat_name, keys in categories.items():
+            cat_diffs = []
+            for k in keys:
+                v1 = bbl.get(k)
+                v2 = orca.get(k)
+                if v1 is not None or v2 is not None:
+                    if v1 != v2:
+                        cat_diffs.append((k, v1, v2))
+            if cat_diffs:
+                metadata_report.append(f"\n  === {cat_name} ===")
+                metadata_report.append(f"    {'Parameter':35s} | {'File 1 (BBL)':25s} | {'File 2 (Orca)':25s}")
+                metadata_report.append(f"    {'-'*35} + {'-'*25} + {'-'*25}")
+                for k, v1, v2 in cat_diffs:
+                    s1 = str(v1) if v1 is not None else "<missing>"
+                    s2 = str(v2) if v2 is not None else "<missing>"
+                    # Truncate strings if too long (e.g. gcode)
+                    if len(s1) > 22: s1 = s1[:19] + "..."
+                    if len(s2) > 22: s2 = s2[:19] + "..."
+                    metadata_report.append(f"    {k:35s} | {s1:25s} | {s2:25s}")
+                    
+        # Check start/end/change gcode differences specifically (often long, so print them nicely or note diff)
+        gcode_keys = ["change_filament_gcode", "machine_start_gcode", "machine_end_gcode"]
+        gcode_diffs = []
+        for k in gcode_keys:
+            v1 = bbl.get(k)
+            v2 = orca.get(k)
+            if v1 != v2:
+                gcode_diffs.append(k)
+                
+        if gcode_diffs:
+            metadata_report.append(f"\n  === G-CODE SCRIPTS DIFFERENCES (РАЗЛИЧИЯ В G-CODE СКРИПТАХ) ===")
+            for k in gcode_diffs:
+                metadata_report.append(f"    * {k} differs between BBL and Orca.")
+                
+        # Also print slice_info.config differences
+        bbl_si = self.p1.slice_info
+        orca_si = self.p2.slice_info
+        si_keys = sorted(list(set(bbl_si.keys()) | set(orca_si.keys())))
+        si_diffs = []
+        for k in si_keys:
+            v1 = bbl_si.get(k)
+            v2 = orca_si.get(k)
+            if v1 != v2:
+                si_diffs.append((k, v1, v2))
+                
+        if si_diffs:
+            metadata_report.append(f"\n  === SLICE INFO METADATA (ИНФОРМАЦИЯ О НАРЕЗКЕ) ===")
+            metadata_report.append(f"    {'Metadata Key':35s} | {'File 1 (BBL)':25s} | {'File 2 (Orca)':25s}")
+            metadata_report.append(f"    {'-'*35} + {'-'*25} + {'-'*25}")
+            for k, v1, v2 in si_diffs:
+                s1 = str(v1) if v1 is not None else "<missing>"
+                s2 = str(v2) if v2 is not None else "<missing>"
+                metadata_report.append(f"    {k:35s} | {s1:25s} | {s2:25s}")
+                
+        return "\n".join(metadata_report)
 
 def main():
     parser = argparse.ArgumentParser(description="H2C G-code Correctness and Match Analyzer")
@@ -794,8 +978,12 @@ def main():
                     if len(item['diffs']) > 10:
                         report_text_lines.append(f"      ... and {len(item['diffs']) - 10} more command mismatches in this block.\n")
                 report_text_lines.append("\n")
- 
-        report_text_lines.append("--- 8. FILE 1 (BBL) CORRECTNESS SANITY CHECK ISSUES ---\n")
+
+        report_text_lines.append("--- 8. PROJECT METADATA COMPARISON (СРАВНЕНИЕ МЕТАДАННЫХ ПРОЕКТОВ) ---\n")
+        report_text_lines.append(comp_stats.get('project_metadata_diff', '  No project metadata differences found.\n'))
+        report_text_lines.append("\n\n")
+
+        report_text_lines.append("--- 9. FILE 1 (BBL) CORRECTNESS SANITY CHECK ISSUES ---\n")
         if not issues1:
             report_text_lines.append("  [SUCCESS] No correctness or safety issues identified in File 1 (BBL).\n")
         else:
@@ -805,8 +993,8 @@ def main():
                 report_text_lines.append(f"    Type: {issue['type']}\n")
                 report_text_lines.append(f"    Desc: {issue['desc']}\n\n")
         report_text_lines.append("\n")
- 
-        report_text_lines.append("--- 9. FILE 2 (Orca) CORRECTNESS SANITY CHECK ISSUES ---\n")
+
+        report_text_lines.append("--- 10. FILE 2 (Orca) CORRECTNESS SANITY CHECK ISSUES ---\n")
         if not issues2:
             report_text_lines.append("  [SUCCESS] No correctness or safety issues identified in File 2 (Orca).\n")
         else:
