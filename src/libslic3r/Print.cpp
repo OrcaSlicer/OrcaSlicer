@@ -994,7 +994,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         return std::make_pair(object_index, instance_index);
     };
 
-    auto [object_skirt_offset, _] = print.object_skirt_offset();
+    float object_skirt_offset = print.object_skirt_offset();
     std::vector<struct print_instance_info> print_instance_with_bounding_box;
     {
         // sequential_print_horizontal_clearance_valid
@@ -6084,27 +6084,28 @@ void Print::reload_gcode_moves(GCodeProcessorResult* result) const
     result->lines_ends = std::move(reloaded.lines_ends);
 }
 
-std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
+float Print::object_skirt_offset() const
 {
-    if (config().skirt_loops == 0 || config().skirt_type != stPerObject || m_objects.empty())
-        return std::make_tuple(0, 0);
-    
+    if (config().skirt_loops == 0 || config().skirt_type == stCombined || m_objects.empty())
+        return 0;
+
     float max_nozzle_diameter = *std::max_element(m_config.nozzle_diameter.values.begin(), m_config.nozzle_diameter.values.end());
     float max_layer_height    = *std::max_element(config().max_layer_height.values.begin(), config().max_layer_height.values.end());
     float line_width = m_config.initial_layer_line_width.get_abs_value(max_nozzle_diameter);
     float object_skirt_witdh  = skirt_flow().width() + (config().skirt_loops - 1) * skirt_flow().spacing();
+    float skirt_border        = config().skirt_distance + object_skirt_witdh;
     float object_skirt_offset = 0;
 
     if (is_all_objects_are_short())
-        object_skirt_offset = config().skirt_distance + object_skirt_witdh;
-    else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height - margin_height)
+        object_skirt_offset = skirt_border;
+    else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height)
         object_skirt_offset = config().skirt_distance + line_width;
-    else if (config().skirt_distance + object_skirt_witdh > config().extruder_clearance_radius/2)
-        object_skirt_offset = (config().skirt_distance + object_skirt_witdh - config().extruder_clearance_radius/2);
+    else if (skirt_border > config().extruder_clearance_radius / 2)
+        object_skirt_offset = (skirt_border - config().extruder_clearance_radius / 2);
     else
-        return std::make_tuple(0, 0);
+        return 0;
 
-    return std::make_tuple(object_skirt_offset, object_skirt_witdh);
+    return object_skirt_offset;
 }
 
 DynamicConfig PrintStatistics::config() const

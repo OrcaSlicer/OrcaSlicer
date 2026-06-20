@@ -1268,12 +1268,7 @@ void _arrange(
         std::function<void(unsigned,std::string)> progressfn,
         std::function<bool()>         stopfn)
 {
-    // Integer ceiling the min distance from the bed perimeters
-    coord_t md = params.min_obj_distance;
-    md = md / 2;
-
     auto corrected_bin = bin;
-    //sl::offset(corrected_bin, md);
     ArrangeParams mod_params = params;
     mod_params.min_obj_distance = 0;  // items are already inflated
     // Orca: aligning the finished pile would carry objects taller than the rod clearance back into
