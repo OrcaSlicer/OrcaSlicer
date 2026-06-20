@@ -481,11 +481,19 @@ public:
     const indexed_triangle_set& zone_interior_mesh() const { return sla::get_mesh(*m_zone_interior); }
     const ZoneInteriorStages& zone_stages() const { return m_zone_stages; }
     // Magma tube map: pre-computed tube assignments for infill generation.
-    // Falls through to the primary (shared) object when this is a shared copy,
-    // since only the primary runs the tube solver during slicing.
+    // A shared copy is geometrically identical to its source by construction
+    // (Print::process picks sources via is_print_object_the_same), and only the
+    // source runs the tube solver. The source's map is therefore authoritative,
+    // so it MUST take precedence over any map this object still owns: when an
+    // object that was a source in a previous slice becomes a shared copy in the
+    // next, its stale m_magma_tube_map would otherwise shadow the source's fresh
+    // one (clear_shared_object is a no-op for a former source, and the
+    // invalidate_all_steps path bypasses PrintObject::invalidate_step's reset).
+    // That shadowing was the "copies stop one layer below the top while the
+    // original reaches it, fixed by re-slicing" bug.
     const magma::MagmaTubeMap* magma_tube_map() const {
-        if (m_magma_tube_map) return m_magma_tube_map.get();
         if (m_shared_object)  return m_shared_object->magma_tube_map();
+        if (m_magma_tube_map) return m_magma_tube_map.get();
         return nullptr;
     }
     // Check if a specific stage has a valid mesh (0=initial, 1=smoothed)

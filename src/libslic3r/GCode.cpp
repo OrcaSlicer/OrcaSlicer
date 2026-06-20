@@ -5411,6 +5411,26 @@ LayerResult GCode::process_layer(
                 }
 
                 int lid = ltp.object_layer->id();
+
+                // Diagnostic: fire once per object (at its topmost cap layer) to
+                // show the tube-end span actually consumed for injection vs. the
+                // object's real top layer and which map pointer it resolved to.
+                // If some copies stop below the top while others reach it, this
+                // reveals a stale/shared tube map being reused. Grep "MagmaInjUse".
+                {
+                    const std::vector<int> &caps = tube_map->injection_layer_ids();
+                    int top_cap = caps.empty() ? -1 : caps.back();
+                    if (top_cap >= 0 && lid == top_cap) {
+                        int obj_top = obj.layers().empty() ? -1 : obj.layers().back()->id();
+                        BOOST_LOG_TRIVIAL(info) << "MagmaInjUse obj=" << (const void*)&obj
+                            << " map=" << (const void*)tube_map
+                            << " top_cap_layer=" << top_cap
+                            << " obj_top_layer=" << obj_top
+                            << " caps=" << caps.size()
+                            << " reaches_top=" << (top_cap == obj_top ? 1 : 0);
+                    }
+                }
+
                 auto pts = magma::collect_injection_points(*tube_map, lid);
                 if (pts.empty())
                     continue;
