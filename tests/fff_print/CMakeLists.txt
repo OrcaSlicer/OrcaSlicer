@@ -5,6 +5,7 @@ add_executable(${_TEST_NAME}_tests
 	test_bridge.cpp
 	test_bridge_perimeter_fan.cpp
 	test_extra_bridge_fan.cpp
+	test_bridge_params.cpp
 	test_data.cpp
 	test_data.hpp
 	test_extrusion_entity.cpp
