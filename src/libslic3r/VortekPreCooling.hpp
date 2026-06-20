@@ -153,7 +153,7 @@ private:
 
     std::vector<ExtruderFreeBlock> m_extruder_free_blocks; ///< Internal list of all calculated free blocks.
     const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves; ///< Reference to the trajectory/vertex log of the print.
-    const std::vector<std::string>& filament_types; ///< Types of loaded filaments (e.g. PLA, PETG, TPU).
+    [[maybe_unused]] const std::vector<std::string>& filament_types; ///< Types of loaded filaments (e.g. PLA, PETG, TPU).
     const Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result; ///< Current nozzle mapping configurations.
     std::vector<int> filament_nozzle_temps; ///< Printing temperature per filament.
     std::vector<int> filament_nozzle_temps_initial_layer; ///< First layer printing temperature per filament.

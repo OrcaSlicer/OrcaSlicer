@@ -438,19 +438,35 @@ class GCodeAnalyzer:
 
             # Rule Checks
             
-            # Rule 1: Retraction Length Check (PLA should be 18mm, PETG-CF should be 14mm)
-            # Extruder 0 on carousel maps to nozzle 1-3. Let's inspect the target tools or current tool.
+            # Rule 1: Retraction Length Check (dynamic based on filament configuration)
             if m620_11_o1_val is not None:
-                # Retract for PLA is 18, PETG is 14
-                # In standard setup: Tool 4 / Tool 0 depending on swap.
-                # Let's verify based on the retraction lengths
-                if m620_11_o1_val not in [14, 18]:
-                    self.issues.append({
-                        'layer': layer,
-                        'line': start_line,
-                        'type': 'Invalid Retraction Length',
-                        'desc': f"Toolchange #{tc_idx}: M620.11 O1 specifies T{m620_11_o1_val} retraction, expected 14 or 18."
-                    })
+                expected_retract = None
+                retract_nc_str = self.parser.config_params.get("filament_retract_length_nc", "").replace(";", ",")
+                if retract_nc_str:
+                    try:
+                        retract_nc_vals = [float(x.strip()) for x in retract_nc_str.split(",") if x.strip()]
+                        active_idx = current_tool if current_tool >= 0 else target_tool
+                        if active_idx is not None and 0 <= active_idx < len(retract_nc_vals):
+                            expected_retract = int(round(retract_nc_vals[active_idx]))
+                    except Exception:
+                        pass
+                
+                if expected_retract is not None:
+                    if m620_11_o1_val != expected_retract:
+                        self.issues.append({
+                            'layer': layer,
+                            'line': start_line,
+                            'type': 'Invalid Retraction Length',
+                            'desc': f"Toolchange #{tc_idx}: M620.11 O1 specifies T{m620_11_o1_val} retraction, expected configured {expected_retract}."
+                        })
+                else:
+                    if m620_11_o1_val not in [10, 14, 18]:
+                        self.issues.append({
+                            'layer': layer,
+                            'line': start_line,
+                            'type': 'Invalid Retraction Length',
+                            'desc': f"Toolchange #{tc_idx}: M620.11 O1 specifies T{m620_11_o1_val} retraction, expected 10, 14 or 18."
+                        })
             
             # Rule 2: Pre-cooling Hotend Address Check (Must cool parked hotend, NOT active hotend)
             if target_tool is not None and current_tool != -1 and current_tool != target_tool:
@@ -490,12 +506,12 @@ class GCodeAnalyzer:
                             'desc': f"Toolchange #{tc_idx}: Hotend T{hotend} receives conflicting temperature commands: {diff_temps} in same block."
                         })
 
-            # Rule 4: Clamping limits check (no pre-cooling below 150°C)
+            # Rule 4: Clamping limits check (no pre-cooling below 150°C, ignoring 0 which means cooling disabled)
             # Check M620.15 and M104 pre-cooling S values
             for offset, t_val, s_val, raw in m104s:
                 if "cooling" in raw.lower() and s_val is not None:
-                    # If temperature is less than 150°C and it's not the final layer park
-                    if s_val < 150 and layer < len(self.parser.layers) - 1:
+                    # If temperature is less than 150°C (but not 0) and it's not the final layer park
+                    if 0 < s_val < 150 and layer < len(self.parser.layers) - 1:
                         self.issues.append({
                             'layer': layer,
                             'line': start_line + offset,
@@ -503,7 +519,7 @@ class GCodeAnalyzer:
                             'desc': f"Toolchange #{tc_idx}: Pre-cooling temperature S{s_val}°C is below safe floor (150°C)."
                         })
             for temp in m620_15_temps:
-                if temp < 150 and layer < len(self.parser.layers) - 1:
+                if 0 < temp < 150 and layer < len(self.parser.layers) - 1:
                     self.issues.append({
                         'layer': layer,
                         'line': start_line,

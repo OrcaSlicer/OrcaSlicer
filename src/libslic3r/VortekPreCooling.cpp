@@ -16,6 +16,7 @@
 #include <vector>
 #include <regex>
 #include <sstream>
+#include <iostream>
 
 #include <boost/log/trivial.hpp>
 #include <boost/format.hpp>
@@ -459,6 +460,8 @@ void PreCooling::apply_config(const Slic3r::PrintConfig& config, size_t filament
 {
     processor.m_enable_pre_heating = config.enable_pre_heating.value;
     processor.m_inject_time_threshold = WipeTower::is_h2c_printer(config) ? 0.f : 30.f;
+    std::cerr << "[VortekPreCooling] apply_config: enable_pre_heating=" << processor.m_enable_pre_heating
+              << " inject_time_threshold=" << processor.m_inject_time_threshold << "\n";
     {
         processor.m_cooling_rate.resize(filament_count, 2.0);
         processor.m_heating_rate.resize(filament_count, 2.0);
@@ -506,6 +509,12 @@ void PreCooling::apply_config(const Slic3r::PrintConfig& config, size_t filament
         processor.m_nozzle_diameter.resize(config.nozzle_diameter.size());
         for (size_t i = 0; i < config.nozzle_diameter.size(); ++i)
             processor.m_nozzle_diameter[i] = config.nozzle_diameter.values[i];
+
+        auto fmt_d = [](const std::vector<double>& v){ std::string s="["; for(size_t i=0; i<v.size(); ++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+        auto fmt_i = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0; i<v.size(); ++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+        std::cerr << "  cooling_rate=" << fmt_d(processor.m_cooling_rate) << "\n";
+        std::cerr << "  heating_rate=" << fmt_d(processor.m_heating_rate) << "\n";
+        std::cerr << "  pre_cooling_temp=" << fmt_i(processor.m_pre_cooling_temp) << "\n";
     }
 }
 
@@ -515,6 +524,7 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
     using ExtruderUsageBlcok = Slic3r::ExtruderPreHeating::ExtruderUsageBlcok;
 
     Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap precooling_inserted_lines;
+    std::cerr << "[VortekPreCooling] run_pre_scan start\n";
 
     std::vector<FilamentUsageBlock> filament_blocks;
     std::vector<ExtruderUsageBlcok> extruder_blocks = { ExtruderUsageBlcok() };
@@ -724,6 +734,7 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
     pre_cooling_injector->process_pre_cooling_and_heating(precooling_inserted_lines);
 
     BOOST_LOG_TRIVIAL(info) << "PreCoolingInjector: generated " << precooling_inserted_lines.size() << " injection points";
+    std::cerr << "[VortekPreCooling] run_pre_scan finish: generated " << precooling_inserted_lines.size() << " injection points\n";
 
     std::fseek(f, 0, SEEK_SET);
     return precooling_inserted_lines;

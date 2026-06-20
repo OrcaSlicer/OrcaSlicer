@@ -148,6 +148,17 @@ public:
         float                      filament_area
     );
 
+    /**
+     * @brief Helper wrapper for WipeTowerIntegration::append_tcr.
+     * Calculates filament_area internally and invokes patch_toolchange_dyn_config.
+     */
+    static void patch_toolchange_dyn_config_wt(
+        Slic3r::DynamicConfig&    dyn_config,
+        Slic3r::GCode&            gcode,
+        int                        old_filament_id,
+        int                        new_filament_id
+    );
+
 private:
     static int get_original_filament_index(const Slic3r::GCode& gcode, int filament_id);
 };

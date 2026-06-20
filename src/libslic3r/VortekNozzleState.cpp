@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 #include <boost/log/trivial.hpp>
 
@@ -33,6 +34,9 @@ std::unordered_map<int, int> NozzleState::match_nozzle_colors_to_filaments(
 {
     std::unordered_map<int, int> result;
 
+    std::cerr << "[VortekNozzleState] match_nozzle_colors_to_filaments: device_colors.size="
+              << device_nozzle_colors.size() << " preset_colours.size=" << preset_filament_colours.size() << "\n";
+
     if (device_nozzle_colors.empty() || preset_filament_colours.empty())
         return result;
 
@@ -58,6 +62,9 @@ std::unordered_map<int, int> NozzleState::match_nozzle_colors_to_filaments(
                     << "[H2C-NozzleState] nozzle " << nozzle_id
                     << " color " << device_color << " → filament " << idx
                     << " (preset: " << preset_filament_colours[idx] << ")";
+                std::cerr << "  [H2C-NozzleState] matched nozzle " << nozzle_id
+                          << " color " << device_color << " -> filament " << idx
+                          << " (preset: " << preset_filament_colours[idx] << ")\n";
                 break;
             }
         }
@@ -67,12 +74,17 @@ std::unordered_map<int, int> NozzleState::match_nozzle_colors_to_filaments(
                 << "[H2C-NozzleState] nozzle " << nozzle_id
                 << " color " << device_color << " (" << normalized_device
                 << ") — no preset match found, skipping";
+            std::cerr << "  [H2C-NozzleState] nozzle " << nozzle_id
+                      << " color " << device_color << " (" << normalized_device
+                      << ") - no preset match found, skipping\n";
         }
     }
 
     BOOST_LOG_TRIVIAL(info)
         << "[H2C-NozzleState] matched " << result.size()
         << " of " << device_nozzle_colors.size() << " nozzles to preset filaments";
+    std::cerr << "  [H2C-NozzleState] matched " << result.size()
+              << " of " << device_nozzle_colors.size() << " nozzles to preset filaments\n";
 
     return result;
 }
@@ -82,7 +94,12 @@ std::unordered_map<int, int> NozzleState::resolve_for_print(const Slic3r::Print*
     if (!print)
         return {};
 
-    return print->get_device_nozzle_status();
+    auto res = print->get_device_nozzle_status();
+    std::cerr << "[VortekNozzleState] resolve_for_print size=" << res.size() << "\n";
+    for (const auto& [noz, fil] : res) {
+        std::cerr << "  nozzle " << noz << " -> filament " << fil << "\n";
+    }
+    return res;
 }
 
 } // namespace Vortek

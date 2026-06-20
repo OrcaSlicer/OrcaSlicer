@@ -1061,6 +1061,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         flush_length_a1 = purge_length;
                     }
                     change_filament_gcode = patch_h2c_change_filament_gcode(change_filament_gcode);
+                    Vortek::GCode::patch_toolchange_dyn_config_wt(
+                        config, gcodegen, tcr.initial_tool, new_filament_id);
                 }
                 config.set_key_value("flush_length_a0", new ConfigOptionFloat(flush_length_a0));
                 config.set_key_value("flush_length_a1", new ConfigOptionFloat(flush_length_a1));

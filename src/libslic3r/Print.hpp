@@ -920,7 +920,7 @@ public:
     std::string         export_gcode(const std::string& path_template, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     //return 0 means successful
     int                 export_cached_data(const std::string& dir_path, int& obj_cnt_exported, bool with_space=false);
-    int                 load_cached_data(const std::string& directory);
+    int                 load_cached_data(const std::string& directory) override;
 
     // methods for handling state
     bool                is_step_done(PrintStep step) const { return Inherited::is_step_done(step); }
