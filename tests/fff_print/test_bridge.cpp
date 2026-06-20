@@ -695,3 +695,60 @@ SCENARIO("Second bridge layer perimeters reach parity with the first", "[Bridge]
         }
     }
 }
+
+// ============================================================================
+// Scenario 15: Stacked bridge layers do not shrink (no compounded inset)
+// ============================================================================
+//
+// Regression test for BRIDGE_PERIMETERS.md §5c. The extra-bridge tagging must
+// classify every stacked bridge layer against the SAME base support, so the
+// bridge-perimeter coverage (length) is stable up the stack — it must not
+// shrink layer by layer from a compounded half-nozzle inset.
+
+SCENARIO("Stacked bridge layers keep stable bridge-perimeter coverage", "[Bridge][ExtraBridge][Perimeter][Inset]")
+{
+    GIVEN("A bridge mesh with extra bridge layers enabled")
+    {
+        Slic3r::Print print;
+        TriangleMesh bridge_mesh = Slic3r::Test::mesh(TestMesh::bridge);
+        bridge_mesh.align_to_origin();
+        Slic3r::Test::init_and_process_print({bridge_mesh}, print, {
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "enable_extra_bridge_layer",  "apply_to_all" },
+            { "bottom_shell_layers",        1 },
+            { "top_shell_layers",           0 },
+            { "sparse_infill_density",      0 },
+            { "thick_bridges",              false },
+        });
+
+        WHEN("Comparing bridge-perimeter length on the first vs second bridge layer")
+        {
+            double bridge_z = find_first_bridge_z(print);
+            REQUIRE(bridge_z > 0.0);
+            double extra_z = bridge_z + 0.2;
+
+            double first_len  = perimeter_role_length_at_z(print, bridge_z, erBridgePerimeter);
+            double extra_len  = perimeter_role_length_at_z(print, extra_z, erBridgePerimeter);
+            double first_span = perimeter_role_x_span_at_z(print, bridge_z, erBridgePerimeter);
+            double extra_span = perimeter_role_x_span_at_z(print, extra_z, erBridgePerimeter);
+            INFO("First-layer  bridge length=" << first_len << " x-span=" << first_span);
+            INFO("Second-layer bridge length=" << extra_len << " x-span=" << extra_span);
+
+            THEN("Both layers have bridge perimeters")
+            {
+                REQUIRE(first_len > 0.0);
+                REQUIRE(extra_len > 0.0);
+            }
+
+            THEN("Second-layer bridge extent matches the first (no compounded inset)")
+            {
+                // Absolute test: a compounded half-nozzle inset would shrink the
+                // second layer's bridge X-extent by ~one nozzle (~0.4 mm) vs the
+                // first. The slab cross-section is constant, so with a
+                // non-compounding support the extents match to within rounding.
+                REQUIRE(std::abs(extra_span - first_span) < 0.15);
+            }
+        }
+    }
+}

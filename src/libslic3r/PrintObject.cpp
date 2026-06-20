@@ -3623,17 +3623,19 @@ static void split_perimeter_over_void(ExtrusionEntity *entity, const Polygons &s
 // sits on the first bridge layer, whose cross-section is solid at its own Z, so
 // the extra layer's span perimeters look "supported" and are missed.
 //
-// To recover the true support we propagate it up the stack: the genuinely
-// supported region of a layer is the part of its cross-section that has a solid
-// column all the way down to a non-bridging base —
-//     supported(0) = lslices(0)
-//     supported(L) = lslices(L) ∩ grow(supported(L-1))
-// A perimeter on layer L is then a bridge perimeter exactly where it falls
-// outside grow(supported(L-1)) — identical to PerimeterGenerator's test, but
-// using the propagated support instead of the raw (bridge-filled) lower slices.
-// For the first bridge layer this reduces to PerimeterGenerator's own result
-// (idempotent); for the second and any further stacked bridge layers it carries
-// the void upward so their perimeters are tagged and re-flowed consistently.
+// To recover the true support for a stacked bridge layer we look DOWN past any
+// intervening bridge layers to the nearest NON-bridge layer and use its solid
+// cross-section, grown once by half a nozzle, as the support — identical to the
+// test PerimeterGenerator runs against the layer directly below the FIRST bridge
+// layer.  Because every layer in a bridge stack resolves to the SAME non-bridge
+// base, they are all classified against the same support: the bridged region
+// does not shrink (compound) layer by layer, and the band of normal perimeter
+// before the bridge label is the same on every stacked layer.
+//
+// This deliberately does NOT propagate a grown support up the stack: re-growing
+// an already-grown region compounds the half-nozzle inset on each layer (see
+// BRIDGE_PERIMETERS.md §5c), so each successive bridge layer's bridge region
+// would be smaller than the one below it.
 void PrintObject::tag_extra_bridge_perimeters()
 {
     BOOST_LOG_TRIVIAL(info) << "Tagging extra bridge perimeters - Start" << log_memory_info();
@@ -3643,48 +3645,39 @@ void PrintObject::tag_extra_bridge_perimeters()
 
     const float grow = scaled<float>(0.5f * float(m_print->config().nozzle_diameter.get_at(0)));
 
-    // Bottom-up: propagate the solidly-supported footprint of each layer.
-    std::vector<Polygons> supported(m_layers.size());
-    {
-        Polygons prev;
-        for (const ExPolygon &ex : m_layers.front()->lslices)
-            polygons_append(prev, to_polygons(ex));
-        supported.front() = prev;
-        for (size_t i = 1; i < m_layers.size(); ++i) {
-            Polygons lslices;
-            for (const ExPolygon &ex : m_layers[i]->lslices)
-                polygons_append(lslices, to_polygons(ex));
-            supported[i] = intersection(lslices, offset(supported[i - 1], grow));
-            m_print->throw_if_canceled();
+    // Flag every layer that carries bridge fill (the feature's scope).
+    std::vector<bool> is_bridge_layer(m_layers.size(), 0);
+    for (size_t i = 0; i < m_layers.size(); ++i)
+        for (const LayerRegion *region : m_layers[i]->regions()) {
+            bool found = false;
+            for (const Surface &s : region->fill_surfaces.surfaces)
+                if (s.surface_type == stBottomBridge || s.surface_type == stInternalBridge) { found = true; break; }
+            if (found) { is_bridge_layer[i] = true; break; }
         }
-    }
 
     tbb::parallel_for(
         tbb::blocked_range<size_t>(1, m_layers.size()),
-        [this, grow, &supported](const tbb::blocked_range<size_t> &range) {
+        [this, grow, &is_bridge_layer](const tbb::blocked_range<size_t> &range) {
             for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
                 m_print->throw_if_canceled();
+                if (! is_bridge_layer[layer_idx])
+                    continue;
                 Layer *layer = m_layers[layer_idx];
 
-                // Limit work to bridge layers (the feature's scope).  On the
-                // first bridge layer this is a no-op (PerimeterGenerator already
-                // split those loops); on stacked bridge layers it does the work.
-                bool this_layer_bridges = false;
-                for (const LayerRegion *region : layer->regions()) {
-                    for (const Surface &surface : region->fill_surfaces.surfaces)
-                        if (surface.surface_type == stBottomBridge || surface.surface_type == stInternalBridge) {
-                            this_layer_bridges = true;
-                            break;
-                        }
-                    if (this_layer_bridges)
-                        break;
-                }
-                if (! this_layer_bridges)
+                // Walk down past intervening bridge layers to the nearest
+                // non-bridge layer; its solid cross-section (grown once) is the
+                // support.  Every layer in a bridge stack resolves here to the
+                // same base, so no per-layer compounding of the inset.
+                int j = int(layer_idx) - 1;
+                while (j >= 0 && is_bridge_layer[j])
+                    --j;
+                if (j < 0)
                     continue;
 
-                // Support seen by this layer's perimeters = grown propagated
-                // support of the layer below.  Anything outside it bridges a void.
-                Polygons support = offset(supported[layer_idx - 1], grow);
+                Polygons base;
+                for (const ExPolygon &ex : m_layers[j]->lslices)
+                    polygons_append(base, to_polygons(ex));
+                Polygons support = offset(base, grow);
                 if (support.empty())
                     continue;
 

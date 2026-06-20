@@ -158,6 +158,89 @@ inline void collect_widths_for_role(const ExtrusionEntity &entity, ExtrusionRole
     }
 }
 
+/// Recursively sum the extrusion length (scaled) of paths with a given role.
+inline void collect_role_length(const ExtrusionEntity &entity, ExtrusionRole target, double &len)
+{
+    if (entity.is_collection()) {
+        for (const ExtrusionEntity *child : static_cast<const ExtrusionEntityCollection &>(entity).entities)
+            if (child != nullptr)
+                collect_role_length(*child, target, len);
+        return;
+    }
+    if (entity.is_loop()) {
+        for (const ExtrusionPath &path : static_cast<const ExtrusionLoop &>(entity).paths)
+            if (path.role() == target)
+                len += path.length();
+    }
+}
+
+/// Total extrusion length (scaled) of perimeter paths with a given role at a Z.
+inline double perimeter_role_length_at_z(const Print &print, double z, ExtrusionRole role,
+                                         double tolerance = 0.02)
+{
+    double len = 0;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                collect_role_length(region->perimeters, role, len);
+        }
+    return len;
+}
+
+/// Recursively expand [minx,maxx] (mm) over points of paths with a given role.
+inline void collect_role_x_range(const ExtrusionEntity &entity, ExtrusionRole target,
+                                 double &minx, double &maxx)
+{
+    if (entity.is_collection()) {
+        for (const ExtrusionEntity *child : static_cast<const ExtrusionEntityCollection &>(entity).entities)
+            if (child != nullptr)
+                collect_role_x_range(*child, target, minx, maxx);
+        return;
+    }
+    if (entity.is_loop()) {
+        for (const ExtrusionPath &path : static_cast<const ExtrusionLoop &>(entity).paths)
+            if (path.role() == target)
+                for (const auto &p : path.polyline.points) {
+                    double x = unscale<double>(p.x());
+                    if (x < minx) minx = x;
+                    if (x > maxx) maxx = x;
+                }
+    }
+}
+
+/// X-extent (mm, maxx-minx) of perimeter paths with a given role at a Z.
+/// Returns 0 if no such paths exist.
+inline double perimeter_role_x_span_at_z(const Print &print, double z, ExtrusionRole role,
+                                         double tolerance = 0.02)
+{
+    double minx = 1e30, maxx = -1e30;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                collect_role_x_range(region->perimeters, role, minx, maxx);
+        }
+    return (maxx >= minx) ? (maxx - minx) : 0.0;
+}
+
+/// Count perimeter paths carrying a given role across ALL layers/objects.
+inline size_t count_all_perimeter_role(const Print &print, ExtrusionRole role)
+{
+    size_t n = 0;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers())
+            for (const LayerRegion *region : layer->regions()) {
+                std::vector<ExtrusionRole> roles;
+                collect_roles_from_entity(region->perimeters, roles);
+                for (auto r : roles)
+                    if (r == role) ++n;
+            }
+    return n;
+}
+
 /// Count perimeter paths carrying a given role at a Z height.
 inline size_t count_perimeter_role_at_z(const Print &print, double z, ExtrusionRole role,
                                         double tolerance = 0.02)
