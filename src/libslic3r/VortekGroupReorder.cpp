@@ -485,8 +485,6 @@ void GroupReorder::reorder_extruders(
     bool support_multi_nozzle
 )
 {
-    std::cerr << "[VortekGroupReorder] reorder_extruders: support_multi_nozzle=" << support_multi_nozzle
-              << " print=" << (tool_ordering.m_print ? "valid" : "null") << "\n";
     if (support_multi_nozzle && tool_ordering.m_print->get_layered_nozzle_group_result()) {
         if (tool_ordering.m_print->is_dynamic_group_reorder()) {
             BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Using dynamic GroupReorder (per combo range)";
@@ -522,7 +520,6 @@ void GroupReorder::reorder_extruders(
                 }
                 tool_ordering.m_nozzle_status = best_nozzle_status;
                 BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Dynamic plan produced " << dynamic_plan_res.size() << " layer results";
-                std::cerr << "  [H2C-GR] Dynamic plan produced " << dynamic_plan_res.size() << " layer results\n";
 
                 // H2C FIX: Reconstruct and update LayeredNozzleGroupResult with the per-layer nozzle maps.
                 // Without this, the wipe tower and post-processing steps fallback to default mapping and
@@ -547,15 +544,11 @@ void GroupReorder::reorder_extruders(
                     );
                     BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Updated Print's LayeredNozzleGroupResult with dynamic layer maps. Size: "
                                            << layer_filament_nozzle_maps.size();
-                    std::cerr << "  [H2C-GR] Updated Print's LayeredNozzleGroupResult with dynamic layer maps. Size: "
-                              << layer_filament_nozzle_maps.size() << "\n";
                 } else {
                     BOOST_LOG_TRIVIAL(error) << "[H2C-GR] Failed to create new LayeredNozzleGroupResult from dynamic plan";
-                    std::cerr << "  [H2C-GR] Failed to create new LayeredNozzleGroupResult from dynamic plan\n";
                 }
             } else {
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-GR] Dynamic plan empty, falling back to static reorder";
-                std::cerr << "  [H2C-GR] Dynamic plan empty, falling back to static reorder\n";
                 Slic3r::reorder_filaments_for_multi_nozzle_extruder(
                     filament_lists,
                     *tool_ordering.m_print->get_layered_nozzle_group_result(),

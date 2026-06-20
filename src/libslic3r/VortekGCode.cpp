@@ -55,8 +55,6 @@ void GCode::init(
     std::vector<int>& first_non_support_filaments
 )
 {
-    std::cerr << "[VortekGCode] init: initial_extruder_id=" << initial_extruder_id
-              << " initial_non_support_extruder_id=" << initial_non_support_extruder_id << "\n";
     // Local helper to align first filaments order with the physical extruders map
     auto match_physical_extruder_for_each_filament = [](std::vector<int> &filaments, const Slic3r::FullPrintConfig &config) {
         std::vector<int> physicial_first_filaments;
@@ -141,8 +139,6 @@ void GCode::write_filament_start(
     Slic3r::Print& print
 )
 {
-    std::cerr << "[VortekGCode] write_filament_start: initial_extruder_id=" << initial_extruder_id
-              << " initial_non_support_extruder_id=" << initial_non_support_extruder_id << "\n";
     auto group_result = gcode.m_print->get_layered_nozzle_group_result();
 
     gcode.m_writer.init_extruder(initial_non_support_extruder_id);
@@ -225,10 +221,6 @@ int GCode::get_original_filament_index(const Slic3r::GCode& gcode, int filament_
             final_idx = idx;
         }
     }
-
-    std::cerr << "  [get_original_filament_index] filament_id=" << filament_id
-              << " idx=" << idx << " has_self_index=" << has_self_index
-              << " -> resolved to final_idx=" << final_idx << "\n";
     return final_idx;
 }
 
@@ -260,8 +252,6 @@ float GCode::get_filament_retract_length_nc(const Slic3r::GCode& gcode, int fila
     if (filament_id >= 0 && filament_id < (int)rv.size())
         val = rv[filament_id];
 
-    std::cerr << "[VortekGCode] get_filament_retract_length_nc: filament_id=" << filament_id << " val=" << val;
-
     // Fallback for third-party filament presets that don't define the H2C-specific
     // filament_retract_length_nc field (stored as 0 / nullable-nil):
     // use retraction_distances_when_ec for the physical extruder, scaled to 0.1 mm units.
@@ -274,9 +264,7 @@ float GCode::get_filament_retract_length_nc(const Slic3r::GCode& gcode, int fila
                 extruder_id = nozzle_info->extruder_id;
         }
         val = gcode.m_config.retraction_distances_when_ec.get_at(extruder_id) * 10.0;
-        std::cerr << " (fallback to EC=" << val << ")";
     }
-    std::cerr << "\n";
 
     return (float)val;
 }
@@ -285,7 +273,6 @@ void GCode::apply_tcr_flush_config(const Slic3r::GCode& gcode, bool skip_cooling
                                    Slic3r::DynamicConfig& config)
 {
     size_t nf = get_logical_filament_count(gcode);
-    std::cerr << "[VortekGCode] apply_tcr_flush_config logical_filaments=" << nf << "\n";
     auto flush_v_speed        = remap_floats_by_filament_vortek(gcode, "filament_flush_volumetric_speed", nf);
     auto filament_max_v       = remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed",   nf);
     auto flush_temps          = remap_ints_by_filament_vortek(gcode,   "filament_flush_temp",             nf);
@@ -293,12 +280,10 @@ void GCode::apply_tcr_flush_config(const Slic3r::GCode& gcode, bool skip_cooling
     auto range_highs          = remap_nozzle_ints_by_filament_vortek(gcode,   "nozzle_temperature_range_high",   nf);
 
     for (size_t idx = 0; idx < nf; ++idx) {
-        std::cerr << "  [Before Clamping] slot " << idx << ": flush_temp=" << flush_temps[idx] << ", range_high=" << range_highs[idx] << "\n";
         if (flush_v_speed[idx] == 0)
             flush_v_speed[idx] = filament_max_v[idx];
         if (flush_temps[idx] == 0)
             flush_temps[idx] = range_highs[idx];
-        std::cerr << "  [After Clamping] slot " << idx << ": flush_temp=" << flush_temps[idx] << "\n";
     }
     if (skip_cooling)
         std::fill(cooling_before_tower.begin(), cooling_before_tower.end(), 0.0);
@@ -318,7 +303,6 @@ std::vector<double> GCode::remap_floats_by_filament_vortek(const Slic3r::GCode& 
     // get_original_filament_index() resolves the correct variant-aware index for each filament.
     auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<double>*>(
         gcode.m_print->ori_full_print_config().option(key));
-    std::cerr << "[VortekGCode] remap_floats_by_filament_vortek key=" << key << " num_filaments=" << num_filaments << " opt=" << (opt ? "found" : "null") << "\n";
     for (size_t i = 0; i < num_filaments; ++i) {
         int idx = get_original_filament_index(gcode, (int)i);
         if (opt) {
@@ -327,7 +311,6 @@ std::vector<double> GCode::remap_floats_by_filament_vortek(const Slic3r::GCode& 
             int final_idx = (idx >= 0 && idx < (int)opt->values.size()) ? idx : (int)i;
             if (final_idx >= 0 && final_idx < (int)opt->values.size()) {
                 dst[i] = opt->get_at(final_idx);
-                std::cerr << "    slot " << i << " resolved_idx=" << idx << " final_idx=" << final_idx << " -> val=" << dst[i] << "\n";
             }
         }
         // No m_config fallback: m_config may not have expanded ConfigOptionFloatsNullable
@@ -343,7 +326,6 @@ std::vector<int> GCode::remap_ints_by_filament_vortek(const Slic3r::GCode& gcode
     // get_original_filament_index() resolves the correct variant-aware index for each filament.
     auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<int>*>(
         gcode.m_print->ori_full_print_config().option(key));
-    std::cerr << "[VortekGCode] remap_ints_by_filament_vortek key=" << key << " num_filaments=" << num_filaments << " opt=" << (opt ? "found" : "null") << "\n";
     for (size_t i = 0; i < num_filaments; ++i) {
         int idx = get_original_filament_index(gcode, (int)i);
         if (opt) {
@@ -355,7 +337,6 @@ std::vector<int> GCode::remap_ints_by_filament_vortek(const Slic3r::GCode& gcode
                 // ConfigOptionIntsNullable uses INT_MAX as the nil sentinel — treat nil as 0.
                 if (val != std::numeric_limits<int>::max())
                     dst[i] = val;
-                std::cerr << "    slot " << i << " resolved_idx=" << idx << " final_idx=" << final_idx << " -> val=" << dst[i] << "\n";
             }
         }
         // No m_config fallback: m_config expansion is skipped for ConfigOptionIntsNullable
@@ -369,17 +350,12 @@ std::vector<int> GCode::remap_nozzle_ints_by_filament_vortek(const Slic3r::GCode
     std::vector<int> dst(num_filaments, 0);
     auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<int>*>(
         gcode.m_config.option(key));
-    std::cerr << "[VortekGCode] remap_nozzle_ints_by_filament_vortek key=" << key << " num_filaments=" << num_filaments << "\n";
     if (opt) {
-        std::cerr << "  opt found, values.size=" << opt->values.size() << "\n";
         if (opt->values.size() >= num_filaments) {
-            std::cerr << "  opt is already expanded, copying directly:\n";
             for (size_t i = 0; i < num_filaments; ++i) {
                 dst[i] = opt->get_at(i);
-                std::cerr << "    slot " << i << " -> val=" << dst[i] << "\n";
             }
         } else {
-            std::cerr << "  opt is compressed, resolving via physical extruder mapping:\n";
             auto group_result = gcode.m_print ? gcode.m_print->get_layered_nozzle_group_result() : nullptr;
             for (size_t i = 0; i < num_filaments; ++i) {
                 int extruder_id = 0;
@@ -389,11 +365,9 @@ std::vector<int> GCode::remap_nozzle_ints_by_filament_vortek(const Slic3r::GCode
                         extruder_id = nozzle_info->extruder_id;
                 }
                 dst[i] = opt->get_at(extruder_id);
-                std::cerr << "    slot " << i << " extruder_id=" << extruder_id << " -> val=" << dst[i] << "\n";
             }
         }
     } else {
-        std::cerr << "  opt not found for key: " << key << "\n";
     }
     return dst;
 }
@@ -404,7 +378,6 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
     // via get_logical_filament_count(), which reads filament_self_index from
     // ori_full_print_config — the config snapshot taken before per-extruder compression.
     size_t num_filaments = get_logical_filament_count(gcode);
-    std::cerr << "[VortekGCode] update_placeholder_parser_with_variant_params start: num_filaments=" << num_filaments << "\n";
     if (num_filaments == 0)
         return;
 
@@ -467,7 +440,6 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
         gcode.placeholder_parser().set("flush_volumetric_speeds", new Slic3r::ConfigOptionFloats(flush_v_speed));
         gcode.placeholder_parser().set("flush_temperatures",      new Slic3r::ConfigOptionInts(flush_temps));
     }
-    std::cerr << "[VortekGCode] update_placeholder_parser_with_variant_params finished\n";
 }
 
 void GCode::patch_toolchange_dyn_config(
@@ -586,20 +558,16 @@ void GCode::patch_toolchange_dyn_config(
     // Fix: overwrite dyn_config["flush_temperatures"] with the correctly remapped
     // nf-element array using the same max() logic.
     {
-        std::cerr << "[VortekGCode] patch_toolchange_dyn_config old_filament_id=" << old_filament_id 
-                  << " new_filament_id=" << new_filament_id << "\n";
         auto flush_temps = remap_ints_by_filament_vortek(gcode, "filament_flush_temp", nf);
         auto range_highs = remap_nozzle_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
 
         for (size_t i = 0; i < nf; ++i) {
-            std::cerr << "  [Before Max] slot " << i << " flush_temp=" << flush_temps[i] << " range_high=" << range_highs[i] << "\n";
             // BBL formula: flush_temperatures = max(filament_flush_temp, nozzle_temperature_range_high).
             // Remap nozzle_temperature_range_high using variant-aware logic to bypass the
             // compressed m_config (which has size 2 for H2C).
             int range_high = range_highs[i];
             if (range_high > 0)
                 flush_temps[i] = std::max(flush_temps[i], range_high);
-            std::cerr << "  [After Max] slot " << i << " flush_temp=" << flush_temps[i] << "\n";
         }
         // Overwrite dyn_config (covers [variable] bracket substitutions)
         // AND placeholder_parser (covers {expression} curly-brace evaluator).

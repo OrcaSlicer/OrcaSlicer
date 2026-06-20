@@ -27,7 +27,6 @@ void PlateMapping::sync_after_slicing(
     if (!print) return;
 
     bool is_h2c = is_h2c_multi_nozzle(print);
-    std::cerr << "[VortekPlateMapping] sync_after_slicing: is_h2c=" << is_h2c << "\n";
 
     // Update nozzle/volume flow mapping options in UI configuration
     if (is_h2c || filament_map_mode < Slic3r::FilamentMapMode::fmmManual) {
@@ -47,12 +46,6 @@ void PlateMapping::sync_after_slicing(
         // H2C dual-nozzle printers always have a filament track switcher (FTS).
         preset_bundle.project_config.set_key_value("has_filament_switcher",
             new Slic3r::ConfigOptionBool(true));
-
-        auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-        std::cerr << "  [H2C] updated maps in project config:\n"
-                  << "    filament_map=" << fmt(print->get_filament_maps()) << "\n"
-                  << "    filament_volume_map=" << fmt(print->get_filament_volume_maps()) << "\n"
-                  << "    filament_nozzle_map=" << fmt(print->get_filament_nozzle_maps()) << "\n";
     }
 }
 
@@ -117,9 +110,6 @@ LoadMappingResult PlateMapping::load_from_3mf_structure(
 {
     LoadMappingResult result;
     if (!plate_data || !gcode_result) return result;
-    std::cerr << "[VortekPlateMapping] load_from_3mf_structure: filament_count=" << filament_count << "\n"
-              << "  nozzles_info.size=" << plate_data->nozzles_info.size() << "\n"
-              << "  slice_filaments_info.size=" << plate_data->slice_filaments_info.size() << "\n";
 
     // Helper lambda to tokenize value strings
     auto parse_values = [](const std::string& value, const char* seps, auto to_value) {
@@ -202,11 +192,6 @@ LoadMappingResult PlateMapping::load_from_3mf_structure(
     else
         gcode_result->nozzle_group_result = nullptr;
 
-    auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-    std::cerr << "  result filament_nozzle_map=" << fmt(result.filament_nozzle_map) << "\n"
-              << "  result filament_volume_map=" << fmt(result.filament_volume_map) << "\n"
-              << "  nozzle_group_result=" << (group_result ? "created" : "null") << "\n";
-
     return result;
 }
 
@@ -223,10 +208,6 @@ void PlateMapping::sync_project_config_on_load(Slic3r::DynamicConfig& proj_cfg, 
         filament_volume_map->values.resize(filament_count, 0);
     }
 
-    std::cerr << "[VortekPlateMapping] sync_project_config_on_load: filament_count=" << filament_count << "\n";
-    auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-    std::cerr << "  filament_nozzle_map size is " << filament_nozzle_map->size() << " values=" << fmt(filament_nozzle_map->values) << "\n"
-              << "  filament_volume_map size is " << filament_volume_map->size() << " values=" << fmt(filament_volume_map->values) << "\n";
 }
 
 void PlateMapping::patch_export_config(Slic3r::DynamicPrintConfig& cfg)
@@ -346,30 +327,7 @@ void PlateMapping::patch_plate_data_for_export(
         }
     }
 
-    {
-        // Diagnostic: dump input data for debugging nozzle assignment
-        std::string nm_str = "[", fm_str = "[", vm_str = "[", rn_str = "[";
-        for (size_t i = 0; i < filament_nozzle_map.size(); ++i) {
-            if (i) nm_str += ",";
-            nm_str += std::to_string(filament_nozzle_map[i]);
-        }
-        nm_str += "]";
-        for (size_t i = 0; i < filament_maps.size(); ++i) {
-            if (i) fm_str += ",";
-            fm_str += std::to_string(filament_maps[i]);
-        }
-        fm_str += "]";
-        for (size_t i = 0; i < filament_volume_map.size(); ++i) {
-            if (i) vm_str += ",";
-            vm_str += std::to_string(filament_volume_map[i]);
-        }
-        vm_str += "]";
-        for (auto& [fid, nid] : reassigned_nozzle_ids) {
-            if (rn_str.size() > 1) rn_str += ",";
-            rn_str += std::to_string(fid) + "->" + std::to_string(nid);
-        }
-        rn_str += "]";
-        BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: "
+    BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: "
             << "filament_nozzle_map=" << nm_str
             << " filament_maps=" << fm_str
             << " filament_volume_map=" << vm_str
@@ -377,13 +335,6 @@ void PlateMapping::patch_plate_data_for_export(
             << " slice_filaments_info.size=" << plate_data->slice_filaments_info.size()
             << " nozzle_group_result.has_value=" << plate_data->nozzle_group_result.has_value()
             << " use_lngr=" << (use_lngr ? "true" : "false");
-        std::cerr << "[VortekPlateMapping] patch_plate_data_for_export: "
-                  << "filament_nozzle_map=" << nm_str
-                  << " filament_maps=" << fm_str
-                  << " filament_volume_map=" << vm_str
-                  << " reassigned=" << rn_str
-                  << " slice_filaments_info.size=" << plate_data->slice_filaments_info.size()
-                  << " use_lngr=" << (use_lngr ? "true" : "false") << "\n";
     }
 
     // Second pass: patch each FilamentInfo and build the nozzle list
@@ -439,9 +390,6 @@ void PlateMapping::patch_plate_data_for_export(
                             << plate_data->slice_filaments_info.size() << " filaments, "
                             << plate_data->nozzles_info.size() << " nozzles for H2C export"
                             << " (source=" << (use_lngr ? "LNGR" : "sequential") << ", Tier 2)";
-    std::cerr << "[VortekPlateMapping] patch_plate_data_for_export finished: patched "
-              << plate_data->slice_filaments_info.size() << " filaments, "
-              << plate_data->nozzles_info.size() << " nozzles for H2C export\n";
 }
 
 void PlateMapping::handle_h2c_mapping_apply(
@@ -451,7 +399,6 @@ void PlateMapping::handle_h2c_mapping_apply(
 )
 {
     if (!print || !is_h2c_multi_nozzle(print)) return;
-    std::cerr << "[VortekPlateMapping] handle_h2c_mapping_apply start\n";
 
     auto opt_new_nozzle_map = new_full_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map");
     auto opt_old_nozzle_map = old_full_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map");
@@ -478,7 +425,6 @@ void PlateMapping::handle_h2c_mapping_apply(
 
     if (presets_changed) {
         BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Filament presets/properties changed. Invalidating and clearing old filament maps.";
-        std::cerr << "  [H2C-APP] Filament presets/properties changed. Invalidating and clearing old filament maps.\n";
         
         // Reset mapping values in incoming config to trigger cyclic reset and full recalculation
         std::fill(opt_new_nozzle_map->values.begin(), opt_new_nozzle_map->values.end(), 0);
@@ -511,8 +457,6 @@ void PlateMapping::handle_h2c_mapping_apply(
             auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
             BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Preserving calculated filament mappings: nozzle_map="
                                        << fmt(opt_old_nozzle_map->values);
-            std::cerr << "  [H2C-APP] Preserving calculated filament mappings: nozzle_map="
-                      << fmt(opt_old_nozzle_map->values) << " filament_map=" << (opt_old_filament_map ? fmt(opt_old_filament_map->values) : "[]") << "\n";
 
             opt_new_nozzle_map->values = opt_old_nozzle_map->values;
 
@@ -533,7 +477,6 @@ void PlateMapping::handle_h2c_mapping_apply(
                 }
             } else {
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Manual filament mapping active. Keeping user-specified filament_map and filament_volume_map.";
-                std::cerr << "  [H2C-APP] Manual filament mapping active. Keeping user-specified filament_map and filament_volume_map.\n";
             }
         } else {
             // Otherwise (clean start), initialize cyclic nozzle assignment on the Vortek carousel.
@@ -566,8 +509,6 @@ void PlateMapping::handle_h2c_mapping_apply(
                 auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
                 BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Initializing zero filament nozzle map with cyclic mapping: "
                                            << fmt(opt_new_nozzle_map->values) << " (nozzle_count=" << nozzle_count << ")";
-                std::cerr << "  [H2C-APP] Initializing zero filament nozzle map with cyclic mapping: "
-                          << fmt(opt_new_nozzle_map->values) << " (nozzle_count=" << nozzle_count << ")\n";
             }
         }
     }
@@ -582,10 +523,6 @@ void PlateMapping::handle_h2c_print_diff(
 )
 {
     if (!print || !is_h2c_multi_nozzle(print)) return;
-    std::cerr << "[VortekPlateMapping] handle_h2c_print_diff: print_diff_set has:\n";
-    for (const auto& key : print_diff_set) {
-        std::cerr << "  " << key << "\n";
-    }
 
     if (print_diff_set.find("filament_map") != print_diff_set.end()) {
         print_diff_set.erase("filament_map");
@@ -593,7 +530,6 @@ void PlateMapping::handle_h2c_print_diff(
         if (opt_new) {
             full_print_config.option<Slic3r::ConfigOptionInts>("filament_map", true)->set(opt_new);
             config.filament_map = *opt_new;
-            std::cerr << "  [H2C-APP] Synced filament_map to print config: " << opt_new->serialize() << "\n";
         }
     }
     if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
@@ -602,7 +538,6 @@ void PlateMapping::handle_h2c_print_diff(
         if (opt_new) {
             full_print_config.option<Slic3r::ConfigOptionInts>("filament_volume_map", true)->set(opt_new);
             config.filament_volume_map = *opt_new;
-            std::cerr << "  [H2C-APP] Synced filament_volume_map to print config: " << opt_new->serialize() << "\n";
         }
     }
     if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
@@ -613,7 +548,6 @@ void PlateMapping::handle_h2c_print_diff(
             config.filament_nozzle_map = *opt_new;
             BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C active: synced filament_nozzle_map to m_config: "
                                        << opt_new->serialize();
-            std::cerr << "  [H2C-APP] Synced filament_nozzle_map to print config: " << opt_new->serialize() << "\n";
         }
     }
 }
@@ -650,7 +584,6 @@ bool PlateMapping::get_variant_override_serialized(const Slic3r::ConfigBase* con
                 serialized += override_strings[i];
             }
             out_serialized = serialized;
-            std::cerr << "[VortekPlateMapping] get_variant_override_serialized key=" << opt_key << " found in strings -> " << out_serialized << "\n";
             return true;
         }
     }
@@ -666,7 +599,6 @@ bool PlateMapping::get_variant_override_serialized(const Slic3r::ConfigBase* con
                 serialized += double_to_string(override_floats[i]);
             }
             out_serialized = serialized;
-            std::cerr << "[VortekPlateMapping] get_variant_override_serialized key=" << opt_key << " found in floats -> " << out_serialized << "\n";
             return true;
         }
     }
@@ -701,7 +633,6 @@ bool PlateMapping::get_variant_override_values(const Slic3r::ConfigBase* config,
         const auto& override_strings = it_str->second;
         if (override_strings.size() > 1) {
             out_values = override_strings;
-            std::cerr << "[VortekPlateMapping] get_variant_override_values key=" << opt_key << " found in strings, size=" << out_values.size() << "\n";
             return true;
         }
     }
@@ -717,7 +648,6 @@ bool PlateMapping::get_variant_override_values(const Slic3r::ConfigBase* config,
                 values.push_back(double_to_string(v));
             }
             out_values = std::move(values);
-            std::cerr << "[VortekPlateMapping] get_variant_override_values key=" << opt_key << " found in floats, size=" << out_values.size() << "\n";
             return true;
         }
     }
