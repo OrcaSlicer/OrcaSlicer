@@ -533,6 +533,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
         const auto     box_start_x = start_x + m_length_short + m_length_long + m_length_short + m_line_width;
         DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, fast);
         default_box_opt_args.is_filled = true;
+        default_box_opt_args.should_retract = false;
         gcode << draw_box(writer, box_start_x, start_y - m_space_y,
                           number_spacing() * 8, (num + 1) * m_space_y, default_box_opt_args);
         gcode << writer.travel_to_z(m_height_layer*2 + z_offset);
