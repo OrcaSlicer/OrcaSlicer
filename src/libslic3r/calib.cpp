@@ -360,7 +360,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 if (i % 2 == 0) {
                     x += spacing_45;
                     y = y_min_bound;                    
-                    comment = ""
+                    comment = "";
                     gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width * 0.05, line_arg_height, line_arg_speed, comment); 
 
                     x -= y_max_bound - y_min_bound;
@@ -375,7 +375,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                         x += spacing_45;
                     }
                     y = y_max_bound;
-                    comment = ""
+                    comment = "";
                     gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width * 0.05, line_arg_height, line_arg_speed, comment); 
 
                     x += y_max_bound - y_min_bound;
@@ -393,7 +393,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     } else {
                         y += spacing_45;
                     }
-                    comment = "when drawing the box infill, don't trigger the travel gcode that wastes time on retractions."
+                    comment = "when drawing the box infill, don't trigger the travel gcode that wastes time on retractions.";
                     gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width * 0.05, line_arg_height, line_arg_speed, comment); 
 
                     x = x_min_bound;
@@ -403,7 +403,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 } else {
                     x = x_min_bound;
                     y += spacing_45;
-                    comment = ""
+                    comment = "";
                     gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width * 0.05, line_arg_height, line_arg_speed, comment); 
 
                     x = x_max_bound;
@@ -420,7 +420,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 } else {
                     y += spacing_45;
                 }
-                comment = ""
+                comment = "";
                 gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width * 0.05, line_arg_height, line_arg_speed, comment); 
 
                 x -= y_max_bound - y;
@@ -434,7 +434,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x += spacing_45;
                 }
                 y = y_max_bound;
-                comment = ""
+                comment = "";
                 gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width * 0.05, line_arg_height, line_arg_speed, comment); 
 
                 y -= x_max_bound - x;
