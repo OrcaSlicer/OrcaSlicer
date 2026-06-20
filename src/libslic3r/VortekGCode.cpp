@@ -346,15 +346,21 @@ std::vector<int> GCode::remap_nozzle_ints_by_filament_vortek(const Slic3r::GCode
     auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<int>*>(
         gcode.m_config.option(key));
     if (opt) {
-        auto group_result = gcode.m_print ? gcode.m_print->get_layered_nozzle_group_result() : nullptr;
-        for (size_t i = 0; i < num_filaments; ++i) {
-            int extruder_id = 0;
-            if (group_result) {
-                auto nozzle_info = group_result->get_first_nozzle_for_filament((int)i);
-                if (nozzle_info)
-                    extruder_id = nozzle_info->extruder_id;
+        if (opt->values.size() >= num_filaments) {
+            for (size_t i = 0; i < num_filaments; ++i) {
+                dst[i] = opt->get_at(i);
             }
-            dst[i] = opt->get_at(extruder_id);
+        } else {
+            auto group_result = gcode.m_print ? gcode.m_print->get_layered_nozzle_group_result() : nullptr;
+            for (size_t i = 0; i < num_filaments; ++i) {
+                int extruder_id = 0;
+                if (group_result) {
+                    auto nozzle_info = group_result->get_first_nozzle_for_filament((int)i);
+                    if (nozzle_info)
+                        extruder_id = nozzle_info->extruder_id;
+                }
+                dst[i] = opt->get_at(extruder_id);
+            }
         }
     }
     return dst;
