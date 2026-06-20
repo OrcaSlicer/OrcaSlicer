@@ -1412,7 +1412,7 @@ public:
     // Returns scaling for each axis representing shrinkage compensations in each axis.
     Vec3d shrinkage_compensation() const { return m_shrinkage_compensation; }
 
-    std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
+    float object_skirt_offset() const;
 
 protected:
     struct FilamentIndexKey
