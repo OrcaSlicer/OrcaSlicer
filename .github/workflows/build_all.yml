@@ -97,6 +97,14 @@ jobs:
     name: Unit Tests
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
     needs: build_linux
+    # The "Publish Test Results" step (EnricoMi/publish-unit-test-result-action)
+    # creates a check run and PR comment. Without these scopes the default
+    # GITHUB_TOKEN is read-only on workflow_dispatch/push runs, so the step fails
+    # with "403 Resource not accessible by integration" even though every test
+    # passed. Grant only what that step needs.
+    permissions:
+      checks: write
+      pull-requests: write
     if: ${{ !cancelled() && success() }}
     steps:
       - name: Checkout
