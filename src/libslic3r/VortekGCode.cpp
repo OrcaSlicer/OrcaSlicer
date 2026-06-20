@@ -272,7 +272,7 @@ void GCode::apply_tcr_flush_config(const Slic3r::GCode& gcode, bool skip_cooling
     auto filament_max_v       = remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed",   nf);
     auto flush_temps          = remap_ints_by_filament_vortek(gcode,   "filament_flush_temp",             nf);
     auto cooling_before_tower = remap_floats_by_filament_vortek(gcode, "filament_cooling_before_tower",   nf);
-    auto range_highs          = remap_ints_by_filament_vortek(gcode,   "nozzle_temperature_range_high",   nf);
+    auto range_highs          = remap_nozzle_ints_by_filament_vortek(gcode,   "nozzle_temperature_range_high",   nf);
 
     for (size_t idx = 0; idx < nf; ++idx) {
         if (flush_v_speed[idx] == 0)
@@ -300,8 +300,13 @@ std::vector<double> GCode::remap_floats_by_filament_vortek(const Slic3r::GCode& 
         gcode.m_print->ori_full_print_config().option(key));
     for (size_t i = 0; i < num_filaments; ++i) {
         int idx = get_original_filament_index(gcode, (int)i);
-        if (opt && idx >= 0 && idx < (int)opt->values.size()) {
-            dst[i] = opt->get_at(idx);
+        if (opt) {
+            // For printer/nozzle options that are not expanded per-variant (size == num_filaments),
+            // fallback to the logical slot index `i` if the resolved variant index is out of bounds.
+            int final_idx = (idx >= 0 && idx < (int)opt->values.size()) ? idx : (int)i;
+            if (final_idx >= 0 && final_idx < (int)opt->values.size()) {
+                dst[i] = opt->get_at(final_idx);
+            }
         }
         // No m_config fallback: m_config may not have expanded ConfigOptionFloatsNullable
         // options correctly (BBL core skips nullable types in the expansion loop).
@@ -318,14 +323,39 @@ std::vector<int> GCode::remap_ints_by_filament_vortek(const Slic3r::GCode& gcode
         gcode.m_print->ori_full_print_config().option(key));
     for (size_t i = 0; i < num_filaments; ++i) {
         int idx = get_original_filament_index(gcode, (int)i);
-        if (opt && idx >= 0 && idx < (int)opt->values.size()) {
-            int val = opt->get_at(idx);
-            // ConfigOptionIntsNullable uses INT_MAX as the nil sentinel — treat nil as 0.
-            if (val != std::numeric_limits<int>::max())
-                dst[i] = val;
+        if (opt) {
+            // For printer/nozzle options that are not expanded per-variant (size == num_filaments),
+            // fallback to the logical slot index `i` if the resolved variant index is out of bounds.
+            int final_idx = (idx >= 0 && idx < (int)opt->values.size()) ? idx : (int)i;
+            if (final_idx >= 0 && final_idx < (int)opt->values.size()) {
+                int val = opt->get_at(final_idx);
+                // ConfigOptionIntsNullable uses INT_MAX as the nil sentinel — treat nil as 0.
+                if (val != std::numeric_limits<int>::max())
+                    dst[i] = val;
+            }
         }
         // No m_config fallback: m_config expansion is skipped for ConfigOptionIntsNullable
         // by BBL core (dynamic_cast<ConfigOptionInts*> fails for nullable template variant).
+    }
+    return dst;
+}
+
+std::vector<int> GCode::remap_nozzle_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments)
+{
+    std::vector<int> dst(num_filaments, 0);
+    auto opt = dynamic_cast<const Slic3r::ConfigOptionVector<int>*>(
+        gcode.m_config.option(key));
+    if (opt) {
+        auto group_result = gcode.m_print ? gcode.m_print->get_layered_nozzle_group_result() : nullptr;
+        for (size_t i = 0; i < num_filaments; ++i) {
+            int extruder_id = 0;
+            if (group_result) {
+                auto nozzle_info = group_result->get_first_nozzle_for_filament((int)i);
+                if (nozzle_info)
+                    extruder_id = nozzle_info->extruder_id;
+            }
+            dst[i] = opt->get_at(extruder_id);
+        }
     }
     return dst;
 }
@@ -377,9 +407,9 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
     }
     gcode.placeholder_parser().set("filament_map", new Slic3r::ConfigOptionInts(gcode.m_config.filament_map));
 
-    auto range_highs = remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", num_filaments);
+    auto range_highs = remap_nozzle_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", num_filaments);
     gcode.placeholder_parser().set("nozzle_temperature_range_high",    new Slic3r::ConfigOptionInts(range_highs));
-    gcode.placeholder_parser().set("nozzle_temperature_range_low",     new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_low", num_filaments)));
+    gcode.placeholder_parser().set("nozzle_temperature_range_low",     new Slic3r::ConfigOptionInts(remap_nozzle_ints_by_filament_vortek(gcode, "nozzle_temperature_range_low", num_filaments)));
 
     {
         auto flush_v_speed  = remap_floats_by_filament_vortek(gcode, "filament_flush_volumetric_speed", num_filaments);
@@ -494,7 +524,7 @@ void GCode::patch_toolchange_dyn_config(
     if (new_filament_id >= 0 && new_filament_id < (int)nf) {
         int interface_temp = gcode.m_config.filament_tower_interface_print_temp.get_at(new_filament_id);
         if (interface_temp == -1) {
-            auto range_highs = remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
+            auto range_highs = remap_nozzle_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
             interface_temp = range_highs[new_filament_id];
         }
         if (interface_temp > 0) {
@@ -517,7 +547,7 @@ void GCode::patch_toolchange_dyn_config(
     // nf-element array using the same max() logic.
     {
         auto flush_temps = remap_ints_by_filament_vortek(gcode, "filament_flush_temp", nf);
-        auto range_highs = remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
+        auto range_highs = remap_nozzle_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
 
         for (size_t i = 0; i < nf; ++i) {
             // BBL formula: flush_temperatures = max(filament_flush_temp, nozzle_temperature_range_high).

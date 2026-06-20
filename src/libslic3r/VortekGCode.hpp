@@ -116,6 +116,14 @@ public:
     static std::vector<int> remap_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments);
 
     /**
+     * @brief Builds a per-logical-slot vector of ints for a nozzle config key.
+     *
+     * Maps printer/nozzle config options to logical filament slots using
+     * physical extruder mapping.
+     */
+    static std::vector<int> remap_nozzle_ints_by_filament_vortek(const Slic3r::GCode& gcode, const std::string& key, size_t num_filaments);
+
+    /**
      * @brief Corrects scalar filament parameters in dyn_config for H2C multi-slot projects.
      *
      * GCode::set_extruder() computes old_filament_temp, old_filament_e_feedrate,
