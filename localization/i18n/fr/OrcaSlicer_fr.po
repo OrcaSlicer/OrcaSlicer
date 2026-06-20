@@ -7990,13 +7990,13 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr "Affiche les ombres portées sur la plaque dans la vue réaliste."
 
 msgid "Smooth normals"
-msgstr ""
+msgstr "Normales lissées"
 
 msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
-msgstr ""
+msgstr "Applique les normales lissées à la vue réaliste.\n\nNécessite un rechargement manuel de la scène pour prendre effet (clic droit sur la vue 3D → « Tout recharger »)."
 
 msgid "Anti-aliasing"
 msgstr "Anticrénelage"
@@ -12747,7 +12747,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Optimisation du biais de flambage en Z (expérimental)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Resserre l’onde gyroïde le long de l’axe Z (vertical) à faible densité de remplissage afin de raccourcir la longueur effective des colonnes verticales et d’améliorer la résistance au flambage en compression selon l’axe Z. La consommation de filament est préservée. Aucun effet à partir d’environ 30 % de densité de remplissage. S’applique uniquement lorsque le motif de remplissage est réglé sur Gyroïde."
 
@@ -12989,7 +12989,7 @@ msgid "Travel speed of the first layer."
 msgstr "Vitesse de déplacement de la couche initiale"
 
 msgid "Number of slow layers"
-msgstr ""
+msgstr "Nombre de couches lentes"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Les premières couches sont imprimées plus lentement que la normale. La vitesse augmente progressivement de manière linéaire sur le nombre de couches spécifié."
