@@ -272,12 +272,13 @@ void GCode::apply_tcr_flush_config(const Slic3r::GCode& gcode, bool skip_cooling
     auto filament_max_v       = remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed",   nf);
     auto flush_temps          = remap_ints_by_filament_vortek(gcode,   "filament_flush_temp",             nf);
     auto cooling_before_tower = remap_floats_by_filament_vortek(gcode, "filament_cooling_before_tower",   nf);
+    auto range_highs          = remap_ints_by_filament_vortek(gcode,   "nozzle_temperature_range_high",   nf);
 
     for (size_t idx = 0; idx < nf; ++idx) {
         if (flush_v_speed[idx] == 0)
             flush_v_speed[idx] = filament_max_v[idx];
         if (flush_temps[idx] == 0)
-            flush_temps[idx] = gcode.m_config.nozzle_temperature_range_high.get_at((int)idx);
+            flush_temps[idx] = range_highs[idx];
     }
     if (skip_cooling)
         std::fill(cooling_before_tower.begin(), cooling_before_tower.end(), 0.0);
@@ -341,26 +342,11 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
     gcode.placeholder_parser().set("filament_max_volumetric_speed",       new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed", num_filaments)));
     gcode.placeholder_parser().set("filament_pre_cooling_temperature",    new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature", num_filaments)));
 
-    // filament_pre_cooling_temperature_nc: H2C-specific field absent from third-party filament
-    // presets — their entries resolve to 0 via the nullable array. BBL empirically uses
-    // (nozzle_temperature - 60) as the pre-cooling floor for unknown filaments:
-    //   PA  @ 280°C → P220  (BBL reference confirms)
-    //   ASA @ 270°C → P210  (if unset; ASA preset normally has this field set to 230)
-    // This avoids M620.15 P0 which is illegal and stalls the FTS sequence.
-    {
-        auto pre_cool_nc  = remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature_nc", num_filaments);
-        auto nozzle_temps = remap_ints_by_filament_vortek(gcode, "nozzle_temperature", num_filaments);
-        for (size_t i = 0; i < num_filaments; ++i) {
-            if (pre_cool_nc[i] == 0 && i < nozzle_temps.size() && nozzle_temps[i] > 0) {
-                // BBL formula: pre_cool_nc = print_temp - 60, floor at 150°C.
-                int fb = nozzle_temps[i] - 60;
-                if (fb >= 150)
-                    pre_cool_nc[i] = fb;
-            }
-        }
-        gcode.placeholder_parser().set("filament_pre_cooling_temperature_nc",
-            new Slic3r::ConfigOptionInts(pre_cool_nc));
-    }
+    // filament_pre_cooling_temperature_nc: pass through as-is from preset.
+    // BBL empirically outputs P0 when the preset value is 0 (e.g. PA filament) —
+    // firmware handles nil values internally. No synthetic fallback.
+    gcode.placeholder_parser().set("filament_pre_cooling_temperature_nc",
+        new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature_nc", num_filaments)));
 
     gcode.placeholder_parser().set("filament_ramming_travel_time",       new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_ramming_travel_time", num_filaments)));
     gcode.placeholder_parser().set("filament_ramming_travel_time_nc",    new Slic3r::ConfigOptionFloats(remap_floats_by_filament_vortek(gcode, "filament_ramming_travel_time_nc", num_filaments)));
@@ -391,32 +377,23 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
     }
     gcode.placeholder_parser().set("filament_map", new Slic3r::ConfigOptionInts(gcode.m_config.filament_map));
 
+    auto range_highs = remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", num_filaments);
+    gcode.placeholder_parser().set("nozzle_temperature_range_high",    new Slic3r::ConfigOptionInts(range_highs));
+    gcode.placeholder_parser().set("nozzle_temperature_range_low",     new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_low", num_filaments)));
+
     {
         auto flush_v_speed  = remap_floats_by_filament_vortek(gcode, "filament_flush_volumetric_speed", num_filaments);
         auto filament_max_v = remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed", num_filaments);
         auto flush_temps    = remap_ints_by_filament_vortek(gcode, "filament_flush_temp", num_filaments);
-        // nozzle_temperature_range_high is an extruder option (compressed to physical extruder count
-        // in m_config). Use physical extruder_id to index it, not the filament slot 'i'.
-        auto group_result_f = gcode.m_print ? gcode.m_print->get_layered_nozzle_group_result() : nullptr;
-        auto nozzle_temp_range_opt = dynamic_cast<const Slic3r::ConfigOptionInts*>(gcode.m_config.option("nozzle_temperature_range_high"));
         for (size_t i = 0; i < num_filaments; ++i) {
             if (flush_v_speed[i] == 0)
                 flush_v_speed[i] = filament_max_v[i];
-            // BBL computes flush_temperatures as max(filament_flush_temp, nozzle_temperature_range_high).
-            // This ensures the flush uses the full thermal capability of the nozzle.
-            // Example: ASA filament_flush_temp=270, but ASA nozzle range_high=280 → BBL outputs T280.
-            //          Third-party PA filament_flush_temp=0, PA nozzle range_high=280 → BBL outputs T280.
-            if (nozzle_temp_range_opt) {
-                int extruder_id = 0;
-                if (group_result_f) {
-                    auto nozzle_info = group_result_f->get_first_nozzle_for_filament((int)i);
-                    if (nozzle_info)
-                        extruder_id = nozzle_info->extruder_id;
-                }
-                int range_high = nozzle_temp_range_opt->get_at(extruder_id);
-                if (range_high > 0)
-                    flush_temps[i] = std::max(flush_temps[i], range_high);
-            }
+            // BBL formula: flush_temperatures = max(filament_flush_temp, nozzle_temperature_range_high).
+            // Remap nozzle_temperature_range_high using variant-aware logic to bypass the
+            // compressed m_config (which has size 2 for H2C).
+            int range_high = range_highs[i];
+            if (range_high > 0)
+                flush_temps[i] = std::max(flush_temps[i], range_high);
         }
         gcode.placeholder_parser().set("flush_volumetric_speeds", new Slic3r::ConfigOptionFloats(flush_v_speed));
         gcode.placeholder_parser().set("flush_temperatures",      new Slic3r::ConfigOptionInts(flush_temps));
@@ -425,7 +402,7 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
 
 void GCode::patch_toolchange_dyn_config(
     Slic3r::DynamicConfig&  dyn_config,
-    const Slic3r::GCode&    gcode,
+    Slic3r::GCode&          gcode,
     int                     old_filament_id,
     int                     new_filament_id,
     float                   filament_area
@@ -509,6 +486,56 @@ void GCode::patch_toolchange_dyn_config(
         if (nc_len > 0.f)
             dyn_config.set_key_value("filament_retract_length_nc",
                 new Slic3r::ConfigOptionFloat(nc_len));
+    }
+
+    // --- filament_tower_interface_print_temp ---------------------------------
+    // This temperature fallback should also use the correct slot-specific
+    // nozzle_temperature_range_high instead of clamping on compressed m_config.
+    if (new_filament_id >= 0 && new_filament_id < (int)nf) {
+        int interface_temp = gcode.m_config.filament_tower_interface_print_temp.get_at(new_filament_id);
+        if (interface_temp == -1) {
+            auto range_highs = remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
+            interface_temp = range_highs[new_filament_id];
+        }
+        if (interface_temp > 0) {
+            dyn_config.set_key_value("filament_tower_interface_print_temp", new Slic3r::ConfigOptionInt(interface_temp));
+            gcode.placeholder_parser().set("filament_tower_interface_print_temp", new Slic3r::ConfigOptionInt(interface_temp));
+        }
+    }
+
+    // --- flush_temperatures --------------------------------------------------
+    // GCode::set_extruder() writes a compressed nozzle-count-sized (2-element)
+    // flush_temperatures array into dyn_config from m_config.filament_flush_temp.
+    // The template indexes it as flush_temperatures[current_extruder] where
+    // current_extruder is the logical filament slot (0-6), so get_at() clamps
+    // to the last element → always returns the slot-1 value (e.g. 270 for ASA).
+    //
+    // BBL computes flush_temperatures as max(filament_flush_temp, nozzle_temperature_range_high):
+    //   ASA: flush_temp=270, range_high=280 → 280.
+    //
+    // Fix: overwrite dyn_config["flush_temperatures"] with the correctly remapped
+    // nf-element array using the same max() logic.
+    {
+        auto flush_temps = remap_ints_by_filament_vortek(gcode, "filament_flush_temp", nf);
+        auto range_highs = remap_ints_by_filament_vortek(gcode, "nozzle_temperature_range_high", nf);
+
+        for (size_t i = 0; i < nf; ++i) {
+            // BBL formula: flush_temperatures = max(filament_flush_temp, nozzle_temperature_range_high).
+            // Remap nozzle_temperature_range_high using variant-aware logic to bypass the
+            // compressed m_config (which has size 2 for H2C).
+            int range_high = range_highs[i];
+            if (range_high > 0)
+                flush_temps[i] = std::max(flush_temps[i], range_high);
+        }
+        // Overwrite dyn_config (covers [variable] bracket substitutions)
+        // AND placeholder_parser (covers {expression} curly-brace evaluator).
+        // Both are needed: GCode::set_extruder() writes the wrong 2-element
+        // compressed array via L8596, and the {expr} evaluator reads from
+        // placeholder_parser which is set per-layer from m_config (same 2-elem).
+        dyn_config.set_key_value("flush_temperatures",
+            new Slic3r::ConfigOptionInts(flush_temps));
+        gcode.placeholder_parser().set("flush_temperatures",
+            new Slic3r::ConfigOptionInts(flush_temps));
     }
 }
 

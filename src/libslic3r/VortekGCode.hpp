@@ -134,7 +134,7 @@ public:
      */
     static void patch_toolchange_dyn_config(
         Slic3r::DynamicConfig&    dyn_config,
-        const Slic3r::GCode&      gcode,
+        Slic3r::GCode&            gcode,
         int                        old_filament_id,
         int                        new_filament_id,
         float                      filament_area
