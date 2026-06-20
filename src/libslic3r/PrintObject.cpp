@@ -1690,21 +1690,57 @@ void PrintObject::detect_surfaces_type()
                         }
                     }
 
-                    // ORCA: Fill the direct spaces between top surfaces left by raised features so the top
-                    // solid infill covers a larger, more continuous area. This is a morphological closing
-                    // of the top surfaces (grow then shrink back by the same distance): it bridges the
-                    // covered gaps that lie directly between two top surfaces and are narrower than ~2x the
-                    // distance, while leaving dead-end gaps and the outer edge untouched. The result is
-                    // clipped to the solid material so the fill never crosses a void or runs out to the
-                    // external perimeter, and bottom surfaces are excluded so they are not turned into top.
+                    // ORCA: Grow the top surfaces over the covered material left by raised features so the
+                    // top solid infill covers a larger, more continuous area. Two complementary operations,
+                    // both driven by the configured distance d:
+                    //   (1) Holes inside a top surface (enclosed feature footprints) are reduced by d: each
+                    //       interior hole is shrunk inward, so the surrounding top grows over a d-wide band.
+                    //   (2) Gaps between two *different* top regions are unioned: each region is expanded
+                    //       outward by 2*d and only the area where two regions' expansions overlap is kept,
+                    //       so a region never just expands on its own and the overlap fully spans any gap
+                    //       narrower than 2*d (instead of leaving a thin sliver).
+                    // The combined fill is clipped to the solid material (never crossing a void) and excludes
+                    // bottom surfaces, then merged back into the top.
                     const double hole_contraction = layerm->region().config().top_surface_hole_contraction.value;
                     if (hole_contraction > 0. && ! top.empty()) {
                         const double     d           = scale_(hole_contraction);
+                        const auto       jt          = Clipper2Lib::JoinType::Miter;
                         const ExPolygons top_expolys = to_expolygons(top);
+                        const ExPolygons comps       = union_ex(top_expolys); // connected top regions
                         const ExPolygons solid       = union_ex(layerm_slices_surfaces);
-                        const ExPolygons closed      = offset_ex_2(offset_ex_2(top_expolys, d, Clipper2Lib::JoinType::Miter),
-                                                                   -d, Clipper2Lib::JoinType::Miter);
-                        ExPolygons new_top = diff_ex(intersection_ex(closed, solid), to_expolygons(bottom));
+
+                        ExPolygons new_top = top_expolys;
+
+                        // (1) Reduce the holes inside the top surfaces by d. Growing a region by d shrinks
+                        //     its holes by d; clipping the grown region back to its own (hole-free) outline
+                        //     keeps the outer edge fixed, so only the holes contract. Restricted to the
+                        //     solid material so real voids (through-holes) are never covered. This stands on
+                        //     its own and does not rely on the overlap step below.
+                        ExPolygons outlines; // top outlines with their holes filled
+                        outlines.reserve(comps.size());
+                        for (const ExPolygon &ex : comps)
+                            outlines.emplace_back(ex.contour);
+                        outlines = union_ex(outlines);
+                        const ExPolygons reduced = intersection_ex(offset_ex_2(comps, d, jt), outlines);
+                        append(new_top, intersection_ex(diff_ex(reduced, comps), solid));
+
+                        // (2) Union separate top regions across the gaps between them: expand each region
+                        //     outward by 2d and keep ONLY the area where two different regions' expansions
+                        //     overlap (the gap material between them), so a region never expands on its own.
+                        if (comps.size() >= 2) {
+                            ExPolygons seen, overlap;
+                            for (const ExPolygon &c : comps) {
+                                const ExPolygons e = offset_ex_2(ExPolygons{ c }, d, jt);
+                                append(overlap, intersection_ex(e, seen));
+                                ExPolygons merged = seen;
+                                append(merged, e);
+                                seen = union_ex(merged);
+                            }
+                            append(new_top, intersection_ex(union_ex(overlap), solid));
+                        }
+
+                        // Combine, and never claim a bottom surface.
+                        new_top = diff_ex(union_ex(new_top), to_expolygons(bottom));
                         top.clear();
                         surfaces_append(top, std::move(new_top), stTop);
                     }
