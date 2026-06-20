@@ -126,7 +126,7 @@
 		"0"
 	],
 	"machine_pause_gcode": "M600",
-	"machine_start_gcode": "M104 S140\nM190 S[first_layer_bed_temperature]\nM109 S{temperature_vitrification[0]}\nG28;\nG1 X180 Y247 Z10 F5000\nSET_KINEMATIC_POSITION Y=0\nG1 Y11 F4000\nG1 X180 F4000\nG1 Z-1 F600 \nG1 X230 F4000\nG1 Y15 F4000\nG1 X180 F4000\nG92 E0\nG1 Z10 F1200\nG1 Y0 F5000\nG1 E-1 F3000\nM400\nSET_KINEMATIC_POSITION Y=247\nG92 E-1\nM140 S[first_layer_bed_temperature];\nM104 S[first_layer_temperature];\nG1 X0 Y0.8 Z0.8 F18000\nG92 E0\nG1 X0 Y0.8 Z0.3 E8 F600\nG92 E0\nG1 X170 Y0.8 Z0.3 F1800.0 E17.0;draw line\nG92 E0\nG1 X170 Y0 Z0.3 F1800.0 E0.08;draw line\nG92 E0\nG1 X70 Y0 Z0.3 F1800.0 E10.0;draw line\nG92 E0\nG1 X70 Y1.6 Z0.3 F1800.0 E0.16;draw line\nG92 E0\nG1 X150 Y1.6 Z0.3 F1800.0 E8;draw line\nG92 E0\nG1 X150 Y0 Z0.3 F1800.0 E0.16;draw line\nG92 E0\nG1 E-1 Z5 F18000\nG92 E0\n",
+	"machine_start_gcode": "M104 S140\nM190 S[first_layer_bed_temperature]\nM109 S{temperature_vitrification[0]}\nG28;\nG1 X180 Y247 Z10 F5000\nSET_KINEMATIC_POSITION Y=0\nG1 Y11 F4000\nG1 X180 F4000\nG1 Z-1 F600 \nG1 X230 F4000\nG1 Y15 F4000\nG1 X180 F4000\nG92 E0\nG1 Z10 F1200\nG1 Y0 F5000\nG1 E-1 F3000\nM400\nSET_KINEMATIC_POSITION Y=247\nG92 E-1\nM140 S[first_layer_bed_temperature];\nM109 S[first_layer_temperature];\nG1 X0 Y0.8 Z0.8 F18000\nG92 E0\nG1 X0 Y0.8 Z0.3 E8 F600\nG92 E0\nG1 X170 Y0.8 Z0.3 F1800.0 E17.0;draw line\nG92 E0\nG1 X170 Y0 Z0.3 F1800.0 E0.08;draw line\nG92 E0\nG1 X70 Y0 Z0.3 F1800.0 E10.0;draw line\nG92 E0\nG1 X70 Y1.6 Z0.3 F1800.0 E0.16;draw line\nG92 E0\nG1 X150 Y1.6 Z0.3 F1800.0 E8;draw line\nG92 E0\nG1 X150 Y0 Z0.3 F1800.0 E0.16;draw line\nG92 E0\nG1 E-1 Z5 F18000\nG92 E0\n",
 	"machine_unload_filament_time": "0",
 	"manual_filament_change": "0",
 	"max_layer_height": [
