@@ -671,6 +671,7 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
                     std::string(buf), Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::FilamentChangePredict);
             }
             curr_filament = fb.filament_id;
+        }
     }
 
     size_t valid_machine_id = 0;
