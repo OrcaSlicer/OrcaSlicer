@@ -8646,6 +8646,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (!change_filament_gcode.empty() && !(m_config.manual_filament_change.value && m_toolchange_count == 1)) {
         dyn_config.set_key_value("toolchange_z", new ConfigOptionFloat(print_z));
 
+        // H2C Vortek: correct filament temperatures, feedrates, and retract lengths
+        // that were computed above from the compressed m_config (2-slot) but need
+        // to reflect the correct logical slot (0–6 for a 7-slot project).
+        if (is_h2c_multi_nozzle) {
+            Vortek::GCode::patch_toolchange_dyn_config(
+                dyn_config, *this, old_filament_id, (int)new_filament_id, filament_area);
+        }
+
         toolchange_gcode_parsed = placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &dyn_config);
         check_add_eol(toolchange_gcode_parsed);
         gcode += toolchange_gcode_parsed;
