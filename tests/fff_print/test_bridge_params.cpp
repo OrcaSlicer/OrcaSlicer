@@ -201,3 +201,41 @@ SCENARIO("Scenario 2: bridge spanning between supports", "[Bridge][Param][Scenar
         }
     }
 }
+
+// ============================================================================
+// Band-width validation: does precise_outer_wall / wall sequence change the
+// bridge inset band? (Investigating the "extra 1/2 nozzle" observation.)
+// ============================================================================
+
+SCENARIO("Bridge band vs precise_outer_wall and wall sequence", "[Bridge][Param][Band]")
+{
+    auto span = [](const std::string &seq, const std::string &precise) -> double {
+        DynamicPrintConfig c = DynamicPrintConfig::full_print_config();
+        c.set_deserialize_strict({
+            { "layer_height", 0.2 }, { "initial_layer_print_height", 0.2 },
+            { "bottom_shell_layers", 1 }, { "top_shell_layers", 0 },
+            { "sparse_infill_density", 0 }, { "thick_bridges", false },
+            { "wall_generator", "classic" }, { "wall_loops", 3 },
+        });
+        c.set_deserialize_strict("wall_sequence", seq);
+        c.set_deserialize_strict("precise_outer_wall", precise);
+        Slic3r::Print print;
+        TriangleMesh m = Slic3r::Test::mesh(TestMesh::bridge); m.align_to_origin();
+        Slic3r::Test::init_and_process_print({m}, print, c);
+        double z = find_first_bridge_z(print);
+        return perimeter_role_x_span_at_z(print, z, erBridgePerimeter);
+    };
+    GIVEN("Bridge mesh sliced under the bridging-test wall config")
+    {
+        double ioi_off = span("inner-outer-inner wall", "0");
+        double ioi_on  = span("inner-outer-inner wall", "1");  // 3mf's config (precise ignored)
+        double io_off  = span("inner wall/outer wall", "0");
+        double io_on   = span("inner wall/outer wall", "1");   // precise ACTIVE here
+        std::cerr << "[BAND] inner-outer-inner: precise0=" << ioi_off << " precise1=" << ioi_on
+                  << "  | inner-outer: precise0=" << io_off << " precise1=" << io_on << std::endl;
+        THEN("precise_outer_wall is a no-op under inner-outer-inner (the 3mf's sequence)")
+        {
+            REQUIRE(ioi_on == Catch::Approx(ioi_off));
+        }
+    }
+}
