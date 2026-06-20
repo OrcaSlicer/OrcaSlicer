@@ -487,7 +487,6 @@ void GroupReorder::reorder_extruders(
 {
     if (support_multi_nozzle && tool_ordering.m_print->get_layered_nozzle_group_result()) {
         if (tool_ordering.m_print->is_dynamic_group_reorder()) {
-            BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Using dynamic GroupReorder (per combo range)";
 
             auto layer_data = tool_ordering.collect_layer_and_unprintable_data();
 
@@ -519,7 +518,6 @@ void GroupReorder::reorder_extruders(
                         filament_sequences[layer_id].begin(), [](int v){ return (unsigned int)v; });
                 }
                 tool_ordering.m_nozzle_status = best_nozzle_status;
-                BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Dynamic plan produced " << dynamic_plan_res.size() << " layer results";
 
                 // H2C FIX: Reconstruct and update LayeredNozzleGroupResult with the per-layer nozzle maps.
                 // Without this, the wipe tower and post-processing steps fallback to default mapping and
@@ -542,13 +540,9 @@ void GroupReorder::reorder_extruders(
                     tool_ordering.m_print->set_nozzle_group_result(
                         std::make_shared<Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult>(*new_layered_result_opt)
                     );
-                    BOOST_LOG_TRIVIAL(info) << "[H2C-GR] Updated Print's LayeredNozzleGroupResult with dynamic layer maps. Size: "
-                                           << layer_filament_nozzle_maps.size();
                 } else {
-                    BOOST_LOG_TRIVIAL(error) << "[H2C-GR] Failed to create new LayeredNozzleGroupResult from dynamic plan";
                 }
             } else {
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-GR] Dynamic plan empty, falling back to static reorder";
                 Slic3r::reorder_filaments_for_multi_nozzle_extruder(
                     filament_lists,
                     *tool_ordering.m_print->get_layered_nozzle_group_result(),

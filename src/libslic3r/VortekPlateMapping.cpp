@@ -327,15 +327,6 @@ void PlateMapping::patch_plate_data_for_export(
         }
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: "
-            << "filament_nozzle_map=" << nm_str
-            << " filament_maps=" << fm_str
-            << " filament_volume_map=" << vm_str
-            << " reassigned=" << rn_str
-            << " slice_filaments_info.size=" << plate_data->slice_filaments_info.size()
-            << " nozzle_group_result.has_value=" << plate_data->nozzle_group_result.has_value()
-            << " use_lngr=" << (use_lngr ? "true" : "false");
-    }
 
     // Second pass: patch each FilamentInfo and build the nozzle list
     for (auto& fil_info : plate_data->slice_filaments_info) {
@@ -386,10 +377,6 @@ void PlateMapping::patch_plate_data_for_export(
     // ── CRITICAL: Reset nozzle_group_result so Tier 1 is skipped ──
     plate_data->nozzle_group_result.reset();
 
-    BOOST_LOG_TRIVIAL(info) << "Vortek::patch_plate_data_for_export: patched "
-                            << plate_data->slice_filaments_info.size() << " filaments, "
-                            << plate_data->nozzles_info.size() << " nozzles for H2C export"
-                            << " (source=" << (use_lngr ? "LNGR" : "sequential") << ", Tier 2)";
 }
 
 void PlateMapping::handle_h2c_mapping_apply(
@@ -424,7 +411,7 @@ void PlateMapping::handle_h2c_mapping_apply(
     }
 
     if (presets_changed) {
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Filament presets/properties changed. Invalidating and clearing old filament maps.";
+
         
         // Reset mapping values in incoming config to trigger cyclic reset and full recalculation
         std::fill(opt_new_nozzle_map->values.begin(), opt_new_nozzle_map->values.end(), 0);
@@ -455,8 +442,7 @@ void PlateMapping::handle_h2c_mapping_apply(
             opt_new_nozzle_map->values.size() == opt_old_nozzle_map->values.size()) {
             
             auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Preserving calculated filament mappings: nozzle_map="
-                                       << fmt(opt_old_nozzle_map->values);
+
 
             opt_new_nozzle_map->values = opt_old_nozzle_map->values;
 
@@ -476,7 +462,7 @@ void PlateMapping::handle_h2c_mapping_apply(
                     opt_new_volume_map->values = opt_old_volume_map->values;
                 }
             } else {
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] Manual filament mapping active. Keeping user-specified filament_map and filament_volume_map.";
+
             }
         } else {
             // Otherwise (clean start), initialize cyclic nozzle assignment on the Vortek carousel.
@@ -507,8 +493,7 @@ void PlateMapping::handle_h2c_mapping_apply(
             }
             {
                 auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C printer active. Initializing zero filament nozzle map with cyclic mapping: "
-                                           << fmt(opt_new_nozzle_map->values) << " (nozzle_count=" << nozzle_count << ")";
+
             }
         }
     }
@@ -546,8 +531,7 @@ void PlateMapping::handle_h2c_print_diff(
         if (opt_new) {
             full_print_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map", true)->set(opt_new);
             config.filament_nozzle_map = *opt_new;
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] H2C active: synced filament_nozzle_map to m_config: "
-                                       << opt_new->serialize();
+
         }
     }
 }

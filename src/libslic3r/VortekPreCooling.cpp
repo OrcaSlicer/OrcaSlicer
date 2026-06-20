@@ -305,7 +305,6 @@ void PreCooling::inject_cooling_heating_command(
 
     if (apply_cooling_when_partial_free) {
         float max_cooling_temp = std::min(curr_temp, std::min(get_partial_free_cooling_thres(block.last_filament_id), partial_free_time_gap * ext_cooling_rate));
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": partial cooling for %1% %2%") % max_cooling_temp % curr_temp;
         curr_temp = std::max(reuse_cool_floor, curr_temp - max_cooling_temp);
         add_M104_lines(block.partial_free_lower_id, extruder_id, curr_temp, block.last_filament_id, false, block.next_filament_id, block.next_nozzle_id, Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::PreCooling, "Multi extruder pre cooling in post extrusion");
     }
@@ -672,8 +671,6 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
                     std::string(buf), Slic3r::GCodeProcessor::TimeProcessor::InsertLineType::FilamentChangePredict);
             }
             curr_filament = fb.filament_id;
-        }
-        BOOST_LOG_TRIVIAL(info) << "M73 E: total filament changes = " << total_filament_count;
     }
 
     size_t valid_machine_id = 0;
@@ -725,7 +722,6 @@ Slic3r::GCodeProcessor::TimeProcessor::InsertedLinesMap PreCooling::run_pre_scan
     pre_cooling_injector->build_extruder_free_blocks(filament_blocks, extruder_blocks);
     pre_cooling_injector->process_pre_cooling_and_heating(precooling_inserted_lines);
 
-    BOOST_LOG_TRIVIAL(info) << "PreCoolingInjector: generated " << precooling_inserted_lines.size() << " injection points";
 
     std::fseek(f, 0, SEEK_SET);
     return precooling_inserted_lines;

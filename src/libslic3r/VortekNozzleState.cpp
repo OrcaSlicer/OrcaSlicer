@@ -55,30 +55,17 @@ std::unordered_map<int, int> NozzleState::match_nozzle_colors_to_filaments(
         for (size_t idx = 0; idx < preset_normalized.size(); ++idx) {
             if (preset_normalized[idx] == normalized_device) {
                 result[nozzle_id] = static_cast<int>(idx);
-                BOOST_LOG_TRIVIAL(info)
-                    << "[H2C-NozzleState] nozzle " << nozzle_id
-                    << " color " << device_color << " → filament " << idx
-                    << " (preset: " << preset_filament_colours[idx] << ")";
                 break;
             }
         }
-
-        if (result.find(nozzle_id) == result.end()) {
-            BOOST_LOG_TRIVIAL(info)
-                << "[H2C-NozzleState] nozzle " << nozzle_id
-                << " color " << device_color << " (" << normalized_device
-                << ") — no preset match found, skipping";
-        }
     }
-
-    BOOST_LOG_TRIVIAL(info)
-        << "[H2C-NozzleState] matched " << result.size()
-        << " of " << device_nozzle_colors.size() << " nozzles to preset filaments";
 
     return result;
 }
 
-    return print->get_device_nozzle_status();
+std::unordered_map<int, int> NozzleState::resolve_for_print(const Slic3r::Print* print)
+{
+    return print ? print->get_device_nozzle_status() : std::unordered_map<int, int>{};
 }
 
 } // namespace Vortek
