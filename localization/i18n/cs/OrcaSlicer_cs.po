@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -90,11 +90,11 @@ msgstr "Verze:"
 msgid "Latest version"
 msgstr "Nejnovější verze"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "Malování podpory"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "Použít"
 
@@ -104,7 +104,7 @@ msgstr "Pouze na zvýrazněné převisy"
 msgid "Erase all"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "Zvýraznit oblasti s převisem"
 
@@ -175,7 +175,7 @@ msgstr "Žádné automatické podpory"
 msgid "Done"
 msgstr "Hotovo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "Vygenerovaná podpora"
 
@@ -191,7 +191,7 @@ msgstr ""
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Umístit na plochu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "Položit na plochu"
 
@@ -199,7 +199,7 @@ msgstr "Položit na plochu"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "Počet filamentů překračuje maximální počet podporovaný nástrojem pro malování. V nástroji pro malování bude dostupných pouze prvních %1% filamentů."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "Malování barvou"
 
@@ -366,34 +366,34 @@ msgstr "Otočit (relativně)"
 msgid "Scale ratios"
 msgstr "Poměry měřítka"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Operace s objektem"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Operace s hlasitostí"
 
 msgid "Translate"
 msgstr "Přeložit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "Skupinové operace"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "Nastavit orientaci"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "Nastavit měřítko"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "Obnovit pozici"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "Resetovat rotaci"
 
@@ -690,7 +690,7 @@ msgstr "Konektor"
 msgid "Cut by Plane"
 msgstr "Řezat podle roviny"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "Neuzavřené hrany byly způsobeny nástrojem pro řezání. Chcete je nyní opravit?"
 
@@ -759,7 +759,7 @@ msgstr "%d trojúhelníků"
 msgid "Show wireframe"
 msgstr "Zobrazit drátový model"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "Nelze použít při zpracování náhledu."
 
@@ -784,7 +784,7 @@ msgstr "Malování švu"
 msgid "Remove selection"
 msgstr "Odstranit výběr"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "Režim malování švu"
 
@@ -808,7 +808,7 @@ msgstr "Mezera textu"
 msgid "Angle"
 msgstr "Úhel"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Embedded depth"
 msgstr ""
 "Vložená\n"
@@ -1611,7 +1611,7 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "Upozornění"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "Nedefinováno"
 
@@ -1634,11 +1634,12 @@ msgstr ""
 msgid "Machine"
 msgstr "Zařízení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "Balíček konfigurace byl načten, ale některé hodnoty nebyly rozpoznány."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Konfigurační soubor \"%1%\" byl načten, ale některé hodnoty nebyly rozpoznány."
 
@@ -1820,7 +1821,7 @@ msgstr ""
 msgid "Some presets are modified."
 msgstr "Některé předvolby byly upraveny."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Upravené předvolby můžete ponechat v novém projektu, zahodit je, nebo změny uložit jako nové předvolby."
 
@@ -2024,7 +2025,8 @@ msgstr "Přejmenovat"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Inicializace grafického rozhraní Orca Slicer selhala"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Fatální chyba, zachycena výjimka: %1%"
 
@@ -2049,22 +2051,22 @@ msgstr "Rychlost"
 msgid "Strength"
 msgstr "Pevnost"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "Horní plné vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "Minimální tloušťka horního pláště"
 
 msgid "Top Surface Density"
 msgstr "Hustota horního povrchu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "Počet pevných spodních vrstev"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "Minimální tloušťka spodního pláště"
 
@@ -2080,7 +2082,7 @@ msgstr ""
 msgid "Extruders"
 msgstr "Extrudery"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "Šířka extruze"
 
@@ -2090,23 +2092,23 @@ msgstr "Možnosti očištění"
 msgid "Bed adhesion"
 msgstr "Přilnavost k podložce"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "Přidat díl"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "Přidat negativní díl"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "Přidat modifikátor"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "Přidat blokátor podpory"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "Přidat vynucovač podpory"
 
@@ -2206,15 +2208,15 @@ msgstr ""
 msgid "Text"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "Modifikátor rozsahu výšky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "Přidat nastavení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "Změnit typ"
 
@@ -2230,11 +2232,11 @@ msgstr "Zesilovač podpory"
 msgid "Change part type"
 msgstr "Změnit typ části"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "Nastavit jako individuální objekt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "Nastavit jako individuální objekty"
 
@@ -2253,7 +2255,7 @@ msgstr "Automatické položení"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "Automaticky položí vybraný objekt na podložku"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "Opravit model"
 
@@ -2324,19 +2326,19 @@ msgstr "Propláchnout do podpory objektů"
 msgid "Edit in Parameter Table"
 msgstr "Upravit v tabulce parametrů"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "Převést z palců"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "Obnovit na palce"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "Převést z metrů"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Obnovit na metry"
 
@@ -2352,31 +2354,31 @@ msgstr "Booleovská operace se sítí"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Booleovské operace se sítí včetně sjednocení a odečtení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "Podél osy X"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "Zrcadlit podle osy X"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "Podél osy Y"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "Zrcadlit podle osy Y"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "Podél osy Z"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "Zrcadlit podle osy Z"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "Zrcadlit objekt"
 
@@ -2407,14 +2409,14 @@ msgstr "Přidat modely"
 msgid "Show Labels"
 msgstr "Zobrazit popisky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "Na objekty"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Rozdělit vybraný objekt na více objektů"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "Na části"
 
@@ -2442,7 +2444,7 @@ msgstr "Sloučit s"
 msgid "Delete this filament"
 msgstr "Smazat tento filament"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "Vybrat vše"
 
@@ -2455,7 +2457,7 @@ msgstr "Vybrat všechny desky"
 msgid "Select all objects on all plates"
 msgstr "Vybrat všechny objekty na všech deskách"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "Smazat vše"
 
@@ -2591,25 +2593,25 @@ msgstr[2] "%1$d non-manifold hrany"
 msgid "Click the icon to repair model object"
 msgstr "Kliknutím na ikonu opravíte modelový objekt."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "Klikněte pravým tlačítkem na ikonu pro odebrání nastavení objektu"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "Kliknutím na ikonu obnovíte všechna nastavení objektu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "Klikněte pravým tlačítkem na ikonu pro odebrání tisknutelnosti objektu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Kliknutím na ikonu přepnete tisknutelnost objektu."
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "Kliknutím na ikonu upravíte malování podpěr objektu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "Kliknutím na ikonu upravíte barevné malování objektu."
 
@@ -2649,7 +2651,7 @@ msgstr "Smazat záporný objem z objektu, který je součástí řezu"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "Pro uložení přiřazení řezů můžete odstranit všechny konektory ze všech souvisejících objektů."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2682,15 +2684,15 @@ msgstr "Manipulace s objektem"
 msgid "Group manipulation"
 msgstr "Manipulace se skupinou"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "Nastavení objektu k úpravě"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "Nastavení části k úpravě"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "Nastavení rozsahu vrstev pro úpravu"
 
@@ -2718,7 +2720,7 @@ msgstr "Pokud je první vybraná položka objekt, druhá by měla být také obj
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Pokud je první vybraná položka část, druhá by měla být částí ve stejném objektu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Typ poslední pevné části objektu nelze měnit."
 
@@ -2839,19 +2841,19 @@ msgstr "Typ čáry"
 msgid "1x1 Grid: %d mm"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "Více"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "Otevřít předvolby."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "Otevřít další tip."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "Otevřít dokumentaci ve webovém prohlížeči."
 
@@ -2882,11 +2884,11 @@ msgstr "vlastní G-code"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "Zadejte vlastní G-code použitý na aktuální vrstvě:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "Přejít na vrstvu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "Zadejte číslo vrstvy."
 
@@ -2965,14 +2967,14 @@ msgstr "Připojování..."
 msgid "Auto Refill"
 msgstr "Automatické doplnění"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "Načíst"
 
 msgid "Unload"
 msgstr "Vysunout"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Vyberte slot AMS a poté stiskněte tlačítko \"Načíst\" nebo \"Vysunout\" pro automatické zavedení nebo vysunutí filamentů."
 
@@ -3082,7 +3084,7 @@ msgstr "Nahřát trysku"
 msgid "Cut filament"
 msgstr "Odříznout filament"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "Vysunout aktuální filament"
 
@@ -3122,7 +3124,7 @@ msgstr ""
 msgid "No matching items..."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "Odznačit vše"
 
@@ -3179,7 +3181,7 @@ msgstr "Uspořádání"
 msgid "Arranging canceled."
 msgstr "Uspořádání zrušeno."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Uspořádání bylo dokončeno, ale jsou zde nerozbalené položky. Snižte rozestupy a zkuste to znovu."
 
@@ -3247,7 +3249,7 @@ msgstr "Přihlášení se nezdařilo"
 msgid "Please check the printer network connection."
 msgstr "Zkontrolujte prosím síťové připojení tiskárny."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "Neplatná data tiskového souboru. Prosím proveďte opětovné nasekání."
 
@@ -3260,7 +3262,7 @@ msgstr "Nahrávací úloha vypršela. Zkontrolujte stav sítě a zkuste to znovu
 msgid "Cloud service connection failed. Please try again."
 msgstr "Připojení ke cloudové službě se nezdařilo. Zkuste to prosím znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "Soubor pro tisk nebyl nalezen. Prosím, znovu jej rozřežte."
 
@@ -3273,18 +3275,18 @@ msgstr "Nepodařilo se odeslat tiskovou úlohu. Zkuste to prosím znovu."
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "Nepodařilo se nahrát soubor na FTP. Zkuste to prosím znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Aktuální stav serveru bambu zjistíte kliknutím na výše uvedený odkaz."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "Velikost tiskového souboru je příliš velká. Upravte prosím velikost souboru a zkuste to znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Soubor pro tisk nebyl nalezen, prosím rozřežte jej znovu a odešlete k tisku."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Nepodařilo se nahrát tiskový soubor na FTP. Zkontrolujte stav sítě a zkuste to znovu."
 
@@ -3336,7 +3338,7 @@ msgstr "Došlo k neznámé chybě stavu úložiště. Zkuste to znovu."
 msgid "Sending G-code file over LAN"
 msgstr "Odesílání G-code souboru přes LAN"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "Odesílání G-code souboru na SD kartu"
 
@@ -3407,7 +3409,7 @@ msgstr "Zbývající čas: %d min %d s"
 msgid "Importing SLA archive"
 msgstr "Probíhá import SLA archivu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "Archiv SLA neobsahuje žádné předvolby. Nejprve prosím aktivujte některou předvolbu SLA tiskárny před importem tohoto SLA archivu."
 
@@ -3420,7 +3422,7 @@ msgstr "Import byl dokončen."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Importovaný SLA archiv neobsahoval žádné předvolby. Jako záloha byly použity aktuální SLA předvolby."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Nelze načíst SLA projekt s vícedílným objektem na podložce."
 
@@ -3448,7 +3450,7 @@ msgstr "Probíhá instalace"
 msgid "Install failed"
 msgstr "Instalace selhala"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "License Info"
 msgstr "Části podléhající autorským právům"
 
@@ -3564,7 +3566,7 @@ msgstr "Jiná barva"
 msgid "Custom Color"
 msgstr "Vlastní barva"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "Kalibrace dynamiky průtoku"
 
@@ -3574,7 +3576,7 @@ msgstr "Teplota trysky a maximální objemová rychlost ovlivňují výsledky ka
 msgid "Nozzle Diameter"
 msgstr "Průměr trysky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "Typ podložky"
 
@@ -3596,7 +3598,7 @@ msgstr "Teplota desky"
 msgid "mm³"
 msgstr "mm³"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Start"
 msgstr "Spustit kalibraci"
 
@@ -3609,7 +3611,7 @@ msgstr "Kalibrace byla dokončena. Najděte na vyhřívané podložce nejrovnom�
 msgid "Save"
 msgstr "Uložit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "Zpět"
 
@@ -3707,18 +3709,18 @@ msgstr "Poznámka: lze vybrat pouze sloty s vloženým filamentem."
 msgid "Enable AMS"
 msgstr "Povolit AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "Tisk s filamenty v AMS"
 
 msgid "Disable AMS"
 msgstr "Zakázat AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
 msgstr "Tisk s filamentem umístěným na zadní straně šasi"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Vyměňte prosím vysoušedlo, když je příliš vlhké. Indikátor nemusí být přesný v těchto případech: pokud je otevřené víko nebo došlo k výměně vysoušedla. Pohlcování vlhkosti trvá několik hodin a nízké teploty tento proces zpomalují."
 
@@ -3737,11 +3739,11 @@ msgstr "Klikněte pro ruční výběr slotu AMS"
 msgid "Do not Enable AMS"
 msgstr "Nepovolovat AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print using filament on external spool."
 msgstr "Tisk z materiálů umístěných na zadní straně krytu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Tisk s filamenty v AMS"
 
@@ -3766,7 +3768,7 @@ msgstr "Když dojde aktuální materiál, tiskárna použije shodný filament pr
 msgid "The printer does not currently support auto refill."
 msgstr "Tiskárna aktuálně nepodporuje automatické doplňování."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "Záloha filamentu AMS není povolena, povolte ji prosím v nastavení AMS."
 
@@ -3789,7 +3791,7 @@ msgstr "Nastavení AMS"
 msgid "Insertion update"
 msgstr "Aktualizace vložení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "AMS automaticky načte informace o filamentu při vložení nového filamentu Bambu Lab. Tento proces trvá přibližně 20 sekund."
 
@@ -3799,11 +3801,11 @@ msgstr "Poznámka: Pokud je během tisku vložen nový filament, AMS automaticky
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "Při vkládání nového filamentu AMS automaticky nepřečte jeho informace, údaje tedy musíte zadat ručně."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "Aktualizace při zapnutí"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "AMS automaticky načte informace o vloženém filamentu při spuštění. Tento proces trvá přibližně 1 minutu. Při načítání budou otáčeny cívky s filamentem."
 
@@ -3858,7 +3860,7 @@ msgstr "Kalibrace"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 
@@ -3880,7 +3882,7 @@ msgstr ") pro určení polohy tiskové hlavy. To zabraňuje pohybu zařízení m
 msgid "Go Home"
 msgstr "Na domovskou pozici"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Došlo k chybě. Možná není dostatek systémové paměti, nebo se jedná o chybu programu."
 
@@ -3888,11 +3890,11 @@ msgstr "Došlo k chybě. Možná není dostatek systémové paměti, nebo se jed
 msgid "A fatal error occurred: \"%1%\""
 msgstr "Došlo k fatální chybě: \"%1%\""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "Uložte prosím projekt a restartujte program."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "Zpracovávání G-code z předchozího souboru..."
 
@@ -3957,7 +3959,7 @@ msgstr "Kopírování dočasného G-kódu bylo dokončeno, ale exportovaný kód
 msgid "G-code file exported to %1%"
 msgstr "G-code soubor exportován do %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "Neznámá chyba při exportu G-kódu."
 
@@ -3971,7 +3973,7 @@ msgstr ""
 "Chybová zpráva: %1%.\n"
 "Zdrojový soubor: %2%."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Kopírování dočasného G-kódu do výstupního G-kódu selhalo"
 
@@ -4018,14 +4020,14 @@ msgstr "Vyberte STL soubor pro import tvaru podložky:"
 msgid "Invalid file format."
 msgstr "Neplatný formát souboru."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "Chyba! Neplatný model"
 
 msgid "The selected file contains no geometry."
 msgstr "Zvolený soubor neobsahuje žádnou geometrii."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Zvolený soubor obsahuje několik oddělených oblastí. Toto není podporováno."
 
@@ -4052,7 +4054,7 @@ msgstr "Doporučená minimální teplota nemůže být vyšší než doporučen�
 msgid "Please check.\n"
 msgstr "Zkontrolujte prosím.\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4066,7 +4068,7 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "Doporučená teplota trysky pro tento typ filamentu je [%d, %d] stupňů Celsia."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4074,11 +4076,12 @@ msgstr ""
 "Příliš malá maximální objemová rychlost.\n"
 "Nastaveno na 0,5."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Aktuální teplota komory je vyšší než bezpečná teplota materiálu, což může vést ke změkčení materiálu a ucpání. Maximální bezpečná teplota pro materiál je %d"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4086,7 +4089,7 @@ msgstr ""
 "Příliš malá výška vrstvy.\n"
 "Nastaveno na 0,2."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4103,7 +4106,7 @@ msgstr ""
 "\n"
 "Výška první vrstvy bude resetována na 0,2."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4116,7 +4119,7 @@ msgstr ""
 "\n"
 "Hodnota bude resetována na 0."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4208,7 +4211,7 @@ msgstr "Spirálový režim funguje pouze tehdy, když je počet smyček stěny 1
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Ale stroje s konstrukcí I3 nevytvářejí časosběrná videa."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4579,7 +4582,7 @@ msgstr "Předvolby"
 msgid "Print settings"
 msgstr "Nastavení tisku"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "Nastavení filamentu"
 
@@ -4604,7 +4607,8 @@ msgstr "Prázdný řetězec"
 msgid "Value is out of range."
 msgstr "Hodnota je mimo povolený rozsah."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s nemůže být procento"
 
@@ -4844,7 +4848,7 @@ msgstr "Věž"
 msgid "Total"
 msgstr "Celkem"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "Celkový odhad"
 
@@ -4923,11 +4927,11 @@ msgstr "Od"
 msgid "Usage"
 msgstr "Využití"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "Výška vrstvy (mm)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "Šířka čáry (mm)"
 
@@ -4943,7 +4947,7 @@ msgstr "Zrychlení (mm/s²)"
 msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "Rychlost ventilátoru (%)"
 
@@ -4959,7 +4963,7 @@ msgstr "Skutečný objemový průtok (mm³/s)"
 msgid "Seams"
 msgstr "Švy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "Výměny filamentu"
 
@@ -4984,7 +4988,7 @@ msgstr "Změna barvy"
 msgid "Print"
 msgstr "Tisk"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "Tiskárna"
 
@@ -5102,18 +5106,18 @@ msgstr ""
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "Posun nástroje"
 
 msgid "Tool Rotate"
 msgstr "Otočení nástroje"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "Přesunout objekt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "Možnosti automatické orientace"
 
@@ -5245,7 +5249,7 @@ msgstr "Poměr rozložení"
 msgid "Section View"
 msgstr "Pohled v řezu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "Ovládání sestavy"
 
@@ -5274,7 +5278,7 @@ msgstr "Objekt přesahuje hranice podložky."
 msgid "A G-code path goes beyond the max print height."
 msgstr "Dráha G-kódu přesahuje maximální výšku tisku."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "Dráha G-kódu přesahuje hranice podložky."
 
@@ -5335,7 +5339,7 @@ msgstr "Výběr kroku kalibrace"
 msgid "Micro lidar calibration"
 msgstr "Kalibrace mikro lidaru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "Vyrovnání podložky"
 
@@ -5414,7 +5418,7 @@ msgstr ""
 "Najdete jej v „Nastavení > Nastavení > Pouze LAN > Přístupový kód“\n"
 "na tiskárně, jak je znázorněno na obrázku:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "Neplatný vstup."
 
@@ -5424,7 +5428,7 @@ msgstr "Nové okno"
 msgid "Open a new window"
 msgstr "Otevřít nové okno"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "Aplikace se zavírá"
 
@@ -5673,7 +5677,7 @@ msgstr "Vložit"
 msgid "Paste clipboard"
 msgstr "Vložit ze schránky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "Smazat vybrané"
 
@@ -5683,7 +5687,7 @@ msgstr "Smazat aktuální výběr"
 msgid "Deletes all objects"
 msgstr "Smazat všechny objekty"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "Klonovat vybrané"
 
@@ -5847,11 +5851,13 @@ msgstr "&Zobrazit"
 msgid "&Help"
 msgstr "&Nápověda"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Soubor se stejným názvem již existuje: %s, chcete jej přepsat?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Konfigurace se stejným názvem %s již existuje, chcete ji přepsat?"
 
@@ -5877,7 +5883,7 @@ msgstr[0] "Byla exportována %d konfigurace. (Pouze nesystémové konfigurace)"
 msgstr[1] "Byla exportována %d konfigurace. (Pouze nesystémové konfigurace)"
 msgstr[2] "Byla exportována %d konfigurace. (Pouze nesystémové konfigurace)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "Exportovat výsledek"
 
@@ -5929,7 +5935,7 @@ msgstr "Zařízení nemůže zpracovat více konverzací. Zkuste to prosím pozd
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Přehrávač nefunguje správně. Znovu nainstalujte systémový přehrávač."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Přehrávač není načten. Pro opakování klikněte na tlačítko „play“."
 
@@ -5951,7 +5957,7 @@ msgstr "Došlo k problému. Aktualizujte prosím firmware tiskárny a zkuste to 
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "LAN Only Liveview je vypnutý. Zapněte živý náhled na obrazovce tiskárny."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "Zadejte IP adresu tiskárny pro připojení."
 
@@ -6253,7 +6259,7 @@ msgstr ""
 msgid "Input access code"
 msgstr "Zadejte přístupový kód"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "Nemůžete najít svá zařízení?"
 
@@ -6278,15 +6284,15 @@ msgstr "Nepovolené znaky:"
 msgid "illegal suffix:"
 msgstr "Nepovolená přípona:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "Název nesmí být prázdný."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "Název nesmí začínat mezerou."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "Název nesmí končit mezerou."
 
@@ -6309,7 +6315,7 @@ msgstr "Přepínání..."
 msgid "Switching failed"
 msgstr "Přepnutí selhalo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "Průběh tisku"
 
@@ -6328,7 +6334,7 @@ msgstr "Klikněte pro zobrazení vysvětlení tepelné přípravy"
 msgid "Clear"
 msgstr "Vymazat"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6417,7 +6423,8 @@ msgstr "Stahování..."
 msgid "Cloud Slicing..."
 msgstr "Cloudové slicování..."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "Ve frontě cloudového slicování je před vámi %s úloh."
 
@@ -6441,7 +6448,7 @@ msgstr "Pokud teplota komory překročí 40 ℃, systém se automaticky přepne 
 msgid "Please select an AMS slot before calibration"
 msgstr "Před kalibrací vyberte slot AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "Nelze načíst informace o filamentu: filament je vložen v tiskové hlavě, nejprve filament vyjměte a zkuste to znovu."
 
@@ -6671,7 +6678,7 @@ msgstr "Tento dialog již nezobrazovat"
 msgid "3D Mouse disconnected."
 msgstr "3D myš odpojena."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A new configuration is available. Update now?"
 msgstr "Konfiguraci lze nyní aktualizovat."
 
@@ -6696,15 +6703,15 @@ msgstr "K dispozici je nová konfigurace tiskárny."
 msgid "Undo integration failed."
 msgstr "Integrace zpět selhala."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "Exportuji."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "Software má novou verzi."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "Přejít na stránku stažení."
 
@@ -6836,7 +6843,7 @@ msgstr "Spodní"
 msgid "Enable detection of build plate position"
 msgstr "Povolit detekci pozice tiskové podložky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "Je detekována lokalizační značka tiskové podložky a tisk se pozastaví, pokud značka není v předem definovaném rozsahu."
 
@@ -6882,7 +6889,7 @@ msgstr "Detekuje tisk do vzduchu způsobený ucpáním trysky nebo obrušování
 msgid "First Layer Inspection"
 msgstr "Kontrola první vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "Automatické obnovení po ztrátě kroku"
 
@@ -6895,7 +6902,7 @@ msgstr "Ukládat tiskové soubory spuštěné z Bambu Studio, Bambu Handy a Make
 msgid "Allow Prompt Sound"
 msgstr "Povolit zvuk upozornění"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "Detekce zamotání filamentu"
 
@@ -7153,18 +7160,18 @@ msgstr "Úspěšně odpojeno. Zařízení %s (%s) nyní může být bezpečně o
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "Vysunutí zařízení %s (%s) se nezdařilo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Byl zjištěn předchozí neuložený projekt. Chcete jej obnovit?"
 
 msgid "Restore"
 msgstr "Obnovit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "Aktuální teplota vyhřívané podložky je poměrně vysoká. Při tisku tohoto filamentu v uzavřeném boxu může dojít k ucpání trysky. Otevřete přední dvířka a/nebo sejměte horní sklo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "Tvrdost trysky požadovaná filamentem je vyšší než výchozí tvrdost trysky tiskárny. Vyměňte prosím za tvrzenou trysku nebo změňte filament, jinak dojde k opotřebení nebo poškození trysky."
 
@@ -7215,7 +7222,7 @@ msgstr "Chcete, aby OrcaSlicer tuto chybu automaticky opravil vymazáním nastav
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "Verze souboru 3MF %s je novější než verze %s %s, byly nalezeny následující nerozpoznané klíče:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "Doporučujeme aktualizovat software.\n"
 
@@ -7237,7 +7244,7 @@ msgstr "Soubor 3MF byl vytvořen v BambuStudio. Některá nastavení se mohou od
 msgid "Invalid values found in the 3MF:"
 msgstr "V souboru 3MF byly nalezeny neplatné hodnoty:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "Opravte je v záložkách parametrů."
 
@@ -7259,11 +7266,11 @@ msgstr "Potvrďte prosím, že je G-code v těchto předvolbách bezpečný, aby
 msgid "Customized Preset"
 msgstr "Přizpůsobená předvolba"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Názvy komponent v souboru STEP nejsou ve formátu UTF-8!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Název může zobrazovat nesmyslné znaky!"
 
@@ -7280,7 +7287,8 @@ msgstr "Objekty s nulovým objemem byly odstraněny"
 msgid "The volume of the object is zero"
 msgstr "Objem objektu je nula."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7291,7 +7299,7 @@ msgstr ""
 msgid "Object too small"
 msgstr "Objekt je příliš malý"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7304,7 +7312,7 @@ msgstr "Detekován vícedílný objekt"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Načíst tyto soubory jako jeden objekt s více částmi?\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "Byl detekován objekt s více částmi"
 
@@ -7339,14 +7347,15 @@ msgstr "Exportovat soubor Draco:"
 msgid "Export AMF file:"
 msgstr "Exportovat AMF soubor:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "Uložit soubor jako:"
 
 msgid "Export OBJ file:"
 msgstr "Exportovat OBJ soubor:"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7360,7 +7369,7 @@ msgstr "Potvrdit Uložit jako"
 msgid "Delete object which is a part of cut object"
 msgstr "Smazat objekt, který je součástí rozděleného objektu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7385,7 +7394,7 @@ msgstr "Probíhá jiný exportní úkol."
 msgid "Unable to replace with more than one volume"
 msgstr "Nelze nahradit více než jedním objemem."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "Chyba při nahrazení"
 
@@ -7395,7 +7404,7 @@ msgstr "Nahradit z:"
 msgid "Select a new file"
 msgstr "Vyberte nový soubor"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Soubor pro nahrazení nebyl vybrán"
 
@@ -7486,7 +7495,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Synchronizovat nyní"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Upravené předvolby můžete ponechat v novém projektu nebo je zahodit"
 
@@ -7496,7 +7505,7 @@ msgstr "Vytváření nového projektu"
 msgid "Load project"
 msgstr "Načíst projekt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7513,14 +7522,14 @@ msgstr "Probíhá import modelu"
 msgid "Preparing 3MF file..."
 msgstr "Příprava souboru 3MF..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Stažení selhalo, neznámý formát souboru."
 
 msgid "Downloading project..."
 msgstr "Stahování projektu..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Stažení selhalo, chyba velikosti souboru."
 
@@ -7546,11 +7555,11 @@ msgstr "Importovat SLA archiv"
 msgid "The selected file"
 msgstr "Vybraný soubor"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "neobsahuje platný G-code."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Chyba při načítání G-code souboru"
 
@@ -7580,25 +7589,25 @@ msgstr "Otevřít jako projekt"
 msgid "Import geometry only"
 msgstr "Importovat pouze geometrii"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Najednou lze otevřít pouze jeden G-code soubor."
 
 msgid "G-code loading"
 msgstr "Načítání G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-code soubory nelze načíst společně s modely!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "Nelze přidávat modely v režimu náhledu!"
 
 msgid "All objects will be removed, continue?"
 msgstr "Všechny objekty budou odstraněny. Pokračovat?"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Aktuální projekt obsahuje neuložené změny. Uložit před pokračováním?"
 
@@ -7670,7 +7679,7 @@ msgstr "Nahrát a tisknout"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Abnormální data tiskového souboru. Prosím, znovu nakrájejte."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7756,7 +7765,8 @@ msgstr "Trojúhelníky: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "Pro opravu mesh použijte „Opravit model“."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Deska %d: použití %s pro tisk filamentu %s (%s) není doporučeno. Pokud i přesto chcete tuto tiskovou úlohu spustit, nastavte prosím teplotu podložky tohoto filamentu na nenulovou hodnotu."
 
@@ -7784,7 +7794,7 @@ msgstr "zepředu"
 msgid "rear"
 msgstr "zezadu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Přepnutí jazyka vyžaduje restartování aplikace.\n"
 
@@ -7812,7 +7822,7 @@ msgstr "Severní Amerika"
 msgid "Others"
 msgstr "Ostatní"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Změna oblasti vás odhlásí z účtu.\n"
 
@@ -7888,7 +7898,7 @@ msgstr "Výchozí stránka"
 msgid "Set the page opened on startup."
 msgstr "Nastavit stránku otevřenou při spuštění."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "Povolit tmavý režim"
 
@@ -7964,7 +7974,7 @@ msgstr "Pokud je povoleno, během importu souboru STEP se zobrazí dialog nastav
 msgid "Auto backup"
 msgstr "Automatické zálohování"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Pravidelně zálohujte svůj projekt pro možnost obnovení po případném pádu."
 
@@ -8154,6 +8164,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -8243,7 +8262,7 @@ msgstr "Kontrolovat pouze stabilní aktualizace"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatická synchronizace uživatelských předvoleb (tiskárna/filament/proces)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Automaticky aktualizovat vestavěné předvolby."
 
@@ -8321,7 +8340,7 @@ msgstr ""
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Přiřadit soubory 3MF k OrcaSliceru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Pokud je povoleno, OrcaSlicer bude nastaven jako výchozí aplikace pro otevírání souborů 3MF."
 
@@ -8334,14 +8353,14 @@ msgstr "Pokud je povoleno, OrcaSlicer bude nastaven jako výchozí aplikace pro 
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Přiřadit soubory STL k OrcaSliceru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Pokud je povoleno, OrcaSlicer bude nastaven jako výchozí aplikace pro otevírání souborů STL."
 
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "Přiřadit soubory STEP k OrcaSliceru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Pokud je povoleno, OrcaSlicer bude nastaven jako výchozí aplikace pro otevírání souborů STEP."
 
@@ -8444,7 +8463,7 @@ msgstr "Přiblížení zobrazení"
 msgid "Other"
 msgstr "Ostatní"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reverse scroll direction while zooming"
 msgstr "Kolečko myši se při přiblížení otáčí opačně"
 
@@ -8478,11 +8497,11 @@ msgstr "Tlačítko pro uložení ladicích dat"
 msgid "Save debug settings"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "DEBUG nastavení byla úspěšně uložena!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "Prostředí cloudu bylo změněno, přihlaste se prosím znovu!"
 
@@ -8501,7 +8520,7 @@ msgstr "Moje tiskárna"
 msgid "Left filaments"
 msgstr "Levé filamenty"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "Filamenty AMS"
 
@@ -8535,7 +8554,7 @@ msgstr "Nepodporované předvolby"
 msgid "Unsupported"
 msgstr "Nepodporováno"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Přidat/Odebrat filamenty"
 
@@ -8572,7 +8591,7 @@ msgstr "Zadejte hodnotu vrstvy (>= 2)."
 msgid "Plate name"
 msgstr "Název desky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Stejné jako globální typ desky"
 
@@ -8609,7 +8628,7 @@ msgstr "Potvrdit"
 msgid "Log Out"
 msgstr "Odhlásit se"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Slicovat celou desku pro odhad času a spotřeby filamentu"
 
@@ -8670,7 +8689,7 @@ msgstr "Předvolba „%1%“ již existuje."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "Předvolba „%1%“ již existuje a není kompatibilní s aktuální tiskárnou."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Upozorňujeme, že uložením přepíšete tuto předvolbu."
 
@@ -8800,7 +8819,7 @@ msgstr "Filament neodpovídá filamentu ve slotu AMS. Aktualizujte firmware tisk
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Vybraná tiskárna (%s) není kompatibilní s konfigurací tiskového souboru (%s). Upravte předvolbu tiskárny na stránce Příprava nebo na této stránce vyberte kompatibilní tiskárnu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Při zapnutém režimu spirálové vázy nebudou stroje s konstrukcí I3 vytvářet časosběr."
 
@@ -8819,7 +8838,7 @@ msgstr ""
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Typ tiskárny zvolený při generování G-code není totožný s aktuálně vybranou tiskárnou. Doporučujeme použít stejný typ tiskárny pro slicování."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "V přiřazení AMS jsou některé neznámé filamenty. Zkontrolujte prosím, zda se jedná o požadované filamenty. Pokud jsou v pořádku, stiskněte „Potvrdit“ pro zahájení tisku."
 
@@ -8951,7 +8970,7 @@ msgstr "Úložiště je v neplatném stavu nebo je pouze pro čtení."
 msgid "Storage needs to be inserted before printing."
 msgstr "Před tiskem je nutné vložit úložiště."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nelze odeslat tiskovou úlohu do tiskárny, která vyžaduje aktualizaci firmwaru."
 
@@ -9006,7 +9025,7 @@ msgstr "Vypršel časový limit připojení. Zkontrolujte síť."
 msgid "Connection failed. Click the icon to retry"
 msgstr "Připojení selhalo. Klikněte na ikonu pro opakování."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Nelze odeslat tiskovou úlohu během probíhající aktualizace."
 
@@ -9016,7 +9035,7 @@ msgstr "Vybraná tiskárna není kompatibilní se zvolenými předvolbami tiská
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Před odesláním do tiskárny je nutné vložit úložiště."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Tiskárna musí být ve stejné síti LAN jako Orca Slicer."
 
@@ -9032,7 +9051,7 @@ msgstr "Vypršel časový limit nahrávání souboru. Zkontrolujte, zda firmware
 msgid "Sending failed, please try again!"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "Řezání proběhlo v pořádku."
 
@@ -9048,11 +9067,11 @@ msgstr "Nepodařilo se připojit socket."
 msgid "Failed to publish login request"
 msgstr "Nepodařilo se odeslat požadavek na přihlášení."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "Vypršel časový limit při získávání ticketu ze zařízení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "Vypršel časový limit při získávání ticketu ze serveru"
 
@@ -9157,7 +9176,7 @@ msgstr "Hledat v předvolbě"
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kliknutím obnovíte všechna nastavení na poslední uloženou předvolbu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Pro plynulý časosběr je vyžadována čistící věž. Bez čistící věže se mohou na modelu objevit vady. Opravdu chcete čistící věž zakázat?"
 
@@ -9173,7 +9192,7 @@ msgstr "Pro detekci shlukování je vyžadována čistící věž. Bez čistíc�
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Povolení přesné výšky Z i čistící věže může způsobit chyby slicování. Chcete přesto povolit přesnou výšku Z?"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Pro hladký časosběr je potřeba základní věž. Model může mít vady bez základní věže. Chcete povolit základní věž?"
 
@@ -9194,7 +9213,7 @@ msgstr ""
 "Při použití podpůrného materiálu pro rozhraní podpor doporučujeme následující nastavení:\n"
 "horní Z vzdálenost 0, rozestup rozhraní 0, prokládaný přímočarý vzor a zakázat nezávislou výšku vrstvy podpor."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9345,7 +9364,7 @@ msgstr "Stěny"
 msgid "Top/bottom shells"
 msgstr "Horní/dolní skořepiny"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "Rychlost první vrstvy"
 
@@ -9373,7 +9392,7 @@ msgstr "Jerk(XY)"
 msgid "Raft"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "Filament podpory"
 
@@ -9439,7 +9458,7 @@ msgstr "Základní informace"
 msgid "Recommended nozzle temperature"
 msgstr "Doporučená teplota trysky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Doporučený rozsah teploty trysky tohoto filamentu. 0 znamená, že není nastaveno"
 
@@ -9461,29 +9480,29 @@ msgstr "Teplota desky při použití Cool Plate SuperTack. Hodnota 0 znamená, �
 msgid "Cool Plate"
 msgstr "Chladicí deska"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Teplota desky při použití Cool Plate. Hodnota 0 znamená, že filament nepodporuje tisk na chladicí podložce."
 
 msgid "Textured Cool Plate"
 msgstr "Texturovaná chladicí podložka"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Teplota desky při použití Texturované chladicí podložky. Hodnota 0 znamená, že filament nepodporuje tisk na Texturované chladicí podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Teplota desky při použití inženýrské desky. Hodnota 0 znamená, že filament nepodporuje tisk na inženýrské desce."
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Hladká PEI podložka / deska pro vysoké teploty"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Teplota desky při použití hladké PEI desky/vysokoteplotní desky. Hodnota 0 znamená, že filament nepodporuje tisk na hladké PEI desce/vysokoteplotní desce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Teplota desky při použití Texturované PEI podložky. Hodnota 0 znamená, že filament nepodporuje tisk na Texturované PEI podložce."
 
@@ -9499,14 +9518,14 @@ msgstr "Ventilátor chlazení části"
 msgid "Min fan speed threshold"
 msgstr "Minimální práh otáček ventilátoru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Rychlost ventilátoru chlazení části začne běžet na minimální rychlost, pokud odhadovaný čas vrstvy není delší než čas vrstvy v nastavení. Pokud je čas vrstvy kratší než práh, rychlost ventilátoru je interpolována mezi minimální a maximální podle času tisku vrstvy"
 
 msgid "Max fan speed threshold"
 msgstr "Prahová hodnota maximální rychlosti ventilátoru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Rychlost ventilátoru chlazení části bude maximální, pokud je odhadovaný čas vrstvy kratší než nastavená hodnota"
 
@@ -9732,7 +9751,8 @@ msgstr ""
 "Opravdu chcete odstranit vybranou předvolbu?\n"
 "Pokud tato předvolba odpovídá filamentu aktuálně použitému na vaší tiskárně, prosím resetujte informace o filamentu pro tento slot."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Opravdu chcete %1% vybranou předvolbu?"
 
@@ -9792,21 +9812,21 @@ msgstr "Vpravo: %s"
 msgid "Click to reset current value and attach to the global value."
 msgstr "Klikněte pro obnovení aktuální hodnoty a navázání na globální hodnotu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Kliknutím zrušíte aktuální úpravu a obnovíte uloženou hodnotu."
 
 msgid "Process Settings"
 msgstr "Nastavení procesu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "Neuložené změny"
 
 msgid "Transfer or discard changes"
 msgstr "Přenést nebo zahodit změny"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old value"
 msgstr "Původní hodnota"
 
@@ -9851,7 +9871,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Kliknutím pravým tlačítkem myši zobrazíte celý text."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "Všechny změny nebudou uloženy."
 
@@ -10397,36 +10417,36 @@ msgstr "Vyberte objekty obdélníkem"
 msgid "Arrow Up"
 msgstr "Šipka nahoru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Přesuňte výběr o 10 mm v kladném směru osy Y"
 
 msgid "Arrow Down"
 msgstr "Šipka dolů"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Přesuňte výběr o 10 mm v záporném směru osy Y"
 
 msgid "Arrow Left"
 msgstr "Šipka vlevo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Přesuňte výběr o 10 mm v záporném směru osy X"
 
 msgid "Arrow Right"
 msgstr "Šipka vpravo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "Přesuňte výběr o 10 mm v kladném směru osy X"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "Krok pohybu nastaven na 1 mm"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Klávesy 1–9: nastavit filament pro objekt/část"
 
@@ -10523,7 +10543,7 @@ msgstr ""
 msgid "Set extruder number for the objects and parts"
 msgstr "Nastavit číslo extruderu pro objekty a části"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "Smazat objekty, části, modifikátory"
 
@@ -10576,7 +10596,7 @@ msgstr "Informace o aktualizaci verze %s:"
 msgid "Network plug-in update"
 msgstr "Aktualizace síťového plug-inu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "Klikněte na OK pro aktualizaci síťového plug-inu při příštím spuštění Orca Sliceru."
 
@@ -10721,11 +10741,11 @@ msgstr "Aktualizace proběhla úspěšně"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Opravdu chcete aktualizovat? To potrvá přibližně 10 minut. Během aktualizace tiskárny nevypínejte napájení."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Byla zjištěna důležitá aktualizace, kterou je nutné provést, než bude možné pokračovat v tisku. Chcete aktualizovat nyní? Aktualizovat můžete také později v sekci 'Aktualizace firmwaru'."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "Verze firmwaru je nestandardní. Před tiskem je vyžadována oprava a aktualizace. Chcete aktualizovat nyní? Aktualizaci můžete provést později na tiskárně nebo při příštím spuštění Orca."
 
@@ -10749,7 +10769,7 @@ msgstr "Oprava zrušena"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Kopírování souboru %1% do %2% selhalo: %3%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Nejprve je třeba zkontrolovat neuložené změny před aktualizací konfigurace."
 
@@ -10765,7 +10785,8 @@ msgstr "Otevřít G-code soubor:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Jeden objekt má prázdnou počáteční vrstvu a nelze jej vytisknout. Odřízněte spodní část nebo povolte podpěry."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Objekt nelze vytisknout kvůli prázdné vrstvě mezi %1% a %2%."
 
@@ -10773,7 +10794,7 @@ msgstr "Objekt nelze vytisknout kvůli prázdné vrstvě mezi %1% a %2%."
 msgid "Object: %1%"
 msgstr "Objekt: %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Možná jsou části objektu v těchto výškách příliš tenké, nebo má objekt vadnou síť."
 
@@ -10783,7 +10804,7 @@ msgstr "G-code při změně role extruze (proces)"
 msgid "Filament change extrusion role G-code"
 msgstr "G-code při změně role extruze (filament)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "Nelze vytisknout žádný objekt. Možná je příliš malý."
 
@@ -10829,7 +10850,8 @@ msgstr " nelze umístit do "
 msgid "Internal Bridge"
 msgstr "Vnitřní most"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "Nepodařilo se vypočítat šířku čáry %1%. Nelze získat hodnotu „%2%“. "
 
@@ -10842,7 +10864,7 @@ msgstr "nedefinovaná chyba"
 msgid "too many files"
 msgstr "příliš mnoho souborů"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "soubor je příliš velký"
 
@@ -10864,7 +10886,7 @@ msgstr "není ZIP archiv"
 msgid "invalid header or corrupted"
 msgstr "Neplatná hlavička nebo poškozený soubor"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Saving to RAID is not supported."
 msgstr "nepodporovaný vícedisk"
 
@@ -10913,7 +10935,7 @@ msgstr "Neplatný parametr"
 msgid "invalid filename"
 msgstr "Neplatný název souboru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "Buffer je příliš malý."
 
@@ -10923,7 +10945,7 @@ msgstr "Interní chyba"
 msgid "file not found"
 msgstr "soubor nenalezen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "Archiv je příliš velký."
 
@@ -10933,7 +10955,8 @@ msgstr "ověření selhalo"
 msgid "write callback failed"
 msgstr "zápis callbacku selhal"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% je příliš blízko vyhrazené oblasti, může dojít ke kolizím při tisku."
 
@@ -10957,7 +10980,7 @@ msgstr "Základní věž"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " je příliš blízko ostatním, může způsobit kolize.\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " je příliš blízko oblasti vyloučení a může způsobit kolize.\n"
 
@@ -10991,7 +11014,7 @@ msgstr "Pro detekci shlukování je vyžadována čistící věž, jinak se moho
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Pro tisk více objektů ve spirálovém režimu vázy zvolte sekvenci tisku „Podle objektu“."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spirálový režim vázy nefunguje, pokud objekt obsahuje více než jeden materiál."
 
@@ -11025,30 +11048,30 @@ msgstr "Prevence vytékání je podporována pouze s věží na očištění try
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "Základní věž je aktuálně podporována pouze pro G-code typy Marlin, RepRap/Sprinter, RepRapFirmware a Repetier."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Základní věž není podporována při tisku \"Podle objektu\"."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "Základní věž není podporována při zapnuté adaptivní výšce vrstvy. Vyžaduje, aby všechny objekty měly stejnou výšku vrstvy."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Základní věž vyžaduje, aby \"support gap\" byl násobkem výšky vrstvy."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "Základní věž vyžaduje, aby všechny objekty měly stejnou výšku vrstev."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "Základní věž vyžaduje, aby všechny objekty byly tištěny přes stejný počet raft vrstev."
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "Základní věž je u více objektů podporována pouze tehdy, pokud jsou tištěny se stejnou hodnotou support_top_z_distance."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "Základní věž vyžaduje, aby všechny objekty byly rozřezány se stejnou výškou vrstev."
 
@@ -11058,18 +11081,18 @@ msgstr "Základní věž je podporována pouze v případě, že všechny objekt
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Jeden nebo více objektů bylo přiřazeno k extruderu, který tiskárna nemá."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Příliš malá šířka čáry"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Příliš velká šířka čáry"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Tisk s více extrudery s různými průměry trysek. Pokud má být podpora tištěna aktuálním filamentem (support_filament == 0 nebo support_interface_filament == 0), musí mít všechny trysky stejný průměr."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Základní věž vyžaduje, aby podpora měla stejnou výšku vrstvy jako objekt."
 
@@ -11094,7 +11117,7 @@ msgstr "Dutý základní vzor není podporován tímto typem podpory; místo toh
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Používají se zesilovače podpory, ale podpora není povolena. Povolit podporu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Výška vrstvy nesmí přesáhnout průměr trysky."
 
@@ -11174,7 +11197,7 @@ msgstr "Exportuji G-code"
 msgid "Generating G-code"
 msgstr "Generování G-kódu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "Nepodařilo se zpracovat šablonu filename_format."
 
@@ -11205,7 +11228,7 @@ msgstr ""
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "Vynechaná oblast podložky"
 
@@ -11221,7 +11244,7 @@ msgstr "Vlastní model podložky"
 msgid "Elephant foot compensation"
 msgstr "Kompenzace sloní nohy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Zmenší počáteční vrstvu na tiskové podložce pro kompenzaci efektu sloní nohy."
 
@@ -11243,14 +11266,14 @@ msgstr ""
 "Počáteční hodnota se nastaví pro druhou vrstvu.\n"
 "Následující vrstvy budou lineárně hustší až do výšky určené parametrem elefant_foot_compensation_layers."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Výška slicingu pro každou vrstvu. Menší výška vrstvy znamená vyšší přesnost a delší čas tisku."
 
 msgid "Printable height"
 msgstr "Tisknutelná výška"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "Maximální tisknutelná výška, která je omezena mechanismem tiskárny."
 
@@ -11329,7 +11352,7 @@ msgstr "Heslo"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Ignorovat kontrolu odvolání HTTPS certifikátu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Ignorovat kontrolu odvolání HTTPS certifikátu v případě chybějících nebo nedostupných distribučních bodů. Tuto možnost lze povolit pro samopodepsané certifikáty, pokud se spojení nezdaří."
 
@@ -11348,14 +11371,14 @@ msgstr ""
 msgid "Avoid crossing walls"
 msgstr "Vyhněte se křížení stěn"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Objížďka pro vyhnutí se přejezdu stěn, což může způsobit hrudky na povrchu."
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Vyhněte se křížení stěn – maximální délka objížďky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Maximální délka objížďky kvůli vyhnutí se přechodu přes stěnu. Objížďku neprovádět, pokud je vzdálenost objížďky větší než tato hodnota. Délku objížďky lze zadat jako absolutní hodnotu nebo jako procento (například 50 %) z přímé dráhy pohybu. Nula znamená vypnutí."
 
@@ -11368,59 +11391,59 @@ msgstr "Ostatní vrstvy"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na chladicí podložce SuperTack."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na chladicí podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na texturované chladicí podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na inženýrské podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na vysokoteplotní podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na texturované PEI podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "Počáteční vrstva"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "Počáteční teplota podložky první vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na chladicí podložce SuperTack."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na chladicí podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na Texturované chladicí podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na inženýrské desce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na vysokoteplotní desce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Teplota desky pro počáteční vrstvu. Hodnota 0 znamená, že filament nepodporuje tisk na Texturované PEI podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "Typy desek podporované tiskárnou."
 
@@ -11454,7 +11477,7 @@ msgstr "Toto je počet pevných vrstev spodní skořepiny, včetně spodního po
 msgid "Bottom shell thickness"
 msgstr "Tloušťka spodního pláště"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Počet spodních pevných vrstev se při slicování zvýší, pokud vypočtená tloušťka spodní skořepiny bude menší než tato hodnota. Tím lze zabránit příliš tenké skořepině při malé výšce vrstvy. Hodnota 0 znamená, že toto nastavení je vypnuté a tloušťka spodní skořepiny je zcela určena spodními skořepinovými vrstvami."
 
@@ -11861,11 +11884,11 @@ msgstr ""
 "Hodnota 0 povolí obrácení na všech sudých vrstvách bez ohledu na další podmínky.\n"
 "Pokud není povolena detekce převislých stěn, tato možnost bude ignorována a obrácení proběhne na všech sudých vrstvách."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "Zpomalit pro převisy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "Povolte tuto možnost pro zpomalení tisku podle úhlu převisu."
 
@@ -11911,7 +11934,7 @@ msgstr "Rychlost vnitřních mostů. Pokud je hodnota zadána v procentech, vypo
 msgid "Brim width"
 msgstr "Šířka límce"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Vzdálenost od modelu k nejvzdálenější brim linii."
 
@@ -11924,7 +11947,7 @@ msgstr "Tato volba řídí generování obruby na vnější a/nebo vnitřní str
 msgid "Brim-object gap"
 msgstr "Mezera mezi límcem a objektem"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Mezera mezi nejvnitřnější čarou límce a objektem může usnadnit odstranění límce."
 
@@ -11944,11 +11967,11 @@ msgstr ""
 "\n"
 "Poznámka: Výsledná hodnota nebude ovlivněna poměrem průtoku první vrstvy."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Límec sleduje kompenzovaný obrys"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12000,18 +12023,18 @@ msgstr "stroj zpětně kompatibilní"
 msgid "Condition"
 msgstr "Podmínka"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Booleovský výraz využívající konfigurační hodnoty aktivního profilu tiskárny. Pokud je tento výraz pravdivý, považuje se profil za kompatibilní s aktivním profilem tiskárny."
 
 msgid "Select profiles"
 msgstr "Vyberte profily"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Booleovský výraz využívající konfigurační hodnoty aktivního tiskového profilu. Pokud je tento výraz pravdivý, považuje se profil za kompatibilní s aktivním tiskovým profilem."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Pořadí tisku, vrstva po vrstvě nebo objekt po objektu."
 
@@ -12033,14 +12056,14 @@ msgstr "Jako seznam objektů"
 msgid "Slow printing down for better layer cooling"
 msgstr "Zpomalit tisk pro lepší chlazení vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "Povolte tuto volbu pro zpomalení rychlosti tisku, aby doba poslední vrstvy nebyla kratší než práh vrstvy v „Maximální prah ventilátoru“, což umožní delší chlazení vrstvy. To může zlepšit kvalitu chlazení u jehly a drobných detailů."
 
 msgid "Normal printing"
 msgstr "Normální tisk"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Výchozí zrychlení pro běžný tisk i přesuny, kromě první vrstvy."
 
@@ -12086,7 +12109,7 @@ msgstr "Vypněte všechny chladicí ventilátory během prvních několika vrste
 msgid "Don't support bridges"
 msgstr "Nepodporovat mosty"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Nepodporovat celou oblast mostu, což způsobí velmi velkou podporu. Mosty lze obvykle tisknout přímo bez podpory, pokud nejsou příliš dlouhé."
 
@@ -12174,14 +12197,14 @@ msgstr "Bez filtrování"
 msgid "Max bridge length"
 msgstr "Maximální délka mostů"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Maximální délka mostů, které nepotřebují podporu. Nastavte na 0, pokud chcete, aby všechny mosty byly podporovány, nebo na velmi vysokou hodnotu, pokud nechcete podporovat žádné mosty."
 
 msgid "End G-code"
 msgstr "Koncový G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Koncový G-code po dokončení celého tisku."
 
@@ -12191,7 +12214,7 @@ msgstr "G-code mezi objekty"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "Vložte G-code mezi objekty. Tento parametr se projeví pouze při tisku modelů objekt po objektu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "Koncový G-code po dokončení tisku tohoto filamentu."
 
@@ -12222,7 +12245,7 @@ msgstr "Střední"
 msgid "Top surface pattern"
 msgstr "Vzorek horního povrchu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "Vzor čáry pro výplň horního povrchu."
 
@@ -12253,7 +12276,7 @@ msgstr "Oktagramová spirála"
 msgid "Bottom surface pattern"
 msgstr "Vzor spodního povrchu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Vzor čáry pro výplň spodního povrchu, ne pro mostovou výplň."
 
@@ -12266,7 +12289,7 @@ msgstr "Vzor čáry pro vnitřní plnou výplň. Pokud je zapnuto rozpoznáván�
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry vnější stěny. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "Rychlost vnější stěny, která je nejvíce vnější a viditelná. Obvykle je pomalejší než rychlost vnitřní stěny pro lepší kvalitu."
 
@@ -12346,18 +12369,18 @@ msgstr "Po směru hodinových ručiček"
 msgid "Height to rod"
 msgstr "Výška k tyči"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Vzdálenost hrotu trysky ke spodní tyči. Používá se pro zabránění kolizím při tisku po objektech."
 
 msgid "Height to lid"
 msgstr "Výška k víku"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Vzdálenost hrotu trysky k víku. Používá se pro zabránění kolizím při tisku po objektech."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Ochranný poloměr kolem extruderu. Používá se pro zabránění kolizím při tisku po objektech."
 
@@ -12496,7 +12519,7 @@ msgstr "Výchozí šířka čáry, pokud jsou ostatní šířky čáry nastaveny
 msgid "Keep fan always on"
 msgstr "Ventilátor vždy zapnutý"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Povolením této volby ventilátor chlazení dílu nikdy zcela nezastaví a poběží alespoň na minimální rychlost, aby se snížila četnost spouštění a zastavování."
 
@@ -12517,7 +12540,7 @@ msgstr ""
 msgid "Layer time"
 msgstr "Čas vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Ventilátor chlazení části bude spuštěn u vrstev, jejichž odhadovaný čas je kratší než tato hodnota. Rychlost ventilátoru je interpolována mezi minimální a maximální podle času tisku vrstvy."
 
@@ -12543,7 +12566,7 @@ msgstr "Zde můžete zadat své poznámky k filamentu."
 msgid "Required nozzle HRC"
 msgstr "Požadované HRC trysky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "Minimální tvrdost HRC trysky potřebná pro tisk tohoto filamentu. Hodnota 0 znamená, že se tvrdost HRC trysky nekontroluje."
 
@@ -12583,7 +12606,7 @@ msgstr "Objemová rychlost čištění"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Objemová rychlost při čištění filamentu. Hodnota 0 označuje maximální objemovou rychlost."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Toto nastavení určuje, jaký objem filamentu lze roztavit a vytlačit za sekundu. Rychlost tisku je omezena maximální objemovou rychlostí při příliš vysokém nebo neadekvátním nastavení rychlosti. Nemůže být nula."
 
@@ -12617,7 +12640,7 @@ msgstr "Podle prvního filamentu"
 msgid "By Highest Temp"
 msgstr "Podle nejvyšší teploty"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Průměr filamentu se používá pro výpočet extruze v G-code, proto je důležitý a měl by být přesný."
 
@@ -12691,7 +12714,7 @@ msgstr "Rychlost použitá na úplném začátku fáze načítání."
 msgid "Unloading speed"
 msgstr "Rychlost vysunování"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Rychlost použitá pro vysouvání filamentu na věži na očištění trysky (neovlivňuje počáteční část vysouvání těsně po ramování)."
 
@@ -12809,14 +12832,14 @@ msgstr "Průtok používaný k natlačení filamentu před výměnou nástroje."
 msgid "Density"
 msgstr "Hustota"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Hustota filamentu. Pouze pro statistiku."
 
 msgid "g/cm³"
 msgstr "g/cm³"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "Typ materiálu filamentu."
 
@@ -12847,14 +12870,14 @@ msgstr "Filament lze tisknout v extruderu."
 msgid "Softening temperature"
 msgstr "Teplota změknutí"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Materiál při této teplotě měkne, proto pokud je teplota desky rovna této hodnotě nebo vyšší, důrazně doporučujeme otevřít přední dvířka a/nebo sejmout horní sklo, aby nedošlo k ucpání."
 
 msgid "Price"
 msgstr "Cena"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Cena filamentu. Pouze pro statistické účely."
 
@@ -12873,7 +12896,7 @@ msgstr "(Nedefinováno)"
 msgid "Sparse infill direction"
 msgstr "Směr řídké výplně"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Úhel pro vzor řídké výplně, který určuje počáteční nebo hlavní směr čáry."
 
@@ -12920,7 +12943,7 @@ msgstr ""
 msgid "Sparse infill pattern"
 msgstr "Vzor řídké výplně"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Vzor čáry pro vnitřní řídkou výplň."
 
@@ -13054,11 +13077,11 @@ msgstr "Akcelerace vnitřních stěn."
 msgid "Acceleration of travel moves."
 msgstr "Akcelerace pohybů přesunu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Akcelerace výplně horní plochy. Použití nižší hodnoty může zlepšit kvalitu horní plochy."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Akcelerace vnější stěny. Použití nižší hodnoty může zlepšit kvalitu."
 
@@ -13074,7 +13097,7 @@ msgstr "Akcelerace řídké výplně. Pokud je hodnota vyjádřena v procentech 
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Akcelerace vnitřní plné výplně. Pokud je hodnota vyjádřena v procentech (např. 100 %), bude vypočtena na základě výchozí akcelerace."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Akcelerace první vrstvy. Použití nižší hodnoty může zlepšit přilnavost k podložce."
 
@@ -13135,23 +13158,23 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry počáteční vrstvy. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Výška první vrstvy"
 
-#, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Výška počáteční vrstvy. Mírně vyšší počáteční výška vrstvy může zlepšit přilnavost k tiskové podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Rychlost první vrstvy kromě plné výplně."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Výplň první vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Rychlost plné výplně první vrstvy."
 
@@ -13161,18 +13184,17 @@ msgstr "Cestovní rychlost první vrstvy"
 msgid "Travel speed of the first layer."
 msgstr "Rychlost přejezdu první vrstvy."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Počet pomalých vrstev"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Prvních několik vrstev se tiskne pomaleji než obvykle. Rychlost se postupně zvyšuje lineárně po stanovený počet vrstev."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Počáteční teplota trysky první vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Teplota trysky pro tisk úvodní vrstvy při použití tohoto filamentu."
 
@@ -13243,7 +13265,7 @@ msgstr "Rychlost žehlení"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Náhodně rozkmitá tisk stěny, aby povrch působil hrubším dojmem. Toto nastavení určuje pozici efektu fuzzy."
 
@@ -13265,7 +13287,7 @@ msgstr "Všechny stěny"
 msgid "Fuzzy skin thickness"
 msgstr "Tloušťka fuzzy skin"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "Šířka, ve které se má provádět rozptyl. Doporučuje se být pod šířkou čáry vnější stěny."
 
@@ -13412,7 +13434,7 @@ msgstr "Vrstvy a obvody"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Neprovádět vyplnění mezer, pokud je délka menší než zadaný práh (v mm). Toto nastavení platí pro horní, spodní a plnou výplň a, při použití klasického generátoru obvodů, i pro vyplnění stěn."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Rychlost výplně mezer. Mezery mají obvykle nepravidelnou šířku čáry a měly by být tištěny pomaleji."
 
@@ -13443,7 +13465,7 @@ msgstr "Aktivujte tuto volbu pro přidání čísla řádku (Nx) na začátek ka
 msgid "Scan first layer"
 msgstr "Skenovat první vrstvu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Aktivujte tuto volbu pro zapnutí kamery na tiskárně ke kontrole kvality první vrstvy."
 
@@ -13459,7 +13481,7 @@ msgstr "Konfigurace tiskárny"
 msgid "Nozzle type"
 msgstr "Typ trysky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Kovový materiál trysky. Toto určuje abrazivní odolnost trysky a jaký typ filamentu lze tisknout."
 
@@ -13475,7 +13497,7 @@ msgstr ""
 msgid "Nozzle HRC"
 msgstr "HRC trysky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "Tvrdost trysky. Nula znamená, že při slicování nebude kontrolována tvrdost trysky."
 
@@ -13559,7 +13581,7 @@ msgstr "Cena tiskárny za hodinu."
 msgid "money/h"
 msgstr "peníze/h"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "Řízení teploty komory podpory"
 
@@ -13622,7 +13644,7 @@ msgstr "Aktivujte tuto volbu pro vytvoření komentovaného G-code souboru, kde 
 msgid "Infill combination"
 msgstr "Kombinace výplně"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Automaticky spojit řídkou výplň několika vrstev a tisknout je najednou pro zkrácení času. Stěna je stále tištěna s původní výškou vrstvy."
 
@@ -13729,11 +13751,12 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry vnitřní řídké výplně. Pokud je zadána v %, bude vypočtena vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Překrytí výplně/stěny"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Oblast výplně je mírně zvětšena, aby se překrývala se stěnou pro lepší spojení. Procentuální hodnota je vztažena k šířce čáry řídké výplně. Nastavte tuto hodnotu přibližně na 10–15 % pro minimalizaci možné přeextruze a hromadění materiálu, které může vést k hrubému hornímu povrchu."
 
@@ -13744,7 +13767,7 @@ msgstr "Překrytí plné výplně/stěny nahoře/dole"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "Oblast horní výplně je mírně zvětšena tak, aby překrývala stěnu, pro lepší propojení a minimalizaci vzniku otvorů ve styku horní výplně se stěnami. Hodnota 25–30 % je vhodným výchozím bodem a minimalizuje výskyt otvorů. Procentuální hodnota je vztažena k šířce čáry řídké výplně."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "Rychlost vnitřní řídké výplně."
 
@@ -13763,7 +13786,7 @@ msgstr "Vynutit generování pevných skořepin mezi sousedními materiály/obje
 msgid "Maximum width of a segmented region"
 msgstr "Maximální šířka segmentované oblasti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Maximální šířka segmentované oblasti. Nula tuto funkci vypne."
 
@@ -13809,22 +13832,22 @@ msgstr "Vyhýbání se hranici při prokládání"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "Vzdálenost od vnější strany modelu, kde nebudou generovány zamykací struktury, měřená v buňkách."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Typ vyhlazování"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "Žehlení používá malý průtok materiálu k opětovnému tisku ve stejné výšce povrchu, aby byl plochý povrch hladší. Toto nastavení určuje, které vrstvy budou žehleny."
 
 msgid "No ironing"
 msgstr "Bez žehlení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "Horní povrchy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "Nejvyšší povrch"
 
@@ -13837,18 +13860,18 @@ msgstr "Vzor vyhlazování"
 msgid "The pattern that will be used when ironing."
 msgstr "Vzor použitý při žehlení."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Množství materiálu extrudovaného během žehlení. Vztaženo k průtoku při běžné výšce vrstvy. Příliš vysoká hodnota způsobí přeextruzi povrchu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "Vzdálenost mezi čarami žehlení."
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "Vzdálenost od okrajů. Hodnota 0 nastaví polovinu průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "Rychlost tisku čar žehlení."
 
@@ -13910,11 +13933,11 @@ msgstr "Tento G-code je vložen při každé změně vrstvy po zdvihu v ose Z."
 msgid "Clumping detection G-code"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Silent Mode"
 msgstr "Podporuje tichý režim"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Zda stroj podporuje tichý režim, ve kterém používá nižší zrychlení při tisku."
 
@@ -14184,7 +14207,7 @@ msgstr ""
 "Nula použije faktor tlumení z firmwaru.\n"
 "Pro vypnutí input shapingu použijte typ Zakázat."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "Rychlost ventilátoru chlazení části může být zvýšena, pokud je povoleno automatické chlazení. Toto je maximální rychlost ventilátoru chlazení části."
 
@@ -14301,7 +14324,7 @@ msgstr "Orca Slicer může nahrávat G-code soubory na hostitele tiskárny. Toto
 msgid "Nozzle volume"
 msgstr "Objem trysky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Objem trysky mezi řezačkou a koncem trysky."
 
@@ -14338,14 +14361,14 @@ msgstr "Pokud je hodnota nastavena na nulu, vzdálenost posunu filamentu při za
 msgid "Start end points"
 msgstr "Spustit koncové body"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Počáteční a koncové body, které vedou z oblasti řezače do odpadkového koše."
 
 msgid "Reduce infill retraction"
 msgstr "Snížit retrakci při výplni"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "Neprovádět retrakci, pokud se přejezd nachází zcela uvnitř oblasti výplně. Případné vytékání materiálu tak nebude viditelné. To může snížit počet retrakčních pohybů u složitých modelů a zkrátit dobu tisku, ale zároveň zpomalit slicování a generování G-code. V oblastech, kde je retrakce přeskočena, se zároveň neprovádí ani z-hop."
 
@@ -14355,7 +14378,7 @@ msgstr "Tato možnost sníží teplotu neaktivních extruderů, aby se zabránil
 msgid "Filename format"
 msgstr "Formát názvu souboru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "Uživatelé mohou při exportu definovat název souboru projektu."
 
@@ -14380,7 +14403,8 @@ msgstr "Maximální plocha otvoru ve spodní části modelu, než bude vyplněn 
 msgid "Detect overhang walls"
 msgstr "Detekovat převislou stěnu"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Detekuje procento převisu vzhledem k šířce čáry a použije odlišnou rychlost tisku. Pro 100%% převis je použita rychlost mostů."
 
@@ -14403,11 +14427,11 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry vnitřní stěny. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "Rychlost vnitřní stěny."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Počet stěn každé vrstvy."
 
@@ -14454,30 +14478,30 @@ msgstr "Varianta tiskárny"
 msgid "Raft contact Z distance"
 msgstr "Z vzdálenost kontaktu raftu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z mezera mezi raftem a objektem. Pokud je Horní Z vzdálenost podpory 0, tato hodnota se ignoruje a objekt se tiskne v přímém kontaktu s raftem (bez mezery)."
 
 msgid "Raft expansion"
 msgstr "Rozšíření raftu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Rozšířit všechny raftové vrstvy v rovině XY."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Hustota první vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Hustota první vrstvy raftu nebo podpůrné vrstvy."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Rozšíření první vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Rozšířit první raftovou nebo podpůrnou vrstvu pro lepší přilnavost k desce."
 
@@ -14487,7 +14511,7 @@ msgstr "Vrstvy raftu"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Objekt bude zvednut o tento počet podporových vrstev. Použijte tuto funkci k zabránění deformacím při tisku ABS."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "Cesta G-kódu je generována po zjednodušení obrysu modelů, aby se předešlo příliš velkému počtu bodů a řádků G-kódu. Menší hodnota znamená vyšší rozlišení a delší dobu řezání."
 
@@ -14500,15 +14524,15 @@ msgstr "Retrakce se spustí pouze tehdy, když je délka pohybu větší než te
 msgid "Retract amount before wipe"
 msgstr "Množství retrakce před setřením"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Délka rychlého zpětného pohybu před setřením, relativně k délce zatažení."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Retrakce při změně vrstvy"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "Vynutit retrakci při změně vrstvy."
 
@@ -14518,7 +14542,7 @@ msgstr "Délka retrakce"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "Část materiálu v extruderu je stažena zpět, aby se zabránilo vytékání během dlouhých přesunů. Nastavte nulu pro vypnutí retrakce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "Dlouhá retrakce při přeříznutí (beta)"
 
@@ -14540,7 +14564,7 @@ msgstr "Délka retrakce při změně extruderu"
 msgid "Z-hop height"
 msgstr "Výška Z-hopu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Po každém stažení filamentu se tryska mírně zvedne, aby vznikla mezera mezi tryskou a tiskem. Zabrání kolizi trysky s tiskem při přesunu. Použití spirálových linií pro zvedání v ose Z může zabránit vytahování vláken."
 
@@ -14619,14 +14643,14 @@ msgstr "Při kompenzaci retrakce po pohybu přesunu extruder posune toto přída
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Při kompenzaci retrakce po výměně nástroje extruder posune toto přídavné množství filamentu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Rychlost retrakce"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "Rychlost zatahování filamentu z trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Rychlost deretrakce"
 
@@ -14651,7 +14675,7 @@ msgstr "Zakázat generování M73: Nastavení zbývající doby tisku do fináln
 msgid "Seam position"
 msgstr "Poloha švu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Výchozí pozice pro tisk každé části vnější stěny."
 
@@ -14791,7 +14815,7 @@ msgstr "Rychlost setření je určena nastavením rychlosti uvedeným v této ko
 msgid "Skirt distance"
 msgstr "Vzdálenost okraje"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Vzdálenost od sukně k lemu nebo k objektu."
 
@@ -14804,7 +14828,7 @@ msgstr "Úhel od středu objektu k počátečnímu bodu sukně. Nula je nejprav�
 msgid "Skirt height"
 msgstr "Výška okraje"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "Kolik vrstev sukně. Obvykle pouze jedna vrstva."
 
@@ -14843,7 +14867,7 @@ msgstr "Na objekt"
 msgid "Skirt loops"
 msgstr "Počet smyček okraje"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Počet smyček pro suknici. Nula znamená deaktivaci suknice."
 
@@ -14873,7 +14897,7 @@ msgstr "Rychlost tisku v exportovaném G-code bude zpomalena, pokud je odhadovan
 msgid "Minimum sparse infill threshold"
 msgstr "Minimální práh řídké výplně"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Oblast řídké výplně menší než prahová hodnota bude nahrazena vnitřní plnou výplní."
 
@@ -14895,11 +14919,11 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry vnitřní plné výplně. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Rychlost vnitřní plné výplně, nikoli horního a spodního povrchu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Spiralizace vyhlazuje pohyby v ose Z na vnějším obrysu a převádí plný model na tisk s jednou stěnou a plnými spodními vrstvami. Výsledný model nemá žádný šev."
 
@@ -14930,7 +14954,7 @@ msgstr "Poměr průtoku pro dokončovací spirálu"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Nastavuje finální poměr průtoku při ukončování spirály. Přechod spirály obvykle během poslední smyčky snižuje poměr průtoku ze 100 % na 0 %, což může v některých případech vést k podextruzi na konci spirály."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Pokud je vybrán plynulý nebo tradiční režim, bude pro každý tisk vytvořeno časosběrné video. Po vytištění každé vrstvy pořídí komorová kamera snímek. Po dokončení tisku budou všechny snímky spojeny do časosběrného videa. Pokud je vybrán plynulý režim, tisková hlava se po vytištění každé vrstvy přesune k odpadnímu skluzu a poté pořídí snímek. Protože během pořizování snímku může z trysky unikat roztavený filament, vyžaduje plynulý režim čistící věž pro očištění trysky."
 
@@ -14965,11 +14989,11 @@ msgstr "G-code zapsaný na úplný začátek výstupního souboru před jakýkol
 msgid "Start G-code"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "Start G-code při spuštění celého tisku."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "Start G-code při spuštění tisku tohoto filamentu."
 
@@ -15054,7 +15078,7 @@ msgstr "Tato hodnota bude přičtena (nebo odečtena) ke všem Z souřadnicím v
 msgid "Enable support"
 msgstr "Povolit podpěry"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "Povolit generování podpěr."
 
@@ -15076,7 +15100,7 @@ msgstr "Strom (manuálně)"
 msgid "Support/object XY distance"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "XY odstup mezi objektem a jeho podporou."
 
@@ -15095,7 +15119,7 @@ msgstr "Toto nastavení použijte pro otočení vzoru podpor v horizontální ro
 msgid "On build plate only"
 msgstr "Pouze na tiskové podložce"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Nevytvářejte podpěry na povrchu modelu, pouze na tiskové podložce."
 
@@ -15114,14 +15138,14 @@ msgstr "Ignorovat malé převisy, které pravděpodobně nevyžadují podpěry."
 msgid "Top Z distance"
 msgstr "Horní vzdálenost v ose Z"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "Z mezera mezi horním rozhraním podpory a objektem."
 
 msgid "Bottom Z distance"
 msgstr "Spodní vzdálenost v ose Z"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z mezera mezi spodním rozhraním podpory a objektem. Pokud je Horní Z vzdálenost podpory 0 a spodek má vrstvy rozhraní, tato hodnota se ignoruje a podpora se tiskne v přímém kontaktu s objektem (bez mezery)."
 
@@ -15142,11 +15166,11 @@ msgstr "Pokud je to možné, vyhněte se použití filamentu pro rozhraní podpo
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry podpory. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Rozhraní používá vzor smyčky"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Zakryjte vrchní kontaktní vrstvu podpor smyčkami. Ve výchozím nastavení vypnuto."
 
@@ -15160,6 +15184,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "Vrstvy rozhraní horního povrchu"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "This is the number of top interface layers."
+msgstr "Počet pomalých vrstev"
 
 msgid "Bottom interface layers"
 msgstr "Spodní rozhraní vrstvami"
@@ -15183,11 +15211,11 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Odsazení spodního rozhraní"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Vzdálenost spodních linií rozhraní. Nula znamená plné rozhraní."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "Rychlost kontaktní plochy podpěr."
 
@@ -15216,7 +15244,7 @@ msgstr "Vyprázdnit"
 msgid "Interface pattern"
 msgstr "Vzorek rozhraní"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "Vzor čáry pro rozhraní podpory. Výchozím vzorem nerozpustitelného rozhraní podpory je pravoúhlý, zatímco výchozím vzorem rozpustitelného rozhraní je koncentrický."
 
@@ -15226,18 +15254,18 @@ msgstr "Obdélníkový prokládaný vzor"
 msgid "Base pattern spacing"
 msgstr "Rozteč základního vzoru"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "Vzdálenost mezi liniemi podpory."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Normální rozšíření podpor"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Rozšířit (+) nebo zúžit (-) vodorovný rozsah běžné podpory."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Rychlost podpěr."
 
@@ -15404,14 +15432,14 @@ msgstr ""
 "\n"
 "Pokud je povoleno, tento parametr rovněž nastaví G-code proměnnou s názvem chamber_temperature, kterou lze použít k předání požadované teploty komory do makra spuštění tisku, nebo do makra pro tepelnou stabilizaci, například takto: PRINT_START (další proměnné) CHAMBER_TEMP=[chamber_temperature]. To může být užitečné, pokud vaše tiskárna nepodporuje příkazy M141/M191, nebo pokud chcete provádět tepelnou stabilizaci v makru spuštění tisku, pokud není instalováno aktivní topení komory."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Teplota trysky pro vrstvy po úvodní vrstvě."
 
 msgid "Detect thin walls"
 msgstr "Detekovat tenkou stěnu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Detekovat tenkou stěnu, do které se nevejdou dvě šířky čáry. A použít pro tisk pouze jednu čáru. Tisk nemusí být zcela kvalitní, protože nejde o uzavřenou smyčku."
 
@@ -15430,21 +15458,21 @@ msgstr "Tento G-code se vloží při změně role extruze pro aktivní filament.
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Šířka čáry pro horní povrch. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "Rychlost výplně horního povrchu, která je plná."
 
 msgid "Top shell layers"
 msgstr "Vrstvy horního pláště"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Toto je počet pevných vrstev horní skořepiny, včetně horního povrchu. Pokud je tloušťka vypočítaná touto hodnotou menší než tloušťka horní skořepiny, počet horních vrstev se zvýší."
 
 msgid "Top shell thickness"
 msgstr "Tloušťka horního pláště"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Počet horních pevných vrstev bude při slicování zvýšen, pokud tloušťka vypočtená podle horních vrstev bude menší než tato hodnota. Tím lze předejít příliš tenké skořepině při malé výšce vrstvy. 0 znamená, že je nastavení vypnuté a tloušťka horní skořepiny je určena pouze počtem horních vrstev."
 
@@ -15464,18 +15492,18 @@ msgstr ""
 "Hustota spodní povrchové vrstvy. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů, jako je přeextruze.\n"
 "VAROVÁNÍ: Snížení této hodnoty může negativně ovlivnit přilnavost k podložce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Rychlost přejezdu bez extruze."
 
 msgid "Wipe while retracting"
 msgstr "Očistit při retrakci"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Při retrakci pohybujte tryskou po poslední extruzní dráze, aby se odstranil uniklý materiál z trysky. To může minimalizovat vznik kapek při tisku nové části po přejezdu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Délka očištění"
 
@@ -15492,7 +15520,7 @@ msgstr ""
 "\n"
 "Nastavení hodnoty v parametru množství retrakce před očištěním níže provede případnou dodatečnou retrakci před očištěním, jinak bude provedena po něm."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Čistící věž lze použít k odstranění zbytků materiálu na trysce a ke stabilizaci tlaku v komoře trysky, aby se předešlo vizuálním vadám při tisku objektů."
 
@@ -15508,18 +15536,18 @@ msgstr "Čisticí objemy"
 msgid "Flush multiplier"
 msgstr "Násobitel proplachu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Skutečné vyplachovací objemy jsou rovny násobiči vyplachování vynásobenému objemy v tabulce."
 
 msgid "Prime volume"
 msgstr "Objem základní věže"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Objem materiálu pro načerpání extruderu na základní věži."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Šířka základní věže."
 
@@ -15633,11 +15661,11 @@ msgstr "Mezera výplně"
 msgid "Infill gap."
 msgstr "Mezera výplně."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "Čištění po výměně filamentu se provede uvnitř výplně objektu. To může snížit množství odpadu a zkrátit dobu tisku. Pokud jsou stěny tištěny průhledným filamentem, bude smíšená barevná výplň viditelná zvenku. Tato volba bude mít účinek pouze v případě, že je povolena základní věž."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Čištění po výměně filamentu se provede uvnitř podpor objektu. To může snížit množství odpadu a zkrátit dobu tisku. Tato volba bude mít účinek pouze v případě, že je povolena základní věž."
 
@@ -15671,14 +15699,14 @@ msgstr "Teplota trysky, když nástroj není právě používán v režimu s ví
 msgid "X-Y hole compensation"
 msgstr "Kompenzace otvoru v ose X-Y"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Otvory v objektech se v rovině XY rozšíří nebo zmenší o nastavenou hodnotu. Kladné hodnoty otvory zvětšují, záporné hodnoty je zmenšují. Tato funkce slouží k jemné úpravě rozměrů při problémech se sestavením objektů."
 
 msgid "X-Y contour compensation"
 msgstr "Kompenzace obrysu v ose X-Y"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Obrysy objektů se v rovině XY rozšíří nebo zmenší o nastavenou hodnotu. Kladné hodnoty obrysy zvětšují, záporné hodnoty je zmenšují. Tato funkce slouží k jemné úpravě rozměrů při problémech se sestavením objektů."
 
@@ -15729,7 +15757,7 @@ msgstr "Použít relativní vzdálenosti E"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "Relativní extruze je doporučena při použití volby \"label_objects\". Některé extrudery fungují lépe, když tato volba není zaškrtnutá (absolutní režim extruze). Věž na očištění trysky je kompatibilní pouze s relativním režimem. Doporučeno pro většinu tiskáren. Výchozí stav je zaškrtnuto."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Klasický generátor stěn vytváří stěny se stálou šířkou extruze a pro velmi úzké oblasti používá výplň mezer. Arachne engine vytváří stěny s proměnnou šířkou extruze."
 
@@ -15739,7 +15767,7 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "Délka přechodu stěny"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Při přechodu mezi různým počtem stěn v tenčích částech dílu je určité množství prostoru vyhrazeno pro rozdělení nebo spojení segmentů stěny. Je vyjádřena jako procento průměru trysky."
 
@@ -15827,14 +15855,14 @@ msgstr " není v rozsahu "
 msgid "Export 3MF"
 msgstr "Exportovat 3MF"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Exportovat projekt jako 3MF."
 
 msgid "Export slicing data"
 msgstr "Exportovat data řezu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Exportovat data řezu do složky."
 
@@ -15862,7 +15890,7 @@ msgstr "Slicovat"
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Slicovat desky: 0-všechny desky, i-deska i, ostatní-neplatné"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Zobrazit nápovědu k příkazům."
 
@@ -15887,14 +15915,14 @@ msgstr ""
 msgid "mtcpp"
 msgstr "mtcpp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "maximální počet trojúhelníků na desku pro slicování."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "Maximální čas slicování na desku v sekundách."
 
@@ -15913,14 +15941,14 @@ msgstr "Zkontrolujte normativní položky."
 msgid "Output Model Info"
 msgstr "Informace o výstupním modelu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Zobrazit informace o modelu."
 
 msgid "Export Settings"
 msgstr "Exportovat nastavení"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Exportovat nastavení do souboru."
 
@@ -16008,7 +16036,7 @@ msgstr "Klonovat objekty v seznamu načtení."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Načíst aktuální nastavení procesu/stroje při použití aktuálních"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Načíst aktuální nastavení procesu/stroje ze zadaného souboru při použití aktuálních."
 
@@ -16045,7 +16073,7 @@ msgstr "Načíst a uložit nastavení do zadané složky. To je užitečné pro 
 msgid "Output directory"
 msgstr "Výstupní adresář"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Výstupní adresář pro exportované soubory."
 
@@ -16482,15 +16510,15 @@ msgstr "Načítání souboru modelu selhalo."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Síťování modelového souboru selhalo nebo nebyl nalezen platný tvar."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Zadaný soubor nelze načíst, protože je prázdný."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Neznámý formát souboru. Vstupní soubor musí mít příponu .stl, .obj nebo .amf(.xml)."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Neznámý formát souboru. Vstupní soubor musí mít příponu .3mf nebo .zip.amf."
 
@@ -16542,7 +16570,7 @@ msgstr "Kalibrovat"
 msgid "Finish"
 msgstr "Dokončit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Jak použít výsledek kalibrace?"
 
@@ -16620,7 +16648,7 @@ msgstr "Vyberte filament pro kalibraci."
 msgid "The input value size must be 3."
 msgstr "Délka vstupní hodnoty musí být 3."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -16632,7 +16660,8 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Bude uložen pouze jeden z výsledků se stejným názvem: %s. Opravdu chcete přepsat ostatní výsledky?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Již existuje historický výsledek kalibrace se stejným názvem: %s. Je uložen pouze jeden z výsledků se stejným názvem. Opravdu chcete přepsat historický výsledek?"
 
@@ -16644,7 +16673,8 @@ msgstr ""
 "V rámci stejného extruderu musí být název (%s) jedinečný, pokud jsou typ filamentu, průměr trysky a průtok trysky stejné.\n"
 "Opravdu chcete přepsat historický výsledek?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Tento typ stroje může uchovávat pouze %d výsledků historie na jednu trysku. Tento výsledek nebude uložen."
 
@@ -16725,7 +16755,7 @@ msgstr "Kalibrace rychlosti průtoku je navíc zásadní pro pěnové materiály
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Kalibrace rychlosti průtoku měří poměr očekávaného a skutečně extrudovaného objemu. Výchozí nastavení dobře funguje u tiskáren Bambu Lab a oficiálních filamentů, protože jsou předkalibrované a vyladěné. U běžného filamentu obvykle nemusíte provádět kalibraci rychlosti průtoku, pokud se i po ostatních kalibracích stále nevyskytují uvedené vady. Podrobnosti naleznete ve wiki článku."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -16772,7 +16802,7 @@ msgstr "Název nesmí přesáhnout 40 znaků."
 msgid "Please find the best line on your plate"
 msgstr "Najděte nejlepší čáru na své desce."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Najděte roh s ideálním množstvím extruze."
 
@@ -16932,14 +16962,15 @@ msgstr "Žádná historie výsledků"
 msgid "Success to get history result"
 msgstr "Historie výsledků byla úspěšně načtena"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Obnovování historických záznamů kalibrace dynamiky průtoku"
 
 msgid "Action"
 msgstr "Akce"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Tento typ tiskárny může uchovávat pouze %d výsledků historie na jednu trysku."
 
@@ -17564,11 +17595,11 @@ msgstr "filamentový přednastavený profil"
 msgid "Create"
 msgstr "Vytvořit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Dodavatel není vybrán, prosím vyberte jej znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Není zadán vlastní výrobce, zadejte prosím vlastního výrobce."
 
@@ -17578,25 +17609,26 @@ msgstr "\"Bambu\" nebo \"Generic\" nelze použít jako dodavatele pro vlastní f
 msgid "Filament type is not selected, please reselect type."
 msgstr "Typ filamentu není vybrán, prosím zvolte typ znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "Sériové číslo filamentu není zadáno, zadejte prosím sériové číslo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "V dodavateli nebo sériovém čísle filamentu mohou být únikové znaky. Smažte a zadejte znovu."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Všechna pole ve vlastním výrobci nebo sériovém čísle obsahují pouze mezery. Zadejte prosím znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "Dodavatel nemůže být číslo. Zadejte prosím znovu."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Ještě jste nevybrali tiskárnu ani předvolbu. Vyberte prosím alespoň jednu."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -17642,7 +17674,7 @@ msgstr "Importovat předvolbu"
 msgid "Create Type"
 msgstr "Vytvořit typ"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "Model nebyl nalezen, prosím zvolte výrobce znovu."
 
@@ -17683,18 +17715,18 @@ msgstr "Soubor přesahuje %d MB, prosím importujte jej znovu."
 msgid "Exception in obtaining file size, please import again."
 msgstr "Výjimka při získávání velikosti souboru, prosím importujte znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Cesta k předvolbě nebyla nalezena, znovu vyberte výrobce."
 
 msgid "The printer model was not found, please reselect."
 msgstr "Model tiskárny nebyl nalezen, prosím zvolte znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "Průměr trysky nebyl nalezen, vyberte prosím znovu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "Předvolba tiskárny nebyla nalezena, prosím zvolte znovu."
 
@@ -17710,11 +17742,11 @@ msgstr "Šablona předvolby procesu"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Zatím jste nevybrali, podle které předvolby tiskárny chcete vytvořit. Vyberte prosím výrobce a model tiskárny."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "V části tisknutelné oblasti na první stránce jste zadali neplatný vstup. Před vytvořením to prosím zkontrolujte."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17734,14 +17766,14 @@ msgstr "Vytvoření filamentových profilů selhalo. Viz níže:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Vytvoření předvoleb procesu selhalo. Viz níže:\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "Dodavatel nebyl nalezen, prosím vyberte jej znovu."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "Aktuální výrobce nemá žádné modely, zvolte prosím jiného."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Nezvolili jste výrobce a model, ani jste nezadali vlastního výrobce a model."
 
@@ -17754,7 +17786,7 @@ msgstr "Všechna pole v uživatelském výrobci nebo modelu tiskárny obsahují 
 msgid "Please check bed printable shape and origin input."
 msgstr "Zkontrolujte prosím tvar a počátek tiskové plochy."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Dosud jste nevybrali tiskárnu pro výměnu trysky, vyberte ji prosím."
 
@@ -17795,7 +17827,7 @@ msgstr "Přejděte do nastavení tiskárny a upravte své předvolby."
 msgid "Filament Created"
 msgstr "Filament vytvořen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -17850,7 +17882,8 @@ msgstr "chyba zápisu do otevřeného ZIPu"
 msgid "Export successful"
 msgstr "Export úspěšný"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -17882,7 +17915,7 @@ msgstr ""
 "Uživatelský filamentový přednastavený profil nastaven.\n"
 "Lze sdílet s ostatními."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Zobrazit pouze názvy tiskáren se změnami v předvolbách tiskárny, filamentu a procesu."
 
@@ -17909,7 +17942,7 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "Vyberte alespoň jednu tiskárnu nebo filament."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "Vyberte typ, který chcete exportovat."
 
@@ -17974,7 +18007,7 @@ msgstr "[Vyžaduje smazání]"
 msgid "Edit Preset"
 msgstr "Upravit předvolbu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "Pro více informací navštivte Wiki"
 
@@ -18043,6 +18076,9 @@ msgstr ""
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Nelze kalibrovat: možná je nastavený rozsah kalibračních hodnot příliš velký nebo je krok příliš malý"
+
+msgid "Physical Printer"
+msgstr "Fyzická tiskárna"
 
 msgid "Print Host upload"
 msgstr "Nahrání na tiskový server"
@@ -18461,7 +18497,7 @@ msgstr "tiskárny současně. (Záleží na tom, kolik zařízení může být s
 msgid "Wait"
 msgstr "Čekejte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "minuta na každou várku. (Záleží na tom, jak dlouho trvá dokončení zahřívání.)"
 
@@ -19128,8 +19164,8 @@ msgstr ""
 "Časosběr\n"
 "Věděli jste, že během každého tisku můžete generovat časosběrné video?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
-#, fuzzy
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19137,8 +19173,8 @@ msgstr ""
 "Automatické uspořádání\n"
 "Věděli jste, že můžete automaticky uspořádat všechny objekty ve svém projektu?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
-#, fuzzy
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19236,9 +19272,9 @@ msgstr ""
 "Rozdělte své tisky na desky\n"
 "Věděli jste, že můžete rozdělit model s mnoha částmi na jednotlivé desky připravené k tisku? To zjednoduší sledování všech částí."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-#, fuzzy
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19254,8 +19290,8 @@ msgstr ""
 "Podpora malování\n"
 "Věděli jste, že můžete namalovat umístění podpěr? Tato funkce umožňuje snadné umístění podpůrného materiálu pouze na části modelu, které jej skutečně vyžadují."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
-#, fuzzy
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19263,8 +19299,8 @@ msgstr ""
 "Různé typy podpor\n"
 "Věděli jste, že si můžete vybrat z více typů podpor? Stromové podpory jsou ideální pro organické modely, šetří filament a zrychlují tisk. Vyzkoušejte je!"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
-#, fuzzy
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19280,8 +19316,8 @@ msgstr ""
 "Límec pro lepší přilnavost\n"
 "Věděli jste, že pokud mají tištěné modely malou styčnou plochu s tiskovou plochou, doporučuje se použít límec?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
-#, fuzzy
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19297,8 +19333,8 @@ msgstr ""
 "Skládejte objekty\n"
 "Věděli jste, že můžete skládat objekty jako celek?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
-#, fuzzy
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19314,9 +19350,9 @@ msgstr ""
 "Zvyšte pevnost\n"
 "Věděli jste, že pro zvýšení pevnosti modelu můžete použít více smyček stěn a vyšší hustotu řídké výplně?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-#, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19324,8 +19360,8 @@ msgstr ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? More info about this in the Wiki."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
-#, fuzzy
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19404,9 +19440,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Počet horních rozhraní vrstev."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fyzická tiskárna"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Vyrovnání podložky"

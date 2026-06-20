@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -90,11 +90,11 @@ msgstr ""
 msgid "Latest version"
 msgstr "Neueste Version"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "Stützen aufmalen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "Anwenden"
 
@@ -104,7 +104,7 @@ msgstr "Nur an hervorgehobenen Überhängen"
 msgid "Erase all"
 msgstr "Alles löschen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "Bereiche mit Überhang hervorheben"
 
@@ -175,7 +175,7 @@ msgstr "Kein automatischer Support"
 msgid "Done"
 msgstr "Erledigt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "Support generiert"
 
@@ -191,7 +191,7 @@ msgstr "Bearbeiten von Paint-on Supports"
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-auf Fläche platzieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "Auf Fläche legen"
 
@@ -199,7 +199,7 @@ msgstr "Auf Fläche legen"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "Die Anzahl der Filamente übersteigt die maximale Anzahl, die das Malwerkzeug unterstützt. Nur die ersten %1% der Filamente werden im Malwerkzeug verfügbar sein."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "Farben malen"
 
@@ -366,34 +366,34 @@ msgstr "Rotation (relativ)"
 msgid "Scale ratios"
 msgstr "Skalierungsverhältnisse"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objekt-Operationen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Volumen Operationen"
 
 msgid "Translate"
 msgstr "Versetzen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "Gruppen Operationen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "Ausrichtung festlegen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "Skalierung festlegen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "Position zurücksetzen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "Rotation zurücksetzen"
 
@@ -688,7 +688,7 @@ msgstr "Verbinder"
 msgid "Cut by Plane"
 msgstr "Schnitt durch Ebene"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "Nicht-manifold Kanten durch Schneidwerkzeug verursacht, möchten Sie es jetzt beheben?"
 
@@ -757,7 +757,7 @@ msgstr "%d Dreiecke"
 msgid "Show wireframe"
 msgstr "Gittermodell anzeigen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "Kann nicht angewendet werden, wenn die Vorschau angezeigt wird."
 
@@ -782,7 +782,7 @@ msgstr "Naht aufmalen"
 msgid "Remove selection"
 msgstr "Auswahl entfernen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "Beginne Naht aufmalen"
 
@@ -806,7 +806,7 @@ msgstr "Textabstand"
 msgid "Angle"
 msgstr "Winkel"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Embedded depth"
 msgstr ""
 "Eingebettete\n"
@@ -1324,7 +1324,7 @@ msgstr "Neu laden der SVG-Datei von der Festplatte."
 msgid "Change file"
 msgstr "Datei wechseln"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change to another SVG file."
 msgstr "Wechsel zu einer anderen .svg-Datei"
 
@@ -1352,7 +1352,7 @@ msgstr "Speichern als"
 msgid "Save SVG file"
 msgstr "SVG-Datei speichern"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save as SVG file."
 msgstr "Speichern als '.svg'-Datei"
 
@@ -1611,7 +1611,7 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "Hinweis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "Undefiniert"
 
@@ -1634,11 +1634,12 @@ msgstr ""
 msgid "Machine"
 msgstr "Maschine"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "Konfigurationspaket wurde geladen, aber einige Werte wurden nicht erkannt."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Konfigurationsdatei \"%1%\" wurde geladen, aber einige Werte wurden nicht erkannt."
 
@@ -1760,7 +1761,7 @@ msgstr "Meine Auswahl merken"
 msgid "Click to download new version in default browser: %s"
 msgstr "Klicken Sie hier, um die neueste Version im Standardbrowser herunterzuladen: %s"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer benötigt ein Upgrade"
 
@@ -1821,7 +1822,7 @@ msgstr ""
 msgid "Some presets are modified."
 msgstr "Einige Profileinstellungen wurden geändert."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Sie können die geänderten Profile in das neue Projekt übernehmen, verwerfen oder als neue Profile speichern."
 
@@ -2034,7 +2035,8 @@ msgstr "Umbenennen"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Initialisierung der Orca Slicer GUI ist fehlgeschlagen"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Schwerwiegender Fehler, Ausnahme: %1%"
 
@@ -2059,22 +2061,22 @@ msgstr "Geschwindigkeit"
 msgid "Strength"
 msgstr "Struktur"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "Obere massive Schichten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "Obere minimale Schalendicke"
 
 msgid "Top Surface Density"
 msgstr "Obere Flächendichte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "Untere volle Schichten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "Minimale Dicke der unteren Schichten"
 
@@ -2090,7 +2092,7 @@ msgstr ""
 msgid "Extruders"
 msgstr "Extruder"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "Extrusionsbreite"
 
@@ -2100,23 +2102,23 @@ msgstr "Wischoptionen"
 msgid "Bed adhesion"
 msgstr "Druckbetthaftung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "Teil hinzufügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "Negatives Teil hinzufügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "Modifizierer hinzufügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "Supportblocker hinzufügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "Supportverstärker hinzufügen"
 
@@ -2216,15 +2218,15 @@ msgstr "Vorschlag"
 msgid "Text"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "Höhen Modifizieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "Einstellungen hinzufügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "Typ ändern"
 
@@ -2240,11 +2242,11 @@ msgstr "Stützverstärker"
 msgid "Change part type"
 msgstr "Ändere den Teile Type"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "Als eigenes Objekt definieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "Als eigene Objekte definieren"
 
@@ -2263,7 +2265,7 @@ msgstr "Automatisch ablegen"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "Legt das ausgewählte Objekt automatisch auf die Bauplatte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "Modell reparieren"
 
@@ -2334,19 +2336,19 @@ msgstr "Düse in der Stützstruktur des Objekts reinigen"
 msgid "Edit in Parameter Table"
 msgstr "Bearbeiten in der Parametertabelle"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "Von Inch umrechnen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "Zu Inch zurücksetzen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "Von Metern umrechnen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Auf Meter zurücksetzen"
 
@@ -2362,31 +2364,31 @@ msgstr "Mesh-Boolesche Operationen"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Mesh-Boolesche Operationen, einschließlich Vereinigung und Subtraktion"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "Entlang der X Achse"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "An der X-Achse spiegeln"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "Entlang der Y Achse"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "An der Y-Achse spiegeln"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "Entlang der Z Achse"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "An der Z-Achse spiegeln"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "Objekt spiegeln"
 
@@ -2417,14 +2419,14 @@ msgstr "Modelle hinzufügen"
 msgid "Show Labels"
 msgstr "Bezeichnung anzeigen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "Zu Objekten"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Das ausgewählte Objekt in mehrere Objekte aufteilen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "Zu Teilen"
 
@@ -2452,7 +2454,7 @@ msgstr "Zusammenführen mit"
 msgid "Delete this filament"
 msgstr "Diesen Filament löschen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "Alle auswählen"
 
@@ -2465,7 +2467,7 @@ msgstr "Alle Druckplatten auswählen"
 msgid "Select all objects on all plates"
 msgstr "Alle Objekte auf allen Druckplatten auswählen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "Alles löschen"
 
@@ -2598,25 +2600,25 @@ msgstr[1] "%1$d „non-manifold\" Kanten"
 msgid "Click the icon to repair model object"
 msgstr "Klicken Sie auf das Symbol, um das Modellobjekt zu reparieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "Klicken Sie mit der rechten Maustaste auf das Symbol, um die Objekteinstellungen zu löschen"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "Klicken Sie auf das Symbol, um alle Einstellungen des Objekts zurückzusetzen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "Klicken Sie mit der rechten Maustaste auf das Symbol, um die druckbare Eigenschaft des Objekts zu löschen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Klicken Sie auf das Symbol, um die druckbare Eigenschaft des Objekts einzuschalten"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "Klicken Sie auf das Symbol, um die aufgemalten Stützen des Objekts zu bearbeiten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "Klicken Sie auf das Symbol, um die Farbgebung des Objekts zu bearbeiten"
 
@@ -2656,7 +2658,7 @@ msgstr "Lösche das negative Volumen aus dem Objekt, das Teil des Schnitts ist."
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "Um die Schnittkorrespondenz zu speichern, können Sie alle Verbinder von allen zugehörigen Objekten löschen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2690,15 +2692,15 @@ msgstr "Objektmanipulation"
 msgid "Group manipulation"
 msgstr "Gruppenmanipulation"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "Objekteinstellungen zum Bearbeiten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "Teileeinstellungen zum Bearbeiten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "Einstellungen zum Bearbeiten des Layer-Bereichs"
 
@@ -2726,7 +2728,7 @@ msgstr "Wenn das erste ausgewählte Element ein Objekt ist, sollte das zweite eb
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Wenn das erste ausgewählte Element ein Teil ist, sollte das zweite ein Teil desselben Objekts sein."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Der Typ des letzten festen Objektteils darf nicht geändert werden."
 
@@ -2781,7 +2783,7 @@ msgstr "Höhenbereich hinzufügen"
 msgid "Invalid numeric."
 msgstr "Ungültige Zahl."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "eine Zelle kann nur in eine oder mehrere Zellen in derselben Spalte kopiert werden"
 
@@ -2846,19 +2848,19 @@ msgstr "Linientyp"
 msgid "1x1 Grid: %d mm"
 msgstr "1x1 Netz %d mm"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "Mehr"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "Einstellungen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "Öffne nächsten Tipp."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "Öffne Dokumentation im Webbrowser."
 
@@ -2889,11 +2891,11 @@ msgstr "Benutzerdefinierter G-Code"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "Den auf der aktuellen Ebene zu verwendeten benutzerdefinierten G-Code eingeben:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "Wechsle zu Layer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "Bitte die Schichtnummer eingeben"
 
@@ -2972,14 +2974,14 @@ msgstr "Verbinden..."
 msgid "Auto Refill"
 msgstr "Automatisch nachfüllen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "Laden"
 
 msgid "Unload"
 msgstr "Entladen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Wählen Sie einen AMS-Steckplatz aus und drücken Sie dann die Schaltfläche „Laden“ oder „Entladen“, um Filamente automatisch zu laden oder zu entladen."
 
@@ -3089,7 +3091,7 @@ msgstr "Düse aufheizen"
 msgid "Cut filament"
 msgstr "Filament abschneiden"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "Ziehen Sie das aktuelle Filament zurück"
 
@@ -3129,7 +3131,7 @@ msgstr "Alle Elemente ausgewählt..."
 msgid "No matching items..."
 msgstr "Keine passenden Elemente..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "Alle abwählen"
 
@@ -3154,7 +3156,7 @@ msgstr "Erweiterte Einstellungen"
 msgid "Expert settings"
 msgstr "Experteneinstellungen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Developer mode"
 msgstr "Entwicklermodus"
 
@@ -3187,7 +3189,7 @@ msgstr "Anordnen"
 msgid "Arranging canceled."
 msgstr "Anordnen abgebrochen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Das Anordnen ist abgeschlossen, aber einige Elemente konnten nicht angeordnet werden. Verringern Sie die Abstände und versuchen Sie es erneut."
 
@@ -3255,7 +3257,7 @@ msgstr "Anmeldung fehlgeschlagen"
 msgid "Please check the printer network connection."
 msgstr "Bitte überprüfen Sie die Netzwerkverbindung des Druckers."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "Abnormale Daten in der Druckdatei. Bitte slicen Sie erneut"
 
@@ -3268,7 +3270,7 @@ msgstr "Zeitüberschreitung beim Upload. Bitte überprüfen Sie den Netzwerkstat
 msgid "Cloud service connection failed. Please try again."
 msgstr "Die Verbindung zum Cloud-Dienst ist fehlgeschlagen. Bitte versuche es erneut."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "Druckdatei nicht gefunden. Bitte erneut slicen"
 
@@ -3281,18 +3283,18 @@ msgstr "Der Druckauftrag konnte nicht gesendet werden. Bitte versuchen Sie es er
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "Datei konnte nicht auf FTP hochgeladen werden. Bitte versuchen Sie es erneut."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Überprüfen Sie den aktuellen Status des Bambu Lab-Servers, indem Sie auf den obigen Link klicken."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "Die Größe der Druckdatei ist zu groß. Bitte passen Sie die Dateigröße an und versuchen Sie es erneut."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Druckdatei nicht gefunden. Bitte erneut slicen und zum Drucken senden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Druckdatei konnte nicht über FTP hochgeladen werden. Bitte überprüfen Sie den Netzwerkstatus und versuchen Sie es erneut."
 
@@ -3344,7 +3346,7 @@ msgstr "Es ist ein unbekannter Fehler mit dem Speicherstatus aufgetreten. Bitte 
 msgid "Sending G-code file over LAN"
 msgstr "Sende Gcode-Datei über LAN"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "Sende Gcode-Datei an SDKarte"
 
@@ -3415,7 +3417,7 @@ msgstr "Verbleibende Zeit: %dmin%ds"
 msgid "Importing SLA archive"
 msgstr "SLA-Archiv importieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "Die SLA-Archivdatei enthält keine Profile. Bitte aktivieren Sie zuerst einige SLA-DruckerProfile, bevor Sie das SLA-Archiv importieren."
 
@@ -3428,7 +3430,7 @@ msgstr "Import erfolgreich."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Das importierte SLA-Archiv enthält keine Profile. Die aktuellen SLA-Profile wurden als Ersatz verwendet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Du kannst kein SLA-Projekt mit einem mehrteiligen Objekt auf dem Druckbett laden."
 
@@ -3456,7 +3458,7 @@ msgstr "Installieren"
 msgid "Install failed"
 msgstr "Installation fehlgeschlagen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "License Info"
 msgstr "Informationen zum Urheberrecht"
 
@@ -3572,7 +3574,7 @@ msgstr "Andere Farbe"
 msgid "Custom Color"
 msgstr "Benutzerdefinierte Farbe"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "Dynamische Flusskalibrierung"
 
@@ -3582,7 +3584,7 @@ msgstr "Die Düsentemperatur und die maximale volumetrische Geschwindigkeit beei
 msgid "Nozzle Diameter"
 msgstr "Düsendurchmesser"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "Druckbetttyp"
 
@@ -3604,7 +3606,7 @@ msgstr "Druckbetttemperatur"
 msgid "mm³"
 msgstr "mm³"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Start"
 msgstr "Kalibrierung starten"
 
@@ -3617,7 +3619,7 @@ msgstr "Kalibrierung abgeschlossen. Bitte suchen Sie die gleichmäßigste Extrus
 msgid "Save"
 msgstr "Speichern"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "Zurück"
 
@@ -3715,18 +3717,18 @@ msgstr "Hinweis: Es können nur mit Filament geladene Slots ausgewählt werden."
 msgid "Enable AMS"
 msgstr "AMS aktivieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "Mit Filament aus dem AMS drucken"
 
 msgid "Disable AMS"
 msgstr "AMS deaktivieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
 msgstr "Druck mit dem Filament auf der Rückseite des Chassis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Wechseln Sie das Trockenmittel, wenn es zu feucht ist. Der Indikator kann nicht genau in folgenden Fällen angezeigt werden: wenn der Deckel geöffnet ist oder das Trockenmittelbeutel gewechselt wird. Es dauert Stunden, um die Feuchtigkeit aufzunehmen, niedrige Temperaturen verlangsamen den Prozess."
 
@@ -3745,11 +3747,11 @@ msgstr "Klicken Sie hier, um den AMS-Slot manuell auszuwählen"
 msgid "Do not Enable AMS"
 msgstr "AMS nicht aktivieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print using filament on external spool."
 msgstr "Drucken mit Materialien, die an der Rückseite des Gehäuses montiert sind"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Drucken mit Materialien im AMS"
 
@@ -3774,7 +3776,7 @@ msgstr "Wenn das aktuelle Material leer ist, verwendet der Drucker identisches F
 msgid "The printer does not currently support auto refill."
 msgstr "Der Drucker unterstützt derzeit kein automatisches Nachfüllen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "Das AMS-Filament-Backup ist nicht aktiviert. Bitte aktivieren Sie es in den AMS-Einstellungen."
 
@@ -3797,7 +3799,7 @@ msgstr "AMS-Einstellungen"
 msgid "Insertion update"
 msgstr "Update einfügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "Die AMS liest automatisch die Filamentinformationen, wenn ein neues Bambu Lab Filament eingesetzt wird. Dies dauert etwa 20 Sekunden."
 
@@ -3807,11 +3809,11 @@ msgstr "Hinweis: Wenn während des Drucks neues Filament eingelegt wird, liest d
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "Hinweis: Wenn während des Drucks neues Filament eingelegt wird, liest das AMS die Informationen nicht automatisch ein, bis der Druckvorgang abgeschlossen ist."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "Update beim Einschalten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "Das AMS liest beim Einschalten automatisch die Informationen über das eingelegte Filament. Der Lesevorgang dauert ca. 1 Minute und lässt die Filamentspulen rotieren."
 
@@ -3866,7 +3868,7 @@ msgstr "Kalibrierung"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "Der Download des Plugins ist fehlgeschlagen. Bitte überprüfen Sie Ihre Firewall-Einstellungen und VPN-Software und versuchen Sie es erneut."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Die Installation des Plugins ist fehlgeschlagen. Die Plugin-Datei könnte in Verwendung sein. Bitte starten Sie OrcaSlicer neu und versuchen Sie es erneut. Überprüfen Sie auch, ob sie von Antivirensoftware blockiert oder gelöscht wird."
 
@@ -3888,7 +3890,7 @@ msgstr "), um die Position des Werkzeugkopfs zu ermitteln. Dadurch wird verhinde
 msgid "Go Home"
 msgstr "Werkzeugkopf zur Referenzposition fahren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Ein Fehler ist aufgetreten. Vielleicht reicht der Arbeitsspeicher des Systems nicht aus oder es handelt sich um einen Fehler im Programm."
 
@@ -3896,11 +3898,11 @@ msgstr "Ein Fehler ist aufgetreten. Vielleicht reicht der Arbeitsspeicher des Sy
 msgid "A fatal error occurred: \"%1%\""
 msgstr "Ein schwerwiegender Fehler ist aufgetreten: \"%1%\""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "Bitte speichern Sie das Projekt und starten Sie das Programm neu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "Verarbeite G-Code der vorherigen Datei..."
 
@@ -3965,7 +3967,7 @@ msgstr "Das Kopieren des temporären G-Codes wurde abgeschlossen, aber der expor
 msgid "G-code file exported to %1%"
 msgstr "G-Code-Datei exportiert nach %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "Unbekannter Fehler beim exportieren des G-Code."
 
@@ -3979,7 +3981,7 @@ msgstr ""
 "Fehlernachricht: %1%.\n"
 "Ursprungsdatei %2%."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Das Kopieren des temporären G-Codes in den Ausgabe-G-Code ist fehlgeschlagen."
 
@@ -4026,14 +4028,14 @@ msgstr "Wählen Sie eine STL-Datei aus, aus der Sie die Druckbettform importiere
 msgid "Invalid file format."
 msgstr "Ungültiges Dateiformat."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "Fehler! Ungültiges Modell"
 
 msgid "The selected file contains no geometry."
 msgstr "Die ausgewählte Datei enthält keine Geometrie."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Die ausgewählte Datei enthält mehrere nicht zusammenhängende Bereiche. Dies wird nicht unterstützt."
 
@@ -4060,7 +4062,7 @@ msgstr "Die empfohlene Mindesttemperatur darf nicht höher sein als die empfohle
 msgid "Please check.\n"
 msgstr "Bitte überprüfen.\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4074,7 +4076,7 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "Die empfohlene Düsentemperatur für diesen Filamenttyp beträgt [%d, %d] °C."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4082,11 +4084,12 @@ msgstr ""
 "Zu kleine maximale volumetrische Geschwindigkeit.\n"
 "Wert wurde auf 0,5 zurückgesetzt"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Die aktuelle Kammer-Temperatur ist höher als die sichere Temperatur des Materials, dies kann zu Materialerweichung und Verstopfung führen. Die maximale sichere Temperatur für das Material beträgt %d"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4094,7 +4097,7 @@ msgstr ""
 "Zu geringe Schichthöhe.\n"
 "Auf 0,2 zurücksetzen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4111,7 +4114,7 @@ msgstr ""
 "\n"
 "Die Höhe der ersten Schicht wird auf 0,2 zurückgesetzt."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4124,7 +4127,7 @@ msgstr ""
 "\n"
 "Der Wert 0 setz zurück."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4190,7 +4193,8 @@ msgstr ""
 "seam_slope_start_height muss kleiner als layer_height sein.\n"
 "auf 0 gesetzt"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4216,7 +4220,7 @@ msgstr "Der Spiralmodus funktioniert nur, wenn die Wandschleifen 1 sind, die St�
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Maschinen mit I3-Struktur erzeugen jedoch keine Zeitraffer-Videos."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4587,7 +4591,7 @@ msgstr "Profile"
 msgid "Print settings"
 msgstr "Druckeinstellungen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "Filamenteinstellungen"
 
@@ -4612,7 +4616,8 @@ msgstr "Leere Zeichenfolge"
 msgid "Value is out of range."
 msgstr "Wert ist außerhalb der Reichweite."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s kann nicht Prozent sein"
 
@@ -4852,7 +4857,7 @@ msgstr "Turm"
 msgid "Total"
 msgstr "Gesamt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "Gesamtschätzung"
 
@@ -4931,11 +4936,11 @@ msgstr "von"
 msgid "Usage"
 msgstr "Nutzung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "Schichthöhe (mm)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "Linienbreite (mm)"
 
@@ -4951,7 +4956,7 @@ msgstr "Beschleunigung (mm/s²)"
 msgid "Jerk (mm/s)"
 msgstr "Ruck (mm/s)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "Lüftergeschwindigkeit (%)"
 
@@ -4967,7 +4972,7 @@ msgstr "Aktuelle volumetrische Flussrate (mm³/s)"
 msgid "Seams"
 msgstr "Nähte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "Filamentwechsel"
 
@@ -4992,7 +4997,7 @@ msgstr "Farbwechsel"
 msgid "Print"
 msgstr "aktuelle Platte drucken"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "Drucker"
 
@@ -5110,18 +5115,18 @@ msgstr "linke Düse: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "rechte Düse: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "Werkzeugbewegung"
 
 msgid "Tool Rotate"
 msgstr "Werkzeug wechseln"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "Objekt bewegen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "Auto-Ausrichtungsoptionen"
 
@@ -5253,7 +5258,7 @@ msgstr "Explosionsverhältnis"
 msgid "Section View"
 msgstr "Schnittansicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "Montagekontrolle"
 
@@ -5282,7 +5287,7 @@ msgstr "Ein Objekt ragt über die Begrenzung der Druckplatte."
 msgid "A G-code path goes beyond the max print height."
 msgstr "Ein G-Code-Pfad überschreitet die maximale Druckhöhe."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "Ein G-Code-Pfad geht über die Begrenzung der Druckplatte hinaus."
 
@@ -5343,7 +5348,7 @@ msgstr "Auswahl des Kalibrierungsschritts"
 msgid "Micro lidar calibration"
 msgstr "Mikro-Lidar Kalibrierung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "Druckbettnivellierung"
 
@@ -5420,7 +5425,7 @@ msgstr ""
 "Sie finden es unter „Einstellungen > Einstellungen > Nur LAN > Zugangscode\"\n"
 "am Drucker, wie in der Abbildung gezeigt:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "Ungültige Eingabe"
 
@@ -5430,7 +5435,7 @@ msgstr "Neues Fenster"
 msgid "Open a new window"
 msgstr "Ein neues Fenster öffnen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "Anwendung wird geschlossen"
 
@@ -5679,7 +5684,7 @@ msgstr "Einfügen"
 msgid "Paste clipboard"
 msgstr "Aus Zwischenablage einfügen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "Auswahl löschen"
 
@@ -5689,7 +5694,7 @@ msgstr "Löscht die aktuelle Auswahl"
 msgid "Deletes all objects"
 msgstr "Alle Objekte löschen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "Auswahl duplizieren"
 
@@ -5853,11 +5858,13 @@ msgstr "&Anzeige"
 msgid "&Help"
 msgstr "&Hilfe"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Es existiert bereits eine Datei mit demselben Namen: %s. Möchten Sie sie überschreiben?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Eine Konfiguration mit dem gleichen Namen existiert bereits: %s. Möchten Sie sie überschreiben?"
 
@@ -5882,7 +5889,7 @@ msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "Es ist %d Konfiguration exportiert worden. (Nur Nicht-Systemkonfigurationen)"
 msgstr[1] "Es sind %d Konfigurationen exportiert worden. (Nur Nicht-Systemkonfigurationen)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "Ergebnis exportieren"
 
@@ -5933,7 +5940,7 @@ msgstr "Das Gerät kann keine weiteren Gespräche führen. Bitte versuchen Sie e
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Die Wiedergabe funktioniert nicht richtig. Bitte installieren Sie den Systemplayer neu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Der Player ist nicht geladen. Klicken Sie auf die Schaltfläche „Wiedergabe“, um es erneut zu versuchen."
 
@@ -5955,7 +5962,7 @@ msgstr "Problem aufgetreten. Bitte aktualisieren Sie die Drucker-Firmware und ve
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "LAN-Only-Liveview ist ausgeschaltet. Bitte schalten Sie die Live-Ansicht auf dem Druckerbildschirm ein."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "Bitte geben Sie die IP des Druckers ein, um eine Verbindung herzustellen."
 
@@ -6042,7 +6049,7 @@ msgstr ""
 msgid "Switch to video files."
 msgstr "Wechseln Sie zu Videodateien."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switch to 3MF model files."
 msgstr "Wechsel zu 3mf-Modelldateien."
 
@@ -6257,7 +6264,7 @@ msgstr ""
 msgid "Input access code"
 msgstr "Zugangscode eingeben"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "Kann das Geräte nicht finden?"
 
@@ -6282,15 +6289,15 @@ msgstr "unzulässige Zeichen:"
 msgid "illegal suffix:"
 msgstr "unzulässiger Zusatz:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "Der Name darf nicht leer sein."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "Der Name darf nicht mit einem Leerzeichen beginnen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "Der Name darf nicht mit einem Leerzeichen enden."
 
@@ -6313,7 +6320,7 @@ msgstr "Wechseln..."
 msgid "Switching failed"
 msgstr "Wechseln fehlgeschlagen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "Druckprozess"
 
@@ -6332,7 +6339,7 @@ msgstr "Klicken Sie hier, um die Erklärung zur thermischen Vorkonditionierung a
 msgid "Clear"
 msgstr "Löschen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6421,7 +6428,8 @@ msgstr "Herunterladen..."
 msgid "Cloud Slicing..."
 msgstr ""
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "In der Cloud-Slicing-Warteschlange befinden sich %s Aufgaben vor Ihnen."
 
@@ -6445,7 +6453,7 @@ msgstr "Wenn die Kammertemperatur 40℃ überschreitet, wechselt das System auto
 msgid "Please select an AMS slot before calibration"
 msgstr "Bitte wählen Sie einen AMS-Steckplatz vor der Kalibrierung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "Filamentinformationen können nicht gelesen werden: Das Filament ist in den Werkzeugkopf geladen, bitte entladen Sie das Filament und versuchen Sie es erneut."
 
@@ -6537,7 +6545,7 @@ msgstr "Hochladen fehlgeschlagen\n"
 msgid "Obtaining instance_id failed\n"
 msgstr "Abrufen der Instanz-ID fehlgeschlagen\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Your comment result cannot be uploaded due to the following reasons:\n"
 "\n"
@@ -6627,7 +6635,7 @@ msgstr ""
 msgid "Skip"
 msgstr "Überspringen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Newer 3MF version"
 msgstr "Neuere 3mf-Version"
 
@@ -6677,7 +6685,7 @@ msgstr "Diesen Dialog nicht erneut anzeigen"
 msgid "3D Mouse disconnected."
 msgstr "3D-Maus nicht angeschlossen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A new configuration is available. Update now?"
 msgstr "Eine neue Konfiguration ist verfügbar. Jetzt aktualisieren?"
 
@@ -6702,15 +6710,15 @@ msgstr "Neue Druckerkonfiguration verfügbar."
 msgid "Undo integration failed."
 msgstr "Die Integration konnte nicht rückgängig gemacht werden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "Exportieren."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "Ein Update ist verfügbar!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "Zur Download-Seite gehen."
 
@@ -6838,7 +6846,7 @@ msgstr "Untere"
 msgid "Enable detection of build plate position"
 msgstr "Positionserkennung der Druckplatte aktivieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "Die Erkennungsmarke auf den Druckplatten wird erkannt und der Druckvorgang unterbrochen, falls die Marke nicht im definierten Bereich liegt."
 
@@ -6884,7 +6892,7 @@ msgstr "Erkennt Lüftingsfehler, der durch Düsenverstopfung oder Filamentmahlun
 msgid "First Layer Inspection"
 msgstr "Inspektion der ersten Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "Automatische Wiederherstellung bei Positionsverlust (Schrittverlust)"
 
@@ -6897,7 +6905,7 @@ msgstr "Speichern Sie die Druckdateien, die von Bambu Studio, Bambu Handy und Ma
 msgid "Allow Prompt Sound"
 msgstr "Erlaube akustische Signale"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "Filamentverwicklung erkannt"
 
@@ -7155,18 +7163,18 @@ msgstr "Erfolgreich ausgeworfen. Das Gerät %s(%s) kann jetzt sicher vom Compute
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "Das Auswerfen des Geräts %s (%s) ist fehlgeschlagen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Ein ungespeichertes Projekt wurde entdeckt, möchten Sie es wiederherstellen?"
 
 msgid "Restore"
 msgstr "Wiederherstellen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "Die aktuelle Temperatur des Druckbetts ist relativ hoch. Die Düse kann verstopft sein, wenn dieses Filament in einem geschlossenen Gehäuse gedruckt wird. Bitte öffnen Sie die Vordertür und/oder entfernen Sie das obere Glas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "Die für das Filament erforderliche Düsenhärte ist höher als die Standard-Düsenhärte des Druckers. Bitte wechseln Sie zu einer gehärteten Düse oder ändern Sie das Filament, da sich sonst die Düse abgenutzt oder beschädigt wird."
 
@@ -7195,11 +7203,11 @@ msgstr "Lade 3MF"
 msgid "BambuStudio Project"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "Der 3MF stammt nicht vom OrcaSlicer, lade nur die Geometriedaten."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF file was generated by an old OrcaSlicer version, loading geometry data only."
 msgstr "Die 3MF wurde von einer alten OrcaSlicer-Version erstellt, lade nur die Geometriedaten."
 
@@ -7215,15 +7223,17 @@ msgstr "Dieses Projekt wurde mit einem OrcaSlicer 2.3.1-alpha erstellt und verwe
 msgid "Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"
 msgstr "Möchten Sie, dass OrcaSlicer dies automatisch behebt, indem die Vorlageneinstellungen für die Rotation gelöscht werden?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "Die Version %s von 3MF ist neuer als die Version %s von %s, folgende Schlüssel wurden nicht erkannt:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "Sie sollten Ihre Software aktualisieren.\n"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, we suggest to upgrade your software."
 msgstr "Die Version %s der 3MF ist neuer als die Version %s %s. Bitte Ihre Software aktualisieren."
 
@@ -7241,14 +7251,14 @@ msgstr "Die 3MF wurde von BambuStudio erstellt. Einige Einstellungen können von
 msgid "Invalid values found in the 3MF:"
 msgstr "Ungültige Werte in der 3MF-Datei gefunden:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "Bitte korrigieren Sie sie in den Parameter-Einstellungen."
 
 msgid "The 3MF has the following modified G-code in filament or printer presets:"
 msgstr "Die 3MF hat folgende modifizierte G-Codes in Filament- oder Druckerprofilen:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please confirm that all modified G-code is safe to prevent any damage to the machine!"
 msgstr "Bitte bestätigen Sie, dass diese modifizierten G-Codes sicher sind, um Schäden an der Maschine zu vermeiden!"
 
@@ -7258,18 +7268,18 @@ msgstr "Modifizierte G-Codes"
 msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "Die 3MF hat folgende benutzerdefinierte Filament- oder Druckerprofile:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
 msgstr "Bitte bestätigen Sie, dass die G-Codes innerhalb dieser Profile sicher sind, um Schäden an der Maschine zu vermeiden!"
 
 msgid "Customized Preset"
 msgstr "Benutzerdefinierte Profile"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Der Name der Komponenten in der Step-Datei ist nicht im UTF8-Format!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Aufgrund der nicht unterstützten Textkodierung können unbrauchbare Zeichen erscheinen!"
 
@@ -7286,7 +7296,8 @@ msgstr "Objekte mit nicht vorhandenem Volumen entfernt"
 msgid "The volume of the object is zero"
 msgstr "Das Volumen des Objekts ist Null"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7297,7 +7308,7 @@ msgstr ""
 msgid "Object too small"
 msgstr "Objekt zu klein"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7312,7 +7323,7 @@ msgstr "Mehrteiliges Objekt erkannt"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Diese Dateien als ein einziges Objekt mit mehreren Teilen laden?\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "Objekt mit mehreren Teilen wurde entdeckt"
 
@@ -7347,14 +7358,15 @@ msgstr "Exportiere Draco Datei:"
 msgid "Export AMF file:"
 msgstr "Exportiere AMF Datei:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "Speichere Datei als:"
 
 msgid "Export OBJ file:"
 msgstr "Exportiere OBJ Datei:"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7368,7 +7380,7 @@ msgstr "Bestätigen Sie Speichern unter"
 msgid "Delete object which is a part of cut object"
 msgstr "Lösche Objekt, das Teil des geschnittenen Objekts ist."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7393,7 +7405,7 @@ msgstr "Ein weiterer Exportauftrag läuft gerade."
 msgid "Unable to replace with more than one volume"
 msgstr "Kann nicht mit mehr als einem Volumen ersetzt werden"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "Fehler beim Ersetzen"
 
@@ -7403,7 +7415,7 @@ msgstr "Ersetzen von:"
 msgid "Select a new file"
 msgstr "Wählen Sie eine neue Datei aus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Datei für das Ersetzen wurde nicht ausgewählt"
 
@@ -7494,7 +7506,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "Jetzt synchronisieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Sie können die geänderten Profile in das neue Projekt übernehmen oder sie verwerfen es"
 
@@ -7504,7 +7516,7 @@ msgstr "Neues Projekt erstellen"
 msgid "Load project"
 msgstr "Projekt laden"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7518,18 +7530,18 @@ msgstr "Projekt speichern"
 msgid "Importing Model"
 msgstr "Modell importieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preparing 3MF file..."
 msgstr "3MF-Datei vorbereiten…"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Download fehlgeschlagen, unbekanntes Dateiformat."
 
 msgid "Downloading project..."
 msgstr "Projekt wird heruntergeladen..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Download fehlgeschlagen, Dateigröße nicht erlaubt."
 
@@ -7555,11 +7567,11 @@ msgstr "SLA-Archiv importieren"
 msgid "The selected file"
 msgstr "Die ausgewählte Datei"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "enthält keinen gültigen G-Code."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Beim Laden der G-Code-Datei ist ein Fehler aufgetreten."
 
@@ -7589,25 +7601,25 @@ msgstr "Als Projekt öffnen"
 msgid "Import geometry only"
 msgstr "Nur Geometrie importieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Es kann immer nur eine G-Code-Datei gleichzeitig geöffnet werden."
 
 msgid "G-code loading"
 msgstr "G-Code wird geladen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-Code-Dateien und Modelle können nicht zusammen geladen werden!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "Modelle können im Vorschaumodus nicht hinzugefügt werden"
 
 msgid "All objects will be removed, continue?"
 msgstr "Alle Objekte werden entfernt, fortfahren?"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Das aktuelle Projekt enthält nicht gespeicherte Änderungen. Möchten Sie speichern, bevor Sie fortfahren?"
 
@@ -7679,7 +7691,7 @@ msgstr "Hochladen und Drucken"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Fehlerhafte Daten in der Druckdatei. Bitte slicen Sie erneut"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7765,7 +7777,8 @@ msgstr "Dreiecke: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Plate %d: %s wird nicht empfohlen, um Filament %s (%s) zu drucken. Wenn Sie dennoch diesen Druck durchführen möchten, stellen Sie bitte die Betttemperatur dieses Filaments auf einen Wert größer als Null."
 
@@ -7793,7 +7806,7 @@ msgstr "vorn"
 msgid "rear"
 msgstr "hinten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Der Wechsel der Sprache erfordert einen Neustart der Anwendung.\n"
 
@@ -7821,7 +7834,7 @@ msgstr "Nordamerika"
 msgid "Others"
 msgstr "Sonstiges"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Wenn Sie die Region ändern, werden Sie von Ihrem Konto abgemeldet.\n"
 
@@ -7897,7 +7910,7 @@ msgstr "Standardseite"
 msgid "Set the page opened on startup."
 msgstr "Legen Sie die Seite fest, die beim Start geöffnet wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "Dunklen Modus aktivieren"
 
@@ -7973,7 +7986,7 @@ msgstr "Wenn aktiviert, wird während des Imports von STEP-Dateien ein Dialogfel
 msgid "Auto backup"
 msgstr "Automatische Datensicherung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Erstellen Sie regelmäßig Sicherungskopien Ihres Projekts,um es im Falle eines Absturzes wiederherstellen zu können."
 
@@ -8163,6 +8176,15 @@ msgstr "Schatten"
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr "Zeigt geworfene Schatten auf der Platte in der realistischen Ansicht an."
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Kantenglättung"
 
@@ -8266,7 +8288,7 @@ msgstr "Nur nach stabilen Updates suchen"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Benutzerprofile automatisch synchronisieren (Drucker/Filament/Prozess)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Aktualisiere integrierte Profile automatisch."
 
@@ -8341,11 +8363,11 @@ msgstr "Dateizuordnungen für die Microsoft Store-Version werden über die Windo
 msgid "Open Windows Default Apps Settings"
 msgstr "Windows-Standardanwendungen öffnen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Dateiendung .3mf mit OrcaSlicer verknüpfen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .3mf-Dateien festgelegt"
 
@@ -8355,19 +8377,19 @@ msgstr "Dateiendung .drc mit OrcaSlicer verknüpfen"
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Dateiendung .stl mit OrcaSlicer verknüpfen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .stl-Dateien festgelegt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "Dateiendung .step/.stp mit OrcaSlicer verknüpfen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .step-Dateien festgelegt"
 
@@ -8472,7 +8494,7 @@ msgstr "Ansicht zoomen"
 msgid "Other"
 msgstr "Sonstiges"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reverse scroll direction while zooming"
 msgstr "Scrollrichtung beim Zoomen umkehren"
 
@@ -8506,11 +8528,11 @@ msgstr "Debug Speicher-Taste"
 msgid "Save debug settings"
 msgstr "Debug-Einstellungen speichern"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "DEBUG-Einstellungen wurden erfolgreich gespeichert!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "Cloud-Umgebung gewechselt; Bitte erneut anmelden!"
 
@@ -8562,7 +8584,7 @@ msgstr "Nicht unterstützte Profile"
 msgid "Unsupported"
 msgstr "Nicht unterstützt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Filament hinzufügen/entfernen"
 
@@ -8599,7 +8621,7 @@ msgstr "Bitte geben Sie einen Schichtwert (>= 2) ein."
 msgid "Plate name"
 msgstr "Platten-Name"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Entspricht dem globalen Plattentyp"
 
@@ -8636,7 +8658,7 @@ msgstr "Bestätigt"
 msgid "Log Out"
 msgstr "Ausloggen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Slicen Sie alle Druckplatten, um Zeit- und Filamentschätzungen zu erhalten"
 
@@ -8697,7 +8719,7 @@ msgstr "Profil \"%1%\" existiert bereits."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "Profil \"%1%\" existiert bereits und ist mit dem aktuellen Drucker nicht kompatibel."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Bitte beachten Sie, dass das Speichern dieses Profil überschreibt."
 
@@ -8827,7 +8849,7 @@ msgstr "Filament stimmt nicht mit dem Filament in AMS-Slot überein. Bitte aktua
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Der ausgewählte Drucker (%s) ist mit der Druckdateikonfiguration (%s) inkompatibel. Bitte passen Sie das Druckerprofil auf der Vorbereitungsseite an oder wählen Sie auf dieser Seite einen kompatiblen Drucker aus."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Wenn der Spiral-Vase-Modus aktiviert ist, werden bei Maschinen mit I3-Struktur keine Zeitraffervideos erstellt."
 
@@ -8846,7 +8868,7 @@ msgstr "Die Filamenttyp-Einstellung der externen Spule unterscheidet sich von de
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Der ausgewählte Druckertyp beim Generieren des G-Codes stimmt nicht mit dem derzeit ausgewählten Drucker überein. Es wird empfohlen, für das Slicing denselben Druckertyp zu verwenden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Es gibt einige unbekannte Filamente in den AMS-Zuordnungen. Bitte prüfen Sie, ob es sich um die erforderlichen Filamente handelt. Wenn diese in Ordnung sind, klicken Sie auf \"Bestätigen\", um den Druck zu starten."
 
@@ -8978,7 +9000,7 @@ msgstr "Speicher ist in einem abnormalen Zustand oder im Nur-Lese-Modus."
 msgid "Storage needs to be inserted before printing."
 msgstr "Speicher muss vor dem Drucken eingesetzt werden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Der Druckauftrag kann nicht an einen Drucker gesendet werden, dessen Firmware aktualisiert werden muss."
 
@@ -9033,7 +9055,7 @@ msgstr "Verbindung zeitüberschritten, bitte überprüfen Sie Ihr Netzwerk."
 msgid "Connection failed. Click the icon to retry"
 msgstr "Verbindung fehlgeschlagen. Klicken Sie auf das Symbol, um es erneut zu versuchen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Der Druckauftrag kann nicht gesendet werden, während ein Update ausgeführt wird"
 
@@ -9043,7 +9065,7 @@ msgstr "Der ausgewählte Drucker ist mit den gewählten Druckerprofilen nicht "
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Speicher muss vor dem Senden an den Drucker eingesetzt werden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Der Drucker muss sich im selben LAN befinden wie Orca Slicer."
 
@@ -9059,7 +9081,7 @@ msgstr "Datei-Upload zeitüberschritten. Bitte überprüfen Sie, ob die Firmware
 msgid "Sending failed, please try again!"
 msgstr "Senden fehlgeschlagen, bitte erneut versuchen!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "Slicing erfolgreich."
 
@@ -9075,11 +9097,11 @@ msgstr "Verbindung zum Socket fehlgeschlagen"
 msgid "Failed to publish login request"
 msgstr "Anmeldeanfrage konnte nicht gesendet werden"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "Zeitüberschreitung beim Abrufen des Tickets vom Gerät"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "Zeitüberschreitung beim Abrufen des Tickets vom Server"
 
@@ -9184,7 +9206,7 @@ msgstr "In Profilen suchen"
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klicken Sie hier, um alle Einstellungen auf die zuletzt gespeicherten Parameter zurückzusetzen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Ein Reinigungsturm ist für den gewählten Zeitraffer-Modus erforderlich. Ohne Reinigungsturm kann es zu Fehlern am Modell kommen. Sind Sie sicher, dass Sie den Reinigungsturm deaktivieren möchten?"
 
@@ -9200,7 +9222,7 @@ msgstr "Reinigungsturm ist für die Erkennung von Klumpen erforderlich. Ohne Rei
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Das Aktivieren von sowohl präziser Z-Höhe als auch Reinigungsturm kann zu Slicing-Fehlern führen. Möchten Sie trotzdem die präzise Z-Höhe aktivieren?"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Für den gewählten Zeitraffermodus ist ein Reinigungsturm erforderlich. Ohne Reinigungsturm kann es zu Fehlern am Modell kommen. Möchten Sie den Reinigungsturm aktivieren?"
 
@@ -9221,7 +9243,7 @@ msgstr ""
 "Wenn Sie Stützmaterial für die Stützschnittstelle verwenden, empfehlen wir folgende Einstellungen:\n"
 "0 obere Z-Distanz, 0 Schnittstellenabstand, verschachteltes rechtwinkliges Muster und unabhängige Stützhöhe deaktivieren."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9370,7 +9392,7 @@ msgstr "Wände"
 msgid "Top/bottom shells"
 msgstr "Obere/Untere Schichten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "Geschwindigkeit der ersten Schicht"
 
@@ -9398,7 +9420,7 @@ msgstr "Jerk(XY)"
 msgid "Raft"
 msgstr "Druckbasis (Raft)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "Supportfilament"
 
@@ -9461,7 +9483,7 @@ msgstr "Grundlegende Informationen"
 msgid "Recommended nozzle temperature"
 msgstr "Empfohlene Düsentemperatur"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Empfohlener Düsentemperaturbereich für dieses Filament. 0 bedeutet nicht gesetzt"
 
@@ -9483,29 +9505,29 @@ msgstr "Dies ist die Betttemperatur, wenn die kalte Druckplatte SuperTack instal
 msgid "Cool Plate"
 msgstr "Kalte Druckplatte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dies ist die Betttemperatur, wenn die kalte Druckplatte installiert ist. Ein Wert von 0 bedeutet, dass das Filament auf der kalten Druckplatte nicht unterstützt."
 
 msgid "Textured Cool Plate"
 msgstr "Strukturierte kalte Druckplatte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Dies ist die Betttemperatur, wenn die kalte Druckplatte installiert ist. Ein Wert von 0 bedeutet, dass das Filament auf der texturierten kalten Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Dies ist die Betttemperatur, wenn die technische Druckplatte installiert wird. Ein Wert von 0 bedeutet, dass das Filament auf der technischen Druckplatte nicht unterstützt wird."
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Glatte PEI-Platte / Hochtemperaturplatte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Dies ist die Betttemperatur, wenn die glatte PEI-Platte installiert ist. Ein Wert von 0 bedeutet, dass das Filament auf der glatten PEI-/Hochtemperatur Platte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Betttemperatur, wenn die texturierte PEI-Platte installiert ist. 0 bedeutet, dass das Filament nicht auf der texturierten PEI-Platte unterstützt wird."
 
@@ -9521,14 +9543,14 @@ msgstr "Bauteillüfter"
 msgid "Min fan speed threshold"
 msgstr "Minimale Lüftergeschwindigkeit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Der Bauteillüfter beginnt mit der Mindestdrehzahl zu laufen, wenn die geschätzte Schichtzeit nicht länger als der dafür eingestellte Wert ist. Wenn die Schichtzeit kürzer als der eingestellte Wert ist, wird die Lüftergeschwindigkeit zwischen der minimalen und maximalen Geschwindigkeit entsprechend der Schichtzeit interpoliert."
 
 msgid "Max fan speed threshold"
 msgstr "Schwellenwert für die maximale Lüftergeschwindigkeit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Der Bauteillüfter wird auf maximaler Drehzahl laufen, wenn die geschätzte Schichtzeit kürzer ist als der eingestellte Wert."
 
@@ -9755,7 +9777,8 @@ msgstr ""
 "Sind Sie sicher, dass Sie das ausgewählte Profil löschen möchten?\n"
 "Wenn das Profil einem Filament entspricht, das derzeit auf Ihrem Drucker verwendet wird, setzen Sie bitte die Filamentinformationen für diesen Slot zurück."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Sind sie sicher, dass sie das ausgewählte Profil %1% wollen?"
 
@@ -9815,21 +9838,21 @@ msgstr "Rechts: %s"
 msgid "Click to reset current value and attach to the global value."
 msgstr "Klicken Sie hier, um den aktuellen Wert zurückzusetzen und ihn dem globalen Wert zuzuordnen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Klicken Sie hier, um die aktuellen Änderungen zu verwerfen und auf den gespeicherten Wert zurückzusetzen."
 
 msgid "Process Settings"
 msgstr "Prozesseinstellungen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "Nicht gespeicherte Änderungen"
 
 msgid "Transfer or discard changes"
 msgstr "Änderungen verwerfen oder beibehalten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old value"
 msgstr "Alter Wert"
 
@@ -9877,7 +9900,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Klicken Sie mit der rechten Maustaste, um den vollständigen Text anzuzeigen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "Keine Änderungen werden gespeichert"
 
@@ -10063,7 +10086,7 @@ msgstr "Einige Flächen haben keine definierte Farbe."
 msgid "MTL file exist error, could not find the material:"
 msgstr "Fehler bei der Existenz der mtl-Datei, Material konnte nicht gefunden werden:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check OBJ or MTL file."
 msgstr "Bitte überprüfen Sie die obj- oder mtl-Datei."
 
@@ -10427,36 +10450,36 @@ msgstr "Objekte per Rechteck auswählen"
 msgid "Arrow Up"
 msgstr "Pfeil hoch"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Auswahl 10 mm in positiver Y-Richtung verschieben"
 
 msgid "Arrow Down"
 msgstr "Pfeil runter"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Auswahl 10 mm in negativer Y-Richtung verschieben"
 
 msgid "Arrow Left"
 msgstr "Pfeil links"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Auswahl 10 mm in negativer X-Richtung verschieben"
 
 msgid "Arrow Right"
 msgstr "Pfeil rechts"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "Auswahl 10 mm in positiver X-Richtung verschieben"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "Bewegungsschritt auf 1 mm eingestellt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Tastatur 1-9: Filament für Objekt/Teil einstellen"
 
@@ -10553,7 +10576,7 @@ msgstr ""
 msgid "Set extruder number for the objects and parts"
 msgstr "Extrudernummer für die Objekte und Teile einstellen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "Objekte, Teile, Modifikatoren löschen"
 
@@ -10606,7 +10629,7 @@ msgstr "Version %s Update-Informationen:"
 msgid "Network plug-in update"
 msgstr "Aktualisierung des Netzwerk-Plugins"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "Klicken Sie auf OK, um das Netzwerk-Plugin beim nächsten Start von Orca Slicer zu aktualisieren."
 
@@ -10751,11 +10774,11 @@ msgstr "Erfolgreich aktualisiert"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Sind Sie sicher, dass Sie die Aktualisierung jetzt durchführen möchten? Dieser Vorgang dauert etwa 10 Minuten. Schalten Sie den Drucker nicht aus, während er aktualisiert wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Ein wichtiges Update wurde erkannt und muss ausgeführt werden, bevor der Druck fortgesetzt werden kann. Möchten Sie jetzt aktualisieren? Sie können auch später über „Firmware aktualisieren“ aktualisieren."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "Die Firmware-Version ist nicht korrekt. Vor dem Drucken müssen Sie die Firmware reparieren und aktualisieren. Möchten Sie diese jetzt aktualisieren? Sie können das Update auch später auf dem Drucker oder beim nächsten Start vom OrcaSlicer durchführen."
 
@@ -10779,7 +10802,7 @@ msgstr "Reparatur abgebrochen"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Kopieren der Datei %1% nach %2% fehlgeschlagen: %3%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Vor der Aktualisierung der Konfiguration müssen die nicht gespeicherten Änderungen überprüft werden."
 
@@ -10795,7 +10818,8 @@ msgstr "Öffne G-Code-Datei:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Ein Objekt hat eine leere erste Schicht und kann nicht gedruckt werden. Bitte schneiden Sie den Boden ab oder aktivieren Sie die Stützstrukturen."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Objekt kann aufgrund leerer Schichten zwischen %1% und %2% nicht gedruckt werden."
 
@@ -10803,7 +10827,7 @@ msgstr "Objekt kann aufgrund leerer Schichten zwischen %1% und %2% nicht gedruck
 msgid "Object: %1%"
 msgstr "Objekt: %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Vielleicht sind Teile des Objekts in dieser Höhe zu dünn, oder das Objekt hat ein fehlerhaftes Netz"
 
@@ -10813,7 +10837,7 @@ msgstr "G-Code für Extrusionsrollenwechsel verarbeiten"
 msgid "Filament change extrusion role G-code"
 msgstr "G-Code für Extrusionsrollenwechsel verarbeiten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "Es kann kein Objekt gedruckt werden. Vielleicht sind die Objekte zu klein."
 
@@ -10859,7 +10883,8 @@ msgstr " kann nicht platziert werden in der "
 msgid "Internal Bridge"
 msgstr "Interne Brücke"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "Berechnung der Linienbreite von %1% fehlgeschlagen. Kann den Wert von \"%2%\" nicht abrufen"
 
@@ -10872,7 +10897,7 @@ msgstr "unbekannter Fehler"
 msgid "too many files"
 msgstr "zu viele Dateien"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "Datei zu groß"
 
@@ -10894,7 +10919,7 @@ msgstr "kein ZIP Archiv"
 msgid "invalid header or corrupted"
 msgstr "ungültiger Header oder beschädigt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Saving to RAID is not supported."
 msgstr "Das Speichern auf RAID wird nicht unterstützt."
 
@@ -10943,7 +10968,7 @@ msgstr "ungültiger Parameter"
 msgid "invalid filename"
 msgstr "ungültiger Dateiname"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "Puffer zu klein"
 
@@ -10953,7 +10978,7 @@ msgstr "interner Fehler"
 msgid "file not found"
 msgstr "Datei nicht gefunden"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "Archiv zu groß"
 
@@ -10963,7 +10988,8 @@ msgstr "Überprüfung fehlgeschlagen"
 msgid "write callback failed"
 msgstr "Schreib-Callback fehlgeschlagen"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% liegt zu nahe an einem ausgeschlossenen Bereich. Beim Drucken kann es zu Kollisionen kommen."
 
@@ -10987,7 +11013,7 @@ msgstr "Reinigungsturm"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " ist zu nah an anderen und es können Kollisionen verursacht werden.\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " ist zu nahe am Sperrbereich und es werden Kollisionen verursacht.\n"
 
@@ -11021,7 +11047,7 @@ msgstr "Ein Reinigungsturm ist für die Klumpenerkennung erforderlich; andernfal
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Bitte wählen Sie die Druckreihenfolge \"Nach Objekt\", um mehrere Objekte im Spiralvasenmodus zu drucken."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Der Vasen-Modus funktioniert nicht, wenn ein Objekt mehr als ein Material enthält."
 
@@ -11055,30 +11081,30 @@ msgstr "Ooze-Prävention wird nur mit dem Reinigungsturm unterstützt, wenn 'sin
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "Der Reinigungsturm wird derzeit nur für die Marlin-, RepRap/Sprinter-, RepRapFirmware- und Repetier-G-Code-Varianten unterstützt."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Der Reinigungsturm wird im \"Nach Objekt\"-Druck nicht unterstützt."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "Der Reinigungsturm wird nicht unterstützt, wenn die adaptive Schichthöhe aktiviert ist. Er erfordert, dass alle Objekte die gleiche Schichthöhe haben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Der Reinigungsturm erfordert einen \"Stützabstand\", der ein Vielfaches der Schichthöhe sein muss."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "Der Reinigungsturm setzt voraus, dass alle Objekte die gleiche Schichthöhe haben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "Der Reinigungsturm erfordert, dass alle Objekte über der gleichen Anzahl von Floßschichten gedruckt werden."
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "Der Reinigungsturm wird nur für mehrere Objekte unterstützt, wenn sie mit dem gleichen support_top_z_distance gedruckt werden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "Der Reinigungsturm setzt voraus, dass alle Objekte mit der gleichen Schichthöhe geslicet werden."
 
@@ -11088,18 +11114,18 @@ msgstr "Der Reinigungsturm wird nur unterstützt, wenn alle Objekte die gleiche 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Einem oder mehreren Objekten wurde ein Extruder zugewiesen, den der Drucker nicht hat."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Zu geringe Linienbreite"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Zu große Linienbreite"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Drucken mit mehreren Extrudern mit unterschiedlichen Düsendurchmessern. Wenn die Stützstruktur mit dem aktuellen Filament gedruckt werden soll (support_filament == 0 oder support_interface_filament == 0), müssen alle Düsen den gleichen Durchmesser haben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Der Reinigungsturm erfordert, dass die Stützstrukturen die gleiche Schichthöhe wie das Objekt haben."
 
@@ -11124,7 +11150,7 @@ msgstr "Das Hohl-Basis-Muster wird von diesem Stütztyp nicht unterstützt; Stat
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Stützerzwinger werden verwendet, aber die Stützstrukturen sind nicht aktiviert. Bitte aktivieren Sie die Stützstruktur-Funktion."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Schichthöhe darf den Düsendurchmesser nicht überschreiten."
 
@@ -11204,7 +11230,7 @@ msgstr "Exportiere G-Code"
 msgid "Generating G-code"
 msgstr "Generiere G-Code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "Verarbeitung der Vorlage filename_format fehlgeschlagen."
 
@@ -11235,7 +11261,7 @@ msgstr "Druckbett-Ausschlussbereiche für parallele Druckköpfe"
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr "Geordnete Liste der Druckbett-Ausschlussbereiche nach Anzahl der parallelen Druckköpfe. Punkt 1 gilt für einen Druckkopf, Punkt 2 für zwei Druckköpfe und so weiter. Lassen Sie einen Punkt leer, wenn keine Ausschlussbereiche vorhanden sind."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "ausgenommene Druckbettfläche"
 
@@ -11251,7 +11277,7 @@ msgstr "Benutzerspezifisches Druckbettmodell"
 msgid "Elephant foot compensation"
 msgstr "Elefantenfußkompensation"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Schrumpft die erste Schicht auf der Druckplatte, um den Elefantenfuß-Effekt auszugleichen."
 
@@ -11273,14 +11299,14 @@ msgstr ""
 "Der Anfangswert für die zweite Schicht wird gesetzt.\n"
 "Die nachfolgenden Schichten werden linear dichter, bis zur Höhe, die in elefant_foot_compensation_layers angegeben ist."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Definiert die Höhe der einzelnen Schichten. Eine geringe Schichthöhe steigert die Genauigkeit und verringert die Sichtbarkeit der einzelnen Schichten, verlängert dafür aber die Druckzeit."
 
 msgid "Printable height"
 msgstr "Druckbare Höhe"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "Maximale bedruckbare Höhe, die durch den Bauraum des Druckers begrenzt ist."
 
@@ -11359,7 +11385,7 @@ msgstr "Passwort"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "HTTPS-Zertifikatssperrprüfungen ignorieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Ignorieren Sie HTTPS-Zertifikatssperrprüfungen im Fall von fehlenden oder offline Verteilungspunkten. Sie können diese Option für selbst signierte Zertifikate aktivieren, wenn die Verbindung fehlschlägt."
 
@@ -11378,14 +11404,14 @@ msgstr "HTTP-Digest"
 msgid "Avoid crossing walls"
 msgstr "Vermeiden von Wandüberquerungen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Fahren Sie einen Umweg und vermeiden Sie es, über die Wand zu fahren, was zu Tropfenbildung auf der Oberfläche führen kann"
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Vermeide das Überqueren der Wand - Maximale Umleitungslänge"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Maximale Umleitstrecke zur Vermeidung einer Wandüberquerung: Der Drucker fährt keinen Umweg, wenn die Umleitstrecke größer als dieser Wert ist. Die Umleitstrecke kann entweder als absoluter Wert oder als Prozentsatz (z. B. 50 %) eines direkten Fahrwegs angegeben werden. Ein Wert von 0 deaktiviert diese Funktion."
 
@@ -11398,59 +11424,59 @@ msgstr "Andere Schichten"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Dies ist die Betttemperatur für Schichten mit Ausnahme der Ersten. Ein Wert von 0 bedeutet, dass das Filament auf der kalten Druckplatte SuperTack nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dies ist die Betttemperatur für Schichten mit Ausnahme der Ersten. Ein Wert von 0 bedeutet, dass das Filament auf der kalten Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Dies ist die Betttemperatur für Schichten mit Ausnahme der Ersten. Ein Wert von 0 bedeutet, dass das Filament auf der strukturierten kalten Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Dies ist die Betttemperatur für Schichten mit Ausnahme der Ersten. Ein Wert von 0 bedeutet, dass das Filament auf der technischen Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Dies ist die Betttemperatur für Schichten mit Ausnahme der Ersten. Ein Wert von 0 bedeutet, dass das Filament auf der Hochtemperaturdruckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Druckbetttemperatur nach der ersten Schicht. 0 bedeutet, dass das Filament nicht auf der texturierten PEI-Platte unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "Erste Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "Druckbettemperatur für die erste Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Dies ist die Betttemperatur der ersten Schicht. Ein Wert von 0 bedeutet, dass das Filament auf der kalten Druckplatte SuperTack nicht unterstützt "
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dies ist die Betttemperatur der ersten Schicht. Ein Wert von 0 bedeutet, dass das Filament auf der kalten Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Dies ist die Betttemperatur der ersten Schicht. Ein Wert von 0 bedeutet, dass das Filament auf der strukturierten kalten Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Dies ist die Betttemperatur der ersten Schicht. Ein Wert von 0 bedeutet, dass das Filament auf der technischen Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Dies ist die Betttemperatur der ersten Schicht. Ein Wert von 0 bedeutet, dass das Filament auf der Hochtemperatur-Druckplatte nicht unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Druckbetttemperatur der ersten Schicht. 0 bedeutet, dass das Filament nicht auf der texturierten PEI-Platte unterstützt wird."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "Vom Drucker unterstützte Druckbettypen"
 
@@ -11484,7 +11510,7 @@ msgstr "Dies ist die Anzahl der massiven Schichten der Unterschale, einschließl
 msgid "Bottom shell thickness"
 msgstr "Dicke der unteren Schale"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Die Anzahl der unteren festen Schichten wird beim Slicen erhöht, wenn die untere Schalenstärke dünner als dieser Wert ist. Dies kann verhindern, dass die Schale zu dünn wird, wenn eine geringe Schichthöhe verwendet wird. 0 bedeutet, dass diese Einstellung deaktiviert ist und die Dicke der unteren Schale absolut durch die unteren Schalenschichten bestimmt wird."
 
@@ -11604,7 +11630,7 @@ msgstr "Wenn aktiviert, werden die Brückenwinkelwerte zur automatisch berechnet
 msgid "External bridge density"
 msgstr "Externe Brücken Dichte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Controls the density (spacing) of external bridge lines.\n"
 "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient.\n"
@@ -11631,7 +11657,7 @@ msgstr ""
 msgid "Internal bridge density"
 msgstr "Interne Brücken Dichte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Controls the density (spacing) of internal bridge lines.\n"
 "Internal bridges act as intermediate support between sparse infill and top solid infill and can strongly affect top surface quality.\n"
@@ -11939,11 +11965,11 @@ msgstr ""
 "Der Wert 0 aktiviert die Umkehrung auf jeder geraden Schicht unabhängig davon.\n"
 "Wenn die Erkennung der Überhangswand nicht aktiviert ist, wird diese Option ignoriert und die Umkehrung erfolgt auf jeder geraden Schicht unabhängig davon."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "Verlangsamen bei Überhängen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "Aktivieren Sie diese Option, um den Druck für verschiedene Überhangsgrade zu verlangsamen"
 
@@ -12003,7 +12029,7 @@ msgstr "Geschwindigkeit der internen Brücken. Wenn der Wert als Prozentsatz ang
 msgid "Brim width"
 msgstr "Randbreite"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Abstand vom Modell zur äußersten Randlinie"
 
@@ -12016,7 +12042,7 @@ msgstr "Dies steuert die Erstellung des Brims an der äußeren und/oder inneren 
 msgid "Brim-object gap"
 msgstr "Lücke zwischen Rand und Objekt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Eine Lücke zwischen der innersten Randlinie und dem Objekt kann das Abnehmen des Randes erleichtern"
 
@@ -12036,11 +12062,11 @@ msgstr ""
 "\n"
 "Hinweis: Der resultierende Wert wird nicht vom Flussverhältnis der ersten Schicht beeinflusst."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Umrandung folgt einem kompensierten Umriss"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12095,18 +12121,18 @@ msgstr "Aufwärtskompatible Maschine"
 msgid "Condition"
 msgstr "Bedingung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Eine boolesche Ausdruck, der die Konfigurationswerte eines aktiven Druckerprofils verwendet. Wenn dieser Ausdruck wahr ist, wird dieses Profil als kompatibel mit dem aktiven Druckerprofil betrachtet."
 
 msgid "Select profiles"
 msgstr "Profil auswählen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Eine boolesche Ausdruck, der die Konfigurationswerte eines aktiven Druckerprofils verwendet. Wenn dieser Ausdruck wahr ist, wird dieses Profil als kompatibel mit dem aktiven Druckerprofil betrachtet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Druckreihenfolge, Schicht für Schicht oder Objekt für Objekt"
 
@@ -12128,14 +12154,14 @@ msgstr "Als Objektliste"
 msgid "Slow printing down for better layer cooling"
 msgstr "Verlangsamen Sie den Druck für eine bessere Schichtkühlung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "Aktivieren Sie diese Option, um die Druckgeschwindigkeit zu verlangsamen, so dass die endgültige Schichtzeit nicht kürzer als die Mindestschichtzeit in \"Maximale Lüftergeschwindigkeit\" ist, so dass die Schichten länger gekühlt werden können. Dies kann die Druckqualität für Spitzen und kleine Details verbessern."
 
 msgid "Normal printing"
 msgstr "Normales Drucken"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Die Standardbeschleunigung für den normalen Druck und den Eilgang nach der ersten Schicht."
 
@@ -12181,7 +12207,7 @@ msgstr "Schalte alle Lüfter für die ersten Schichten aus. Dies kann genutzt we
 msgid "Don't support bridges"
 msgstr "Brücken nicht unterstützen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Stützt den Brückenbereich nicht ab, was die die Menge der benötigten Stützen reduziert. Brücken können in der Regel direkt ohne Stützen gedruckt werden, wenn diese nicht sehr lang sind."
 
@@ -12275,14 +12301,14 @@ msgstr "Keine Filterung"
 msgid "Max bridge length"
 msgstr "Max Überbrückungslänge"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Maximale Länge der Brücken, die keine Unterstützung benötigen. Setzen Sie den Wert auf 0, wenn alle Brücken unterstützt werden sollen und legen Sie einen sehr großen Wert fest, wenn keine Brücken unterstützt werden sollen."
 
 msgid "End G-code"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "End G-Code nach dem fertigstellen des Drucks hinzufügen."
 
@@ -12292,7 +12318,7 @@ msgstr "Zwischen Objekt G-Code"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "Füge G-Code zwischen den Objekten ein. Dieser Parameter wird nur wirksam, wenn Sie Ihre Modelle Objekt für Objekt drucken."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "End-G-Code hinzufügen, wenn der Druck dieses Filaments beenden ist."
 
@@ -12323,7 +12349,7 @@ msgstr "Moderat"
 msgid "Top surface pattern"
 msgstr "Muster der Oberfläche"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "Füllmuster der obersten Fläche"
 
@@ -12354,7 +12380,7 @@ msgstr "Oktagramm Spirale"
 msgid "Bottom surface pattern"
 msgstr "Muster der unteren Fläche"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Linienmuster der Bodenfüllung. Brückenfüllung nicht eingeschlossen"
 
@@ -12367,7 +12393,7 @@ msgstr "Linienmuster des internen festen Füllmusters. Wenn die Erkennung von sc
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite der Außenwand. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "Geschwindigkeit der äußersten Wand, welche später sichtbar ist. Wird in der Regel langsamer als die Innenwände gedruckt, um eine bessere Qualität zu erzielen."
 
@@ -12447,18 +12473,18 @@ msgstr "Im Uhrzeigersinn"
 msgid "Height to rod"
 msgstr "Höhe zur Führung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Abstand zwischen der Düsenspitze und dem unteren Stab. Wird zur Kollisionsvermeidung beim objektweisen Drucken verwendet."
 
 msgid "Height to lid"
 msgstr "Höhe zum Deckel"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Abstand von der Düsenspitze zum Deckel. Dient zur Kollisionsvermeidung beim objektweisen Drucken."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Sicherheitsradius um den Extruder: Dient zur Kollisionsvermeidung beim objektweisen Drucken."
 
@@ -12597,7 +12623,7 @@ msgstr "Standardmäßige Linienbreite, wenn andere Linienbreiten auf 0 gesetzt s
 msgid "Keep fan always on"
 msgstr "Lüfter ständig laufen lassen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Wenn diese Einstellung aktiviert ist, wird der Teillüfter nie abgeschaltet und läuft zumindest mit minimaler Geschwindigkeit, um die Häufigkeit des Ein- und Ausschaltens zu reduzieren"
 
@@ -12618,7 +12644,7 @@ msgstr ""
 msgid "Layer time"
 msgstr "Schichtdauer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Der Bauteillüfter wird für Schichten aktiviert, deren geschätzte Zeit kürzer als dieser Wert ist. Die Lüftergeschwindigkeit wird zwischen der minimalen und maximalen Geschwindigkeit entsprechend der Druckzeit der Schicht interpoliert."
 
@@ -12644,7 +12670,7 @@ msgstr "Sie können hier Ihre Notizen zum Filament eintragen."
 msgid "Required nozzle HRC"
 msgstr "Erforderliche Düse HRC"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "Mindest-HRC der Düse, die zum Drucken des Filaments erforderlich ist. Ein Wert von 0 bedeutet, dass die HRC der Düse nicht geprüft wird."
 
@@ -12684,7 +12710,7 @@ msgstr "Volumetrische Spülgeschwindigkeit"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Volumetrische Geschwindigkeit beim Spülen des Filaments. 0 bedeutet die maximale volumetrische Geschwindigkeit."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Diese Einstellung ist das Volumen des Filaments, das pro Sekunde geschmolzen und extrudiert werden kann. Die Druckgeschwindigkeit wird durch die maximale volumetrische Geschwindigkeit begrenzt, falls die Geschwindigkeit zu hoch und unangemessen eingestellt ist. Dieser Wert kann nicht Null sein."
 
@@ -12718,7 +12744,7 @@ msgstr "Nach dem ersten Filament"
 msgid "By Highest Temp"
 msgstr "Nach der höchsten Temperatur"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Der Filamentdurchmesser wird für die Berechnung der Extrusion im G-Code verwendet, er ist also wichtig und sollte genau sein."
 
@@ -12790,7 +12816,7 @@ msgstr "Geschwindigkeit, die am Anfang der Lade-Phase verwendet wird."
 msgid "Unloading speed"
 msgstr "Entlade-Geschwindigkeit"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Geschwindigkeit, die zum Entladen des Filaments im Reinigungsturm verwendet wird (beeinflusst nicht den Anfang des Entladens direkt nach dem Rammen)."
 
@@ -12908,14 +12934,14 @@ msgstr "Fluss, der zum Rammen des Filaments vor dem Werkzeugwechsel verwendet wi
 msgid "Density"
 msgstr "Dichte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Filamentdichte. Nur für statistische Zwecke."
 
 msgid "g/cm³"
 msgstr "g/cm³"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "Filament-Materialtyp"
 
@@ -12946,14 +12972,14 @@ msgstr "Das Filament ist im Extruder druckbar."
 msgid "Softening temperature"
 msgstr "Erweichungstemperatur"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Das Material wird bei dieser Temperatur weich, daher wird dringend empfohlen, die vordere Tür zu öffnen und/oder das obere Glas zu entfernen, wenn die Betttemperatur gleich oder größer als diese Temperatur ist, um Verstopfungen zu vermeiden."
 
 msgid "Price"
 msgstr "Preis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Filamentpreis. Nur für statistische Zwecke."
 
@@ -12972,7 +12998,7 @@ msgstr "(undefiniert)"
 msgid "Sparse infill direction"
 msgstr "Richtung des einfachereren Fülling"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Winkel des Füllmusters, das die Richtung der Linien bestimmt."
 
@@ -13014,6 +13040,7 @@ msgstr "Verwendung mehrerer Linien für das Füllmuster, wenn vom Füllmuster un
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-Buckling-Bias-Optimierung (experimentell)"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Strafft die Gyroid-Welle entlang der Z-Achse (vertikal) bei geringer Fülldichte, um die effektive vertikale Säulenlänge zu verkürzen und die Z-Achsen-Kompressions-Knickfestigkeit zu verbessern. Der Filamentverbrauch bleibt erhalten. Keine Auswirkung bei ~30% einfacher Fülldichte und darüber. Gilt nur, wenn das einfache Füllmuster auf Gyroid eingestellt ist."
@@ -13021,7 +13048,7 @@ msgstr "Strafft die Gyroid-Welle entlang der Z-Achse (vertikal) bei geringer Fü
 msgid "Sparse infill pattern"
 msgstr "Füllmuster"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Linienmuster für innere Füllung."
 
@@ -13153,11 +13180,11 @@ msgstr "Beschleunigung Innenwände"
 msgid "Acceleration of travel moves."
 msgstr "Beschleunigung Bewegung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Dies ist die Beschleunigung der Füllung von der obersten Schicht. Die Verwendung eines niedrigeren Werts kann die Qualität der Oberfläche verbessern."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Beschleunigung der Außenwand: Die Verwendung eines niedrigeren Wertes kann die Qualität verbessern."
 
@@ -13173,7 +13200,7 @@ msgstr "Beschleunigung der spärlichen Innenfüllung. Wenn der Wert als Prozentw
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Beschleunigung des internen massiven Innenfülls. Wenn der Wert als Prozentwert angegeben wird (z.B. 100%), wird er auf der Grundlage der Standardbeschleunigung berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Beschleunigung der ersten Schicht. Die Verwendung eines niedrigeren Wertes kann die Druckbetthaftung verbessern"
 
@@ -13234,23 +13261,23 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite der ersten Schicht. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Höhe der ersten Schicht"
 
-#, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Höhe der ersten Schicht. Eine etwas dickere erste Schicht kann die Haftung der Druckplatte verbessern"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Geschwindigkeit der ersten Schicht mit Ausnahme der massiven Füllung."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Füllung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Geschwindigkeit des massiven Füllung der ersten Schicht."
 
@@ -13260,18 +13287,17 @@ msgstr "Geschwindigkeit der ersten Schicht"
 msgid "Travel speed of the first layer."
 msgstr "Bewegungsgeschwindigkeit der ersten Schicht"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Anzahl der langsamen Schichten"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Die ersten paar Schichten werden langsamer als normal gedruckt. Die Geschwindigkeit wird allmählich linear über die angegebene Anzahl von Schichten erhöht."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Düsentemperatur für die erste Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Düsentemperatur zum Drucken der ersten Schicht bei Verwendung dieses Filaments"
 
@@ -13342,7 +13368,7 @@ msgstr "Geschwindigkeit beim Glätten"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "Filament-spezifische Überschreibung für die Geschwindigkeit beim Glätten. Dies ermöglicht es Ihnen, die Druckgeschwindigkeit der Glättlinien für jede Filamentart anzupassen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Diese Einstellung bewirkt, dass der Werkzeugkopf beim Drucken von Wänden zufällig zittert, so dass die Oberfläche ein raues, strukturiertes Aussehen erhält. Diese Einstellung steuert die Fuzzy-Position."
 
@@ -13364,7 +13390,7 @@ msgstr "Alle Wände"
 msgid "Fuzzy skin thickness"
 msgstr "Fuzzy Skin Stärke"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "Die Breite, innerhalb der gezittert werden soll. Sie sollte unter der Breite der Außenwandlinie liegen."
 
@@ -13510,7 +13536,7 @@ msgstr "Schichten und Perimeter"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Drucken Sie keine Lückenfüllung mit einer Länge, die kleiner als der angegebene Schwellenwert (in mm) ist. Diese Einstellung gilt für die obere, untere und massive Füllung und, wenn der klassische Perimeter-Generator verwendet wird, für die Wandlückenfüllung."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Geschwindigkeit für die Lückenfüllung. Lücken haben normalerweise eine unregelmäßige Linienbreite und sollten deshalb langsamer gedruckt werden."
 
@@ -13541,7 +13567,7 @@ msgstr "Aktivieren Sie diese Option, um die Zeilennummer (Nx) am Anfang jeder G-
 msgid "Scan first layer"
 msgstr "Erste Schicht scannen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Aktivieren Sie diese Option, damit die Kamera des Druckers die Qualität der ersten Schicht überprüft."
 
@@ -13557,7 +13583,7 @@ msgstr "Drucker Konfiguration"
 msgid "Nozzle type"
 msgstr "Düsentyp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Das metallische Material der Düse. Dies bestimmt die Abriebfestigkeit der Düse und welche Art von Filamenten gedruckt werden kann."
 
@@ -13573,7 +13599,7 @@ msgstr "Wolframkarbid"
 msgid "Nozzle HRC"
 msgstr "Düse HRC"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "Die Härte der Düse. Null bedeutet, dass die Düsenhärte beim Slicen nicht geprüft wird."
 
@@ -13655,7 +13681,7 @@ msgstr "Die Druckkosten pro Stunde"
 msgid "money/h"
 msgstr "Kosten/h"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "Druckkammer-Temperatursteuerung"
 
@@ -13718,7 +13744,7 @@ msgstr "Aktivieren Sie diese Option, um eine kommentierte G-Code-Datei zu erhalt
 msgid "Infill combination"
 msgstr "Kombinieren der Füllung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Kombinieren Sie automatisch die Füllung von mehreren Schichten, um diese gemeinsam zu drucken und Zeit zu sparen. Die Wand wird weiterhin mit der ursprünglichen Schichthöhe gedruckt."
 
@@ -13827,11 +13853,12 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite des internen geringen Füllmusters. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Überlappung Füllung/Wand"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Die Füllfläche wird leicht vergrößert, um mit der Wand zu überlappen und eine bessere Haftung zu gewährleisten. Der Prozentwert bezieht sich auf die Linienbreite der spärlichen Füllung. Setzen Sie diesen Wert auf ~10-15%, um eine mögliche Überextrusion und Materialansammlung zu minimieren, die zu rauen Oberflächen führen kann."
 
@@ -13842,7 +13869,7 @@ msgstr "Überlappung des oberen/unteren massiven Füllung/Wand"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "Der obere massive Füllbereich wird leicht vergrößert, um mit der Wand zu überlappen und eine bessere Haftung zu gewährleisten und das Auftreten von Pinholes zu minimieren, wo die obere Füllung auf die Wände trifft. Ein Wert von 25-30% ist ein guter Ausgangspunkt, um das Auftreten von Pinholes zu minimieren. Der Prozentwert bezieht sich auf die Linienbreite der spärlichen Füllung."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "Geschwindigkeit der inneren Füllung"
 
@@ -13861,7 +13888,7 @@ msgstr "Erzwingen der Erstellung von festen Hüllen zwischen benachbarten Materi
 msgid "Maximum width of a segmented region"
 msgstr "Maximale Breite eines segmentierten Bereichs"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Maximale Breite eines segmentierten Bereichs. Null deaktiviert diese Funktion."
 
@@ -13907,26 +13934,26 @@ msgstr "Vermeidung von Interlock-Strukturgrenzen"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "Der Abstand von der Außenseite eines Modells, an dem keine Interlock-Strukturen generiert werden, gemessen in Zellen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Glättungsmethode"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "Beim Glätten wird ein kleiner Fluss verwendet, um die gleiche Höhe der Oberfläche erneut zu bedrucken und die Oberfläche glatter zu machen. Diese Einstellung steuert, welche Schicht geglättet wird."
 
 msgid "No ironing"
 msgstr "Kein Glätten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "Obere Oberflächen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "Oberste Oberfläche"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "All solid layers"
 msgstr "Alle soliden Schichten"
 
@@ -13936,18 +13963,18 @@ msgstr "Bügelmuster"
 msgid "The pattern that will be used when ironing."
 msgstr "Das Muster, das beim Glätten verwendet wird"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Die Materialmenge, die während des Glättens extrudiert wird. Dies ist relativ zum Fluss der normalen Schichthöhe. Ein zu hoher Wert führt zu einer Überextrusion der Oberfläche."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "Der Abstand zwischen den Linien beim Glätten"
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "Der Abstand zu den Kanten. Ein Wert von 0 setzt dies auf die Hälfte des Düsendurchmessers."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "Druckgeschwindigkeit der Glättlinien."
 
@@ -14009,11 +14036,11 @@ msgstr "Dieser G-Code wird bei jedem Schichtwechsel nach dem Anheben von Z einge
 msgid "Clumping detection G-code"
 msgstr "Klumpen-Erkennungs-G-Code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Silent Mode"
 msgstr "Unterstützt den Leise-Modus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Ob das Gerät den Leisen-Modus unterstützt, bei dem das Gerät eine geringere Beschleunigung zum Drucken verwendet"
 
@@ -14285,7 +14312,7 @@ msgstr ""
 "Um die Eingangsformung zu deaktivieren, verwenden Sie den Typ Deaktivieren.\n"
 "RRF: X- und Y-Werte sind gleich."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "Die Drehzahl des Bauteillüfters kann sich erhöhen, wenn die automatische Kühlung aktiviert ist. Dies ist die maximale Drehzahlbegrenzung des Bauteillüfters."
 
@@ -14295,7 +14322,7 @@ msgstr "Die höchste druckbare Schichthöhe für den Extruder. Wird verwendet, u
 msgid "Extrusion rate smoothing"
 msgstr "Glättung der Extrusionsrate"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This parameter smooths out sudden extrusion rate changes that happen when the printer transitions from printing a high flow (high speed/larger width) extrusion to a lower flow (lower speed/smaller width) extrusion and vice versa.\n"
 "\n"
@@ -14397,7 +14424,7 @@ msgstr "Orca Slicer kann G-Code-Dateien auf einen Drucker-Host hochladen. Dieses
 msgid "Nozzle volume"
 msgstr "Volumen der Düse"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Volumen der Düse zwischen dem Messer und dem Ende der Düse"
 
@@ -14434,14 +14461,14 @@ msgstr "Wenn der Wert auf Null gesetzt ist, ist die Entfernung, die das Filament
 msgid "Start end points"
 msgstr "Anfangs- und Endpunkte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Die Start- und Endpunkte, vom Schnittbereich bis zum Auswurfschacht."
 
 msgid "Reduce infill retraction"
 msgstr "Rückzug bei der Füllung verringern"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "Kein Rückzug, wenn sich die Bewegung des Druckkopfes vollständig in einem Füllbereich befindet. Das bedeutet, dass das herauslaufen des Filaments nicht zu sehen ist. Dies kann die Zeit für das zurückziehen des Filaments bei komplexeren Modellen verkürzen und Druckzeit sparen, verlangsamt aber das Slicen und die G-Code Generierung."
 
@@ -14451,7 +14478,7 @@ msgstr "Diese Option senkt die Temperatur der inaktiven Extruder, um das Herausl
 msgid "Filename format"
 msgstr "Format des Dateinamens"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "Der Benutzer kann den Projektdateinamen beim Export selbst bestimmen"
 
@@ -14473,11 +14500,12 @@ msgstr "Flächenbereich für druckbare Überhänge von Löchern"
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
 msgstr "Maximaler Flächenbereich eines Lochs in der Basis des Modells, bevor es mit konischem Material gefüllt wird. Ein Wert von 0 füllt alle Löcher in der Basis des Modells."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect overhang walls"
 msgstr "Erkennen von Wandüberhängen"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Erkennt den Prozentsatz des Überhangs im Verhältnis zur Linienbreite und verwenden hierfür eine unterschiedliche Druckgeschwindigkeiten. Bei einem 100%% Überhang wird die Brückengeschwindigkeit verwendet."
 
@@ -14504,11 +14532,11 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite der inneren Wand. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "Druckgeschwindigkeit der Innenwand"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Anzahl der Wände jeder Schicht"
 
@@ -14555,30 +14583,30 @@ msgstr "Druckervariante"
 msgid "Raft contact Z distance"
 msgstr "Z Abstand Objekt Druckbasis "
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z-Abstand zwischen Druckbasis (Raft) und Objekt. Wenn der obere Z-Abstand der Stützen ist 0, wird dieser Wert ignoriert und das Objekt wird in direktem Kontakt mit der Druckbasis (Raft) gedruckt (kein Abstand)."
 
 msgid "Raft expansion"
 msgstr "Druckbasis Erweiterung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Druckbasis in der XY-Ebene erweitern"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Dichte der ersten Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Dichte der ersten Schicht der Druckbasis oder Support"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Ausdehnung der ersten Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Ausdehnung der ersten Druckbasis oder Support-Schicht um die Druckplattenhaftung zu verbessern"
 
@@ -14588,7 +14616,7 @@ msgstr "Druckbasisschichten"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Das Objekt wird um diese Anzahl von Stützschichten erhöht. Verwenden Sie diese Funktion, um ein verziehen bei ABS zu vermeiden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "Der G-Code-Pfad wird nach der Vereinfachung der Kontur des Modells generiert, um zu viele Punkte und G-Code Befehle in der G-Code-Datei zu vermeiden. Ein kleinerer Wert bedeutet eine höhere Auflösung und mehr Zeit zum Slicen."
 
@@ -14601,15 +14629,15 @@ msgstr "Rückzug nur auslösen, wenn der Fahrweg länger als diese Schwelle ist"
 msgid "Retract amount before wipe"
 msgstr "Rückzugsmenge vor der Reinigung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Die Länge des schnellen Rückzugs vor dem Abwischen, relativ zur Rückzugslänge."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Zurückziehen beim Schichtwechsel"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "Erzwingen eines Rückzugs beim Schichtwechsel"
 
@@ -14619,7 +14647,7 @@ msgstr "Rückzugslänge"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "Einige Materialmengen im Extruder werden zurückgezogen, um das Herauslaufen bei langen Fahrten zu vermeiden. Setzen Sie den Wert auf Null, um den Rückzug zu deaktivieren."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "Langer Rückzug beim Schneiden (experimentell)"
 
@@ -14641,7 +14669,7 @@ msgstr "Rückzugslänge beim Extruderwechsel"
 msgid "Z-hop height"
 msgstr "Z-Hub-Höhe"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Bei jedem Rückzug wird die Düse ein wenig angehoben, um einen Abstand zwischen Düse und Druck zu schaffen. Dadurch wird verhindert, dass die Düse bei der Verfahrbewegung gegen den Druck stößt. Die Verwendung einer Spirallinie zum Anheben von z kann Fadenbildung verhindern."
 
@@ -14720,14 +14748,14 @@ msgstr "Wenn die Rückzugskompensation nach dem Reisemove durchgeführt wird, wi
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Wenn die Rückzugskompensation nach dem Wechsel des Werkzeugs durchgeführt wird, wird der Extruder diese zusätzliche Menge an Filament schieben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Rückzugsgeschwindigkeit"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "Geschwindigkeit für den Rückzug von Filament aus der Düse."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Wiedereinzugsgeschwindigkeit"
 
@@ -14752,7 +14780,7 @@ msgstr "Deaktiviert das Generieren von M73: Setze die verbleibende Druckzeit im 
 msgid "Seam position"
 msgstr "Nahtposition"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Die Startposition für den Druck jedes Teils der Außenwand"
 
@@ -14896,7 +14924,7 @@ msgstr "Die Wischengeschwindigkeit wird durch die im Konfigurationsmenü angegeb
 msgid "Skirt distance"
 msgstr "Abstand der Umrandung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Abstand von der Umrandung zum Rand oder zum Objekt"
 
@@ -14909,7 +14937,7 @@ msgstr "Winkel vom Objektzentrum zum Startpunkt der Umrandung. Null ist die rech
 msgid "Skirt height"
 msgstr "Höhe der Umrandungsringe"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "Wie viele Schichten des Skirts. Normalerweise nur eine Schicht."
 
@@ -14948,7 +14976,7 @@ msgstr "Pro Objekt"
 msgid "Skirt loops"
 msgstr "Anzahl Umrandungsringe"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Anzahl der Ringe für die Umrandung. Null bedeutet Deaktivierung der Umrandung"
 
@@ -14978,7 +15006,7 @@ msgstr "Die Druckgeschwindigkeit im exportierten G-Code wird verlangsamt, wenn d
 msgid "Minimum sparse infill threshold"
 msgstr "Mindestschwelle für Füllung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Innere Füllbereiche, die kleiner als dieser Wert sind, werden durch massive Füllungen ersetzt."
 
@@ -15006,11 +15034,11 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite des internen massiven Infill. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Geschwindigkeit der inneren massiven Füllungen, ohne die obere oder untere Oberfläche."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Aktiviert die Spiralisierung, welche die Z-Bewegungen der Außenkontur glättet und verwandelt ein Volumenmodell in einen einwandigen Druck mit soliden unteren Schichten. Das endgültig erzeugte Modell hat dadurch keine Naht."
 
@@ -15030,18 +15058,20 @@ msgstr "Maximaler Abstand, um Punkte in XY zu verschieben, um eine glatte Spiral
 msgid "Spiral starting flow ratio"
 msgstr "Spirale Startflussverhältnis"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid "Sets the starting flow ratio while transitioning from the last bottom layer to the spiral. Normally the spiral transition scales the flow ratio from 0% to 100% during the first loop which can in some cases lead to under extrusion at the start of the spiral."
 msgstr "Legt das Startflussverhältnis beim Übergang von der letzten unteren Schicht zur Spirale fest. Normalerweise skaliert der Spiralenübergang das Flussverhältnis von 0% auf 100% während der ersten Schleife, was in einigen Fällen zu einer Unterextrusion am Anfang der Spirale führen kann."
 
 msgid "Spiral finishing flow ratio"
 msgstr "Spirale Endflussverhältnis"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Legt das Endflussverhältnis beim Beenden der Spirale fest. Normalerweise skaliert die Spiralenübergang das Flussverhältnis von 100% auf 0% während der letzten Schleife, was in einigen Fällen zu einer Unterextrusion am Ende der Spirale führen kann."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Wenn der Modus \"Gleichmäßig\" oder \"Traditionell\" ausgewählt ist, wird für jeden Druck ein Zeitraffer-Video generiert. Nachdem jede Schicht gedruckt wurde, wird eine Momentaufnahme mit der Kamerakammer erstellt. Alle diese Schnappschüsse werden zu einem Zeitraffer-Video zusammengesetzt, wenn der Druck abgeschlossen ist. Wenn der Modus \"Gleichmäßig\" ausgewählt ist, bewegt sich der Druckkopf nach dem Drucken jeder Schicht zum Überschusskanal und nimmt dann eine Momentaufnahme auf. Da das geschmolzene Filament während des Aufnahmeprozesses aus der Düse austreten kann, ist ein Reinigungsturm erforderlich, damit der Druckkopf gereinigt wird."
 
@@ -15076,11 +15106,11 @@ msgstr "G-Code, der ganz oben in die Ausgabedatei geschrieben wird, vor allen an
 msgid "Start G-code"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "G-Code hinzufügen, wenn der Druckvorgang beginnt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "G-Code hinzufügen, wenn der Druck dieses Filaments beginnt"
 
@@ -15165,7 +15195,7 @@ msgstr "Dieser Wert wird zu allen Z-Koordinaten im Ausgabe-G-Code addiert (oder 
 msgid "Enable support"
 msgstr "Stützstrukturen aktivieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "Erzeugung von Stützstrukturen aktivieren."
 
@@ -15187,7 +15217,7 @@ msgstr "Baum (manuell)"
 msgid "Support/object XY distance"
 msgstr "Stützen/Objekt XY-Abstand"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "XY-Abstand zwischen einem Objekt und seinen Stützstrukturen."
 
@@ -15206,7 +15236,7 @@ msgstr "Verwenden Sie diese Einstellung, um das Stützmuster in der horizontalen
 msgid "On build plate only"
 msgstr "Nur auf Druckplatte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Stützen nicht auf der Modelloberfläche, sondern nur auf der Druckplatte erzeugen"
 
@@ -15225,14 +15255,14 @@ msgstr "Kleine Überhänge ignorieren, die möglicherweise keine Stützen benöt
 msgid "Top Z distance"
 msgstr "Oberer Z-Abstand"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "Z-Abstand zwischen der Oberseite der Stützen und dem Objekt."
 
 msgid "Bottom Z distance"
 msgstr "Unterer Z-Abstand"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z-Abstand zwischen dem Objekt und der Unterseite der Stützen. Wenn der obere Z-Abstand der Stützen ist 0 und die Unterseite Schnittstellenschichten hat, wird dieser Wert ignoriert und die Stützen werden in direktem Kontakt mit dem Objekt gedruckt (kein Abstand)."
 
@@ -15255,11 +15285,11 @@ msgstr "Vermeiden Sie es, Stütz-Schnittstellenfilament für die Basis zu verwen
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite der Stützstrukturen. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Schleifenmuster-Schnittstelle"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Deckt die obere Kontaktschicht der Stützstrukturen mit Schleifen ab. Standardmäßig deaktiviert."
 
@@ -15275,6 +15305,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "Obere Schnittstellenschichten"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "This is the number of top interface layers."
+msgstr "Anzahl der langsamen Schichten"
 
 msgid "Bottom interface layers"
 msgstr "Untere Schnittstellenschichten"
@@ -15298,11 +15332,11 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Abstand der unteren Schnittstelle"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Abstand der unteren Trennschichtlinien der Stützstrukturen. Null bedeutet eine solide Schnittstelle."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "Geschwindigkeit der Stützstruktur-Schnittstellen."
 
@@ -15331,7 +15365,7 @@ msgstr "Hohl"
 msgid "Interface pattern"
 msgstr "Schnittstellenmuster"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "Linienmuster der Stützstruktur-Schnittstelle. Das Standardmuster für nicht lösliche Schnittstellen ist Geradlinig, während das Standardmuster für lösliche Schnittstellen konzentrisch ist."
 
@@ -15341,18 +15375,18 @@ msgstr "Rechteckiges Wechselmuster"
 msgid "Base pattern spacing"
 msgstr "Abstand des Grundmusters"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "Abstände zwischen den Stützlinien"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Normale Stützerweiterung"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Vergrößern (+) oder Verkleinern (-) der horizontalen Spannweite der normalen Stützen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Druckgeschwindigkeit für Stützstrukturen."
 
@@ -15390,7 +15424,7 @@ msgstr "Die Stützschicht verwendet eine unabhängige Schichthöhe im Vergleich 
 msgid "Threshold angle"
 msgstr "Schwellenwinkel"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15522,15 +15556,15 @@ msgstr ""
 "\n"
 "Wenn diese Option aktiviert ist, wird auch eine G-Code-Variable namens chamber_temperature gesetzt, die verwendet werden kann, um die gewünschte Druckraumtemperatur an Ihr Druckstart-Makro oder ein Wärmespeicher-Makro weiterzugeben, wie z.B. PRINT_START (andere Variablen) CHAMBER_TEMP=[chamber_temperature]. Dies kann nützlich sein, wenn Ihr Drucker die Befehle M141/M191 nicht unterstützt oder wenn Sie das Wärmespeichern im Druckstart-Makro behandeln möchten, wenn kein aktiver Druckraumheizer installiert ist."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Düsentemperatur nach der ersten Schicht"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect thin walls"
 msgstr "Dünne Wand erkennen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Erkennt dünne Wände, die keine zwei Linienbreiten enthalten können. Und verwendet eine einzelne Linie zum Drucken. Diese wird vielleicht nicht sehr gut gedruckt, weil es keine geschlossene Schleife ist."
 
@@ -15549,21 +15583,21 @@ msgstr "Dieser G-Code wird eingefügt, wenn die Extrusionsart für das aktive Fi
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Linienbreite für obere Oberflächen. Wenn als Prozentsatz angegeben, wird sie in Bezug auf den Düsendurchmesser berechnet."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "Geschwindigkeit der massiven Füllung der Oberseite."
 
 msgid "Top shell layers"
 msgstr "Obere Schalenschichten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Dies ist die Anzahl der massiven Schichten der oberen Schale, einschließlich der Oberflächenschicht. Wenn die mit diesem Wert berechnete Dicke dünner ist als die Dicke der oberen Schale, werden die Schichten der oberen Schale erhöht."
 
 msgid "Top shell thickness"
 msgstr "Dicke der oberen Schale"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Die Anzahl der oberen festen Schichten wird beim Slicen erhöht, wenn die obere Schalenstärke dünner als dieser Wert ist. Dies kann verhindern, dass die Schale zu dünn wird, wenn eine geringe Schichthöhe verwendet wird. 0 bedeutet, dass diese Einstellung deaktiviert ist und die Dicke der oberen Schale absolut durch die oberen Schalenschichten bestimmt wird."
 
@@ -15583,18 +15617,18 @@ msgstr ""
 "Dichte der unteren Oberflächenschicht. Diese Einstellung dient ästhetischen oder funktionalen Zwecken und nicht zur Behebung von Problemen wie Überextrusion.\n"
 "ACHTUNG: Eine Verringerung dieses Wertes kann die Haftung am Druckbett negativ beeinflussen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Eilgeschwindigkeit, wenn nicht extrudiert wird."
 
 msgid "Wipe while retracting"
 msgstr "Während des Rückzugs wischen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Bewegen Sie die Düse beim Zurückziehen entlang des letzten Extrusionsweges, um ausgetretenes Material an der Düse zu reinigen. Dies kann die Bildung von Tropfen an einem neuen Teil nach der Fahrt minimieren."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Wischabstand"
 
@@ -15611,7 +15645,7 @@ msgstr ""
 "\n"
 "Wenn ein Wert in der Einstellung \"Rückzugsmenge vor dem Wischen\" unten angegeben ist, wird ein überschüssiger Rückzug vor dem Wischen ausgeführt, ansonsten wird er danach ausgeführt."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "The Wiping Tower kann verwendet werden, um Rückstände auf der Düse zu entfernen und den Kammerdruck im Inneren der Düse zu stabilisieren, um Erscheinungsdefekte beim Drucken von Objekten zu vermeiden."
 
@@ -15627,18 +15661,18 @@ msgstr "Reinigungsvolumen"
 msgid "Flush multiplier"
 msgstr "Multiplikator der Düsenreinigung"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Das tatsächliche Reinigungsvolumen entspricht dem Wert des Reinigungsmultiplikators multipliziert mit den in der Tabelle angegebenen Reinigungsvolumen."
 
 msgid "Prime volume"
 msgstr "Reinigungsvolumen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Das Volumen des Materials, das der Extruder am Turm entladen soll."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Breite des Reinigungsturms."
 
@@ -15752,11 +15786,11 @@ msgstr "Infill-Lücke"
 msgid "Infill gap."
 msgstr "Infill-Lücke."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "Die Reinigung nach dem Filamentwechsel erfolgt innerhalb der Objektfüllung. Dies kann die Abfallmenge verringern und die Druckzeit verkürzen. Wenn die Wände mit transparentem Filament gedruckt werden, sind die unterschiedlichen Farben der Füllung sichtbar. Die Funktion ist nur dann wirksam, wenn der Reinigungsturm aktiviert ist."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Die Reinigung nach dem Filamentwechsel erfolgt innerhalb der Stützstrukturen. Dies kann die Abfallmenge verringern und die Druckzeit verkürzen. Die Funktion ist nur dann wirksam, wenn der Reinigungsturm aktiviert ist."
 
@@ -15790,14 +15824,14 @@ msgstr "Düsentemperatur, wenn das Werkzeug in Mehrwerkzeug-Setups derzeit nicht
 msgid "X-Y hole compensation"
 msgstr "X-Y-Loch-Kompensation"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Die Löcher des Objekts werden in der XY-Ebene um den eingestellten Wert vergrößert oder verkleinert. Ein positiver Wert macht die Löcher größer, ein negativer Wert macht die Löcher kleiner. Diese Funktion wird verwendet, um die Größe geringfügig anzupassen, wenn Objekte Montageprobleme haben."
 
 msgid "X-Y contour compensation"
 msgstr "X-Y-Konturkompensation"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Die Kontur von Objekten wird in der XY-Ebene um den eingestellten Wert vergrößert oder verkleinert. Positive Werte vergrößern Konturen, negative Werte verkleinern Konturen. Diese Funktion wird verwendet, um die Größe geringfügig anzupassen, wenn Objekte Probleme bei der Montage haben."
 
@@ -15848,7 +15882,7 @@ msgstr "Relative Extrusion"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "Relative Extrusion wird empfohlen, wenn die Option \"label_objects\" verwendet wird. Einige Extruder arbeiten besser mit dieser Option deaktiviert (absoluter Extrusionsmodus). Der Reinigungsturm ist nur mit dem relativen Modus kompatibel. Es wird auf den meisten Druckern empfohlen. Standardmäßig ist es aktiviert."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Der klassische Wandgenerator erzeugt Wände mit konstanter Extrusionsbreite, wobei für sehr dünne Bereiche die Lückenfüllung verwendet wird. Die Arachne-Engine erzeugt Wände mit variabler Extrusionsbreite."
 
@@ -15858,7 +15892,7 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "Länge des Wandübergangs"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Beim Übergang zwischen verschiedenen Wandstärken, wenn das Teil dünner wird, wird eine bestimmte Menge an Platz zum Trennen oder Verbinden der Wandsegmente zugewiesen. Wird als Prozentsatz des Düsendurchmessers ausgedrückt."
 
@@ -15922,7 +15956,7 @@ msgstr "Minimale Wandbreite"
 msgid "Width of the wall that will replace thin features (according to the Minimum feature size) of the model. If the Minimum wall width is thinner than the thickness of the feature, the wall will become as thick as the feature itself. It's expressed as a percentage over nozzle diameter."
 msgstr "Breite der Wand, die dünne Features (entsprechend der Mindest-Featuregröße) des Modells ersetzen wird. Wenn die minimale Wandbreite dünner ist als die Dicke des Features, wird die Wand so dick wie das Feature selbst. Wird als Prozentsatz des Düsendurchmessers angegeben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
 msgstr "Erkennen einer schmalen internen soliden Füllung"
 
@@ -15947,14 +15981,14 @@ msgstr "nicht im Bereich"
 msgid "Export 3MF"
 msgstr "3mf exportieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Projekt als 3MF exportieren."
 
 msgid "Export slicing data"
 msgstr "Slicing-Daten exportieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Exportieren von Slicing-Daten in einen Ordner"
 
@@ -15982,7 +16016,7 @@ msgstr ""
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Slicen sie die Druckplatten: 0-alle Druckplatten; i-Druckplatte i; andere ungültig"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Befehlshilfe anzeigen."
 
@@ -16007,14 +16041,14 @@ msgstr "Exportieren Sie 3MF mit minimaler Größe."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "Maximale Anzahl von Dreiecken pro Bauplattform für das Slicing."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "Das maximale Slicing-Zeitlimit pro Plate in Sekunden."
 
@@ -16033,14 +16067,14 @@ msgstr "Überprüfen Sie die normativen Elemente."
 msgid "Output Model Info"
 msgstr "Ausgabe Modellinformationen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Geben Sie die Informationen des Modells aus."
 
 msgid "Export Settings"
 msgstr "Einstellungen exportieren"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Einstellungen in eine Datei exportieren."
 
@@ -16128,7 +16162,7 @@ msgstr "Objekte in der Ladeliste klonen"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Lade aktuelle Prozess-/Maschineneinstellungen, wenn Aktuell verwendet wird"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Aktuelle Prozess-/Maschineneinstellungen aus der angegebenen Datei laden, wenn Aktuell verwendet wird"
 
@@ -16165,7 +16199,7 @@ msgstr "Laden und Speichern von Einstellungen im angegebenen Verzeichnis. Dies i
 msgid "Output directory"
 msgstr "Ausgabeverzeichnis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Ausgabeverzeichnis für die exportierten Dateien."
 
@@ -16437,11 +16471,11 @@ msgstr "Eingabedateiname ohne Erweiterung"
 msgid "Source filename of the first object, without extension."
 msgstr "Quelldateiname des ersten Objekts, ohne Erweiterung."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr "Der Vektor hat zwei Elemente: x- und y-Koordinate des Punktes. Werte in mm."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y dimension of the bounding box. Values in mm."
 msgstr "Der Vektor hat zwei Elemente: x- und y-Dimension der Begrenzungsbox. Werte in mm."
 
@@ -16604,15 +16638,15 @@ msgstr "Das Laden der Modelldatei ist fehlgeschlagen."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Das Erstellen eines Netzes aus der Modelldatei ist fehlgeschlagen oder es liegt keine gültige Form vor."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Die angegebene Datei konnte nicht gelesen werden, weil sie leer ist."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Unbekanntes Dateiformat: Die Eingabedatei muss die Endung .stl, .obj oder .amf(.xml) haben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Unbekanntes Dateiformat: Die Eingabedatei muss die Endung .3mf oder .zip.amf haben."
 
@@ -16664,7 +16698,7 @@ msgstr "Kalibrieren"
 msgid "Finish"
 msgstr "Fertig"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Wie wird das Kalibrierungsergebnis verwendet?"
 
@@ -16742,7 +16776,7 @@ msgstr "Bitte wählen Sie das Filament zur Kalibrierung aus."
 msgid "The input value size must be 3."
 msgstr "Die Eingabewertgröße muss 3 sein."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -16754,7 +16788,8 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Nur eines der Ergebnisse mit dem gleichen Namen: %s wird gespeichert. Sind Sie sicher, dass Sie die anderen Ergebnisse überschreiben möchten?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Es gibt bereits ein historisches Kalibrierungsergebnis mit dem gleichen Namen: %s. Nur eines der Ergebnisse mit dem gleichen Namen wird gespeichert. Sind Sie sicher, dass Sie das historische Ergebnis überschreiben möchten?"
 
@@ -16766,7 +16801,8 @@ msgstr ""
 "Sind Sie sicher, dass Sie das historische Ergebnis überschreiben möchten?Innerhalb desselben Extruders muss der Name (%s) eindeutig sein, wenn der Filamenttyp, die Düsendurchmesser und der Düsenfluss gleich sind.\n"
 "Sind Sie sicher, dass Sie das historische Ergebnis überschreiben möchten?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Dieser Maschinentyp kann nur %d historische Ergebnisse pro Düse speichern. Dieses Ergebnis wird nicht gespeichert."
 
@@ -16844,7 +16880,7 @@ msgstr "Darüber hinaus ist die Flussratenkalibrierung für schäumende Material
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Die Flussratenkalibrierung misst das Verhältnis von erwartetem zu tatsächlich extrudiertem Volumen. Die Standardeinstellung funktioniert gut bei Bambu Lab-Druckern und offiziellen Filamenten, da sie vorab kalibriert und feinabgestimmt wurden. Für ein normales Filament müssen Sie normalerweise keine Flussratenkalibrierung durchführen, es sei denn, Sie sehen immer noch die aufgeführten Mängel, nachdem Sie andere Kalibrierungen durchgeführt haben. Weitere Details finden Sie im Wiki-Artikel."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -16891,7 +16927,7 @@ msgstr "Der Name darf 40 Zeichen nicht überschreiten."
 msgid "Please find the best line on your plate"
 msgstr "Bitte finden Sie die beste Linie auf Ihrer Platte"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Bitte finden Sie die Ecke mit dem perfekten Extrusionsgrad"
 
@@ -17051,14 +17087,15 @@ msgstr "Kein historisches Ergebnis"
 msgid "Success to get history result"
 msgstr "Ergebnis der Vergangenheit erfolgreich erhalten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Erneuern der historischen Flussdynamik-Kalibrierungsdatensätze"
 
 msgid "Action"
 msgstr "Aktivität"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Dieser Maschinentyp kann nur %d historische Ergebnisse pro Düse speichern."
 
@@ -17683,11 +17720,11 @@ msgstr "Filamentprofil"
 msgid "Create"
 msgstr "Erstellen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Hersteller ist nicht ausgewählt, bitte Hersteller erneut auswählen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Benutzerdefinierter Hersteller ist nicht eingegeben, bitte benutzerdefinierten Hersteller eingeben."
 
@@ -17697,25 +17734,26 @@ msgstr "\"Bambu\" oder \"Generic\" kann nicht als Hersteller für benutzerdefini
 msgid "Filament type is not selected, please reselect type."
 msgstr "Filamenttyp ist nicht ausgewählt, bitte Filamenttyp erneut auswählen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "Filament-Seriennummer ist nicht eingegeben, bitte Seriennummer eingeben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "In der Eingabe des Herstellers oder der Seriennummer des Filaments können Escape-Zeichen vorhanden sein. Bitte löschen und erneut eingeben."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Alle Eingaben im benutzerdefinierten Hersteller oder in der Seriennummer bestehen aus Leerzeichen. Bitte erneut eingeben."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "Der Hersteller kann keine Zahl sein. Bitte erneut eingeben."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Sie haben noch keinen Drucker oder kein Profil ausgewählt. Bitte wählen Sie mindestens etwas aus."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -17761,7 +17799,7 @@ msgstr "Profil importieren"
 msgid "Create Type"
 msgstr "Typ erstellen"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "Das Modell ist nicht gefunden, bitte Hersteller erneut auswählen."
 
@@ -17802,18 +17840,18 @@ msgstr "Die Datei überschreitet %d MB, bitte erneut importieren."
 msgid "Exception in obtaining file size, please import again."
 msgstr "Ausnahme beim Abrufen der Dateigröße, bitte erneut importieren."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Profilpfad wurde nicht gefunden, bitte Hersteller erneut auswählen."
 
 msgid "The printer model was not found, please reselect."
 msgstr "Das Druckermodell wurde nicht gefunden, bitte erneut auswählen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "Der Düsendurchmesser ist nicht gefunden, bitte erneut auswählen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "Das Druckerprofil wurde nicht gefunden, bitte erneut auswählen."
 
@@ -17829,11 +17867,11 @@ msgstr "Prozess-Vorlagenprofil"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Sie haben noch nicht ausgewählt welche Druckerprofil erstellt werden soll. Bitte wählen Sie den Hersteller und das Modell des Druckers"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Sie haben eine ungültige Eingabe im Bereich des druckbaren Bereichs auf der ersten Seite eingegeben. Bitte überprüfen Sie es, bevor Sie es erstellen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17857,14 +17895,14 @@ msgstr "Erstellen von Filamentprofilen fehlgeschlagen. Wie folgt:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Erstellen von Prozessprofilen fehlgeschlagen. Wie folgt:\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "Hersteller nicht gefunden, bitte erneut auswählen."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "Der aktuelle Hersteller hat keine Modelle, bitte erneut auswählen."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Sie haben den Hersteller und das Modell nicht ausgewählt oder den benutzerdefinierten Hersteller und das Modell eingegeben."
 
@@ -17877,7 +17915,7 @@ msgstr "Alle Eingaben im benutzerdefinierten Druckerhersteller oder Modell beste
 msgid "Please check bed printable shape and origin input."
 msgstr "Bitte überprüfen Sie die Eingabe der druckbaren Form und des Ursprungs."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Sie haben den Drucker, der die Düse ersetzen soll, noch nicht ausgewählt, bitte wählen Sie."
 
@@ -17924,7 +17962,7 @@ msgstr "Bitte gehen Sie zu den Druckereinstellungen, um Ihre Profile zu bearbeit
 msgid "Filament Created"
 msgstr "Filament erstellt"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -17979,7 +18017,8 @@ msgstr "ZIP-Schreibfehler"
 msgid "Export successful"
 msgstr "Export erfolgreich"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -18011,7 +18050,7 @@ msgstr ""
 "Benutzerfilamentprofil eingestellt.\n"
 "Kann mit anderen geteilt werden."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Nur Druckernamen mit Änderungen an Drucker-, Filament- und Prozessprofilen werden angezeigt."
 
@@ -18038,7 +18077,7 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "Bitte wählen Sie mindestens einen Drucker oder ein Filament aus."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "Bitte wählen Sie einen Typ aus, den Sie exportieren möchten"
 
@@ -18102,7 +18141,7 @@ msgstr "[Löschen erforderlich]"
 msgid "Edit Preset"
 msgstr "Profil bearbeiten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "Für weitere Informationen besuchen Sie bitte Wiki"
 
@@ -18171,6 +18210,9 @@ msgstr ""
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Kalibrierung nicht möglich: Möglicherweise, weil der eingestellte Kalibrierungswertebereich zu groß ist oder der Schritt zu klein ist"
+
+msgid "Physical Printer"
+msgstr "Drucker"
 
 msgid "Print Host upload"
 msgstr "Hochladen zum Druck-Host"
@@ -18589,7 +18631,7 @@ msgstr "Drucker gleichzeitig drucken.(Es hängt davon ab, wie viele Geräte glei
 msgid "Wait"
 msgstr "Warten"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "Minute pro Charge.(Es hängt davon ab, wie lange es dauert, die Erhitzung abzuschließen.)"
 
@@ -19261,8 +19303,8 @@ msgstr ""
 "Zeitraffer\n"
 "Wussten Sie, dass Sie während jedes Drucks ein Zeitraffervideo erstellen können?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
-#, fuzzy
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19270,8 +19312,8 @@ msgstr ""
 "Automatisch anordnen\n"
 "Wussten Sie, dass Sie alle Objekte in Ihrem Projekt automatisch anordnen können?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
-#, fuzzy
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19369,9 +19411,9 @@ msgstr ""
 "Drucke in mehrere Druckplatten aufteilen\n"
 "Wussten Sie, dass Sie ein Modell, das aus vielen Teilen besteht, in einzelne Druckplatten aufteilen können? Dadurch wird es einfacher, den Überblick über alle Teile zu behalten."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-#, fuzzy
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19387,8 +19429,8 @@ msgstr ""
 "Stützen malen\n"
 "Wussten Sie, dass Sie die Position der Stützen aufmalen können? Diese Funktion macht es möglich, das Stützmaterial nur auf die Bereiche des Modells zu platzieren, die es tatsächlich benötigen."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
-#, fuzzy
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19396,8 +19438,8 @@ msgstr ""
 "Verschiedene Arten von Stützstrukturen\n"
 "Wussten Sie, dass Sie zwischen verschiedenen Arten von Stützen wählen können? Baumstützen eignet sich hervorragend für organische Modelle, sparen Filament und erhöhen die Druckgeschwindigkeit. Probiere sie aus!"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
-#, fuzzy
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19413,8 +19455,8 @@ msgstr ""
 "Rand für bessere Haftung\n"
 "Wussten Sie, dass bei gedruckten Modellen, die eine kleine Kontaktfläche mit der Druckoberfläche haben, die Verwendung eines Randes empfohlen wird?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
-#, fuzzy
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19430,8 +19472,8 @@ msgstr ""
 "Objekte stapeln\n"
 "Wussten Sie, dass Sie Objekte als Ganzes stapeln können?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
-#, fuzzy
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19447,9 +19489,9 @@ msgstr ""
 "Festigkeit verbessern\n"
 "Wussten Sie, dass Sie die Festigkeit des Modells durch mehr Wandschleifen und eine höhere Dichte der Füllung verbessern können?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-#, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19457,8 +19499,8 @@ msgstr ""
 "Wenn mit geöffneter Druckertür gedruckt werden muss\n"
 "Wussten Sie, dass das Öffnen der Druckertür die Wahrscheinlichkeit eines Verstopfens des Extruders/Hotends beim Drucken von Filamenten mit niedriger Temperatur und höherer Gehäusetemperatur verringern kann? Weitere Informationen dazu finden Sie im Wiki."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
-#, fuzzy
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19537,9 +19579,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Anzahl der oberen Schnittstellenschichten"
-
-#~ msgid "Physical Printer"
-#~ msgstr "Drucker"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Druckbettnivellierung"
@@ -19713,7 +19752,8 @@ msgstr ""
 #~ "\n"
 #~ "Der tatsächliche interne Brückenfluss wird berechnet, indem dieser Wert mit dem Brückenflussverhältnis, dem Filamentflussverhältnis und, falls festgelegt, dem Objektflussverhältnis multipliziert wird."
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 #~ msgid ""
 #~ "Enable this option to slow down printing in areas where perimeters may have curled upwards. For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 #~ "\n"
@@ -21033,7 +21073,7 @@ msgstr ""
 #~ msgid "Spacing of interface lines. Zero means solid interface."
 #~ msgstr "Abstand der Schnittstellenlinien. Null bedeutet feste Schnittstelle"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "Mindestdicke für dünne Features. Modellfeatures, die dünner als dieser Wert sind, werden nicht gedruckt, während Features, die dicker als die Mindestfeaturegröße sind, auf die Mindestwandbreite verbreitert werden. Bezogen als Prozentsatz auf Düsendurchmesser."
 
