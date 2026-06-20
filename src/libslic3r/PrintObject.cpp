@@ -682,6 +682,14 @@ void PrintObject::prepare_infill()
                     PrintStateBase::WarningLevel::NON_CRITICAL,
                     m_magma_tube_map->warning_message());
             }
+
+            // Diagnostic: correlate this PrintObject to the map pointer it built.
+            // Pair with "MagmaInjUse" (consumption) to detect stale/shared reuse.
+            // Grep "MagmaBuild".
+            BOOST_LOG_TRIVIAL(info) << "MagmaBuild obj=" << (const void*)this
+                << " map=" << (const void*)m_magma_tube_map.get()
+                << " layers=" << m_layers.size()
+                << " top_layer_id=" << (m_layers.empty() ? -1 : (int)m_layers.back()->id());
         } else {
             m_magma_tube_map.reset();
         }

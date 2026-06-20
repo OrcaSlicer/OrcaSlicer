@@ -18,6 +18,7 @@
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
+#include "Magma/MagmaTubeMap.hpp"  // complete type for m_magma_tube_map.reset()
 #include "format.hpp"
 #include <float.h>
 
@@ -1402,12 +1403,14 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         for (const auto& region : object->all_regions()) {
             const auto& rcfg = region.get().config();
             if (rcfg.dual_infill_enabled && is_magma_pattern(rcfg.sparse_infill_pattern.value)) {
-                StringObjectException warning;
-                warning.string = L("Inner infill zone uses Magma Triangle pattern. The inner zone is "
-                      "intended for lighter infill (e.g., gyroid). Magma injection will "
-                      "fill both zones, which may use excessive material.");
-                warning.is_warning = true;
-                return warning;
+                if (warning) {
+                    warning->string = L("Inner infill zone uses Magma Triangle pattern. The inner zone is "
+                          "intended for lighter infill (e.g., gyroid). Magma injection will "
+                          "fill both zones, which may use excessive material.");
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+                break;
             }
         }
 
@@ -1467,16 +1470,16 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                     reasons += Slic3r::format("\n - Sparse infill flow ratio: %.0f%%",
                         rcfg.sparse_infill_flow_ratio.value * 100);
 
-                StringObjectException warning;
-                warning.string = Slic3r::format(
-                    L("Magma infill effective line width (%.2f mm) is below the minimum "
-                      "(%.2f mm = %.0f%% of %.1f mm nozzle). Lines may be unreliable.%s\n\n"
-                      "Consider setting flow ratios closer to 100%% or increasing "
-                      "sparse infill line width."),
-                    effective_w, min_width, min_pct, nozzle_d, reasons);
-                warning.object = object;
-                warning.is_warning = true;
-                return warning;
+                if (warning) {
+                    warning->string = Slic3r::format(
+                        L("Magma infill effective line width (%.2f mm) is below the minimum "
+                          "(%.2f mm = %.0f%% of %.1f mm nozzle). Lines may be unreliable.%s\n\n"
+                          "Consider setting flow ratios closer to 100%% or increasing "
+                          "sparse infill line width."),
+                        effective_w, min_width, min_pct, nozzle_d, reasons);
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
             }
             break;  // only check first Magma region per object
         }
@@ -2153,6 +2156,12 @@ void Print::auto_assign_extruders(ModelObject* model_object) const
 void  PrintObject::set_shared_object(PrintObject *object)
 {
     m_shared_object = object;
+    // A shared copy must not retain a tube map it built while it was a source in
+    // a previous slice: that stale map would otherwise be used by raw-member
+    // readers (make_fills) and shadow the source's fresh map. The accessor
+    // magma_tube_map() also prefers the source, but resetting here keeps state
+    // consistent and releases the stale map.
+    m_magma_tube_map.reset();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, found shared object from %2%")%this%m_shared_object;
 }
 

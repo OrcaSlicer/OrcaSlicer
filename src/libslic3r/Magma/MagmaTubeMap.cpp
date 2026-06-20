@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cmath>
 #include <numeric>
 #include <queue>
@@ -514,6 +515,26 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
             double dist_mm = unscale<double>((center_pt - proj).cast<double>().norm());
             m_cells[cell].mark_present(layer_id, area, dist_mm);
         }
+    }
+
+    // Post-scan summary: per-cell layer span vs. the object's top layer index.
+    // If tubes stop one below the top, last_layer here will be top-1 for most
+    // cells. Grep "MagmaScanSpan".
+    {
+        int max_layer_id = layers.empty() ? -1
+            : static_cast<int>(layers.back()->id());
+        int cells_reaching_top = 0;
+        int min_last = INT_MAX, max_last = -1;
+        for (const auto &[cell, presence] : m_cells) {
+            if (presence.last_layer == max_layer_id) ++cells_reaching_top;
+            min_last = std::min(min_last, presence.last_layer);
+            max_last = std::max(max_last, presence.last_layer);
+        }
+        BOOST_LOG_TRIVIAL(info) << "MagmaScanSpan top_layer_id=" << max_layer_id
+            << " cells=" << m_cells.size()
+            << " reaching_top=" << cells_reaching_top
+            << " last_layer[min=" << (min_last == INT_MAX ? -1 : min_last)
+            << " max=" << max_last << "]";
     }
 }
 
