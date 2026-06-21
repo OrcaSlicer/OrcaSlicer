@@ -5853,6 +5853,31 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("magma_injection_plunge", coBool);
+    def->label = L("Plunge while injecting");
+    def->category = L("Strength");
+    def->tooltip = L("Sink the nozzle deeper into the tube top as the injection proceeds, instead of "
+                     "holding a single fixed Z-slam. The hot nozzle melts its way into the softening "
+                     "surface and keeps the seal pressed shut while the channel fills, so plastic is "
+                     "driven down the tube rather than mushrooming out around the nozzle.\n\n"
+                     "The nozzle ramps from the sealing depth (manual or auto Z-slam) down to that "
+                     "depth plus the plunge depth below, spread across the injection.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("magma_injection_plunge_depth", coFloat);
+    def->label = L("Plunge depth");
+    def->category = L("Strength");
+    def->tooltip = L("How much deeper the nozzle ramps during a plunge injection, on top of the "
+                     "sealing Z-slam depth, by the time the injection finishes. Larger values press "
+                     "the hot nozzle harder into the tube top (better seal and surface melting) but "
+                     "risk digging into the part. Start around 0.4mm and tune.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 2.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.4));
+
     def = this->add("magma_injection_dwell", coInt);
     def->label = L("Injection dwell time");
     def->category = L("Strength");

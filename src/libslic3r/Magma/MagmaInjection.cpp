@@ -213,6 +213,15 @@ std::string generate_injection_gcode(
     }
     slam_depth = std::min(slam_depth, 3.5);
 
+    // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
+    // tip sinks into the softening tube top and keeps the seal pressed shut as the
+    // channel fills. Ramps from slam_depth to slam_depth + plunge_depth; clamp the
+    // total so we never drive absurdly far into the part.
+    double plunge_depth = config.magma_injection_plunge.value
+                              ? std::max(0.0, config.magma_injection_plunge_depth.value)
+                              : 0.0;
+    plunge_depth = std::min(plunge_depth, std::max(0.0, 4.0 - slam_depth));
+
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
     // Injection volume is geometrically computed from tube dimensions; applying
     // flow ratio would double-correct (fill_factor already controls fill amount).
@@ -319,23 +328,45 @@ std::string generate_injection_gcode(
         Vec2d xy(gcodegen.writer().get_position().x(),
                  gcodegen.writer().get_position().y());
 
+        // Per-segment extrusion amounts. With viz waypoints we split E along the
+        // tube path (drives the preview slider); otherwise a single segment, or,
+        // when plunging, a fixed split so Z can ramp smoothly.
+        std::vector<double> seg_e;
         if (waypoints.size() >= 2) {
             double total_path_len = 0;
             for (size_t i = 1; i < waypoints.size(); ++i)
                 total_path_len += (waypoints[i] - waypoints[i - 1]).norm();
-
             for (size_t i = 1; i < waypoints.size(); ++i) {
                 double seg_len = (waypoints[i] - waypoints[i - 1]).norm();
-                double seg_e = (total_path_len > 0)
+                seg_e.push_back((total_path_len > 0)
                     ? filament_length * (seg_len / total_path_len)
-                    : filament_length / double(waypoints.size() - 1);
-                gcode += gcodegen.writer().extrude_to_xy(
-                    xy, seg_e, "injection segment");
+                    : filament_length / double(waypoints.size() - 1));
             }
+        } else if (plunge_depth > 0.0) {
+            const int N = 8;
+            for (int i = 0; i < N; ++i)
+                seg_e.push_back(filament_length / double(N));
         } else {
-            sprintf(buf, "Magma injection %.2f mm3", volume);
+            seg_e.push_back(filament_length);
+        }
+
+        // Emit the segments, optionally sinking Z a little before each so the
+        // nozzle plunges from slam_depth to slam_depth + plunge_depth by the end.
+        const int K = (int) seg_e.size();
+        for (int k = 0; k < K; ++k) {
+            if (plunge_depth > 0.0) {
+                double z = layer_z - (slam_depth + plunge_depth * double(k + 1) / double(K));
+                sprintf(buf, "G1 Z%.3f F%d ; injection plunge\n", z, z_feedrate);
+                gcode += buf;
+                // The raw Z move above sets F to the (fast) Z feedrate and bypasses
+                // the writer's speed tracking, so the writer won't restore it.
+                // Re-emit the injection feedrate or the extrude below inherits the
+                // Z feedrate and injects far too fast.
+                sprintf(buf, "G1 F%.3f\n", feedrate_mmmin);
+                gcode += buf;
+            }
             gcode += gcodegen.writer().extrude_to_xy(
-                xy, filament_length, std::string(buf));
+                xy, seg_e[k], K > 1 ? "injection segment" : "Magma injection");
         }
 
         // Dwell: hold nozzle sealed while plastic spreads through tube
@@ -353,8 +384,8 @@ std::string generate_injection_gcode(
         if (inj_retract)
             gcode += gcodegen.writer().retract();
 
-        // Z-slam release: return to normal layer height
-        if (slam_depth > 0) {
+        // Z-slam release: return to normal layer height (also undoes any plunge).
+        if (slam_depth > 0 || plunge_depth > 0) {
             sprintf(buf, "G1 Z%.3f F%d ; z-slam release\n", layer_z, z_feedrate);
             gcode += buf;
         }

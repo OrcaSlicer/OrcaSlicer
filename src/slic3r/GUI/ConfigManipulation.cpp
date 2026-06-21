@@ -988,6 +988,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // Z-slam: auto toggle shown when Magma; manual depth only when auto is off
     toggle_line("magma_injection_z_slam_auto", have_magma_pattern);
     toggle_line("magma_injection_z_slam", have_magma_pattern && !z_slam_auto);
+    // Plunge ("slam-melt"): depth field only when the plunge toggle is on
+    auto* plunge_opt = config->option<ConfigOptionBool>("magma_injection_plunge");
+    bool plunge_on = have_magma_pattern && plunge_opt && plunge_opt->value;
+    toggle_line("magma_injection_plunge", have_magma_pattern);
+    toggle_line("magma_injection_plunge_depth", plunge_on);
 
     // Zone filament settings — on the Filament for Features page, visibility
     // controlled here alongside other Magma toggles.

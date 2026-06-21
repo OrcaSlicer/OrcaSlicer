@@ -1537,6 +1537,24 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                     }
                 }
             }
+
+            // (3) Injection speed above the injection filament's melt rate. It is
+            // silently capped at G-code time, so warn the user it won't run as set.
+            {
+                int inj_filament = obj_cfg.magma_injection_filament.value;  // 0 = current/sparse
+                int inj_ext = inj_filament > 0 ? (inj_filament - 1) : sparse_ext;
+                double max_vol = m_config.filament_max_volumetric_speed.get_at(inj_ext);
+                double inj_speed = obj_cfg.magma_injection_speed.value;
+                if (warning && warning->string.empty() && max_vol > 0.0 && inj_speed > max_vol) {
+                    warning->string = Slic3r::format(
+                        L("Magma injection speed (%.1f mm3/s) exceeds the injection filament's max "
+                          "volumetric speed (%.1f mm3/s) and will be capped to it. Lower the injection "
+                          "speed or raise the filament's max volumetric speed."),
+                        inj_speed, max_vol);
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+            }
             break;  // only check first Magma region per object
         }
     }
