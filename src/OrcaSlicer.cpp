@@ -1267,15 +1267,15 @@ int CLI::run(int argc, char **argv)
             }
             #endif
 
-            // WebKit2GTK compositing can fail under XWayland on older
-            // WebKit releases. Disable it only when both DISPLAY and
-            // WAYLAND_DISPLAY are set (i.e. an XWayland session is in
-            // use). On pure X11 or native Wayland, compositing is left
-            // enabled so WebKit retains HW acceleration.
+            // WebKit2GTK accelerated compositing is unreliable on Wayland: we
+            // observed blank/garbled web views (Home/Device) with both NVIDIA
+            // and AMD drivers. Disable it whenever WAYLAND_DISPLAY is set
+            // (covers native Wayland and XWayland); must happen before the first
+            // web view is created. Pure X11 (DISPLAY only, no WAYLAND_DISPLAY)
+            // and the GDK_BACKEND=x11 opt-in path above keep it enabled.
             {
-                const char* display_env_wk = ::getenv("DISPLAY");
                 const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-                if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+                if (wayland_env_wk && *wayland_env_wk) {
                     ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
                 }
             }

@@ -16,7 +16,7 @@ build-options:
     LDFLAGS: "-fuse-ld=lld"
 finish-args:
   - --share=ipc
-  - --socket=x11
+  - --socket=fallback-x11
   - --socket=wayland
   - --share=network
   - --device=all
