@@ -579,6 +579,23 @@ void GCode::patch_toolchange_dyn_config(
         gcode.placeholder_parser().set("flush_temperatures",
             new Slic3r::ConfigOptionInts(flush_temps));
     }
+
+    // --- retraction_distance_when_ec and long_retraction_when_ec -------------
+    // In change_filament_gcode, {retraction_distance_when_ec} and
+    // {long_retraction_when_ec} should represent the outgoing (old) filament
+    // settings because we are retracting the outgoing filament. But default
+    // Slic3r logic sets them based on new_filament_id (the incoming filament).
+    // Override them here for the outgoing filament.
+    if (old_filament_id >= 0 && old_filament_id < (int)nf) {
+        float retract_dist = gcode.m_config.retraction_distances_when_ec.get_at(old_filament_id);
+        bool long_retract = gcode.m_config.long_retractions_when_ec.get_at(old_filament_id);
+        
+        dyn_config.set_key_value("retraction_distance_when_ec", new Slic3r::ConfigOptionFloat(retract_dist));
+        gcode.placeholder_parser().set("retraction_distance_when_ec", new Slic3r::ConfigOptionFloat(retract_dist));
+        
+        dyn_config.set_key_value("long_retraction_when_ec", new Slic3r::ConfigOptionBool(long_retract));
+        gcode.placeholder_parser().set("long_retraction_when_ec", new Slic3r::ConfigOptionBool(long_retract));
+    }
 }
 
 void GCode::patch_toolchange_dyn_config_wt(
