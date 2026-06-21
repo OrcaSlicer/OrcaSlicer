@@ -2896,10 +2896,12 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
     }
     {
         if (!m_ams_combo_info.empty()) {
-            auto index = 0;
-            for (auto it = m_fix_materialList.begin(); it != m_fix_materialList.end(); it++) {
-                if (index >= m_ams_combo_info.ams_filament_colors.size() || index >= extruders.size()) {
-                    break;
+            size_t index = 0;
+            for (size_t material_index = 0;
+                 material_index < extruders.size() && index < m_ams_combo_info.ams_filament_colors.size(); ++material_index) {
+                auto it = m_fix_materialList.find(static_cast<int>(material_index));
+                if (it == m_fix_materialList.end()) {
+                    continue;
                 }
                 auto     ams_color = decode_ams_color(m_ams_combo_info.ams_filament_colors[index]);
                 wxString ams_id    = m_ams_combo_info.ams_names[index];
