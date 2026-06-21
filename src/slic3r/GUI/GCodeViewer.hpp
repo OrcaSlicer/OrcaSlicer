@@ -244,6 +244,9 @@ private:
     int       m_view_type_sel = 0;
     // ORCA: which default view type was last applied, see apply_default_view_type(). Empty until the first one is applied.
     std::string m_applied_default_view_type_key;
+    // ORCA: true when the last loaded G-code had per-vertex gradient colors; used by
+    // apply_default_view_type() to default single-extruder prints to ColorPrint.
+    bool m_has_gradient_data{ false };
     std::vector<EMoveType> options_items;
 
     bool m_legend_visible{ true };
