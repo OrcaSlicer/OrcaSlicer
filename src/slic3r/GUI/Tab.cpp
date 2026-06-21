@@ -2453,6 +2453,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Magma Pattern"), L"param_magmatriangle");
         optgroup->append_single_option_line("magma_tube_width_mode");
         optgroup->append_single_option_line("magma_nozzle_outer_diameter");
+        optgroup->append_single_option_line("magma_nozzle_cone_half_angle");
         optgroup->append_single_option_line("magma_interior_width");
         optgroup->append_single_option_line("magma_spiral_interlock");
         optgroup->append_single_option_line("magma_overlap_line_correction");
@@ -2469,6 +2470,8 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Magma Injection"), L"param_magmainjection");
         optgroup->append_single_option_line("magma_injection_temp");
         optgroup->append_single_option_line("magma_injection_speed");
+        optgroup->append_single_option_line("magma_injection_ordering");
+        optgroup->append_single_option_line("magma_injection_z_slam_auto");
         optgroup->append_single_option_line("magma_injection_z_slam");
         optgroup->append_single_option_line("magma_injection_dwell");
         optgroup->append_single_option_line("magma_injection_z_hop");

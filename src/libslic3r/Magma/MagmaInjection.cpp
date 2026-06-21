@@ -184,7 +184,7 @@ std::string generate_injection_gcode(
     if (fill_factor <= 0)
         return {};
 
-    double slam_depth        = std::min(config.magma_injection_z_slam.value, 3.5);
+    double slam_depth        = 0.0;  // resolved below (auto mode needs extruder/nozzle info)
     int    dwell_ms          = config.magma_injection_dwell.value;
     double inj_z_hop         = config.magma_injection_z_hop.value;
     bool inj_retract         = config.magma_injection_retract.value;
@@ -193,6 +193,25 @@ std::string generate_injection_gcode(
     unsigned int extruder_id = gcodegen.writer().filament()->id();
     double filament_diameter = config.filament_diameter.get_at(extruder_id);
     double filament_area = (PI / 4.0) * filament_diameter * filament_diameter;
+
+    // Resolve Z-slam depth: auto-derive from nozzle cone geometry, or use the
+    // manual value. Auto presses just far enough that the cone above the flat
+    // widens to cover the tube opening: z = (opening - flat) / (2*tan(half_angle)),
+    // with a 0.1mm floor for seal contact even when the flat already covers it.
+    if (config.magma_injection_z_slam_auto.value) {
+        double opening = tube_map.tube_opening_diameter();
+        double flat    = config.magma_nozzle_outer_diameter.value;
+        if (flat <= 0.0)
+            flat = 3.0 * config.nozzle_diameter.get_at(extruder_id);  // matches auto tube-sizing fallback
+        double half_angle_rad = config.magma_nozzle_cone_half_angle.value * PI / 180.0;
+        double gap = opening - flat;
+        double computed = (gap > 0.0 && half_angle_rad > 1e-6)
+                              ? gap / (2.0 * std::tan(half_angle_rad)) : 0.0;
+        slam_depth = std::max(0.1, computed);
+    } else {
+        slam_depth = config.magma_injection_z_slam.value;
+    }
+    slam_depth = std::min(slam_depth, 3.5);
 
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
     // Injection volume is geometrically computed from tube dimensions; applying

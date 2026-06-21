@@ -123,6 +123,11 @@ public:
     double cell_spacing() const { return m_cell_spacing; }
     float  interior_width() const { return m_interior_width; }
 
+    // Circumscribed-circle diameter of the inset triangle = the tube opening the
+    // nozzle flat (plus cone, when z-slamming) must cover to seal. Auto tube
+    // sizing makes this approximately the nozzle tip flat. Used by auto z-slam.
+    double tube_opening_diameter() const;
+
     // Pre-built lattice with spiral offset for a given layer.
     // Eliminates repeated sin/cos + TriangleLattice construction.
     const TriangleLattice& lattice_at(int layer_id) const { return m_layer_data[layer_id].lattice; }

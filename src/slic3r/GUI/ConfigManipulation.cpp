@@ -951,6 +951,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool is_magma_infill = is_magma_pattern(config->opt_enum<InfillPattern>("sparse_infill_pattern"));
     bool have_magma_pattern = is_magma_infill || have_dual_infill;
 
+    // Auto Z-slam derives the slam depth from nozzle geometry; it needs the nozzle
+    // tip flat and cone angle, so those fields follow this toggle.
+    auto* z_slam_auto_opt = config->option<ConfigOptionBool>("magma_injection_z_slam_auto");
+    bool z_slam_auto = have_magma_pattern && z_slam_auto_opt && z_slam_auto_opt->value;
+
     // Magma Pattern section
     toggle_line("magma_tube_width_mode", have_magma_pattern);
     toggle_line("magma_spiral_interlock", have_magma_pattern);
@@ -959,7 +964,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     auto* tube_mode_opt = config->option<ConfigOptionEnum<MagmaTubeWidthMode>>("magma_tube_width_mode");
     bool tube_auto = have_magma_pattern && tube_mode_opt &&
         tube_mode_opt->value == MagmaTubeWidthMode::Auto;
-    toggle_line("magma_nozzle_outer_diameter", tube_auto);
+    toggle_line("magma_nozzle_outer_diameter", tube_auto || z_slam_auto);  // flat is needed by auto z-slam even in manual tube mode
+    toggle_line("magma_nozzle_cone_half_angle", z_slam_auto);
     toggle_line("magma_interior_width", have_magma_pattern && !tube_auto);
 
     // Magma Tubes section
@@ -975,10 +981,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("magma_solver_timeout", is_refined);
 
     // Magma Injection section
-    for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_iron_tube_ends",
-        "magma_injection_park", "magma_injection_z_slam", "magma_injection_dwell",
+    for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_injection_ordering",
+        "magma_iron_tube_ends", "magma_injection_park", "magma_injection_dwell",
         "magma_injection_z_hop", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
+    // Z-slam: auto toggle shown when Magma; manual depth only when auto is off
+    toggle_line("magma_injection_z_slam_auto", have_magma_pattern);
+    toggle_line("magma_injection_z_slam", have_magma_pattern && !z_slam_auto);
 
     // Zone filament settings — on the Filament for Features page, visibility
     // controlled here alongside other Magma toggles.
