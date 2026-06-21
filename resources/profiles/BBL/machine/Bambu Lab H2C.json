@@ -12,5 +12,5 @@
     "machine_tech": "FFF",
     "model_id": "O1C2",
     "not_support_bed_type": "Cool Plate;Smooth PEI Plate / High Temp Plate",
-    "default_materials": "Bambu PLA Basic @BBL H2D;Bambu PLA-CF @BBL H2D;Bambu PETG Basic @BBL H2D;Bambu ABS @BBL H2D;Bambu PETG HF @BBL H2D;Bambu PLA Silk @BBL H2D;Bambu PLA Matte @BBL H2D;Bambu PC @BBL H2D;Bambu PA-CF @BBL H2D;Bambu PLA Pure @BBL H2C"
+    "default_materials": "Bambu PLA Basic @BBL H2C;Bambu PLA-CF @BBL H2C;Bambu PETG Basic @BBL H2C;Bambu ABS @BBL H2C;Bambu PETG HF @BBL H2C;Bambu PLA Silk @BBL H2C;Bambu PLA Matte @BBL H2C;Bambu PC @BBL H2C;Bambu PA-CF @BBL H2C;Bambu PLA Pure @BBL H2C"
 }
