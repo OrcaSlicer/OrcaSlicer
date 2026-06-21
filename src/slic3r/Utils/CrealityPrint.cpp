@@ -304,7 +304,8 @@ std::string CrealityPrint::get_print_host_webui(DynamicPrintConfig* config)
     // Port 80 hosts only the Creality control / upload API, which returns 404
     // for unknown paths and therefore renders as a blank/404 page in Orca's
     // Device WebView. Default to the Mainsail URL when the user hasn't
-    // explicitly set print_host_webui.
+    // explicitly set print_host_webui. Use printhost_port if configured,
+    // otherwise fall back to 4408.
     if (config == nullptr)
         return {};
 
@@ -325,7 +326,10 @@ std::string CrealityPrint::get_print_host_webui(DynamicPrintConfig* config)
     if (auto colon = host.find(':'); colon != std::string::npos)
         host = host.substr(0, colon);
 
-    return "http://" + host + ":4408/";
+    std::string port = config->opt_string("printhost_port");
+    if (port.empty())
+        port = "4408";
+    return "http://" + host + ":" + port + "/";
 }
 
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
