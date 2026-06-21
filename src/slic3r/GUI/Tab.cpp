@@ -4271,6 +4271,7 @@ void TabFilament::build()
         //optgroup->append_single_option_line("filament_colour");
         optgroup->append_single_option_line("required_nozzle_HRC", "material_basic_information#required-nozzle-hrc");
         optgroup->append_single_option_line("default_filament_colour", "material_basic_information#default-color");
+
         optgroup->append_single_option_line("filament_diameter", "material_basic_information#diameter");
         optgroup->append_single_option_line("filament_adhesiveness_category", "material_basic_information#adhesiveness-category");
 

@@ -351,7 +351,7 @@ if (MSVC)
     # Generate symbols at every build target, even for the release.
 	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
 	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
-    add_compile_options(-bigobj /Zi /FS)
+    add_compile_options(/bigobj /Zi /FS)
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
     add_compile_options(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)

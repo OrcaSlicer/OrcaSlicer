@@ -73,6 +73,15 @@ uniform float shadow_map_texel;
 // LIGHT_TOP_DIR in eye space (matches the diffuse light used for shading in gouraud.vs).
 const vec3 SHADOW_LIGHT_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
 
+// Filament gradient (Prepare-view approximation): map one gradient cycle up the object's Z.
+const int GRAD_MAX = 8;
+uniform bool  use_filament_gradient;
+uniform int   gradient_count;
+uniform float gradient_pos[GRAD_MAX];
+uniform vec4  gradient_col[GRAD_MAX];
+uniform float gradient_z_min;
+uniform float gradient_z_max;
+
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
 
@@ -86,6 +95,26 @@ in vec3 eye_normal;
 vec3 getBackfaceColor(vec3 fill) {
     float brightness = 0.2126 * fill.r + 0.7152 * fill.g + 0.0722 * fill.b;
     return (brightness > 0.75) ? vec3(0.11, 0.165, 0.208) : vec3(0.988, 0.988, 0.988);
+}
+
+vec3 sample_filament_gradient(float t) {
+    t = clamp(t, 0.0, 1.0);
+    vec3  prev_col = gradient_col[0].rgb;
+    float prev_pos = gradient_pos[0];
+    vec3  last_col = gradient_col[0].rgb;
+    for (int i = 0; i < GRAD_MAX; ++i) {
+        if (i >= gradient_count) break;
+        float p = gradient_pos[i];
+        vec3  c = gradient_col[i].rgb;
+        if (t <= p) {
+            float f = (p > prev_pos) ? (t - prev_pos) / (p - prev_pos) : 0.0;
+            return mix(prev_col, c, f);
+        }
+        prev_pos = p;
+        prev_col = c;
+        last_col = c;
+    }
+    return last_col;
 }
 
 // Silhouette edge detection & rendering algorithem by leoneruggiero
@@ -233,6 +262,11 @@ void main()
     }
     else
 	    color = uniform_color;
+
+    if (use_filament_gradient) {
+        float gt = (gradient_z_max > gradient_z_min) ? (world_pos.z - gradient_z_min) / (gradient_z_max - gradient_z_min) : 0.0;
+        color.rgb = sample_filament_gradient(gt);
+    }
 
     if (slope.actived) {
          if(world_pos.z<0.1&&world_pos.z>-0.1)

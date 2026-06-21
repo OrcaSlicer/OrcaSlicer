@@ -2808,6 +2808,34 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_colour_type", coStrings);
     def->set_default_value(new ConfigOptionStrings{"1"}); // Init as default color
 
+    // Gradient filament color stops — serialized as "pos,#RRGGBBAA;pos,#RRGGBBAA;..."
+    // Only used when filament_colour_type == "0".
+    def = this->add("filament_gradient_stops", coStrings);
+    def->label   = L("Gradient color stops");
+    def->tooltip = L("Color stops for the gradient filament preview. Each stop is a position (0-1) and a color.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    // Total length in mm of one full gradient color cycle.
+    def        = this->add("filament_gradient_cycle_length", coFloats);
+    def->label   = L("Gradient cycle length");
+    def->tooltip = L("Length of one full color cycle in mm of extruded filament. "
+                     "Check the filament manufacturer's website or measure your spool.");
+    def->sidetext = L("mm");
+    def->min     = 1.0;
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{500.0});
+
+    // Starting offset into the gradient cycle for this spool.
+    def        = this->add("filament_gradient_start_offset", coFloats);
+    def->label   = L("Gradient start offset");
+    def->tooltip = L("Offset into the gradient cycle at the start of this spool, in mm. "
+                     "Use this to match the preview to where your spool actually begins.");
+    def->sidetext = L("mm");
+    def->min     = 0.0;
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{0.0});
+
     //bbs
     def          = this->add("required_nozzle_HRC", coInts);
     def->label   = L("Required nozzle HRC");
