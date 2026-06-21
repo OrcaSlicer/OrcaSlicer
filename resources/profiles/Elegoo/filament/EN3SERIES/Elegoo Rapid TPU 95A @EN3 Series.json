@@ -1,0 +1,38 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid TPU 95A @EN3 Series",
+	"renamed_from": "Elegoo RAPID TPU 95A @EN3 Series",
+	"inherits": "Elegoo TPU @base",
+	"from": "system",
+	"setting_id": "ERTPU95AEN3",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.024"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 3 Pro 0.4 nozzle",
+		"Elegoo Neptune 3 Pro 0.6 nozzle",
+		"Elegoo Neptune 3 Pro 0.8 nozzle",
+		"Elegoo Neptune 3 Pro 1.0 nozzle",
+		"Elegoo Neptune 3 Plus 0.4 nozzle",
+		"Elegoo Neptune 3 Plus 0.6 nozzle",
+		"Elegoo Neptune 3 Plus 0.8 nozzle",
+		"Elegoo Neptune 3 Plus 1.0 nozzle",
+		"Elegoo Neptune 3 Max 0.4 nozzle",
+		"Elegoo Neptune 3 Max 0.6 nozzle",
+		"Elegoo Neptune 3 Max 0.8 nozzle",
+		"Elegoo Neptune 3 Max 1.0 nozzle"
+	]
+}

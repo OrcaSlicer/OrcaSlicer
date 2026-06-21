@@ -23,6 +23,7 @@
 #include <cstring>
 #include <iostream>
 #include <math.h>
+#include <csignal>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -1191,43 +1192,108 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // Safety fallback: if wxWidgets was not built with EGL support, native
-    // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
-    // backend cannot access an X11 display. Force X11 mode in that case.
-    // NOTE: Do NOT remove this block even after enabling wxHAS_EGL
-    // in the build — it protects against builds where deps were not rebuilt.
-#if !defined(wxHAS_EGL) || !wxHAS_EGL
+    // ------------------------------------------------------------------
+    // Linux backend selection — runtime, based on GDK_BACKEND env var.
+    //
+    //   GDK_BACKEND unset (DEFAULT)    Wayland path.
+    //                                  GTK auto-picks Wayland on Wayland
+    //                                  sessions and X11 otherwise. WebKit
+    //                                  XWayland-compositing workaround
+    //                                  applied only when actually on
+    //                                  XWayland. XInitThreads gated on
+    //                                  DISPLAY presence.
+    //
+    //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
+    //                                  v2.3.2 workarounds that the X11
+    //                                  path benefits from: DRI_PRIME for
+    //                                  AMD/nouveau PRIME, NVIDIA PRIME
+    //                                  render offload (when nvidia.ko is
+    //                                  loaded), XInitThreads. 
+    //                                  Multi monitor is compromised
+    //
+    // WEBKIT_DISABLE_COMPOSITING_MODE is deliberately NOT set on the X11
+    // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
+    // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
+    // unset preserves WebKit hardware acceleration on Device / Setup
+    // Wizard / login / store. The default path still applies it on
+    // XWayland sessions as a conservative fallback for older WebKit.
+    // ------------------------------------------------------------------
     {
-        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-        if (wayland_env && *wayland_env) {
-            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
-            ::setenv("GDK_BACKEND", "x11", true);
-        }
-    }
-#endif
+        const char* gdk_backend = ::getenv("GDK_BACKEND");
+        // Match "x11" and comma-prefixed forms like "x11,wayland" (GTK
+        // honours the first backend in the comma-separated list).
+        const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
 
-    // WebKit2GTK compositing can fail under XWayland. Only disable it when
-    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
-    // On pure X11 or native Wayland, compositing is left enabled.
-    {
-        const char* display_env_wk = ::getenv("DISPLAY");
-        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
-            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
-        }
-    }
+        if (x11_opt_in) {
+            // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
+            BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 detected; applying v2.3.2 X11/XWayland workarounds.";
 
-    // XInitThreads is needed before GStreamer may use Xlib. On native
-    // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
-    #if __has_include(<X11/Xlib.h>)
-    {
-        const char* display_env = ::getenv("DISPLAY");
-        if (display_env && *display_env) {
+            // On Linux dual-GPU systems, request the high-performance
+            // discrete GPU. DRI_PRIME=1 handles AMD and nouveau PRIME
+            // setups; harmless on single-GPU systems (Mesa ignores it).
+            ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+            // For NVIDIA proprietary driver PRIME render offload, set
+            // additional variables. Only set if the NVIDIA kernel module
+            // is loaded to avoid breaking systems without NVIDIA.
+            if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+                ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+                ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+            }
+
+            // Tell Xlib we will be using threads, lest we crash when
+            // GStreamer fires up. Safe to call here since the user has
+            // explicitly opted into X11.
+            #if __has_include(<X11/Xlib.h>)
             XInitThreads();
+            #endif
+        } else {
+            // ===== Wayland default =====
+
+            // Safety fallback: if wxWidgets was not built with EGL
+            // support, native Wayland will crash in
+            // wxGLCanvas::IsDisplaySupported() because the GLX backend
+            // cannot access an X11 display. Force X11 mode in that case.
+            // NOTE: Do NOT remove this block even after enabling
+            // wxHAS_EGL in the build — it protects against builds where
+            // deps were not rebuilt.
+            #if !defined(wxHAS_EGL) || !wxHAS_EGL
+            {
+                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+                if (wayland_env && *wayland_env) {
+                    BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
+                    ::setenv("GDK_BACKEND", "x11", true);
+                }
+            }
+            #endif
+
+            // WebKit2GTK compositing can fail under XWayland on older
+            // WebKit releases. Disable it only when both DISPLAY and
+            // WAYLAND_DISPLAY are set (i.e. an XWayland session is in
+            // use). On pure X11 or native Wayland, compositing is left
+            // enabled so WebKit retains HW acceleration.
+            {
+                const char* display_env_wk = ::getenv("DISPLAY");
+                const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
+                if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+                    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+                }
+            }
+
+            // XInitThreads is needed before GStreamer may use Xlib. On
+            // native Wayland without DISPLAY, GStreamer uses waylandsink
+            // (no Xlib involved), so the call is skipped.
+            #if __has_include(<X11/Xlib.h>)
+            {
+                const char* display_env = ::getenv("DISPLAY");
+                if (display_env && *display_env) {
+                    XInitThreads();
+                }
+            }
+            #endif
         }
     }
-    #endif
-#endif
+#endif // __WXGTK__
 
 	// Switch boost::filesystem to utf8.
     try {
@@ -1355,6 +1421,10 @@ int CLI::run(int argc, char **argv)
     }
     else {
         set_logging_level(2);
+    }
+    const ConfigOptionString* opt_logfile = m_config.opt<ConfigOptionString>("logfile");
+    if (opt_logfile) {
+        set_logging_file(opt_logfile->value);
     }
 
     global_begin_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -1604,6 +1674,10 @@ int CLI::run(int argc, char **argv)
                         remove_wrapping_detect = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
                     }
+
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which covers presets too.
 
                     if (normative_check) {
                         ConfigOptionStrings* postprocess_scripts = config.option<ConfigOptionStrings>("post_process");
@@ -5984,9 +6058,9 @@ int CLI::run(int argc, char **argv)
                         }
                         (dynamic_cast<Print*>(print))->is_BBL_printer() = is_bbl_vendor_preset;
 
-                        StringObjectException warning;
+                        std::vector<StringObjectException> warnings;
                         print_fff->set_check_multi_filaments_compatibility(!allow_mix_temp);
-                        auto err = print->validate(&warning);
+                        auto err = print->validate(&warnings);
                         if (!err.string.empty()) {
                             if ((STRING_EXCEPT_LAYER_HEIGHT_EXCEEDS_LIMIT == err.type) && no_check) {
                                 BOOST_LOG_TRIVIAL(warning) << "got warnings: "<< err.string << std::endl;
@@ -6020,8 +6094,9 @@ int CLI::run(int argc, char **argv)
                                 flush_and_exit(validate_error);
                             }
                         }
-                        else if (!warning.string.empty()) {
-                            BOOST_LOG_TRIVIAL(warning) << "got warnings: "<< warning.string << std::endl;
+                        else if (!warnings.empty()) {
+                            for (const auto& w : warnings)
+                                BOOST_LOG_TRIVIAL(warning) << "got warnings: "<< w.string << std::endl;
                         }
 
                         if (print->empty()) {
@@ -6041,8 +6116,14 @@ int CLI::run(int argc, char **argv)
                                     BOOST_LOG_TRIVIAL(info) << "set print's callback to cli_status_callback.";
                                     print->set_status_callback(cli_status_callback);
                                     g_cli_callback_mgr.set_plate_info(index+1, (plate_to_slice== 0)?partplate_list.get_plate_count():1);
-                                    if (!warning.string.empty()) {
-                                        PrintBase::SlicingStatus slicing_status{4, warning.string, 0, 0};
+                                    if (!warnings.empty()) {
+                                        std::string warning_text;
+                                        for (const auto& w : warnings) {
+                                            if (!warning_text.empty())
+                                                warning_text += "\n";
+                                            warning_text += w.string;
+                                        }
+                                        PrintBase::SlicingStatus slicing_status{4, warning_text, 0, 0};
                                         cli_status_callback(slicing_status);
                                     }
                                     else {
@@ -7459,6 +7540,13 @@ extern "C" {
 #else /* _MSC_VER */
 int main(int argc, char **argv)
 {
+#ifndef _WIN32
+    // Ignore SIGPIPE so a write to a closed socket (e.g. a dropped printer
+    // network connection) returns EPIPE to the caller instead of terminating
+    // the whole process. Without this, losing the printer link kills
+    // OrcaSlicer with SIGPIPE (exit 141) and produces no crash report.
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
     return CLI().run(argc, argv);
 }
 #endif /* _MSC_VER */

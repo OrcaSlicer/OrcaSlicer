@@ -17,6 +17,7 @@
 #include <limits>
 #include <stdexcept>
 #include <iomanip>
+#include <regex>
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
@@ -8137,6 +8138,21 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
+    // Orca: replicates GCode's object-label sanitization (sanitize_instance_name in GCode.cpp), used to
+    // build the per-instance object name written into slice_info.config so it matches the EXCLUDE_OBJECT /
+    // M486 object name embedded in the g-code. Keep this in sync with GCode.cpp.
+    static std::string sanitize_object_label(const std::string& name)
+    {
+        // Compiled once: building a std::regex is expensive and this runs per object instance.
+        static const std::regex non_word_re("[ !@#$%^&*()=+\\[\\]{};:\",']+");
+        std::string result = std::regex_replace(name, non_word_re, "_");
+        if (!result.empty() && result.front() == '_')
+            result.erase(result.begin());
+        if (!result.empty() && result.back() == '_')
+            result.erase(result.end() - 1);
+        return result;
+    }
+
     bool _BBS_3MF_Exporter::_add_slice_info_config_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, const ObjectToObjectDataMap &objects_data, const DynamicPrintConfig& config)
     {
         std::stringstream stream;
@@ -8217,6 +8233,21 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     stream << "\"/>\n";
                 }
 
+                // Orca: for non-BambuLab printers that label objects in the g-code (Klipper/Marlin/RRF via
+                // EXCLUDE_OBJECT / M486), write the per-instance g-code object name into slice_info.config
+                // (e.g. "OrcaCube_v2.drc_id_0_copy_0") so the printer can correlate objects between the 3MF
+                // and the g-code. The g-code names objects per plate as
+                // "<name>_id_<object index>_copy_<instance index>" (see GCode::set_object_info), which we
+                // reconstruct here from the (sorted) objects_and_instances list. identify_id is unchanged.
+                // BambuLab printers keep the raw object name.
+                const GCodeFlavor slice_gcode_flavor    = config.opt_enum<GCodeFlavor>("gcode_flavor");
+                const bool        use_gcode_object_name  = !GCodeProcessor::s_IsBBLPrinter &&
+                    (slice_gcode_flavor == gcfKlipper || slice_gcode_flavor == gcfMarlinLegacy ||
+                     slice_gcode_flavor == gcfMarlinFirmware || slice_gcode_flavor == gcfRepRapFirmware);
+                int gcode_object_index = -1;
+                int gcode_copy_index   = 0;
+                int last_object_id     = -1;
+
                 for (auto it = plate_data->objects_and_instances.begin(); it != plate_data->objects_and_instances.end(); it++)
                 {
                         int obj_id = it->first;
@@ -8241,7 +8272,24 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                             identify_id = inst->id().id;
                         bool skipped = std::find(plate_data->skipped_objects.begin(), plate_data->skipped_objects.end(), identify_id) !=
                                        plate_data->skipped_objects.end();
-                        stream << "    <" << OBJECT_TAG << " " << IDENTIFYID_ATTR << "=\"" << std::to_string(identify_id) << "\" " << NAME_ATTR << "=\"" << xml_escape(obj->name)
+
+                        // Advance the per-plate g-code object/copy index. objects_and_instances is sorted,
+                        // so all instances of the same object are contiguous.
+                        if (obj_id != last_object_id) {
+                            ++gcode_object_index;
+                            gcode_copy_index = 0;
+                            last_object_id   = obj_id;
+                        } else {
+                            ++gcode_copy_index;
+                        }
+
+                        std::string object_name = obj->name;
+                        if (use_gcode_object_name)
+                            // Matches GCode::get_instance_name(): sanitize(sanitize(name) + "_id_<obj>_copy_<inst>").
+                            object_name = sanitize_object_label(sanitize_object_label(obj->name) + "_id_" +
+                                          std::to_string(gcode_object_index) + "_copy_" + std::to_string(gcode_copy_index));
+
+                        stream << "    <" << OBJECT_TAG << " " << IDENTIFYID_ATTR << "=\"" << std::to_string(identify_id) << "\" " << NAME_ATTR << "=\"" << xml_escape(object_name)
                                << "\" " << SKIPPED_ATTR << "=\"" << (skipped ? "true" : "false")
                                << "\" />\n";
                 }

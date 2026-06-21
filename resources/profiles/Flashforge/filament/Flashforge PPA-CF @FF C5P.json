@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge PPA-CF @FF C5P",
+	"inherits": "Generic PPA-GF @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -28,16 +33,10 @@
 	"filament_type": [
 		"PPA-CF"
 	],
-	"from": "system",
-	"inherits": "Generic PPA-GF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PPA-CF @FF C5P",
 	"textured_cool_plate_temp": [
 		"0"
 	],
 	"textured_cool_plate_temp_initial_layer": [
 		"0"
-	],
-	"version": "2.3.0.3"
+	]
 }

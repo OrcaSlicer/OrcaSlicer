@@ -28,6 +28,7 @@
 	"initial_layer_line_width": "0.5",
 	"initial_layer_speed": "60",
 	"initial_layer_travel_speed": "300",
+	"initial_layer_travel_acceleration": "4000",
 	"inner_wall_acceleration": "20000",
 	"inner_wall_jerk": "15",
 	"inner_wall_line_width": "0.4",

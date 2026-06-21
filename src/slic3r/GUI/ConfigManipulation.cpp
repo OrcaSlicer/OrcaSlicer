@@ -9,12 +9,28 @@
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
+#include <sstream>
 #include <wx/msgdlg.h>
 
 namespace Slic3r {
 namespace GUI {
+
+namespace {
+
+std::string trim_copy(const std::string& text)
+{
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+
+    const auto last = text.find_last_not_of(" \t\r\n");
+    return text.substr(first, last - first + 1);
+}
+
+} // namespace
 
 void ConfigManipulation::apply(DynamicPrintConfig* config, DynamicPrintConfig* new_config)
 {
@@ -109,8 +125,7 @@ void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *conf
 
     if (config->has("nozzle_temperature")) {
         if (config->opt_int("nozzle_temperature", 0) < temperature_range_low || config->opt_int("nozzle_temperature", 0) > temperature_range_high) {
-            wxString msg_text = _(L("Nozzle may be blocked when the temperature is out of recommended range.\n"
-                "Please make sure whether to use the temperature to print.\n\n"));
+            wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
             MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
             is_msg_dlg_already_exist = true;
@@ -132,14 +147,37 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
         if (config->opt_int("nozzle_temperature_initial_layer", 0) < temperature_range_low ||
             config->opt_int("nozzle_temperature_initial_layer", 0) > temperature_range_high)
         {
-            wxString msg_text = _(L("Nozzle may be blocked when the temperature is out of recommended range.\n"
-                "Please make sure whether to use the temperature to print.\n\n"));
+            wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
             MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
             is_msg_dlg_already_exist = true;
             dialog.ShowModal();
             is_msg_dlg_already_exist = false;
         }
+    }
+}
+
+void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config)
+{
+    if (is_msg_dlg_already_exist || !config->has("adaptive_pressure_advance_model"))
+        return;
+
+    const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
+    if (model == nullptr || model->values.empty())
+        return;
+
+    std::string raw_model;
+    for (const std::string& chunk : model->values)
+        raw_model += chunk;
+
+    std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(raw_model);
+    if (!error.empty()) {
+        wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
+        msg_text += from_u8(error);
+        MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        is_msg_dlg_already_exist = false;
     }
 }
 
@@ -152,7 +190,7 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
     float max_volumetric_speed = config->has("filament_max_volumetric_speed") ? config->opt_float("filament_max_volumetric_speed", (float) 0.5) : 0.5;
     // BBS: limite the min max_volumetric_speed
     if (max_volumetric_speed < 0.5) {
-        const wxString     msg_text = _(L("Too small max volumetric speed.\nReset to 0.5."));
+        const wxString     msg_text = _(L("Too small max volumetric speed.\nValue was reset to 0.5"));
         MessageDialog      dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -172,8 +210,7 @@ void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
         int chamber_min_temp, chamber_max_temp;
     if (MaterialType::get_chamber_temperature_range(filament_type, chamber_min_temp, chamber_max_temp)) {
             if (chamber_max_temp < config->option<ConfigOptionInts>("chamber_temperature")->get_at(0)) {
-                wxString msg_text = wxString::Format(_L("Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. "
-                                                        "The maximum safe temperature for the material is %d"), chamber_max_temp);
+                wxString msg_text = wxString::Format(_L("Current chamber temperature is higher than the material\'s safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"), chamber_max_temp);
                 MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
                 is_msg_dlg_already_exist = true;
                 dialog.ShowModal();
@@ -200,7 +237,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     auto gpreset = GUI::wxGetApp().preset_bundle->printers.get_edited_preset();
     if (layer_height < EPSILON)
     {
-        const wxString msg_text = _(L("Too small layer height.\nReset to 0.2."));
+        const wxString msg_text = _(L("Layer height too small\nIt has been reset to 0.2"));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -227,7 +264,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     //BBS: ironing_spacing shouldn't be too small or equal to zero
     if (config->opt_float("ironing_spacing") < 0.05)
     {
-        const wxString msg_text = _(L("Too small ironing spacing.\nReset to 0.1."));
+        const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -238,7 +275,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
     if (config->opt_float("support_ironing_spacing") < 0.05)
     {
-        const wxString msg_text = _(L("Too small ironing spacing.\nReset to 0.1."));
+        const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -262,10 +299,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (abs(config->option<ConfigOptionFloat>("xy_hole_compensation")->value) > 2)
     {
-        const wxString msg_text = _(L("This setting is only used for model size tunning with small value in some cases.\n"
-                                      "For example, when model size has small error and hard to be assembled.\n"
-                                      "For large size tuning, please use model scale function.\n\n"
-                                      "The value will be reset to 0."));
+        const wxString msg_text = _(L("This setting is only used for tuning model size by small amounts.\nFor example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n\nThe value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -277,10 +311,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (abs(config->option<ConfigOptionFloat>("xy_contour_compensation")->value) > 2)
     {
-        const wxString msg_text = _(L("This setting is only used for model size tunning with small value in some cases.\n"
-                                      "For example, when model size has small error and hard to be assembled.\n"
-                                      "For large size tuning, please use model scale function.\n\n"
-                                      "The value will be reset to 0."));
+        const wxString msg_text = _(L("This setting is only used for tuning model size by small amounts.\nFor example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n\nThe value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -292,10 +323,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->option<ConfigOptionFloat>("elefant_foot_compensation")->value > 1)
     {
-        const wxString msg_text = _(L("Too large elephant foot compensation is unreasonable.\n"
-                                      "If really have serious elephant foot effect, please check other settings.\n"
-                                      "For example, whether bed temperature is too high.\n\n"
-                                      "The value will be reset to 0."));
+        const wxString msg_text = _(L("The elephant foot compensation value is too large.\nIf there are significant elephant foot issues, please check other settings.\nThe bed temperature may be too high, for example.\n\nThe value will be reset to 0."));
         MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist = true;
@@ -571,7 +599,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 {
     PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
 
-    auto gcflavor = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+    const GCodeFlavor gcflavor = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+
+    // Orca: use booleans to avoid repeated comparisons with enum values
+    const bool gcf_is_marlin_firmware = gcflavor == GCodeFlavor::gcfMarlinFirmware;
+    const bool gcf_is_klipper = gcflavor == GCodeFlavor::gcfKlipper;
 
     bool have_volumetric_extrusion_rate_slope = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope")->value > 0;
     float have_volumetric_extrusion_rate_slope_segment_length = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope_segment_length")->value;
@@ -592,9 +624,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_field(el, have_perimeters);
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
-    // sparse_infill_filament uses the same logic as in Print::extruders()
+    // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
-        "minimum_sparse_infill_area", "sparse_infill_filament", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
+        "minimum_sparse_infill_area", "sparse_infill_filament_id", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
 
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
@@ -655,8 +687,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("bottom_surface_density", has_bottom_shell);
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
-        "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle",
-        "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "solid_infill_filament",
+        "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
+        "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id",
         })
         toggle_field(el, have_infill || has_solid_infill);
 
@@ -675,23 +707,28 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         "top_surface_acceleration", "travel_acceleration", "bridge_acceleration", "sparse_infill_acceleration", "internal_solid_infill_acceleration"})
         toggle_field(el, have_default_acceleration);
 
-    bool machine_supports_junction_deviation = false;
-    if (gcflavor == gcfMarlinFirmware) {
-        if (const auto *machine_jd = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")) {
-            machine_supports_junction_deviation = !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
-        }
-    }
-    toggle_line("default_junction_deviation", gcflavor == gcfMarlinFirmware);
-    if (machine_supports_junction_deviation) {
-        toggle_field("default_junction_deviation", true);
-        toggle_field("default_jerk", false);
-        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"})
+    const bool junction_deviation_enabled =
+        gcf_is_marlin_firmware &&
+        [&]() {
+            const auto *machine_jd = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
+            return machine_jd && !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
+        }();
+
+    toggle_line("default_junction_deviation", gcf_is_marlin_firmware);
+    toggle_field("default_junction_deviation", junction_deviation_enabled);
+    toggle_field("default_jerk", !junction_deviation_enabled);
+
+    const std::initializer_list<const char*> jerk_options = {
+        "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk",
+        "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"
+    };
+
+    if (junction_deviation_enabled) {
+        for (auto el : jerk_options)
             toggle_line(el, false);
     } else {
-        toggle_field("default_junction_deviation", false);
-        toggle_field("default_jerk", true);
-        bool have_default_jerk = config->has("default_jerk") && config->opt_float("default_jerk") > 0;
-        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"}) {
+        const bool have_default_jerk = config->has("default_jerk") && config->opt_float("default_jerk") > 0;
+        for (auto el : jerk_options) {
             toggle_line(el, true);
             toggle_field(el, have_default_jerk);
         }
@@ -711,8 +748,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     toggle_field("brim_width", have_brim_width);
     toggle_field("brim_flow_ratio", have_brim);
-    // wall_filament uses the same logic as in Print::extruders()
-    toggle_field("wall_filament", have_perimeters || have_brim);
+    // Wall filament selectors use the same logic as in Print::extruders().
+    toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
+    toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
 
     bool have_brim_ear = (config->opt_enum<BrimType>("brim_type") == btEar);
     const auto brim_width = config->opt_float("brim_width");
@@ -836,9 +874,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && config->opt_bool("enable_tower_interface_features"));
 
-    for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"})
-        toggle_line(el, !bSEMM);
-
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 
     for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
@@ -907,8 +942,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("wipe_speed",!is_role_based_wipe_speed);
 
     for (auto el : {"accel_to_decel_enable", "accel_to_decel_factor"})
-        toggle_line(el, gcflavor == gcfKlipper);
-    if(gcflavor == gcfKlipper)
+        toggle_line(el, gcf_is_klipper);
+    if(gcf_is_klipper)
         toggle_field("accel_to_decel_factor", config->opt_bool("accel_to_decel_enable"));
 
     bool have_make_overhang_printable = config->opt_bool("make_overhang_printable");
@@ -964,6 +999,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options);
+
+    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning;
+    for (auto el : { "lightning_overhang_angle", "lightning_prune_angle", "lightning_straightening_angle" })
+        toggle_line(el, lightning_options);
         
     // Adaptative Cubic and support cubic infill patterns do not support infill rotation.
     bool FillAdaptive = (pattern == InfillPattern::ipAdaptiveCubic || pattern == InfillPattern::ipSupportCubic);
@@ -1063,9 +1102,7 @@ int ConfigManipulation::show_spiral_mode_settings_dialog(bool is_object_config)
         msg_text += _(L(" But machines with I3 structure will not generate timelapse videos."));
     }
     if (!is_object_config)
-        msg_text += "\n\n" + _(L("Change these settings automatically?\n"
-            "Yes - Change these settings and enable spiral mode automatically\n"
-            "No  - Give up using spiral mode this time"));
+        msg_text += "\n\n" + _(L("Change these settings automatically\?\nYes - Change these settings and enable spiral/vase mode automatically\nNo  - Cancel enabling spiral mode"));
 
     MessageDialog dialog(wxGetApp().plater(), msg_text, "",
         wxICON_WARNING | (!is_object_config ? wxYES | wxNO : wxOK));

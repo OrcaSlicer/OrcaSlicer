@@ -1412,7 +1412,7 @@ void PresetUpdater::slic3r_update_notify()
 
 static bool reload_configs_update_gui()
 {
-	wxString header = _L("Need to check the unsaved changes before configuration updates.");
+	wxString header = _L("Please check any unsaved changes before updating the configuration.");
 	if (!GUI::wxGetApp().check_and_save_current_preset_changes(_L("Configuration updates"), header, false ))
 		return false;
 

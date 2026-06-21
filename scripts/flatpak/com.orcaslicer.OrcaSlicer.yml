@@ -1,6 +1,6 @@
 app-id: com.orcaslicer.OrcaSlicer
 runtime: org.gnome.Platform
-runtime-version: "49"
+runtime-version: "50"
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.llvm21
@@ -24,9 +24,14 @@ finish-args:
   - --filesystem=xdg-run/gvfs
   - --filesystem=/run/media
   - --filesystem=/media
+  # Network shares (CIFS/NFS) are commonly mounted under /mnt, which the default
+  # finish-args don't grant; without it, opening a model from such a share fails
+  # with "The file does not contain any geometry data."
+  # https://github.com/flathub/com.orcaslicer.OrcaSlicer/issues/2
+  - --filesystem=/mnt
   - --filesystem=/run/spnav.sock:ro
   # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
-  - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
+  - --filesystem=~/.var/app/io.github.softfever.OrcaSlicer:ro
   # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
   - --talk-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
   - --own-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
@@ -115,7 +120,12 @@ modules:
       - -DwxUSE_ZLIB=sys
       - -DwxUSE_LIBJPEG=sys
       - -DwxUSE_LIBTIFF=OFF
+      # sys, not builtin (unlike the static deps build): wxWidgets installs the
+      # builtin libwxwebp*.so only for static builds, so a shared build leaves
+      # them missing at runtime. The GNOME runtime provides libwebp.
+      - -DwxUSE_LIBWEBP=sys
       - -DwxUSE_EXPAT=sys
+      - -DwxUSE_NANOSVG=OFF
       - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
       - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
       - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld

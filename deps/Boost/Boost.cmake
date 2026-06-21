@@ -10,7 +10,13 @@ if (APPLE AND CMAKE_OSX_ARCHITECTURES)
     set(_context_arch_line "-DBOOST_CONTEXT_ARCHITECTURE:STRING=${CMAKE_OSX_ARCHITECTURES}")
 endif ()
 
+set(_options "")
+if (MSVC AND DEP_DEBUG)
+    set(_options "FORWARD_CONFIG")
+endif ()
+
 orcaslicer_add_cmake_project(Boost
+    ${_options}
     URL "https://github.com/boostorg/boost/releases/download/boost-1.91.0-1/boost-1.91.0-1-cmake.tar.xz"
     URL_HASH SHA256=cc5dc5006ecbdf0051f90979be31b4eee5987d9ae14ae9fb9c03cfa43fa3cdad
     LIST_SEPARATOR |

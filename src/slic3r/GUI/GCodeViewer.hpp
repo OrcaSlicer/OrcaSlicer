@@ -226,6 +226,7 @@ private:
     std::vector<libvgcode::EViewType> view_type_items;
     std::vector<std::string> view_type_items_str;
     int       m_view_type_sel = 0;
+    int       m_last_extruder_count_default_applied{0};  // 0=unset, 1=single, 2+=multi
     std::vector<EMoveType> options_items;
 
     bool m_legend_visible{ true };
