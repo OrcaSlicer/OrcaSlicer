@@ -2626,7 +2626,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         // first object that uses Magma.
         bool any_magma = false;
         bool spread_heat = false;
-        struct Gathered { coordf_t print_z; Point world; int object_idx, instance_idx, pair_index; };
+        const PrintObject* first_magma = nullptr;
+        struct Gathered { coordf_t print_z; Point world; int object_idx, instance_idx, pair_index; double inj_volume; };
         std::vector<Gathered> items;
 
         for (int oi = 0; oi < int(m_objects.size()); ++oi) {
@@ -2636,9 +2637,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 continue;
             if (!any_magma) {
                 any_magma = true;
+                first_magma = obj;
                 spread_heat = obj->config().magma_injection_ordering.value
                               == MagmaInjectionOrdering::SpreadHeat;
             }
+            const double fill_factor = std::max(0.0, obj->config().magma_tube_fill_factor.value);
             const std::vector<magma::UTubePair>& pairs = tm->u_tube_pairs();
             const PrintInstances& instances = obj->instances();
             for (int pi = 0; pi < int(pairs.size()); ++pi) {
@@ -2653,8 +2656,23 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     items.push_back({ cap_z,
                         Point(scale_(pr.injection_center.x()) + instances[ii].shift.x(),
                               scale_(pr.injection_center.y()) + instances[ii].shift.y()),
-                        oi, ii, pi });
+                        oi, ii, pi, pr.volume_mm3 * fill_factor });
             }
+        }
+
+        // Injection-phase timing model (representative scalars from the first
+        // Magma object + machine speeds) so the heat decay runs in real seconds.
+        magma::InjectionTiming timing;
+        if (first_magma != nullptr) {
+            const PrintObjectConfig& oc = first_magma->config();
+            double travel = m_config.travel_speed.value;
+            timing.travel_speed_mm_s = travel > 1.0 ? travel : 150.0;
+            double z_speed = m_config.travel_speed_z.value > 0.0 ? m_config.travel_speed_z.value : timing.travel_speed_mm_s;
+            double z_hop = std::max(0.0, oc.magma_injection_z_hop.value);
+            double dwell_s = std::max(0, oc.magma_injection_dwell.value) / 1000.0;
+            timing.per_injection_fixed_s = (z_speed > 0.0 ? 2.0 * z_hop / z_speed : 0.0) + dwell_s;
+            double vol_speed = oc.magma_injection_speed.value;
+            timing.vol_speed_mm3_s = vol_speed > 0.01 ? vol_speed : 10.0;
         }
 
         if (any_magma && !items.empty()) {
@@ -2668,12 +2686,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 coordf_t zmax = items[i].print_z + EPSILON;
                 size_t j = i;
                 Points world_pts;
-                for (; j < items.size() && items[j].print_z <= zmax; ++j)
+                std::vector<double> world_vol;
+                for (; j < items.size() && items[j].print_z <= zmax; ++j) {
                     world_pts.push_back(items[j].world);
+                    world_vol.push_back(items[j].inj_volume);
+                }
                 coordf_t bucket_z = 0.5 * (items[i].print_z + items[j - 1].print_z);
 
                 std::vector<size_t> order = magma::order_injection_points(
-                    world_pts, spread_heat, 0.75,
+                    world_pts, world_vol, timing, spread_heat,
                     [this]() { this->throw_if_canceled(); });
 
                 std::vector<MagmaInjectionTarget> ordered;

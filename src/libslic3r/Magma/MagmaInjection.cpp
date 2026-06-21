@@ -238,6 +238,22 @@ std::string generate_injection_gcode(
     int z_feedrate = (int)(z_speed_mms * 60.0);
     if (z_feedrate < 60) z_feedrate = 60;
 
+    // Suppress the slicer's retraction-lift for the rest of this injection pass
+    // so our manual z-hop is the SOLE owner of Z. OrcaSlicer's z-hop rides on
+    // retraction and is gated by retract_lift_enforce/can_lift (GCode::retract):
+    // on Top-only / Bottom-only lift settings it would NOT lift mid-layer during
+    // injection at all (hot nozzle dragged across the part), and when it does
+    // lift it fights our manual hop. Zeroing the writer's per-filament z_hop for
+    // this scope removes that interaction; the guard restores it on any exit.
+    struct ZHopGuard {
+        GCodeConfig&       cfg;
+        ConfigOptionFloats saved;
+        explicit ZHopGuard(GCodeConfig& c) : cfg(c), saved(c.z_hop) {
+            std::fill(cfg.z_hop.values.begin(), cfg.z_hop.values.end(), 0.0);
+        }
+        ~ZHopGuard() { cfg.z_hop = saved; }
+    } z_hop_guard(gcodegen.writer().config);
+
     // --- Injection loop ---
     // Temperature and fan markers are managed by the caller (GCode.cpp
     // injection phase) so that multiple objects share one heat/cool cycle.
@@ -343,7 +359,25 @@ std::string generate_injection_gcode(
             gcode += buf;
         }
 
-        // Post-injection Z-hop to clear nozzle from ooze blob
+        // Post-injection Z-hop to clear nozzle from ooze blob.
+        //
+        // INTENTIONAL: these manual Z moves do NOT sync GCodeWriter's tracked Z
+        // (no set_position). That is load-bearing, not a bug: the writer keeps
+        // thinking Z == nominal layer height, so the next travel_to() emits a
+        // pure-XY move and the nozzle stays at full hop height across the entire
+        // travel -- ideal ooze clearance. Calling set_position() here would make
+        // travel_to() believe it must descend to layer height, lowering the
+        // nozzle *during* the travel (a diagonal drag across the part). The very
+        // next "injection z-hop down" brings Z back to layer height at the
+        // destination, and every extrusion is preceded by an absolute z-slam
+        // move, so physical Z is always correct regardless of tracked state.
+        //
+        // Note: in OrcaSlicer z-hop is a *retraction-time* lift (emitted inside
+        // GCode::retract), so it only appears on travels long enough to retract.
+        // Short combed hops between nearby injections don't retract, so this is
+        // the only clearance there. On a longer travel that does retract with
+        // z-hop enabled, travel_to's lift rides along and can reduce our hop to
+        // that lift height for that travel -- still safe.
         if (inj_z_hop > 0) {
             sprintf(buf, "G1 Z%.3f F%d ; injection z-hop\n", layer_z + inj_z_hop, z_feedrate);
             gcode += buf;
