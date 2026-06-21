@@ -982,8 +982,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     // Magma Injection section
     for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_injection_ordering",
-        "magma_iron_tube_ends", "magma_injection_park", "magma_injection_dwell",
-        "magma_injection_z_hop", "magma_injection_retract" })
+        "magma_injection_park", "magma_injection_dwell", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
     // Z-slam: auto toggle shown when Magma; manual depth only when auto is off
     toggle_line("magma_injection_z_slam_auto", have_magma_pattern);
@@ -993,6 +992,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool plunge_on = have_magma_pattern && plunge_opt && plunge_opt->value;
     toggle_line("magma_injection_plunge", have_magma_pattern);
     toggle_line("magma_injection_plunge_depth", plunge_on);
+    // Crater wipe: tuning fields only when the wipe toggle is on
+    auto* wipe_opt = config->option<ConfigOptionBool>("magma_injection_iron");
+    bool wipe_on = have_magma_pattern && wipe_opt && wipe_opt->value;
+    toggle_line("magma_injection_iron", have_magma_pattern);
+    for (auto el : { "magma_injection_iron_turns", "magma_injection_iron_speed",
+        "magma_injection_iron_hover", "magma_injection_iron_margin" })
+        toggle_line(el, wipe_on);
 
     // Zone filament settings — on the Filament for Features page, visibility
     // controlled here alongside other Magma toggles.

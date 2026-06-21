@@ -1077,10 +1077,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                magma_tube_fill_factor))       // Injection flow ratio (1.0 = calculated)
     ((ConfigOptionInt,                  magma_injection_temp))         // Injection temperature (0 = no change)
     ((ConfigOptionFloat,                magma_injection_speed))        // Injection volumetric speed mm³/s (0 = auto)
-    ((ConfigOptionBool,                 magma_iron_tube_ends))         // Iron over tube ends after injection
-    ((ConfigOptionPercent,              magma_ironing_flow))           // Ironing flow % (0 = use regular ironing)
-    ((ConfigOptionFloat,                magma_ironing_spacing))        // Ironing line spacing mm (0 = use regular)
-    ((ConfigOptionFloat,                magma_ironing_speed))          // Ironing speed mm/s (0 = use regular)
+    ((ConfigOptionBool,                 magma_injection_iron))         // Wipe & fill the injection crater after each injection
+    ((ConfigOptionInt,                  magma_injection_iron_turns))   // Inward-spiral turns (cut depth)
+    ((ConfigOptionFloat,                magma_injection_iron_speed))   // Wipe move speed (mm/s)
+    ((ConfigOptionFloat,                magma_injection_iron_hover))   // Hover above layer top over neighbour zone (mm)
+    ((ConfigOptionFloat,                magma_injection_iron_margin))  // Start radius margin beyond crater footprint (mm)
     ((ConfigOptionBool,                 magma_injection_park))         // Park nozzle during temp changes
     ((ConfigOptionFloat,                magma_injection_park_z_hop))   // Park Z-hop height (mm)
     ((ConfigOptionFloat,                magma_injection_park_retract)) // Extra retract during temp wait (mm)
@@ -1089,8 +1090,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 magma_injection_plunge))       // Ramp nozzle deeper during injection (slam-melt)
     ((ConfigOptionFloat,                magma_injection_plunge_depth)) // Extra depth rammed by end of injection (mm)
     ((ConfigOptionInt,                  magma_injection_dwell))        // Dwell after injection, before z-slam release (ms, 0 = disabled)
-    ((ConfigOptionFloat,                magma_injection_z_hop))        // Z-hop after each injection (mm, 0 = disabled)
-    ((ConfigOptionBool,                 magma_injection_retract))      // Retract after each injection
+    ((ConfigOptionBool,                 magma_injection_retract))      // Retract after each injection (during break-lift)
     ((ConfigOptionEnum<MagmaTubeSolverMode>, magma_tube_solver_mode))   // Basic (fast) vs Refined (better coverage)
     ((ConfigOptionEnum<MagmaInjectionOrdering>, magma_injection_ordering)) // Per-layer injection visiting order (TSP vs spread heat)
     ((ConfigOptionFloat,                magma_solver_timeout))         // CP-SAT timeout per block in seconds

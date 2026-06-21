@@ -1377,28 +1377,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         if (!has_magma)
             continue;
 
-        // Injection/ironing settings are in PrintObjectConfig (per-object)
+        // Injection settings are in PrintObjectConfig (per-object)
         const auto& obj_cfg = object->config();
-
-        // Ironing requires either regular ironing enabled or magma-specific ironing params
-        if (obj_cfg.magma_iron_tube_ends.value) {
-            bool has_magma_ironing = obj_cfg.magma_ironing_flow.value > 0
-                && obj_cfg.magma_ironing_spacing.value > 0
-                && obj_cfg.magma_ironing_speed.value > 0;
-            // Check region ironing setting (still in PrintRegionConfig)
-            bool has_regular_ironing = false;
-            for (const auto& region : object->all_regions()) {
-                if (region.get().config().ironing_type.value != IroningType::NoIroning) {
-                    has_regular_ironing = true;
-                    break;
-                }
-            }
-            if (!has_magma_ironing && !has_regular_ironing) {
-                return {L("Magma tube end ironing requires either regular ironing to be enabled "
-                          "or all Magma ironing parameters (flow, spacing, speed) to be set."),
-                        nullptr, "magma_iron_tube_ends"};
-            }
-        }
 
         // Warn if inner zone also uses Magma (defeats purpose of dual zones)
         for (const auto& region : object->all_regions()) {
@@ -2685,10 +2665,16 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             const PrintObjectConfig& oc = first_magma->config();
             double travel = m_config.travel_speed.value;
             timing.travel_speed_mm_s = travel > 1.0 ? travel : 150.0;
-            double z_speed = m_config.travel_speed_z.value > 0.0 ? m_config.travel_speed_z.value : timing.travel_speed_mm_s;
-            double z_hop = std::max(0.0, oc.magma_injection_z_hop.value);
             double dwell_s = std::max(0, oc.magma_injection_dwell.value) / 1000.0;
-            timing.per_injection_fixed_s = (z_speed > 0.0 ? 2.0 * z_hop / z_speed : 0.0) + dwell_s;
+            // Rough per-injection finishing time (dwell + crater wipe) so the heat
+            // decay clock is realistic; the wipe term is a coarse estimate (turns x
+            // pi x ~2mm representative radius / speed) -- exactness isn't needed.
+            double wipe_s = 0.0;
+            if (oc.magma_injection_iron.value) {
+                double ws = oc.magma_injection_iron_speed.value > 1.0 ? oc.magma_injection_iron_speed.value : 30.0;
+                wipe_s = std::max(1, oc.magma_injection_iron_turns.value) * 3.14159265 * 2.0 / ws;
+            }
+            timing.per_injection_fixed_s = dwell_s + wipe_s;
             double vol_speed = oc.magma_injection_speed.value;
             timing.vol_speed_mm3_s = vol_speed > 0.01 ? vol_speed : 10.0;
         }
