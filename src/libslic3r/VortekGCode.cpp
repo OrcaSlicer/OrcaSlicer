@@ -589,10 +589,10 @@ void GCode::patch_toolchange_dyn_config(
     if (old_filament_id >= 0 && old_filament_id < (int)nf) {
         float retract_dist = gcode.m_config.retraction_distances_when_ec.get_at(old_filament_id);
         bool long_retract = gcode.m_config.long_retractions_when_ec.get_at(old_filament_id);
-        
+
         dyn_config.set_key_value("retraction_distance_when_ec", new Slic3r::ConfigOptionFloat(retract_dist));
         gcode.placeholder_parser().set("retraction_distance_when_ec", new Slic3r::ConfigOptionFloat(retract_dist));
-        
+
         dyn_config.set_key_value("long_retraction_when_ec", new Slic3r::ConfigOptionBool(long_retract));
         gcode.placeholder_parser().set("long_retraction_when_ec", new Slic3r::ConfigOptionBool(long_retract));
     }
