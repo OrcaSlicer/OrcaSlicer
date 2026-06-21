@@ -239,6 +239,19 @@ static string get_diameter_string(float diameter)
     return s;
 }
 
+// The label that represents a printer preset in the unified nozzle selector.
+// A composite or special printer_variant ("0.4+0.6", "0.4HF") carries info the
+// nozzle diameter alone can't ("+", high-flow suffix), so it labels the preset.
+// A plain single-diameter variant is redundant with the actual nozzle, and a
+// stale one (e.g. "0.6" left on a 0.4 preset) must not override the real value,
+// so single-diameter presets are labelled by their actual nozzle diameter.
+static string get_nozzle_variant_label(const std::string& printer_variant, const std::string& nozzle_dia)
+{
+    bool plain_diameter = !printer_variant.empty() &&
+                          printer_variant.find_first_not_of("0123456789.") == std::string::npos;
+    return (printer_variant.empty() || plain_diameter) ? nozzle_dia : printer_variant;
+}
+
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 {
     std::string name = into_u8(wxs_name);
@@ -1271,14 +1284,12 @@ bool Sidebar::priv::switch_diameter(bool single)
     auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
     if (nozzle_diameter && nozzle_diameter->size() > 0) {
         auto current_nozzle_dia = get_diameter_string(nozzle_diameter->values[0]);
-        // If the selection already matches the current preset, don't switch profiles.
-        // The selection is a printer_variant string: when the preset carries a
-        // variant, compare that (on a mixed-diameter variant like "0.4+0.6" the
-        // first nozzle value alone matches the wrong entry in both directions);
-        // variant-less presets keep the nozzle-value comparison.
+        // If the selection already matches the current preset's label, don't
+        // switch. The label uses a composite/special variant as-is but a plain
+        // single-diameter variant defers to the actual nozzle, so a stale
+        // variant can neither suppress nor misfire the switch.
         auto current_variant = printer_preset.config.opt_string("printer_variant");
-        if (current_variant.empty() ? current_nozzle_dia == diameter.ToStdString()
-                                    : current_variant == diameter.ToStdString()) {
+        if (get_nozzle_variant_label(current_variant, current_nozzle_dia) == diameter.ToStdString()) {
             return true;
         }
     }
@@ -2675,13 +2686,14 @@ void Sidebar::update_presets(Preset::Type preset_type)
 
             // ORCA sync unified nozzle combo box
             p->combo_nozzle_dia->Clear();
-            // The list holds printer_variant strings; match the current variant
-            // first so mixed-diameter variants (e.g. "0.4+0.6", where the first
-            // nozzle value alone would match the wrong entry) display correctly.
-            // Presets without a variant fall back to the nozzle-value match.
+            // The list holds printer_variant strings; select the entry matching
+            // this preset's label (composite/special variant as-is, otherwise the
+            // actual nozzle diameter) so mixed and high-flow variants display
+            // correctly while a stale single-diameter variant can't mislabel it.
+            const std::string current_label = get_nozzle_variant_label(diameter, get_diameter_string(nozzle_diameter->values[0]));
             int variant_select = -1;
             for (size_t i = 0; i < diameters.size(); ++i) {
-                if (!diameter.empty() && diameters[i] == diameter)
+                if (diameters[i] == current_label)
                     variant_select = int(i);
                 p->combo_nozzle_dia->Append(diameters[i], {});
             }
