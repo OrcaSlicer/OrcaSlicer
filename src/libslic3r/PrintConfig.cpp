@@ -5533,22 +5533,35 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<MagmaTubeWidthMode>(MagmaTubeWidthMode::Auto));
 
     def = this->add("magma_nozzle_outer_diameter", coFloat);
-    def->label = L("Nozzle outer diameter");
+    def->label = L("Nozzle tip flat");
     def->category = L("Strength");
-    def->tooltip = L("Outer diameter of the nozzle tip flat (the 'shoulder'). This is the "
-                     "flat circular area surrounding the nozzle bore that presses against the "
-                     "print surface. Measure it with calipers across the widest part of the "
-                     "nozzle tip flat.\n\n"
-                     "The tube width is automatically sized so the largest triangle that fits "
-                     "inside this circle becomes the tube opening (report a slightly conservative "
-                     "flat for extra sealing margin). "
-                     "This ensures the nozzle can fully seal each tube during injection.\n\n"
+    def->tooltip = L("Measured diameter of the flat at your nozzle tip (the 'shoulder' — the flat "
+                     "ring around the bore that presses on the print). Measure it with calipers.\n\n"
+                     "This is the seal size: during injection the flat (plus the cone above it when "
+                     "z-slamming) must cover the tube opening. In Auto tube sizing the tube is sized "
+                     "to fit this flat. To make tubes LARGER than the flat, switch tube width sizing "
+                     "to Manual and raise the injection tube width — Auto Z-slam then presses deep "
+                     "enough for the nozzle cone to seal the larger opening.\n\n"
                      "Set to 0 to fall back to 3x nozzle bore diameter (conservative estimate).");
     def->sidetext = L("mm");
     def->min = 0;  // 0 = use fallback
     def->max = 10.0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("magma_nozzle_cone_half_angle", coFloat);
+    def->label = L("Nozzle cone half-angle");
+    def->category = L("Strength");
+    def->tooltip = L("Half-angle of the cone above the nozzle tip flat, in degrees. Auto Z-slam uses "
+                     "it to work out how far to press so the widening cone seals a tube opening larger "
+                     "than the flat: z_slam = (opening - flat) / (2 * tan(angle)).\n\n"
+                     "Most nozzles are around 30 degrees — measure from the nozzle profile or its "
+                     "datasheet. A smaller (pointier) cone needs a deeper slam for the same opening.");
+    def->sidetext = L("°");
+    def->min = 5;
+    def->max = 60;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(30));
 
     def = this->add("magma_interior_width", coFloat);
     def->label = L("Injection tube width");
@@ -5585,7 +5598,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 1;
     def->max = 100;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(10));
+    def->set_default_value(new ConfigOptionFloat(4.5));
 
     def = this->add("magma_boundary_dodge", coFloat);
     def->label = L("Weak plane avoidance");
@@ -5612,7 +5625,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.5;
     def->max = 2.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.8));
+    def->set_default_value(new ConfigOptionFloat(1.0));
 
     def = this->add("magma_spiral_interlock", coBool);
     def->label = L("Spiral interlock");
@@ -5647,7 +5660,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 1;
     def->max = 50;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(8));
+    def->set_default_value(new ConfigOptionFloat(10));
 
     def = this->add("magma_iron_tube_ends", coBool);
     def->label = L("Iron tube ends");
@@ -5774,7 +5787,7 @@ void PrintConfigDef::init_fff_params()
                      "regardless of this setting. Disabling this only skips the line width "
                      "reduction, shifting all correction to the injection volume.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(true));
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("magma_overlap_min_width", coPercent);
     def->label = L("Minimum corrected line width");
@@ -5799,11 +5812,23 @@ void PrintConfigDef::init_fff_params()
                      "Small values (0.05mm) work with nozzles that have a wide flat tip. "
                      "Nozzles with a narrow flat and tapered tip may need deeper values "
                      "(0.5-1.0mm) so the taper widens enough to seal the tube opening.\n\n"
-                     "Set to 0 to disable.");
+                     "Set to 0 to disable. Ignored when Auto Z-slam depth is enabled.");
     def->sidetext = L("mm");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.05));
+
+    def = this->add("magma_injection_z_slam_auto", coBool);
+    def->label = L("Auto Z-slam depth");
+    def->category = L("Strength");
+    def->tooltip = L("Compute the injection Z-slam depth automatically from the nozzle geometry "
+                     "instead of setting it by hand. Uses the tube opening, the nozzle tip flat, "
+                     "and the nozzle cone half-angle: "
+                     "z_slam = max(0.1, (opening - flat) / (2 * tan(angle))). When the flat already "
+                     "covers the opening it presses a minimal 0.1mm for a clean seal.\n\n"
+                     "When enabled, the manual Z-slam depth field is ignored.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("magma_injection_dwell", coInt);
     def->label = L("Injection dwell time");
@@ -5828,7 +5853,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm");
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(2.0));
+    def->set_default_value(new ConfigOptionFloat(4.0));
 
     def = this->add("magma_injection_retract", coBool);
     def->label = L("Retract after injection");

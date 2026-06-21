@@ -1483,6 +1483,61 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             }
             break;  // only check first Magma region per object
         }
+
+        // Warn on a manual tube interior narrower than the nozzle bore (not
+        // injectable), or so wide that auto Z-slam would crush the print.
+        for (const auto& region : object->all_regions()) {
+            const auto& rcfg = region.get().config();
+            if (!is_magma_pattern(rcfg.sparse_infill_pattern.value))
+                continue;
+            int sparse_ext = std::max(0, rcfg.sparse_infill_filament.value - 1);
+            double nozzle_d = m_config.nozzle_diameter.get_at(sparse_ext);
+
+            // (1) Interior narrower than the nozzle bore -> can't be injected.
+            if (rcfg.magma_tube_width_mode.value == MagmaTubeWidthMode::Manual
+                && rcfg.magma_interior_width.value > 0
+                && rcfg.magma_interior_width.value < nozzle_d) {
+                if (warning) {
+                    warning->string = Slic3r::format(
+                        L("Magma injection tube width (%.2f mm) is smaller than the nozzle bore "
+                          "(%.2f mm), so plastic cannot be injected into the tube. Increase the "
+                          "injection tube width."),
+                        rcfg.magma_interior_width.value, nozzle_d);
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+                break;
+            }
+
+            // (2) Opening so much larger than the flat that auto Z-slam would crush.
+            if (obj_cfg.magma_injection_z_slam_auto.value) {
+                double flat = rcfg.magma_nozzle_outer_diameter.value;
+                if (flat <= 0.0) flat = 3.0 * nozzle_d;
+                double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
+                if (line_w <= 0) line_w = nozzle_d;
+                double iw = rcfg.magma_interior_width.value;
+                if (iw <= 0) iw = nozzle_d * 3.0;
+                double cell_sp    = magma::cell_spacing_from_geometry(iw, line_w);
+                double inset_side = magma::triangle_side_length(cell_sp) - line_w * std::sqrt(3.0);
+                double opening    = inset_side > 0.0 ? 2.0 * inset_side / std::sqrt(3.0) : 0.0;
+                double cone_rad   = rcfg.magma_nozzle_cone_half_angle.value * 0.0174532925199433; // deg->rad
+                double z_needed   = (opening > flat && cone_rad > 1e-6)
+                    ? (opening - flat) / (2.0 * std::tan(cone_rad)) : 0.0;
+                if (z_needed > 0.5) {
+                    if (warning) {
+                        warning->string = Slic3r::format(
+                            L("Magma tube opening (%.2f mm) is much larger than the nozzle flat "
+                              "(%.2f mm): auto Z-slam would press %.2f mm to seal it, likely crushing "
+                              "the print. Reduce the injection tube width or use a nozzle with a "
+                              "larger flat."),
+                            opening, flat, z_needed);
+                        warning->object = object;
+                        warning->is_warning = true;
+                    }
+                }
+            }
+            break;  // only check first Magma region per object
+        }
     }
 
     // Cache of layer height profiles for checking:

@@ -1522,6 +1522,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "magma_injection_park_z_hop"
             || opt_key == "magma_injection_park_retract"
             || opt_key == "magma_injection_z_slam"
+            || opt_key == "magma_injection_z_slam_auto"
+            || opt_key == "magma_nozzle_cone_half_angle"
             || opt_key == "magma_injection_z_hop"
             || opt_key == "magma_injection_retract"
             || opt_key == "magma_injection_fan_speed") {

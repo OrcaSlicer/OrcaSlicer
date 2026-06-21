@@ -387,6 +387,21 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 }
 
 // ============================================================================
+// MagmaTubeMap — tube_opening_diameter
+// ============================================================================
+
+double MagmaTubeMap::tube_opening_diameter() const
+{
+    // Opening = circumscribed circle of the inset (hollow) triangle. For an
+    // equilateral triangle of side s the circumradius is s / sqrt(3), so the
+    // corner-to-corner opening diameter is 2*s/sqrt(3).
+    double inset_side = triangle_side_length(m_cell_spacing) - m_effective_line_width * SQRT3;
+    if (inset_side <= 0.0)
+        return 0.0;
+    return 2.0 * inset_side / SQRT3;
+}
+
+// ============================================================================
 // MagmaTubeMap — scan_layers
 // ============================================================================
 
