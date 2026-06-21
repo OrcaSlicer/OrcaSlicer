@@ -42,6 +42,7 @@ struct CFSSlot
     int         unit_id {1};     // CFS box/unit index (T1..T4); units chain for >4 colours
     std::string label;           // human slot label as reported by firmware, e.g. "T1A".."T1D"
     int         remain {-1};     // remaining filament %, -1 if unknown (near-empty warning)
+    std::string material_code;   // Creality filamentId, e.g. "103001" (empty if not reported)
 };
 
 class Moonraker : public PrintHost

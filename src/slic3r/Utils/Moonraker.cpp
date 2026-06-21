@@ -461,6 +461,7 @@ bool Moonraker::parse_cfs_slots(const std::string& object_name, const std::strin
                 std::vector<const pt::ptree*> cols;
                 for (const auto& c : entry_kv.second) cols.push_back(&c.second);
                 if (cols.size() < 4) continue;
+                const std::string code  = cols[0]->get_value<std::string>(""); // Creality filamentId
                 const std::string color = norm_color(cols[1]->get_value<std::string>(""));
                 std::string label;
                 for (const auto& lbl : *cols[2]) { label = lbl.second.get_value<std::string>(""); break; }
@@ -469,6 +470,7 @@ bool Moonraker::parse_cfs_slots(const std::string& object_name, const std::strin
                 CFSSlot slot;
                 slot.label          = label;
                 slot.material_name  = name;
+                slot.material_code  = code;
                 slot.material_color = color;
                 slot.has_filament   = true;
                 int unit = 1, gid = 0;

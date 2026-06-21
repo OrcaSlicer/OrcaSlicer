@@ -317,6 +317,10 @@ private:
     bool slot_matches_filament(const Slic3r::FlashforgeMaterialSlot& slot, const FilamentInfo& filament) const;
     bool validate_before_close();
     std::string normalize_material(const std::string& material) const;
+    // Resolve a CFS slot's Creality filamentId to an Orca filament preset id via the
+    // material catalogue + preset bundle. Empty when unknown. Used to prefer an
+    // exact-product match in auto-assign over nearest-colour.
+    std::string resolve_slot_filament_id(const Slic3r::CFSSlot& slot) const;
     wxColour to_wx_colour(const std::string& color) const;
     static std::vector<Slic3r::FlashforgeMaterialSlot> to_ui_slots(const std::vector<Slic3r::CFSSlot>& cfs);
 
@@ -324,6 +328,7 @@ private:
     const Slic3r::Moonraker*         m_host {nullptr};
     std::vector<FilamentInfo>        m_project_filaments;
     std::vector<Slic3r::FlashforgeMaterialSlot> m_slots; // UI slots; slot_id = CFS global + 1
+    std::vector<Slic3r::CFSSlot>     m_cfs_slots;         // original CFS slots (carry filamentId)
     std::vector<MappingRow>          m_mapping_rows;
     wxBoxSizer*                      m_cfs_options_sizer {nullptr};
     wxBoxSizer*                      m_mapping_section_sizer {nullptr};

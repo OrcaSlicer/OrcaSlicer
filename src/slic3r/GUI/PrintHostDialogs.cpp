@@ -30,6 +30,9 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
+#include "../Utils/CrealityMaterialCatalog.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Preset.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "NotificationManager.hpp"
@@ -1197,6 +1200,7 @@ MoonrakerCFSPrintHostSendDialog::MoonrakerCFSPrintHostSendDialog(const fs::path&
     : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
     , m_host(host)
     , m_slots(to_ui_slots(cfs_slots))
+    , m_cfs_slots(cfs_slots)
     , m_project_filaments(project_filaments)
 {
     m_supports_cfs = supports_cfs;
@@ -1461,6 +1465,47 @@ void MoonrakerCFSPrintHostSendDialog::rebuild_mapping_rows()
     auto_assign_mappings();
 }
 
+std::string MoonrakerCFSPrintHostSendDialog::resolve_slot_filament_id(const Slic3r::CFSSlot& slot) const
+{
+    std::string vendor, product, type;
+    if (slot.material_code.empty() ||
+        !Slic3r::creality_cfs_lookup(slot.material_code, vendor, product, type))
+        return {};
+    auto* pb = wxGetApp().preset_bundle;
+    if (pb == nullptr)
+        return {};
+
+    // Score visible/compatible filament presets of the same base type by how well
+    // the preset name matches the catalogue product + vendor; prefer system presets.
+    const std::string v = boost::to_lower_copy(vendor);
+    const std::string p = boost::to_lower_copy(product);
+    const std::string t = boost::to_lower_copy(type);
+
+    const Slic3r::Preset* best = nullptr;
+    int  best_score = 0;
+    bool best_user  = true;
+    for (const auto& pr : pb->filaments.get_presets()) {
+        if (!pr.is_visible || !pr.is_compatible)
+            continue;
+        std::string ptype;
+        if (const auto* ft = pr.config.option<ConfigOptionStrings>("filament_type"))
+            if (!ft->values.empty()) ptype = ft->values.front();
+        if (boost::to_lower_copy(ptype) != t)
+            continue;
+        const std::string nm = boost::to_lower_copy(pr.name);
+        int score = 0;
+        if (!p.empty() && nm.find(p) != std::string::npos) score += 20;
+        if (!v.empty() && nm.find(v) != std::string::npos) score += 10;
+        if (score <= 0)
+            continue;
+        const bool is_user = !pr.is_system && !pr.is_default;
+        if (best == nullptr || score > best_score || (score == best_score && best_user && !is_user)) {
+            best = &pr; best_score = score; best_user = is_user;
+        }
+    }
+    return best != nullptr ? best->filament_id : std::string();
+}
+
 void MoonrakerCFSPrintHostSendDialog::auto_assign_mappings()
 {
     for (size_t idx = 0; idx < m_project_filaments.size() && idx < m_mapping_rows.size(); ++idx) {
@@ -1472,14 +1517,32 @@ void MoonrakerCFSPrintHostSendDialog::auto_assign_mappings()
         const wxColour filament_color = to_wx_colour(filament.color);
         const Slic3r::FlashforgeMaterialSlot* best_slot = nullptr;
         long long best_distance = std::numeric_limits<long long>::max();
+        bool      best_exact    = false;
 
-        for (const auto& slot : m_slots) {
+        // m_slots and m_cfs_slots are parallel (same order); use the index to reach
+        // the original CFSSlot, which carries the Creality filamentId for catalogue
+        // resolution.
+        for (size_t si = 0; si < m_slots.size(); ++si) {
+            const auto& slot = m_slots[si];
             if (!slot.has_filament || !slot_matches_filament(slot, filament))
                 continue;
+
+            // Exact-product match: resolve the slot's filamentId to a preset and
+            // compare with the project filament's preset id. Beats nearest-colour.
+            bool exact = false;
+            if (si < m_cfs_slots.size() && !filament.filament_id.empty()) {
+                const std::string slot_fid = resolve_slot_filament_id(m_cfs_slots[si]);
+                exact = (!slot_fid.empty() && slot_fid == filament.filament_id);
+            }
+
             const long long distance = color_distance_sq(filament_color, to_wx_colour(slot.material_color));
-            if (best_slot == nullptr || distance < best_distance) {
-                best_slot = &slot;
+            const bool better = (best_slot == nullptr)
+                             || (exact && !best_exact)
+                             || (exact == best_exact && distance < best_distance);
+            if (better) {
+                best_slot     = &slot;
                 best_distance = distance;
+                best_exact    = exact;
             }
         }
 
