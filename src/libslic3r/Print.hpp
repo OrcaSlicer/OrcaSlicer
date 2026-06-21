@@ -88,6 +88,9 @@ enum PrintStep {
     // Last step before G-code export, after this step is finished, the initial extrusion path preview
     // should be refreshed.
     psSlicingFinished = psSkirtBrim,
+    // Magma: global per-layer ordering of injection points across all objects/instances.
+    // Cached here (like ToolOrdering) so it isn't recomputed on every G-code export.
+    psMagmaInjectionOrder,
     psGCodeExport,
     psConflictCheck,
     psCount
@@ -476,10 +479,20 @@ public:
         indexed_triangle_set initial;   // After generate_interior (raw hollowed shell)
         indexed_triangle_set smoothed;  // After smooth_interior (final)
     };
-    // Dual infill zones: Access to interior shell mesh for preview visualization
-    bool has_zone_interior() const { return m_zone_interior && !sla::get_mesh(*m_zone_interior).empty(); }
-    const indexed_triangle_set& zone_interior_mesh() const { return sla::get_mesh(*m_zone_interior); }
-    const ZoneInteriorStages& zone_stages() const { return m_zone_stages; }
+    // Dual infill zones: Access to interior shell mesh for preview visualization.
+    // Like magma_tube_map(), a shared copy delegates to its source (only the
+    // source runs compute_zone_boundary). Preferring the source also stops a
+    // former-source copy from shadowing the preview with a stale zone mesh.
+    bool has_zone_interior() const {
+        if (m_shared_object) return m_shared_object->has_zone_interior();
+        return m_zone_interior && !sla::get_mesh(*m_zone_interior).empty();
+    }
+    const indexed_triangle_set& zone_interior_mesh() const {
+        return m_shared_object ? m_shared_object->zone_interior_mesh() : sla::get_mesh(*m_zone_interior);
+    }
+    const ZoneInteriorStages& zone_stages() const {
+        return m_shared_object ? m_shared_object->zone_stages() : m_zone_stages;
+    }
     // Magma tube map: pre-computed tube assignments for infill generation.
     // A shared copy is geometrically identical to its source by construction
     // (Print::process picks sources via is_print_object_the_same), and only the
@@ -498,6 +511,7 @@ public:
     }
     // Check if a specific stage has a valid mesh (0=initial, 1=smoothed)
     bool has_zone_stage(int stage) const {
+        if (m_shared_object) return m_shared_object->has_zone_stage(stage);
         switch (stage) {
             case 0: return !m_zone_stages.initial.empty();
             case 1: return !m_zone_stages.smoothed.empty();
@@ -926,6 +940,15 @@ enum FilamentCompatibilityType {
     InvalidTemperatureRange
 };
 
+// One ordered Magma injection target, resolved at G-code time to a specific
+// object copy + tube pair. Produced globally per print-layer by the
+// psMagmaInjectionOrder step (cached, like ToolOrdering).
+struct MagmaInjectionTarget {
+    int object_idx;    // index into Print::objects()
+    int instance_idx;  // index into PrintObject::instances()
+    int pair_index;    // index into the object's tube map u_tube_pairs()
+};
+
 // The complete print tray with possibly multiple objects.
 class Print : public PrintBaseWithState<PrintStep, psCount>
 {
@@ -1032,6 +1055,10 @@ public:
     bool                        has_wipe_tower() const;
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
+    // Global per-print-layer Magma injection order. Looked up by print_z with the
+    // same EPSILON tolerance ToolOrdering::tools_for_layer uses (merged-z buckets);
+    // returns nullptr if this layer has no injections.
+    const std::vector<MagmaInjectionTarget>* magma_injection_targets_at(coordf_t print_z) const;
 
     void update_filament_maps_to_config(std::vector<int> f_maps);
     void apply_config_for_render(const DynamicConfig &config);
@@ -1204,6 +1231,10 @@ private:
     // Following section will be consumed by the GCodeGenerator.
     ToolOrdering 							m_tool_ordering;
     WipeTowerData                           m_wipe_tower_data {m_tool_ordering};
+    // Cached global per-print-layer Magma injection order (psMagmaInjectionOrder).
+    // Sorted ascending by (EPSILON-merged) print_z, mirroring ToolOrdering's
+    // m_layer_tools so it's looked up the same way during G-code export.
+    std::vector<std::pair<coordf_t, std::vector<MagmaInjectionTarget>>> m_magma_injection_order;
 
     // Estimated print time, filament consumed.
     PrintStatistics                         m_print_statistics;

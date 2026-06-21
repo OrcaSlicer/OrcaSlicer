@@ -2470,6 +2470,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Magma Injection"), L"param_magmainjection");
         optgroup->append_single_option_line("magma_injection_temp");
         optgroup->append_single_option_line("magma_injection_speed");
+        optgroup->append_single_option_line("magma_injection_ordering");
         optgroup->append_single_option_line("magma_injection_z_slam_auto");
         optgroup->append_single_option_line("magma_injection_z_slam");
         optgroup->append_single_option_line("magma_injection_dwell");

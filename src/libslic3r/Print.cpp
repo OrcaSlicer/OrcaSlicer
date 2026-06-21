@@ -19,6 +19,7 @@
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "Magma/MagmaTubeMap.hpp"  // complete type for m_magma_tube_map.reset()
+#include "Magma/MagmaInjectionOrder.hpp"  // global per-layer injection ordering
 #include "format.hpp"
 #include <float.h>
 
@@ -2217,6 +2218,12 @@ void  PrintObject::set_shared_object(PrintObject *object)
     // magma_tube_map() also prefers the source, but resetting here keeps state
     // consistent and releases the stale map.
     m_magma_tube_map.reset();
+    // Same rationale for the dual-zone "egg model" meshes: a former source must
+    // not keep stale zone geometry that the preview would render. The accessors
+    // prefer the shared source; resetting here releases the stale meshes.
+    m_zone_interior.reset();
+    m_zone_stages.initial.clear();
+    m_zone_stages.smoothed.clear();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, found shared object from %2%")%this%m_shared_object;
 }
 
@@ -2315,6 +2322,30 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
 }
 
 // Slicing process, running at a background thread.
+const std::vector<MagmaInjectionTarget>* Print::magma_injection_targets_at(coordf_t print_z) const
+{
+    // Closest print_z bucket within EPSILON — mirrors ToolOrdering::tools_for_layer
+    // so it matches the merged print_z that G-code export hands us.
+    if (m_magma_injection_order.empty())
+        return nullptr;
+    auto it = std::lower_bound(m_magma_injection_order.begin(), m_magma_injection_order.end(),
+        print_z - EPSILON,
+        [](const std::pair<coordf_t, std::vector<MagmaInjectionTarget>>& e, coordf_t z) {
+            return e.first < z;
+        });
+    if (it == m_magma_injection_order.end())
+        return nullptr;
+    coordf_t dist_min = std::abs(it->first - print_z);
+    for (++it; it != m_magma_injection_order.end(); ++it) {
+        coordf_t d = std::abs(it->first - print_z);
+        if (d >= dist_min)
+            break;
+        dist_min = d;
+    }
+    --it;
+    return (dist_min < EPSILON) ? &it->second : nullptr;
+}
+
 void Print::process(long long *time_cost_with_cache, bool use_cache)
 {
     long long start_time = 0, end_time = 0;
@@ -2580,6 +2611,82 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     if (this->has_wipe_tower()) {
         m_fake_wipe_tower.set_pos({ m_config.wipe_tower_x.get_at(m_plate_index), m_config.wipe_tower_y.get_at(m_plate_index) });
+    }
+
+    // Magma: global per-print-layer injection order across all objects + instances.
+    // Cached here (like ToolOrdering) so G-code export just reads it instead of
+    // re-solving on every export. Keyed by EPSILON-merged print_z buckets, the
+    // same grouping collect_layers_to_print / ToolOrdering use, so the export-side
+    // lookup matches with no bespoke quantization.
+    if (this->set_started(psMagmaInjectionOrder)) {
+        m_magma_injection_order.clear();
+
+        // Gather every injection point (one per tube pair, per instance) with its
+        // cap-layer print_z. The ordering mode is print-wide — read it from the
+        // first object that uses Magma.
+        bool any_magma = false;
+        bool spread_heat = false;
+        struct Gathered { coordf_t print_z; Point world; int object_idx, instance_idx, pair_index; };
+        std::vector<Gathered> items;
+
+        for (int oi = 0; oi < int(m_objects.size()); ++oi) {
+            const PrintObject* obj = m_objects[oi];
+            const magma::MagmaTubeMap* tm = obj->magma_tube_map();
+            if (tm == nullptr)
+                continue;
+            if (!any_magma) {
+                any_magma = true;
+                spread_heat = obj->config().magma_injection_ordering.value
+                              == MagmaInjectionOrdering::SpreadHeat;
+            }
+            const std::vector<magma::UTubePair>& pairs = tm->u_tube_pairs();
+            const PrintInstances& instances = obj->instances();
+            for (int pi = 0; pi < int(pairs.size()); ++pi) {
+                const magma::UTubePair& pr = pairs[pi];
+                if (pr.volume_mm3 <= 0.0)
+                    continue;
+                int lid = pr.pair_end_layer;
+                if (lid < 0 || lid >= int(obj->layers().size()))
+                    continue;
+                coordf_t cap_z = obj->layers()[lid]->print_z;
+                for (int ii = 0; ii < int(instances.size()); ++ii)
+                    items.push_back({ cap_z,
+                        Point(scale_(pr.injection_center.x()) + instances[ii].shift.x(),
+                              scale_(pr.injection_center.y()) + instances[ii].shift.y()),
+                        oi, ii, pi });
+            }
+        }
+
+        if (any_magma && !items.empty()) {
+            // Group cap layers into print-layer buckets (near-equal print_z merged
+            // within EPSILON, average z as the key) exactly like
+            // collect_layers_to_print, then solve the global order per bucket.
+            std::sort(items.begin(), items.end(),
+                      [](const Gathered& a, const Gathered& b) { return a.print_z < b.print_z; });
+            for (size_t i = 0; i < items.size(); ) {
+                this->throw_if_canceled();
+                coordf_t zmax = items[i].print_z + EPSILON;
+                size_t j = i;
+                Points world_pts;
+                for (; j < items.size() && items[j].print_z <= zmax; ++j)
+                    world_pts.push_back(items[j].world);
+                coordf_t bucket_z = 0.5 * (items[i].print_z + items[j - 1].print_z);
+
+                std::vector<size_t> order = magma::order_injection_points(
+                    world_pts, spread_heat, 0.75,
+                    [this]() { this->throw_if_canceled(); });
+
+                std::vector<MagmaInjectionTarget> ordered;
+                ordered.reserve(order.size());
+                for (size_t idx : order) {
+                    const Gathered& g = items[i + idx];
+                    ordered.push_back({ g.object_idx, g.instance_idx, g.pair_index });
+                }
+                m_magma_injection_order.emplace_back(bucket_z, std::move(ordered));
+                i = j;
+            }
+        }
+        this->set_done(psMagmaInjectionOrder);
     }
 
     if (this->set_started(psSkirtBrim)) {

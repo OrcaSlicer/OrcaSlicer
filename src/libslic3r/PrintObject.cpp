@@ -1502,7 +1502,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "magma_solver_timeout"
             || opt_key == "magma_spiral_interlock"
             || opt_key == "magma_overlap_line_correction"
-            || opt_key == "magma_overlap_min_width") {
+            || opt_key == "magma_overlap_min_width"
+            || opt_key == "magma_injection_edge_pref") {
             // Surface classification (discover_vertical_shells) and
             // tube map geometry (MagmaTubeMap::build in prepare_infill)
             steps.emplace_back(posPrepareInfill);
@@ -1526,6 +1527,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "magma_nozzle_cone_half_angle"
             || opt_key == "magma_injection_z_hop"
             || opt_key == "magma_injection_retract"
+            || opt_key == "magma_injection_dwell"
             || opt_key == "magma_injection_fan_speed") {
             // Zone speeds (GCode.cpp) and injection G-code params (MagmaInjection.cpp)
             invalidated |= m_print->invalidate_step(psGCodeExport);
@@ -1534,6 +1536,10 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "magma_injection_filament") {
             // Filament/extruder assignment (ToolOrdering.cpp)
             invalidated |= m_print->invalidate_step(psWipeTower);
+            invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (opt_key == "magma_injection_ordering") {
+            // Global per-layer injection order (cached Print step) + re-emit G-code
+            invalidated |= m_print->invalidate_step(psMagmaInjectionOrder);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
@@ -1554,9 +1560,13 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 
     // The Magma tube map is an output of prepare_infill; drop it whenever that
     // step (or an upstream step) is invalidated, so the slice preview stops
-    // showing a stale injection after the infill config changes.
-    if (step == posSlice || step == posPerimeters || step == posPrepareInfill)
+    // showing a stale injection after the infill config changes. The global
+    // injection order (a Print step) is derived from the tube maps, so drop it
+    // too — Print steps don't auto-cascade from object-step invalidation.
+    if (step == posSlice || step == posPerimeters || step == posPrepareInfill) {
         m_magma_tube_map.reset();
+        m_print->invalidate_step(psMagmaInjectionOrder);
+    }
 
     // propagate to dependent steps
     if (step == posPerimeters) {

@@ -981,8 +981,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("magma_solver_timeout", is_refined);
 
     // Magma Injection section
-    for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_iron_tube_ends",
-        "magma_injection_park", "magma_injection_dwell",
+    for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_injection_ordering",
+        "magma_iron_tube_ends", "magma_injection_park", "magma_injection_dwell",
         "magma_injection_z_hop", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
     // Z-slam: auto toggle shown when Magma; manual depth only when auto is off

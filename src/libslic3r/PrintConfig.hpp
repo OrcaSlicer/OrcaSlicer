@@ -106,6 +106,13 @@ enum class MagmaTubeSolverMode : int {
     Count,
 };
 
+// Order in which tube injections are visited on each layer.
+enum class MagmaInjectionOrdering : int {
+    TSP        = 0,  // Travel-optimal (minimize nozzle travel)
+    SpreadHeat = 1,  // Separate spatially-near injections in time to avoid heat buildup
+    Count,
+};
+
 enum class MagmaInjectionEdgePref : int {
     Interior = 0,  // Inject into cell further from model edge (default)
     Exterior = 1,  // Inject into cell closer to model edge
@@ -1083,6 +1090,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                magma_injection_z_hop))        // Z-hop after each injection (mm, 0 = disabled)
     ((ConfigOptionBool,                 magma_injection_retract))      // Retract after each injection
     ((ConfigOptionEnum<MagmaTubeSolverMode>, magma_tube_solver_mode))   // Basic (fast) vs Refined (better coverage)
+    ((ConfigOptionEnum<MagmaInjectionOrdering>, magma_injection_ordering)) // Per-layer injection visiting order (TSP vs spread heat)
     ((ConfigOptionFloat,                magma_solver_timeout))         // CP-SAT timeout per block in seconds
     ((ConfigOptionEnum<MagmaInjectionEdgePref>, magma_injection_edge_pref))  // Injection position: interior or exterior
 

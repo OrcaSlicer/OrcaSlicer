@@ -250,6 +250,12 @@ static t_config_enum_values s_keys_map_MagmaTubeSolverMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(MagmaTubeSolverMode)
 
+static t_config_enum_values s_keys_map_MagmaInjectionOrdering {
+    { "tsp",         int(MagmaInjectionOrdering::TSP) },
+    { "spread_heat", int(MagmaInjectionOrdering::SpreadHeat) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(MagmaInjectionOrdering)
+
 static t_config_enum_values s_keys_map_MagmaInjectionEdgePref {
     { "interior", int(MagmaInjectionEdgePref::Interior) },
     { "exterior", int(MagmaInjectionEdgePref::Exterior) }
@@ -5711,6 +5717,23 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Refined"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<MagmaTubeSolverMode>(MagmaTubeSolverMode::Basic));
+
+    def = this->add("magma_injection_ordering", coEnum);
+    def->label = L("Injection order");
+    def->category = L("Strength");
+    def->tooltip = L("Order in which tube injections are visited on each layer.\n\n"
+                     "Minimize travel: shortest nozzle path (fastest).\n\n"
+                     "Spread heat: deliberately separates spatially-near injections in time so "
+                     "the combined heat does not melt neighbouring cells. Solved globally across "
+                     "all objects on the layer; adds a little travel, and a short per-layer solve "
+                     "during slicing (cached).");
+    def->enum_keys_map = &ConfigOptionEnum<MagmaInjectionOrdering>::get_enum_values();
+    def->enum_values.push_back("tsp");
+    def->enum_values.push_back("spread_heat");
+    def->enum_labels.push_back(L("Minimize travel"));
+    def->enum_labels.push_back(L("Spread heat"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<MagmaInjectionOrdering>(MagmaInjectionOrdering::TSP));
 
     def = this->add("magma_solver_timeout", coFloat);
     def->label = L("Solver timeout");

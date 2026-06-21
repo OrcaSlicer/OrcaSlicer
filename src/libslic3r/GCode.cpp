@@ -5379,93 +5379,76 @@ LayerResult GCode::process_layer(
         // Phase 3: For each temp group: heat → fan start → inject all → fan end.
         // Phase 4: Restore print temperature.
         {
-            // --- Phase 1: Collect injection work ---
-            struct InjWork {
-                const PrintObject*              obj;
-                const magma::MagmaTubeMap*      tube_map;
-                std::vector<magma::InjectionPoint> points;
-                int lid;
+            // --- Phase 1: Build the ordered work list from the cached global
+            // per-layer injection order (psMagmaInjectionOrder), filtered to this
+            // extruder pass (and the current instance in by-object sequential mode).
+            struct InjTarget {
+                const PrintObject*         obj;
+                const magma::MagmaTubeMap* tube_map;
+                int    instance_idx;
+                int    pair_index;
                 double actual_h;
-                int injection_temp;   // resolved per-object injection temp
+                int    injection_temp;
             };
-            std::vector<InjWork> inj_work;
+            std::vector<InjTarget> targets;
 
-            for (const LayerToPrint &ltp : layers) {
-                if (!ltp.object_layer || !ltp.original_object)
-                    continue;
-                // Use original_object for instances/config (correct for shared objects).
-                // magma_tube_map() falls through to the primary automatically.
-                const PrintObject &obj = *ltp.original_object;
-                const auto* tube_map = obj.magma_tube_map();
-                if (!tube_map)
-                    continue;
-
-                // Check if injection should run on this extruder iteration.
-                int inj_filament = obj.config().magma_injection_filament.value;
-                if (inj_filament > 0) {
-                    if (extruder_id != (unsigned int)(inj_filament - 1))
+            // Look up this layer's global injection order — the EPSILON-merged
+            // print_z bucket, the same mechanism ToolOrdering::tools_for_layer uses.
+            const auto& objects = print.objects();
+            if (const std::vector<MagmaInjectionTarget>* layer_order =
+                    print.magma_injection_targets_at(print_z)) {
+                for (const MagmaInjectionTarget& mt : *layer_order) {
+                    if (mt.object_idx < 0 || mt.object_idx >= int(objects.size()))
                         continue;
-                } else {
-                    if (extruder_id != layer_tools.extruders.back())
+                    // by-object sequential print: only the instance being printed
+                    if (single_object_instance_idx != size_t(-1) &&
+                        size_t(mt.instance_idx) != single_object_instance_idx)
                         continue;
-                }
-
-                int lid = ltp.object_layer->id();
-
-                // Diagnostic: fire once per object (at its topmost cap layer) to
-                // show the tube-end span actually consumed for injection vs. the
-                // object's real top layer and which map pointer it resolved to.
-                // If some copies stop below the top while others reach it, this
-                // reveals a stale/shared tube map being reused. Grep "MagmaInjUse".
-                {
-                    const std::vector<int> &caps = tube_map->injection_layer_ids();
-                    int top_cap = caps.empty() ? -1 : caps.back();
-                    if (top_cap >= 0 && lid == top_cap) {
-                        int obj_top = obj.layers().empty() ? -1 : obj.layers().back()->id();
-                        BOOST_LOG_TRIVIAL(info) << "MagmaInjUse obj=" << (const void*)&obj
-                            << " map=" << (const void*)tube_map
-                            << " top_cap_layer=" << top_cap
-                            << " obj_top_layer=" << obj_top
-                            << " caps=" << caps.size()
-                            << " reaches_top=" << (top_cap == obj_top ? 1 : 0);
+                    const PrintObject* obj = objects[mt.object_idx];
+                    const auto* tube_map = obj->magma_tube_map();
+                    if (!tube_map)
+                        continue;
+                    // Injection extruder filter.
+                    int inj_filament = obj->config().magma_injection_filament.value;
+                    unsigned int eff_ext = (inj_filament > 0) ? (unsigned int)(inj_filament - 1)
+                                                              : layer_tools.extruders.back();
+                    if (extruder_id != eff_ext)
+                        continue;
+                    if (mt.pair_index < 0 || mt.pair_index >= int(tube_map->u_tube_pairs().size()))
+                        continue;
+                    const magma::UTubePair& pr = tube_map->u_tube_pairs()[mt.pair_index];
+                    if (pr.volume_mm3 <= 0.0)
+                        continue;
+                    int inj_temp = obj->config().magma_injection_temp.value;
+                    if (inj_temp > 0) {
+                        int max_temp = m_config.nozzle_temperature_range_high.get_at(extruder_id);
+                        if (max_temp > 0)
+                            inj_temp = std::min(inj_temp, max_temp);
                     }
+                    targets.push_back({ obj, tube_map, mt.instance_idx, mt.pair_index,
+                                        tube_map->layer_height_at(pr.pair_end_layer), inj_temp });
                 }
-
-                auto pts = magma::collect_injection_points(*tube_map, lid);
-                if (pts.empty())
-                    continue;
-
-                // Resolve this object's injection temp.
-                int inj_temp = obj.config().magma_injection_temp.value;
-                if (inj_temp > 0) {
-                    int max_temp = m_config.nozzle_temperature_range_high.get_at(extruder_id);
-                    if (max_temp > 0)
-                        inj_temp = std::min(inj_temp, max_temp);
-                }
-
-                inj_work.push_back({&obj, tube_map, std::move(pts), lid,
-                                    tube_map->layer_height_at(lid), inj_temp});
             }
 
-            if (!inj_work.empty()) {
-                // --- Phase 2: Group by injection temp (ascending) ---
-                std::map<int, std::vector<InjWork*>> temp_groups;
-                for (auto& w : inj_work)
-                    temp_groups[w.injection_temp].push_back(&w);
+            if (!targets.empty()) {
+                // --- Phase 2: Group by injection temp (ascending); global order
+                // preserved within each temp group. ---
+                std::map<int, std::vector<InjTarget*>> temp_groups;
+                for (auto& t : targets)
+                    temp_groups[t.injection_temp].push_back(&t);
 
                 int print_temp = m_config.nozzle_temperature.get_at(extruder_id);
                 int current_temp = print_temp;
 
-                // Read park config from first object (park behavior is machine-level).
+                // Read park config from first target's object (machine-level).
                 m_config.apply(print.default_region_config());
-                m_config.apply(inj_work.front().obj->config(), true);
+                m_config.apply(targets.front().obj->config(), true);
                 bool park_enabled  = m_config.magma_injection_park.value;
                 double park_z_hop  = m_config.magma_injection_park_z_hop.value;
                 double extra_retract = m_config.magma_injection_park_retract.value;
 
-                // --- Phase 3: Inject each temp group ---
+                // --- Phase 3: Inject each temp group in the global order ---
                 for (auto& [target_temp, group] : temp_groups) {
-                    // Heat if needed (target_temp 0 means use print temp — no change).
                     if (target_temp > 0 && target_temp != current_temp) {
                         gcode += "; Magma injection: heating\n";
                         gcode += magma::park_and_set_temp(*this, park_enabled, print_z,
@@ -5476,20 +5459,22 @@ LayerResult GCode::process_layer(
 
                     gcode += ";_MAGMA_INJECTION_FAN_START\n";
 
-                    for (InjWork* w : group) {
-                        // Apply per-object config for injection settings (fill_factor, etc.)
-                        m_config.apply(print.default_region_config());
-                        m_config.apply(w->obj->config(), true);
-
-                        for (size_t inst_idx = 0; inst_idx < w->obj->instances().size(); ++inst_idx) {
-                            if (single_object_instance_idx != size_t(-1) &&
-                                inst_idx != single_object_instance_idx)
-                                continue;
-                            const PrintInstance &inst = w->obj->instances()[inst_idx];
-                            this->set_origin(unscale(inst.shift));
-                            gcode += magma::generate_injection_gcode(
-                                *this, *w->tube_map, w->points, print_z, w->actual_h);
+                    const PrintObject* cfg_obj = nullptr;
+                    for (InjTarget* t : group) {
+                        // Re-apply per-object config only when the object changes
+                        // (global order interleaves objects).
+                        if (t->obj != cfg_obj) {
+                            m_config.apply(print.default_region_config());
+                            m_config.apply(t->obj->config(), true);
+                            cfg_obj = t->obj;
                         }
+                        this->set_origin(unscale(t->obj->instances()[t->instance_idx].shift));
+                        const magma::UTubePair& pr = t->tube_map->u_tube_pairs()[t->pair_index];
+                        std::vector<magma::InjectionPoint> one = {{
+                            pr.injection_center, pr.volume_mm3, t->pair_index,
+                            pr.pair_start_layer, pr.window_center_layer }};
+                        gcode += magma::generate_injection_gcode(
+                            *this, *t->tube_map, one, print_z, t->actual_h);
                     }
 
                     gcode += ";_MAGMA_INJECTION_FAN_END\n";
