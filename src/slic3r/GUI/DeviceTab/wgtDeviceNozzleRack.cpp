@@ -13,6 +13,7 @@
 
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceManager.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
@@ -75,6 +76,65 @@ static wxBitmap SetNozzleBmpColor(const wxBitmap& bmp, const std::string& color_
     return wxBitmap(img, -1, bmp.GetScaleFactor());
 }
 
+static wxBitmap SetToolheadBmpColorAndText(const wxBitmap& bmp, const std::string& color_str, const wxString& text)
+{
+    wxImage img = bmp.ConvertToImage();
+
+    // 1. Color replacement (replace yellow stripe #FFF735 with filament color)
+    if (!color_str.empty() && color_str != "N/A") {
+        wxColour color("#" + color_str);
+        for (int y = 0; y < img.GetHeight(); ++y) {
+            for (int x = 0; x < img.GetWidth(); ++x) {
+                unsigned char r = img.GetRed(x, y);
+                unsigned char g = img.GetGreen(x, y);
+                unsigned char b = img.GetBlue(x, y);
+
+                // replace yellow with filament color
+                if (r >= 180 && g >= 180 && b <= 150) {
+                    img.SetRGB(x, y, color.Red(), color.Green(), color.Blue());
+                }
+            }
+        }
+    }
+
+    // 2. Erase the baked-in letter "R" by copying adjacent background pixels
+    double scale = bmp.GetScaleFactor();
+    int start_y = 41 * scale;
+    int end_y = 53 * scale;
+    int start_x = 53 * scale;
+    int end_x = 62 * scale;
+    int src_x = 44 * scale;
+
+    if (start_y < img.GetHeight() && end_y <= img.GetHeight() &&
+        start_x < img.GetWidth() && end_x <= img.GetWidth() && src_x < img.GetWidth()) {
+        for (int y = start_y; y < end_y; ++y) {
+            unsigned char r = img.GetRed(src_x, y);
+            unsigned char g = img.GetGreen(src_x, y);
+            unsigned char b = img.GetBlue(src_x, y);
+            for (int x = start_x; x < end_x; ++x) {
+                img.SetRGB(x, y, r, g, b);
+            }
+        }
+    }
+
+    // 3. Draw the new letter ("L" or "R") using wxGraphicsContext
+    wxBitmap drawn_bmp(img, -1, scale);
+    wxMemoryDC mem_dc(drawn_bmp);
+    wxGraphicsContext* gc = wxGraphicsContext::Create(mem_dc);
+    if (gc) {
+        // Font size 8pt scaled
+        wxFont font = wxFont(wxFontInfo(8 * scale).Bold().Family(wxFONTFAMILY_SWISS));
+        gc->SetFont(font, *wxBLACK);
+        
+        // Draw position
+        double draw_x = 54.0 * scale;
+        double draw_y = 41.5 * scale;
+        gc->DrawText(text, draw_x, draw_y);
+        delete gc;
+    }
+
+    return drawn_bmp;
+}
 
 
 wgtDeviceNozzleRack::wgtDeviceNozzleRack(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
@@ -127,8 +187,7 @@ void wgtDeviceNozzleRack::UpdateRackInfo(std::shared_ptr<DevNozzleRack> rack)
         if (nozzle_system->GetOwner() && nozzle_system->GetOwner()->GetExtderSystem()) {
             active_ext_id = nozzle_system->GetOwner()->GetExtderSystem()->GetCurrentExtderId();
         }
-        bool is_right_active = (active_ext_id == MAIN_EXTRUDER_ID);
-        m_toolhead_panel->UpdateToolHeadInfo(nozzle_system->GetExtNozzle(MAIN_EXTRUDER_ID), is_right_active);
+        m_toolhead_panel->UpdateToolHeadInfo(nozzle_system->GetExtNozzle(active_ext_id), true, m_nozzle_rack.lock());
         m_rack_area->UpdateRackInfo(m_nozzle_rack);
     }
 }
@@ -184,10 +243,31 @@ void wgtDeviceNozzleRackToolHead::CreateGui()
     m_toolhead_icon          = new wxStaticBitmap(this, wxID_ANY, m_extruder_nozzle_empty->bmp(), wxDefaultPosition, WX_DIP_SIZE(98, 98));
     mainSizer->Add(m_toolhead_icon, 0, wxALIGN_CENTRE_HORIZONTAL | wxTOP, FromDIP(20));
 
-    // Nozzle info
+    // Color swatch & Nozzle info
+    wxBoxSizer* info_h_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_color_swatch = new wxPanel(this, wxID_ANY, wxDefaultPosition, WX_DIP_SIZE(14, 14));
+    m_color_swatch->SetBackgroundColour(*wxWHITE);
+    m_color_swatch->Show(false);
+    m_color_swatch->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+        wxPaintDC dc(m_color_swatch);
+        wxSize sz = m_color_swatch->GetClientSize();
+        if (!m_filament_color.empty()) {
+            wxColour clr("#" + m_filament_color);
+            dc.SetBrush(wxBrush(clr));
+            dc.SetPen(wxPen(wxColour(136, 136, 136), 1));
+            dc.DrawRoundedRectangle(0, 0, sz.x, sz.y, 2);
+        }
+    });
+
     m_nozzle_diamenter_label = new Label(this);
     m_nozzle_diamenter_label->SetFont(Label::Body_13);
-    mainSizer->Add(m_nozzle_diamenter_label, 0, wxALIGN_CENTRE_HORIZONTAL | wxBOTTOM | wxTOP, FromDIP(5));
+
+    info_h_sizer->AddStretchSpacer();
+    info_h_sizer->Add(m_color_swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+    info_h_sizer->Add(m_nozzle_diamenter_label, 0, wxALIGN_CENTER_VERTICAL);
+    info_h_sizer->AddStretchSpacer();
+
+    mainSizer->Add(info_h_sizer, 0, wxEXPAND | wxBOTTOM | wxTOP, FromDIP(5));
 
     m_nozzle_flowtype_label = new Label(this);
     m_nozzle_flowtype_label->SetFont(Label::Body_13);
@@ -201,8 +281,10 @@ void wgtDeviceNozzleRackToolHead::CreateGui()
     SetSize(WX_DIP_SIZE(132, -1));
 }
 
-void wgtDeviceNozzleRackToolHead::UpdateToolHeadInfo(const DevNozzle& extruder_nozzle, bool active)
+void wgtDeviceNozzleRackToolHead::UpdateToolHeadInfo(const DevNozzle& extruder_nozzle, bool active, std::shared_ptr<DevNozzleRack> rack)
 {
+    m_nozzle_rack = rack;
+
     /* Labels */
     if (extruder_nozzle.IsEmpty()) {
         m_nozzle_diamenter_label->Show(false);
@@ -220,19 +302,42 @@ void wgtDeviceNozzleRackToolHead::UpdateToolHeadInfo(const DevNozzle& extruder_n
         m_nozzle_flowtype_label->SetLabel(extruder_nozzle.GetNozzleFlowTypeStr());
     }
 
-    m_title_box->SetLabel(_L("Toolhead"));
+    m_title_box->SetLabel(active ? (active && !extruder_nozzle.IsEmpty() && extruder_nozzle.AtLeftExtruder() ? _L("Toolhead (Left)") : _L("Toolhead (Right)")) : _L("Toolhead"));
 
     /* Icon*/
     bool extruder_exist   = !extruder_nozzle.IsEmpty();
     std::string new_color = extruder_nozzle.GetFilamentColor();
-    if (m_extruder_nozzle_exist != extruder_exist || m_filament_color != new_color || m_right_active != active) {
+    if (new_color.empty() || new_color == "N/A") {
+        if (rack && rack->GetNozzleSystem()) {
+            DevNozzleSystem* ns = rack->GetNozzleSystem();
+            if (ns->GetOwner() && ns->GetOwner()->GetExtderSystem()) {
+                int active_ext_id = ns->GetOwner()->GetExtderSystem()->GetCurrentExtderId();
+                auto extder = ns->GetOwner()->GetExtderSystem()->GetExtderById(active_ext_id);
+                if (extder && ns->GetOwner()->GetFilaSystem()) {
+                    std::string ams_id = extder->GetSlotNow().ams_id;
+                    std::string slot_id = extder->GetSlotNow().slot_id;
+                    if (!ams_id.empty() && !slot_id.empty()) {
+                        DevAmsTray* tray = ns->GetOwner()->GetFilaSystem()->GetAmsTray(ams_id, slot_id);
+                        if (tray) {
+                            new_color = tray->color;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    bool is_right = extruder_exist ? extruder_nozzle.AtRightExtruder() : active;
+
+    if (m_extruder_nozzle_exist != extruder_exist || m_filament_color != new_color || m_right_active != is_right) {
         m_extruder_nozzle_exist = extruder_exist;
         m_filament_color        = new_color;
-        m_right_active          = active;
+        m_right_active          = is_right;
 
         wxBitmap final_bmp;
         if (m_extruder_nozzle_exist) {
-            final_bmp = SetNozzleBmpColor(m_extruder_nozzle_normal->bmp(), m_filament_color);
+            wxString letter = m_right_active ? "R" : "L";
+            final_bmp = SetToolheadBmpColorAndText(m_extruder_nozzle_normal->bmp(), m_filament_color, letter);
         } else {
             final_bmp = m_extruder_nozzle_empty->bmp();
         }
@@ -241,9 +346,20 @@ void wgtDeviceNozzleRackToolHead::UpdateToolHeadInfo(const DevNozzle& extruder_n
         m_toolhead_icon->Update();
     }
 
+    if (m_color_swatch) {
+        bool show_swatch = m_extruder_nozzle_exist && !m_filament_color.empty() && m_filament_color != "N/A";
+        m_color_swatch->Show(show_swatch);
+        if (show_swatch) {
+            m_color_swatch->Refresh();
+        }
+    }
+
     m_toolhead_icon->Enable(active);
     m_nozzle_diamenter_label->Enable(active);
     m_nozzle_flowtype_label->Enable(active);
+    if (m_color_swatch) {
+        m_color_swatch->Enable(active);
+    }
 
     Layout();
     Refresh();
@@ -256,7 +372,8 @@ void wgtDeviceNozzleRackToolHead::Rescale()
 
     wxBitmap final_bmp;
     if (m_extruder_nozzle_exist) {
-        final_bmp = SetNozzleBmpColor(m_extruder_nozzle_normal->bmp(), m_filament_color);
+        wxString letter = m_right_active ? "R" : "L";
+        final_bmp = SetToolheadBmpColorAndText(m_extruder_nozzle_normal->bmp(), m_filament_color, letter);
     } else {
         final_bmp = m_extruder_nozzle_empty->bmp();
     }
@@ -886,17 +1003,34 @@ void wgtDeviceNozzleRackNozzleItem::Update(const std::shared_ptr<DevNozzleRack> 
                         int empty_count   = 6 - rack_occupied; // rack has 6 physical slots
 
                         bool matched = false;
-                        if (!ext_sn.empty()) {
-                            wxString slot_sn = rack->GetCachedNozzleSN(m_nozzle_id);
+                        wxString slot_sn = rack->GetCachedNozzleSN(m_nozzle_id);
+                        if (!ext_sn.empty() && ext_sn != "N/A" && !slot_sn.empty() && slot_sn != "N/A") {
                             if (slot_sn == ext_sn) {
                                 matched = true;
                             }
-                        } else if (empty_count == 1) {
+                        }
+                        if (!matched && empty_count == 1) {
                             matched = true;
                         }
 
                         if (matched) {
-                            SetNozzleStatus(NOZZLE_STATUS::NOZZLE_IN_EXTRUDER, _L("In Use"), wxEmptyString, ext_nozzle.GetFilamentColor());
+                            std::string filament_color = ext_nozzle.GetFilamentColor();
+                            if (filament_color.empty() || filament_color == "N/A") {
+                                if (ns->GetOwner() && ns->GetOwner()->GetExtderSystem()) {
+                                    auto extder = ns->GetOwner()->GetExtderSystem()->GetExtderById(rack_ext_id);
+                                    if (extder && ns->GetOwner()->GetFilaSystem()) {
+                                        std::string ams_id = extder->GetSlotNow().ams_id;
+                                        std::string slot_id = extder->GetSlotNow().slot_id;
+                                        if (!ams_id.empty() && !slot_id.empty()) {
+                                            DevAmsTray* tray = ns->GetOwner()->GetFilaSystem()->GetAmsTray(ams_id, slot_id);
+                                            if (tray) {
+                                                filament_color = tray->color;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            SetNozzleStatus(NOZZLE_STATUS::NOZZLE_IN_EXTRUDER, _L("In Use"), wxEmptyString, filament_color);
                         } else {
                             SetNozzleStatus(NOZZLE_STATUS::NOZZLE_EMPTY, _L("Empty"), wxEmptyString, color);
                         }

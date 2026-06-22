@@ -71,13 +71,14 @@ public:
     wgtDeviceNozzleRackToolHead(wxWindow* parent) : wxPanel(parent) { CreateGui(); }
 
 public:
-    void UpdateToolHeadInfo(const DevNozzle& extruder_nozzle, bool active);
+    void UpdateToolHeadInfo(const DevNozzle& extruder_nozzle, bool active, std::shared_ptr<DevNozzleRack> rack);
     void Rescale();
 
 private:
     void CreateGui();
 
 private:
+    std::weak_ptr<DevNozzleRack> m_nozzle_rack;
     bool m_extruder_nozzle_exist = false;
     std::string m_filament_color;
     bool m_right_active = true;
@@ -90,6 +91,7 @@ private:
 
     Label* m_nozzle_diamenter_label;
     Label* m_nozzle_flowtype_label;
+    wxPanel* m_color_swatch = nullptr;
 };
 
 class wgtDeviceNozzleRackArea : public wxPanel
