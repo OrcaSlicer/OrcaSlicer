@@ -322,7 +322,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
         double S = map->m_cell_spacing;
         double w = map->m_line_width;
-        double excess_frac = 3.0 * w / (4.0 * S);
+        double excess_frac = triangle_geometry().line_overlap_excess_fraction(S, w);
 
         if (map->m_overlap_line_correction && excess_frac > 0.0) {
             // Minimum corrected line width: use magma_overlap_min_width if set,
@@ -392,13 +392,10 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
 double MagmaTubeMap::tube_opening_diameter() const
 {
-    // Opening = circumscribed circle of the inset (hollow) triangle. For an
-    // equilateral triangle of side s the circumradius is s / sqrt(3), so the
-    // corner-to-corner opening diameter is 2*s/sqrt(3).
-    double inset_side = triangle_side_length(m_cell_spacing) - m_effective_line_width * SQRT3;
-    if (inset_side <= 0.0)
-        return 0.0;
-    return 2.0 * inset_side / SQRT3;
+    // Opening = circumscribed circle of the inset (hollow) cell, via the shared
+    // per-shape geometry so the injection seal math and Print::validate()'s seal
+    // warning use one source of truth.
+    return triangle_geometry().opening_diameter(m_cell_spacing, m_effective_line_width);
 }
 
 // ============================================================================
@@ -411,7 +408,7 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
     // Uses m_effective_line_width (post overlap correction) so the inset matches
     // the actual deposited bead width, not the nominal line width.
     const double half_line_width = m_effective_line_width * 0.5;
-    const double inset_area_mm2 = inset_triangle_area(m_cell_spacing, m_effective_line_width);
+    const double inset_area_mm2 = triangle_geometry().inset_open_area(m_cell_spacing, m_effective_line_width);
     const double inset_area_scaled2 = inset_area_mm2 * 1e12;  // (1e6)^2
 
     // Boundary cells require ≥90% of ideal tube area to be considered for
@@ -793,10 +790,8 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
     for (const Layer *layer : layers)
         layer_heights[static_cast<int>(layer->id())] = layer->height;
 
-    double edge_len = triangle_side_length(m_cell_spacing);
-    // Inset side: the gap between two adjacent inset interiors runs along
-    // the inset edge, not the full edge.  Use this for window gap volume.
-    double inset_side = edge_len - m_line_width * SQRT3;
+    // Window-gap geometry (inset side x line width x window height) is computed
+    // via triangle_geometry().window_volume() below.
 
     // Vertex overlap excess area per triangle cell (mm²).
     //
@@ -812,9 +807,7 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
     //
     // Computed per-layer to handle adaptive/variable layer heights correctly.
     // Each UTubePair spans 2 triangle cells, so we multiply by 2.
-    constexpr double OVERLAP_AREA_FACTOR = 1.299038105676658;  // 3√3/4
-    double w_eff = m_effective_line_width;
-    double excess_area_per_cell_mm2 = OVERLAP_AREA_FACTOR * w_eff * w_eff;
+    double excess_area_per_cell_mm2 = triangle_geometry().vertex_overlap_excess_area(m_effective_line_width);
 
     // Track volume reduction across all pairs for user warning
     double total_orig_volume      = 0.0;
@@ -851,7 +844,7 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
 
         // Window gap volume: opening between paired cell interiors along shared edge.
         // Length = inset side (not full edge — interiors are smaller than the outer triangle).
-        double window_volume = inset_side * m_line_width * window_height_mm;
+        double window_volume = triangle_geometry().window_volume(m_cell_spacing, m_line_width, window_height_mm);
 
         double orig_volume = tube_volume + window_volume;
         pair.volume_mm3 = std::max(0.0, orig_volume - overlap_excess_volume);

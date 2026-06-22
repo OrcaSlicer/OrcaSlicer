@@ -4,6 +4,7 @@
 #include "../libslic3r.h"
 #include "../Point.hpp"
 #include "../BoundingBox.hpp"
+#include "MagmaGeometry.hpp"
 
 #include <vector>
 #include <array>
@@ -112,6 +113,63 @@ double calculate_auto_interior_width(double nozzle_diameter);
 // Finds the largest inset triangle that fits within the nozzle shoulder circle
 // with 0.2mm safety buffer. Accounts for line_width eating into the triangle.
 double calculate_auto_interior_width_from_od(double nozzle_od, double line_width);
+
+// ============================================================================
+// TriangleGeometry — MagmaGeometry impl for the equilateral triangle lattice
+// ============================================================================
+// Single source of truth for the triangle pattern's shape formulas. Every value
+// here matches the formula it replaces in MagmaTubeMap/Print so triangle output
+// stays byte-identical; new patterns provide their own MagmaGeometry impl.
+struct TriangleGeometry final : public MagmaGeometry
+{
+    double edge_length(double spacing) const override { return triangle_side_length(spacing); }
+
+    double inset_open_area(double spacing, double line_width) const override {
+        return inset_triangle_area(spacing, line_width);
+    }
+
+    // Circumscribed circle of the inset triangle: 2*(side - lw*sqrt3)/sqrt3.
+    double opening_diameter(double spacing, double line_width) const override {
+        double inset_side = triangle_side_length(spacing) - line_width * SQRT3;
+        return inset_side > 0.0 ? 2.0 * inset_side / SQRT3 : 0.0;
+    }
+
+    double inscribed_radius(double interior_width) const override { return interior_width * 0.5; }
+
+    // Centroid-to-neighbor-centroid distance = circumradius = side/sqrt3.
+    double neighbor_centroid_distance(double spacing) const override {
+        return triangle_side_length(spacing) / SQRT3;
+    }
+
+    double interlock_radius(double spacing) const override { return spacing * 0.5; }
+
+    // 3 line families crossing at 60deg per vertex: (3*sqrt3/4) * w^2.
+    double vertex_overlap_excess_area(double line_width) const override {
+        return (3.0 * SQRT3 / 4.0) * line_width * line_width;
+    }
+
+    double line_overlap_excess_fraction(double spacing, double line_width) const override {
+        return spacing > 0.0 ? 3.0 * line_width / (4.0 * spacing) : 0.0;
+    }
+
+    double window_volume(double spacing, double line_width, double window_height) const override {
+        double inset_side = triangle_side_length(spacing) - line_width * SQRT3;
+        return inset_side * line_width * window_height;
+    }
+
+    double auto_interior_width_from_od(double nozzle_od, double line_width) const override {
+        return calculate_auto_interior_width_from_od(nozzle_od, line_width);
+    }
+
+    int max_neighbors() const override { return 3; }
+    int cells_per_pair() const override { return 2; }
+};
+
+// Shared triangle-geometry instance (stateless).
+inline const MagmaGeometry& triangle_geometry() {
+    static const TriangleGeometry s_geom;
+    return s_geom;
+}
 
 // ============================================================================
 // Triangle Cell Coordinate System
