@@ -46,3 +46,25 @@ test.js
 internal_docs/
 *.flatpak
 /flatpak-repo/
+# === MakerBot/UltiMaker Fork - Junk-Ausschluss ===
+# Backups
+*.bak
+*.bak_*
+# Patch-Skripte (Entwicklungs-Hilfsmittel, nicht Teil des Quellcodes)
+patch_*.py
+# Logs
+log_iotc.txt
+debug_*.log*
+# Grosse Binaer-Archive (gehoeren nicht in den Quellbaum)
+src_Orca_2.4_beta.zip
+resources/printers.zip
+resources/profiles/Elegoo.zip
+resources/profiles/OrcaFilamentLibrary.zip
+resources/profiles/MakerBot_UltiMaker_Profiles_after_installation.zip
+src/slic3r/GUI/DeviceTab/DeviceTab.zip
+src/slic3r/GUI/LibVGCode.zip
+# Test-Modelle (kein Quellcode)
+resources/profiles/MakerBot/handy_models/*.gcode
+
+# === MakerBot/UltiMaker Fork - lokale Tooling-Skripte (nicht im PR) ===
+scripts/fork/

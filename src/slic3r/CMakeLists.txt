@@ -58,6 +58,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/BonjourDialog.hpp
     GUI/CrealityDiscoveryDialog.cpp
     GUI/CrealityDiscoveryDialog.hpp
+    GUI/MakerbotDiscoveryDialog.cpp   # MakerBot / UltiMaker Fork
+    GUI/MakerbotDiscoveryDialog.hpp
+    GUI/BirdwingHandshakeDialog.cpp   # MakerBot / UltiMaker Fork
+    GUI/BirdwingHandshakeDialog.hpp
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
     GUI/Calibration.cpp
@@ -636,6 +640,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/MoonrakerPrinterAgent.hpp
     Utils/Moonraker.cpp
     Utils/Moonraker.hpp
+    Utils/MakerbotLink.cpp   # MakerBot / UltiMaker Fork
+    Utils/MakerbotLink.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp
@@ -658,6 +664,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/RaycastManager.hpp
     Utils/Repetier.cpp
     Utils/Repetier.hpp
+    Utils/UltimakerLink.cpp  # MakerBot / UltiMaker Fork
+    Utils/UltimakerLink.hpp
     Utils/Serial.cpp
     Utils/Serial.hpp
     Utils/SerialMessage.hpp
