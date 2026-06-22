@@ -28,6 +28,8 @@
 #include "SimplyPrint.hpp"
 #include "ElegooLink.hpp"
 #include "3DPrinterOS.hpp"
+#include "MakerbotLink.hpp"   // MakerBot / UltiMaker Fork
+#include "UltimakerLink.hpp"  // MakerBot / UltiMaker Fork
 #include "Moonraker.hpp"
 
 namespace fs = boost::filesystem;
@@ -70,8 +72,11 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htSimplyPrint: return new SimplyPrint(config);
             case htElegooLink: return new ElegooLink(config);
             case ht3DPrinterOS: return new C3DPrinterOS(config);
-            case htMoonraker: return new Moonraker(config);
-            default:          return nullptr;
+            case htMoonraker:      return new Moonraker(config);
+            // --- MakerBot / UltiMaker Fork ---
+            case htMakerbotLink:   return new MakerbotLink(config);
+            case htUltimakerLink:  return new UltimakerLink(config);
+            default:               return nullptr;
         }
     } else {
         return new SL1Host(config);
