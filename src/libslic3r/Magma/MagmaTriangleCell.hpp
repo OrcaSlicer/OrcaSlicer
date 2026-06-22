@@ -87,11 +87,17 @@ inline double cone_coverage_at_depth(double depth, double flat, double cone_half
     return flat + 2.0 * depth * std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
 }
 
-// Auto Z-slam depth: press just far enough to cover the opening, floored for
-// clean contact and clamped to the maximum slam.
+// Auto Z-slam depth: press far enough that the cone covers the opening *plus the
+// seal margin*, floored for clean contact and clamped to the maximum slam. We
+// solve for opening + MAGMA_SEAL_MARGIN (not the bare opening) so the auto depth
+// alone satisfies the same seal check Print::validate() runs -- otherwise auto
+// mode would warn against its own result whenever the plunge is thinner than the
+// margin. When the opening is so large the required depth exceeds MAGMA_SLAM_CLAMP,
+// the clamp caps it and the seal warning then fires legitimately.
 inline double auto_slam_depth(double opening_dia, double flat, double cone_half_angle_deg) {
     return std::min(MAGMA_SLAM_CLAMP,
-                    std::max(MAGMA_SLAM_FLOOR, seal_depth_for_opening(opening_dia, flat, cone_half_angle_deg)));
+                    std::max(MAGMA_SLAM_FLOOR,
+                             seal_depth_for_opening(opening_dia + MAGMA_SEAL_MARGIN, flat, cone_half_angle_deg)));
 }
 
 // Plunge depth clamped so slam + plunge stays within the total intrusion clamp.
