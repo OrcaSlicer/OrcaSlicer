@@ -28,6 +28,7 @@ using CellDifficultyMap = std::unordered_map<
 /// from the initial (unconstrained) heap build. Used by CP-SAT to decide which
 /// runs are safe for grid domain restriction (stagger).
 void greedy_warm_start(
+    const MagmaLattice                                                      &lattice,
     const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &cells,
     const std::vector<EdgeData>                                             &edges,
     const std::unordered_map<TriangleCell, std::vector<size_t>, TriangleCellHash> &cell_edges,

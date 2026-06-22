@@ -168,6 +168,7 @@ int count_unconsumed_layers(const Run &run,
 // ============================================================================
 
 void greedy_warm_start(
+    const MagmaLattice                                                      &lattice,
     const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &cells,
     const std::vector<EdgeData>                                             &edges,
     const std::unordered_map<TriangleCell, std::vector<size_t>, TriangleCellHash> &cell_edges,
@@ -193,10 +194,10 @@ void greedy_warm_start(
     // Score = sum of achievable tube heights across all neighbors (same as
     // build_heap below). Inverted to difficulty: 0 = easiest, higher = harder.
     //   difficulty = max_possible - score
-    //   max_possible = 3 × max_h_um  (3 neighbors, each offering max height)
+    //   max_possible = max_neighbors × max_h_um  (each neighbor offering max height)
     // ------------------------------------------------------------------
     if (out_difficulty) {
-        const int64_t max_possible = 3 * max_h_um;
+        const int64_t max_possible = int64_t(lattice.max_neighbors()) * max_h_um;
         CellConsumed empty_consumed; // empty — unconstrained baseline
 
         for (const auto &[cell, presence] : cells) {
@@ -399,8 +400,8 @@ void greedy_warm_start(
 
         int64_t tube_h = tube_end - tube_start;
         BOOST_LOG_TRIVIAL(debug) << "MagmaGreedy: assign #" << total_assigned
-            << " cell(" << entry.cell.a << "," << entry.cell.b << "," << (entry.cell.is_up()?"U":"D") << ")"
-            << " + nbr(" << best_neighbor.a << "," << best_neighbor.b << "," << (best_neighbor.is_up()?"U":"D") << ")"
+            << " cell(" << entry.cell.a << "," << entry.cell.b << "," << (lattice.is_up(entry.cell)?"U":"D") << ")"
+            << " + nbr(" << best_neighbor.a << "," << best_neighbor.b << "," << (lattice.is_up(best_neighbor)?"U":"D") << ")"
             << " edge=" << best_edge_idx
             << " h=" << tube_h/1000.0 << "mm"
             << " [" << tube_start/1000.0 << "-" << tube_end/1000.0 << "]"

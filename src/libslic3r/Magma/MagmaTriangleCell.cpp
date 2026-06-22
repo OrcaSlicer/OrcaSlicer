@@ -120,26 +120,26 @@ Vec2d TriangleLattice::cell_center(const TriangleCell& cell) const
     // Centroid of the triangle within the lattice parallelogram cell (a, b).
     // Up triangle vertices: lattice (a,b), (a+1,b), (a,b+1) → centroid at (a+1/3, b+1/3)
     // Down triangle vertices: lattice (a+1,b), (a,b+1), (a+1,b+1) → centroid at (a+2/3, b+2/3)
-    if (cell.is_up()) {
+    if (is_up(cell)) {
         return to_world(cell.a + 1.0 / 3.0, cell.b + 1.0 / 3.0);
     } else {
         return to_world(cell.a + 2.0 / 3.0, cell.b + 2.0 / 3.0);
     }
 }
 
-std::array<Vec2d, 3> TriangleLattice::cell_corners(const TriangleCell& cell) const
+std::vector<Vec2d> TriangleLattice::cell_corners(const TriangleCell& cell) const
 {
     // Use exact lattice vertex positions for correct geometry.
     // Up triangle at (a,b): vertices at lattice (a,b), (a+1,b), (a,b+1)
     // Down triangle at (a,b): vertices at lattice (a+1,b), (a,b+1), (a+1,b+1)
-    if (cell.is_up()) {
-        return {{ to_world(cell.a, cell.b),
-                  to_world(cell.a + 1, cell.b),
-                  to_world(cell.a, cell.b + 1) }};
+    if (is_up(cell)) {
+        return { to_world(cell.a, cell.b),
+                 to_world(cell.a + 1, cell.b),
+                 to_world(cell.a, cell.b + 1) };
     } else {
-        return {{ to_world(cell.a + 1, cell.b),
-                  to_world(cell.a, cell.b + 1),
-                  to_world(cell.a + 1, cell.b + 1) }};
+        return { to_world(cell.a + 1, cell.b),
+                 to_world(cell.a, cell.b + 1),
+                 to_world(cell.a + 1, cell.b + 1) };
     }
 }
 

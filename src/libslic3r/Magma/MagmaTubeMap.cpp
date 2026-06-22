@@ -500,12 +500,11 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
                 continue;
 
             // Boundary cell: compute actual tube area at spiral-offset position
-            std::array<Vec2d, 3> corners = layer_lattice.cell_corners(cell);
+            std::vector<Vec2d> corners = layer_lattice.cell_corners(cell);
             Polygon triangle;
-            triangle.points.reserve(3);
-            triangle.points.emplace_back(scale_(corners[0].x()), scale_(corners[0].y()));
-            triangle.points.emplace_back(scale_(corners[1].x()), scale_(corners[1].y()));
-            triangle.points.emplace_back(scale_(corners[2].x()), scale_(corners[2].y()));
+            triangle.points.reserve(corners.size());
+            for (const Vec2d &corner : corners)
+                triangle.points.emplace_back(scale_(corner.x()), scale_(corner.y()));
 
             ExPolygons inset = offset_ex(triangle, -scale_(half_line_width));
             if (inset.empty())
@@ -609,7 +608,10 @@ void MagmaTubeMap::detect_constrictions()
 
 void MagmaTubeMap::assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if_canceled)
 {
-    MagmaTubeSolver solver(m_cells, m_layer_data,
+    // Reference lattice for cell topology (neighbors/is_up). Offset-independent,
+    // so a zero-offset lattice serves every layer's connectivity queries.
+    TriangleLattice solver_lattice(m_cell_spacing, 0.0, 0.0);
+    MagmaTubeSolver solver(solver_lattice, m_cells, m_layer_data,
                            m_min_tube_height_mm, m_max_tube_height_mm,
                            m_num_layers, m_dodge_distance,
                            m_solver_mode, m_solver_timeout);
@@ -717,7 +719,7 @@ static WindowGaps compute_window_gaps_for_layer(
 
         switch (edge) {
         case SharedEdge::Horizontal: {
-            const TriangleCell &up = pair.cell_a.is_up() ? pair.cell_a : pair.cell_b;
+            const TriangleCell &up = lattice.is_up(pair.cell_a) ? pair.cell_a : pair.cell_b;
             int row = up.b;
             Vec2d v0 = lattice.to_world(up.a, row);
             Vec2d v1 = lattice.to_world(up.a + 1, row);
@@ -737,7 +739,7 @@ static WindowGaps compute_window_gaps_for_layer(
             break;
         }
         case SharedEdge::Diag120: {
-            const TriangleCell &up = pair.cell_a.is_up() ? pair.cell_a : pair.cell_b;
+            const TriangleCell &up = lattice.is_up(pair.cell_a) ? pair.cell_a : pair.cell_b;
             int diag = up.a + up.b + 1;
             Vec2d v0 = lattice.to_world(up.a + 1, up.b);
             Vec2d v1 = lattice.to_world(up.a, up.b + 1);
@@ -932,9 +934,9 @@ ExPolygons MagmaTubeMap::get_unfilled_cell_interiors(int layer_id) const
             continue;
 
         // Unfilled cell — build inset triangle at spiral-offset position
-        std::array<Vec2d, 3> corners = lattice.cell_corners(cell);
+        std::vector<Vec2d> corners = lattice.cell_corners(cell);
         Polygon triangle;
-        triangle.points.reserve(3);
+        triangle.points.reserve(corners.size());
         for (const Vec2d &c : corners)
             triangle.points.emplace_back(scale_(c.x()), scale_(c.y()));
 

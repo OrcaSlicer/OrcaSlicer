@@ -136,6 +136,7 @@ public:
     using ThrowIfCanceled = std::function<void()>;
 
     MagmaTubeSolver(
+        const MagmaLattice &lattice,
         const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &cells,
         const std::vector<LayerData> &layer_data,
         double min_tube_height_mm,
@@ -177,6 +178,9 @@ private:
                            TriangleCellHash> &out_index) const;
 
     // Input (const references — caller owns the data)
+    // Lattice supplies cell topology (neighbors/is_up); offset-independent, so
+    // any layer's lattice works for the solver's connectivity queries.
+    const MagmaLattice &m_lattice;
     const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &m_cells;
     const std::vector<LayerData> &m_layer_data;
 
@@ -201,7 +205,7 @@ private:
     int m_unknown_blocks = 0; // blocks that timed out with no solution
 
     // Per-cell per-layer difficulty from greedy's initial unconstrained scoring.
-    // 0 = easiest (3 neighbors at max_h), 3×max_h_um = hardest (no neighbors).
+    // 0 = easiest (max_neighbors at max_h), max_neighbors×max_h_um = hardest (no neighbors).
     // Kept for future use (not currently used for domain restriction).
     std::unordered_map<TriangleCell, std::vector<int64_t>, TriangleCellHash> m_cell_difficulty;
 

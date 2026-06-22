@@ -23,6 +23,7 @@ namespace magma {
 // ============================================================================
 
 MagmaTubeSolver::MagmaTubeSolver(
+    const MagmaLattice &lattice,
     const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &cells,
     const std::vector<LayerData> &layer_data,
     double min_tube_height_mm,
@@ -31,7 +32,8 @@ MagmaTubeSolver::MagmaTubeSolver(
     double dodge_distance_mm,
     MagmaTubeSolverMode mode,
     double solver_timeout_sec)
-    : m_cells(cells)
+    : m_lattice(lattice)
+    , m_cells(cells)
     , m_layer_data(layer_data)
     , m_min_h_mm(min_tube_height_mm)
     , m_max_h_mm(max_tube_height_mm)
@@ -63,7 +65,7 @@ void MagmaTubeSolver::solve(
     {
         const int64_t min_h_um = llround(m_min_h_mm * 1000.0);
         const int64_t max_h_um = llround(m_max_h_mm * 1000.0);
-        greedy_warm_start(m_cells, m_edges, m_cell_edges, m_um,
+        greedy_warm_start(m_lattice, m_cells, m_edges, m_cell_edges, m_um,
                           min_h_um, max_h_um, m_committed,
                           &m_cell_difficulty);
         validate_committed(m_edges, m_edge_index, m_committed, m_cells,
@@ -186,7 +188,7 @@ void MagmaTubeSolver::build_edges()
     std::unordered_set<CellEdge, CellEdgeHash> seen;
 
     for (const auto &[cell, presence] : m_cells) {
-        for (const TriangleCell &nbr : cell.neighbors()) {
+        for (const TriangleCell &nbr : m_lattice.neighbors(cell)) {
             if (m_cells.find(nbr) == m_cells.end())
                 continue;
             CellEdge edge(cell, nbr);
@@ -688,7 +690,7 @@ BlockResult MagmaTubeSolver::solve_block(const Block &block) const
         // Ring-0: edges involving this cell
         add_edges_for_cell(cell, 2);
         // Ring-1: edges involving neighbor cells
-        for (const TriangleCell &nbr : cell.neighbors())
+        for (const TriangleCell &nbr : m_lattice.neighbors(cell))
             add_edges_for_cell(nbr, 1);
 
         // Collect frozen boundaries: Ring-0 (demand=2) + Ring-1 (demand=1)
@@ -706,7 +708,7 @@ BlockResult MagmaTubeSolver::solve_block(const Block &block) const
 
         add_frozen_for_cell(cell, 2);
         // Ring-1: frozen boundaries from neighbor cells
-        for (const TriangleCell &nbr : cell.neighbors())
+        for (const TriangleCell &nbr : m_lattice.neighbors(cell))
             add_frozen_for_cell(nbr, 1);
 
         // Skip cells with too few boundaries to have meaningful stagger

@@ -5,12 +5,15 @@
 #include "../Point.hpp"
 #include "../BoundingBox.hpp"
 #include "MagmaGeometry.hpp"
+#include "MagmaCell.hpp"
+#include "MagmaLattice.hpp"
 
 #include <vector>
 #include <array>
 #include <cmath>
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 namespace Slic3r {
 namespace magma {
@@ -190,52 +193,12 @@ inline const MagmaGeometry& triangle_geometry() {
 // - Triangle side length = cell_spacing * 2 / sqrt(3)
 // - Triangle height (altitude) = cell_spacing
 //
-struct TriangleCell {
-    int a, b, c;  // Triangle coordinates
-
-    TriangleCell() : a(0), b(0), c(0) {}
-    TriangleCell(int a_, int b_, int c_) : a(a_), b(b_), c(c_) {}
-
-    // Check if this is an upward-pointing triangle (△)
-    bool is_up() const { return (a + b + c) == 2; }
-
-    bool operator==(const TriangleCell& other) const {
-        return a == other.a && b == other.b && c == other.c;
-    }
-
-    bool operator!=(const TriangleCell& other) const {
-        return !(*this == other);
-    }
-
-    bool operator<(const TriangleCell& o) const {
-        if (a != o.a) return a < o.a;
-        if (b != o.b) return b < o.b;
-        return c < o.c;
-    }
-
-    // Adjacent cells sharing an edge.
-    // Up triangle neighbors: decrement one coordinate by 1 → down triangles (sum=1).
-    // Down triangle neighbors: increment one coordinate by 1 → up triangles (sum=2).
-    std::array<TriangleCell, 3> neighbors() const {
-        if (is_up())
-            // Up (sum=2) neighbors are down triangles (sum=1)
-            return {{ {a-1,b,c}, {a,b-1,c}, {a,b,c-1} }};
-        else
-            // Down (sum=1) neighbors are up triangles (sum=2)
-            return {{ {a+1,b,c}, {a,b+1,c}, {a,b,c+1} }};
-    }
-};
-
-// Hash functor for TriangleCell, suitable for use in unordered containers.
-struct TriangleCellHash {
-    size_t operator()(const TriangleCell &c) const {
-        // Combine all three coordinates with bit mixing
-        size_t h = std::hash<int>()(c.a);
-        h ^= std::hash<int>()(c.b) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        h ^= std::hash<int>()(c.c) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        return h;
-    }
-};
+// Transitional aliases onto the generic CellId / CellIdHash (Phase 0b de-typing).
+// The triangle's (a, b, c) coordinates map directly onto CellId's first three
+// fields (kind unused). The cell's old is_up()/neighbors() methods now live on
+// TriangleLattice below — topology belongs to the lattice, not the cell id.
+using TriangleCell     = CellId;
+using TriangleCellHash = CellIdHash;
 
 // ============================================================================
 // TriangleLattice - Unified Coordinate System for Triangle Grid
@@ -252,7 +215,7 @@ struct TriangleCellHash {
 // This class bundles cell_spacing and spiral offset together, providing
 // all coordinate transformations needed for cell detection and window placement.
 
-class TriangleLattice {
+class TriangleLattice : public MagmaLattice {
 public:
     TriangleLattice() : m_cell_spacing(0), m_edge_length(0), m_offset_x(0), m_offset_y(0) {}
 
@@ -265,17 +228,44 @@ public:
     {}
 
     // Accessors
-    double cell_spacing() const { return m_cell_spacing; }
-    double edge_length() const { return m_edge_length; }
-    double offset_x() const { return m_offset_x; }
-    double offset_y() const { return m_offset_y; }
+    double cell_spacing() const override { return m_cell_spacing; }
+    double edge_length() const override { return m_edge_length; }
+    double offset_x() const override { return m_offset_x; }
+    double offset_y() const override { return m_offset_y; }
+
+    // ========================================================================
+    // Topology
+    // ========================================================================
+
+    // Edge-sharing neighbor count for the triangle grid.
+    int max_neighbors() const override { return 3; }
+
+    // Check if this is an upward-pointing triangle (△). Moved verbatim from the
+    // old TriangleCell::is_up(): up triangles have a + b + c == 2.
+    bool is_up(const TriangleCell& cell) const override {
+        return (cell.a + cell.b + cell.c) == 2;
+    }
+
+    // Adjacent cells sharing an edge. Moved verbatim from the old
+    // TriangleCell::neighbors().
+    // Up triangle neighbors: decrement one coordinate by 1 → down triangles (sum=1).
+    // Down triangle neighbors: increment one coordinate by 1 → up triangles (sum=2).
+    std::vector<TriangleCell> neighbors(const TriangleCell& cell) const override {
+        const int a = cell.a, b = cell.b, c = cell.c;
+        if (is_up(cell))
+            // Up (sum=2) neighbors are down triangles (sum=1)
+            return {{ {a-1,b,c}, {a,b-1,c}, {a,b,c-1} }};
+        else
+            // Down (sum=1) neighbors are up triangles (sum=2)
+            return {{ {a+1,b,c}, {a,b+1,c}, {a,b,c+1} }};
+    }
 
     // ========================================================================
     // Coordinate Transformations
     // ========================================================================
 
     // Convert lattice coordinates to world coordinates
-    Vec2d to_world(double lx, double ly) const {
+    Vec2d to_world(double lx, double ly) const override {
         return Vec2d(
             lx * m_edge_length + ly * m_edge_length * 0.5 + m_offset_x,
             ly * m_cell_spacing + m_offset_y
@@ -284,7 +274,7 @@ public:
 
     // Convert world coordinates to lattice coordinates
     // Returns (lattice_x, lattice_y) in the unshifted reference frame
-    std::pair<double, double> to_lattice(double px, double py) const {
+    std::pair<double, double> to_lattice(double px, double py) const override {
         double adjusted_x = px - m_offset_x;
         double adjusted_y = py - m_offset_y;
         double ly = adjusted_y / m_cell_spacing;
@@ -297,7 +287,7 @@ public:
     // ========================================================================
 
     // Get the triangle cell containing a world point
-    TriangleCell cell_at(double px, double py) const {
+    TriangleCell cell_at(double px, double py) const override {
         auto [lx, ly] = to_lattice(px, py);
 
         int col = static_cast<int>(std::floor(lx));
@@ -307,9 +297,9 @@ public:
         double fy = ly - row;
 
         // fx + fy < 1 means UP triangle, >= 1 means DOWN triangle
-        bool is_up = (fx + fy) < 1.0;
+        bool cell_is_up = (fx + fy) < 1.0;
 
-        int c = is_up ? (2 - col - row) : (1 - col - row);
+        int c = cell_is_up ? (2 - col - row) : (1 - col - row);
         return TriangleCell(col, row, c);
     }
 
@@ -318,15 +308,15 @@ public:
     // ========================================================================
 
     // Get the 3 corners of a cell in world coordinates
-    std::array<Vec2d, 3> cell_corners(const TriangleCell& cell) const;
+    std::vector<Vec2d> cell_corners(const TriangleCell& cell) const override;
 
     // Get the center of a cell in world coordinates
-    Vec2d cell_center(const TriangleCell& cell) const;
+    Vec2d cell_center(const TriangleCell& cell) const override;
 
     // Enumerate all unique cells within a bounding box.
     // Iterates lattice (col, row) coordinates covering the bbox,
     // generates both up and down triangles for each position.
-    std::vector<TriangleCell> enumerate_cells(const BoundingBox& bbox) const;
+    std::vector<TriangleCell> enumerate_cells(const BoundingBox& bbox) const override;
 
 private:
     double m_cell_spacing;
