@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 #include <cmath>
+#include <algorithm>
 #include <functional>
 
 namespace Slic3r {
@@ -45,6 +46,57 @@ inline double inset_triangle_area(double cell_spacing, double line_width) {
     double side = triangle_side_length(cell_spacing);
     double inset_side = side - line_width * SQRT3;
     return (inset_side > 0) ? (SQRT3 / 4.0) * inset_side * inset_side : 0.0;
+}
+
+// ============================================================================
+// Injection seal geometry (single source of truth: injection G-code + validation)
+// ============================================================================
+// The nozzle seals a tube opening when its flat tip -- and the cone above it,
+// once pressed down -- covers the opening. These helpers are shared by the
+// injection G-code that *applies* the slam/plunge and by Print::validate() that
+// *predicts* whether it will seal, so the two can never drift apart.
+
+constexpr double MAGMA_DEG2RAD           = 0.017453292519943295;
+constexpr double MAGMA_SLAM_CLAMP        = 3.5;  // max single z-slam depth (mm)
+constexpr double MAGMA_SLAM_PLUNGE_CLAMP = 4.0;  // max slam + plunge depth (mm)
+constexpr double MAGMA_SLAM_FLOOR        = 0.1;  // min auto-slam press for contact (mm)
+constexpr double MAGMA_SEAL_MARGIN       = 0.1;  // min opening coverage to predict a seal (mm)
+
+// Single resolver for the nozzle tip flat (magma_nozzle_outer_diameter). The user
+// should measure it (field tooltip says so); when left at 0 ("auto") we estimate
+// it from the bore. A typical brass nozzle's flat shoulder is roughly 3x the bore,
+// and using the same multiple here and in calculate_auto_interior_width keeps
+// full-auto mode self-consistent (opening and flat track each other, so it still
+// seals). This is the ONE place the fallback lives, so injection G-code and
+// Print::validate always agree; the seal check warns if the estimate can't seal.
+constexpr double MAGMA_FLAT_BORE_MULTIPLE = 3.0;
+inline double resolve_nozzle_flat(double configured_flat, double nozzle_diameter) {
+    return configured_flat > 0.0 ? configured_flat
+                                 : MAGMA_FLAT_BORE_MULTIPLE * nozzle_diameter;
+}
+
+// Depth the cone must descend so it widens from `flat` to cover `opening_dia`.
+inline double seal_depth_for_opening(double opening_dia, double flat, double cone_half_angle_deg) {
+    double tan_t = std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
+    double gap = opening_dia - flat;
+    return (gap > 0.0 && tan_t > 1e-6) ? gap / (2.0 * tan_t) : 0.0;
+}
+
+// Opening diameter the cone covers when pressed `depth` below the flat contact.
+inline double cone_coverage_at_depth(double depth, double flat, double cone_half_angle_deg) {
+    return flat + 2.0 * depth * std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
+}
+
+// Auto Z-slam depth: press just far enough to cover the opening, floored for
+// clean contact and clamped to the maximum slam.
+inline double auto_slam_depth(double opening_dia, double flat, double cone_half_angle_deg) {
+    return std::min(MAGMA_SLAM_CLAMP,
+                    std::max(MAGMA_SLAM_FLOOR, seal_depth_for_opening(opening_dia, flat, cone_half_angle_deg)));
+}
+
+// Plunge depth clamped so slam + plunge stays within the total intrusion clamp.
+inline double clamp_plunge_depth(double slam_depth, double plunge_depth) {
+    return std::min(std::max(0.0, plunge_depth), std::max(0.0, MAGMA_SLAM_PLUNGE_CLAMP - slam_depth));
 }
 
 // Auto-calculate interior width from nozzle diameter (fallback: 3× bore).

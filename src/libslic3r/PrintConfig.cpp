@@ -5675,7 +5675,7 @@ void PrintConfigDef::init_fff_params()
                      "the nozzle spirals inward over the injection point so the angled cone plows the "
                      "displaced rim back into the crater (pushing it in and down) and irons the surface "
                      "flat while scraping the nozzle clean, so it doesn't string plastic to the next "
-                     "tube. Replaces the old tube-end ironing.\n\n"
+                     "tube.\n\n"
                      "The nozzle hovers over neighbouring cells (so it never irons a neighbour's air "
                      "hole shut) and only presses down over its own crater.");
     def->mode = comAdvanced;
@@ -5909,9 +5909,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_injection_retract", coBool);
     def->label = L("Retract after injection");
     def->category = L("Strength");
-    def->tooltip = L("Retract the filament after each injection using your normal retraction "
-                     "settings. This reduces ooze and stringing while traveling between "
-                     "injection points.\n\n"
+    def->tooltip = L("After each injection the nozzle first lifts slightly to crack the seal at "
+                     "the tube top, then retracts -- so retraction pulls back through open air "
+                     "instead of sucking the freshly injected plug back up out of the tube. "
+                     "Reduces ooze and stringing on the travel to the next injection.\n\n"
                      "Uses the same retraction length and speed configured for your filament.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));

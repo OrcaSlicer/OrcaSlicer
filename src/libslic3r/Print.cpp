@@ -1422,7 +1422,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             double cell_sp = line_w * std::sqrt(3.0);  // approximate; actual uses interior_width
             // Use actual interior width if available for more accurate estimate
             double iw = rcfg.magma_interior_width.value;
-            if (iw <= 0) iw = nozzle_d * 3.0;  // auto default
+            if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
             cell_sp = iw + line_w * std::sqrt(3.0);
             double excess_frac = 3.0 * line_w / (4.0 * cell_sp);
             double corrected_w = line_w * (1.0 - excess_frac);
@@ -1490,28 +1490,37 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 break;
             }
 
-            // (2) Opening so much larger than the flat that auto Z-slam would crush.
-            if (obj_cfg.magma_injection_z_slam_auto.value) {
-                double flat = rcfg.magma_nozzle_outer_diameter.value;
-                if (flat <= 0.0) flat = 3.0 * nozzle_d;
+            // (2) Seal prediction: at its deepest (z-slam + plunge, clamped) does
+            // the nozzle cone widen enough to cover the tube opening with margin?
+            // This catches both an auto opening-too-big-for-the-flat (slam clamped)
+            // and a too-shallow manual z-slam. Uses the same seal math the injection
+            // G-code applies (MagmaTriangleCell.hpp) so the warning can't drift.
+            {
+                double flat = magma::resolve_nozzle_flat(rcfg.magma_nozzle_outer_diameter.value, nozzle_d);
                 double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
                 if (line_w <= 0) line_w = nozzle_d;
                 double iw = rcfg.magma_interior_width.value;
-                if (iw <= 0) iw = nozzle_d * 3.0;
+                if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
                 double cell_sp    = magma::cell_spacing_from_geometry(iw, line_w);
                 double inset_side = magma::triangle_side_length(cell_sp) - line_w * std::sqrt(3.0);
                 double opening    = inset_side > 0.0 ? 2.0 * inset_side / std::sqrt(3.0) : 0.0;
-                double cone_rad   = rcfg.magma_nozzle_cone_half_angle.value * 0.0174532925199433; // deg->rad
-                double z_needed   = (opening > flat && cone_rad > 1e-6)
-                    ? (opening - flat) / (2.0 * std::tan(cone_rad)) : 0.0;
-                if (z_needed > 0.5) {
+                double cone_deg   = rcfg.magma_nozzle_cone_half_angle.value;
+
+                double slam = obj_cfg.magma_injection_z_slam_auto.value
+                    ? magma::auto_slam_depth(opening, flat, cone_deg)
+                    : std::min(obj_cfg.magma_injection_z_slam.value, magma::MAGMA_SLAM_CLAMP);
+                double plunge = obj_cfg.magma_injection_plunge.value
+                    ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value) : 0.0;
+                double covered = magma::cone_coverage_at_depth(slam + plunge, flat, cone_deg);
+
+                if (opening > 0.0 && covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
                     if (warning) {
                         warning->string = Slic3r::format(
-                            L("Magma tube opening (%.2f mm) is much larger than the nozzle flat "
-                              "(%.2f mm): auto Z-slam would press %.2f mm to seal it, likely crushing "
-                              "the print. Reduce the injection tube width or use a nozzle with a "
-                              "larger flat."),
-                            opening, flat, z_needed);
+                            L("Magma injection may not seal: at its deepest the nozzle covers only "
+                              "%.2f mm (Z-slam %.2f + plunge %.2f mm) but the tube opening is %.2f mm. "
+                              "Increase the Z-slam or plunge depth, reduce the injection tube width, or "
+                              "use a nozzle with a larger flat."),
+                            covered, slam, plunge, opening);
                         warning->object = object;
                         warning->is_warning = true;
                     }

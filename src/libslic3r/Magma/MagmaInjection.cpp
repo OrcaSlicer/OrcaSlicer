@@ -205,33 +205,26 @@ std::string generate_injection_gcode(
     double filament_diameter = config.filament_diameter.get_at(extruder_id);
     double filament_area = (PI / 4.0) * filament_diameter * filament_diameter;
 
-    // Resolve Z-slam depth: auto-derive from nozzle cone geometry, or use the
-    // manual value. Auto presses just far enough that the cone above the flat
-    // widens to cover the tube opening: z = (opening - flat) / (2*tan(half_angle)),
-    // with a 0.1mm floor for seal contact even when the flat already covers it.
+    // Resolve Z-slam depth: auto-derive from nozzle cone geometry (cone widens
+    // from the flat to cover the opening), or use the manual value. The seal math
+    // lives in MagmaTriangleCell.hpp so the injection here and Print::validate()
+    // stay in lockstep.
+    double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
+                                           config.nozzle_diameter.get_at(extruder_id));
     if (config.magma_injection_z_slam_auto.value) {
-        double opening = tube_map.tube_opening_diameter();
-        double flat    = config.magma_nozzle_outer_diameter.value;
-        if (flat <= 0.0)
-            flat = 3.0 * config.nozzle_diameter.get_at(extruder_id);  // matches auto tube-sizing fallback
-        double half_angle_rad = config.magma_nozzle_cone_half_angle.value * PI / 180.0;
-        double gap = opening - flat;
-        double computed = (gap > 0.0 && half_angle_rad > 1e-6)
-                              ? gap / (2.0 * std::tan(half_angle_rad)) : 0.0;
-        slam_depth = std::max(0.1, computed);
+        slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
+                                     config.magma_nozzle_cone_half_angle.value);
     } else {
-        slam_depth = config.magma_injection_z_slam.value;
+        slam_depth = std::min(config.magma_injection_z_slam.value, MAGMA_SLAM_CLAMP);
     }
-    slam_depth = std::min(slam_depth, 3.5);
 
     // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
     // tip sinks into the softening tube top and keeps the seal pressed shut as the
-    // channel fills. Ramps from slam_depth to slam_depth + plunge_depth; clamp the
-    // total so we never drive absurdly far into the part.
+    // channel fills. Ramps from slam_depth to slam_depth + plunge_depth, clamped so
+    // the total intrusion stays bounded.
     double plunge_depth = config.magma_injection_plunge.value
-                              ? std::max(0.0, config.magma_injection_plunge_depth.value)
+                              ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
                               : 0.0;
-    plunge_depth = std::min(plunge_depth, std::max(0.0, 4.0 - slam_depth));
 
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
     // Injection volume is geometrically computed from tube dimensions; applying
@@ -383,17 +376,27 @@ std::string generate_injection_gcode(
             // neighbouring cells (so it never irons a neighbour's air hole shut)
             // and only descends to layer height over our own crater.
 
+            // Classify the pass for the preview. Role = Ironing: this is a special
+            // ironing finish, not an injection, so it shouldn't carry the injection
+            // role. WIPE markers wrap the moves so the processor registers them as
+            // the "Wipe" move type (its own preview toggle) rather than lumping these
+            // non-extruding plow moves under the injection role -- role and move-type
+            // are independent in the viewer, and a non-extruding clean-up reads
+            // naturally as a wipe. Only the injection extrusion stays Magma injection.
+            sprintf(buf, ";%s%s\n",
+                    GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
+                    ExtrusionEntity::role_to_string(erIroning).c_str());
+            gcode += buf;
+            gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start) + "\n";
+
             // Centre = current nozzle XY (the injection point). All spiral points
             // are computed relative to it, in G-code (origin-applied) coordinates.
             Vec2d c(gcodegen.writer().get_position().x(),
                     gcodegen.writer().get_position().y());
 
-            // Nozzle geometry: r_flat = radius of the flat tip; the cone above it
-            // rises at cone_rad from vertical.
-            double nozzle_flat = config.magma_nozzle_outer_diameter.value > 0.0
-                ? config.magma_nozzle_outer_diameter.value
-                : 3.0 * config.nozzle_diameter.get_at(extruder_id);  // fallback: 3x bore
-            double r_flat   = nozzle_flat / 2.0;
+            // Nozzle geometry: r_flat = radius of the flat tip (resolved once above);
+            // the cone above it rises at cone_rad from vertical.
+            double r_flat   = seal_flat / 2.0;
             double cone_rad = config.magma_nozzle_cone_half_angle.value * PI / 180.0;
 
             // R_open = our tube opening's vertex radius (inset/hollow triangle, so
@@ -420,20 +423,32 @@ std::string generate_injection_gcode(
 
             double hover_z  = layer_z + wipe_hover;                   // height while hovering
             int    wf       = std::max(60, (int)(wipe_speed_mms * 60.0));  // mm/s -> mm/min
-            const int seg_per_rev = 16;                              // spiral smoothness
-            int    total    = std::max(1, wipe_turns * seg_per_rev);
+            const int seg_per_rev = 16;                              // circle smoothness
+
+            // Z is a STEP, not a ramp: press flat ON the surface (layer height)
+            // everywhere it is safe (inside the neighbour-clear cap), and only
+            // hover above the surface where the flat would otherwise reach a
+            // neighbour's air hole (rad > cap), or always if cap <= 0 (no room).
+            auto iron_z = [&](double rad) {
+                return (cap > 0.0 && rad <= cap) ? layer_z : hover_z;
+            };
+            auto emit_iron = [&](double rad, double ang, const char* tag) {
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; %s\n",
+                        c.x() + rad * std::cos(ang), c.y() + rad * std::sin(ang),
+                        iron_z(rad), wf, tag);
+                gcode += buf;
+            };
+
+            // One full rotation at the start radius first, to shear/plow the whole
+            // rim evenly before converging (avoids dragging a wad inward).
+            for (int s = 1; s <= seg_per_rev; ++s)
+                emit_iron(start_R, double(s) / double(seg_per_rev) * 2.0 * PI, "crater iron rim");
+
+            // Then spiral inward to the centre.
+            int total = std::max(1, wipe_turns * seg_per_rev);
             for (int s = 1; s <= total; ++s) {
                 double frac = double(s) / double(total);            // 0..1, outer -> centre
-                double rad  = start_R * (1.0 - frac);               // shrink radius to 0
-                double ang  = frac * wipe_turns * 2.0 * PI;         // wipe_turns revolutions
-                // Z: hover above neighbour territory; once inside cap, ramp linearly
-                // from hover_z down to layer height (full press) as radius -> 0.
-                double z    = (rad > cap || cap <= 0.0)
-                                  ? hover_z
-                                  : hover_z + (layer_z - hover_z) * ((cap - rad) / cap);
-                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron\n",
-                        c.x() + rad * std::cos(ang), c.y() + rad * std::sin(ang), z, wf);
-                gcode += buf;
+                emit_iron(start_R * (1.0 - frac), frac * wipe_turns * 2.0 * PI, "crater iron");
             }
             // One short stroke across the centre to flatten the gathered mound,
             // only where we can actually press (cap > 0, i.e. there is room).
@@ -447,6 +462,7 @@ std::string generate_injection_gcode(
             // its path/avoid-crossing from the right spot.
             sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron end\n", c.x(), c.y(), layer_z, wf);
             gcode += buf;
+            gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End) + "\n";
             gcodegen.writer().set_position(Vec3d(c.x(), c.y(), layer_z));
         } else {
             // No wipe: just return to layer height and resync the writer's Z.
