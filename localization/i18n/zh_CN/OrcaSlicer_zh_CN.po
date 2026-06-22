@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -93,11 +93,11 @@ msgstr "版本："
 msgid "Latest version"
 msgstr "最新版本"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "支撑绘制"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "应用"
 
@@ -107,7 +107,7 @@ msgstr "仅对高亮悬垂区生效"
 msgid "Erase all"
 msgstr "全部擦除"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "高亮悬垂区域"
 
@@ -178,7 +178,7 @@ msgstr "无自动支撑"
 msgid "Done"
 msgstr "完成"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "已生成支撑"
 
@@ -194,7 +194,7 @@ msgstr "手绘支撑编辑"
 msgid "Gizmo-Place on Face"
 msgstr "选择底面"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "选择底面"
 
@@ -202,7 +202,7 @@ msgstr "选择底面"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "耗材丝数量超过涂色工具支持的最大值，仅前%1%个耗材丝可在涂色工具中使用。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "涂色"
 
@@ -369,34 +369,34 @@ msgstr "旋转（相对）"
 msgid "Scale ratios"
 msgstr "缩放比例"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "对象操作"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "零件操作"
 
 msgid "Translate"
 msgstr "平移"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "组操作"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "设置方向"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "设置缩放"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "重置位置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "重置旋转"
 
@@ -689,7 +689,7 @@ msgstr "连接件"
 msgid "Cut by Plane"
 msgstr "按平面切割"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "因切割产生了非流形边，您是否想现在修复？"
 
@@ -758,7 +758,7 @@ msgstr "%d 个三角形"
 msgid "Show wireframe"
 msgstr "显示线框"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "处理预览的过程中无法应用。"
 
@@ -783,7 +783,7 @@ msgstr "Z缝绘制"
 msgid "Remove selection"
 msgstr "移除绘制"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "进入Z缝绘制"
 
@@ -807,7 +807,7 @@ msgstr "文字间距"
 msgid "Angle"
 msgstr "角度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Embedded depth"
 msgstr "内嵌深度"
 
@@ -1608,7 +1608,7 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "通知"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "未定义"
 
@@ -1631,11 +1631,12 @@ msgstr "耗材丝"
 msgid "Machine"
 msgstr "打印机"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "配置包已被加载，但部分数值未被识别。"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "配置文件“%1%”已被加载，但部分数值未被识别。"
 
@@ -1815,7 +1816,7 @@ msgstr ""
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "您可以保留未保存修改的预设应用到新项目中，或者选择忽略。"
 
@@ -2028,7 +2029,8 @@ msgstr "重命名"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "逆戟鲸切片器图形界面初始化失败"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "致命错误，捕获到异常：%1%"
 
@@ -2053,22 +2055,22 @@ msgstr "速度"
 msgid "Strength"
 msgstr "强度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "顶部壳体层数"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "顶部外壳最小厚度"
 
 msgid "Top Surface Density"
 msgstr "顶面密度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "底部实心层"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "底部外壳最小厚度"
 
@@ -2078,14 +2080,14 @@ msgstr "底面密度"
 msgid "Ironing"
 msgstr "熨烫"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fuzzy skin"
 msgstr "绒毛表面"
 
 msgid "Extruders"
 msgstr "挤出机"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "挤出宽度"
 
@@ -2095,23 +2097,23 @@ msgstr "擦除选项"
 msgid "Bed adhesion"
 msgstr "热床粘接"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "添加部件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "添加负零件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "添加修改器"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "添加支撑屏蔽器"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "添加支撑生成器"
 
@@ -2214,15 +2216,15 @@ msgstr "建议"
 msgid "Text"
 msgstr "文字浮雕"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "高度范围修改器"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "添加设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "更改类型"
 
@@ -2238,11 +2240,11 @@ msgstr "支撑添加器"
 msgid "Change part type"
 msgstr "选择零件类型"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "设置为独立对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "设置为独立对象"
 
@@ -2261,7 +2263,7 @@ msgstr "自动落板"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "自动将选中的对象落到打印板上"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "修复模型"
 
@@ -2332,19 +2334,19 @@ msgstr "冲刷到对象的支撑"
 msgid "Edit in Parameter Table"
 msgstr "在参数表格中编辑"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "从英寸转换"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "恢复到英寸"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "从米转换"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "恢复到米"
 
@@ -2360,31 +2362,31 @@ msgstr "网格布尔运算"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "包括并集和差集的网格布尔运算"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "沿 X 轴"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "沿X轴镜像"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "沿 Y 轴"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "沿Y轴镜像"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "沿 Z 轴"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "沿Z轴镜像"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "镜像对象"
 
@@ -2415,14 +2417,14 @@ msgstr "添加模型"
 msgid "Show Labels"
 msgstr "显示标签"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "拆分到对象"
 
 msgid "Split the selected object into multiple objects"
 msgstr "拆分所选对象为多个对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "到零件"
 
@@ -2450,7 +2452,7 @@ msgstr "与其合并"
 msgid "Delete this filament"
 msgstr "移除此耗材"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "全选"
 
@@ -2463,7 +2465,7 @@ msgstr "全选所有打印板"
 msgid "Select all objects on all plates"
 msgstr "选择所有打印板上的所有对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "删除所有"
 
@@ -2593,25 +2595,25 @@ msgstr[0] "%1$d 存在非流形边"
 msgid "Click the icon to repair model object"
 msgstr "点击图标修复模型对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "右键点击此图标以舍弃对象的设置"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "点击此图标可重置对象的所有设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "右键点击此图标以舍弃对象的可打印属性"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "点击此图标可切换这个对象的可打印属性"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "点击此图标可编辑这个对象的支撑绘制"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "点击此图标可编辑这个对象的颜色绘制"
 
@@ -2651,7 +2653,7 @@ msgstr "删除的负体积属于切割对象的一部分"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "为保证切割关系，您可以将所有关联对象的连接件一起删除。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2683,15 +2685,15 @@ msgstr "操作对象"
 msgid "Group manipulation"
 msgstr "操作组"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "要修改的对象设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "要修改的零件设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "要修改的图层范围设置"
 
@@ -2719,7 +2721,7 @@ msgstr "如果第一个选择的是对象，那么第二个选择的也必须是
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "如果第一个选择的是零件，那么第二个选择的也必须是同一个对象中的零件。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "不允许修改对象中最后一个实体零件的类型。"
 
@@ -2836,19 +2838,19 @@ msgstr "走线类型"
 msgid "1x1 Grid: %d mm"
 msgstr "1x1 网格：%d mm"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "详情"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "打开首选项"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "打开下一条提示"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "在网页浏览器中打开文档。"
 
@@ -2879,11 +2881,11 @@ msgstr "自定义G-code"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "输入当前层上使用的自定义G-code："
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "跳转到层"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "请输入层数"
 
@@ -2962,14 +2964,14 @@ msgstr "连接中..."
 msgid "Auto Refill"
 msgstr "自动补给"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "进料"
 
 msgid "Unload"
 msgstr "退料"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "选择一个AMS槽位，然后点击“进料”或“退料”按钮以自动进退料。"
 
@@ -3079,7 +3081,7 @@ msgstr "加热喷嘴"
 msgid "Cut filament"
 msgstr "切断耗材丝"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "抽回耗材丝"
 
@@ -3119,7 +3121,7 @@ msgstr "已选择全部项目……"
 msgid "No matching items..."
 msgstr "没有匹配的项目……"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "全部取消选中"
 
@@ -3174,7 +3176,7 @@ msgstr "自动摆放"
 msgid "Arranging canceled."
 msgstr "已取消自动摆放。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "已完成自动摆放，但是有未被摆到盘内的项，可在减小间距后重试。"
 
@@ -3242,7 +3244,7 @@ msgstr "登录失败"
 msgid "Please check the printer network connection."
 msgstr "请检查打印机的网络连接。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "打印文件数据异常，请重新切片"
 
@@ -3255,7 +3257,7 @@ msgstr "上传任务超时，请排查网络状态后重试。"
 msgid "Cloud service connection failed. Please try again."
 msgstr "云服务连接失败，请重试"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "未找到打印文件，请重新切片。"
 
@@ -3268,18 +3270,18 @@ msgstr "无法发送打印任务，请重试。"
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "上传文件至FTP失败，请重试。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "点击上方的链接检查Bambu服务器的当前状态。"
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "打印文件的大小过大，请调整文件大小后重试。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "未找到打印文件，请重新切片后再发送打印。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "无法将打印文件上传至FTP。请检查网络状态并重试。"
 
@@ -3331,7 +3333,7 @@ msgstr "存储状态遇到未知错误，请重试。"
 msgid "Sending G-code file over LAN"
 msgstr "通过局域网发送G-code文件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "发送G-code文件到SD卡"
 
@@ -3402,7 +3404,7 @@ msgstr "剩余时间：%dmin%ds"
 msgid "Importing SLA archive"
 msgstr "导入SLA存档"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "SLA存档不包含任何预设。在导入该SLA存档之前，请先激活一些SLA打印机预设。"
 
@@ -3415,7 +3417,7 @@ msgstr "导入完成。"
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "导入的SLA存档不包含任何预设。当前的SLA预设被用作备用选项。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "您不能加载一个在床上有多个部件的SLA项目"
 
@@ -3443,7 +3445,7 @@ msgstr "安装中"
 msgid "Install failed"
 msgstr "安装失败"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "License Info"
 msgstr "部分版权"
 
@@ -3557,7 +3559,7 @@ msgstr "其他颜色"
 msgid "Custom Color"
 msgstr "自定义颜色"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "动态流量校准"
 
@@ -3567,7 +3569,7 @@ msgstr "喷嘴温度和最大体积流量会影响到校准结果，请填写与
 msgid "Nozzle Diameter"
 msgstr "喷嘴直径"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "热床类型"
 
@@ -3589,7 +3591,7 @@ msgstr "热床温度"
 msgid "mm³"
 msgstr "立方毫米"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Start"
 msgstr "开始"
 
@@ -3602,7 +3604,7 @@ msgstr "校准完成。如下图中的示例，请在您的热床上找到最均
 msgid "Save"
 msgstr "保存"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "背面"
 
@@ -3700,18 +3702,18 @@ msgstr "注意：只能选择加载耗材丝的插槽。"
 msgid "Enable AMS"
 msgstr "启用AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "采用AMS里的材料打印"
 
 msgid "Disable AMS"
 msgstr "不启用AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
 msgstr "使用机箱背后挂载的材料打印"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "当干燥剂过于潮湿时,请及时更换。以下几种情况下,指示器可能无法准确反映情况:盖子打开或干燥剂包被替换时。干燥剂需要数小时吸收潮气,低温也会延缓该过程。"
 
@@ -3730,11 +3732,11 @@ msgstr "点击以手动选择AMS槽位"
 msgid "Do not Enable AMS"
 msgstr "不启用AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print using filament on external spool."
 msgstr "使用安装在机箱背面的材料进行打印"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "采用AMS里的材料打印"
 
@@ -3759,7 +3761,7 @@ msgstr "若当前耗材用尽，打印机将选用相同耗材继续打印。"
 msgid "The printer does not currently support auto refill."
 msgstr "打印机当前不支持自动补给耗材。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "AMS耗材备份未启用，请在AMS设置中启用。"
 
@@ -3780,7 +3782,7 @@ msgstr "AMS 设置"
 msgid "Insertion update"
 msgstr "插入料时更新"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "当插入新的Bambu Lab耗材丝的时候，AMS会自动读取耗材丝信息。这个过程大约需要20秒。"
 
@@ -3790,11 +3792,11 @@ msgstr "注意：如果是在打印过程中插入新的耗材丝，AMS会在打
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "在插入一卷新料时，AMS将不会自动读取料卷信息，预留一个空的料卷信息等待您手动输入。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "开机时检测"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "每次开机时，AMS将会自动读取其所插入的耗材信息(读取过程会转料卷)。需要花时大约1分钟。"
 
@@ -3849,7 +3851,7 @@ msgstr "校准"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "插件下载失败。请检查您的防火墙设置和vpn软件,检查后重试。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "插件安装失败。插件文件可能正在使用中。请重新启动 OrcaSlicer 后重试。同时检查是否被杀毒软件阻止或删除。"
 
@@ -3871,7 +3873,7 @@ msgstr "）操作以定位当前工具头位置，以防止轴移动时超出边
 msgid "Go Home"
 msgstr "回原点"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "发生错误。可能系统内存不足或者程序存在bug。"
 
@@ -3879,11 +3881,11 @@ msgstr "发生错误。可能系统内存不足或者程序存在bug。"
 msgid "A fatal error occurred: \"%1%\""
 msgstr "发生致命错误：\"%1%\""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "请保存项目并重启程序。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "从之前的文件加载G-code..."
 
@@ -3948,7 +3950,7 @@ msgstr "临时 G-Code 的复制已完成，但在复制检查期间无法打开�
 msgid "G-code file exported to %1%"
 msgstr "G 代码文件导出到 %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "导出G-code文件发生未知错误。"
 
@@ -3962,7 +3964,7 @@ msgstr ""
 "错误信息：%1%。\n"
 "源文件 %2%."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "将临时 G 代码复制到输出 G 代码失败"
 
@@ -4009,14 +4011,14 @@ msgstr "选择热床形状的 STL 文件："
 msgid "Invalid file format."
 msgstr "无效的文件格式。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "错误！无效模型"
 
 msgid "The selected file contains no geometry."
 msgstr "所选文件不包含任何几何数据。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "所选文件包含多个未连接的区域。不支持这种类型。"
 
@@ -4043,7 +4045,7 @@ msgstr "推荐最低温度不能大于推荐最高温度。\n"
 msgid "Please check.\n"
 msgstr "请检查。\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4057,7 +4059,7 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "该耗材的推荐喷嘴温度是[%d, %d]摄氏度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4065,17 +4067,18 @@ msgstr ""
 "最大体积流量设置过小\n"
 "重置为0.5"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "当前腔体温度高于材料的安全温度，这可能导致材料软化和堵塞。该材料的最高安全温度为 %d。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
 msgstr "层高过小。将重置为0.2"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4090,7 +4093,7 @@ msgstr ""
 "\n"
 "首层层高将被重置为0.2。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4103,7 +4106,7 @@ msgstr ""
 "\n"
 "这个数值将被重置为0。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4195,7 +4198,7 @@ msgstr "螺旋模式仅在壁环为 1、支撑被禁用、探测结块检测被�
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr "但是使用I3结构的机器将不会生成延时视频。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4566,7 +4569,7 @@ msgstr "预设"
 msgid "Print settings"
 msgstr "打印设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "耗材丝设置"
 
@@ -4591,7 +4594,8 @@ msgstr "空字符串"
 msgid "Value is out of range."
 msgstr "值越界。"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s 不可以是百分比"
 
@@ -4831,7 +4835,7 @@ msgstr "擦料塔"
 msgid "Total"
 msgstr "总计"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "总预估"
 
@@ -4910,11 +4914,11 @@ msgstr "从"
 msgid "Usage"
 msgstr "用法"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "层高（mm）"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "线宽（mm）"
 
@@ -4930,7 +4934,7 @@ msgstr "加速度 (mm/s²)"
 msgid "Jerk (mm/s)"
 msgstr "抖动 (mm/s)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "风扇速度（%）"
 
@@ -4946,7 +4950,7 @@ msgstr "实际体积流量（mm³/s）"
 msgid "Seams"
 msgstr "缝"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "材料切换"
 
@@ -4971,7 +4975,7 @@ msgstr "颜色更换"
 msgid "Print"
 msgstr "打印"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "打印机"
 
@@ -5089,18 +5093,18 @@ msgstr "左喷嘴：X：%1%-%2%，Y：%3%-%4%，Z：%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右喷嘴：X：%1%-%2%，Y：%3%-%4%，Z：%5%-%6%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "工具 移动"
 
 msgid "Tool Rotate"
 msgstr "工具 旋转"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "移动对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "自动朝向选项"
 
@@ -5233,7 +5237,7 @@ msgstr "爆炸比例"
 msgid "Section View"
 msgstr "剖面视图"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "拼装视图控制"
 
@@ -5262,7 +5266,7 @@ msgstr "检测到有对象放在盘的边界上。"
 msgid "A G-code path goes beyond the max print height."
 msgstr "检测出超出打印高度的G-code路径。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "检测超出热床边界的G-code路径。"
 
@@ -5323,7 +5327,7 @@ msgstr "校准步骤选择"
 msgid "Micro lidar calibration"
 msgstr "微激光雷达校准"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "热床调平"
 
@@ -5402,7 +5406,7 @@ msgstr ""
 "您可以在“设置 > 设置 > 仅 LAN > 访问代码”中找到它\n"
 "在打印机上，如图："
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "非法输入"
 
@@ -5412,7 +5416,7 @@ msgstr "新窗口"
 msgid "Open a new window"
 msgstr "打开新窗口"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "正在关闭应用程序"
 
@@ -5661,7 +5665,7 @@ msgstr "粘贴"
 msgid "Paste clipboard"
 msgstr "从剪贴板粘贴"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "删除所选项"
 
@@ -5671,7 +5675,7 @@ msgstr "删除当前所选项"
 msgid "Deletes all objects"
 msgstr "删除所有对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "克隆所选项"
 
@@ -5835,11 +5839,13 @@ msgstr "视图"
 msgid "&Help"
 msgstr "帮助"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "存在同名文件：%s，是否要覆盖？"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "存在同名配置：%s，是否要覆盖？"
 
@@ -5863,7 +5869,7 @@ msgid "There is %d config exported. (Only non-system configs)"
 msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "共导出 %d 组预设（仅包含当前使用的非系统的预设）"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "导出结果"
 
@@ -5913,7 +5919,7 @@ msgstr "设备无法处理更多的对话。请稍后重试。"
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "播放器异常，请重新安装系统播放器。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "未能加载播放器，请重新点击“播放”按钮。"
 
@@ -5935,7 +5941,7 @@ msgstr "出现了一些问题。请更新打印机固件后重试。"
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "局域网模式直播未开启，请前往打印机屏幕开启。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "请输入打印机IP后尝试连接。"
 
@@ -6233,7 +6239,7 @@ msgstr "在线"
 msgid "Input access code"
 msgstr "输入访问码"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "找不到我的设备？"
 
@@ -6258,15 +6264,15 @@ msgstr "非法字符："
 msgid "illegal suffix:"
 msgstr "非法后缀："
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "名称不允许为空。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "名称不允许以空格开头。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "名称不允许以空格结尾。"
 
@@ -6289,7 +6295,7 @@ msgstr "交换..."
 msgid "Switching failed"
 msgstr "切换失败"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "打印进度"
 
@@ -6308,7 +6314,7 @@ msgstr "点击查看热预处理说明"
 msgid "Clear"
 msgstr "清除"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6395,7 +6401,8 @@ msgstr "下载中..."
 msgid "Cloud Slicing..."
 msgstr "云切片中..."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "前面还有%s个任务在云端切片队列中"
 
@@ -6419,7 +6426,7 @@ msgstr "如果箱内温度超过 40℃，系统将自动切换至加热模式。
 msgid "Please select an AMS slot before calibration"
 msgstr "请先选择一个AMS槽位后进行校准"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "无法读取耗材丝信息：耗材丝已经加载到工具头，请退出耗材丝后再重试。"
 
@@ -6649,7 +6656,7 @@ msgstr "不再显示此对话框？"
 msgid "3D Mouse disconnected."
 msgstr "3D鼠标断连。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A new configuration is available. Update now?"
 msgstr "配置现在可以升级。"
 
@@ -6674,15 +6681,15 @@ msgstr "有新的打印机配置可用。"
 msgid "Undo integration failed."
 msgstr "集成取消失败。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "正在导出。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "发现新的软件版本。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "前往下载网站。"
 
@@ -6804,7 +6811,7 @@ msgstr "底部"
 msgid "Enable detection of build plate position"
 msgstr "启用打印板位置检测"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "检测打印板的定位标记，如果标记不在预定义范围内时暂停打印。"
 
@@ -6850,7 +6857,7 @@ msgstr "检测由于喷嘴堵塞或耗材丝研磨造成的空打。"
 msgid "First Layer Inspection"
 msgstr "首层扫描"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "自动从丢步中恢复"
 
@@ -6863,7 +6870,7 @@ msgstr "将 Bambu Studio、Bambu Handy 和 MakerWorld 启动的打印文件保�
 msgid "Allow Prompt Sound"
 msgstr "允许提示音"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "缠料检测"
 
@@ -7121,18 +7128,18 @@ msgstr "卸载成功。设备%s(%s)现在可能安全地从电脑移除。"
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "弹出设备%s(%s)失败"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "检测到有未保存的项目，是否恢复此项目？"
 
 msgid "Restore"
 msgstr "恢复"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "当前热床温度相对较高。在封闭式外壳中打印这种丝可能会导致喷嘴堵塞。请打开前门和/或取下上部玻璃。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "打印丝所要求的喷嘴硬度高于打印机默认的喷嘴硬度。请更换硬化的喷嘴或打印丝，否则喷嘴可能被磨损或损坏。"
 
@@ -7183,7 +7190,7 @@ msgstr "您是否希望 OrcaSlicer 清除旋转模板设置以自动修复此问
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "该 3MF 文件版本 %s 比 %s 的版本 %s 新，发现以下无法识别的参数键值："
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "建议升级您的软件版本。\n"
 
@@ -7205,7 +7212,7 @@ msgstr "该 3MF 由 BambuStudio 创建。部分设置可能与 OrcaSlicer 不同
 msgid "Invalid values found in the 3MF:"
 msgstr "在3mf文件中发现无效值："
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "请在参数页更正它们"
 
@@ -7227,11 +7234,11 @@ msgstr "请确认这些预设中的G-codes是否安全，以防止对机器造�
 msgid "Customized Preset"
 msgstr "自定义的预设"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "STEP 文件中的部件名称不是 UTF8 格式！"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "此名称可能显示乱码字符！"
 
@@ -7248,7 +7255,8 @@ msgstr "体积为零的对象已被移除"
 msgid "The volume of the object is zero"
 msgstr "对象的体积为零"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7259,7 +7267,7 @@ msgstr ""
 msgid "Object too small"
 msgstr "对象尺寸过小"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7274,7 +7282,7 @@ msgstr "检测到多部分对象"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "将这些文件加载为一个多零件对象？\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "检测到多零件对象"
 
@@ -7309,14 +7317,15 @@ msgstr "导出德拉科文件："
 msgid "Export AMF file:"
 msgstr "导出AMF文件："
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "文件另存为："
 
 msgid "Export OBJ file:"
 msgstr "导出OBJ文件："
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7330,7 +7339,7 @@ msgstr "确认另存为"
 msgid "Delete object which is a part of cut object"
 msgstr "删除切割对象的一部分"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7352,7 +7361,7 @@ msgstr "有其他导出任务正在进行中。"
 msgid "Unable to replace with more than one volume"
 msgstr "超过1个零件，无法替换"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "替换时发生错误"
 
@@ -7362,7 +7371,7 @@ msgstr "替换："
 msgid "Select a new file"
 msgstr "选择新文件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "未选择替换文件"
 
@@ -7453,7 +7462,7 @@ msgstr ""
 msgid "Sync now"
 msgstr "立即同步"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "您可以保留修改的预设到新项目中或者忽略这些修改"
 
@@ -7463,7 +7472,7 @@ msgstr "创建新项目"
 msgid "Load project"
 msgstr "加载项目"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7478,14 +7487,14 @@ msgstr "正在导入模型"
 msgid "Preparing 3MF file..."
 msgstr "正在准备 3MF 文件..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "下载失败，未知文件格式。"
 
 msgid "Downloading project..."
 msgstr "项目下载中..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "下载失败，文件大小异常。"
 
@@ -7511,11 +7520,11 @@ msgstr "导入 SLA 存档"
 msgid "The selected file"
 msgstr "已选择的文件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "不包含有效的G-code文件。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "加载G-code文件时遇到错误"
 
@@ -7545,25 +7554,25 @@ msgstr "按项目打开"
 msgid "Import geometry only"
 msgstr "仅导入模型数据"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "只能同时打开一个G-code文件。"
 
 msgid "G-code loading"
 msgstr "正在加载G-code文件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-code文件不能和模型一起加载"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "在预览模式不允许添加模型"
 
 msgid "All objects will be removed, continue?"
 msgstr "即将删除所有对象，是否继续？"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "当前项目包含未保存的修改，是否先保存？"
 
@@ -7635,7 +7644,7 @@ msgstr "上传并打印"
 msgid "Abnormal print file data. Please slice again"
 msgstr "打印文件数据异常，请重新切片"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7721,7 +7730,8 @@ msgstr "三角形：%1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "使用“修复模型”来修复网格。"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "热床 %d：%s不建议被用于打印%s（%s）材料。如果你依然想打印，请设置耗材对应的热床温度为非零值。"
 
@@ -7749,7 +7759,7 @@ msgstr "正面"
 msgid "rear"
 msgstr "后部"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "切换语言需要重启应用程序。\n"
 
@@ -7777,7 +7787,7 @@ msgstr "北美"
 msgid "Others"
 msgstr "其他"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "修改区域会自动登出您的账号。\n"
 
@@ -7851,7 +7861,7 @@ msgstr "起始页"
 msgid "Set the page opened on startup."
 msgstr "设置启动OrcaSlicer时首先显示的页面。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "启用深色模式"
 
@@ -7927,7 +7937,7 @@ msgstr "如果启用，在导入STEP文件时将出现参数设置对话框"
 msgid "Auto backup"
 msgstr "自动备份"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "定期备份你的项目，以便从偶尔的崩溃中恢复过来。"
 
@@ -8117,6 +8127,15 @@ msgstr "阴影"
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr "在写实渲染中渲染投射到打印板上的阴影。"
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "抗锯齿"
 
@@ -8220,7 +8239,7 @@ msgstr "仅检测正式版的更新"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "同步用户预设（打印机/耗材丝/工艺）"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "自动更新系统预设"
 
@@ -8293,7 +8312,7 @@ msgstr "打开 Windows 默认应用设置"
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "将 3MF 文件关联到 OrcaSlicer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "启用后，将 OrcaSlicer 设置为打开 3MF 文件的默认应用程序。"
 
@@ -8306,14 +8325,14 @@ msgstr "如果启用，则将 OrcaSlicer 设置为打开 DRC 文件的默认应�
 msgid "Associate STL files to OrcaSlicer"
 msgstr "将 STL 文件关联到 OrcaSlicer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "启用后，将 OrcaSlicer 设置为打开 STL 文件的默认应用程序。"
 
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "将 STEP 文件关联到 OrcaSlicer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "启用后，将 OrcaSlicer 设置为打开 STEP 文件的默认应用程序。"
 
@@ -8418,7 +8437,7 @@ msgstr "缩放视角"
 msgid "Other"
 msgstr "其他"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reverse scroll direction while zooming"
 msgstr "缩放时鼠标滚轮反转"
 
@@ -8452,11 +8471,11 @@ msgstr "保存"
 msgid "Save debug settings"
 msgstr "保存调试设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "DEBUG模式生效!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "切换云环境，请重新登录!"
 
@@ -8475,7 +8494,7 @@ msgstr "我的打印机"
 msgid "Left filaments"
 msgstr "左耗材"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "AMS 打印丝"
 
@@ -8509,7 +8528,7 @@ msgstr "不支持的预设"
 msgid "Unsupported"
 msgstr "不支持"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "添加/删除材料"
 
@@ -8546,7 +8565,7 @@ msgstr "请输入层号（>=2）。"
 msgid "Plate name"
 msgstr "盘名称"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "跟随全局打印板类型"
 
@@ -8583,7 +8602,7 @@ msgstr "接受"
 msgid "Log Out"
 msgstr "登出"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "正在切片以获取切片信息和预估打印时间"
 
@@ -8644,7 +8663,7 @@ msgstr "预设“%1%”已存在。"
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "预设“%1%”已存在，并且和当前打印机不兼容。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "请注意，保存操作将覆盖此预设。"
 
@@ -8774,7 +8793,7 @@ msgstr "材料编号和AMS槽位中的耗材丝材质不匹配，请更新打印
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "所选打印机 (%s) 与打印文件配置 (%s) 不兼容。请在准备页面调整打印机预设或在此页面选择兼容的打印机。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "当启用旋转花瓶模式时，I3结构的机器将不会生成延时摄影。"
 
@@ -8793,7 +8812,7 @@ msgstr "外部料轴的耗材丝类型设置与切片文件中的耗材丝类型
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "生成G-code时选择的打印机类型与当前选择的打印机不一致。建议您使用相同的打印机类型进行切片。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS映射中存在一些未知的耗材。请检查它们是否符合预期。如果符合，按“确定”以开始打印任务。"
 
@@ -8925,7 +8944,7 @@ msgstr "存储处于异常状态或处于只读模式。"
 msgid "Storage needs to be inserted before printing."
 msgstr "打印前需要插入存储。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "需要更新打印机固件后，才能将打印任务发送到打印机"
 
@@ -8980,7 +8999,7 @@ msgstr "连接超时，请检查您的网络。"
 msgid "Connection failed. Click the icon to retry"
 msgstr "连接失败。单击该图标重试"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "设备升级中，无法发送打印任务"
 
@@ -8990,7 +9009,7 @@ msgstr "所选打印机与选择的打印机预设不兼容。"
 msgid "Storage needs to be inserted before send to printer."
 msgstr "在发送到打印机之前需要插入存储。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "打印机需要与Orca Slicer在同一个局域网内。"
 
@@ -9006,7 +9025,7 @@ msgstr "文件上传超时。请检查固件版本是否支持此操作或验证
 msgid "Sending failed, please try again!"
 msgstr "发送失败，请重试！"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "切片完成."
 
@@ -9022,11 +9041,11 @@ msgstr "无法连接套接字"
 msgid "Failed to publish login request"
 msgstr "无法发布登录请求"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "从设备获取票据超时"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "从服务器获取票据超时"
 
@@ -9131,7 +9150,7 @@ msgstr "在预设中搜索"
 msgid "Click to reset all settings to the last saved preset."
 msgstr "点击以将所有设置还原到最后一次保存的版本。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "平滑模式的延时摄影需要擦料塔，否则打印件上可能会有瑕疵。您确定要关闭擦料塔吗？"
 
@@ -9147,7 +9166,7 @@ msgstr "结块检测需要 Prime 塔。没有主塔的模型可能存在缺陷�
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "同时启用精确Z高度和擦拭塔可能会导致切片错误。您仍然要启用精确Z高度吗？"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "平滑模式的延时摄影需要擦料塔，否则打印件上可能会有瑕疵。您想打开擦料塔吗？"
 
@@ -9168,7 +9187,7 @@ msgstr ""
 "当使用支撑材料作为支撑接触面时，我们推荐以下设置：\n"
 "0顶部Z距离，0接触面间距，交错线性图案并禁用支撑独立层高"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9321,7 +9340,7 @@ msgstr "墙"
 msgid "Top/bottom shells"
 msgstr "顶部/底部外壳"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "首层速度"
 
@@ -9349,7 +9368,7 @@ msgstr "抖动（XY轴）"
 msgid "Raft"
 msgstr "筏层"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "支撑耗材"
 
@@ -9409,7 +9428,7 @@ msgstr "基础信息"
 msgid "Recommended nozzle temperature"
 msgstr "建议喷嘴温度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "该材料的建议喷嘴温度范围。0表示未设置"
 
@@ -9431,29 +9450,29 @@ msgstr "安装低温打印板（超强粘附）时的热床温度。0值表示�
 msgid "Cool Plate"
 msgstr "低温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "安装低温打印热床时的热床温度。0值表示这个耗材丝不支持低温打印热床"
 
 msgid "Textured Cool Plate"
 msgstr "纹理的低温打印床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "安装纹理低温打印热床时的热床温度。0值表示这个耗材丝不支持纹理低温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "安装工程材料热床时的热床温度。0值表示这个耗材丝不支持工程材料热床"
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "光滑PEI板/高温板"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "使用光滑PEI热床或高温打印热床时的床温。值0表示耗材不支持在光滑PEI热床或高温打印热床上打印"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "安装纹理PEI热床时的热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
@@ -9469,14 +9488,14 @@ msgstr "部件冷却风扇"
 msgid "Min fan speed threshold"
 msgstr "最小风扇速度阈值"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "当预估的层时间不大于设定的数值时，部件冷却风扇将开始运行在最小速度。层时间小于阈值时，实际风扇转速将根据层打印时间在最大和最小风扇速度之间插值获得"
 
 msgid "Max fan speed threshold"
 msgstr "最大风扇速度阈值"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "当预计的层打印时间比设置值要短时，部件冷却风扇转速将达到最大值"
 
@@ -9701,7 +9720,8 @@ msgstr ""
 "确定要删除所选预设吗？\n"
 "如果预设对应当前在您的打印机上使用的材料，请重新设置该槽位的材料信息。"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "确定要%1%所选预设吗？"
 
@@ -9761,21 +9781,21 @@ msgstr "右：%s"
 msgid "Click to reset current value and attach to the global value."
 msgstr "点击该图标，恢复到全局的配置数值，并与全局配置同步变化。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "点击该图标，丢弃当前的修改，恢复到上次保存的数值。"
 
 msgid "Process Settings"
 msgstr "工艺设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "未保存的更改"
 
 msgid "Transfer or discard changes"
 msgstr "放弃或保留更改"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old value"
 msgstr "旧值"
 
@@ -9831,7 +9851,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "单击鼠标右键显示全文。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "所有的修改都不会被保存"
 
@@ -10382,36 +10402,36 @@ msgstr "框选多个零件"
 msgid "Arrow Up"
 msgstr "上箭头"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Y方向移动 10mm"
 
 msgid "Arrow Down"
 msgstr "下箭头"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Y方向移动 10mm"
 
 msgid "Arrow Left"
 msgstr "左箭头"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "X方向移动 10mm"
 
 msgid "Arrow Right"
 msgstr "右箭头"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "X方向移动 10mm"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "沿X、Y轴以1mm为步进移动对象"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "按键1-9：设置对象/零件的耗材丝"
 
@@ -10508,7 +10528,7 @@ msgstr "小工具"
 msgid "Set extruder number for the objects and parts"
 msgstr "设置对象、零件使用的挤出机编号"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "删除对象、零件、修改器"
 
@@ -10561,7 +10581,7 @@ msgstr "版本 %s 更新信息"
 msgid "Network plug-in update"
 msgstr "网络插件升级"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "点击\"确定\"，将在Orca Slicer下次启动之后自动升级网络插件"
 
@@ -10706,11 +10726,11 @@ msgstr "更新成功"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "确定要更新吗？更新需要大约10分钟，在此期间请勿关闭电源。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "检测到重要更新，需要升级后才可进行打印。你想现在就开始升级吗？你也可以稍后点击‘升级固件’完成升级。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "当前固件版本异常，需要进行修复升级，否则无法继续打印。你想现在就开始升级吗？你也可以稍后在打印机上升级，或者下一次启动studio再升级。"
 
@@ -10734,7 +10754,7 @@ msgstr "修复被取消"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "从%1%拷贝文件到%2%失败：%3%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "需要在配置更新之前检查没有保存的参数修改。"
 
@@ -10750,7 +10770,8 @@ msgstr "打开G-code文件："
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "模型出现空层无法打印。请切掉底部或打开支撑。"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "模型在%1%和%2%之间出现空层，无法打印。"
 
@@ -10758,7 +10779,7 @@ msgstr "模型在%1%和%2%之间出现空层，无法打印。"
 msgid "Object: %1%"
 msgstr "模型：%1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "部分模型在这些高度可能过薄，或者模型存在面片错误"
 
@@ -10768,7 +10789,7 @@ msgstr "工艺挤出类型更换 G-code"
 msgid "Filament change extrusion role G-code"
 msgstr "耗材挤出类型更换 G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "没有可打印的对象。可能是因为尺寸过小。"
 
@@ -10814,7 +10835,8 @@ msgstr "不能放置在"
 msgid "Internal Bridge"
 msgstr "内部搭桥"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "计算 %1%的线宽失败。无法获得 \"%2%\" 的值"
 
@@ -10827,7 +10849,7 @@ msgstr "未定义错误"
 msgid "too many files"
 msgstr "文件过多"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "文件太大"
 
@@ -10849,7 +10871,7 @@ msgstr "不是一个zip压缩包"
 msgid "invalid header or corrupted"
 msgstr "无效文件头或文件已损坏"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Saving to RAID is not supported."
 msgstr "不支持多磁盘存档"
 
@@ -10898,7 +10920,7 @@ msgstr "无效参数"
 msgid "invalid filename"
 msgstr "无效的文件名"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "缓冲区太小"
 
@@ -10908,7 +10930,7 @@ msgstr "内部错误"
 msgid "file not found"
 msgstr "文件未找到"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "存档文件太大"
 
@@ -10918,7 +10940,8 @@ msgstr "验证失败"
 msgid "write callback failed"
 msgstr "写入回调失败"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1%离屏蔽区域太近，可能会发生碰撞。"
 
@@ -10942,7 +10965,7 @@ msgstr "擦拭塔"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr "离其它对象太近，可能会发生碰撞。\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr "离不可打印区域太近，会发生碰撞。\n"
 
@@ -10976,7 +10999,7 @@ msgstr "结块检测需要 Prime 塔；否则，模型可能存在缺陷。"
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "请选择逐件打印以支持在旋转花瓶模式下打印多个对象。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "不支持在包含多个材料的打印中使用旋转花瓶模式。"
 
@@ -11010,30 +11033,30 @@ msgstr "只有当'single_extruder_multi_material'关闭时，擦拭塔才支持�
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "擦拭塔目前仅支持Marlin、RepRap/Sprinter、RepRapFirmware和Repetier G-code风格。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "擦拭塔不支持在逐件打印模式下使用。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "不支持在可变层高开启时使用擦拭塔。它要求所有对象拥有相同的层高。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "擦拭塔要求”支撑间隙“为层高的整数倍。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "擦拭塔要求各个对象拥有同样的层高。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "擦拭塔要求各个对象使用同样的筏层数量。"
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "仅当多个对象使用相同的 support_top_z_distance 打印时，才支持主塔。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "擦拭塔要求各个对象拥有同样的层高。"
 
@@ -11043,18 +11066,18 @@ msgstr "各个对象的层高存在差异，无法启用擦料塔"
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "为一个或多个对象分配了打印机没有的挤出机。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "线宽太小"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "线宽太大"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "使用不同喷嘴直径的多个挤出机进行打印。如果要使用当前耗材打印支撑（support_filament == 0 或 support_interface_filament == 0），则所有喷嘴必须具有相同的直径。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "擦拭塔要求支撑和对象采用同样的层高。"
 
@@ -11079,7 +11102,7 @@ msgstr "此支撑类型不支持空心底座图案；将改用直线填充。"
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "使用了支撑添加器但没有打开支撑。请打开支撑。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "层高不能超过喷嘴直径"
 
@@ -11159,7 +11182,7 @@ msgstr "正在导出G-code"
 msgid "Generating G-code"
 msgstr "正在生成G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "处理文件名格式模板失败。"
 
@@ -11190,7 +11213,7 @@ msgstr "并联打印头的热床排除区域"
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr "按并联打印头数量排列的热床排除区域有序列表。第 1 项适用于一个打印头，第 2 项适用于两个打印头，依此类推。将某项留空表示无排除区域。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "不可打印区域"
 
@@ -11206,7 +11229,7 @@ msgstr "自定义热床模型"
 msgid "Elephant foot compensation"
 msgstr "象脚补偿"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "将首层收缩用于补偿象脚效应"
 
@@ -11228,14 +11251,14 @@ msgstr ""
 "此处设置的是第二层的初始值。\n"
 "后续各层会按 elefant_foot_compensation_layers 中指定的高度线性增密。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "每一层的切片高度。越小的层高意味着更高的精度和更长的打印时间。"
 
 msgid "Printable height"
 msgstr "可打印高度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "由打印机结构约束的最大可打印高度"
 
@@ -11314,7 +11337,7 @@ msgstr "密码"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "忽略HTTPS证书吊销检查"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "在缺少或离线分发点的情况下忽略HTTPS证书吊销检查。如果连接失败，可以启用此选项来处理自签名证书。"
 
@@ -11333,14 +11356,14 @@ msgstr "HTTP摘要"
 msgid "Avoid crossing walls"
 msgstr "避免跨越外墙"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "空驶时绕过外墙以避免在模型外观面产生斑点"
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "避免跨越外墙-最大绕行长度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "避免跨越外墙时的最大绕行距离。当绕行距离比这个数值大时，此次空驶不绕行。绕行距离可表达为绝对值，或者相对直线空驶长度的百分比(例如50%)。0表示禁用"
 
@@ -11353,59 +11376,59 @@ msgstr "其它层"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "除首层外的其他层的热床温度。0值表示该耗材丝不支持在Cool Plate SuperTack上打印。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持低温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持纹理低温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持工程材料热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持高温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "非首层热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "首层"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "首层床温"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "初始层的床温。值 0 表示耗材不支持在 Cool Plate SuperTack 上打印。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持低温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持纹理低温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持工程材料热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持高温打印热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "首层热床温度。0值表示这个耗材丝不支持纹理PEI热床"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "打印机所支持的热床类型"
 
@@ -11439,7 +11462,7 @@ msgstr "底部壳体实心层层数，包括底面。当由该层数计算的厚
 msgid "Bottom shell thickness"
 msgstr "底部壳体厚度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "如果由底部壳体层数算出的厚度小于这个数值，那么切片时将自动增加底部壳体层数。这能够避免当层高很小时，底部壳体过薄。0表示关闭这个设置，同时底部壳体的厚度完全由底部壳体层数决定"
 
@@ -11553,7 +11576,7 @@ msgstr "启用后，桥接角度值将被加到自动计算出的桥接方向上
 msgid "External bridge density"
 msgstr "外部桥接密度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Controls the density (spacing) of external bridge lines.\n"
 "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient.\n"
@@ -11580,7 +11603,7 @@ msgstr ""
 msgid "Internal bridge density"
 msgstr "内部桥接密度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Controls the density (spacing) of internal bridge lines.\n"
 "Internal bridges act as intermediate support between sparse infill and top solid infill and can strongly affect top surface quality.\n"
@@ -11861,11 +11884,11 @@ msgstr ""
 "值0表示在每个偶数层上都启用反转。\n"
 "当未启用检测悬垂时，此选项将被忽略，反转将在每个偶数层上发生。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "悬垂降速"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "启用此选项将降低不同悬垂程度的走线的打印速度"
 
@@ -11925,7 +11948,7 @@ msgstr "内部桥接的速度。如果该值以百分比表示，将基于桥接
 msgid "Brim width"
 msgstr "Brim宽度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "从模型到最外圈brim走线的距离"
 
@@ -11938,7 +11961,7 @@ msgstr "该参数控制在模型的外侧和/或内侧生成brim。自动是指�
 msgid "Brim-object gap"
 msgstr "Brim与模型的间隙"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "在brim和模型之间设置间隙，能够让brim更容易剥离"
 
@@ -11958,11 +11981,11 @@ msgstr ""
 "\n"
 "注意：所得的值不会受首层流量比的影响。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Brim遵循补偿轮廓"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12017,18 +12040,18 @@ msgstr "向上兼容的机器"
 msgid "Condition"
 msgstr "条件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "使用活动打印机配置文件的配置值的布尔表达式。如果此表达式计算为 true,则此配置文件将被视为与活动打印机配置文件兼容。"
 
 msgid "Select profiles"
 msgstr "选择配置文件"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "使用活动打印配置文件的配置值的布尔表达式。如果此表达式计算为 true,则此配置文件将被视为与活动打印配置文件兼容。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "打印顺序，逐层打印或者逐件打印"
 
@@ -12050,14 +12073,14 @@ msgstr "按对象列表中的顺序"
 msgid "Slow printing down for better layer cooling"
 msgstr "降低打印速度 以得到更好的冷却"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "勾选这个选项，将降低打印速度，使得最终的层打印时间不小于\"最大风扇速度阈值\"里的层时间阈值，从而使得该层获得更久的冷却。这能够改善尖顶和小细节的冷却效果"
 
 msgid "Normal printing"
 msgstr "普通打印"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "除首层之外的默认的打印和空驶的加速度"
 
@@ -12103,7 +12126,7 @@ msgstr "对开始的一些层关闭所有的部件冷却风扇。通常关闭首
 msgid "Don't support bridges"
 msgstr "不支撑桥接"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "不对整个桥接面进行支撑，否则支撑体会很大。不是很长的桥接通常可以无支撑直接打印。"
 
@@ -12197,14 +12220,14 @@ msgstr "保留全部"
 msgid "Max bridge length"
 msgstr "最大桥接长度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "不需要支撑的桥接的最大长度。如果希望支持所有桥接，请将其设置为0；如果不希望支持任何桥接，请将其设置为非常大的值。"
 
 msgid "End G-code"
 msgstr "结尾G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "所有打印结束时的结尾G-code"
 
@@ -12214,7 +12237,7 @@ msgstr "对象之间Gcode"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "在对象之间插入 G-code。此参数仅在逐个打印模型物体时生效。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "结束使用该耗材打印时的结尾G-code"
 
@@ -12245,7 +12268,7 @@ msgstr "适量"
 msgid "Top surface pattern"
 msgstr "顶面图案"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "顶面填充的走线图案"
 
@@ -12276,7 +12299,7 @@ msgstr "八角螺旋"
 msgid "Bottom surface pattern"
 msgstr "底面图案"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "除了桥接外的底面填充的走线图案"
 
@@ -12289,7 +12312,7 @@ msgstr "内部实心填充的线型图案。如果启用了检测狭窄的内部
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "外墙的线宽。如果以%表示，它将基于喷嘴直径来计算"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "外墙的打印速度。它通常使用比内壁速度慢的速度，以获得更好的质量。"
 
@@ -12369,18 +12392,18 @@ msgstr "顺时针"
 msgid "Height to rod"
 msgstr "到横杆高度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "喷嘴尖端到下方滑杆的距离。用于在逐件打印中避免碰撞。"
 
 msgid "Height to lid"
 msgstr "到顶盖高度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "喷嘴尖端到顶盖的距离。用于在逐件打印中避免碰撞。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "挤出机四周的避让半径。用于在逐件打印中避免碰撞。"
 
@@ -12508,7 +12531,7 @@ msgstr "当线宽设置为0时走线的默认线宽。如果以%表示，它将�
 msgid "Keep fan always on"
 msgstr "保持风扇常开"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "如果勾选这个选项，部件冷却风扇将永远不会停止，并且会至少运行在最小风扇转速值以减少风扇的启停频次"
 
@@ -12529,7 +12552,7 @@ msgstr ""
 msgid "Layer time"
 msgstr "层时间"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "当层预估打印时间小于该数值时，部件冷却风扇将会被开启。风扇转速将根据层打印时间在最大和最小风扇转速之间插值获得"
 
@@ -12555,7 +12578,7 @@ msgstr "你可以把关于耗材的注释放在这里。"
 msgid "Required nozzle HRC"
 msgstr "喷嘴硬度要求"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "打印此材料的所需的最小喷嘴硬度。零值表示不检查喷嘴硬度。"
 
@@ -12595,7 +12618,7 @@ msgstr "冲洗体积流量"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "冲洗耗材丝时的体积流量。 0 表示最大体积流量。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "这个设置表示在1秒内能够融化和挤出的耗材丝体积。打印速度会受到最大体积流量的限制，防止设置过高和不合理的速度。不允许设置为0。"
 
@@ -12640,7 +12663,7 @@ msgstr "根据初始打印耗材"
 msgid "By Highest Temp"
 msgstr "根据最高打印温度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "耗材丝直径被用于计算G-code文件中的挤出量。因此很重要，应尽可能精确。"
 
@@ -12714,7 +12737,7 @@ msgstr "最开始加载阶段的速度"
 msgid "Unloading speed"
 msgstr "卸载速度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "用于擦拭塔卸载耗材的速度（不影响尖端成型之后初始部分的速度）。"
 
@@ -12832,14 +12855,14 @@ msgstr "换色前耗材尖端成型的流量"
 msgid "Density"
 msgstr "密度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "耗材丝的密度。只用于统计信息。"
 
 msgid "g/cm³"
 msgstr "克/立方厘米"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "耗材丝的材料类型"
 
@@ -12870,7 +12893,7 @@ msgstr "此耗材可通过挤出机打印"
 msgid "Softening temperature"
 msgstr "软化温度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr ""
 "材料在这个温度下会软化。\n"
@@ -12879,7 +12902,7 @@ msgstr ""
 msgid "Price"
 msgstr "价格"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "耗材丝的价格。只用于统计信息。"
 
@@ -12898,7 +12921,7 @@ msgstr "（未定义）"
 msgid "Sparse infill direction"
 msgstr "稀疏填充方向"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "稀疏填充图案的角度，决定走线的开始或整体方向。"
 
@@ -12940,6 +12963,7 @@ msgstr "如果填充图案支持，使用多线进行填充。"
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 轴屈曲偏置优化（实验性）"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度下沿 Z（垂直）轴收紧螺旋（Gyroid）波形，以缩短有效的垂直柱长，提升 Z 轴抗压屈曲能力。耗材用量保持不变。在约 30% 及以上的稀疏填充密度下无效果。仅当稀疏填充图案设置为 Gyroid 时适用。"
@@ -12947,7 +12971,7 @@ msgstr "在低填充密度下沿 Z（垂直）轴收紧螺旋（Gyroid）波形�
 msgid "Sparse infill pattern"
 msgstr "稀疏填充图案"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "内部稀疏填充的走线图案"
 
@@ -13079,11 +13103,11 @@ msgstr "内圈墙加速度，使用较低值可以改善质量。"
 msgid "Acceleration of travel moves."
 msgstr "空驶加速度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "顶面填充的加速度。使用较低值可能会改善顶面质量"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "外墙加速度。使用较小的值可以提高质量。"
 
@@ -13099,7 +13123,7 @@ msgstr "稀疏填充的加速度。如果该值表示为百分比（例如100%�
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "内部实心填充的加速度。如果该值以百分比表示（例如100%），则将根据默认加速度进行计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "首层加速度。使用较低值可以改善和打印板的粘接。"
 
@@ -13160,25 +13184,25 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "首层的线宽。若以百分比表示（例如120%），它将基于喷嘴直径来计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "首层层高"
 
-#, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr ""
 "首层层高。\n"
 "若少许加厚首层层高，将有助增加部件与热床间的粘接力。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "首层除实心填充之外的其他部分的打印速度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "首层填充"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "首层实心填充的打印速度"
 
@@ -13188,20 +13212,19 @@ msgstr "首层空驶速度"
 msgid "Travel speed of the first layer."
 msgstr "首层空驶速度"
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "慢速打印层数"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr ""
 "减慢前几层的打印速度。\n"
 "打印速度会在这个范围内以线性方式逐层加至满速。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "首层打印温度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "使用此耗材时的首层打印温度。"
 
@@ -13273,7 +13296,7 @@ msgstr "熨烫速度"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "特定于耗材的熨烫速度优先。这允许您自定义每种耗材丝类型的熨烫线的打印速度。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "打印外墙时随机抖动，使外表面产生绒效果。这个设置决定适用的位置。"
 
@@ -13295,7 +13318,7 @@ msgstr "所有墙"
 msgid "Fuzzy skin thickness"
 msgstr "绒毛表面厚度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "产生绒毛的抖动的宽度。建议小于外圈墙的线宽。"
 
@@ -13440,7 +13463,7 @@ msgstr "层和墙"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "不要打印长度小于指定阈值（以毫米为单位）的间隙填充。此设置适用于顶部、底部和实体填充，如果使用经典周长生成器，则适用于墙壁间隙填充。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "填缝的速度。缝隙通常有不一致的线宽，应改用较慢速度打印。"
 
@@ -13471,7 +13494,7 @@ msgstr "启用该设置，G-code的每一行的开头会增加Nx标注行号。"
 msgid "Scan first layer"
 msgstr "首层扫描"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "开启这个设置将打开打印机上的摄像头用于检查首层打印质量。"
 
@@ -13487,7 +13510,7 @@ msgstr "打印机配置"
 msgid "Nozzle type"
 msgstr "喷嘴类型"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "喷嘴的金属材料。这将决定喷嘴的耐磨性，以及可打印材料的种类"
 
@@ -13503,7 +13526,7 @@ msgstr "碳化钨"
 msgid "Nozzle HRC"
 msgstr "喷嘴洛氏硬度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr ""
 "喷嘴硬度。\n"
@@ -13591,7 +13614,7 @@ msgstr "打印机每小时运行成本"
 msgid "money/h"
 msgstr "钱/时"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "支持仓温控制"
 
@@ -13652,7 +13675,7 @@ msgstr "启用此选项，将获得带有注释的G-code文件，每行都附带
 msgid "Infill combination"
 msgstr "合并填充"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "自动合并打印若干层稀疏填充，以缩短时间，内外墙维持原始打印层高。"
 
@@ -13761,11 +13784,12 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "内部稀疏填充的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "填充/墙 重叠"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "填充区域略微扩大以与墙壁重叠，以获得更好的粘合。百分比值相对于稀疏填充的线宽。将此值设置为约10-15%，以最小化潜在的过挤出和材料积累，从而导致顶部表面粗糙。"
 
@@ -13776,7 +13800,7 @@ msgstr "顶/底部实心填充/墙重叠率"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "顶部实心填充区域略微扩大，以便与墙壁重叠，以获得更好的粘合，并减少顶部填充与墙壁相接处的小孔出现。25-30%的值是一个很好的起点，可以减少小孔的出现。百分比值相对于稀疏填充的线宽"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "内部稀疏填充的打印速度"
 
@@ -13795,7 +13819,7 @@ msgstr "强制在相邻材料/体积之间生成实心壳。适用于使用半�
 msgid "Maximum width of a segmented region"
 msgstr "分段区域的最大宽度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "分段区域的最大宽度。将其设置为零会禁用此功能。"
 
@@ -13841,22 +13865,22 @@ msgstr "互锁与边界的留白量"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "模型边框与互锁结构的距离，以单元格为单位。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "熨烫类型"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "熨烫指的是使用小流量在表面的同高度打印，进而是的平面更加光滑。这个设置用于设置哪些层进行熨烫。"
 
 msgid "No ironing"
 msgstr "不熨烫"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "顶面"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "最顶面"
 
@@ -13869,18 +13893,18 @@ msgstr "熨烫模式"
 msgid "The pattern that will be used when ironing."
 msgstr "熨烫时将使用的图案"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "熨烫时相对正常层高流量的材料量。过高的数值将会导致表面材料过挤出。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "熨烫走线的间距"
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "与边缘保持的距离。0值将其设置为喷嘴直径的一半。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "熨烫的打印速度"
 
@@ -13942,11 +13966,11 @@ msgstr "在每次换层抬升Z高度之后插入这段G-code。"
 msgid "Clumping detection G-code"
 msgstr "结块检测 G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Silent Mode"
 msgstr "支持静音模式"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "机器是否支持使用低加速度打印的静音模式。"
 
@@ -14216,7 +14240,7 @@ msgstr ""
 "为零时将使用固件阻尼比。\n"
 "要禁用输入整形，请使用“禁用”类型。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "启用自动冷却时，可能会提高部件冷却风扇的转速。这是部件冷却风扇的最大速度限制"
 
@@ -14327,7 +14351,7 @@ msgstr "Orca Slicer可以将G-code文件上传到打印机主机。此字段必�
 msgid "Nozzle volume"
 msgstr "喷嘴内腔体积"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "从切刀位置到喷嘴尖端的内腔体积"
 
@@ -14364,14 +14388,14 @@ msgstr "当设置为零时，耗材的加载移动与卸载移动的距离相同
 msgid "Start end points"
 msgstr "起始终止点"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "从切割区域到垃圾桶的起始和结束点。"
 
 msgid "Reduce infill retraction"
 msgstr "减小填充回抽"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "当空驶完全在填充区域内时不触发回抽。这意味着即使漏料也是不可见的。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成G-code生成变慢"
 
@@ -14381,7 +14405,7 @@ msgstr "此选项将降低非活动挤出机的温度，以防止渗出。"
 msgid "Filename format"
 msgstr "文件名格式"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "用户可以自定义导出项目文件的名称。"
 
@@ -14406,7 +14430,8 @@ msgstr "模型底部的孔洞在被圆锥形材料填充前所允许的最大面
 msgid "Detect overhang walls"
 msgstr "识别悬垂外墙"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "检测悬垂相对于线宽的百分比，并应用不同的速度打印。100%%的悬垂将使用桥接速度。"
 
@@ -14433,11 +14458,11 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "内墙的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "内圈墙打印速度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "每一层的外墙"
 
@@ -14484,30 +14509,30 @@ msgstr "打印机变种"
 msgid "Raft contact Z distance"
 msgstr "筏层Z间距"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "筏层与模型之间的Z间隙。如果支撑顶部Z距离为0，则忽略该值，模型与筏层直接接触打印（无间隙）。"
 
 msgid "Raft expansion"
 msgstr "筏层扩展"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "在XY平面扩展所有筏层"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "首层密度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "筏和支撑的首层密度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "首层扩展"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "扩展筏和支撑的首层可以改善和热床的粘接。"
 
@@ -14517,7 +14542,7 @@ msgstr "筏层"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "模型会在相应层数的支撑上抬高进行打印。使用该功能通常用于打印ABS时翘曲。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "为了避免G-code文件中过密集的点和走线，G-code走线通常是在简化模型的外轮廓之后生成。越小的数值代表更高的分辨率，同时需要更长的切片时间。"
 
@@ -14530,15 +14555,15 @@ msgstr "只在空驶距离大于该数值时触发回抽。"
 msgid "Retract amount before wipe"
 msgstr "擦拭前的回抽量"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "擦拭之前的回抽长度，用总回抽长度的百分比表示。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "换层时回抽"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "强制在换层时回抽。"
 
@@ -14548,7 +14573,7 @@ msgstr "回抽长度"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "挤出机中的一些材料被拉回，以避免在长行程期间渗出。设置为零以禁用回缩。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "切料时回抽（实验）"
 
@@ -14570,7 +14595,7 @@ msgstr "更换挤出机时的回缩距离"
 msgid "Z-hop height"
 msgstr "Z抬升高度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "回抽完成之后，喷嘴轻微抬升，和打印件之间产生一定间隙。这能够避免空驶时喷嘴和打印件剐蹭和碰撞。使用螺旋线抬升z能够减少拉丝。"
 
@@ -14649,14 +14674,14 @@ msgstr "每当空驶后回抽被补偿时，挤出机将推入额外数量的耗
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "当换色后回抽被补偿时，挤出机将推入额外数量的耗材丝。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "回抽速度"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "从喷嘴回抽耗材的速度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "重新装填速度"
 
@@ -14683,7 +14708,7 @@ msgstr "在最终生成的G-code中禁用M73命令：设置剩余打印时间"
 msgid "Seam position"
 msgstr "接缝位置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "开始打印外墙的位置"
 
@@ -14823,7 +14848,7 @@ msgstr "擦拭速度是根据此配置中指定的速度设置确定的。如果
 msgid "Skirt distance"
 msgstr "裙边距离"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "从裙边到模型或者brim的距离"
 
@@ -14836,7 +14861,7 @@ msgstr "从模型中心到裙边起始点的角度。0是最右边的位置，�
 msgid "Skirt height"
 msgstr "裙边高度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "裙边有多少层。通常只有一层"
 
@@ -14875,7 +14900,7 @@ msgstr "按对象"
 msgid "Skirt loops"
 msgstr "裙边圈数"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "裙边的圈数。0表示关闭裙边。"
 
@@ -14905,7 +14930,7 @@ msgstr "当层预估打印时间小于这个数值时，打印速度将会降低
 msgid "Minimum sparse infill threshold"
 msgstr "稀疏填充最小阈值"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "小于这个阈值的稀疏填充区域将会被内部实心填充替代。"
 
@@ -14933,11 +14958,11 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "内部实心填充的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "内部实心填充的速度，不是顶面和底面。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "沿着对象的外轮廓螺旋上升，将实体模型转变为只有底面实心层和侧面单层墙壁的打印。最后生成的打印件没有接缝。"
 
@@ -14968,7 +14993,7 @@ msgstr "螺旋结束流量比"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "设置结束螺旋时的精加工流量比。通常，螺旋过渡在最后一个循环期间将流量比从 100% 缩放到 0%，这在某些情况下可能会导致螺旋末端挤出不足。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "如果启用平滑模式或者传统模式，将在每次打印时生成延时摄影视频。打印完每层后，将用内置相机拍摄快照。打印完成后，所有这些快照会组合成一个延时视频。如果启用平滑模式，打印完每层后，工具头将移动到吐料槽，然后拍摄快照。由于平滑模式在拍摄快照的过程中熔丝可能会从喷嘴中泄漏，因此需要使用擦拭塔进行喷嘴擦拭。"
 
@@ -15003,11 +15028,11 @@ msgstr "G-code 写在输出文件的最顶部，位于任何其他内容之前�
 msgid "Start G-code"
 msgstr "起始G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "整个打印开始前的起始G-code"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "开始使用这个耗材丝打印的起始G-code"
 
@@ -15092,7 +15117,7 @@ msgstr "此值将从输出 G-Code 中的所有 Z 坐标中添加(或减去)。�
 msgid "Enable support"
 msgstr "开启支撑"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "开启支撑生成。"
 
@@ -15114,7 +15139,7 @@ msgstr "树状(手动)"
 msgid "Support/object XY distance"
 msgstr "支撑/模型xy间距"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "模型和支撑之间XY分离距离"
 
@@ -15133,7 +15158,7 @@ msgstr "设置支撑图案在水平面的旋转角度。"
 msgid "On build plate only"
 msgstr "仅在打印板生成"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "不在模型表面上生成支撑，只在热床上生成。"
 
@@ -15152,14 +15177,14 @@ msgstr "将几乎不需要支撑的微小悬垂忽略掉。"
 msgid "Top Z distance"
 msgstr "顶部Z距离"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "支撑顶部与模型之间的Z间隙。"
 
 msgid "Bottom Z distance"
 msgstr "底部Z距离"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "模型与支撑底部之间的Z间隙。如果支撑顶部Z距离为0且底部有界面层，则忽略该值，支撑与模型直接接触打印（无间隙）。"
 
@@ -15182,11 +15207,11 @@ msgstr "避免使用支撑界面材料打印支撑主体。"
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "支撑的线宽。如果以%表示，它将基于喷嘴直径来计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "接触面采用圈形走线。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "使用圈形走线覆盖顶部接触面。默认关闭。"
 
@@ -15202,6 +15227,10 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "顶部接触面层数"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "This is the number of top interface layers."
+msgstr "慢速打印层数"
 
 msgid "Bottom interface layers"
 msgstr "底部接触面层数"
@@ -15225,11 +15254,11 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "底部接触面线距"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "底部接触面走线的线距。0 表示实心接触面。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "支撑面速度"
 
@@ -15258,7 +15287,7 @@ msgstr "空心"
 msgid "Interface pattern"
 msgstr "支撑面图案"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "支撑接触面的走线图案。非可溶支撑接触面的默认图案为直线，可溶支撑接触面的默认图案为同心。"
 
@@ -15268,18 +15297,18 @@ msgstr "交叠的直线"
 msgid "Base pattern spacing"
 msgstr "主体图案线距"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "支撑线距"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "普通支撑拓展"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "在水平方向对普通支撑进行拓展（+）或收缩（-）"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "支撑打印速度"
 
@@ -15317,7 +15346,7 @@ msgstr "支撑层使用与对象层独立的层高。这是为了支持自定义
 msgid "Threshold angle"
 msgstr "阈值角度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15445,14 +15474,14 @@ msgid ""
 "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr "对于 ABS、ASA、PC 和 PA 等高温材料，较高的腔室温度有助于抑制或减少翘曲，并有可能提高层间粘合强度。但同时，较高的腔室温度会降低 ABS 和 ASA 的空气过滤效率。 对于 PLA、PETG、TPU、PVA 等低温材料，应禁用此选项（设置为 0），因为腔室温度应较低，以避免热断时材料软化导致挤出机堵塞。 如果启用，此参数还会设置一个名为 chamber_temple 的 G-code 变量，该变量可用于将所需的腔室温度传递给打印启动宏，或热浸宏，如下所示：PRINT_START（其他变量）CHAMBER_TEMP=[cham​​ber_Temperature]。如果您的打印机不支持 M141/M191 命令，或者如果您希望在未安装活动室加热器的情况下在打印启动宏中处理热浸，则这可能很有用。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "除首层外的其它层的喷嘴温度"
 
 msgid "Detect thin walls"
 msgstr "检查薄壁"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "检查无法容纳两条走线的薄壁。使用单条走线打印。可能会打地不是很好，因为走线不再闭合。"
 
@@ -15471,21 +15500,21 @@ msgstr "当当前耗材的挤出类型发生变化时插入此 G-code。"
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "顶面的线宽。如果以 % 表示，它将基于喷嘴直径来计算。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "顶面实心填充的速度"
 
 msgid "Top shell layers"
 msgstr "顶部壳体层数"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "顶部壳体实心层层数，包括顶面。当由该层数计算的厚度小于顶部壳体厚度，切片时会增加顶部壳体的层数"
 
 msgid "Top shell thickness"
 msgstr "顶部壳体厚度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部壳体层数算出的厚度小于这个数值，那么切片时将自动增加顶部壳体层数。这能够避免当层高很小时，顶部壳体过薄。0 表示关闭这个设置，同时顶部壳体的厚度完全由顶部壳体层数决定"
 
@@ -15509,18 +15538,18 @@ msgstr ""
 "此功能是为了美观或功能性目的，而是为了解决过量挤出等问题。\n"
 "警告：降低此值会对热床粘接力产生负面影响。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "空驶的速度。空驶是无挤出量的快速移动。"
 
 msgid "Wipe while retracting"
 msgstr "回抽时擦拭"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "当回抽时，让喷嘴沿着前面的走线方向继续移动，清除掉喷嘴上的漏料。这能够避免空驶结束打印新的区域时产生斑点。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "擦拭距离"
 
@@ -15537,7 +15566,7 @@ msgstr ""
 "\n"
 "在下方的擦拭前回抽量设置中输入一个数值，将在擦拭动作之前执行任何超出部分的回抽，否则超出部分的回抽将在擦拭之后执行。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "擦拭塔可以用来清理喷嘴上的残留料和让喷嘴内部的腔压达到稳定状态，以避免打印物体时出现外观瑕疵。"
 
@@ -15553,18 +15582,18 @@ msgstr "冲刷体积"
 msgid "Flush multiplier"
 msgstr "冲刷量乘数"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "实际冲刷量等于冲刷量乘数乘以表格单元中的冲刷量"
 
 msgid "Prime volume"
 msgstr "清理量"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "擦拭塔上的清理量"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "擦拭塔宽度"
 
@@ -15678,11 +15707,11 @@ msgstr "填补空白"
 msgid "Infill gap."
 msgstr "填补空白。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "换料后的过渡料会被用来打印对象的填充。这样可以减少材料浪费和缩短打印时间，但是如果对象的内外墙是采用透明材料打印的，则可以从模型外观上看到内部的混色过渡料。该功能只有在启用料塔的时候才生效。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "换料后的过渡料会被用来打印对象的支撑。这样可以减少材料浪费以及缩短打印时间。该功能只有在启用料塔的时候才生效。"
 
@@ -15716,14 +15745,14 @@ msgstr "在多工具设置中，当前未使用的工具的喷嘴温度。这仅
 msgid "X-Y hole compensation"
 msgstr "X-Y 孔洞尺寸补偿"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "物体中的孔洞将在XY平面内根据配置值进行扩展或收缩。正值使孔洞变大，负值使孔洞变小。此功能用于在物体出现装配问题时微调尺寸。"
 
 msgid "X-Y contour compensation"
 msgstr "X-Y 外轮廓尺寸补偿"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "物体的外轮廓将在XY平面内根据配置值进行扩展或收缩。正值使轮廓变大，负值使轮廓变小。此功能用于在物体出现装配问题时微调尺寸。"
 
@@ -15775,7 +15804,7 @@ msgstr "使用相对E距离"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "相对挤出建议在使用\"label_objects\"选项时使用。某些挤出机在未选中此选项（绝对挤出模式）时工作得更好。擦拭塔仅与相对模式兼容。建议在大多数打印机上使用。默认为选中状态。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "经典墙生成器产生的墙走线具有一致的挤出宽度，对狭窄区域使用填缝。Arachne引擎则产生变线宽的墙走线"
 
@@ -15785,7 +15814,7 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "墙过渡长度"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "当零件逐渐变薄导致墙的层数发生变化时，需要在过渡段分配一定的空间来分割和连接墙走线。参数值表示为相对于喷嘴直径的百分比"
 
@@ -15876,14 +15905,14 @@ msgstr " 不在合理范围内"
 msgid "Export 3MF"
 msgstr "导出 3MF"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "导出项目为 3MF。"
 
 msgid "Export slicing data"
 msgstr "导出切片数据"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "导出切片数据到目录"
 
@@ -15911,7 +15940,7 @@ msgstr "切片"
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "对打印板切片：0-所有板，i-第i个板，其他-无效"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "显示命令行帮助。"
 
@@ -15936,14 +15965,14 @@ msgstr "以最小尺寸导出3mf。"
 msgid "mtcpp"
 msgstr "材料温度补偿"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "切片时每个盘的最大三角形数。"
 
 msgid "mstpp"
 msgstr "材料温度暂停"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "每板的最大切片耗时（秒）。"
 
@@ -15962,14 +15991,14 @@ msgstr "检查规范性项目。"
 msgid "Output Model Info"
 msgstr "输出模型信息"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "输出模型的信息。"
 
 msgid "Export Settings"
 msgstr "导出配置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "导出配置到文件。"
 
@@ -16057,7 +16086,7 @@ msgstr "复制加载列表中的对象。"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "更新同步时加载最新工艺/机器设置"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "在使用 同步最新设置 时，从指定的文件中加载最新的进程/机器设置。"
 
@@ -16094,7 +16123,7 @@ msgstr "在指定目录加载和存储设置。这对于维护不同的配置文
 msgid "Output directory"
 msgstr "输出路径"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "导出文件的输出路径。"
 
@@ -16531,15 +16560,15 @@ msgstr "加载模型文件失败。"
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "模型文件的网格划分失败，或缺少有效的形状。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "无法读取提供的文件，因为该文件内容为空。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .stl、.obj 或 .amf（.xml）。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .3mf、.zip 或 .amf。"
 
@@ -16591,7 +16620,7 @@ msgstr "校准"
 msgid "Finish"
 msgstr "完成"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "如何使用校准结果？"
 
@@ -16669,7 +16698,7 @@ msgstr "请选择要校准的耗材。"
 msgid "The input value size must be 3."
 msgstr "输入值大小必须为3。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -16679,7 +16708,8 @@ msgstr "该机型的每个喷嘴最多保存16个历史结果。您可以删除�
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "仅保存一个同名结果：%s。您确定要覆盖其他结果吗？"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "已经存在一个同名的历史校准结果：%s。相同名称的结果只会保存一个。您确定要覆盖历史结果吗？"
 
@@ -16691,7 +16721,8 @@ msgstr ""
 "在同一挤出机内，耗材类型、喷嘴直径和喷嘴流量相同时，名称（%s）必须是唯一的。\n"
 "您确定要覆盖历史结果吗？"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "该机型的每个喷嘴最多只能保存 %d 个历史结果, 该结果将不会被保存"
 
@@ -16774,7 +16805,7 @@ msgstr ""
 "流量校准的原理是，测量实际挤出量，并将其与预期挤出量进行比较，得到两者比率。\n"
 "默认设置在Bambu Lab的打印机和官方耗材上表现良好，因为它们已经过预先校准和微调。对于普通的耗材，通常不需要执行流量校准，除非您在完成其他校准后仍然发现上述缺陷。如需更多详细信息，请查阅wiki文章。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -16821,7 +16852,7 @@ msgstr "名称不能超过40个字符。"
 msgid "Please find the best line on your plate"
 msgstr "请在您的打印板上找到最佳线条"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "请找到具有完美挤出度的转角"
 
@@ -16981,14 +17012,15 @@ msgstr "无历史结果"
 msgid "Success to get history result"
 msgstr "成功获取历史结果"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "刷新历史流量动态校准记录"
 
 msgid "Action"
 msgstr "操作"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "该机型每个喷嘴最多只能保存%d个历史结果"
 
@@ -17611,11 +17643,11 @@ msgstr "耗材预设"
 msgid "Create"
 msgstr "创建"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "未选择供应商，请重新选择供应商。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "未输入自定义供应商，请输入自定义供应商。"
 
@@ -17625,25 +17657,26 @@ msgstr "“Bambu”或“Generic”名称不能用于自定义耗材供应商"
 msgid "Filament type is not selected, please reselect type."
 msgstr "未选择耗材类型，请重新选择。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "未输入耗材系列，请输入耗材系列。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "检测到输入的耗材供应商或系列中可能包含转义字符。请删除转义字符并重新输入。"
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "检测到自定义供应商或系列中的所有输入都是空格。请重新输入。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "自定义供应商不能是数字。请重新输入。"
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "您还没有选择打印机或预设。请至少选择一个。"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -17689,7 +17722,7 @@ msgstr "导入预设"
 msgid "Create Type"
 msgstr "创建类型"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "该型号未找到，请重新选择供应商。"
 
@@ -17730,18 +17763,18 @@ msgstr "文件超过 %d MB，请重新导入。"
 msgid "Exception in obtaining file size, please import again."
 msgstr "获取文件大小时异常，请重新导入。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "预设路径未找到，请重新选择供应商。"
 
 msgid "The printer model was not found, please reselect."
 msgstr "未找到打印机型号，请重新选择。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "未找到喷嘴直径，请重新选择。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "打印机预设未找到，请重新选择。"
 
@@ -17757,11 +17790,11 @@ msgstr "工艺预设模板"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "您尚未选择要基于哪个打印机预设来创建。请先选择打印机的供应商和型号。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "您在第一页的可打印区域输入不正确。请检查后再创建。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17784,14 +17817,14 @@ msgstr "创建耗材预设失败。如下：\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "创建工艺预设失败。如下：\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "供应商未找到，请重新选择。"
 
 msgid "Current vendor has no models, please reselect."
 msgstr "当前供应商下没有型号，请重新选择。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "您还没有选择或输入一个自定义供应商和型号。"
 
@@ -17804,7 +17837,7 @@ msgstr "检测到自定义供应商或型号的所有输入都是空格。请重
 msgid "Please check bed printable shape and origin input."
 msgstr "请检查 可打印区域 和 原点 的输入。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "您尚未选择要更换喷嘴的打印机，请进行选择。"
 
@@ -17849,7 +17882,7 @@ msgstr "请前往 打印机设置 编辑您的预设"
 msgid "Filament Created"
 msgstr "耗材已创建"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -17904,7 +17937,8 @@ msgstr "zip写入失败"
 msgid "Export successful"
 msgstr "导出成功"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -17936,7 +17970,7 @@ msgstr ""
 "用户的耗材预设集。\n"
 "可与他人分享。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "仅显示对打印机、耗材和工艺预设有改动的打印机名称。"
 
@@ -17959,7 +17993,7 @@ msgstr "只显示带有更改的工艺预设的打印机名称，您选择的每
 msgid "Please select at least one printer or filament."
 msgstr "请至少选择一种打印机或耗材。"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "请选择想导出的类型"
 
@@ -18022,7 +18056,7 @@ msgstr "[删除请求]"
 msgid "Edit Preset"
 msgstr "编辑预设"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "了解更多信息，请参阅Wiki"
 
@@ -18091,6 +18125,9 @@ msgstr ""
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "无法校准：可能是校准值范围过大，或者是补偿过小"
+
+msgid "Physical Printer"
+msgstr "物理打印机"
 
 msgid "Print Host upload"
 msgstr "打印主机上传"
@@ -18507,7 +18544,7 @@ msgstr "打印机在同一时间。（这取决于有多少设备可以接受同
 msgid "Wait"
 msgstr "等待"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "分钟发送一次。（这取决于完成加热需要多长时间。）"
 
@@ -19179,8 +19216,8 @@ msgstr ""
 "延时摄影\n"
 "您知道吗？您可以每次打印时生成一段延时摄影。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
-#, fuzzy
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -19188,8 +19225,8 @@ msgstr ""
 "自动摆盘\n"
 "您知道吗？您可以自动排列项目中的所有对象。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
-#, fuzzy
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19287,9 +19324,9 @@ msgstr ""
 "分盘打印\n"
 "您知道吗，您可以把一个有很多零件的模型安排到多个独立的分盘，然后打印出来，这将简化对所有零件的管理。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-#, fuzzy
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19305,8 +19342,8 @@ msgstr ""
 "绘制支撑\n"
 "您知道吗，您可以手动绘制添加/屏蔽支撑的位置，此功能使仅将支撑材料放置在实际需要的模型截面上变得容易。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
-#, fuzzy
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19314,8 +19351,8 @@ msgstr ""
 "支撑类型\n"
 "您知道吗，有多种可选的支撑类型，树状支撑非常适合人物/动物模型，同时可以节耗材并提高打印速度。试试看！"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
-#, fuzzy
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19331,8 +19368,8 @@ msgstr ""
 "使用Brim\n"
 "您知道吗？当模型与热床表面的接触面积较小时，建议使用brim以提高打印成功率。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
-#, fuzzy
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19348,8 +19385,8 @@ msgstr ""
 "组合物体\n"
 "你知道吗？你可以把多个对象组合为一个整体。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
-#, fuzzy
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19365,9 +19402,9 @@ msgstr ""
 "提高强度\n"
 "你知道吗？你可以使用更多的墙层数和更高的疏散填充密度来提高模型的强度。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-#, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19375,8 +19412,8 @@ msgstr ""
 "什么时候需要打开打印机门进行打印？\n"
 "您知道吗，在较高封闭仓温度下打印较低温度的耗材时，打开打印机门可以减少挤出机/热端堵塞的概率。更多信息请参阅Wiki。"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
-#, fuzzy
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19456,9 +19493,6 @@ msgstr ""
 #~ msgid "Number of top interface layers."
 #~ msgstr "顶部接触面层数"
 
-#~ msgid "Physical Printer"
-#~ msgstr "物理打印机"
-
 #~ msgid "Bed Leveling"
 #~ msgstr "热床调平"
 
@@ -19533,7 +19567,8 @@ msgstr ""
 #~ "\n"
 #~ "此选项与“在填充上方增加第二层内部桥接”选项结合使用时效果尤佳，可在挤出实心填充之前进一步改善桥接。"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 #~ msgid ""
 #~ "Bridge line width is expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter).\n"
 #~ "Recommended to use with a higher Bridge density or Bridge flow ratio.\n"

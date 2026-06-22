@@ -6554,7 +6554,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                     if (!boost::iends_with(path.string(), ".obj")) { return; }
                     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-                    ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours);
+                    ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
                     if (color_dlg.ShowModal() != wxID_OK) {
                         in_out.filament_ids.clear();
                     }
@@ -8816,7 +8816,7 @@ void Plater::priv::reload_from_disk()
         auto        obj_color_fun = [this, &path](ObjDialogInOut &in_out) {
             if (!boost::iends_with(path, ".obj")) { return; }
             const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-            ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours);
+            ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
             if (color_dlg.ShowModal() != wxID_OK) {
                 in_out.filament_ids.clear();
             }

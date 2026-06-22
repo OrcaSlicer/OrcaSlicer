@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-19 10:33-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -7775,6 +7775,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr ""
 
@@ -12375,7 +12384,7 @@ msgstr ""
 msgid "First layer height"
 msgstr ""
 
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr ""
 
 msgid "This is the speed for the first layer except for solid infill sections."
@@ -12393,7 +12402,7 @@ msgstr ""
 msgid "Travel speed of the first layer."
 msgstr ""
 
-msgid "This is the number of top interface layers."
+msgid "Number of slow layers"
 msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
@@ -14204,6 +14213,9 @@ msgid ""
 msgstr ""
 
 msgid "Top interface layers"
+msgstr ""
+
+msgid "This is the number of top interface layers."
 msgstr ""
 
 msgid "Bottom interface layers"
@@ -16864,6 +16876,9 @@ msgid ""
 msgstr ""
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
+msgstr ""
+
+msgid "Physical Printer"
 msgstr ""
 
 msgid "Print Host upload"

@@ -45,7 +45,7 @@
         <color type="primary" scheme_preference="dark">#00695C</color>
     </branding>
     <releases>
-        <release version="2.4.0-dev" date="2026-05-22" type="development">
+        <release version="2.5.0-dev" date="2026-06-22" type="development">
             <url type="details">https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds</url>
             <description>
                 <p>See the release page for detailed changelog.</p>
