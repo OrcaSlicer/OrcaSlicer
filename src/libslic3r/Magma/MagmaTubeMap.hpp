@@ -145,7 +145,6 @@ private:
 
     // Build phases
     void scan_layers(const std::vector<Layer*> &layers);
-    void detect_constrictions();
     void assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if_canceled);
     void precompute_window_end_z();
     void precompute_injection_data();

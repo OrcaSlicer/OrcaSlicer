@@ -367,9 +367,10 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
             << " (line_correction=" << (map->m_overlap_line_correction ? "on" : "off") << ")";
     }
 
-    // Build phases (scan_layers uses m_effective_line_width for area threshold)
+    // Build phases (scan_layers uses m_effective_line_width for area threshold).
+    // scan_layers' 90%-of-ideal area gate already excludes pinched/under-area
+    // layers from a cell's presence, so no separate constriction pass is needed.
     map->scan_layers(layers);
-    map->detect_constrictions();
     map->assign_tubes(progress_fn, throw_if_canceled);
     map->precompute_window_end_z();
 
@@ -568,59 +569,6 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
             << " last_layer[min=" << (min_last == INT_MAX ? -1 : min_last)
             << " max=" << max_last << "]";
     }
-}
-
-// ============================================================================
-// MagmaTubeMap — detect_constrictions
-// ============================================================================
-
-void MagmaTubeMap::detect_constrictions()
-{
-    // Two-tier constriction detection:
-    // Tier 1 (fast): area ratio between consecutive layers
-    // Tier 2 (expensive): polygon overlap check for flagged cells
-    //
-    // A constriction splits the cell's presence into separate spans,
-    // preventing a tube from bridging across a near-discontinuity.
-
-    int constrictions_found = 0;
-
-    for (auto &[cell, presence] : m_cells) {
-        if (presence.first_layer == presence.last_layer)
-            continue;
-
-        for (int i = presence.first_layer; i < presence.last_layer; ++i) {
-            if (!presence.present(i) || !presence.present(i + 1))
-                continue;
-
-            double area_i   = presence.area(i);
-            double area_ip1 = presence.area(i + 1);
-
-            if (area_i <= 0.0 || area_ip1 <= 0.0)
-                continue;
-
-            // Tier 1: Area ratio heuristic (fast)
-            double ratio = std::min(area_i, area_ip1) / std::max(area_i, area_ip1);
-            if (ratio > 0.7)
-                continue;  // Healthy overlap, skip expensive check
-
-            // Tier 2: For cells that fail the ratio check, we use a stricter
-            // area-based threshold. Full polygon overlap would require storing
-            // per-layer zone regions (expensive). Instead, use a tighter ratio.
-            if (ratio < 0.3) {
-                // Severe constriction: split the cell at this boundary
-                int idx = i + 1 - presence.first_layer;
-                if (idx > 0 && idx < int(presence.layers.size())) {
-                    presence.layers[idx] = false;
-                    presence.areas[idx]  = 0.0;
-                    ++constrictions_found;
-                }
-            }
-        }
-    }
-
-    if (constrictions_found > 0)
-        BOOST_LOG_TRIVIAL(info) << "MagmaTubeMap: " << constrictions_found << " constrictions found";
 }
 
 // ============================================================================

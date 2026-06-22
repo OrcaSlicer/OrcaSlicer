@@ -55,7 +55,7 @@ struct Run {
 
 struct EdgeData {
     CellEdge         edge;
-    std::vector<Run> runs; // contiguous shared-presence ranges, split at constrictions
+    std::vector<Run> runs; // contiguous shared-presence ranges (split where either cell's presence breaks)
 };
 
 // ============================================================================
