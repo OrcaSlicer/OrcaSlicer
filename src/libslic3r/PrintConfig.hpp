@@ -83,8 +83,9 @@ enum InfillPattern : int {
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
-    // Magma infill pattern for vertical reinforcement
+    // Magma infill patterns for vertical reinforcement
     ipMagmaTriangle,
+    ipMagmaRectilinear,
     ipCount,
 };
 

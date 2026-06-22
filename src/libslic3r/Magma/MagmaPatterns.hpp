@@ -5,6 +5,7 @@
 #include "MagmaGeometry.hpp"
 #include "MagmaLattice.hpp"
 #include "MagmaTriangleCell.hpp"     // triangle_geometry(), TriangleLattice
+#include "MagmaRectilinearCell.hpp"  // square_geometry(), RectilinearLattice
 
 #include <memory>
 
@@ -29,6 +30,8 @@ namespace magma {
 inline const MagmaGeometry& magma_geometry_for(InfillPattern p)
 {
     switch (p) {
+    case ipMagmaRectilinear:
+        return square_geometry();
     case ipMagmaTriangle:
     default:
         return triangle_geometry();
@@ -41,6 +44,8 @@ inline std::unique_ptr<MagmaLattice> make_magma_lattice(
     InfillPattern p, double cell_spacing, double offset_x, double offset_y)
 {
     switch (p) {
+    case ipMagmaRectilinear:
+        return std::make_unique<RectilinearLattice>(cell_spacing, offset_x, offset_y);
     case ipMagmaTriangle:
     default:
         return std::make_unique<TriangleLattice>(cell_spacing, offset_x, offset_y);

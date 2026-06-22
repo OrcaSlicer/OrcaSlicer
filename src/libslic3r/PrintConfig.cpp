@@ -231,8 +231,9 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
     { "octagramspiral", ipOctagramSpiral },
-    // Magma infill pattern for vertical reinforcement
-    { "magmatriangle", ipMagmaTriangle }
+    // Magma infill patterns for vertical reinforcement
+    { "magmatriangle", ipMagmaTriangle },
+    { "magmarectilinear", ipMagmaRectilinear }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
