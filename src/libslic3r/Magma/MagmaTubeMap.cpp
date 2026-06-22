@@ -1,5 +1,6 @@
 #include "MagmaTubeMap.hpp"
 #include "MagmaTubeSolver.hpp"
+#include "MagmaPatterns.hpp"
 
 #include "../Layer.hpp"
 #include "../Print.hpp"
@@ -204,6 +205,13 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
         tube_mode, config.magma_interior_width.value, nozzle_diameter,
         nozzle_od, map->m_line_width);
     map->m_cell_spacing = cell_spacing_from_geometry(map->m_interior_width, map->m_line_width);
+
+    // Select the pattern's shape strategy (geometry formulas + lattice factory).
+    // For ipMagmaTriangle these resolve to TriangleGeometry / TriangleLattice so
+    // output stays byte-identical; a new pattern drops in via MagmaPatterns.hpp.
+    map->m_pattern  = config.sparse_infill_pattern.value;
+    map->m_geometry = &magma_geometry_for(map->m_pattern);
+
     // Nominal config layer height (fallback for missing layers in lookup tables)
     map->m_layer_height = static_cast<float>(obj_config.layer_height.value);
     map->m_dual_infill_enabled = config.dual_infill_enabled.value;
@@ -293,9 +301,11 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
         }
     }
 
-    // Build per-layer lattice cache (eliminates repeated sin/cos + TriangleLattice construction)
+    // Build per-layer lattice cache (eliminates repeated sin/cos + lattice
+    // construction). Built via the pattern factory so each layer's lattice
+    // matches the selected pattern (triangle today).
     for (int i = 0; i < map->m_num_layers; ++i)
-        map->m_layer_data[i].lattice = lattice_for_layer(map->m_cell_spacing, map->m_spiral_params, i);
+        map->m_layer_data[i].lattice = lattice_for_layer(map->m_pattern, map->m_cell_spacing, map->m_spiral_params, i);
 
     // Read injection edge preference
     map->m_injection_edge_pref = obj_config.magma_injection_edge_pref.value;
@@ -322,7 +332,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
         double S = map->m_cell_spacing;
         double w = map->m_line_width;
-        double excess_frac = triangle_geometry().line_overlap_excess_fraction(S, w);
+        double excess_frac = map->m_geometry->line_overlap_excess_fraction(S, w);
 
         if (map->m_overlap_line_correction && excess_frac > 0.0) {
             // Minimum corrected line width: use magma_overlap_min_width if set,
@@ -395,7 +405,7 @@ double MagmaTubeMap::tube_opening_diameter() const
     // Opening = circumscribed circle of the inset (hollow) cell, via the shared
     // per-shape geometry so the injection seal math and Print::validate()'s seal
     // warning use one source of truth.
-    return triangle_geometry().opening_diameter(m_cell_spacing, m_effective_line_width);
+    return m_geometry->opening_diameter(m_cell_spacing, m_effective_line_width);
 }
 
 // ============================================================================
@@ -408,7 +418,7 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
     // Uses m_effective_line_width (post overlap correction) so the inset matches
     // the actual deposited bead width, not the nominal line width.
     const double half_line_width = m_effective_line_width * 0.5;
-    const double inset_area_mm2 = triangle_geometry().inset_open_area(m_cell_spacing, m_effective_line_width);
+    const double inset_area_mm2 = m_geometry->inset_open_area(m_cell_spacing, m_effective_line_width);
     const double inset_area_scaled2 = inset_area_mm2 * 1e12;  // (1e6)^2
 
     // Boundary cells require ≥90% of ideal tube area to be considered for
@@ -425,7 +435,8 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
     // FIXED reference lattice for cell IDENTITY (a,b,c coordinates).
     // Cell identity must be stable across layers for tube pairing to work.
     // Spiral offset is applied per-layer for POSITION checks below.
-    TriangleLattice ref_lattice(m_cell_spacing, 0.0, 0.0);
+    std::unique_ptr<MagmaLattice> ref_lattice_ptr = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0);
+    const MagmaLattice &ref_lattice = *ref_lattice_ptr;
 
     for (int i = 0; i < int(layers.size()); ++i) {
         const Layer *layer = layers[i];
@@ -437,7 +448,7 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
         // Spiral-offset lattice for this layer's actual cell positions.
         // Cell identity comes from ref_lattice, but position checks use the
         // spiral-offset position (matching what FillMagma actually renders).
-        const TriangleLattice &layer_lattice = m_layer_data[layer_id].lattice;
+        const MagmaLattice &layer_lattice = *m_layer_data[layer_id].lattice;
 
         // Collect zone outer surfaces where tube infill will be generated
         ExPolygons zone_regions;
@@ -610,8 +621,8 @@ void MagmaTubeMap::assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if
 {
     // Reference lattice for cell topology (neighbors/is_up). Offset-independent,
     // so a zero-offset lattice serves every layer's connectivity queries.
-    TriangleLattice solver_lattice(m_cell_spacing, 0.0, 0.0);
-    MagmaTubeSolver solver(solver_lattice, m_cells, m_layer_data,
+    std::unique_ptr<MagmaLattice> solver_lattice = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0);
+    MagmaTubeSolver solver(*solver_lattice, m_cells, m_layer_data,
                            m_min_tube_height_mm, m_max_tube_height_mm,
                            m_num_layers, m_dodge_distance,
                            m_solver_mode, m_solver_timeout);
@@ -669,7 +680,7 @@ void MagmaTubeMap::precompute_injection_data()
                 std::swap(pair.cell_a, pair.cell_b);
         }
 
-        pair.injection_center = m_layer_data[cap_layer].lattice.cell_center(pair.cell_a);
+        pair.injection_center = m_layer_data[cap_layer].lattice->cell_center(pair.cell_a);
         pair.window_center_layer = window_center_layer(pair);
     }
 }
@@ -698,7 +709,7 @@ static void merge_intervals(std::vector<std::pair<double, double>> &intervals)
 static WindowGaps compute_window_gaps_for_layer(
     int layer_id,
     const std::vector<UTubePair> &pairs,
-    const TriangleLattice &lattice,
+    const MagmaLattice &lattice,
     double cell_spacing,
     const std::vector<LayerData> &layer_data)
 {
@@ -777,7 +788,7 @@ void MagmaTubeMap::precompute_window_gaps()
     // Pre-compute WindowGaps for each layer that has gaps.
     for (int lid : gap_layers)
         m_window_gaps_cache[lid] = compute_window_gaps_for_layer(
-            lid, m_pairs, m_layer_data[lid].lattice, m_cell_spacing, m_layer_data);
+            lid, m_pairs, *m_layer_data[lid].lattice, m_cell_spacing, m_layer_data);
 }
 
 // ============================================================================
@@ -793,7 +804,7 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
         layer_heights[static_cast<int>(layer->id())] = layer->height;
 
     // Window-gap geometry (inset side x line width x window height) is computed
-    // via triangle_geometry().window_volume() below.
+    // via m_geometry->window_volume() below.
 
     // Vertex overlap excess area per triangle cell (mm²).
     //
@@ -809,7 +820,7 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
     //
     // Computed per-layer to handle adaptive/variable layer heights correctly.
     // Each UTubePair spans 2 triangle cells, so we multiply by 2.
-    double excess_area_per_cell_mm2 = triangle_geometry().vertex_overlap_excess_area(m_effective_line_width);
+    double excess_area_per_cell_mm2 = m_geometry->vertex_overlap_excess_area(m_effective_line_width);
 
     // Track volume reduction across all pairs for user warning
     double total_orig_volume      = 0.0;
@@ -846,7 +857,7 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
 
         // Window gap volume: opening between paired cell interiors along shared edge.
         // Length = inset side (not full edge — interiors are smaller than the outer triangle).
-        double window_volume = triangle_geometry().window_volume(m_cell_spacing, m_line_width, window_height_mm);
+        double window_volume = m_geometry->window_volume(m_cell_spacing, m_line_width, window_height_mm);
 
         double orig_volume = tube_volume + window_volume;
         pair.volume_mm3 = std::max(0.0, orig_volume - overlap_excess_volume);
@@ -911,7 +922,7 @@ ExPolygons MagmaTubeMap::get_unfilled_cell_interiors(int layer_id) const
     ExPolygons result;
     const double half_lw = m_line_width * 0.5;
 
-    const TriangleLattice &lattice = m_layer_data[layer_id].lattice;
+    const MagmaLattice &lattice = *m_layer_data[layer_id].lattice;
 
     for (const auto &[cell, presence] : m_cells) {
         if (!presence.present(layer_id))
@@ -955,7 +966,7 @@ WindowGaps MagmaTubeMap::window_gaps(int layer_id) const
     if (it != m_window_gaps_cache.end())
         return it->second;
     // No gaps on this layer — return empty result with correct offsets
-    const TriangleLattice &lattice = m_layer_data[layer_id].lattice;
+    const MagmaLattice &lattice = *m_layer_data[layer_id].lattice;
     return {m_cell_spacing, lattice.offset_x(), lattice.offset_y(), {}, {}, {}};
 }
 

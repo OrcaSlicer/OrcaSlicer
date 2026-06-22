@@ -1,4 +1,5 @@
 #include "MagmaSpiralOffset.hpp"
+#include "MagmaPatterns.hpp"
 
 #include <cmath>
 #include <algorithm>
@@ -59,10 +60,11 @@ Vec2d compute_spiral_offset(const SpiralParams &params, int layer_id)
     );
 }
 
-TriangleLattice lattice_for_layer(double cell_spacing, const SpiralParams &params, int layer_id)
+std::shared_ptr<MagmaLattice> lattice_for_layer(
+    InfillPattern pattern, double cell_spacing, const SpiralParams &params, int layer_id)
 {
     Vec2d offset = compute_spiral_offset(params, layer_id);
-    return TriangleLattice(cell_spacing, offset.x(), offset.y());
+    return make_magma_lattice(pattern, cell_spacing, offset.x(), offset.y());
 }
 
 } // namespace magma

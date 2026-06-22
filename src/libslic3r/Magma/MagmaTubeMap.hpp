@@ -82,9 +82,12 @@ struct WindowGaps {
 
 // Per-layer data: Z heights and pre-built lattice with spiral offset.
 struct LayerData {
-    double          print_z;   // cumulative Z (top of layer)
-    double          height;    // individual layer height
-    TriangleLattice lattice;   // lattice with spiral offset for this layer
+    double print_z;   // cumulative Z (top of layer)
+    double height;    // individual layer height
+    // Lattice (with spiral offset) for this layer, built via the pattern's
+    // factory. shared_ptr because LayerData is copied/stored and the abstract
+    // MagmaLattice is not value-copyable.
+    std::shared_ptr<MagmaLattice> lattice;
 
     double bottom_z() const { return print_z - height; }
 };
@@ -129,8 +132,9 @@ public:
     double tube_opening_diameter() const;
 
     // Pre-built lattice with spiral offset for a given layer.
-    // Eliminates repeated sin/cos + TriangleLattice construction.
-    const TriangleLattice& lattice_at(int layer_id) const { return m_layer_data[layer_id].lattice; }
+    // Eliminates repeated sin/cos + lattice construction. Returned through the
+    // MagmaLattice interface so consumers stay pattern-agnostic.
+    const MagmaLattice& lattice_at(int layer_id) const { return *m_layer_data[layer_id].lattice; }
 
     // Window center layer for a U-tube pair: the layer at or above
     // the Z midpoint of the window gap.  Tube fill exists from this
@@ -198,6 +202,12 @@ private:
 
     // Pre-computed window gaps (built during build(), not mutable)
     std::unordered_map<int, WindowGaps> m_window_gaps_cache;
+
+    // Pattern selection (geometry formulas + lattice construction).
+    // m_geometry points at the shared, stateless per-shape strategy
+    // (magma_geometry_for); m_pattern picks the lattice factory.
+    InfillPattern         m_pattern = ipMagmaTriangle;
+    const MagmaGeometry  *m_geometry = nullptr;
 
     // Config
     SpiralParams m_spiral_params;

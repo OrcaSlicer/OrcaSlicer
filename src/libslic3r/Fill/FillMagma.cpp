@@ -145,7 +145,7 @@ void FillMagmaTriangle::_fill_surface_single(
     const int    layer = static_cast<int>(this->layer_id);
 
     // Use cached lattice with spiral offset for this layer
-    const magma::TriangleLattice &lattice = this->tube_map->lattice_at(layer);
+    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
 
     const double edge  = lattice.edge_length();
     const double off_x = lattice.offset_x();

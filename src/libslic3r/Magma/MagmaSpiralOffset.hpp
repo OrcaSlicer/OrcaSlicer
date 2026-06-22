@@ -2,6 +2,10 @@
 #define slic3r_Magma_MagmaSpiralOffset_hpp_
 
 #include "MagmaTriangleCell.hpp"
+#include "MagmaLattice.hpp"
+#include "../PrintConfig.hpp"   // InfillPattern
+
+#include <memory>
 
 namespace Slic3r {
 namespace magma {
@@ -23,8 +27,10 @@ SpiralParams compute_spiral_params(float interior_width, float line_width, float
 // Compute per-layer (x,y) offset in mm.
 Vec2d compute_spiral_offset(const SpiralParams &params, int layer_id);
 
-// Build a TriangleLattice for a specific layer with spiral offset applied.
-TriangleLattice lattice_for_layer(double cell_spacing, const SpiralParams &params, int layer_id);
+// Build the pattern's lattice for a specific layer with spiral offset applied.
+// Returns through the MagmaLattice interface so callers stay pattern-agnostic.
+std::shared_ptr<MagmaLattice> lattice_for_layer(
+    InfillPattern pattern, double cell_spacing, const SpiralParams &params, int layer_id);
 
 } // namespace magma
 } // namespace Slic3r

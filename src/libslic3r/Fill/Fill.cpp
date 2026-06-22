@@ -1276,7 +1276,9 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         } else if (surface_fill.params.pattern == ipLightning) {
             dynamic_cast<FillLightning::Filler*>(f.get())->generator = lightning_generator;
         } else if (is_magma_pattern(surface_fill.params.pattern)) {
-            auto* fill_magma = dynamic_cast<FillMagmaTriangle*>(f.get());
+            // Cast to the shared Magma base so any pattern (triangle today,
+            // square/rectilinear later) gets its tube_map attached.
+            auto* fill_magma = dynamic_cast<FillMagmaBase*>(f.get());
             if (fill_magma)
                 fill_magma->tube_map = tube_map;
         }

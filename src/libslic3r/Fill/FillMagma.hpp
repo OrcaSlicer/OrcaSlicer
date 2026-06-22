@@ -8,6 +8,26 @@ namespace Slic3r {
 
 namespace magma { class MagmaTubeMap; }
 
+// Shared base for every Magma infill pattern (triangle today; rectilinear /
+// square later). Holds the pattern-agnostic plumbing — the non-owning tube map
+// pointer set by Fill.cpp and the self-crossing / no-sort overrides — so a new
+// pattern only supplies its own line generation. Fill.cpp attaches the tube map
+// by casting to FillMagmaBase*, which means any subclass gets it (no silent
+// null-tube_map when a new pattern is added).
+class FillMagmaBase : public Fill
+{
+public:
+    // Pre-computed tube map (set by Fill.cpp, non-owning)
+    const magma::MagmaTubeMap* tube_map = nullptr;
+
+    // Magma patterns are self-crossing (multiple line families intersect).
+    bool is_self_crossing() override { return true; }
+
+    // Preserve connect_infill's merged ordering — the GCode generator's TSP
+    // re-sort produces chaotic routing with many window-gap fragments.
+    bool no_sort() const override { return true; }
+};
+
 // Magma Triangle infill pattern for vertical reinforcement
 //
 // Creates a triangle grid pattern with:
@@ -17,21 +37,11 @@ namespace magma { class MagmaTubeMap; }
 //
 // Generates lines directly from the TriangleLattice (not via multiline engine).
 // Window gaps are built into line generation, not clipped after the fact.
-class FillMagmaTriangle : public Fill
+class FillMagmaTriangle : public FillMagmaBase
 {
 public:
     Fill* clone() const override { return new FillMagmaTriangle(*this); }
     ~FillMagmaTriangle() override = default;
-
-    // Pre-computed tube map (set by Fill.cpp, non-owning)
-    const magma::MagmaTubeMap* tube_map = nullptr;
-
-    // Triangle pattern is self-crossing (3 directions intersect)
-    bool is_self_crossing() override { return true; }
-
-    // Preserve connect_infill's merged ordering — the GCode generator's TSP
-    // re-sort produces chaotic routing with many window-gap fragments.
-    bool no_sort() const override { return true; }
 
 protected:
     // Fixed angle - pattern doesn't rotate between layers

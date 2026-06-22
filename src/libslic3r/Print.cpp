@@ -19,6 +19,7 @@
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "Magma/MagmaTubeMap.hpp"  // complete type for m_magma_tube_map.reset()
+#include "Magma/MagmaPatterns.hpp" // magma_geometry_for() pattern selector
 #include "Magma/MagmaInjectionOrder.hpp"  // global per-layer injection ordering
 #include "format.hpp"
 #include <float.h>
@@ -1424,7 +1425,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             double iw = rcfg.magma_interior_width.value;
             if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
             double cell_sp = magma::cell_spacing_from_geometry(iw, line_w);
-            double excess_frac = magma::triangle_geometry().line_overlap_excess_fraction(cell_sp, line_w);
+            double excess_frac = magma::magma_geometry_for(rcfg.sparse_infill_pattern.value)
+                                     .line_overlap_excess_fraction(cell_sp, line_w);
             double corrected_w = line_w * (1.0 - excess_frac);
             if (corrected_w < min_width)
                 corrected_w = min_width;
@@ -1502,7 +1504,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double iw = rcfg.magma_interior_width.value;
                 if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
                 double cell_sp    = magma::cell_spacing_from_geometry(iw, line_w);
-                double opening    = magma::triangle_geometry().opening_diameter(cell_sp, line_w);
+                double opening    = magma::magma_geometry_for(rcfg.sparse_infill_pattern.value)
+                                        .opening_diameter(cell_sp, line_w);
                 double cone_deg   = rcfg.magma_nozzle_cone_half_angle.value;
 
                 double slam = obj_cfg.magma_injection_z_slam_auto.value
