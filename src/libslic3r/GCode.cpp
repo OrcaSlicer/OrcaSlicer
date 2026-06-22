@@ -835,7 +835,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         //BBS: increase toolchange count
-        gcodegen.m_toolchange_count++;
+        // H2C: count only real tool changes; wipe-tower/nozzle-change tcr entries would
+        // otherwise inflate it and desync the M620 O{n} carousel ordinal (matches BBS).
+        if (!Vortek::WipeTower::is_h2c_printer(gcodegen.m_print) || tcr.is_tool_change)
+            gcodegen.m_toolchange_count++;
 
         std::string toolchange_gcode_str;
 
