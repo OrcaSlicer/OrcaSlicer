@@ -941,6 +941,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 float filament_area = float((M_PI / 4.f) * pow(full_config.filament_diameter.get_at(new_filament_id), 2));
                 float purge_length = purge_volume / filament_area;
 
+                // H2C: on a contact (interface) layer the M620.13 interface purge replaces the
+                // normal carousel flush (like BambuStudio). Zero flush_length so M620.10 uses L0
+                // and change_filament_gcode emits a single SYNC T0 (no extra dwell, no double purge).
+                const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(gcodegen.m_print);
+                if (is_h2c_multi_nozzle && full_config.enable_tower_interface_features && tcr.is_contact)
+                    purge_length = 0.f;
+
                 int old_filament_e_feedrate = (old_filament_id != -1) ? (int)(60.0 * full_config.filament_max_volumetric_speed.get_at(old_filament_id) / filament_area) : 200;
                 old_filament_e_feedrate = old_filament_e_feedrate == 0 ? 100 : old_filament_e_feedrate;
                 int new_filament_e_feedrate = (int)(60.0 * full_config.filament_max_volumetric_speed.get_at(new_filament_id) / filament_area);
@@ -1048,7 +1055,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("flush_length", new ConfigOptionFloat(purge_length));
                 float flush_length_a0 = purge_length;
                 float flush_length_a1 = purge_length;
-                const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(gcodegen.m_print);
                 if (is_h2c_multi_nozzle) {
                     int new_nozzle_id = -1;
                     if (gcodegen.m_print) {
