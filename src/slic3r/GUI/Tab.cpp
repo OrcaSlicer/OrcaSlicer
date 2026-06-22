@@ -2443,6 +2443,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Dual Infill Zones"), L"param_dual_infill");
         optgroup->append_single_option_line("dual_infill_enabled");
+        optgroup->append_single_option_line("dual_infill_outer_pattern");
         optgroup->append_single_option_line("dual_infill_outer_width");
         optgroup->append_single_option_line("dual_infill_shell_walls");
         optgroup->append_single_option_line("dual_infill_shell_width");

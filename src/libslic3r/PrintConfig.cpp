@@ -5403,14 +5403,24 @@ void PrintConfigDef::init_fff_params()
     def = this->add("dual_infill_enabled", coBool);
     def->label = L("Enable dual infill zones");
     def->category = L("Strength");
-    def->tooltip = L("Split infill into inner and outer zones. The outer zone uses Magma Triangle infill "
+    def->tooltip = L("Split infill into inner and outer zones. The outer zone uses the selected Magma infill pattern "
                      "for injection reinforcement, while the inner zone uses the sparse infill pattern "
                      "configured above. Use lightweight inner infill (Support Cubic, Lightning) to save "
                      "weight while maintaining perimeter strength through injection channels.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
-    // magma_pattern removed - outer zone always uses ipMagmaTriangle
+    def = this->add("dual_infill_outer_pattern", coEnum);
+    def->label = L("Outer zone pattern");
+    def->category = L("Strength");
+    def->tooltip = L("Which Magma infill pattern the outer (reinforcement) zone uses for injection channels.");
+    def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
+    def->enum_values.push_back("magmatriangle");
+    def->enum_values.push_back("magmarectilinear");
+    def->enum_labels.push_back(L("Magma Triangle"));
+    def->enum_labels.push_back(L("Magma Rectilinear"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMagmaTriangle));
 
     def = this->add("dual_infill_outer_width", coFloat);
     def->label = L("Outer zone width");

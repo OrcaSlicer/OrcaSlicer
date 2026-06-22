@@ -941,7 +941,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // Dual infill zones settings
     auto* dual_infill_opt = config->option<ConfigOptionBool>("dual_infill_enabled");
     bool have_dual_infill = dual_infill_opt && dual_infill_opt->value;
-    for (auto el : { "dual_infill_outer_width", "dual_infill_shell_walls",
+    for (auto el : { "dual_infill_outer_pattern", "dual_infill_outer_width", "dual_infill_shell_walls",
         "dual_infill_shell_width", "dual_infill_min_inner_width",
         "dual_infill_solid_layers", "dual_infill_solid_thickness" })
         toggle_line(el, have_dual_infill);

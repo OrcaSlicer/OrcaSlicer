@@ -209,7 +209,10 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // Select the pattern's shape strategy (geometry formulas + lattice factory).
     // For ipMagmaTriangle these resolve to TriangleGeometry / TriangleLattice so
     // output stays byte-identical; a new pattern drops in via MagmaPatterns.hpp.
-    map->m_pattern  = config.sparse_infill_pattern.value;
+    // In dual-infill mode sparse_infill_pattern is the inner yolk pattern, so the tube
+    // map must use the outer (reinforcement) pattern's geometry/lattice instead.
+    map->m_pattern  = config.dual_infill_enabled.value ? config.dual_infill_outer_pattern.value
+                                                       : config.sparse_infill_pattern.value;
     map->m_geometry = &magma_geometry_for(map->m_pattern);
 
     // Nominal config layer height (fallback for missing layers in lookup tables)

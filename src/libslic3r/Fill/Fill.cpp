@@ -889,8 +889,8 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 if (surface.is_zone_inner()) {
                     // Yolk: user's sparse_infill_pattern already set as default above
                 } else if (surface.surface_type == stInternal && region_config.dual_infill_enabled) {
-                    // Outer zone: always Magma Triangle
-                    params.pattern = ipMagmaTriangle;
+                    // Outer zone: uses the selected Magma pattern
+                    params.pattern = region_config.dual_infill_outer_pattern.value;
                 } else if (surface.is_zone_boundary()) {
                     // Zone floor/ceiling are solid shell surfaces
                     params.pattern = region_config.internal_solid_infill_pattern.value;

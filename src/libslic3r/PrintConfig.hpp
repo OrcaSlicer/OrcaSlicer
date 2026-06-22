@@ -1275,6 +1275,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Dual infill zones configuration (inner/outer zones with shell boundary)
     // Outer zone always uses Magma Triangle infill at 100% density
     ((ConfigOptionBool,                 dual_infill_enabled))
+    ((ConfigOptionEnum<InfillPattern>,    dual_infill_outer_pattern))  // Magma pattern for outer (reinforcement) zone
     ((ConfigOptionFloat,                dual_infill_outer_width))      // Width of outer zone (mm)
     ((ConfigOptionInt,                  dual_infill_shell_walls))      // Number of shell walls
     ((ConfigOptionFloatOrPercent,       dual_infill_shell_width))      // Shell wall line width

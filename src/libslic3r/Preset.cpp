@@ -1034,6 +1034,7 @@ static std::vector<std::string> s_Preset_print_options{
     "gap_fill_target",
     // Dual infill zones configuration
     "dual_infill_enabled",
+    "dual_infill_outer_pattern",
     "dual_infill_outer_width",
     "dual_infill_shell_walls",
     "dual_infill_shell_width",
