@@ -221,6 +221,13 @@ static t_config_enum_values s_keys_map_FuzzySkinMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinMode)
 
+static t_config_enum_values s_keys_map_TopSurfaceExpansionDirection {
+    { "inward_and_outward", int(TopSurfaceExpansionDirection::InwardAndOutward) },
+    { "inward",             int(TopSurfaceExpansionDirection::Inward) },
+    { "outward",            int(TopSurfaceExpansionDirection::Outward) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TopSurfaceExpansionDirection)
+
 static t_config_enum_values s_keys_map_InfillPattern {
     { "monotonic", ipMonotonic },
     { "monotonicline", ipMonotonicLine },
@@ -2145,6 +2152,22 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("top_surface_expansion_direction", coEnum);
+    def->label = L("Top surface expansion direction");
+    def->category = L("Strength");
+    def->tooltip = L("Direction in which the top surface expansion grows. Inward grows the top into the holes and "
+                     "gaps left by features rising from the middle of a top surface; outward grows the outer edge of "
+                     "the top toward the walls. Inward and outward does both.");
+    def->enum_keys_map = &ConfigOptionEnum<TopSurfaceExpansionDirection>::get_enum_values();
+    def->enum_values.push_back("inward_and_outward");
+    def->enum_values.push_back("inward");
+    def->enum_values.push_back("outward");
+    def->enum_labels.push_back(L("Inward and outward"));
+    def->enum_labels.push_back(L("Inward"));
+    def->enum_labels.push_back(L("Outward"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<TopSurfaceExpansionDirection>(TopSurfaceExpansionDirection::InwardAndOutward));
 
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");

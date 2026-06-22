@@ -1300,6 +1300,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "top_shell_thickness"
             || opt_key == "top_surface_expansion"
             || opt_key == "top_surface_expansion_margin"
+            || opt_key == "top_surface_expansion_direction"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
             || opt_key == "internal_solid_filament_id"
@@ -1713,6 +1714,7 @@ void PrintObject::detect_surfaces_type()
                         const double margin     = scale_(layerm->region().config().top_surface_expansion_margin.value);
                         // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
                         const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
+                        const auto   direction  = layerm->region().config().top_surface_expansion_direction.value;
 
                         ExPolygons grown;
                         for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
@@ -1725,9 +1727,25 @@ void PrintObject::detect_surfaces_type()
                             const ExPolygons island_top    = intersection_ex(T, infill_region);
                             if (opening_ex(island_top, min_top).empty())
                                 continue; // no real top infill in this section - never expand into it
+
+                            // grow by d, then keep only the part allowed by the configured direction: inward fills
+                            // the holes/gaps left by features (clip the growth back to the top's own filled outline,
+                            // which leaves the outer edge fixed), outward grows the outer edge toward the walls (drop
+                            // the growth that fell into the original holes), and inward+outward keeps both.
+                            ExPolygons expanded = offset_ex_2(island_top, d, jt);
+                            if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
+                                ExPolygons outline; // the top with its holes filled (same outer edge)
+                                outline.reserve(island_top.size());
+                                for (const ExPolygon &ex : island_top)
+                                    outline.emplace_back(ex.contour);
+                                outline = union_ex(outline);
+                                expanded = direction == TopSurfaceExpansionDirection::Inward ?
+                                    intersection_ex(expanded, outline) :              // only growth into the holes
+                                    diff_ex(expanded, diff_ex(outline, island_top));  // only growth past the outer edge
+                            }
                             // hold the expansion clear of the walls by the configured margin
                             const ExPolygons allowed = margin > 0. ? offset_ex(infill_region, -float(margin)) : infill_region;
-                            append(grown, intersection_ex(offset_ex_2(island_top, d, jt), allowed));
+                            append(grown, intersection_ex(expanded, allowed));
                         }
 
                         ExPolygons new_top = diff_ex(union_ex(T, grown), to_expolygons(bottom));

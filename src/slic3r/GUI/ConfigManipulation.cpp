@@ -709,6 +709,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("top_surface_pattern", has_top_shell);
     toggle_field("top_surface_expansion", has_top_shell);
     toggle_field("top_surface_expansion_margin", has_top_shell);
+    toggle_field("top_surface_expansion_direction", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell);
     toggle_field("bottom_surface_density", has_bottom_shell);
