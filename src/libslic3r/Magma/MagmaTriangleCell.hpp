@@ -160,6 +160,16 @@ struct TriangleGeometry final : public MagmaGeometry
         return inset_side * line_width * window_height;
     }
 
+    // Geometric window height: window cross-section (inset_side x height) equals
+    // the tube's open cross-section (inset triangle area). Byte-identical to the
+    // formula previously used for the triangle's auto window height.
+    double auto_window_height(double interior_width, double line_width) const override {
+        double spacing = cell_spacing_from_geometry(interior_width, line_width);
+        double side = triangle_side_length(spacing);
+        double inset_side = side - line_width * SQRT3;
+        return inset_side > 0.0 ? inset_triangle_area(spacing, line_width) / inset_side : 0.1;
+    }
+
     double auto_interior_width_from_od(double nozzle_od, double line_width) const override {
         return calculate_auto_interior_width_from_od(nozzle_od, line_width);
     }
@@ -341,6 +351,7 @@ struct WindowSpec {
     // Construct from config values with auto-calculation support.
     // config_window_height_mm = 0 means auto-calculate from tube geometry.
     static WindowSpec from_config(
+        const MagmaGeometry& geom,          // per-shape auto window height formula
         float config_window_height_mm,      // 0 = auto-calculate
         float interior_width,               // for auto window height calc
         float line_width,                   // for auto window height calc

@@ -49,37 +49,6 @@ struct UTubePair {
     int    window_center_layer;   // center layer of window gap
 };
 
-// Which edge two adjacent triangle cells share.
-enum class SharedEdge { Horizontal, Col60, Diag120 };
-
-// Determine shared edge type between two adjacent cells.
-// Cells differ in exactly one coordinate (a, b, or c).
-inline SharedEdge shared_edge(const TriangleCell &a, const TriangleCell &b) {
-    if (a.a != b.a) return SharedEdge::Col60;       // differ in a → 60° edge
-    if (a.b != b.b) return SharedEdge::Horizontal;   // differ in b → horizontal
-    return SharedEdge::Diag120;                       // differ in c → 120° edge
-}
-
-// All window gap data for a layer, returned by MagmaTubeMap::window_gaps().
-//
-// Gaps are organized by line family (horizontal, 60°, 120°). Each map key is
-// the line index (row, column, or diagonal), and the value is a sorted,
-// merged list of world-coordinate intervals where lines should be interrupted.
-//
-// - Horizontal: key = row b, intervals are X ranges
-// - Col60:      key = column a, intervals are Y ranges
-// - Diag120:    key = diagonal s (= a+b+1 of UP cell), intervals are Y ranges
-struct WindowGaps {
-    double cell_spacing;
-    double offset_x, offset_y;  // spiral offset for this layer (mm)
-
-    std::map<int, std::vector<std::pair<double, double>>> horiz;
-    std::map<int, std::vector<std::pair<double, double>>> col60;
-    std::map<int, std::vector<std::pair<double, double>>> diag120;
-
-    bool empty() const { return horiz.empty() && col60.empty() && diag120.empty(); }
-};
-
 // Per-layer data: Z heights and pre-built lattice with spiral offset.
 struct LayerData {
     double print_z;   // cumulative Z (top of layer)
@@ -109,14 +78,10 @@ public:
 
     // === Query interface (thread-safe, const) ===
 
-    // Pre-computed window gap intervals for a layer. Returns world-space
-    // intervals for all three line families (horizontal, 60°, 120°) where
-    // infill lines should be interrupted. Shared-edge detection ensures
-    // gaps appear on the correct edge between paired cells.
-    WindowGaps window_gaps(int layer_id) const;
-
-    // Is window open for this cell on this layer?
-    bool is_window_open(const TriangleCell &cell, int layer_id) const;
+    // Is this pair's window open (gap present) on this layer? Pure Z + layer-range
+    // check — no XY geometry. Per-shape toolpaths use this to decide whether to
+    // cut a window gap for the pair, then compute the cut geometry themselves.
+    bool window_open_at(const UTubePair &pair, int layer_id) const;
 
     // Is this cell assigned to a tube (true) or should be solid fill (false)?
     bool is_paired(const TriangleCell &cell) const;
@@ -130,6 +95,9 @@ public:
     // nozzle flat (plus cone, when z-slamming) must cover to seal. Auto tube
     // sizing makes this approximately the nozzle tip flat. Used by auto z-slam.
     double tube_opening_diameter() const;
+    // Centre-to-centre distance to an edge-sharing neighbour cell (injection crater
+    // clearance), via the active pattern's geometry.
+    double neighbor_centroid_distance() const;
 
     // Pre-built lattice with spiral offset for a given layer.
     // Eliminates repeated sin/cos + lattice construction. Returned through the
@@ -181,7 +149,6 @@ private:
     void assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if_canceled);
     void precompute_window_end_z();
     void precompute_injection_data();
-    void precompute_window_gaps();
     void compute_volumes(const std::vector<Layer*> &layers);
 
     // Adaptive layer height helpers
@@ -199,9 +166,6 @@ private:
     // Per-layer data: Z heights and lattice with spiral offset.
     // Indexed by layer_id. Built in build() from the layers vector.
     std::vector<LayerData> m_layer_data;
-
-    // Pre-computed window gaps (built during build(), not mutable)
-    std::unordered_map<int, WindowGaps> m_window_gaps_cache;
 
     // Pattern selection (geometry formulas + lattice construction).
     // m_geometry points at the shared, stateless per-shape strategy

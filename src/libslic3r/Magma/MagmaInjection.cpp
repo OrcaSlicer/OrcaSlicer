@@ -401,10 +401,11 @@ std::string generate_injection_gcode(
 
             // R_open = our tube opening's vertex radius (inset/hollow triangle, so
             //          it already excludes the cell walls / line width).
-            // D      = centre-to-centre distance to an edge-sharing neighbour cell
-            //          (for the triangle grid this is exactly side/sqrt(3)).
+            // D      = centre-to-centre distance to an edge-sharing neighbour cell,
+            //          from the active pattern's geometry (triangle: side/sqrt(3);
+            //          square: cell spacing).
             double R_open   = tube_map.tube_opening_diameter() / 2.0;
-            double D        = triangle_side_length(tube_map.cell_spacing()) / std::sqrt(3.0);
+            double D        = tube_map.neighbor_centroid_distance();
 
             // cap = largest spiral radius at which the flat may PRESS (descend to
             // layer height). A neighbour air hole's far vertex sits at (D + R_open)

@@ -120,6 +120,143 @@ static void split_line_by_y_gaps(
 }
 
 // ============================================================================
+// Per-shape window-cut machinery
+//
+// The tube map is shape-agnostic: it only knows which (cell_a, cell_b) pairs
+// have an open window on a given layer (window_open_at). Each per-shape toolpath
+// computes its own line-interruption geometry from that pair list. Triangle and
+// square shapes interrupt different line families, so each owns its own cut code.
+// ============================================================================
+
+// Merge overlapping/adjacent intervals in a sorted vector.
+static void merge_intervals(std::vector<std::pair<double, double>> &intervals)
+{
+    if (intervals.size() <= 1)
+        return;
+    std::sort(intervals.begin(), intervals.end());
+    std::vector<std::pair<double, double>> merged;
+    merged.push_back(intervals[0]);
+    for (size_t i = 1; i < intervals.size(); ++i) {
+        if (intervals[i].first <= merged.back().second + 0.01)
+            merged.back().second = std::max(merged.back().second, intervals[i].second);
+        else
+            merged.push_back(intervals[i]);
+    }
+    intervals = std::move(merged);
+}
+
+// Which edge two adjacent triangle cells share.
+enum class SharedEdge { Horizontal, Col60, Diag120 };
+
+// Determine shared edge type between two adjacent cells.
+// Cells differ in exactly one coordinate (a, b, or c).
+inline SharedEdge shared_edge(const magma::CellId &a, const magma::CellId &b) {
+    if (a.a != b.a) return SharedEdge::Col60;       // differ in a → 60° edge
+    if (a.b != b.b) return SharedEdge::Horizontal;   // differ in b → horizontal
+    return SharedEdge::Diag120;                       // differ in c → 120° edge
+}
+
+// World-space line-interruption intervals for a layer, organized by line family.
+// Each map key is the line index (row, column, or diagonal); each value is a
+// sorted, merged list of world-coordinate intervals where lines are interrupted.
+struct MagmaWindowCuts {
+    std::map<int, std::vector<std::pair<double, double>>> horiz, col60, diag120, vert;
+};
+
+// Triangle window cuts: relocated verbatim from MagmaTubeMap's
+// compute_window_gaps_for_layer. Same arithmetic, byte-identical output.
+static MagmaWindowCuts triangle_window_cuts(const magma::MagmaTubeMap &tm, int layer,
+                                            const magma::MagmaLattice &lat)
+{
+    MagmaWindowCuts cuts;
+
+    // For each pair with an open window on this layer, determine the shared
+    // edge between cell_a and cell_b and add a gap on the correct line family.
+    for (const auto &pair : tm.u_tube_pairs()) {
+        if (!tm.window_open_at(pair, layer))
+            continue;
+
+        SharedEdge edge = shared_edge(pair.cell_a, pair.cell_b);
+
+        switch (edge) {
+        case SharedEdge::Horizontal: {
+            const magma::CellId &up = lat.is_up(pair.cell_a) ? pair.cell_a : pair.cell_b;
+            int row = up.b;
+            Vec2d v0 = lat.to_world(up.a, row);
+            Vec2d v1 = lat.to_world(up.a + 1, row);
+            double x_lo = std::min(v0.x(), v1.x());
+            double x_hi = std::max(v0.x(), v1.x());
+            cuts.horiz[row].push_back({x_lo, x_hi});
+            break;
+        }
+        case SharedEdge::Col60: {
+            int col = std::max(pair.cell_a.a, pair.cell_b.a);
+            int row = std::min(pair.cell_a.b, pair.cell_b.b);
+            Vec2d v0 = lat.to_world(col, row);
+            Vec2d v1 = lat.to_world(col, row + 1);
+            double y_lo = std::min(v0.y(), v1.y());
+            double y_hi = std::max(v0.y(), v1.y());
+            cuts.col60[col].push_back({y_lo, y_hi});
+            break;
+        }
+        case SharedEdge::Diag120: {
+            const magma::CellId &up = lat.is_up(pair.cell_a) ? pair.cell_a : pair.cell_b;
+            int diag = up.a + up.b + 1;
+            Vec2d v0 = lat.to_world(up.a + 1, up.b);
+            Vec2d v1 = lat.to_world(up.a, up.b + 1);
+            double y_lo = std::min(v0.y(), v1.y());
+            double y_hi = std::max(v0.y(), v1.y());
+            cuts.diag120[diag].push_back({y_lo, y_hi});
+            break;
+        }
+        }
+    }
+
+    // Sort and merge intervals per line index
+    for (auto &[key, intervals] : cuts.horiz)
+        merge_intervals(intervals);
+    for (auto &[key, intervals] : cuts.col60)
+        merge_intervals(intervals);
+    for (auto &[key, intervals] : cuts.diag120)
+        merge_intervals(intervals);
+
+    return cuts;
+}
+
+// Square window cuts: each open pair shares either a vertical edge (cells differ
+// in column) or a horizontal edge (cells differ in row).
+static MagmaWindowCuts square_window_cuts(const magma::MagmaTubeMap &tm, int layer,
+                                          const magma::MagmaLattice &lat)
+{
+    MagmaWindowCuts cuts;
+
+    for (const auto &pair : tm.u_tube_pairs()) {
+        if (!tm.window_open_at(pair, layer))
+            continue;
+
+        const auto &ca = pair.cell_a, &cb = pair.cell_b;
+        if (cb.a != ca.a) {
+            int col = std::max(ca.a, cb.a);
+            int row = ca.b;
+            Vec2d v0 = lat.to_world(col, row), v1 = lat.to_world(col, row + 1);
+            cuts.vert[col].push_back({std::min(v0.y(), v1.y()), std::max(v0.y(), v1.y())});
+        } else {
+            int row = std::max(ca.b, cb.b);
+            int col = ca.a;
+            Vec2d v0 = lat.to_world(col, row), v1 = lat.to_world(col + 1, row);
+            cuts.horiz[row].push_back({std::min(v0.x(), v1.x()), std::max(v0.x(), v1.x())});
+        }
+    }
+
+    for (auto &[key, intervals] : cuts.horiz)
+        merge_intervals(intervals);
+    for (auto &[key, intervals] : cuts.vert)
+        merge_intervals(intervals);
+
+    return cuts;
+}
+
+// ============================================================================
 // Main Fill — Direct Lattice Generation
 // ============================================================================
 
@@ -151,8 +288,8 @@ void FillMagmaTriangle::_fill_surface_single(
     const double off_x = lattice.offset_x();
     const double off_y = lattice.offset_y();
 
-    // Get window gaps (pre-computed by tube map, correct shared-edge detection)
-    magma::WindowGaps gaps = this->tube_map->window_gaps(layer);
+    // Compute this shape's window cuts from the tube map's pair list.
+    MagmaWindowCuts gaps = triangle_window_cuts(*this->tube_map, layer, lattice);
 
     // ---- Bounding box → lattice ranges ----
 
@@ -293,6 +430,9 @@ void FillMagmaRectilinear::_fill_surface_single(
     const double off_x = lattice.offset_x();
     const double off_y = lattice.offset_y();
 
+    // Compute this shape's window cuts from the tube map's pair list.
+    MagmaWindowCuts gaps = square_window_cuts(*this->tube_map, layer, lattice);
+
     BoundingBox bbox = expolygon.contour.bounding_box();
     double x_min = unscale<double>(bbox.min.x()) - cs;
     double x_max = unscale<double>(bbox.max.x()) + cs;
@@ -319,7 +459,14 @@ void FillMagmaRectilinear::_fill_surface_single(
         Polylines raw;
         for (int b = row_min; b <= row_max; ++b) {
             coord_t y_s = coord_t(scale_(b * cs + off_y));
-            raw.push_back(make_horiz_segment(x_min, x_max, y_s));
+            auto it = gaps.horiz.find(b);
+            if (it == gaps.horiz.end()) {
+                raw.push_back(make_horiz_segment(x_min, x_max, y_s));
+            } else {
+                subtract_gaps(x_min, x_max, it->second, [&](double lo, double hi) {
+                    raw.push_back(make_horiz_segment(lo, hi, y_s));
+                });
+            }
         }
         Polylines clipped = clip_lines(raw);
         if (!clipped.empty())
@@ -331,10 +478,20 @@ void FillMagmaRectilinear::_fill_surface_single(
         Polylines raw;
         for (int a = col_min; a <= col_max; ++a) {
             coord_t x_s = coord_t(scale_(a * cs + off_x));
-            Polyline pl;
-            pl.points.push_back(Point(x_s, coord_t(scale_(y_min))));
-            pl.points.push_back(Point(x_s, coord_t(scale_(y_max))));
-            raw.push_back(std::move(pl));
+            auto it = gaps.vert.find(a);
+            if (it == gaps.vert.end()) {
+                Polyline pl;
+                pl.points.push_back(Point(x_s, coord_t(scale_(y_min))));
+                pl.points.push_back(Point(x_s, coord_t(scale_(y_max))));
+                raw.push_back(std::move(pl));
+            } else {
+                subtract_gaps(y_min, y_max, it->second, [&](double lo, double hi) {
+                    Polyline pl;
+                    pl.points.push_back(Point(x_s, coord_t(scale_(lo))));
+                    pl.points.push_back(Point(x_s, coord_t(scale_(hi))));
+                    raw.push_back(std::move(pl));
+                });
+            }
         }
         Polylines clipped = clip_lines(raw);
         if (!clipped.empty())

@@ -61,6 +61,10 @@ struct MagmaGeometry
     // Volume of the window gap between two paired cells along their shared edge (mm^3).
     virtual double window_volume(double spacing, double line_width, double window_height) const = 0;
 
+    // Geometric window height so the window's flow cross-section equals the tube's
+    // open cross-section area (mm). Both args in mm; spacing is derived internally.
+    virtual double auto_window_height(double interior_width, double line_width) const = 0;
+
     // Largest tube interior width whose opening still fits within the nozzle flat.
     virtual double auto_interior_width_from_od(double nozzle_od, double line_width) const = 0;
 

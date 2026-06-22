@@ -246,6 +246,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
     // Window spec (handles window height auto-calculation).
     map->m_window_spec = WindowSpec::from_config(
+        *map->m_geometry,
         static_cast<float>(config.magma_window_height_mm.value),
         map->m_interior_width,
         map->m_line_width,
@@ -371,7 +372,6 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
     map->compute_volumes(layers);
     map->precompute_injection_data();
-    map->precompute_window_gaps();
 
     // Build sorted list of injection cap layer IDs (for ToolOrdering)
     {
@@ -406,6 +406,13 @@ double MagmaTubeMap::tube_opening_diameter() const
     // per-shape geometry so the injection seal math and Print::validate()'s seal
     // warning use one source of truth.
     return m_geometry->opening_diameter(m_cell_spacing, m_effective_line_width);
+}
+
+double MagmaTubeMap::neighbor_centroid_distance() const
+{
+    // Centre-to-centre distance to an edge-sharing neighbour, via the per-shape
+    // geometry (triangle: side/sqrt(3); square: cell spacing).
+    return m_geometry->neighbor_centroid_distance(m_cell_spacing);
 }
 
 // ============================================================================
@@ -686,112 +693,6 @@ void MagmaTubeMap::precompute_injection_data()
 }
 
 // ============================================================================
-// MagmaTubeMap — precompute_window_gaps
-// ============================================================================
-
-// Merge overlapping/adjacent intervals in a sorted vector.
-static void merge_intervals(std::vector<std::pair<double, double>> &intervals)
-{
-    if (intervals.size() <= 1)
-        return;
-    std::sort(intervals.begin(), intervals.end());
-    std::vector<std::pair<double, double>> merged;
-    merged.push_back(intervals[0]);
-    for (size_t i = 1; i < intervals.size(); ++i) {
-        if (intervals[i].first <= merged.back().second + 0.01)
-            merged.back().second = std::max(merged.back().second, intervals[i].second);
-        else
-            merged.push_back(intervals[i]);
-    }
-    intervals = std::move(merged);
-}
-
-static WindowGaps compute_window_gaps_for_layer(
-    int layer_id,
-    const std::vector<UTubePair> &pairs,
-    const MagmaLattice &lattice,
-    double cell_spacing,
-    const std::vector<LayerData> &layer_data)
-{
-    WindowGaps result;
-    result.cell_spacing = cell_spacing;
-    result.offset_x = lattice.offset_x();
-    result.offset_y = lattice.offset_y();
-
-    // For each pair with an open window on this layer, determine the shared
-    // edge between cell_a and cell_b and add a gap on the correct line family.
-    for (const auto &pair : pairs) {
-        if (layer_id < pair.pair_start_layer || layer_id > pair.pair_end_layer)
-            continue;
-        if (layer_data[layer_id].bottom_z() >= pair.window_end_z)
-            continue;
-
-        SharedEdge edge = shared_edge(pair.cell_a, pair.cell_b);
-
-        switch (edge) {
-        case SharedEdge::Horizontal: {
-            const TriangleCell &up = lattice.is_up(pair.cell_a) ? pair.cell_a : pair.cell_b;
-            int row = up.b;
-            Vec2d v0 = lattice.to_world(up.a, row);
-            Vec2d v1 = lattice.to_world(up.a + 1, row);
-            double x_lo = std::min(v0.x(), v1.x());
-            double x_hi = std::max(v0.x(), v1.x());
-            result.horiz[row].push_back({x_lo, x_hi});
-            break;
-        }
-        case SharedEdge::Col60: {
-            int col = std::max(pair.cell_a.a, pair.cell_b.a);
-            int row = std::min(pair.cell_a.b, pair.cell_b.b);
-            Vec2d v0 = lattice.to_world(col, row);
-            Vec2d v1 = lattice.to_world(col, row + 1);
-            double y_lo = std::min(v0.y(), v1.y());
-            double y_hi = std::max(v0.y(), v1.y());
-            result.col60[col].push_back({y_lo, y_hi});
-            break;
-        }
-        case SharedEdge::Diag120: {
-            const TriangleCell &up = lattice.is_up(pair.cell_a) ? pair.cell_a : pair.cell_b;
-            int diag = up.a + up.b + 1;
-            Vec2d v0 = lattice.to_world(up.a + 1, up.b);
-            Vec2d v1 = lattice.to_world(up.a, up.b + 1);
-            double y_lo = std::min(v0.y(), v1.y());
-            double y_hi = std::max(v0.y(), v1.y());
-            result.diag120[diag].push_back({y_lo, y_hi});
-            break;
-        }
-        }
-    }
-
-    // Sort and merge intervals per line index
-    for (auto &[key, intervals] : result.horiz)
-        merge_intervals(intervals);
-    for (auto &[key, intervals] : result.col60)
-        merge_intervals(intervals);
-    for (auto &[key, intervals] : result.diag120)
-        merge_intervals(intervals);
-
-    return result;
-}
-
-void MagmaTubeMap::precompute_window_gaps()
-{
-    // Determine which layers have any window gap by scanning all pairs.
-    std::set<int> gap_layers;
-    for (const auto &pair : m_pairs) {
-        for (int lid = pair.pair_start_layer; lid <= pair.pair_end_layer; ++lid) {
-            if (lid >= m_num_layers) continue;
-            if (m_layer_data[lid].bottom_z() < pair.window_end_z)
-                gap_layers.insert(lid);
-        }
-    }
-
-    // Pre-compute WindowGaps for each layer that has gaps.
-    for (int lid : gap_layers)
-        m_window_gaps_cache[lid] = compute_window_gaps_for_layer(
-            lid, m_pairs, *m_layer_data[lid].lattice, m_cell_spacing, m_layer_data);
-}
-
-// ============================================================================
 // MagmaTubeMap — compute_volumes
 // ============================================================================
 
@@ -888,27 +789,12 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
 // MagmaTubeMap — Query Interface
 // ============================================================================
 
-bool MagmaTubeMap::is_window_open(const TriangleCell &cell, int layer_id) const
+bool MagmaTubeMap::window_open_at(const UTubePair &pair, int layer_id) const
 {
-    auto it = m_cell_pair_index.find(cell);
-    if (it == m_cell_pair_index.end() || it->second.empty())
-        return false;
-
-    // Pure mm check: a layer is in the window if its bottom is below window_end_z.
-    // No layer-count conversion, immune to variable layer height and FP rounding.
-    if (layer_id < 0 || layer_id >= int(m_layer_data.size()))
-        return false;
-    double layer_bottom = m_layer_data[layer_id].bottom_z();
-
-    for (int pair_idx : it->second) {
-        const UTubePair &pair = m_pairs[pair_idx];
-        if (layer_id >= pair.pair_start_layer &&
-            layer_id <= pair.pair_end_layer &&
-            layer_bottom < pair.window_end_z)
-            return true;
-    }
-
-    return false;
+    // Pure Z + layer-range check. bottom_z = print_z - height, so this equals
+    // the old "layer in [start,end] && layer_data[layer].bottom_z() < window_end_z".
+    return layer_id >= pair.pair_start_layer && layer_id <= pair.pair_end_layer
+        && (print_z(layer_id) - layer_height_at(layer_id)) < pair.window_end_z;
 }
 
 bool MagmaTubeMap::is_paired(const TriangleCell &cell) const
@@ -958,17 +844,6 @@ ExPolygons MagmaTubeMap::get_unfilled_cell_interiors(int layer_id) const
     return result;
 }
 
-
-
-WindowGaps MagmaTubeMap::window_gaps(int layer_id) const
-{
-    auto it = m_window_gaps_cache.find(layer_id);
-    if (it != m_window_gaps_cache.end())
-        return it->second;
-    // No gaps on this layer — return empty result with correct offsets
-    const MagmaLattice &lattice = *m_layer_data[layer_id].lattice;
-    return {m_cell_spacing, lattice.offset_x(), lattice.offset_y(), {}, {}, {}};
-}
 
 } // namespace magma
 } // namespace Slic3r

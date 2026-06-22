@@ -78,6 +78,17 @@ struct SquareGeometry final : public MagmaGeometry
         return (s > 0.0 ? s : 0.0) * line_width * window_height;
     }
 
+    // Geometric window height: window flow cross-section = tube open cross-section.
+    // Window opening edge length = inset side (s - lw); tube area = (s - lw)^2.
+    // height = area / edge = (s-lw)^2 / (s-lw) = (s-lw) == interior_width.
+    // Written as area/edge to parallel the triangle so both shapes make the
+    // window flow area equal the tube's open cross-section.
+    double auto_window_height(double interior_width, double line_width) const override {
+        double spacing = interior_width + line_width;
+        double inset = spacing - line_width;
+        return inset > 0.0 ? (inset * inset) / inset : 0.1;
+    }
+
     // Largest interior whose circumscribed opening fits the nozzle flat:
     // interior * sqrt(2) <= od  ->  interior = od / sqrt(2).
     double auto_interior_width_from_od(double nozzle_od, double /*line_width*/) const override {
