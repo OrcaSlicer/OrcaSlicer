@@ -1,0 +1,6 @@
+add_executable(engine_c_abi_tests test_c_api.c)
+set_property(TARGET engine_c_abi_tests PROPERTY C_STANDARD 11)
+set_property(TARGET engine_c_abi_tests PROPERTY C_STANDARD_REQUIRED YES)
+set_property(TARGET engine_c_abi_tests PROPERTY FOLDER "tests")
+target_link_libraries(engine_c_abi_tests PRIVATE libslic3r)
+add_test(NAME engine_c_abi COMMAND engine_c_abi_tests)

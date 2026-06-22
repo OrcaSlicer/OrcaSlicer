@@ -15,6 +15,7 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "orca/Config.hpp"
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "GLShader.hpp"
@@ -1464,15 +1465,15 @@ static std::pair<bool, bool> construct_extruder_unprintable_error(ObjectFilament
         }
     }
 
-    Preset &preset = GUI::wxGetApp().preset_bundle->printers.get_edited_preset();
+    Preset &preset = ::orca::session().presets().raw_ptr()->printers.get_edited_preset();
     float   left_x_min = 0, left_x_max = 0, left_y_min = 0, left_y_max = 0, left_z_min = 0, left_z_max = 0;
     float   right_x_min = 0, right_x_max = 0, right_y_min = 0, right_y_max = 0, right_z_min = 0, right_z_max = 0;
-    auto printable_height_option = preset.config.option<ConfigOptionFloatsNullable>("extruder_printable_height");
-    if (printable_height_option && printable_height_option->values.size() == 2) {
-        left_z_max = (float) printable_height_option->values[0];
-        right_z_max = (float) printable_height_option->values[1];
+    auto printable_height = ::orca::config::get_vec<::orca::keys::extruder_printable_height>(preset.config);
+    if (printable_height && printable_height->size() == 2) {
+        left_z_max = (float) (*printable_height)[0];
+        right_z_max = (float) (*printable_height)[1];
     }
-    std::vector<Pointfs> printable_areas = preset.config.option<ConfigOptionPointsGroups>("extruder_printable_area")->values;
+    std::vector<Pointfs> printable_areas = ::orca::config::get_vec<::orca::keys::extruder_printable_area>(preset.config).value_or(std::vector<Slic3r::Pointfs>{});
     if (printable_areas.size() == 2 && printable_areas[0].size() == 4) {
         left_x_min = printable_areas[0][0][0];
         left_y_min = printable_areas[0][0][1];
@@ -1965,7 +1966,7 @@ void GLCanvas3D::render(bool only_init)
         enable_return_toolbar(false);
     }
     if (!m_main_toolbar.is_enabled())
-        m_gcode_viewer.init(wxGetApp().get_mode(), wxGetApp().preset_bundle);
+        m_gcode_viewer.init(wxGetApp().get_mode(), ::orca::session().presets().raw_ptr());
 
     if (! m_bed.build_volume().valid()) {
         // this happens at startup when no data is still saved under <>\AppData\Roaming\Slic3rPE
@@ -2848,9 +2849,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
         bool wt = dynamic_cast<const ConfigOptionBool*>(m_config->option("enable_prime_tower"))->value;
         auto co = dynamic_cast<const ConfigOptionEnum<PrintSequence>*>(m_config->option<ConfigOptionEnum<PrintSequence>>("print_sequence"));
 
-        const DynamicPrintConfig &dconfig           = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        auto timelapse_type = dconfig.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-        bool need_wipe_tower = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
+        const DynamicPrintConfig &dconfig           = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+        auto timelapse_type = ::orca::config::get_enum<::orca::keys::timelapse_type, TimelapseType>(dconfig).value_or(static_cast<TimelapseType>(0));
+        bool need_wipe_tower = (timelapse_type == TimelapseType::tlSmooth);
 
         if (dconfig.has("enable_wrapping_detection")) {
             need_wipe_tower |= dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value;
@@ -2866,7 +2867,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                         continue;
                 }
 
-                DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+                DynamicPrintConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
@@ -2881,8 +2882,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
                 float brim_width = print->wipe_tower_data(filaments_count).brim_width;
-                const DynamicPrintConfig &print_cfg   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-                int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+                const DynamicPrintConfig &print_cfg   = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+                int nozzle_nums = ::orca::session().presets().raw_ptr()->get_printer_extruder_count();
                 Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
 
                 {
@@ -2982,8 +2983,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             //if (printer_technology != ptSLA || !contained_min_one)
             //    _set_warning_notification(EWarning::SlaSupportsOutside, false);
 
-            auto full_config_temp = wxGetApp().preset_bundle->full_config();
-            bool tpu_valid = cur_plate->check_tpu_printable_status(full_config_temp, wxGetApp().preset_bundle->get_used_tpu_filaments(cur_plate->get_extruders(true)));
+            auto full_config_temp = ::orca::session().presets().raw_ptr()->full_config();
+            bool tpu_valid = cur_plate->check_tpu_printable_status(full_config_temp, ::orca::session().presets().raw_ptr()->get_used_tpu_filaments(cur_plate->get_extruders(true)));
             _set_warning_notification(EWarning::TPUPrintableError, !tpu_valid);
 
             bool filament_printable = cur_plate->check_filament_printable(full_config_temp, filament_printable_error_msg);
@@ -2992,7 +2993,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             bool mix_pla_and_petg = cur_plate->check_mixture_of_pla_and_petg(full_config_temp);
             _set_warning_notification(EWarning::MixUsePLAAndPETG, !mix_pla_and_petg);
 
-            bool filament_nozzle_compatible = cur_plate->check_compatible_of_nozzle_and_filament(full_config_temp, wxGetApp().preset_bundle->filament_presets, get_nozzle_filament_incompatible_text());
+            bool filament_nozzle_compatible = cur_plate->check_compatible_of_nozzle_and_filament(full_config_temp, ::orca::session().presets().raw_ptr()->filament_presets, get_nozzle_filament_incompatible_text());
             _set_warning_notification(EWarning::NozzleFilamentIncompatible, !filament_nozzle_compatible);
 
             bool filament_mixture_compatible = cur_plate->check_mixture_filament_compatible(full_config_temp, get_filament_mixture_warning_text());
@@ -3087,7 +3088,7 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
 
     //BBS: init is called in GLCanvas3D.render()
     //when load gcode directly, it is too late
-    m_gcode_viewer.init(wxGetApp().get_mode(), wxGetApp().preset_bundle);
+    m_gcode_viewer.init(wxGetApp().get_mode(), ::orca::session().presets().raw_ptr());
     m_gcode_viewer.enable_legend(true);
 
 
@@ -5007,13 +5008,13 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
             continue;
 
         PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
-        DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+        DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
         Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
         ConfigOptionFloat wipe_tower_x(wipe_tower_origin(0) - plate_origin(0));
         ConfigOptionFloat wipe_tower_y(wipe_tower_origin(1) - plate_origin(1));
 
-        ConfigOptionFloats* wipe_tower_x_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_x", true);
-        ConfigOptionFloats* wipe_tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y", true);
+        ConfigOptionFloats* wipe_tower_x_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_x", true); // TODO(orca-types): manual migration — set_at resize-fills with values.front(), put_at would zero-fill
+        ConfigOptionFloats* wipe_tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y", true); // TODO(orca-types): manual migration — set_at resize-fills with values.front(), put_at would zero-fill
         wipe_tower_x_opt->set_at(&wipe_tower_x, plate_id, 0);
         wipe_tower_y_opt->set_at(&wipe_tower_y, plate_id, 0);
     }
@@ -5383,21 +5384,21 @@ GLCanvas3D::WipeTowerInfo GLCanvas3D::get_wipe_tower_info(int plate_idx) const
 
     for (const GLVolume* vol : m_volumes.volumes) {
         if (vol->is_wipe_tower && vol->object_idx() - 1000 == plate_idx) {
-            DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+            DynamicPrintConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
             wti.m_pos = Vec2d(proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x")->get_at(plate_idx),
                               proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y")->get_at(plate_idx));
             // BBS: don't support rotation
             //wti.m_rotation = (M_PI/180.) * proj_cfg->opt_float("wipe_tower_rotation_angle");
 
-            auto& preset = wxGetApp().preset_bundle->prints.get_edited_preset();
-            float wt_brim_width = preset.config.opt_float("prime_tower_brim_width");
+            auto& preset = ::orca::session().presets().raw_ptr()->prints.get_edited_preset();
+            float wt_brim_width = ::orca::config::get<::orca::keys::prime_tower_brim_width>(preset.config).value_or(0.0);
 
             const BoundingBoxf3& bb = vol->bounding_box();
             if (wt_brim_width < 0) wt_brim_width = WipeTower::get_auto_brim_by_height((float)bb.max.z());
             wti.m_bb = BoundingBoxf{to_2d(bb.min), to_2d(bb.max)};
             wti.m_bb.offset(wt_brim_width);
 
-            float brim_width = wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("prime_tower_brim_width");
+            float brim_width = ::orca::session().presets().get<::orca::keys::prime_tower_brim_width>(::orca::ConfigScope::PrintPreset).value_or(0.0);
             if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) bb.max.z());
             wti.m_bb.offset((brim_width));
 
@@ -5949,8 +5950,8 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     }
 
     // only show this option if the printer has micro Lidar and can do first layer scan
-    DynamicPrintConfig &current_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    const bool has_lidar = wxGetApp().preset_bundle->is_bbl_vendor();
+    DynamicPrintConfig &current_config = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
+    const bool has_lidar = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
     auto                op             = current_config.option("scan_first_layer");
     if (has_lidar && op && op->getBool()) {
         if (imgui->bbl_checkbox(_L("Avoid extrusion calibration region"), settings.avoid_extrusion_cali_region)) {
@@ -5993,11 +5994,10 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
         //BBS: add specific arrange settings
         if (seq_print) settings_out.is_seq_print = true;
 
-        if (auto printer_structure_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
-            settings_out.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
+        {
+            const auto printer_structure = ::orca::config::get_enum<::orca::keys::printer_structure, PrinterStructure>(::orca::session().presets().raw_ptr()->printers.get_edited_preset().config);
+            settings_out.align_to_y_axis = printer_structure.has_value() && (*printer_structure == PrinterStructure::psI3);
         }
-        else
-            settings_out.align_to_y_axis = false;
 
         appcfg->set("arrange", dist_key, float_to_string_decimal_point(settings_out.distance));
         appcfg->set("arrange", rot_key, settings_out.enable_rotation ? "1" : "0");
@@ -9332,7 +9332,7 @@ void GLCanvas3D::_render_paint_toolbar() const
     std::vector<std::string> filament_text_first_line;
     std::vector<std::string> filament_text_second_line;
     {
-        auto preset_bundle = wxGetApp().preset_bundle;
+        auto preset_bundle = ::orca::session().presets().raw_ptr();
         for (auto filament_name : preset_bundle->filament_presets) {
             for (auto iter = preset_bundle->filaments.lbegin(); iter != preset_bundle->filaments.end(); iter++) {
                 if (filament_name.compare(iter->name) == 0) {
@@ -10151,7 +10151,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                 }
             }
             std::string extruder_name;
-            if(wxGetApp().preset_bundle->is_bbl_vendor()){
+            if(::orca::session().presets().raw_ptr()->is_bbl_vendor()){
                 extruder_name = extruder_name_list[extruder_id-1];
             }
             else{
@@ -10417,9 +10417,9 @@ bool GLCanvas3D::is_flushing_matrix_error() {
     if (!Sidebar::should_show_SEMM_buttons())
         return false;
 
-    const auto                &project_config = wxGetApp().preset_bundle->project_config;
-    const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
-    const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
+    const auto                &project_config = ::orca::session().presets().raw_ptr()->project_config;
+    const std::vector<double> config_matrix  = ::orca::config::get_vec<::orca::keys::flush_volumes_matrix>(project_config).value_or(std::vector<double>{});
+    const std::vector<double> config_multiplier = ::orca::config::get_vec<::orca::keys::flush_multiplier>(project_config).value_or(std::vector<double>{});
 
     for (auto multiplier : config_multiplier) {
         if (multiplier == 0) return true;
@@ -10603,13 +10603,13 @@ const SLAPrint* GLCanvas3D::sla_print() const
 void GLCanvas3D::WipeTowerInfo::apply_wipe_tower(Vec2d pos, double rot) const
 {
     // BBS: add partplate logic
-    DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+    DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
     Vec3d plate_origin = wxGetApp().plater()->get_partplate_list().get_plate(m_plate_idx)->get_origin();
     ConfigOptionFloat wipe_tower_x(pos(X) - plate_origin(0));
     ConfigOptionFloat wipe_tower_y(pos(Y) - plate_origin(1));
 
-    ConfigOptionFloats* wipe_tower_x_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_x", true);
-    ConfigOptionFloats* wipe_tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y", true);
+    ConfigOptionFloats* wipe_tower_x_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_x", true); // TODO(orca-types): manual migration — set_at resize-fills with values.front(), put_at would zero-fill
+    ConfigOptionFloats* wipe_tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y", true); // TODO(orca-types): manual migration — set_at resize-fills with values.front(), put_at would zero-fill
     wipe_tower_x_opt->set_at(&wipe_tower_x, m_plate_idx, 0);
     wipe_tower_y_opt->set_at(&wipe_tower_y, m_plate_idx, 0);
 

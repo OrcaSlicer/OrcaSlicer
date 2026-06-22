@@ -1,11 +1,12 @@
 #include "OrientJob.hpp"
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "orca/Config.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
-#include "libslic3r/PresetBundle.hpp"
 
 
 namespace Slic3r { namespace GUI {
@@ -230,10 +231,10 @@ orientation::OrientMesh OrientJob::get_orient_mesh(ModelInstance* instance)
     om.name = obj->name;
     om.mesh = obj->mesh(); // don't know the difference to obj->raw_mesh(). Both seem OK
     if (obj->config.has("support_threshold_angle"))
-        om.overhang_angle = obj->config.opt_int("support_threshold_angle");
+        om.overhang_angle = ::orca::config::get<::orca::keys::support_threshold_angle>(obj->config.get()).value_or(0);
     else {
-        const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
-        om.overhang_angle = config.opt_int("support_threshold_angle");
+        const Slic3r::DynamicPrintConfig& config = ::orca::session().presets().raw_ptr()->full_config();
+        om.overhang_angle = ::orca::config::get<::orca::keys::support_threshold_angle>(config).value_or(0);
     }
 
     om.setter = [instance](const OrientMesh& p) {

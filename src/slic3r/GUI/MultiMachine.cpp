@@ -111,7 +111,7 @@ bool DeviceItem::is_blocking_printing(MachineObject* obj_)
     auto target_model = obj_->printer_type;
     std::string source_model = "";
 
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
 
     if (source_model != target_model) {

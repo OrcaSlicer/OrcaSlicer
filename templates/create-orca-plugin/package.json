@@ -1,0 +1,14 @@
+{
+  "name":        "create-orca-plugin",
+  "version":     "0.1.0",
+  "description": "Scaffold a new OrcaSlicer webview plugin (Phase 5.4.2).",
+  "type":        "module",
+  "license":     "AGPL-3.0-or-later",
+  "bin": {
+    "create-orca-plugin": "bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "template"
+  ]
+}

@@ -66,7 +66,7 @@ static std::string _get_filament_name_from_ams(int ams_id, int slot_id)
 
     std::string filament_id = tray->setting_id;
 
-    PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     auto          option = preset_bundle->get_filament_by_filament_id(filament_id);
     name = option ? option->filament_name : "";
     return name;
@@ -232,7 +232,7 @@ bool check_filaments_printable(const std::string &tag_vendor, const std::string 
         }
     }
 
-    PresetBundle *preset_bundle = GUI::wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     std::optional<FilamentBaseInfo> filament_info = preset_bundle->get_filament_by_filament_id(filament_id, printer_preset->name);
     if (filament_info.has_value() && !(filament_info->filament_printable >> extruder_idx & 1)) {
         wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");

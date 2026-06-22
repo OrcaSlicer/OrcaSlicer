@@ -2,6 +2,8 @@
 #include "Http.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "orca/Session.hpp"
+#include "orca/plugin_api.h"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -88,6 +90,111 @@ std::string map_moonraker_state(std::string state)
     return "IDLE";
 }
 
+// ------------------------------------------------------------
+// Phase 2.4.5 — engine plugin-slot bridge.
+//
+// The orca engine drives printer agents through a C ABI vtable
+// (orca_slot_printer_agent_t). MoonrakerOrcaBridge is what the engine sees
+// behind the opaque void* instance pointer; it owns a fresh
+// Slic3r::MoonrakerPrinterAgent and translates the C surface into the
+// existing IPrinterAgent surface. Out-of-impedance methods (start_print,
+// cancel_print) are intentionally left NULL in the vtable so the adapter
+// returns NotImplemented to engine consumers — see register_with_orca_session.
+// ------------------------------------------------------------
+struct MoonrakerOrcaBridge
+{
+    std::string                                       log_dir;
+    std::string                                       device_id;
+    orca_printer_state_t                              state{ORCA_PRINTER_STATE_DISCONNECTED};
+    std::unique_ptr<Slic3r::MoonrakerPrinterAgent>    agent;
+    const orca_printer_host_t*                        host{nullptr};
+};
+
+extern "C" {
+
+static void* moonraker_create_instance(const orca_printer_host_t* host, void* user_data)
+{
+    // user_data is a const std::string* pointing at the lifetime-stable
+    // log_dir captured by register_with_orca_session.
+    const std::string* log_dir_ptr = static_cast<const std::string*>(user_data);
+    auto*              bridge      = new MoonrakerOrcaBridge();
+    bridge->log_dir = (log_dir_ptr != nullptr) ? *log_dir_ptr : std::string{};
+    bridge->host    = host;
+    bridge->agent   = std::make_unique<Slic3r::MoonrakerPrinterAgent>(bridge->log_dir);
+    return bridge;
+}
+
+static void moonraker_destroy_instance(void* instance)
+{
+    auto* bridge = static_cast<MoonrakerOrcaBridge*>(instance);
+    delete bridge;
+}
+
+static orca_error_code_t moonraker_connect(void*       instance,
+                                           const char* device_id,
+                                           const char* host_or_ip,
+                                           int         /*port*/,
+                                           const char* username,
+                                           const char* password,
+                                           int         use_tls)
+{
+    // NOTE: orca's `port` argument is dropped — Moonraker's connect_printer
+    // does not accept a separate port; callers embed it in host_or_ip.
+    auto* bridge = static_cast<MoonrakerOrcaBridge*>(instance);
+    if (bridge == nullptr || bridge->agent == nullptr)
+        return ORCA_ERR_INVALID_ARGUMENT;
+
+    const std::string dev_id = (device_id  != nullptr) ? device_id  : "";
+    const std::string dev_ip = (host_or_ip != nullptr) ? host_or_ip : "";
+    const std::string user   = (username   != nullptr) ? username   : "";
+    const std::string pw     = (password   != nullptr) ? password   : "";
+
+    bridge->device_id = dev_id;
+    const int rc = bridge->agent->connect_printer(dev_id, dev_ip, user, pw, use_tls != 0);
+    if (rc == BAMBU_NETWORK_SUCCESS) {
+        bridge->state = ORCA_PRINTER_STATE_CONNECTED;
+        return ORCA_OK;
+    }
+    bridge->state = ORCA_PRINTER_STATE_ERROR;
+    return ORCA_ERR_IO;
+}
+
+static orca_error_code_t moonraker_disconnect(void* instance)
+{
+    auto* bridge = static_cast<MoonrakerOrcaBridge*>(instance);
+    if (bridge == nullptr || bridge->agent == nullptr)
+        return ORCA_ERR_INVALID_ARGUMENT;
+    const int rc = bridge->agent->disconnect_printer();
+    bridge->state = ORCA_PRINTER_STATE_DISCONNECTED;
+    return (rc == BAMBU_NETWORK_SUCCESS) ? ORCA_OK : ORCA_ERR_IO;
+}
+
+static orca_printer_state_t moonraker_current_state(void* instance)
+{
+    auto* bridge = static_cast<MoonrakerOrcaBridge*>(instance);
+    if (bridge == nullptr)
+        return ORCA_PRINTER_STATE_DISCONNECTED;
+    return bridge->state;
+}
+
+static orca_error_code_t moonraker_send_command(void*       instance,
+                                                const char* payload,
+                                                size_t      payload_len)
+{
+    auto* bridge = static_cast<MoonrakerOrcaBridge*>(instance);
+    if (bridge == nullptr || bridge->agent == nullptr)
+        return ORCA_ERR_INVALID_ARGUMENT;
+    const std::string msg = (payload != nullptr) ? std::string{payload, payload_len} : std::string{};
+    const int rc = bridge->agent->send_message_to_printer(bridge->device_id, msg, /*qos=*/0, /*flag=*/0);
+    return (rc == BAMBU_NETWORK_SUCCESS) ? ORCA_OK : ORCA_ERR_IO;
+}
+
+// Moonraker's PrintParams takes a Bambu-shaped struct that doesn't cleanly
+// map to orca::PrintJob (v1); start_print / cancel_print are left NULL in
+// the vtable so PrinterAgentAdapter returns NotImplemented for them.
+
+} // extern "C"
+
 } // namespace
 
 namespace Slic3r {
@@ -112,6 +219,62 @@ MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
 AgentInfo MoonrakerPrinterAgent::get_agent_info_static()
 {
     return AgentInfo{"moonraker", "Moonraker", MoonrakerPrinterAgent_VERSION, "Klipper/Moonraker printer agent"};
+}
+
+void MoonrakerPrinterAgent::register_with_orca_session(::orca::Session*   session,
+                                                       const std::string& log_dir)
+{
+    if (session == nullptr) {
+        return;
+    }
+
+    // First-call captures: log_dir is borrowed by reference into a
+    // function-local static so the pointer threaded through user_data stays
+    // stable for the lifetime of the process. Identity strings backing the
+    // vtable's const char* fields live alongside it for the same reason.
+    static std::string g_log_dir          = log_dir;
+    static AgentInfo   g_info             = MoonrakerPrinterAgent::get_agent_info_static();
+    static std::string g_agent_id_str     = g_info.id;
+    static std::string g_agent_name_str   = g_info.name;
+    static std::string g_agent_ver_str    = g_info.version;
+    static std::string g_agent_desc_str   = g_info.description;
+    static orca_slot_printer_agent_t g_vt = []() {
+        orca_slot_printer_agent_t vt{};
+        vt.struct_size       = sizeof(orca_slot_printer_agent_t);
+        vt.agent_id          = g_agent_id_str.c_str();
+        vt.agent_name        = g_agent_name_str.c_str();
+        vt.agent_version     = g_agent_ver_str.c_str();
+        vt.agent_description = g_agent_desc_str.c_str();
+        vt.create_instance   = &moonraker_create_instance;
+        vt.destroy_instance  = &moonraker_destroy_instance;
+        vt.connect           = &moonraker_connect;
+        vt.disconnect        = &moonraker_disconnect;
+        vt.current_state     = &moonraker_current_state;
+        vt.send_command      = &moonraker_send_command;
+        // start_print / cancel_print intentionally null — v1 mapping limitation;
+        // PrinterAgentAdapter returns NotImplemented for these to engine callers.
+        vt.start_print       = nullptr;
+        vt.cancel_print      = nullptr;
+        return vt;
+    }();
+
+    static bool g_registered = false;
+    if (g_registered) {
+        return;
+    }
+
+    const orca_plugin_slot_id_t slot_id = session->add_printer_agent_slot(
+        /*owning_plugin_id=*/"orcaslicer.moonraker",
+        /*vtable=*/&g_vt,
+        /*user_data=*/&g_log_dir,
+        /*priority=*/0);
+    if (slot_id != 0) {
+        g_registered = true;
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: registered with orca engine plugin registry (slot_id="
+                                << slot_id << ")";
+    } else {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: failed to register with orca engine plugin registry";
+    }
 }
 
 void MoonrakerPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
@@ -804,7 +967,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
-        auto* bundle = GUI::wxGetApp().preset_bundle;
+        auto* bundle = ::orca::session().presets().raw_ptr();
         tray.tray_info_idx = bundle
             ? bundle->filaments.filament_id_by_type(tray.tray_type)
             : map_filament_type_to_generic_id(tray.tray_type);
@@ -932,7 +1095,7 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         tray.bed_temp = 0;  // HH doesn't provide bed temp in gate arrays
         tray.has_filament = true;
 
-        auto* bundle = GUI::wxGetApp().preset_bundle;
+        auto* bundle = ::orca::session().presets().raw_ptr();
         tray.tray_info_idx = bundle
             ? bundle->filaments.filament_id_by_type(tray.tray_type)
             : map_filament_type_to_generic_id(tray.tray_type);
@@ -1061,7 +1224,7 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
 bool MoonrakerPrinterAgent::init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
 {
     device_info         = MoonrakerDeviceInfo{};
-    auto* preset_bundle = GUI::wxGetApp().preset_bundle;
+    auto* preset_bundle = ::orca::session().presets().raw_ptr();
     if (!preset_bundle) {
         return false;
     }

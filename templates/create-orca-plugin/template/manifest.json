@@ -1,0 +1,10 @@
+{
+  "id":          "{{plugin_id}}",
+  "name":        "{{plugin_name}}",
+  "version":     "0.1.0",
+  "author":      "{{author}}",
+  "description": "{{plugin_description}}",
+  "kind":        "webview",
+  "entry":       { "webview": "index.html" },
+  "permissions": []
+}

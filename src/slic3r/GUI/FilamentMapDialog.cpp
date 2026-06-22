@@ -1,4 +1,5 @@
 #include "FilamentMapDialog.hpp"
+#include "orca/Config.hpp"
 #include "PartPlate.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -42,23 +43,23 @@ extern std::string& get_right_extruder_unprintable_text();
 
 bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* partplate_ref, bool force_pop_up)
 {
-    auto full_config = wxGetApp().preset_bundle->full_config();
-    const auto nozzle_diameters = full_config.option<ConfigOptionFloats>("nozzle_diameter");
-    if (nozzle_diameters->size() <= 1)
+    auto full_config = ::orca::session().presets().raw_ptr()->full_config();
+    auto nozzle_diameters = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config).value_or(std::vector<double>{});
+    if (nozzle_diameters.size() <= 1)
         return true;
 
     // The filament-grouping dialog is specifically designed for BBL dual-nozzle printers
     // (e.g. H2D) where filaments must be assigned to a left or right nozzle.
     // For toolchangers (≥3 tools) and all non-BBL printers the dialog is irrelevant and
     // confusing; skip it entirely so slicing proceeds without interruption. (#12390)
-    PresetBundle* preset = wxGetApp().preset_bundle;
-    if (!preset || !preset->is_bbl_vendor() || nozzle_diameters->size() != 2)
+    PresetBundle* preset = ::orca::session().presets().raw_ptr();
+    if (!preset || !preset->is_bbl_vendor() || nozzle_diameters.size() != 2)
         return true;
 
     bool sync_plate = true;
 
-    std::vector<std::string> filament_colors = full_config.option<ConfigOptionStrings>("filament_colour")->values;
-    std::vector<std::string> filament_types = full_config.option<ConfigOptionStrings>("filament_type")->values;
+    std::vector<std::string> filament_colors = ::orca::config::get_vec<::orca::keys::filament_colour>(full_config).value_or(std::vector<std::string>{});
+    std::vector<std::string> filament_types = ::orca::config::get_vec<::orca::keys::filament_type>(full_config).value_or(std::vector<std::string>{});
     FilamentMapMode applied_mode = get_applied_map_mode(full_config, plater_ref,partplate_ref, sync_plate);
     std::vector<int> applied_maps = get_applied_map(full_config, plater_ref, partplate_ref, sync_plate);
     applied_maps.resize(filament_colors.size(), 1);

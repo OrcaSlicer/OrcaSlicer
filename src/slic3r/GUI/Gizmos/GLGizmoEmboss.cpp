@@ -2044,7 +2044,7 @@ void GLGizmoEmboss::draw_style_rename_popup() {
 
     if (store) {
         // rename style in all objects and volumes
-        for (const ModelObject *mo :wxGetApp().plater()->model().objects) {
+        for (const ModelObject *mo : ::orca::session().project().raw().objects) {
             for (ModelVolume *mv : mo->volumes) { 
                 if (!mv->text_configuration.has_value()) continue;
                 std::string& name = mv->text_configuration->style.name;

@@ -24,6 +24,13 @@
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/libslic3r.h"
 
+#include "orca/Config.hpp"
+#include "orca/Globals.hpp"
+#include "orca/Session.hpp"
+#include "orca/Events.hpp"
+#include "orca/EventTypes.hpp"
+
+#include <filesystem>
 #include <cassert>
 #include <stdexcept>
 #include <cctype>
@@ -194,7 +201,7 @@ std::string BackgroundSlicingProcess::output_filepath_for_project(const boost::f
 void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
-    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    PresetBundle &preset_bundle = *::orca::session().presets().raw_ptr();
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
 	//BBS: add the logic to process from an existed gcode file
 	if (m_print->finished()) {
@@ -249,12 +256,16 @@ void BackgroundSlicingProcess::process_fff()
 	if (this->set_step_started(bspsGCodeFinalize)) {
 	    if (! m_export_path.empty()) {
 			wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, new wxCommandEvent(m_event_export_began_id));
+			if (::orca::has_session())
+				::orca::session().events().publish<::orca::ExportBegan>({0, std::filesystem::path(m_export_path)});
 			if(!m_fff_print->is_BBL_printer())
 				finalize_gcode();
 			else
 				export_gcode();
 	    } else if (! m_upload_job.empty()) {
 			wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, new wxCommandEvent(m_event_export_began_id));
+			if (::orca::has_session())
+				::orca::session().events().publish<::orca::ExportBegan>({0, std::filesystem::path(m_export_path)});
 			prepare_upload();
 	    } else {
 			m_print->set_status(100, _utf8(L("Slicing complete")));
@@ -285,6 +296,7 @@ void BackgroundSlicingProcess::process_sla()
             const std::string export_path = m_sla_print->print_statistics().finalize_output_path(m_export_path);
 
 			//BBS: add plate id for thumbnail generation
+            // TODO(orca-types): manual migration — keys::thumbnails tag declares CoType::String scalar, but call site uses ConfigOptionPoints (vector); typed surface mismatch
             ThumbnailsList thumbnails = this->render_thumbnails(
 				ThumbnailsParams{ current_print()->full_print_config().option<ConfigOptionPoints>("thumbnails")->values, true, true, true, true, 0 });
 
@@ -350,6 +362,10 @@ void BackgroundSlicingProcess::thread_proc()
 				exception ? SlicingProcessCompletedEvent::Error : SlicingProcessCompletedEvent::Finished, exception);
 			BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": send SlicingProcessCompletedEvent to main, status %1%")%evt.status();
 			wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, evt.Clone());
+			if (::orca::has_session()) {
+				const bool ok = (m_state != STATE_CANCELED) && !exception;
+				::orca::session().events().publish<::orca::SlicingFinished>({0, ok, exception ? "slicing error" : ""});
+			}
 		}
 		else {
 			//BBS: internal cancel
@@ -679,7 +695,7 @@ StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjec
 	assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+    m_fff_print->is_BBL_printer() = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
     return m_print->validate(warnings, collison_polygons, height_polygons);
 }
 
@@ -688,7 +704,7 @@ StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjec
 Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const DynamicPrintConfig &config)
 {
 	assert(m_print != nullptr);
-	assert(config.opt_enum<PrinterTechnology>("printer_technology") == m_print->technology());
+	assert((::orca::config::get_enum<::orca::keys::printer_technology, PrinterTechnology>(config).value_or(static_cast<PrinterTechnology>(0)) == m_print->technology()));
 	// TODO: add partplate config
 	DynamicPrintConfig new_config = config;
 	new_config.apply(*m_current_plate->config());
@@ -899,6 +915,8 @@ void BackgroundSlicingProcess::export_gcode()
 	wxString output_gcode_str = wxString::FromUTF8(export_path.c_str(), export_path.length());
 	evt->SetString(output_gcode_str);
 	wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, evt);
+	if (::orca::has_session())
+		::orca::session().events().publish<::orca::ExportFinished>({0, true, 0, ""});
 
 	// BBS: to be checked. Whether use export_path or output_path.
 	gcode_add_line_number(export_path, m_fff_print->full_print_config());
@@ -937,6 +955,7 @@ void BackgroundSlicingProcess::prepare_upload()
     } else {
         m_upload_job.upload_data.upload_path = m_sla_print->print_statistics().finalize_output_path(m_upload_job.upload_data.upload_path.string());
         
+        // TODO(orca-types): manual migration — keys::thumbnails tag declares CoType::String scalar, but call site uses ConfigOptionPoints (vector); typed surface mismatch
         ThumbnailsList thumbnails = this->render_thumbnails(
         	ThumbnailsParams{current_print()->full_print_config().option<ConfigOptionPoints>("thumbnails")->values, true, true, true, true});
 																												 // true, false, true, true); // renders also supports and pad

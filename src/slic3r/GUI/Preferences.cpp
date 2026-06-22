@@ -1,5 +1,7 @@
 #include "Preferences.hpp"
 #include "OptionsGroup.hpp"
+#include <algorithm>
+#include <cctype>
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
@@ -1734,6 +1736,84 @@ void PreferencesDialog::create_items()
         "sync_ams_filament_mode",
         {_L("Filament & Color"), _L("Color only")});
     g_sizer->Add(item_filament_sync_mode);
+
+    //// ONLINE > Plugin Marketplace
+    // The marketplace base URL is resolution-layered: this UI field
+    // (`marketplace_url`) takes precedence over the legacy
+    // `marketplace_url` key and the compile-time
+    // ORCA_MARKETPLACE_DEFAULT_URL. Empty disables the marketplace tab
+    // (upstream default — see CMakeLists.txt).
+    g_sizer->Add(create_item_title(_L("Plugin Marketplace")), 1, wxEXPAND);
+    {
+        auto sizer_marketplace = new wxBoxSizer(wxHORIZONTAL);
+        sizer_marketplace->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+        auto mp_title = new wxStaticText(m_parent, wxID_ANY, _L("Marketplace URL"),
+            wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+        mp_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        mp_title->SetFont(::Label::Body_14);
+        mp_title->SetToolTip(_L("Plugin marketplace registry URL. Empty disables the marketplace tab. "
+                                "Overrides the compile-time default and the ORCA_MARKETPLACE_URL env var."));
+        mp_title->Wrap(DESIGN_TITLE_SIZE.x);
+
+        // Wider field — URLs don't fit in DESIGN_INPUT_SIZE.
+        auto mp_input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString,
+            wxDefaultPosition, wxSize(FromDIP(320), -1), wxTE_PROCESS_ENTER);
+        StateColor mp_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
+                         std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+        mp_input->SetBackgroundColor(mp_bg);
+        // Show the resolved (possibly compile-time-default) URL when no user
+        // override is set, so users can see what they'd be overriding.
+        std::string mp_user_value = app_config->get("marketplace_url");
+        mp_input->GetTextCtrl()->SetValue(wxString::FromUTF8(mp_user_value));
+        mp_input->SetToolTip(mp_title->GetToolTipText());
+
+        sizer_marketplace->Add(mp_title, 0, wxALIGN_CENTER_VERTICAL);
+        sizer_marketplace->Add(mp_input, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+
+        auto save_url = [this, mp_input](wxString value) {
+            std::string s(value.utf8_string());
+            // Trim whitespace; treat all-whitespace as empty (clears override).
+            auto not_space = [](unsigned char c) { return !std::isspace(c); };
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), not_space));
+            s.erase(std::find_if(s.rbegin(), s.rend(), not_space).base(), s.end());
+            app_config->set("marketplace_url", s);
+            app_config->save();
+        };
+
+        mp_input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save_url, mp_input](wxCommandEvent& e) {
+            save_url(mp_input->GetTextCtrl()->GetValue());
+            e.Skip();
+        });
+        mp_input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save_url, mp_input](wxFocusEvent& e) {
+            save_url(mp_input->GetTextCtrl()->GetValue());
+            e.Skip();
+        });
+
+        // "Use default" button: clears the user override so the resolution
+        // falls through to env var / compile-time default.
+        auto* reset_btn = new Button(m_parent, _L("Use default"));
+        reset_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+        reset_btn->Bind(wxEVT_LEFT_DOWN, [this, mp_input](wxMouseEvent& e) {
+            mp_input->GetTextCtrl()->SetValue(wxEmptyString);
+            app_config->set("marketplace_url", "");
+            app_config->save();
+            e.Skip();
+        });
+        sizer_marketplace->Add(reset_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+
+        g_sizer->Add(sizer_marketplace);
+
+        auto help_sizer = new wxBoxSizer(wxHORIZONTAL);
+        help_sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+        auto help_label = new wxStaticText(m_parent, wxID_ANY,
+            _L("Empty disables the marketplace tab."),
+            wxDefaultPosition, wxDefaultSize, 0);
+        help_label->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        help_label->SetFont(::Label::Body_12);
+        help_sizer->Add(help_label, 0, wxALIGN_CENTER_VERTICAL);
+        g_sizer->Add(help_sizer);
+    }
 
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Bambu network plug-in")), 1, wxEXPAND);

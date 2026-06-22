@@ -92,8 +92,8 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
 
     // update config values according to configuration hierarchy
     m_current_config   = printer_technology == ptFFF ?
-                                        wxGetApp().preset_bundle->prints.get_edited_preset().config :
-                                        wxGetApp().preset_bundle->sla_prints.get_edited_preset().config;
+                                        ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config :
+                                        ::orca::session().presets().raw_ptr()->sla_prints.get_edited_preset().config;
 
     //ConfigManipulation config_manipulation(load_config, toggle_field, nullptr, config);
 
@@ -297,7 +297,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         };
         ConfigManipulation config_manipulation(nullptr, toggle_field, toggle_line, nullptr, &m_current_config);
 
-        bool is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
+        bool is_BBL_printer = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
         config_manipulation.set_is_BBL_Printer(is_BBL_printer);
 
         printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&m_current_config) :
@@ -401,7 +401,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
 
     ConfigManipulation config_manipulation(nullptr, toggle_field, toggle_line, nullptr, &m_current_config);
 
-    config_manipulation.set_is_BBL_Printer(wxGetApp().preset_bundle->is_bbl_vendor());
+    config_manipulation.set_is_BBL_Printer(::orca::session().presets().raw_ptr()->is_bbl_vendor());
 
     printer_technology == ptFFF  ?  config_manipulation.update_print_fff_config(&main_config) :
                                     config_manipulation.update_print_sla_config(&main_config) ;

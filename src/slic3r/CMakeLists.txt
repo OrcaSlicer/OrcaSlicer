@@ -484,6 +484,26 @@ set(SLIC3R_GUI_SOURCES
     GUI/UserNotification.hpp
     GUI/WebDownPluginDlg.cpp
     GUI/WebDownPluginDlg.hpp
+    GUI/PluginManagerDialog.cpp
+    GUI/PluginManagerDialog.hpp
+    GUI/MarketplaceDialog.cpp
+    GUI/MarketplaceDialog.hpp
+    GUI/PluginMenuDispatcher.cpp
+    GUI/PluginMenuDispatcher.hpp
+    GUI/PluginPermissionDialog.cpp
+    GUI/PluginPermissionDialog.hpp
+    GUI/PluginSettingsDispatcher.cpp
+    GUI/PluginSettingsDispatcher.hpp
+    GUI/PluginDeviceTabDispatcher.cpp
+    GUI/PluginDeviceTabDispatcher.hpp
+    GUI/PluginSidebarDispatcher.cpp
+    GUI/PluginSidebarDispatcher.hpp
+    GUI/PluginUiBuilder.cpp
+    GUI/PluginUiBuilder.hpp
+    Utils/MarketplaceClient.cpp
+    Utils/MarketplaceClient.hpp
+    Utils/PluginInstaller.cpp
+    Utils/PluginInstaller.hpp
     GUI/WebGuideDialog.cpp
     GUI/WebGuideDialog.hpp
     GUI/WebUserLoginDialog.cpp
@@ -642,6 +662,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/BBLPrinterAgent.hpp
     Utils/BBLNetworkPlugin.cpp
     Utils/BBLNetworkPlugin.hpp
+    Utils/WebViewPluginHost.cpp
+    Utils/WebViewPluginHost.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp

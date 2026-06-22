@@ -9,6 +9,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 
 #include "libslic3r/Model.hpp"
+#include "orca/Config.hpp"
 #include "slic3r/GUI/Jobs/BoostThreadWorker.hpp"
 #include "slic3r/GUI/Jobs/PlaterWorker.hpp"
 #include "../GUI/MsgDialog.hpp"
@@ -181,7 +182,7 @@ static bool is_same_nozzle_type(const DynamicPrintConfig &full_config, const Mac
         int filament_nozzle_hrc = full_config.opt_int("required_nozzle_HRC", 0);
         if (abs(filament_nozzle_hrc) > abs(printer_nozzle_hrc)) {
             BOOST_LOG_TRIVIAL(info) << "filaments hardness mismatch:  printer_nozzle_hrc = " << printer_nozzle_hrc << ", filament_nozzle_hrc = " << filament_nozzle_hrc;
-            std::string filament_type = full_config.opt_string("filament_type", 0);
+            std::string filament_type = ::orca::config::get_at<::orca::keys::filament_type>(full_config, 0).value_or(std::string{});
             error_msg = wxString::Format(_L("Printing %1s material with %2s nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
             error_msg += "\n";
 
@@ -254,11 +255,12 @@ static void init_multi_extruder_params_for_cali(DynamicPrintConfig& config, cons
     if (filament_colour_opt != nullptr) {
         num_filaments = (int)(filament_colour_opt->size());
     }
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionInts::values for in-place mutation
     std::vector<int>& filament_maps = config.option<ConfigOptionInts>("filament_map", true)->values;
     filament_maps.clear();
     filament_maps.resize(num_filaments, extruder_id);
 
-    config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmManual;
+    ::orca::config::put_enum<::orca::keys::filament_map_mode, FilamentMapMode>(config, FilamentMapMode::fmmManual);
 
 }
 
@@ -623,12 +625,12 @@ bool CalibUtils::calib_flowrate(int pass, const CalibInfo &calib_info, wxString 
 
     /// --- scale ---
     // model is created for a 0.4 nozzle, scale z with nozzle size.
-    const ConfigOptionFloats *nozzle_diameter_config = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
-    assert(nozzle_diameter_config->values.size() > 0);
-    float nozzle_diameter = nozzle_diameter_config->values[0];
+    auto nozzle_diameter_values = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(printer_config).value_or(std::vector<double>{});
+    assert(nozzle_diameter_values.size() > 0);
+    float nozzle_diameter = nozzle_diameter_values[0];
     float xyScale         = nozzle_diameter / 0.6;
     // scale z to have 7 layers
-    double first_layer_height = print_config.option<ConfigOptionFloat>("initial_layer_print_height")->value;
+    double first_layer_height = ::orca::config::get<::orca::keys::initial_layer_print_height>(print_config).value_or(0.0);
     double layer_height       = nozzle_diameter / 2.0; // prefer 0.2 layer height for 0.4 nozzle
     first_layer_height        = std::max(first_layer_height, layer_height);
 
@@ -644,10 +646,10 @@ bool CalibUtils::calib_flowrate(int pass, const CalibInfo &calib_info, wxString 
     Flow   infill_flow                   = Flow(nozzle_diameter * 1.2f, layer_height, nozzle_diameter);
 
     int index = get_index_for_extruder_parameter(filament_config, "filament_max_volumetric_speed", calib_info.extruder_id, calib_info.extruder_type, calib_info.nozzle_volume_type);
-    double filament_max_volumetric_speed = filament_config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(index);
+    double filament_max_volumetric_speed = ::orca::config::get_at<::orca::keys::filament_max_volumetric_speed>(filament_config, index).value_or(0.0);
     double max_infill_speed              = filament_max_volumetric_speed / (infill_flow.mm3_per_mm() * (pass == 1 ? 1.2 : 1));
-    double internal_solid_speed          = std::floor(std::min(print_config.opt_float("internal_solid_infill_speed"), max_infill_speed));
-    double top_surface_speed             = std::floor(std::min(print_config.opt_float("top_surface_speed"), max_infill_speed));
+    double internal_solid_speed          = std::floor(std::min(::orca::config::get<::orca::keys::internal_solid_infill_speed>(print_config).value_or(0.0), max_infill_speed));
+    double top_surface_speed             = std::floor(std::min(::orca::config::get<::orca::keys::top_surface_speed>(print_config).value_or(0.0), max_infill_speed));
 
     // adjust parameters
     filament_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(calib_info.bed_type));
@@ -718,7 +720,7 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
     full_config.apply(printer_config);
     const auto& config_pattern = SuggestedConfigCalibPAPattern();
 
-    float nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
+    float nozzle_diameter = ::orca::config::get_at<::orca::keys::nozzle_diameter>(printer_config, 0).value_or(0.0);
 
     for (const auto& opt : config_pattern.float_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second));
@@ -765,8 +767,9 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
 {
     DynamicPrintConfig print_config    = calib_infos[0].print_prest->config;
 
-    float nozzle_diameter = full_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
-    int extruder_count = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    auto full_nozzle_diameters = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config).value_or(std::vector<double>{});
+    float nozzle_diameter = full_nozzle_diameters.empty() ? 0.0f : (float)full_nozzle_diameters[0];
+    int extruder_count = (int)full_nozzle_diameters.size();
 
     const auto& config_pattern = SuggestedConfigCalibPAPattern();
 
@@ -793,11 +796,10 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
 
     print_config.set_key_value(config_pattern.brim_pair.first, new ConfigOptionEnum<BrimType>(config_pattern.brim_pair.second));
 
-    auto* _wall_generator = print_config.option<ConfigOptionEnum<PerimeterGeneratorType>>("wall_generator");
-    _wall_generator->value   = PerimeterGeneratorType::Arachne;
+    ::orca::config::put_enum<::orca::keys::wall_generator, PerimeterGeneratorType>(print_config, PerimeterGeneratorType::Arachne);
 
-    print_config.option<ConfigOptionBool>("enable_prime_tower")->value = false;
-    print_config.option<ConfigOptionBool>("enable_wrapping_detection")->value = false;
+    ::orca::config::put<::orca::keys::enable_prime_tower>(print_config, false);
+    ::orca::config::put<::orca::keys::enable_wrapping_detection>(print_config, false);
 
     auto get_new_filament_id = [&sorted_calib_infos](int index) -> int {
         for (size_t i = 0; i < sorted_calib_infos.size(); ++i) {
@@ -825,12 +827,13 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
 
     // DynamicPrintConfig full_config;
     full_config.apply(print_config);
-    full_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmManual;
+    ::orca::config::put_enum<::orca::keys::filament_map_mode, FilamentMapMode>(full_config, FilamentMapMode::fmmManual);
 
     // nozzle volume type
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionEnumsGeneric::values for in-place mutation
     std::vector<int>& nozzle_volume_types = full_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values;
     nozzle_volume_types.resize(extruder_count, NozzleVolumeType::nvtStandard);
-    auto nozzle_flush_dataset = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset", true)->values;
+    auto nozzle_flush_dataset = ::orca::config::get_vec<::orca::keys::nozzle_flush_dataset>(full_config).value_or(std::vector<int>{});
     nozzle_flush_dataset.resize(extruder_count, 0);
 
     int               filament_nums = calib_infos.size();
@@ -848,9 +851,11 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     }
 
     // filament map transform to 1 base
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionInts::values for in-place mutation
     std::vector<int> &filament_maps = full_config.option<ConfigOptionInts>("filament_map", true)->values;
     std::transform(filament_maps.begin(), filament_maps.end(), filament_maps.begin(), [](int value) { return value + 1; });
 
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionStrings::values for in-place mutation
     std::vector<std::string> &filament_colors = full_config.option<ConfigOptionStrings>("filament_colour")->values;
     filament_colors.resize(sorted_calib_infos.size(), "#000000");
     for (size_t i = 0; i < sorted_calib_infos.size(); ++i) {
@@ -877,6 +882,7 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
         }
 
     }
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionFloats::values for in-place mutation
     std::vector<double> &config_matrix = full_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
     set_flush_volumes_matrix(config_matrix, flush_matrix_vec, -1, extruder_count);
 }
@@ -933,7 +939,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
         }
     }
 
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     DynamicPrintConfig full_config   = PresetBundle::construct_full_config(printer_preset, print_preset, preset_bundle->project_config, filament_presets, false, filament_map);
 
     set_for_auto_pa_model_and_config(calib_infos, full_config, model);
@@ -949,9 +955,9 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
         else if (params.mode == CalibMode::Calib_Auto_PA_Line)
             js["cali_type"] = "cali_auto_pa_line";
 
-        const ConfigOptionFloats *nozzle_diameter_config = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
-        assert(nozzle_diameter_config->values.size() > 0);
-        float nozzle_diameter = nozzle_diameter_config->values[0];
+        auto nozzle_diameter_values = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(printer_config).value_or(std::vector<double>{});
+        assert(nozzle_diameter_values.size() > 0);
+        float nozzle_diameter = nozzle_diameter_values[0];
 
         js["nozzle_diameter"] = nozzle_diameter;
         std::string filament_ids;
@@ -1104,18 +1110,19 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 
     auto obj             = model.objects[0];
-    auto         bed_shape = printer_config.option<ConfigOptionPoints>("printable_area")->values;
+    auto         bed_shape = ::orca::config::get_vec<::orca::keys::printable_area>(printer_config).value_or(std::vector<Slic3r::Vec2d>{});
     BoundingBoxf bed_ext   = get_extents(bed_shape);
     auto         scale_obj = (bed_ext.size().x() - 10) / obj->bounding_box_exact().size().x();
     if (scale_obj < 1.0)
         obj->scale(scale_obj, 1, 1);
 
-    const ConfigOptionFloats *nozzle_diameter_config = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
-    assert(nozzle_diameter_config->values.size() > 0);
-    double nozzle_diameter = nozzle_diameter_config->values[0];
+    auto nozzle_diameter_values = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(printer_config).value_or(std::vector<double>{});
+    assert(nozzle_diameter_values.size() > 0);
+    double nozzle_diameter = nozzle_diameter_values[0];
     double line_width      = nozzle_diameter * 1.75;
     double layer_height    = nozzle_diameter * 0.8;
 
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionFloats::values for in-place mutation
     auto max_lh = printer_config.option<ConfigOptionFloats>("max_layer_height");
     if (max_lh->values[0] < layer_height) max_lh->values[0] = {layer_height};
 
@@ -1147,7 +1154,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
     }
 
     auto new_params  = params;
-    auto mm3_per_mm  = Flow(line_width, layer_height, nozzle_diameter).mm3_per_mm() * filament_config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(0);
+    auto mm3_per_mm  = Flow(line_width, layer_height, nozzle_diameter).mm3_per_mm() * ::orca::config::get_at<::orca::keys::filament_flow_ratio>(filament_config, 0).value_or(0.0);
     new_params.end   = params.end / mm3_per_mm;
     new_params.start = params.start / mm3_per_mm;
     new_params.step  = params.step / mm3_per_mm;
@@ -1244,6 +1251,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
 
     double layer_height = 0.2;
 
+    // TODO(orca-types): manual migration — by-reference capture of ConfigOptionFloats::values for in-place mutation
     auto max_lh = printer_config.option<ConfigOptionFloats>("max_layer_height");
     if (max_lh->values[0] < layer_height) max_lh->values[0] = {layer_height};
 
@@ -1451,9 +1459,9 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject* obj, co
 bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &full_config, const Calib_Params &params, wxString &error_message)
 {
     Pointfs bedfs         = make_counter_clockwise(full_config.opt<ConfigOptionPoints>("printable_area")->values);
-    std::vector<Pointfs> extruder_areas = full_config.option<ConfigOptionPointsGroups>("extruder_printable_area")->values;
-    std::vector<double> extruder_heights = full_config.option<ConfigOptionFloatsNullable>("extruder_printable_height")->values;
-    double  print_height  = full_config.opt_float("printable_height");
+    std::vector<Pointfs> extruder_areas = ::orca::config::get_vec<::orca::keys::extruder_printable_area>(full_config).value_or(std::vector<Slic3r::Pointfs>{});
+    std::vector<double> extruder_heights = ::orca::config::get_vec<::orca::keys::extruder_printable_height>(full_config).value_or(std::vector<double>{});
+    double  print_height  = ::orca::config::get<::orca::keys::printable_height>(full_config).value_or(0.0);
     double  current_width = bedfs[2].x() - bedfs[0].x();
     double  current_depth = bedfs[2].y() - bedfs[0].y();
     Vec3i32   plate_size;
@@ -1551,7 +1559,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
         plate_data->is_sliced_valid = true;
         plate_data->printer_model_id = obj_->printer_type;
         FilamentInfo& filament_info = plate_data->slice_filaments_info.front();
-        filament_info.type          = full_config.opt_string("filament_type", 0);
+        filament_info.type          = ::orca::config::get_at<::orca::keys::filament_type>(full_config, 0).value_or(std::string{});
     }
 
     //draw thumbnails

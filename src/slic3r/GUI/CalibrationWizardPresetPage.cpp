@@ -4,6 +4,7 @@
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Print.hpp"
+#include "orca/Config.hpp"
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -1382,9 +1383,9 @@ void CalibrationPresetPage::on_recommend_input_value()
     else if (m_cali_mode == CalibMode::Calib_Flow_Rate && m_cali_stage_panel) {
         Preset *selected_filament_preset = selected_filaments.begin()->second;
         if (selected_filament_preset) {
-            const ConfigOptionFloatsNullable* flow_ratio_opt = selected_filament_preset->config.option<ConfigOptionFloatsNullable>("filament_flow_ratio");
-            if (flow_ratio_opt) {
-                m_cali_stage_panel->set_flow_ratio_value(flow_ratio_opt->get_at(0));
+            auto flow_ratio = ::orca::config::get_at<::orca::keys::filament_flow_ratio>(selected_filament_preset->config, 0);
+            if (flow_ratio) {
+                m_cali_stage_panel->set_flow_ratio_value(*flow_ratio);
             }
         }
     }
@@ -1392,9 +1393,9 @@ void CalibrationPresetPage::on_recommend_input_value()
         Preset* selected_filament_preset = selected_filaments.begin()->second;
         if (selected_filament_preset) {
             if (m_custom_range_panel) {
-                const ConfigOptionFloats* speed_opt = selected_filament_preset->config.option<ConfigOptionFloats>("filament_max_volumetric_speed");
+                auto speed_opt = ::orca::config::get_at<::orca::keys::filament_max_volumetric_speed>(selected_filament_preset->config, 0);
                 if (speed_opt) {
-                    double max_volumetric_speed = speed_opt->get_at(0);
+                    double max_volumetric_speed = *speed_opt;
                     wxArrayString values;
                     values.push_back(wxString::Format("%.2f", max_volumetric_speed - 5));
                     values.push_back(wxString::Format("%.2f", max_volumetric_speed + 5));
@@ -1539,12 +1540,12 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         int nozzle_temperature = 0;
         int nozzle_temperature_range_low = 0;
         int nozzle_temperature_range_high = 0;
-        if (const auto* opt_nozzle_temp = item_preset->config.option<ConfigOptionInts>("nozzle_temperature"))
-            nozzle_temperature = opt_nozzle_temp->get_at(0);
-        if (const auto* opt_nozzle_temp_low = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low"))
-            nozzle_temperature_range_low = opt_nozzle_temp_low->get_at(0);
-        if (const auto* opt_nozzle_temp_high = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high"))
-            nozzle_temperature_range_high = opt_nozzle_temp_high->get_at(0);
+        if (auto opt_nozzle_temp = ::orca::config::get_at<::orca::keys::nozzle_temperature>(item_preset->config, 0))
+            nozzle_temperature = *opt_nozzle_temp;
+        if (auto opt_nozzle_temp_low = ::orca::config::get_at<::orca::keys::nozzle_temperature_range_low>(item_preset->config, 0))
+            nozzle_temperature_range_low = *opt_nozzle_temp_low;
+        if (auto opt_nozzle_temp_high = ::orca::config::get_at<::orca::keys::nozzle_temperature_range_high>(item_preset->config, 0))
+            nozzle_temperature_range_high = *opt_nozzle_temp_high;
 
         nozzle_temperatures.push_back(nozzle_temperature);
         nozzle_temperature_range_lows.push_back(nozzle_temperature_range_low);
@@ -1604,16 +1605,16 @@ void CalibrationPresetPage::update_combobox_filaments(MachineObject* obj)
     if (!printer_preset)
         return;
 
-    auto opt_extruder_type = printer_preset->config.option<ConfigOptionEnumsGeneric>("extruder_type");
-    if (opt_extruder_type) {
-        assert(opt_extruder_type->values.size() <= 2);
-        for (size_t i = 0; i < opt_extruder_type->values.size(); ++i) {
-            m_extrder_types[i] = (ExtruderType)(opt_extruder_type->values[i]);
+    auto extruder_types = ::orca::config::get_enums<::orca::keys::extruder_type, ExtruderType>(printer_preset->config);
+    if (extruder_types) {
+        assert(extruder_types->size() <= 2);
+        for (size_t i = 0; i < extruder_types->size(); ++i) {
+            m_extrder_types[i] = (*extruder_types)[i];
         }
     }
 
     // sync ams filaments list info
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     if (preset_bundle && printer_preset) {
         preset_bundle->set_calibrate_printer(printer_preset->name);
     }
@@ -1633,7 +1634,7 @@ bool CalibrationPresetPage::is_blocking_printing()
     MachineObject* obj_ = dev->get_selected_machine();
     if (obj_ == nullptr) return true;
 
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
     auto target_model = obj_->printer_type;
 
@@ -2505,10 +2506,10 @@ void CalibrationPresetPage::get_cali_stage(CaliPresetStage& stage, float& value)
     if (stage != CaliPresetStage::CALI_MANUAL_STAGE_2) {
         std::map<int, Preset*> selected_filaments = get_selected_filaments();
         if (!selected_filaments.empty()) {
-            const ConfigOptionFloatsNullable* flow_ratio_opt = selected_filaments.begin()->second->config.option<ConfigOptionFloatsNullable>("filament_flow_ratio");
-            if (flow_ratio_opt) {
-                m_cali_stage_panel->set_flow_ratio_value(flow_ratio_opt->get_at(0));
-                value = flow_ratio_opt->get_at(0);
+            auto flow_ratio = ::orca::config::get_at<::orca::keys::filament_flow_ratio>(selected_filaments.begin()->second->config, 0);
+            if (flow_ratio) {
+                m_cali_stage_panel->set_flow_ratio_value(*flow_ratio);
+                value = *flow_ratio;
             }
         }
     }
@@ -2689,7 +2690,7 @@ Preset* CalibrationPresetPage::get_printer_preset(MachineObject* obj, float nozz
     if (!obj) return nullptr;
 
     Preset* printer_preset = nullptr;
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
         // only use system printer preset
         if (!printer_it->is_system) continue;
@@ -2722,10 +2723,10 @@ Preset* CalibrationPresetPage::get_print_preset()
     // get default print profile
     std::string default_print_profile_name;
     if (printer_preset && printer_preset->config.has("default_print_profile")) {
-        default_print_profile_name = printer_preset->config.opt_string("default_print_profile");
+        default_print_profile_name = ::orca::config::get<::orca::keys::default_print_profile>(printer_preset->config).value_or(std::string{});
     }
 
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     if (preset_bundle) {
         for (auto print_it = preset_bundle->prints.begin(); print_it != preset_bundle->prints.end(); print_it++) {
             if (print_it->name == default_print_profile_name) {

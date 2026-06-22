@@ -1,0 +1,20 @@
+[package]
+name        = "{{project-name}}"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["{{authors}}"]
+description = "{{plugin_description}}"
+license     = "AGPL-3.0-or-later"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Reference the SDK + macros either by git tag (when consuming this
+# template outside the OrcaSlicer monorepo) or by relative path (when
+# the plugin lives inside the same workspace). cargo-generate cannot
+# rewrite Git URLs at template time, so the relative-path form below
+# matches the in-tree scaffold; replace with git = "..." when copying
+# elsewhere.
+orca-plugin-sdk    = { path = "../../sdk/rust/orca-plugin-sdk" }
+orca-plugin-macros = { path = "../../sdk/rust/orca-plugin-macros" }

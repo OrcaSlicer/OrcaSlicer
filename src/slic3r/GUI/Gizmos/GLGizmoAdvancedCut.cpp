@@ -630,7 +630,7 @@ void GLGizmoAdvancedCut::perform_cut(const Selection& selection)
     {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Cut by Plane");
 
-        ModelObject *mo = wxGetApp().plater()->model().objects[object_idx];
+        ModelObject *mo = ::orca::session().project().raw().objects[object_idx];
         const bool has_connectors = !mo->cut_connectors.empty();
 
         bool create_dowels_as_separate_object = false;

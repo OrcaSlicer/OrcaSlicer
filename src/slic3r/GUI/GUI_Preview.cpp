@@ -680,7 +680,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
 
     const std::vector<std::string> tool_colors = wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result);
     const std::vector<CustomGCode::Item>& color_print_values = wxGetApp().is_editor() ?
-        wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_gcode_result->custom_gcode_per_print_z;
+        ::orca::session().project().raw().get_curr_plate_custom_gcodes().gcodes : m_gcode_result->custom_gcode_per_print_z;
     std::vector<std::string> color_print_colors;
     if (!color_print_values.empty()) {
         color_print_colors = wxGetApp().plater()->get_colors_for_color_print(m_gcode_result);
@@ -727,7 +727,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
                 m_canvas->get_gcode_extruders_count();
             std::vector<CustomGCode::Item> gcodes = wxGetApp().is_editor() ?
                 //BBS
-                wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes :
+                ::orca::session().project().raw().get_curr_plate_custom_gcodes().gcodes :
                 m_gcode_result->custom_gcode_per_print_z;
             const wxString choice = !gcodes.empty() ?
                 _L("Multicolor Print") :

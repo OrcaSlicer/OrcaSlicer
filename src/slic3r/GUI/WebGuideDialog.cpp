@@ -49,7 +49,7 @@ static wxString update_custom_filaments()
     m_Res["command"]                                                               = "update_custom_filaments";
     m_Res["sequence_id"]                                                           = "2000";
     json                                               m_CustomFilaments           = json::array();
-    PresetBundle *                                     preset_bundle               = wxGetApp().preset_bundle;
+    PresetBundle *                                     preset_bundle               = ::orca::session().presets().raw_ptr();
     std::map<std::string, std::vector<Preset const *>> temp_filament_id_to_presets = preset_bundle->filaments.get_filament_presets();
 
     std::vector<std::pair<std::string, std::string>>   need_sort;

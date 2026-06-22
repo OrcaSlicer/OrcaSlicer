@@ -27,6 +27,7 @@
 #include <sstream>
 
 #include <string>
+#include <wx/app.h>
 #include <wx/filename.h>
 #include <wx/filefn.h>
 #include <wx/secretstore.h>
@@ -2299,11 +2300,14 @@ void OrcaCloudServiceAgent::compute_fallback_path()
         return;
     // wxStandardPaths::GetUserDataDir() resolves the app data directory via
     // wxAppConsoleBase::GetAppName(), which dereferences wxTheApp. In headless
-    // contexts (CLI, unit tests) there is no wxApp, so guard the call to avoid a
-    // null dereference. The path can still be provided explicitly through
-    // set_config_dir(); when it is left empty, file persistence is skipped.
-    if (wxTheApp == nullptr)
+    // contexts (CLI, unit tests) there is no wxApp, so fall back to a temp-dir
+    // path so the agent can still persist a refresh token without a running
+    // wxApp. set_config_dir() can override this explicitly.
+    if (wxTheApp == nullptr) {
+        secret_fallback_path =
+            (boost::filesystem::temp_directory_path() / "orca_refresh_token.sec").string();
         return;
+    }
     wxFileName fallback(wxStandardPaths::Get().GetUserDataDir(), "orca_refresh_token.sec");
     fallback.Normalize();
     secret_fallback_path = fallback.GetFullPath().ToStdString();

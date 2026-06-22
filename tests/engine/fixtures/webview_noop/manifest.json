@@ -1,0 +1,10 @@
+{
+  "id":          "test.fixture.webview_noop",
+  "name":        "WebView Noop Listener",
+  "version":     "0.0.1",
+  "author":      "OrcaSlicer Tests",
+  "description": "Phase 3.4.3 webview runtime smoke fixture — subscribes to SlicingFinished via window.orca.events.on.",
+  "kind":        "webview",
+  "entry":       { "webview": "index.html" },
+  "permissions": []
+}

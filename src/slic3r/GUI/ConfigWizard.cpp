@@ -37,6 +37,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Color.hpp"
+#include "orca/Config.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
@@ -2124,8 +2125,8 @@ void ConfigWizard::priv::on_printer_pick(PagePrinters *page, const PrinterPicker
         if (pair.first != evt.vendor_id) { continue; }
 
         for (auto &preset : pair.second.preset_bundle->printers) {
-            if (preset.config.opt_string("printer_model") == evt.model_id
-                && preset.config.opt_string("printer_variant") == evt.variant_name) {
+            if (::orca::config::get<::orca::keys::printer_model>(preset.config).value_or(std::string{}) == evt.model_id
+                && ::orca::config::get<::orca::keys::printer_variant>(preset.config).value_or(std::string{}) == evt.variant_name) {
                 preset.is_visible = evt.enable;
             }
         }
@@ -2593,7 +2594,7 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
         copy_bed_model_and_texture_if_needed(*custom_config);
 #endif // ENABLE_COPY_CUSTOM_BED_MODEL_AND_TEXTURE
 
-        custom_config->set_key_value("filament_colour", wxGetApp().preset_bundle->project_config.option("filament_colour"));
+        custom_config->set_key_value("filament_colour", ::orca::session().presets().raw_ptr()->project_config.option("filament_colour"));
         const std::string profile_name = page_custom->profile_name();
         Semver semver(SLIC3R_VERSION);
         preset_bundle->load_config_from_wizard(profile_name, *custom_config, semver);

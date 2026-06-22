@@ -24,6 +24,12 @@
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include "orca/Config.hpp"
+#include "orca/Globals.hpp"
+#include "orca/Session.hpp"
+#include "orca/Events.hpp"
+#include "orca/EventTypes.hpp"
+
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -181,7 +187,7 @@ void PartPlate::init()
 
 	m_print_index = -1;
 	m_print = nullptr;
-	m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush;
+	m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush; // TODO(orca-types): enum surface
 }
 
 BedType PartPlate::get_bed_type(bool load_from_project) const
@@ -193,10 +199,10 @@ BedType PartPlate::get_bed_type(bool load_from_project) const
 		return bed_type;
 	}
 
-	if (!load_from_project || !m_plater || !wxGetApp().preset_bundle)
+	if (!load_from_project || !m_plater || !::orca::session().presets().raw_ptr())
 		return btDefault;
 
-	DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+	DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
 	if (proj_cfg.has(bed_type_key))
 		return proj_cfg.opt_enum<BedType>(bed_type_key);
 	return btDefault;
@@ -212,13 +218,13 @@ void PartPlate::set_bed_type(BedType bed_type)
     // update slice state
     BedType old_real_bed_type = get_bed_type();
     if (old_real_bed_type == btDefault) {
-        DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+        DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
         if (proj_cfg.has(bed_type_key))
             old_real_bed_type = proj_cfg.opt_enum<BedType>(bed_type_key);
     }
     BedType new_real_bed_type = bed_type;
     if (bed_type == BedType::btDefault) {
-        DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+        DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
         if (proj_cfg.has(bed_type_key))
             new_real_bed_type = proj_cfg.opt_enum<BedType>(bed_type_key);
     }
@@ -252,7 +258,7 @@ void PartPlate::set_print_seq(PrintSequence print_seq)
     // update slice state
     PrintSequence old_real_print_seq = get_print_seq();
     if (old_real_print_seq == PrintSequence::ByDefault) {
-        auto curr_preset_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        auto curr_preset_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
         if (curr_preset_config.has(print_seq_key))
             old_real_print_seq = curr_preset_config.option<ConfigOptionEnum<PrintSequence>>(print_seq_key)->value;
     }
@@ -260,7 +266,7 @@ void PartPlate::set_print_seq(PrintSequence print_seq)
     PrintSequence new_real_print_seq = print_seq;
 
     if (print_seq == PrintSequence::ByDefault) {
-        auto curr_preset_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        auto curr_preset_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
         if (curr_preset_config.has(print_seq_key))
             new_real_print_seq = curr_preset_config.option<ConfigOptionEnum<PrintSequence>>(print_seq_key)->value;
     }
@@ -309,7 +315,7 @@ std::vector<int> PartPlate::get_real_filament_maps(const DynamicConfig& g_config
 		if (use_global_param) { *use_global_param = false; }
 		return maps;
 	}
-	auto g_maps = g_config.option<ConfigOptionInts>("filament_map")->values;
+	auto g_maps = ::orca::config::get_vec<::orca::keys::filament_map>(g_config).value_or(std::vector<int>{});
 	if (use_global_param) { *use_global_param = true; }
 	return g_maps;
 }
@@ -322,7 +328,7 @@ FilamentMapMode PartPlate::get_real_filament_map_mode(const DynamicConfig& g_con
 		return mode;
 	}
 
-	auto g_mode = g_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value;
+	auto g_mode = ::orca::config::get_enum<::orca::keys::filament_map_mode, FilamentMapMode>(g_config).value_or(static_cast<FilamentMapMode>(0));
 	if (use_global_param) { *use_global_param = true; }
 	return g_mode;
 }
@@ -341,7 +347,7 @@ bool PartPlate::get_spiral_vase_mode() const
 		return m_config.opt_bool(key);
 	}
 	else {
-		DynamicPrintConfig* global_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+		DynamicPrintConfig* global_config = &::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
 		if (global_config->has(key))
 			return global_config->opt_bool(key);
 	}
@@ -350,10 +356,10 @@ bool PartPlate::get_spiral_vase_mode() const
 
 std::vector<Vec2d> PartPlate::get_plate_wrapping_detection_area() const
 {
-    DynamicPrintConfig  gconfig                  = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    ConfigOptionPoints *wrapping_exclude_area_opt = gconfig.option<ConfigOptionPoints>("wrapping_exclude_area");
+    DynamicPrintConfig  gconfig                  = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
+    auto wrapping_exclude_area_opt = ::orca::config::get_vec<::orca::keys::wrapping_exclude_area>(gconfig);
     if (wrapping_exclude_area_opt) {
-        std::vector<Vec2d> wrapping_area = wrapping_exclude_area_opt->values;
+        std::vector<Vec2d> wrapping_area = *wrapping_exclude_area_opt;
         for (Vec2d& pt : wrapping_area) {
             pt += Vec2d(m_origin.x(), m_origin.y());
         }
@@ -850,12 +856,12 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
 	// btDefault should be skipped
 	auto curr_bed_type = get_bed_type();
 	if (curr_bed_type == btDefault) {
-        DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+        DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
         if (proj_cfg.has(std::string("curr_bed_type")))
             curr_bed_type = proj_cfg.opt_enum<BedType>(std::string("curr_bed_type"));
 	}
 	int bed_type_idx = (int)curr_bed_type;
-    auto is_single_extruder = wxGetApp().preset_bundle->get_printer_extruder_count() == 1;
+    auto is_single_extruder = ::orca::session().presets().raw_ptr()->get_printer_extruder_count() == 1;
     if (!is_single_extruder) {
         if (m_partplate_list->m_allow_bed_type_in_double_nozzle.find(bed_type_idx) == m_partplate_list->m_allow_bed_type_in_double_nozzle.end()) {
             bed_type_idx = 0;
@@ -1162,7 +1168,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                     render_icon_texture(m_lock_icon.model, m_partplate_list->m_lockopen_texture);
             }
 
-            PresetBundle* preset = wxGetApp().preset_bundle;
+            PresetBundle* preset = ::orca::session().presets().raw_ptr();
             bool dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
             if (dual_bbl) {
                 if (hover_id == PLATE_FILAMENT_MAP_ID){
@@ -1496,7 +1502,7 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
     register_model_for_picking(canvas, m_move_front_icon, picking_id_component(7));
 
     // Only register filament map button for H2D (dual-extruder Bambu Lab) printers
-    PresetBundle* preset = wxGetApp().preset_bundle;
+    PresetBundle* preset = ::orca::session().presets().raw_ptr();
     bool dual_bbl = (preset && preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
     if (dual_bbl)
         register_model_for_picking(canvas, m_plate_filament_map_icon, picking_id_component(PLATE_FILAMENT_MAP_ID));
@@ -1514,21 +1520,21 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
         return plate_extruders;
     }
 	// if 3mf file
-	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
-	int glb_support_extr = glb_config.opt_int("support_filament");
-	int glb_outer_wall_extr = glb_config.opt_int("outer_wall_filament_id");
-	int glb_inner_wall_extr = glb_config.opt_int("inner_wall_filament_id");
+	const DynamicPrintConfig& glb_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+	int glb_support_intf_extr = ::orca::config::get<::orca::keys::support_interface_filament>(glb_config).value_or(0);
+	int glb_support_extr = ::orca::config::get<::orca::keys::support_filament>(glb_config).value_or(0);
+	int glb_outer_wall_extr = ::orca::config::get<::orca::keys::outer_wall_filament_id>(glb_config).value_or(0);
+	int glb_inner_wall_extr = ::orca::config::get<::orca::keys::inner_wall_filament_id>(glb_config).value_or(0);
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
-	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament_id");
-	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
-	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
-	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	int glb_sparse_infill_extr = ::orca::config::get<::orca::keys::sparse_infill_filament_id>(glb_config).value_or(0);
+	int glb_internal_solid_extr = ::orca::config::get<::orca::keys::internal_solid_filament_id>(glb_config).value_or(0);
+	int glb_top_surface_extr = ::orca::config::get<::orca::keys::top_surface_filament_id>(glb_config).value_or(0);
+	int glb_bottom_surface_extr = ::orca::config::get<::orca::keys::bottom_surface_filament_id>(glb_config).value_or(0);
 	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
 	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
-	bool glb_support = glb_config.opt_bool("enable_support");
-    glb_support |= glb_config.opt_int("raft_layers") > 0;
+	bool glb_support = ::orca::config::get<::orca::keys::enable_support>(glb_config).value_or(false);
+    glb_support |= ::orca::config::get<::orca::keys::raft_layers>(glb_config).value_or(0) > 0;
 
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
 		if (!contain_instance_totally(obj_idx, 0))
@@ -1644,7 +1650,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	if (conside_custom_gcode) {
 		//BBS
         int nums_extruders = 0;
-        if (const ConfigOptionStrings *color_option = dynamic_cast<const ConfigOptionStrings *>(wxGetApp().preset_bundle->project_config.option("filament_colour"))) {
+        if (const ConfigOptionStrings *color_option = dynamic_cast<const ConfigOptionStrings *>(::orca::session().presets().raw_ptr()->project_config.option("filament_colour"))) {
             nums_extruders = color_option->values.size();
 			if (m_model->plates_custom_gcodes.find(m_plate_index) != m_model->plates_custom_gcodes.end()) {
 				for (auto item : m_model->plates_custom_gcodes.at(m_plate_index).gcodes) {
@@ -1666,21 +1672,21 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     std::vector<int> plate_extruders;
 
     // if 3mf file
-    int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
-    int glb_support_extr = full_config.opt_int("support_filament");
-	int glb_outer_wall_extr = full_config.opt_int("outer_wall_filament_id");
-	int glb_inner_wall_extr = full_config.opt_int("inner_wall_filament_id");
+    int glb_support_intf_extr = ::orca::config::get<::orca::keys::support_interface_filament>(full_config).value_or(0);
+    int glb_support_extr = ::orca::config::get<::orca::keys::support_filament>(full_config).value_or(0);
+	int glb_outer_wall_extr = ::orca::config::get<::orca::keys::outer_wall_filament_id>(full_config).value_or(0);
+	int glb_inner_wall_extr = ::orca::config::get<::orca::keys::inner_wall_filament_id>(full_config).value_or(0);
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
-	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament_id");
-	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
-	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
-	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	int glb_sparse_infill_extr = ::orca::config::get<::orca::keys::sparse_infill_filament_id>(full_config).value_or(0);
+	int glb_internal_solid_extr = ::orca::config::get<::orca::keys::internal_solid_filament_id>(full_config).value_or(0);
+	int glb_top_surface_extr = ::orca::config::get<::orca::keys::top_surface_filament_id>(full_config).value_or(0);
+	int glb_bottom_surface_extr = ::orca::config::get<::orca::keys::bottom_surface_filament_id>(full_config).value_or(0);
 	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
 	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 
-    bool glb_support = full_config.opt_bool("enable_support");
-    glb_support |= full_config.opt_int("raft_layers") > 0;
+    bool glb_support = ::orca::config::get<::orca::keys::enable_support>(full_config).value_or(false);
+    glb_support |= ::orca::config::get<::orca::keys::raft_layers>(full_config).value_or(0) > 0;
 
     for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it)
     {
@@ -1842,7 +1848,7 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
         return plate_extruders;
     }
 	// if 3mf file
-	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+	const DynamicPrintConfig& glb_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
 
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
 		if (!contain_instance_totally(obj_idx, 0))
@@ -1858,7 +1864,7 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	if (conside_custom_gcode) {
 		//BBS
 		int nums_extruders = 0;
-		if (const ConfigOptionStrings* color_option = dynamic_cast<const ConfigOptionStrings*>(wxGetApp().preset_bundle->project_config.option("filament_colour"))) {
+		if (const ConfigOptionStrings* color_option = dynamic_cast<const ConfigOptionStrings*>(::orca::session().presets().raw_ptr()->project_config.option("filament_colour"))) {
 			nums_extruders = color_option->values.size();
 			if (m_model->plates_custom_gcodes.find(m_plate_index) != m_model->plates_custom_gcodes.end()) {
 				for (auto item : m_model->plates_custom_gcodes.at(m_plate_index).gcodes) {
@@ -1892,14 +1898,14 @@ int PartPlate::get_physical_extruder_by_filament_id(const DynamicConfig& g_confi
 		return -1;
 	}
 
-	const auto the_map = g_config.option<ConfigOptionInts>("physical_extruder_map");
+	const auto the_map = ::orca::config::get_vec<::orca::keys::physical_extruder_map>(g_config);
 	if (!the_map)
 	{
 		return -1;
 	}
 
 	int zero_base_logical_idx = filament_map[idx - 1] - 1;
-	return the_map->values[zero_base_logical_idx];
+	return (*the_map)[zero_base_logical_idx];
 }
 
 std::vector<int> PartPlate::get_used_filaments()
@@ -1943,8 +1949,8 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
             int filament_id = filament_idx - 1;
             if (filament_id < 0 || filament_id >= filament_count)
                 continue;
-            std::string filament_type = filament_types[filament_id];
-            int filament_printable_status = filament_printables[filament_id];
+            std::string filament_type = ::orca::config::get_at<::orca::keys::filament_type>(config, filament_id).value_or(std::string{});
+            int filament_printable_status = ::orca::config::get_at<::orca::keys::filament_printable>(config, filament_id).value_or(0);
             int extruder_idx = filament_map[filament_id] - 1;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
@@ -1976,8 +1982,7 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
     // NOTE: if MMU-on-toolchanger support is added (#10586), the nozzle-mapping logic
     // will need to be revisited because multiple filaments may then share one tool slot.
     bool is_toolchanger = false;
-    auto *tool_change_time = config.option<ConfigOptionFloat>("machine_tool_change_time");
-    if (tool_change_time && tool_change_time->value > 0)
+    if (::orca::config::get<::orca::keys::machine_tool_change_time>(config).value_or(0.0) > 0)
         is_toolchanger = true;
 
     // nozzle index → whether it carries PLA / PETG
@@ -1986,11 +1991,11 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
 
     std::vector<int> used_filaments = get_extruders(true); // 1-based
     if (!used_filaments.empty()) {
-        const auto *filament_types = config.option<ConfigOptionStrings>("filament_type");
+        const auto filament_types = ::orca::config::get_vec<::orca::keys::filament_type>(config).value_or(std::vector<std::string>{});
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
-            if (filament_id < (int)filament_types->values.size()) {
-                const std::string &filament_type = filament_types->values[filament_id];
+            if (filament_id < (int)filament_types.size()) {
+                const std::string &filament_type = filament_types[filament_id];
                 if (filament_type == "PLA") {
                     has_pla = true;
                     nozzle_has_pla[filament_id] = true;
@@ -2035,11 +2040,11 @@ bool PartPlate::check_mixture_filament_compatible(const DynamicPrintConfig &conf
 
     std::vector<int>         used_filaments = get_extruders(true); // 1 based idx
     std::vector<std::string> filament_types;
-    auto                     filament_type_opt = config.option<ConfigOptionStrings>("filament_type");
+    auto                     filament_type_opt = ::orca::config::get_vec<::orca::keys::filament_type>(config).value_or(std::vector<std::string>{});
     for (auto filament : used_filaments) {
         int filament_idx = filament - 1;
-        if (filament_idx >= filament_type_opt->values.size()) filament_idx = 0;
-        filament_types.push_back(filament_type_opt->values[filament_idx]);
+        if (filament_idx >= filament_type_opt.size()) filament_idx = 0;
+        filament_types.push_back(filament_type_opt[filament_idx]);
     };
 
     {
@@ -2067,8 +2072,8 @@ bool PartPlate::check_mixture_filament_compatible(const DynamicPrintConfig &conf
 
 bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig &config, const std::vector<std::string> &filament_presets, std::string &error_msg)
 {
-    float nozzle_diameter = config.option<ConfigOptionFloats>("nozzle_diameter")->values[0];
-    auto  volume_type_opt = config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    float nozzle_diameter = ::orca::config::get_at<::orca::keys::nozzle_diameter>(config, 0).value_or(0.0);
+    auto  volume_type_opt = ::orca::config::get_vec<::orca::keys::nozzle_volume_type>(config).value_or(std::vector<int>{});
 
     auto get_filament_alias = [](std::string preset_name) -> std::string {
         size_t      at_pos = preset_name.find('@');
@@ -2079,8 +2084,8 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
         return alias.substr(first, last - first + 1);
     };
 
-    bool with_same_volume_type = std::all_of(volume_type_opt->values.begin(), volume_type_opt->values.end(),
-                                             [first_value = volume_type_opt->values[0]](int value) { return value == first_value; });
+    bool with_same_volume_type = std::all_of(volume_type_opt.begin(), volume_type_opt.end(),
+                                             [first_value = volume_type_opt[0]](int value) { return value == first_value; });
 
     std::set<std::string> selected_filament_alias;
     for (auto &filament_preset : filament_presets) { selected_filament_alias.insert(get_filament_alias(filament_preset)); }
@@ -2115,7 +2120,7 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
 
     error_msg.clear();
 
-    std::set<int>                                     nozzle_volumes(volume_type_opt->values.begin(), volume_type_opt->values.end());
+    std::set<int>                                     nozzle_volumes(volume_type_opt.begin(), volume_type_opt.end());
     std::map<NozzleVolumeType, std::set<std::string>> incompatible_selected_map;
 
     for (auto volume_type_value : nozzle_volumes) {
@@ -2171,7 +2176,7 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
 
     auto timelapse_type    = config.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
     bool timelapse_enabled = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
-    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+    int nozzle_nums = ::orca::session().presets().raw_ptr()->get_printer_extruder_count();
     double extra_spacing     = config.option("prime_tower_infill_gap")->getFloat() / 100.;
     double depth             = std::sqrt(wipe_volume * (nozzle_nums == 2 ? plate_extruder_size : (plate_extruder_size - 1)) / layer_height * extra_spacing);
     if (timelapse_enabled || plate_extruder_size > 1) {
@@ -2212,23 +2217,19 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
     }
     wipe_tower_size(2) = max_height;
     //const DynamicPrintConfig &dconfig = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    auto timelapse_type    = config.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | enable_wrapping_detection;
+    auto timelapse_type    = ::orca::config::get_enum<::orca::keys::timelapse_type, TimelapseType>(config).value_or(static_cast<TimelapseType>(0));
+    bool need_wipe_tower = (timelapse_type == TimelapseType::tlSmooth) | enable_wrapping_detection;
     double extra_spacing     = config.option("prime_tower_infill_gap")->getFloat() / 100.;
-    const ConfigOptionEnum<WipeTowerWallType>* use_rib_wall_opt = config.option<ConfigOptionEnum<WipeTowerWallType>>("wipe_tower_wall_type");
-    bool use_rib_wall = use_rib_wall_opt ? use_rib_wall_opt->value == WipeTowerWallType::wtwRib: false;
+    WipeTowerWallType wipe_tower_wall_type = ::orca::config::get_enum<::orca::keys::wipe_tower_wall_type, WipeTowerWallType>(config).value_or(static_cast<WipeTowerWallType>(0));
+    bool use_rib_wall = wipe_tower_wall_type == WipeTowerWallType::wtwRib;
     double rib_width = config.option("wipe_tower_rib_width")->getFloat();
     double depth;
     double filament_change_volume=0.;
     {
-        std::vector<double>             filament_change_lengths;
-        auto                filament_change_lengths_opt = m_print->config().option<ConfigOptionFloats>("filament_change_length");
-        if (filament_change_lengths_opt) filament_change_lengths = filament_change_lengths_opt->values;
+        std::vector<double>             filament_change_lengths = ::orca::config::get_vec<::orca::keys::filament_change_length>(m_print->config()).value_or(std::vector<double>{});
         double length = filament_change_lengths.empty() ? 0 : *std::max_element(filament_change_lengths.begin(), filament_change_lengths.end());
         double diameter = 1.75;
-        std::vector<double> diameters;
-        auto                filament_diameter_opt = m_print->config().option<ConfigOptionFloats>("filament_diameter");
-        if (filament_diameter_opt) diameters = filament_diameter_opt->values;
+        std::vector<double> diameters = ::orca::config::get_vec<::orca::keys::filament_diameter>(m_print->config()).value_or(std::vector<double>{});
         diameter = diameters.empty() ? diameter : *std::max_element(diameters.begin(), diameters.end());
         filament_change_volume = length * PI * diameter * diameter / 4.;
     }
@@ -2948,7 +2949,7 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 	else
 		obj_ptrs = get_objects_on_this_plate();
 
-	DynamicPrintConfig* global_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+	DynamicPrintConfig* global_config = &::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
 	DynamicPrintConfig new_conf;
 	new_conf.set_key_value("wall_loops", new ConfigOptionInt(1));
 	new_conf.set_key_value("top_shell_layers", new ConfigOptionInt(0));
@@ -3067,7 +3068,7 @@ void PartPlate::generate_logo_polygon(ExPolygon &logo_polygon)
         bool is_bbl_vendor = false;
 
 		if (m_plater) {
-            if (auto preset_bundle = wxGetApp().preset_bundle; preset_bundle)
+            if (auto preset_bundle = ::orca::session().presets().raw_ptr(); preset_bundle)
                 is_bbl_vendor = preset_bundle->is_bbl_vendor();
 		}
 
@@ -3254,7 +3255,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 			calc_vertex_for_icons(4, m_plate_settings_icon);
 			// ORCA also change bed_icon_count number in calc_vertex_for_icons() after adding or removing icons for circular shaped beds that uses vertical alingment for icons
 			bool dual_bbl = false;
-			PresetBundle* preset = wxGetApp().preset_bundle;
+			PresetBundle* preset = ::orca::session().presets().raw_ptr();
 			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
 			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
 			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
@@ -3459,6 +3460,8 @@ void PartPlate::update_slice_context(BackgroundSlicingProcess & process)
 			event->status.text = temp + event->status.text;
 		}
 		wxQueueEvent(m_plater, event);
+		if (::orca::has_session())
+			::orca::session().events().publish<::orca::SlicingProgress>({0, static_cast<float>(status.percent) / 100.0f, status.text});
 	};
 
 	process.set_fff_print(m_print);
@@ -3502,7 +3505,7 @@ int PartPlate::load_gcode_from_file(const std::string& filename)
 
 	// process gcode
 	std::vector<int>   filament_maps = this->get_filament_maps();
-	DynamicPrintConfig full_config   = wxGetApp().preset_bundle->full_config(false, filament_maps);
+	DynamicPrintConfig full_config   = ::orca::session().presets().raw_ptr()->full_config(false, filament_maps);
 	full_config.apply(m_config, true);
 	m_print->apply(*m_model, full_config, false);
 	//BBS: need to apply two times, for after the first apply, the m_print got its object,
@@ -3603,20 +3606,20 @@ int PartPlate::load_pattern_box_data(std::string filename)
 
 std::vector<int> PartPlate::get_first_layer_print_sequence() const
 {
-    const ConfigOptionInts *op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence");
+    auto op_print_sequence_1st = ::orca::config::get_vec<::orca::keys::first_layer_print_sequence>(m_config);
     if (op_print_sequence_1st)
-        return op_print_sequence_1st->values;
+        return *op_print_sequence_1st;
     else
         return std::vector<int>();
 }
 
 std::vector<LayerPrintSequence> PartPlate::get_other_layers_print_sequence() const
 {
-	const ConfigOptionInts* other_layers_print_sequence_op = m_config.option<ConfigOptionInts>("other_layers_print_sequence");
-	const ConfigOptionInt* other_layers_print_sequence_nums_op = m_config.option<ConfigOptionInt>("other_layers_print_sequence_nums");
+	auto other_layers_print_sequence_op = ::orca::config::get_vec<::orca::keys::other_layers_print_sequence>(m_config);
+	auto other_layers_print_sequence_nums_op = ::orca::config::get<::orca::keys::other_layers_print_sequence_nums>(m_config);
 	if (other_layers_print_sequence_op && other_layers_print_sequence_nums_op) {
-		const std::vector<int>& print_sequence = other_layers_print_sequence_op->values;
-		int sequence_nums = other_layers_print_sequence_nums_op->value;
+		const std::vector<int>& print_sequence = *other_layers_print_sequence_op;
+		int sequence_nums = *other_layers_print_sequence_nums_op;
 		auto other_layers_seqs = Slic3r::get_other_layers_print_sequence(sequence_nums, print_sequence);
 		return other_layers_seqs;
 	}
@@ -3631,7 +3634,7 @@ void PartPlate::set_first_layer_print_sequence(const std::vector<int>& sorted_fi
             m_config.erase("first_layer_print_sequence");
         }
 		else {
-            ConfigOptionInts *op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence");
+            ConfigOptionInts *op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence"); // TODO(orca-types): manual migration — by-ref mutation of option with set_key_value fallback
             if (op_print_sequence_1st)
                 op_print_sequence_1st->values = sorted_filaments;
             else
@@ -3654,8 +3657,8 @@ void PartPlate::set_other_layers_print_sequence(const std::vector<LayerPrintSequ
 	int sequence_nums;
 	std::vector<int> other_layers_seqs;
 	Slic3r::get_other_layers_print_sequence(layer_seq_list, sequence_nums, other_layers_seqs);
-	ConfigOptionInts* other_layers_print_sequence_op = m_config.option<ConfigOptionInts>("other_layers_print_sequence");
-	ConfigOptionInt* other_layers_print_sequence_nums_op = m_config.option<ConfigOptionInt>("other_layers_print_sequence_nums");
+	ConfigOptionInts* other_layers_print_sequence_op = m_config.option<ConfigOptionInts>("other_layers_print_sequence"); // TODO(orca-types): manual migration — by-ref mutation of option with set_key_value fallback
+	ConfigOptionInt* other_layers_print_sequence_nums_op = m_config.option<ConfigOptionInt>("other_layers_print_sequence_nums"); // TODO(orca-types): manual migration — by-ref mutation of option with set_key_value fallback
 	if (other_layers_print_sequence_op)
 		other_layers_print_sequence_op->values = other_layers_seqs;
 	else
@@ -3689,7 +3692,7 @@ void PartPlate::update_first_layer_print_sequence(size_t filament_nums)
 	}
 
 
-    ConfigOptionInts * op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence");
+    ConfigOptionInts * op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence"); // TODO(orca-types): manual migration — by-ref mutation of option->values downstream
     if (!op_print_sequence_1st) {
 		return;
 	}
@@ -3726,7 +3729,7 @@ void PartPlate::update_first_layer_print_sequence_when_delete_filament(size_t fi
             set_other_layers_print_sequence(other_layers_seqs);
     }
 
-    ConfigOptionInts *op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence");
+    ConfigOptionInts *op_print_sequence_1st = m_config.option<ConfigOptionInts>("first_layer_print_sequence"); // TODO(orca-types): manual migration — by-ref mutation of option->values downstream
     if (!op_print_sequence_1st)
         return;
 
@@ -3775,8 +3778,8 @@ FilamentMapMode PartPlate::get_filament_map_mode() const
 
 void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 {
-	const auto& proj_config = wxGetApp().preset_bundle->project_config;
-	FilamentMapMode global_mode = proj_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value;
+	const auto& proj_config = ::orca::session().presets().raw_ptr()->project_config;
+	FilamentMapMode global_mode = ::orca::config::get_enum<::orca::keys::filament_map_mode, FilamentMapMode>(proj_config).value_or(static_cast<FilamentMapMode>(0));
 	FilamentMapMode old_mode = get_filament_map_mode();
 	FilamentMapMode old_real_mode = old_mode == fmmDefault ? global_mode : old_mode;
 	FilamentMapMode new_real_mode = mode == fmmDefault ? global_mode : mode;
@@ -3786,21 +3789,21 @@ void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 	if (mode == fmmDefault)
 		clear_filament_map_mode();
 	else
-		m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = mode;
+		m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = mode; // TODO(orca-types): enum surface
 }
 
 std::vector<int> PartPlate::get_filament_maps() const
 {
     std::string key = "filament_map";
     if (m_config.has(key))
-        return m_config.option<ConfigOptionInts>(key)->values;
+        return ::orca::config::get_vec<::orca::keys::filament_map>(m_config).value_or(std::vector<int>{});
 
     return {};
 }
 
 void PartPlate::set_filament_maps(const std::vector<int>& f_maps)
 {
-    m_config.option<ConfigOptionInts>("filament_map", true)->values = f_maps;
+    ::orca::config::put_vec<::orca::keys::filament_map>(m_config, f_maps);
 }
 
 void PartPlate::clear_filament_map()
@@ -3825,14 +3828,14 @@ void PartPlate::on_extruder_count_changed(int extruder_count)
         clear_filament_map();
         //clear_filament_map_mode();
         // do not clear mode now, reset to default mode
-        m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush;
+        m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush; // TODO(orca-types): enum surface
     }
 }
 
 void PartPlate::set_filament_count(int filament_count)
 {
     if (m_config.has("filament_map")) {
-        std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
+        std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values; // TODO(orca-types): manual migration — by-ref mutation of option->values
         filament_maps.resize(filament_count, 1);
     }
 }
@@ -3840,7 +3843,7 @@ void PartPlate::set_filament_count(int filament_count)
 void PartPlate::on_filament_added()
 {
     if (m_config.has("filament_map")) {
-        std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
+        std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values; // TODO(orca-types): manual migration — by-ref mutation of option->values
         filament_maps.push_back(1);
     }
 }
@@ -3848,7 +3851,7 @@ void PartPlate::on_filament_added()
 void PartPlate::on_filament_deleted(int filament_count, int filament_id)
 {
     if (m_config.has("filament_map")) {
-        std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
+        std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values; // TODO(orca-types): manual migration — by-ref mutation of option->values
         // Guard against an out-of-range index: the per-plate filament_map can be out of sync
         // with the global filament count, and erasing at/past end() triggers an out-of-bounds
         // memmove (crash on macOS, see PartPlate::on_filament_deleted in crash reports).
@@ -4205,17 +4208,17 @@ void PartPlateList::release_icon_textures()
 
 void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool init_pos)
 {
-    DynamicConfig &     proj_cfg     = wxGetApp().preset_bundle->project_config;
+    DynamicConfig &     proj_cfg     = ::orca::session().presets().raw_ptr()->project_config;
     ConfigOptionFloats *wipe_tower_x = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x");
     ConfigOptionFloats *wipe_tower_y = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y");
     wipe_tower_x->values.resize(m_plate_list.size(), wipe_tower_x->values.front());
     wipe_tower_y->values.resize(m_plate_list.size(), wipe_tower_y->values.front());
 
-    auto printer_structure_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
+    auto printer_structure = ::orca::config::get_enum<::orca::keys::printer_structure, PrinterStructure>(::orca::session().presets().raw_ptr()->printers.get_edited_preset().config);
     // set the default position, the same with print config(left top)
     float x = WIPE_TOWER_DEFAULT_X_POS;
     float y = WIPE_TOWER_DEFAULT_Y_POS;
-    if (printer_structure_opt && printer_structure_opt->value == PrinterStructure::psI3) {
+    if (printer_structure && *printer_structure == PrinterStructure::psI3) {
         x = I3_WIPE_TOWER_DEFAULT_X_POS;
         y = I3_WIPE_TOWER_DEFAULT_Y_POS;
     }
@@ -4236,14 +4239,14 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
     coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
 
     std::vector<int> filament_maps = part_plate->get_real_filament_maps(proj_cfg);
-    DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config(false, filament_maps);
-    const DynamicPrintConfig &print_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    DynamicPrintConfig full_config = ::orca::session().presets().raw_ptr()->full_config(false, filament_maps);
+    const DynamicPrintConfig &print_cfg = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     float w = dynamic_cast<const ConfigOptionFloat *>(print_cfg.option("prime_tower_width"))->value;
     float v = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_volume"))->value;
     bool enable_wrapping = false;
     const ConfigOptionBool *wrapping_opt = dynamic_cast<const ConfigOptionBool *>(full_config.option("enable_wrapping_detection"));
     if (wrapping_opt) enable_wrapping = wrapping_opt->value;
-    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+    int nozzle_nums = ::orca::session().presets().raw_ptr()->get_printer_extruder_count();
     Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
 
     if (!init_pos && (is_approx(wipe_tower_size(0), 0.0) || is_approx(wipe_tower_size(1), 0.0))) {
@@ -4252,9 +4255,9 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
 
     // Compute brim-aware margin: brim extends outward from tower position
     float brim_width = 0.f;
-    const ConfigOptionFloat *brim_opt = print_cfg.option<ConfigOptionFloat>("prime_tower_brim_width");
+    auto brim_opt = ::orca::config::get<::orca::keys::prime_tower_brim_width>(print_cfg);
     if (brim_opt) {
-        brim_width = brim_opt->value;
+        brim_width = *brim_opt;
         if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
     }
     const float margin = WIPE_TOWER_MARGIN + brim_width;
@@ -4578,7 +4581,7 @@ int PartPlateList::delete_plate(int index)
 	if (m_plater) {
 		// In GUI mode
 		// BBS: add wipe tower logic
-		DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+		DynamicConfig& proj_cfg = ::orca::session().presets().raw_ptr()->project_config;
 		ConfigOptionFloats* wipe_tower_x = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x");
 		ConfigOptionFloats* wipe_tower_y = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y");
 		// wipe_tower_x and wip_tower_y may be less than plate count in the following case:
@@ -5112,14 +5115,14 @@ int PartPlateList::notify_instance_update(int obj_id, int instance_id, bool is_n
 
 	auto is_object_config_compatible_with_spiral_vase = [](ModelObject* object) {
 		const DynamicPrintConfig& config = object->config.get();
-		if (config.has("wall_loops") && config.opt_int("wall_loops") == 1 &&
-			config.has("top_shell_layers") && config.opt_int("top_shell_layers") == 0 &&
-			config.has("sparse_infill_density") && config.option<ConfigOptionPercent>("sparse_infill_density")->value == 0 &&
-			config.has("enable_support") && !config.opt_bool("enable_support") &&
-			config.has("enforce_support_layers") && config.opt_int("enforce_support_layers") == 0 &&
-			config.has("ensure_vertical_shell_thickness") && config.opt_bool("ensure_vertical_shell_thickness") &&
-			config.has("detect_thin_wall") && !config.opt_bool("detect_thin_wall") &&
-			config.has("timelapse_type") && config.opt_enum<TimelapseType>("timelapse_type") == TimelapseType::tlTraditional)
+		if (config.has("wall_loops") && ::orca::config::get<::orca::keys::wall_loops>(config).value_or(0) == 1 &&
+			config.has("top_shell_layers") && ::orca::config::get<::orca::keys::top_shell_layers>(config).value_or(0) == 0 &&
+			config.has("sparse_infill_density") && ::orca::config::get<::orca::keys::sparse_infill_density>(config).value_or(0.0) == 0 &&
+			config.has("enable_support") && !::orca::config::get<::orca::keys::enable_support>(config).value_or(false) &&
+			config.has("enforce_support_layers") && ::orca::config::get<::orca::keys::enforce_support_layers>(config).value_or(0) == 0 &&
+			config.has("ensure_vertical_shell_thickness") && config.opt_bool("ensure_vertical_shell_thickness") && // TODO(orca-types): manual migration — key is Enum-typed in ConfigKeys but read via opt_bool; type mismatch
+			config.has("detect_thin_wall") && !::orca::config::get<::orca::keys::detect_thin_wall>(config).value_or(false) &&
+			config.has("timelapse_type") && ::orca::config::get_enum<::orca::keys::timelapse_type, TimelapseType>(config).value_or(static_cast<TimelapseType>(0)) == TimelapseType::tlTraditional)
 			return true;
 		else
 			return false;
@@ -6460,7 +6463,7 @@ void PartPlateList::init_bed_type_info()
             }
         }
     }
-    auto is_single_extruder = wxGetApp().preset_bundle->get_printer_extruder_count() == 1;
+    auto is_single_extruder = ::orca::session().presets().raw_ptr()->get_printer_extruder_count() == 1;
     bool use_double_extruder_texture = !is_single_extruder || use_double_extruder_default_texture == "true";
     if (use_double_extruder_texture) {
         pte_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_pte_middle.svg");
@@ -6576,7 +6579,7 @@ bool PartPlateList::calc_extruder_only_area(Rect &left_only_rect, Rect &right_on
         rect.w = pts[1].x() - pts[0].x();
         rect.h = pts[2].y() - pts[1].y();
     };
-    auto is_single_extruder = wxGetApp().preset_bundle->get_printer_extruder_count() ==1;
+    auto is_single_extruder = ::orca::session().presets().raw_ptr()->get_printer_extruder_count() ==1;
     if (is_single_extruder) {
 		return false;
 	}

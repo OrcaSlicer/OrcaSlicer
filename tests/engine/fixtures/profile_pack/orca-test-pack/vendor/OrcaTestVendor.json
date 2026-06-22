@@ -1,0 +1,14 @@
+{
+    "name":        "OrcaTestVendor",
+    "version":     "01.00.00.00",
+    "force_update": "0",
+    "description": "Phase 2.5.3 fixture vendor — single-printer minimal pack",
+    "machine_model_list": [
+        {
+            "name":     "OrcaTest Cube 220",
+            "sub_path": "machine/OrcaTest Cube 220.json"
+        }
+    ],
+    "process_list":  [],
+    "filament_list": []
+}

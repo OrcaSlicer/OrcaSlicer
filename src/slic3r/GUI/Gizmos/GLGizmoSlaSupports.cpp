@@ -540,7 +540,7 @@ std::vector<const ConfigOption*> GLGizmoSlaSupports::get_config_options(const st
         return out;
 
     const DynamicPrintConfig& object_cfg = mo->config.get();
-    const DynamicPrintConfig& print_cfg = wxGetApp().preset_bundle->sla_prints.get_edited_preset().config;
+    const DynamicPrintConfig& print_cfg = ::orca::session().presets().raw_ptr()->sla_prints.get_edited_preset().config;
     std::unique_ptr<DynamicPrintConfig> default_cfg = nullptr;
 
     for (const std::string& key : keys) {
@@ -658,7 +658,7 @@ RENDER_AGAIN:
 
     if (m_editing_mode) {
 
-        float diameter_upper_cap = static_cast<ConfigOptionFloat*>(wxGetApp().preset_bundle->sla_prints.get_edited_preset().config.option("support_pillar_diameter"))->value;
+        float diameter_upper_cap = static_cast<ConfigOptionFloat*>(::orca::session().presets().raw_ptr()->sla_prints.get_edited_preset().config.option("support_pillar_diameter"))->value;
         if (m_new_point_head_diameter > diameter_upper_cap)
             m_new_point_head_diameter = diameter_upper_cap;
         ImGui::AlignTextToFramePadding();
@@ -842,7 +842,7 @@ bool GLGizmoSlaSupports::on_is_activable() const
 {
     const Selection& selection = m_parent.get_selection();
 
-    if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptSLA
+    if (::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology() != ptSLA
         || !selection.is_from_single_instance())
         return false;
 
@@ -857,7 +857,7 @@ bool GLGizmoSlaSupports::on_is_activable() const
 
 bool GLGizmoSlaSupports::on_is_selectable() const
 {
-    return (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptSLA);
+    return (::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology() == ptSLA);
 }
 
 std::string GLGizmoSlaSupports::on_get_name() const
@@ -901,7 +901,7 @@ void GLGizmoSlaSupports::on_set_state()
 
     if (m_state == On && m_old_state != On) { // the gizmo was just turned on
         // Set default head diameter from config.
-        const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->sla_prints.get_edited_preset().config;
+        const DynamicPrintConfig& cfg = ::orca::session().presets().raw_ptr()->sla_prints.get_edited_preset().config;
         m_new_point_head_diameter = static_cast<const ConfigOptionFloat*>(cfg.option("support_head_front_diameter"))->value;
     }
     if (m_state == Off && m_old_state != Off) { // the gizmo was just turned Off

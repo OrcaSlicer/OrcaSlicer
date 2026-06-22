@@ -115,7 +115,7 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
 
         std::map<std::string, std::vector<json>> files;
 
-        Model model = wxGetApp().plater()->model();
+        Model model = ::orca::session().project().raw();
 
         auto model_info = model.model_info;
         if (model_info != nullptr) {
@@ -153,7 +153,7 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
         }
 
         // file info
-        std::string file_path = encode_path(wxGetApp().plater()->model().get_auxiliary_file_temp_path().c_str());
+        std::string file_path = encode_path(::orca::session().project().raw().get_auxiliary_file_temp_path().c_str());
         if (!file_path.empty()) {
             files = Reload(file_path);
             wxGetApp().CallAfter([this, file_path, files] { m_auxiliary->Reload(file_path, files); });
@@ -290,7 +290,7 @@ void ProjectPanel::show_info_editor(bool show)
 
 void ProjectPanel::update_model_data()
 {
-    Model model = wxGetApp().plater()->model();
+    Model model = ::orca::session().project().raw();
     show_info_editor(false);
     clear_model_info();
 

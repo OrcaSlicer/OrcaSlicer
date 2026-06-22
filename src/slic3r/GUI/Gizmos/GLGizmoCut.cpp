@@ -1619,7 +1619,7 @@ bool GLGizmoCut3D::on_is_activable() const
     if (object_idx < 0 || selection.is_wipe_tower())
         return false;
 
-    if (const ModelObject* mo = wxGetApp().plater()->model().objects[object_idx];
+    if (const ModelObject* mo = ::orca::session().project().raw().objects[object_idx];
         mo->is_cut() && mo->volumes.size() == 1) {
         const ModelVolume* volume = mo->volumes[0];
         if (volume->is_cut_connector() && volume->cut_info.connector_type == CutConnectorType::Dowel)
@@ -1895,7 +1895,7 @@ void GLGizmoCut3D::update_bb()
 
         // check, if mode is set to Planar, when object has a connectors
         if (const int object_idx = m_parent.get_selection().get_object_idx();
-            object_idx >= 0 && !wxGetApp().plater()->model().objects[object_idx]->cut_connectors.empty())
+            object_idx >= 0 && !::orca::session().project().raw().objects[object_idx]->cut_connectors.empty())
             m_mode = size_t(CutMode::cutPlanar);
 
         invalidate_cut_plane();

@@ -2538,7 +2538,7 @@ int MachineObject::local_publish_json(std::string json_str, int qos, int flag)
 std::string MachineObject::setting_id_to_type(std::string setting_id, std::string tray_type)
 {
     std::string type;
-    PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
 
@@ -5207,7 +5207,7 @@ int MachineObject::get_flag_bits(int num, int start, int count, int base) const
 
 void MachineObject::update_filament_list()
 {
-    PresetBundle *preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
 
     // custom filament
     typedef std::map<std::string, std::pair<int, int>> map_pair;
@@ -5274,7 +5274,7 @@ void MachineObject::update_filament_list()
 void MachineObject::update_printer_preset_name()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << "start update preset_name";
-    PresetBundle *     preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    PresetBundle *     preset_bundle = ::orca::session().presets().raw_ptr();
     if (!preset_bundle) return;
     auto               printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);
     std::set<std::string> diameter_set;
@@ -5310,7 +5310,7 @@ void MachineObject::update_printer_preset_name()
 
 void MachineObject::check_ams_filament_valid()
 {
-    PresetBundle * preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    PresetBundle * preset_bundle = ::orca::session().presets().raw_ptr();
     auto printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);
     std::map<std::string, std::set<std::string>> need_checked_filament_id;
     for (auto &ams_pair : m_fila_system->GetAmsList()) {
@@ -5412,7 +5412,7 @@ void MachineObject::check_ams_filament_valid()
                 need_checked_filament_id[nozzle_diameter_str].insert(vt_tray.setting_id);
                 try {
                     std::string        preset_setting_id;
-                    PresetBundle *     preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+                    PresetBundle *     preset_bundle = ::orca::session().presets().raw_ptr();
                     std::ostringstream stream;
                     stream << std::fixed << std::setprecision(1) << m_extder_system->GetNozzleDiameter(MAIN_EXTRUDER_ID);
                     std::string nozzle_diameter_str = stream.str();

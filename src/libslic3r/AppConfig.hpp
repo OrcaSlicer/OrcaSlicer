@@ -327,6 +327,11 @@ public:
 	// Get the Orca profile update url.
 	std::string 		profile_update_url() const;
 
+	// Get the plugin marketplace base URL. Overridable via the
+	// `marketplace_url` key in settings.ini or the ORCA_MARKETPLACE_URL
+	// env var. Empty by default (marketplace disabled).
+	std::string 		marketplace_base_url() const;
+
 	// Returns the original Slic3r version found in the ini file before it was overwritten
 	// by the current version
 	Semver 				orig_version() const { return m_orig_version; }

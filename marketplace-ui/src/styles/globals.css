@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-orca-bg: #0f1115;
+  --color-orca-panel: #171a21;
+  --color-orca-border: #262a33;
+  --color-orca-muted: #8b93a7;
+  --color-orca-text: #e6e8ee;
+  --color-orca-accent: #4f8cff;
+  --color-orca-accent-hover: #6ea0ff;
+  --color-orca-danger: #ef4444;
+  --color-orca-success: #22c55e;
+  --color-orca-warning: #f59e0b;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-orca-bg);
+  color: var(--color-orca-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-orca-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-orca-accent-hover);
+  text-decoration: underline;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-orca-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-orca-border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-orca-muted);
+}

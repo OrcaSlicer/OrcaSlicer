@@ -6,6 +6,10 @@
 #include <string>
 #include <memory>
 
+// Phase 2.4.6 — forward declaration only; the registration entry point uses
+// orca::Session* without dragging the engine public headers into this file.
+namespace orca { class Session; }
+
 namespace Slic3r {
 
 /**
@@ -64,6 +68,12 @@ public:
      */
      static AgentInfo get_agent_info_static();
      AgentInfo get_agent_info() override { return get_agent_info_static(); }
+
+    // Phase 2.4.6 — additively register this agent kind with the engine's
+    // plugin registry, mirroring MoonrakerPrinterAgent::register_with_orca_session.
+    // Idempotent. The legacy NetworkAgentFactory entry point remains unchanged
+    // for existing GUI device flows.
+    static void register_with_orca_session(::orca::Session* session);
 
     // Print Job Operations
     int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;

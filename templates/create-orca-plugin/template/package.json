@@ -1,0 +1,21 @@
+{
+  "name":        "{{plugin_id}}",
+  "version":     "0.1.0",
+  "description": "{{plugin_description}}",
+  "type":        "module",
+  "license":     "AGPL-3.0-or-later",
+  "scripts": {
+    "dev":       "vite",
+    "build":     "vite build && node scripts/package-orcaplugin.mjs",
+    "verify":    "orca-plugin-verify --smoke dist/{{plugin_id}}",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orca/plugin-types": "^0.1.0"
+  },
+  "devDependencies": {
+    "archiver":   "^8.0.0",
+    "typescript": "^6.0.3",
+    "vite":       "^8.0.14"
+  }
+}

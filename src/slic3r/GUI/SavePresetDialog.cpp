@@ -353,7 +353,7 @@ bool SavePresetDialog::enable_ok_btn() const
 
 void SavePresetDialog::add_info_for_edit_ph_printer(wxBoxSizer *sizer)
 {
-    PhysicalPrinterCollection &printers = wxGetApp().preset_bundle->physical_printers;
+    PhysicalPrinterCollection &printers = ::orca::session().presets().raw_ptr()->physical_printers;
     m_ph_printer_name                   = printers.get_selected_printer_name();
     m_old_preset_name                   = printers.get_selected_printer_preset_name();
 
@@ -385,7 +385,7 @@ void SavePresetDialog::add_info_for_edit_ph_printer(wxBoxSizer *sizer)
 
 void SavePresetDialog::update_info_for_edit_ph_printer(const std::string &preset_name)
 {
-    bool show = wxGetApp().preset_bundle->physical_printers.has_selection() && m_old_preset_name != preset_name;
+    bool show = ::orca::session().presets().raw_ptr()->physical_printers.has_selection() && m_old_preset_name != preset_name;
 
     m_label->Show(show);
     m_radio_sizer->ShowItems(show);
@@ -433,7 +433,7 @@ void SavePresetDialog::update_physical_printers(const std::string &preset_name)
 {
     if (m_action == UndefAction) return;
 
-    PhysicalPrinterCollection &physical_printers = wxGetApp().preset_bundle->physical_printers;
+    PhysicalPrinterCollection &physical_printers = ::orca::session().presets().raw_ptr()->physical_printers;
     if (!physical_printers.has_selection()) return;
 
     std::string printer_preset_name = physical_printers.get_selected_printer_preset_name();

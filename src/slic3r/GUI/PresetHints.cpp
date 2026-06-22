@@ -4,6 +4,8 @@
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/libslic3r.h"
 
+#include "orca/Config.hpp"
+
 #include "PresetHints.hpp"
 
 #include <wx/intl.h> 
@@ -20,15 +22,15 @@ std::string PresetHints::cooling_description(const Preset &preset)
 	std::string out;
     //BBS: don't show cooling_description now
     /*
-    bool cooling              = preset.config.opt_bool("cooling", 0);
-    int  fan_cooling_layer_time = preset.config.opt_int("fan_cooling_layer_time", 0);
-    int  full_fan_speed_layer = preset.config.opt_int("full_fan_speed_layer", 0);
+    bool cooling              = preset.config.opt_bool("cooling", 0); // TODO(orca-types): manual migration — unknown key (not in ConfigDef)
+    int  fan_cooling_layer_time = static_cast<int>(::orca::config::get_at<::orca::keys::fan_cooling_layer_time>(preset.config, 0).value_or(0.0));
+    int  full_fan_speed_layer = ::orca::config::get_at<::orca::keys::full_fan_speed_layer>(preset.config, 0).value_or(0);
 
     if (cooling) {
-		int 	slow_down_layer_time 	= preset.config.opt_int("slow_down_layer_time", 0);
-		int 	fan_min_speed 				= preset.config.opt_int("fan_min_speed", 0);
-		int 	fan_max_speed 				= preset.config.opt_int("fan_max_speed", 0);
-		int 	slow_down_min_speed				= int(preset.config.opt_float("slow_down_min_speed", 0) + 0.5);
+		int 	slow_down_layer_time 	= static_cast<int>(::orca::config::get_at<::orca::keys::slow_down_layer_time>(preset.config, 0).value_or(0.0));
+		int 	fan_min_speed 				= static_cast<int>(::orca::config::get_at<::orca::keys::fan_min_speed>(preset.config, 0).value_or(0.0));
+		int 	fan_max_speed 				= static_cast<int>(::orca::config::get_at<::orca::keys::fan_max_speed>(preset.config, 0).value_or(0.0));
+		int 	slow_down_min_speed				= int(::orca::config::get_at<::orca::keys::slow_down_min_speed>(preset.config, 0).value_or(0.0) + 0.5);
 
         out += GUI::format(_L("If estimated layer time is below ~%1%s, "
                               "fan will run at %2%%% and print speed will be reduced "
@@ -48,9 +50,9 @@ std::string PresetHints::cooling_description(const Preset &preset)
         }
         out += "\n";
     }
-	if (preset.config.opt_bool("reduce_fan_stop_start_freq", 0)) {
-		int 	close_fan_the_first_x_layers 	= preset.config.opt_int("close_fan_the_first_x_layers", 0);
-		int 	fan_min_speed 				= preset.config.opt_int("fan_min_speed", 0);
+	if (static_cast<bool>(::orca::config::get_at<::orca::keys::reduce_fan_stop_start_freq>(preset.config, 0).value_or(0))) {
+		int 	close_fan_the_first_x_layers 	= ::orca::config::get_at<::orca::keys::close_fan_the_first_x_layers>(preset.config, 0).value_or(0);
+		int 	fan_min_speed 				= static_cast<int>(::orca::config::get_at<::orca::keys::fan_min_speed>(preset.config, 0).value_or(0.0));
 
         if (full_fan_speed_layer > close_fan_the_first_x_layers + 1)
             out += GUI::format(_L("Fan speed will be ramped from zero at layer %1% to %2%%% at layer %3%."), close_fan_the_first_x_layers, fan_min_speed, full_fan_speed_layer);
@@ -92,57 +94,57 @@ std::string PresetHints::maximum_volumetric_flow_description(const PresetBundle 
     const DynamicPrintConfig &printer_config  = preset_bundle.printers .get_edited_preset().config;
 
     // Current printer values.
-    float  nozzle_diameter                  = (float)printer_config.opt_float("nozzle_diameter", idx_extruder);
+    float  nozzle_diameter                  = (float)::orca::config::get_at<::orca::keys::nozzle_diameter>(printer_config, idx_extruder).value_or(0.0);
 
     // Print config values
-    double layer_height                     = print_config.opt_float("layer_height");
-    double initial_layer_print_height               = print_config.opt_float("initial_layer_print_height");
-    double support_speed           = print_config.opt_float("support_speed");
+    double layer_height                     = ::orca::config::get<::orca::keys::layer_height>(print_config).value_or(0.0);
+    double initial_layer_print_height               = ::orca::config::get<::orca::keys::initial_layer_print_height>(print_config).value_or(0.0);
+    double support_speed           = ::orca::config::get<::orca::keys::support_speed>(print_config).value_or(0.0);
     double support_interface_speed = print_config.get_abs_value("support_interface_speed");
-    double bridge_speed                     = print_config.opt_float("bridge_speed");
-    double bridge_flow                = print_config.opt_float("bridge_flow");
-    double inner_wall_speed                  = print_config.opt_float("inner_wall_speed");
+    double bridge_speed                     = ::orca::config::get<::orca::keys::bridge_speed>(print_config).value_or(0.0);
+    double bridge_flow                = ::orca::config::get<::orca::keys::bridge_flow>(print_config).value_or(0.0);
+    double inner_wall_speed                  = ::orca::config::get<::orca::keys::inner_wall_speed>(print_config).value_or(0.0);
     double outer_wall_speed         = print_config.get_abs_value("outer_wall_speed", inner_wall_speed);
-    // double gap_infill_speed                   = print_config.opt_bool("filter_out_gap_fill") ? print_config.opt_float("gap_infill_speed") : 0.;
-    double sparse_infill_speed                     = print_config.opt_float("sparse_infill_speed");
+    // double gap_infill_speed                   = print_config.opt_bool("filter_out_gap_fill") ? print_config.opt_float("gap_infill_speed") : 0.; // TODO(orca-types): manual migration — filter_out_gap_fill cataloged as Float but used as Bool (type mismatch)
+    double sparse_infill_speed                     = ::orca::config::get<::orca::keys::sparse_infill_speed>(print_config).value_or(0.0);
     double small_perimeter_speed            = print_config.get_abs_value("small_perimeter_speed", inner_wall_speed);
-    double internal_solid_infill_speed               = print_config.opt_float("internal_solid_infill_speed");
-    double top_surface_speed           = print_config.opt_float("top_surface_speed");
+    double internal_solid_infill_speed               = ::orca::config::get<::orca::keys::internal_solid_infill_speed>(print_config).value_or(0.0);
+    double top_surface_speed           = ::orca::config::get<::orca::keys::top_surface_speed>(print_config).value_or(0.0);
     // Maximum print speed when auto-speed is enabled by setting any of the above speed values to zero.
-    double max_print_speed                  = print_config.opt_float("max_print_speed");
+    double max_print_speed                  = print_config.opt_float("max_print_speed"); // TODO(orca-types): manual migration — unknown key (not in ConfigDef)
     // Maximum volumetric speed allowed for the print profile.
-    double max_volumetric_speed             = print_config.opt_float("max_volumetric_speed");
+    double max_volumetric_speed             = print_config.opt_float("max_volumetric_speed"); // TODO(orca-types): manual migration — unknown key (not in ConfigDef)
 
-    const auto &extrusion_width                     = *print_config.option<ConfigOptionFloatOrPercent>("line_width");
-    const auto &outer_wall_line_width  = *print_config.option<ConfigOptionFloatOrPercent>("outer_wall_line_width");
-    const auto &initial_layer_line_width         = *print_config.option<ConfigOptionFloatOrPercent>("initial_layer_line_width");
-    const auto &sparse_infill_line_width              = *print_config.option<ConfigOptionFloatOrPercent>("sparse_infill_line_width");
-    const auto &inner_wall_line_width           = *print_config.option<ConfigOptionFloatOrPercent>("inner_wall_line_width");
-    const auto &internal_solid_infill_line_width        = *print_config.option<ConfigOptionFloatOrPercent>("internal_solid_infill_line_width");
-    const auto& support_line_width    = *print_config.option<ConfigOptionFloatOrPercent>("support_line_width");
-    const auto &top_surface_line_width          = *print_config.option<ConfigOptionFloatOrPercent>("top_surface_line_width");
-    const auto &initial_layer_speed                   = *print_config.option<ConfigOptionFloatOrPercent>("initial_layer_speed");
+    const auto extrusion_width                     = ::orca::config::get<::orca::keys::line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto outer_wall_line_width  = ::orca::config::get<::orca::keys::outer_wall_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto initial_layer_line_width         = ::orca::config::get<::orca::keys::initial_layer_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto sparse_infill_line_width              = ::orca::config::get<::orca::keys::sparse_infill_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto inner_wall_line_width           = ::orca::config::get<::orca::keys::inner_wall_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto internal_solid_infill_line_width        = ::orca::config::get<::orca::keys::internal_solid_infill_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto support_line_width    = ::orca::config::get<::orca::keys::support_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto top_surface_line_width          = ::orca::config::get<::orca::keys::top_surface_line_width>(print_config).value_or(Slic3r::FloatOrPercent{0.0, false});
+    const auto &initial_layer_speed                   = *print_config.option<ConfigOptionFloatOrPercent>("initial_layer_speed"); // TODO(orca-types): manual migration — key cataloged as Float but code uses ConfigOptionFloatOrPercent (.get_abs_value below)
 
     // Index of an extruder assigned to a feature. If set to 0, an active extruder will be used for a multi-material print.
     // If different from idx_extruder, it will not be taken into account for this hint.
     auto feature_extruder_active = [idx_extruder, num_extruders](int i) {
         return i <= 0 || i > num_extruders || idx_extruder == -1 || idx_extruder == i - 1;
     };
-    bool perimeter_extruder_active                  = feature_extruder_active(print_config.opt_int("outer_wall_filament_id"))
-                                                    && feature_extruder_active(print_config.opt_int("inner_wall_filament_id"));
-    bool infill_extruder_active                     = feature_extruder_active(print_config.opt_int("sparse_infill_filament_id"));
-    bool solid_infill_extruder_active               = feature_extruder_active(print_config.opt_int("internal_solid_filament_id"))
-                                                    && feature_extruder_active(print_config.opt_int("top_surface_filament_id"))
-                                                    && feature_extruder_active(print_config.opt_int("bottom_surface_filament_id"));
-    bool support_material_extruder_active           = feature_extruder_active(print_config.opt_int("support_filament"));
-    bool support_material_interface_extruder_active = feature_extruder_active(print_config.opt_int("support_interface_filament"));
+    bool perimeter_extruder_active                  = feature_extruder_active(::orca::config::get<::orca::keys::outer_wall_filament_id>(print_config).value_or(0))
+                                                    && feature_extruder_active(::orca::config::get<::orca::keys::inner_wall_filament_id>(print_config).value_or(0));
+    bool infill_extruder_active                     = feature_extruder_active(::orca::config::get<::orca::keys::sparse_infill_filament_id>(print_config).value_or(0));
+    bool solid_infill_extruder_active               = feature_extruder_active(::orca::config::get<::orca::keys::internal_solid_filament_id>(print_config).value_or(0))
+                                                    && feature_extruder_active(::orca::config::get<::orca::keys::top_surface_filament_id>(print_config).value_or(0))
+                                                    && feature_extruder_active(::orca::config::get<::orca::keys::bottom_surface_filament_id>(print_config).value_or(0));
+    bool support_material_extruder_active           = feature_extruder_active(::orca::config::get<::orca::keys::support_filament>(print_config).value_or(0));
+    bool support_material_interface_extruder_active = feature_extruder_active(::orca::config::get<::orca::keys::support_interface_filament>(print_config).value_or(0));
 
     // Current filament values
-    double filament_diameter                = filament_config.opt_float("filament_diameter", 0);
+    double filament_diameter                = ::orca::config::get_at<::orca::keys::filament_diameter>(filament_config, 0).value_or(0.0);
     double filament_crossection             = M_PI * 0.25 * filament_diameter * filament_diameter;
-    // double filament_flow_ratio             = filament_config.opt_float("filament_flow_ratio", 0);
+    // double filament_flow_ratio             = ::orca::config::get_at<::orca::keys::filament_flow_ratio>(filament_config, 0).value_or(0.0);
     // The following value will be annotated by this hint, so it does not take part in the calculation.
-//    double filament_max_volumetric_speed    = filament_config.opt_float("filament_max_volumetric_speed", 0);
+//    double filament_max_volumetric_speed    = ::orca::config::get_at<::orca::keys::filament_max_volumetric_speed>(filament_config, 0).value_or(0.0);
     for (size_t idx_type = (initial_layer_line_width.value == 0) ? 1 : 0; idx_type < 3; ++ idx_type) {
         // First test the maximum volumetric extrusion speed for non-bridging extrusions.
         bool first_layer = idx_type == 0;
@@ -212,10 +214,10 @@ std::string PresetHints::recommended_thin_wall_thickness(const PresetBundle &pre
     const DynamicPrintConfig &print_config    = preset_bundle.prints   .get_edited_preset().config;
     const DynamicPrintConfig &printer_config  = preset_bundle.printers .get_edited_preset().config;
 
-    float   layer_height                        = float(print_config.opt_float("layer_height"));
-    int     num_perimeters                      = print_config.opt_int("wall_loops");
-    bool    thin_walls                          = print_config.opt_bool("detect_thin_wall");
-    float   nozzle_diameter                     = float(printer_config.opt_float("nozzle_diameter", 0));
+    float   layer_height                        = float(::orca::config::get<::orca::keys::layer_height>(print_config).value_or(0.0));
+    int     num_perimeters                      = ::orca::config::get<::orca::keys::wall_loops>(print_config).value_or(0);
+    bool    thin_walls                          = ::orca::config::get<::orca::keys::detect_thin_wall>(print_config).value_or(false);
+    float   nozzle_diameter                     = float(::orca::config::get_at<::orca::keys::nozzle_diameter>(printer_config, 0).value_or(0.0));
     
     std::string out;
 	if (layer_height <= 0.f) {
@@ -230,11 +232,11 @@ std::string PresetHints::recommended_thin_wall_thickness(const PresetBundle &pre
         try {
             Flow external_perimeter_flow = Flow::new_from_config_width(
                 frExternalPerimeter, 
-                *print_config.opt<ConfigOptionFloatOrPercent>("outer_wall_line_width"), 
+                *print_config.opt<ConfigOptionFloatOrPercent>("outer_wall_line_width"), // TODO(orca-types): manual migration — Flow::new_from_config_width expects ConfigOptionFloatOrPercent&, typed surface returns FloatOrPercent value
                 nozzle_diameter, layer_height);
             Flow perimeter_flow          = Flow::new_from_config_width(
-                frPerimeter, 
-                *print_config.opt<ConfigOptionFloatOrPercent>("inner_wall_line_width"), 
+                frPerimeter,
+                *print_config.opt<ConfigOptionFloatOrPercent>("inner_wall_line_width"), // TODO(orca-types): manual migration — Flow::new_from_config_width expects ConfigOptionFloatOrPercent&, typed surface returns FloatOrPercent value
                 nozzle_diameter, layer_height);
 	        double width = external_perimeter_flow.width() + external_perimeter_flow.spacing();
 	        for (int i = 2; i <= num_lines; thin_walls ? ++ i : i += 2) {
@@ -262,13 +264,13 @@ std::string PresetHints::top_bottom_shell_thickness_explanation(const PresetBund
     const DynamicPrintConfig &print_config    = preset_bundle.prints   .get_edited_preset().config;
     const DynamicPrintConfig &printer_config  = preset_bundle.printers .get_edited_preset().config;
 
-    int 	top_shell_layers                = print_config.opt_int("top_shell_layers");
-    int 	bottom_shell_layers             = print_config.opt_int("bottom_shell_layers");
+    int 	top_shell_layers                = ::orca::config::get<::orca::keys::top_shell_layers>(print_config).value_or(0);
+    int 	bottom_shell_layers             = ::orca::config::get<::orca::keys::bottom_shell_layers>(print_config).value_or(0);
     bool    has_top_layers 					= top_shell_layers > 0;
     bool    has_bottom_layers 				= bottom_shell_layers > 0;
-    double  top_shell_thickness        	= print_config.opt_float("top_shell_thickness");
-    double  bottom_shell_thickness  	= print_config.opt_float("bottom_shell_thickness");
-    double  layer_height                    = print_config.opt_float("layer_height");
+    double  top_shell_thickness        	= ::orca::config::get<::orca::keys::top_shell_thickness>(print_config).value_or(0.0);
+    double  bottom_shell_thickness  	= ::orca::config::get<::orca::keys::bottom_shell_thickness>(print_config).value_or(0.0);
+    double  layer_height                    = ::orca::config::get<::orca::keys::layer_height>(print_config).value_or(0.0);
     //FIXME the following line takes into account the 1st extruder only.
     double  min_layer_height				= Slicing::min_layer_height_from_nozzle(printer_config, 1);
 

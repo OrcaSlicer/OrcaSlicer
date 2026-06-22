@@ -1332,7 +1332,7 @@ bool SendToPrinterDialog::is_blocking_printing(MachineObject* obj_)
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return true;
 
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
     auto target_model = obj_->printer_type;
 
@@ -1594,7 +1594,7 @@ void SendToPrinterDialog::set_default()
     std::vector<std::string> materials;
     std::vector<std::string> display_materials;
     {
-        auto preset_bundle = wxGetApp().preset_bundle;
+        auto preset_bundle = ::orca::session().presets().raw_ptr();
         for (auto filament_name : preset_bundle->filament_presets) {
             for (auto iter = preset_bundle->filaments.lbegin(); iter != preset_bundle->filaments.end(); iter++) {
                 if (filament_name.compare(iter->name) == 0) {

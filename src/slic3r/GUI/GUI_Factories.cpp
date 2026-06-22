@@ -32,7 +32,7 @@ namespace GUI
 
 static PrinterTechnology printer_technology()
 {
-    return wxGetApp().preset_bundle->printers.get_selected_preset().printer_technology();
+    return ::orca::session().presets().raw_ptr()->printers.get_selected_preset().printer_technology();
 }
 
 static int filaments_count()
@@ -618,7 +618,7 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                 // This serves as mini tutorial for new users
                 if (model.is_stringhell) {
                     wxGetApp().CallAfter([=] {
-                        DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+                        DynamicPrintConfig* m_config = &::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
 
                         bool is_only_one_wall_top  = m_config->opt_bool("only_one_wall_top");
                         auto min_width_top_surface = m_config->option<ConfigOptionFloatOrPercent>("min_width_top_surface")->value;
@@ -1062,7 +1062,7 @@ void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
         wxString item_name = _L("Default");
 
         if (i > 0) {
-            auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i - 1]);
+            auto preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i - 1]);
             if (preset == nullptr) {
                 item_name = wxString::Format(_L("Filament %d"), i);
             } else {
@@ -1117,7 +1117,7 @@ void MenuFactory::append_menu_items_flush_options(wxMenu* menu)
     if (!show_flush_option_menu)
         return;
 
-    DynamicPrintConfig& global_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    DynamicPrintConfig& global_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     ModelConfig& select_object_config = object_list->object(selection.get_object_idx())->config;
 
     wxMenu* flush_options_menu = new wxMenu();
@@ -1667,7 +1667,7 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
         if (i == active_filament_menu_id)
             continue;
 
-        auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
+        auto preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i]);
         wxString item_name = preset ? from_u8(preset->label(false)) : wxString::Format(_L("Filament %d"), i + 1);
 
         append_menu_item(sub_menu, wxID_ANY, item_name, "",
@@ -2260,7 +2260,7 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
         wxString item_name = _L("Default");
 
         if (i > 0) {
-            auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i - 1]);
+            auto preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i - 1]);
             if (preset == nullptr) {
                 item_name = wxString::Format(_L("Filament %d"), i);
             } else {

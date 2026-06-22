@@ -12,6 +12,8 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include "orca/Config.hpp"
+
 #include <glad/gl.h>
 #include <algorithm>
 
@@ -324,10 +326,10 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         m_parent.reset_all_gizmos();
     }
 
-    const DynamicPrintConfig &glb_cfg                    = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const DynamicPrintConfig &glb_cfg                    = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     const bool                has_object_fuzzy_override  = obj_cfg.option("fuzzy_skin");
-    const FuzzySkinType       effective_fuzzy_skin_state = has_object_fuzzy_override ? obj_cfg.opt_enum<FuzzySkinType>("fuzzy_skin")
-                                                                                     : glb_cfg.opt_enum<FuzzySkinType>("fuzzy_skin");
+    const FuzzySkinType       effective_fuzzy_skin_state = has_object_fuzzy_override ? ::orca::config::get_enum<::orca::keys::fuzzy_skin, FuzzySkinType>(obj_cfg).value_or(static_cast<FuzzySkinType>(0))
+                                                                                     : ::orca::config::get_enum<::orca::keys::fuzzy_skin, FuzzySkinType>(glb_cfg).value_or(static_cast<FuzzySkinType>(0));
     if (effective_fuzzy_skin_state == FuzzySkinType::Disabled_fuzzy) {
         float font_size = ImGui::GetFontSize();
         auto link_text = [&]() {

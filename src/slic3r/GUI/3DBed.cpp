@@ -435,7 +435,7 @@ BoundingBoxf3 Bed3D::calc_extended_bounding_box() const
 // return the print bed model.
 std::tuple<Bed3D::Type, std::string, std::string> Bed3D::detect_type(const Pointfs& shape)
 {
-    auto bundle = wxGetApp().preset_bundle;
+    auto bundle = ::orca::session().presets().raw_ptr();
     if (bundle != nullptr) {
         const Preset* curr = &bundle->printers.get_selected_preset();
         while (curr != nullptr) {

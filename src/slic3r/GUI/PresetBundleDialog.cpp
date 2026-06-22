@@ -23,7 +23,7 @@ PresetBundleDialog::PresetBundleDialog(
     wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
     : DPIDialog(parent, id, _L("PresetBundle"), pos, size, style)
 {
-    wxGetApp().preset_bundle->bundles.PauseRead(); // for the entirety of the preset bundle dialog, we want the update thread to yield.
+    ::orca::session().presets().raw_ptr()->bundles.PauseRead(); // for the entirety of the preset bundle dialog, we want the update thread to yield.
     SetBackgroundColour(*wxWHITE);
     SetMinSize(DESIGN_WINDOW_SIZE);
     create();
@@ -35,8 +35,8 @@ PresetBundleDialog::PresetBundleDialog(
     Bind(wxEVT_FSWATCHER, &PresetBundleDialog::OnFSWatch, this);
     Bind(EVT_UPDATE_BUNDLE_COMPLETE, &PresetBundleDialog::OnBundleUpdate, this);
 
-    m_watcher->Add(wxFileName(wxGetApp().preset_bundle->dir_user_presets_local.c_str()));      // _local
-    m_watcher->Add(wxFileName(wxGetApp().preset_bundle->dir_user_presets_subscribed.c_str())); // _subscribed
+    m_watcher->Add(wxFileName(::orca::session().presets().raw_ptr()->dir_user_presets_local.c_str()));      // _local
+    m_watcher->Add(wxFileName(::orca::session().presets().raw_ptr()->dir_user_presets_subscribed.c_str())); // _subscribed
 
     RefreshBundleMap();
 
@@ -46,7 +46,7 @@ PresetBundleDialog::PresetBundleDialog(
 PresetBundleDialog::~PresetBundleDialog()
 {
     StopDialogWorker();
-    wxGetApp().preset_bundle->bundles.UnpauseRead(); // yield for update thread
+    ::orca::session().presets().raw_ptr()->bundles.UnpauseRead(); // yield for update thread
     if (m_watcher) {
         m_watcher->RemoveAll();
         delete m_watcher;
@@ -55,7 +55,7 @@ PresetBundleDialog::~PresetBundleDialog()
 
 void PresetBundleDialog::OnFSWatch(wxFileSystemWatcherEvent& e)
 {
-    GUI::wxGetApp().preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
+    ::orca::session().presets().raw_ptr()->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
     wxGetApp().mainframe->update_side_preset_ui();
 
     // ListBundles();
@@ -181,9 +181,9 @@ void PresetBundleDialog::OnBundleUpdate(wxCommandEvent& evt)
 
 void PresetBundleDialog::RefreshBundleMap()
 {
-    wxGetApp().preset_bundle->bundles.ReadLock();
-    bundle_copy = wxGetApp().preset_bundle->bundles.m_bundles;
-    wxGetApp().preset_bundle->bundles.ReadUnlock();
+    ::orca::session().presets().raw_ptr()->bundles.ReadLock();
+    bundle_copy = ::orca::session().presets().raw_ptr()->bundles.m_bundles;
+    ::orca::session().presets().raw_ptr()->bundles.ReadUnlock();
 }
 
 void PresetBundleDialog::load_url(wxString& url)
@@ -239,17 +239,17 @@ void PresetBundleDialog::create()
 
 bool PresetBundleDialog::DeleteBundleById(const wxString& id)
 {
-    auto* b = wxGetApp().preset_bundle;
+    auto* b = ::orca::session().presets().raw_ptr();
     if (id.empty()) {
         return false;
     }
 
     const std::string bundle_id = id.ToStdString();
 
-    wxGetApp().preset_bundle->bundles.ReadLock();
+    ::orca::session().presets().raw_ptr()->bundles.ReadLock();
     auto it = b->bundles.m_bundles.find(bundle_id);
     if (it == b->bundles.m_bundles.end()) {
-        wxGetApp().preset_bundle->bundles.ReadUnlock();
+        ::orca::session().presets().raw_ptr()->bundles.ReadUnlock();
         return false;
     }
 
@@ -257,15 +257,15 @@ bool PresetBundleDialog::DeleteBundleById(const wxString& id)
     const boost::filesystem::path bundle_dir = boost::filesystem::path(metadata_path).parent_path();
 
     const BundleType bundle_type = it->second.bundle_type;
-    wxGetApp().preset_bundle->bundles.ReadUnlock();
+    ::orca::session().presets().raw_ptr()->bundles.ReadUnlock();
 
     if (bundle_type == BundleType::Subscribed) {
         // do unsubscribe before deleting locally
     }
 
-    wxGetApp().preset_bundle->bundles.WriteLock();
+    ::orca::session().presets().raw_ptr()->bundles.WriteLock();
     b->bundles.m_bundles.erase(it);
-    wxGetApp().preset_bundle->bundles.WriteUnlock();
+    ::orca::session().presets().raw_ptr()->bundles.WriteUnlock();
 
     auto remove_from_collection = [&](PresetCollection& c) {
         std::vector<std::string> to_delete;
@@ -285,7 +285,7 @@ bool PresetBundleDialog::DeleteBundleById(const wxString& id)
     if (!bundle_dir.empty() && boost::filesystem::exists(bundle_dir))
         boost::filesystem::remove_all(bundle_dir, ec);
 
-    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+    ::orca::session().presets().raw_ptr()->update_compatible(PresetSelectCompatibleType::Always);
 
     return true;
 }
@@ -402,9 +402,9 @@ void PresetBundleDialog::ListBundles()
 
 void PresetBundleDialog::OpenFolder(const std::string& id)
 {
-    wxGetApp().preset_bundle->bundles.ReadLock();
-    wxString target = _L(wxGetApp().preset_bundle->bundles.m_bundles.find(id)->second.path);
-    wxGetApp().preset_bundle->bundles.ReadUnlock();
+    ::orca::session().presets().raw_ptr()->bundles.ReadLock();
+    wxString target = _L(::orca::session().presets().raw_ptr()->bundles.m_bundles.find(id)->second.path);
+    ::orca::session().presets().raw_ptr()->bundles.ReadUnlock();
     wxFileName fn(target);
     if (fn.FileExists())
         target = fn.GetPath();

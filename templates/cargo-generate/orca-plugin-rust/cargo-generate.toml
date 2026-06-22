@@ -1,0 +1,23 @@
+# cargo-generate template metadata for Orca Rust plugins.
+#
+# Usage:
+#   cargo install cargo-generate
+#   cargo generate --git https://github.com/SoftFever/OrcaSlicer \
+#       templates/cargo-generate/orca-plugin-rust \
+#       --name my-orca-plugin
+#
+# The {{project-name}} and {{authors}} placeholders below are filled
+# from cargo-generate's --name flag and the user's git config.
+
+[template]
+cargo_generate_version = ">=0.21"
+
+[placeholders.plugin_id]
+type = "string"
+prompt = "Reverse-DNS plugin id (e.g. com.example.my-plugin)"
+default = "com.example.{{ project-name | kebab_case }}"
+
+[placeholders.plugin_description]
+type = "string"
+prompt = "One-line description of the plugin"
+default = "An OrcaSlicer plugin."

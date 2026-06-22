@@ -41,6 +41,10 @@
 #include "GCode/ConflictChecker.hpp"
 #include "ParameterUtils.hpp"
 
+#include "orca/Events.hpp"
+#include "orca/EventTypes.hpp"
+#include "orca/PlaceholderProvider.hpp"
+
 #include <codecvt>
 
 using namespace nlohmann;
@@ -2181,6 +2185,27 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
     return objectExtruderMap;
 }
 
+// Phase 2.1.2c — dispatch the step observer + interceptor (if any) at each
+// pipeline-stage publish anchor. Returns true when the caller should proceed
+// with the step body; false when the interceptor returned Skip. Abort is
+// translated to cancel_internal()+throw_if_canceled(), which exits the
+// pipeline via the existing Slic3r::CanceledException path.
+//
+// Branch-less on null callbacks; this runs on the slicing worker hot path.
+bool Print::dispatch_step(orca::PipelineStep step)
+{
+    if (m_step_observer)
+        m_step_observer(step);
+    if (!m_step_interceptor)
+        return true;
+    auto d = m_step_interceptor(step);
+    if (d == orca::PipelineDisposition::Abort) {
+        this->cancel_internal();
+        this->throw_if_canceled(); // exits via Slic3r::CanceledException
+    }
+    return d != orca::PipelineDisposition::Skip;
+}
+
 // Slicing process, running at a background thread.
 void Print::process(long long *time_cost_with_cache, bool use_cache)
 {
@@ -2194,6 +2219,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, enter, use_cache=%2%, object size=%3%")%this%use_cache%m_objects.size();
     if (m_objects.empty())
         return;
+
+    // Phase 2.1.2c — gate BeforeSlice via the step interceptor. Skip exits
+    // the pipeline early as a no-op success (matches the m_objects.empty()
+    // early-return shape above). Abort throws inside dispatch_step.
+    if (!this->dispatch_step(orca::PipelineStep::BeforeSlice))
+        return;
+    if (m_events_sink)
+        m_events_sink->publish(orca::BeforeSlice{m_events_slice_handle});
 
     for (PrintObject *obj : m_objects)
         obj->clear_shared_object();
@@ -2308,6 +2341,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posPerimeters);
             }
         }
+        // Phase 2.1.2c — After-anchor: Abort throws; Skip is a documented no-op
+        // because the step body already ran.
+        this->dispatch_step(orca::PipelineStep::AfterPerimeters);
+        if (m_events_sink)
+            m_events_sink->publish(orca::AfterPerimeters{m_events_slice_handle, this->objects().size()});
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
                 obj->estimate_curled_extrusions();
@@ -2328,6 +2366,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posInfill);
             }
         }
+        // Phase 2.1.2c — After-anchor: Abort throws; Skip is a no-op.
+        this->dispatch_step(orca::PipelineStep::AfterInfill);
+        if (m_events_sink)
+            m_events_sink->publish(orca::AfterInfill{m_events_slice_handle, this->objects().size()});
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
                 obj->ironing();
@@ -2337,6 +2379,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posIroning);
             }
         }
+        // Phase 2.1.2c — After-anchor: Abort throws; Skip is a no-op.
+        this->dispatch_step(orca::PipelineStep::AfterIroning);
+        if (m_events_sink)
+            m_events_sink->publish(orca::AfterIroning{m_events_slice_handle});
 
         // Z-Contouring
         for (PrintObject *obj : m_objects) {
@@ -2363,6 +2409,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 }
             }
         );
+        // Phase 2.1.2c — After-anchor: Abort throws; Skip is a no-op.
+        this->dispatch_step(orca::PipelineStep::AfterSupports);
+        if (m_events_sink)
+            m_events_sink->publish(orca::AfterSupports{m_events_slice_handle});
 
         for (PrintObject* obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
@@ -2431,8 +2481,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         m_wipe_tower_data.clear();
         m_tool_ordering.clear();
+        // Phase 2.1.2c — gate the wipe-tower body via the interceptor. Skip
+        // suppresses _make_wipe_tower() while leaving the no-wipe-tower
+        // setup branch (tool ordering) intact. Abort throws.
+        bool proceed_wipe_tower = this->dispatch_step(orca::PipelineStep::BeforeWipeTower);
+        if (m_events_sink)
+            m_events_sink->publish(orca::BeforeWipeTower{m_events_slice_handle, /*has_wipe_tower=*/this->has_wipe_tower()});
         if (this->has_wipe_tower()) {
-            this->_make_wipe_tower();
+            if (proceed_wipe_tower)
+                this->_make_wipe_tower();
         }
         else if (this->config().print_sequence != PrintSequence::ByObject) {
             // Initialize the tool ordering, so it could be used by the G-code preview slider for planning tool changes and filament switches.
@@ -2570,6 +2627,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         this->finalize_first_layer_convex_hull();
         this->set_done(psSkirtBrim);
+        // Phase 2.1.2c — After-anchor: Abort throws; Skip is a no-op.
+        this->dispatch_step(orca::PipelineStep::AfterSkirtBrim);
+        if (m_events_sink)
+            m_events_sink->publish(orca::AfterSkirtBrim{m_events_slice_handle});
 
         if (time_cost_with_cache) {
             end_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -2629,9 +2690,26 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 // It is up to the caller to show an error message.
 std::string Print::export_gcode(const std::string& path_template, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb)
 {
+    // Phase 2.3.1 — fire the placeholder provider slot chain BEFORE GCode::do_export
+    // captures the parser. Any non-OK rc aborts the export.
+    if (m_placeholder_provider) {
+        // m_placeholder_parser is protected on PrintBase; the public accessor
+        // returns const& because callers normally only render templates.
+        orca::placeholder_tls::Scope guard(&m_placeholder_parser);
+        const auto rc = m_placeholder_provider(m_events_slice_handle);
+        if (rc != ORCA_OK)
+            throw Slic3r::RuntimeError("orca: placeholder provider returned an error");
+    }
     // output everything to a G-code file
     // The following call may die if the filename_format template substitution fails.
     std::string path = this->output_filepath(path_template);
+    // Phase 2.1.2c — gate G-code export via the interceptor. Skip exits
+    // export_gcode without producing a file (returns the planned path so
+    // callers can still inspect output_filepath semantics). Abort throws.
+    if (!this->dispatch_step(orca::PipelineStep::BeforeGCodeExport))
+        return path;
+    if (m_events_sink)
+        m_events_sink->publish(orca::BeforeGCodeExport{m_events_slice_handle, std::filesystem::path{path}});
     std::string message;
     if (!path.empty() && result == nullptr) {
         // Only show the path if preview_data is not set -> running from command line.
@@ -2652,6 +2730,20 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     //BBS
     if (result != nullptr)
         result->conflict_result = m_conflict_result;
+    // Phase 2.1.2c — After-anchor: Abort throws; Skip is a no-op.
+    this->dispatch_step(orca::PipelineStep::AfterGCodeExport);
+    if (m_events_sink)
+        m_events_sink->publish(orca::AfterGCodeExport{m_events_slice_handle, std::filesystem::path{path}, /*line_count=*/0});
+    // Phase 2.2.1 — run the chained G-code filter slots (if any) against the
+    // file we just wrote. Filters run before any external post-process scripts
+    // (which are invoked from BackgroundSlicingProcess after export_gcode
+    // returns), matching the "in-process filter precedes external scripts"
+    // contract.
+    if (m_gcode_filter) {
+        const auto rc = m_gcode_filter(path);
+        if (rc != ORCA_OK)
+            throw Slic3r::RuntimeError("orca: gcode filter rejected the file");
+    }
     return path.c_str();
 }
 

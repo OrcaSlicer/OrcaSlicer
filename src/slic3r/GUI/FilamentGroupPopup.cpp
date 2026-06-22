@@ -15,7 +15,7 @@ static const wxColour BackGroundColor = wxColour("#FFFFFF");
 
 static bool should_pop_up()
 {
-    const auto &preset_bundle    = wxGetApp().preset_bundle;
+    const auto &preset_bundle    = ::orca::session().presets().raw_ptr();
     if (!preset_bundle->is_bbl_vendor()) return false;
     const auto &full_config      = preset_bundle->full_config();
     const auto  nozzle_diameters = full_config.option<ConfigOptionFloats>("nozzle_diameter");
@@ -287,7 +287,7 @@ void FilamentGroupPopup::tryPopup(Plater* plater,PartPlate* partplate,bool slice
 
 FilamentMapMode FilamentGroupPopup::GetFilamentMapMode() const
 {
-    const auto& proj_config = wxGetApp().preset_bundle->project_config;
+    const auto& proj_config = ::orca::session().presets().raw_ptr()->project_config;
     if (m_sync_plate)
         return partplate_ref->get_real_filament_map_mode(proj_config);
 

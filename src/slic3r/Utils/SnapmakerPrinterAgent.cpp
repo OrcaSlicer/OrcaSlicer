@@ -1,6 +1,7 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "orca/Config.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
@@ -30,13 +31,14 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
     for (const auto& p : filaments.get_presets()) {
         if (p.is_visible && p.is_compatible &&
             // Filament profile must be detached from parent to be considered for matching
-            filaments.get_preset_base(p) == &p && p.config.opt_string("filament_vendor", 0u) == vendor_name &&
-            p.config.opt_string("filament_type", 0u) == filament_type) {
+            filaments.get_preset_base(p) == &p &&
+            ::orca::config::get_at<::orca::keys::filament_vendor>(p.config, 0).value_or(std::string{}) == vendor_name &&
+            ::orca::config::get_at<::orca::keys::filament_type>(p.config, 0).value_or(std::string{}) == filament_type) {
             // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
             // so we must remove # and ignore alpha channel for distance calculation
             unsigned int target_color_value = std::stoul(color_rgba.substr(0, color_rgba.length() - 2), nullptr, 16);
 
-            std::string  p_color = p.config.opt_string("default_filament_colour", 0u);
+            std::string  p_color = ::orca::config::get_at<::orca::keys::default_filament_colour>(p.config, 0).value_or(std::string{});
             unsigned int p_color_value;
             if (!p_color.empty()) {
                 unsigned int hash_pos = p_color.find("#");
@@ -188,7 +190,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
                                                        safe_at(filament_sub_type, i, empty_str));
             tray.tray_color    = safe_at(filament_color, i, default_color);
 
-            auto* bundle = GUI::wxGetApp().preset_bundle;
+            auto* bundle = ::orca::session().presets().raw_ptr();
             // Try to find a matching preset for this filament based on vendor, type and color.
             // If not found, default to traditional search by type only or generic type mapping.
             if (bundle) {

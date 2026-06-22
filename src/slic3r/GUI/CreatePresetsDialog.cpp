@@ -11,6 +11,7 @@
 #include <wx/utils.h>
 #include <boost/nowide/cstdio.hpp>
 #include "libslic3r/PresetBundle.hpp"
+#include "orca/Config.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
@@ -223,7 +224,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
     if (delete_preset_name.empty()) return false;
 
     // Find an alternate preset to be selected after the current preset is deleted.
-    PresetCollection &m_presets = wxGetApp().preset_bundle->filaments;
+    PresetCollection &m_presets = ::orca::session().presets().raw_ptr()->filaments;
     if (delete_preset_name == selected_preset_name) {
         const std::deque<Preset> &presets     = m_presets.get_presets();
         size_t                    idx_current = m_presets.get_idx_selected();
@@ -340,7 +341,7 @@ static wxArrayString get_exist_vendor_choices(VendorMap& vendors)
     wxArrayString choices;
     PresetBundle  temp_preset_bundle;
     temp_preset_bundle.load_system_models_from_json(ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
 
     VendorProfile users_models  = preset_bundle->get_custom_vendor_models();
 
@@ -512,7 +513,7 @@ static std::string get_filament_id(std::string vendor_typr_serial)
         filament_id_to_filament_name[preset.filament_id].insert(filament_name);
     }
     // global filament presets
-    PresetBundle *                                     preset_bundle               = wxGetApp().preset_bundle;
+    PresetBundle *                                     preset_bundle               = ::orca::session().presets().raw_ptr();
     std::map<std::string, std::vector<Preset const *>> temp_filament_id_to_presets = preset_bundle->filaments.get_filament_presets();
     for (std::pair<std::string, std::vector<Preset const *>> filament_id_to_presets : temp_filament_id_to_presets) {
         if (filament_id_to_presets.first.empty()) continue;
@@ -963,8 +964,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
         if (iter != m_filament_choice_map.end()) {
             std::unordered_map<std::string, float> nozzle_diameter = nozzle_diameter_map;
             for (Preset* preset : iter->second) {
-                auto compatible_printers = preset->config.option<ConfigOptionStrings>("compatible_printers", true);
-                if (!compatible_printers || compatible_printers->values.empty()) {
+                auto compatible_printers = ::orca::config::get_vec<::orca::keys::compatible_printers>(preset->config);
+                if (!compatible_printers || compatible_printers->empty()) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "there is a preset has no compatible printers and the preset name is: " << preset->name;
                     // If no compatible printers are defined, add all visible printers
                     for (const std::string& visible_printer : m_visible_printers) {
@@ -982,7 +983,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
                     
                     continue;
                 }
-                for (std::string &compatible_printer_name : compatible_printers->values) {
+                for (const std::string &compatible_printer_name : *compatible_printers) {
                     if (m_visible_printers.find(compatible_printer_name) == m_visible_printers.end()) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "there is a comppatible printer no exist: " << compatible_printer_name
                                                 << "and the preset name is: " << preset->name;
@@ -1126,7 +1127,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         }
 
         std::string filament_preset_name = vendor_name + " " + (type_name == "PLA-AERO" ? "PLA Aero" : type_name) + " " + serial_name;
-        PresetBundle *preset_bundle        = wxGetApp().preset_bundle;
+        PresetBundle *preset_bundle        = ::orca::session().presets().raw_ptr();
         if (preset_bundle->filaments.is_alias_exist(filament_preset_name)) {
             MessageDialog dlg(this,
                               wxString::Format(_L("The Filament name %s you created already exists.\nIf you continue, the preset created will be displayed with its full name. Do you want to continue\?"),
@@ -1222,13 +1223,13 @@ wxArrayString CreateFilamentPresetDialog::get_filament_preset_choices()
 
     for (std::pair<std::string, Preset*> filament_presets : m_all_presets_map) {
         Preset *preset = filament_presets.second;
-        auto    inherit = preset->config.option<ConfigOptionString>("inherits");
-        if (inherit && !inherit->value.empty()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherit user preset is:" << preset->name << " and inherits is: " << inherit->value;
+        auto    inherit = ::orca::config::get<::orca::keys::inherits>(preset->config);
+        if (inherit && !inherit->empty()) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherit user preset is:" << preset->name << " and inherits is: " << *inherit;
             continue;
         }
-        auto fila_type = preset->config.option<ConfigOptionStrings>("filament_type");
-        if (!fila_type || fila_type->values.empty() || type_name != fila_type->values[0]) continue;
+        auto fila_type = ::orca::config::get_vec<::orca::keys::filament_type>(preset->config);
+        if (!fila_type || fila_type->empty() || type_name != (*fila_type)[0]) continue;
         m_filament_choice_map[preset->filament_id].push_back(preset);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base user preset is:" << preset->name;
     }
@@ -1352,11 +1353,11 @@ void CreateFilamentPresetDialog::get_filament_presets_by_machine()
 
     std::unordered_map<std::string, float>                 nozzle_diameter = nozzle_diameter_map;
     std::unordered_map<std::string, std::vector<Preset *>> machine_name_to_presets;
-    PresetBundle *                                         preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *                                         preset_bundle = ::orca::session().presets().raw_ptr();
     for (std::pair<std::string, Preset*> filament_preset : m_all_presets_map) {
         Preset *    preset      = filament_preset.second;
-        auto    compatible_printers = preset->config.option<ConfigOptionStrings>("compatible_printers", true);
-        if (!compatible_printers || compatible_printers->values.empty()) {
+        auto    compatible_printers = ::orca::config::get_vec<::orca::keys::compatible_printers>(preset->config);
+        if (!compatible_printers || compatible_printers->empty()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "there is a preset has no compatible printers and the preset name is: " << preset->name;
             // If no compatible printers are defined, add all visible printers
             for (const std::string& visible_printer : m_visible_printers) {
@@ -1397,7 +1398,7 @@ void CreateFilamentPresetDialog::get_filament_presets_by_machine()
             
             continue;
         }
-        for (std::string &compatible_printer_name : compatible_printers->values) {
+        for (const std::string &compatible_printer_name : *compatible_printers) {
             if (m_visible_printers.find(compatible_printer_name) == m_visible_printers.end()) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " compatable printer is not visible and preset name is: " << preset->name;
                 continue;
@@ -1462,13 +1463,13 @@ void CreateFilamentPresetDialog::get_all_filament_presets()
         m_all_presets_map[filament_preset_name] = filament_preset;
     }
     // global filament presets
-    PresetBundle * preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle * preset_bundle = ::orca::session().presets().raw_ptr();
     const std::deque<Preset> &temp_filament_presets = preset_bundle->filaments.get_presets();
     for (const Preset& preset : temp_filament_presets) {
         if (preset.filament_id.empty() || "null" == preset.filament_id) continue;
-        auto filament_type = preset.config.option<ConfigOptionStrings>("filament_type");
-        if (filament_type && filament_type->values.size())
-            m_system_filament_types_set.insert(filament_type->values[0]);
+        auto filament_type = ::orca::config::get_vec<::orca::keys::filament_type>(preset.config);
+        if (filament_type && filament_type->size())
+            m_system_filament_types_set.insert((*filament_type)[0]);
         if (!preset.is_visible) continue;
         std::string filament_preset_name        = preset.name;
         Preset *filament_preset                 = new Preset(preset);
@@ -1479,7 +1480,7 @@ void CreateFilamentPresetDialog::get_all_filament_presets()
 
 void CreateFilamentPresetDialog::get_all_visible_printer_name()
 {
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     for (const Preset &printer_preset : preset_bundle->printers.get_presets()) {
         if (!printer_preset.is_visible) continue;
         assert(m_visible_printers.find(printer_preset.name) == m_visible_printers.end());
@@ -2197,7 +2198,7 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
     if (PRESET_CUSTOM_VENDOR == m_printer_preset_vendor_selected.name || PRESET_CUSTOM_VENDOR == m_printer_preset_vendor_selected.id) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " select custom vendor ";
         is_custom_vendor   = true;
-        temp_preset_bundle = *(wxGetApp().preset_bundle);
+        temp_preset_bundle = *(::orca::session().presets().raw_ptr());
     } else {
         selected_vendor_id = m_printer_preset_vendor_selected.id;
 
@@ -2460,7 +2461,7 @@ std::string CreatePrinterPresetDialog::get_custom_printer_model() const
         if (m_printer_name_to_preset.end() != itor) {
             std::shared_ptr<Preset> printer_preset = itor->second;
             try {
-                printer_model_name  = printer_preset->config.opt_string("printer_model", true);
+                printer_model_name  = ::orca::config::get<::orca::keys::printer_model>(printer_preset->config).value_or(std::string{});
             } catch (...) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " get config printer_model or , and the name is: " << selected_printer_preset_name;
             }
@@ -2747,7 +2748,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
     btn_ok->SetLabel(_L("Create"));
     btn_ok->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
 
-        PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+        PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
         const wxString curr_selected_printer_type = curr_create_printer_type();
         const wxString curr_selected_preset_type  = curr_create_preset_type();
 
@@ -3072,7 +3073,7 @@ void CreatePrinterPresetDialog::set_current_visible_printer()
 {
     //The entire process of creating a custom printer only needs to be done once
     if (m_printer_name_to_preset.size() > 0) return;
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     const std::deque<Preset> &printer_presets =  preset_bundle->printers.get_presets();
     wxArrayString             printer_choice;
     m_printer_name_to_preset.clear();
@@ -3372,14 +3373,14 @@ bool CreatePrinterPresetDialog::validate_input_valid()
 
     std::string custom_printer_name = get_custom_printer_name();
 
-    if (auto preset = wxGetApp().preset_bundle->printers.find_preset(custom_printer_name)) {
+    if (auto preset = ::orca::session().presets().raw_ptr()->printers.find_preset(custom_printer_name)) {
         if (preset->is_system) {
             // ORCA offer switcing to existing preset to reduce confusion
             std::string diameters;
-            auto printer_model = preset->config.opt_string("printer_model");
-            for (auto &preset : wxGetApp().preset_bundle->printers) {
-                if (preset.config.opt_string("printer_model") == printer_model)
-                    diameters += preset.config.opt_string("printer_variant") + "  ";
+            auto printer_model = ::orca::config::get<::orca::keys::printer_model>(preset->config).value_or(std::string{});
+            for (auto &preset : ::orca::session().presets().raw_ptr()->printers) {
+                if (::orca::config::get<::orca::keys::printer_model>(preset.config).value_or(std::string{}) == printer_model)
+                    diameters += ::orca::config::get<::orca::keys::printer_variant>(preset.config).value_or(std::string{}) + "  ";
             }
             MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
                                   + _L("\n\nAvailable nozzle profiles for this printer:")
@@ -3389,7 +3390,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
                               , wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info")
                               , wxYES | wxYES_DEFAULT | wxNO | wxCENTRE);
             if (dlg.ShowModal() == wxID_YES){
-                auto bundle = wxGetApp().preset_bundle;
+                auto bundle = ::orca::session().presets().raw_ptr();
                 bundle->printers.select_preset_by_name(preset->name, true);
                 bundle->update_compatible(PresetSelectCompatibleType::Always);
                 wxGetApp().load_current_presets();
@@ -3848,7 +3849,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
             m_preset_sizer->Clear(true);
             m_printer_name.clear();
             m_preset.clear();
-            PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+            PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
             this->Freeze();
             if (export_type == m_exprot_type.preset_bundle) {
                 for (std::pair<std::string, Preset *> preset : m_printer_presets) {
@@ -4350,7 +4351,7 @@ void ExportConfigsDialog::data_init()
         EndModal(wxCANCEL);
     }
 
-    PresetBundle preset_bundle(*wxGetApp().preset_bundle);
+    PresetBundle preset_bundle(*::orca::session().presets().raw_ptr());
 
     const std::deque<Preset> & printer_presets = preset_bundle.printers.get_presets();
     for (const Preset &printer_preset : printer_presets) {
@@ -4487,7 +4488,7 @@ void EditFilamentPresetDialog::on_dpi_changed(const wxRect &suggested_rect) {
 
 bool EditFilamentPresetDialog::get_same_filament_id_presets(std::string filament_id)
 {
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     const std::deque<Preset> &filament_presets = preset_bundle->filaments.get_presets();
 
     m_printer_compatible_presets.clear();
@@ -4561,25 +4562,25 @@ void EditFilamentPresetDialog::delete_preset()
     }
     std::shared_ptr<Preset> need_delete_preset = filament_presets[m_need_delete_preset_index];
     // is selecetd filament preset
-    if (need_delete_preset->name == wxGetApp().preset_bundle->filaments.get_selected_preset_name()) {
+    if (need_delete_preset->name == ::orca::session().presets().raw_ptr()->filaments.get_selected_preset_name()) {
         wxGetApp().get_tab(need_delete_preset->type)->delete_preset();
         // is preset exist? exist: not delete
-        Preset *delete_preset = wxGetApp().preset_bundle->filaments.find_preset(need_delete_preset->name, false);
+        Preset *delete_preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(need_delete_preset->name, false);
         if (delete_preset) {
             m_selected_printer.clear();
             m_need_delete_preset_index = -1;
             return;
         }
     } else {
-        Preset *filament_preset = wxGetApp().preset_bundle->filaments.find_preset(need_delete_preset->name);
+        Preset *filament_preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(need_delete_preset->name);
 
         // is root preset ?
         bool is_base_preset = false;
-        if (filament_preset && wxGetApp().preset_bundle->filaments.get_preset_base(*filament_preset) == filament_preset) {
+        if (filament_preset && ::orca::session().presets().raw_ptr()->filaments.get_preset_base(*filament_preset) == filament_preset) {
             is_base_preset = true;
             int      count = 0;
             wxString presets;
-            for (auto &preset2 : wxGetApp().preset_bundle->filaments)
+            for (auto &preset2 : ::orca::session().presets().raw_ptr()->filaments)
                 if (preset2.inherits() == filament_preset->name) {
                     ++count;
                     presets += "\n - " + from_u8(preset2.name);
@@ -4610,14 +4611,14 @@ void EditFilamentPresetDialog::delete_preset()
         }
 
         // delete preset
-        std::string next_selected_preset_name = wxGetApp().preset_bundle->filaments.get_selected_preset().name;
+        std::string next_selected_preset_name = ::orca::session().presets().raw_ptr()->filaments.get_selected_preset().name;
         bool        delete_result             = delete_filament_preset_by_name(need_delete_preset->name, next_selected_preset_name);
         BOOST_LOG_TRIVIAL(info) << __LINE__ << " filament preset name: " << need_delete_preset->name << (delete_result ? " delete successful" : " delete failed");
 
-        wxGetApp().preset_bundle->filaments.select_preset_by_name(next_selected_preset_name, true);
-        for (size_t i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); ++i) {
-            auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
-            if (preset == nullptr) wxGetApp().preset_bundle->filament_presets[i] = wxGetApp().preset_bundle->filaments.get_selected_preset_name();
+        ::orca::session().presets().raw_ptr()->filaments.select_preset_by_name(next_selected_preset_name, true);
+        for (size_t i = 0; i < ::orca::session().presets().raw_ptr()->filament_presets.size(); ++i) {
+            auto preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i]);
+            if (preset == nullptr) ::orca::session().presets().raw_ptr()->filament_presets[i] = ::orca::session().presets().raw_ptr()->filaments.get_selected_preset_name();
         }
     }
 
@@ -4768,7 +4769,7 @@ wxWindow *EditFilamentPresetDialog::create_dialog_buttons()
                           _L("Delete filament"), wxYES | wxCANCEL | wxCANCEL_DEFAULT | wxCENTRE);
         int res = dlg.ShowModal();
         if (wxID_YES == res) {
-            PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+            PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
             std::set<std::shared_ptr<Preset>> inherit_preset_names;
             std::set<std::shared_ptr<Preset>> root_preset_names;
             for (std::pair<std::string, std::vector<std::shared_ptr<Preset>>> printer_and_preset : m_printer_compatible_presets) {
@@ -4781,7 +4782,7 @@ wxWindow *EditFilamentPresetDialog::create_dialog_buttons()
                 }
             }
             // delete inherit preset first
-            std::string next_selected_preset_name = wxGetApp().preset_bundle->filaments.get_selected_preset().name;
+            std::string next_selected_preset_name = ::orca::session().presets().raw_ptr()->filaments.get_selected_preset().name;
             for (std::shared_ptr<Preset> preset : inherit_preset_names) {
                 bool delete_result = delete_filament_preset_by_name(preset->name, next_selected_preset_name);
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherit filament name: " << preset->name << (delete_result ? " delete successful" : " delete failed");
@@ -4791,11 +4792,11 @@ wxWindow *EditFilamentPresetDialog::create_dialog_buttons()
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " root filament name: " << preset->name << (delete_result ? " delete successful" : " delete failed");
             }
             m_printer_compatible_presets.clear();
-            wxGetApp().preset_bundle->filaments.select_preset_by_name(next_selected_preset_name,true);
+            ::orca::session().presets().raw_ptr()->filaments.select_preset_by_name(next_selected_preset_name,true);
 
-            for (size_t i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); ++i) {
-                auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
-                if (preset == nullptr) wxGetApp().preset_bundle->filament_presets[i] = wxGetApp().preset_bundle->filaments.get_selected_preset_name();
+            for (size_t i = 0; i < ::orca::session().presets().raw_ptr()->filament_presets.size(); ++i) {
+                auto preset = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i]);
+                if (preset == nullptr) ::orca::session().presets().raw_ptr()->filament_presets[i] = ::orca::session().presets().raw_ptr()->filaments.get_selected_preset_name();
             }
             EndModal(wxID_OK);
         }
@@ -4814,7 +4815,7 @@ CreatePresetForPrinterDialog::CreatePresetForPrinterDialog(wxWindow *parent, std
     , m_filament_vendor(filament_vendor)
     , m_filament_type(filament_type)
 {
-    m_preset_bundle = std::make_shared<PresetBundle>(*(wxGetApp().preset_bundle));
+    m_preset_bundle = std::make_shared<PresetBundle>(*(::orca::session().presets().raw_ptr()));
     get_visible_printer_and_compatible_filament_presets();
 
     this->SetBackgroundColour(*wxWHITE);
@@ -4944,7 +4945,7 @@ wxWindow *CreatePresetForPrinterDialog::create_dialog_buttons()
         std::unordered_map<wxString, std::shared_ptr<Preset>>::iterator iter = filament_choice_to_filament_preset.find(filament_preset_name);
         if (filament_choice_to_filament_preset.end() != iter) {
             std::shared_ptr<Preset>  filament_preset = iter->second;
-            PresetBundle *           preset_bundle   = wxGetApp().preset_bundle;
+            PresetBundle *           preset_bundle   = ::orca::session().presets().raw_ptr();
             std::vector<std::string> failures;
             DynamicConfig            dynamic_config;
             dynamic_config.set_key_value("filament_vendor", new ConfigOptionStrings({m_filament_vendor}));

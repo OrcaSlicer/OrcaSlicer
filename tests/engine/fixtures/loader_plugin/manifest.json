@@ -1,0 +1,9 @@
+{
+  "id":          "test.fixture.loader_plugin",
+  "name":        "Loader Test Fixture",
+  "version":     "0.0.1",
+  "author":      "OrcaSlicer Tests",
+  "description": "Phase 1.5.1 loader smoke test fixture",
+  "permissions": [],
+  "provides":    ["pipeline_observer"]
+}

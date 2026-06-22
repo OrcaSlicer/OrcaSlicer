@@ -2075,6 +2075,12 @@ public:
 
     std::string serialize() const override
     {
+        // keys_map can be null when the option was built from a bare config
+        // (no ConfigDef to attach the enum-names map). Fall back to the integer
+        // storage so serialization — e.g. the full-config G-code comment dump —
+        // can't null-deref. Round-trips via the deserialize fallback below.
+        if (this->keys_map == nullptr)
+            return std::to_string(this->value);
         for (const auto &kvp : *this->keys_map)
             if (kvp.second == this->value)
                 return kvp.first;
@@ -2084,6 +2090,10 @@ public:
     bool deserialize(const std::string &str, bool append = false) override
     {
         UNUSED(append);
+        if (this->keys_map == nullptr) {
+            try { this->value = std::stoi(str); return true; }
+            catch (...) { return false; }
+        }
         auto it = this->keys_map->find(str);
         if (it == this->keys_map->end())
             return false;
@@ -2167,6 +2177,12 @@ public:
                 else
                     throw ConfigurationError("Deserializing nil into a non-nullable object");
             }
+            else if (this->keys_map == nullptr) {
+                // No enum-names map (bare config) — accept the integer fallback
+                // emitted by serialize_single_value().
+                try { this->values.push_back(std::stoi(item_str)); }
+                catch (...) { return false; }
+            }
             else {
                 auto it = this->keys_map->find(item_str);
                 if (it == this->keys_map->end())
@@ -2186,7 +2202,12 @@ private:
             else
                 throw ConfigurationError("Serializing NaN");
         }
-        else if (this->keys_map != nullptr) {
+        else if (this->keys_map == nullptr) {
+            // No enum-names map (bare config) — fall back to the integer
+            // storage so the full-config G-code dump can't null-deref.
+            ss << v;
+        }
+        else {
             for (const auto& kvp : *this->keys_map)
                 if (kvp.second == v)
                     ss << kvp.first;

@@ -1,5 +1,6 @@
 #include "GLGizmoFdmSupports.hpp"
 
+#include "orca/Config.hpp"
 #include "libslic3r/Model.hpp"
 //BBS
 #include "libslic3r/Layer.hpp"
@@ -517,10 +518,10 @@ int GLGizmoFdmSupports::get_selection_support_threshold_angle()
         return -1;
 
     const DynamicPrintConfig& obj_cfg = sel_info->model_object()->config.get();
-    const DynamicPrintConfig& glb_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    bool enable_support = obj_cfg.option("enable_support") ? obj_cfg.opt_bool("enable_support") : glb_cfg.opt_bool("enable_support");
-    SupportType support_type = obj_cfg.option("support_type") ? obj_cfg.opt_enum<SupportType>("support_type") : glb_cfg.opt_enum<SupportType>("support_type");
-    int support_threshold_angle = obj_cfg.option("support_threshold_angle") ? obj_cfg.opt_int("support_threshold_angle") : glb_cfg.opt_int("support_threshold_angle");
+    const DynamicPrintConfig& glb_cfg = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+    bool enable_support = obj_cfg.option("enable_support") ? ::orca::config::get<::orca::keys::enable_support>(obj_cfg).value_or(false) : ::orca::config::get<::orca::keys::enable_support>(glb_cfg).value_or(false);
+    SupportType support_type = obj_cfg.option("support_type") ? ::orca::config::get_enum<::orca::keys::support_type, SupportType>(obj_cfg).value_or(static_cast<SupportType>(0)) : ::orca::config::get_enum<::orca::keys::support_type, SupportType>(glb_cfg).value_or(static_cast<SupportType>(0));
+    int support_threshold_angle = obj_cfg.option("support_threshold_angle") ? ::orca::config::get<::orca::keys::support_threshold_angle>(obj_cfg).value_or(0) : ::orca::config::get<::orca::keys::support_threshold_angle>(glb_cfg).value_or(0);
 
     bool auto_support = enable_support && is_auto(support_type);
     return auto_support ? support_threshold_angle : 0;

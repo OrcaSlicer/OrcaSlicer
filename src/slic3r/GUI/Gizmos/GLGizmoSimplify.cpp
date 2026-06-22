@@ -147,7 +147,7 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     create_gui_cfg();
 
     const Selection &selection = m_parent.get_selection();
-    const ModelVolume *act_volume = get_model_volume(selection, wxGetApp().plater()->model());
+    const ModelVolume *act_volume = get_model_volume(selection, ::orca::session().project().raw());
     if (act_volume == nullptr) {
         stop_worker_thread_request();
         close();

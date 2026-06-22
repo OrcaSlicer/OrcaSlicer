@@ -7,6 +7,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "orca/Config.hpp"
 #include "GLGizmoUtils.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -578,7 +579,7 @@ std::vector<const ConfigOption *> GLGizmoBrimEars::get_config_options(const std:
     if (!mo) return out;
 
     const DynamicPrintConfig           &object_cfg  = mo->config.get();
-    const DynamicPrintConfig           &print_cfg   = wxGetApp().preset_bundle->sla_prints.get_edited_preset().config;
+    const DynamicPrintConfig           &print_cfg   = ::orca::session().presets().raw_ptr()->sla_prints.get_edited_preset().config;
     std::unique_ptr<DynamicPrintConfig> default_cfg = nullptr;
 
     for (const std::string &key : keys) {
@@ -641,7 +642,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     if (!mo) return;
 
     const DynamicPrintConfig& obj_cfg = mo->config.get();
-    const DynamicPrintConfig& glb_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const DynamicPrintConfig& glb_cfg = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     const float win_h = ImGui::GetWindowHeight();
     y                 = std::min(y, bottom_limit - win_h);
     GizmoImguiSetNextWIndowPos(x, y, ImGuiCond_Always, 0.0f, 0.0f);
@@ -769,8 +770,9 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         m_parent.reset_all_gizmos();
     }
 
-    bool brim_not_painted = (obj_cfg.option("brim_type")) ? (obj_cfg.opt_enum<BrimType>("brim_type") != btPainted) :
-                                                            (glb_cfg.opt_enum<BrimType>("brim_type") != btPainted);
+    bool brim_not_painted = (obj_cfg.option("brim_type")) ?
+        (::orca::config::get_enum<::orca::keys::brim_type, BrimType>(obj_cfg).value_or(static_cast<BrimType>(0)) != btPainted) :
+        (::orca::config::get_enum<::orca::keys::brim_type, BrimType>(glb_cfg).value_or(static_cast<BrimType>(0)) != btPainted);
     bool has_invalid_ears = !m_single_brim.empty();
 
     if (brim_not_painted || has_invalid_ears) {
@@ -1157,8 +1159,8 @@ void GLGizmoBrimEars::reset_all_pick() { std::map<GLVolume *, std::shared_ptr<Pi
 
 float GLGizmoBrimEars::get_brim_default_radius() const
 {
-    const double              nozzle_diameter = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
-    const DynamicPrintConfig &pring_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const double              nozzle_diameter = ::orca::session().presets().get_at<::orca::keys::nozzle_diameter>(::orca::ConfigScope::PrinterPreset, 0).value_or(0.0);
+    const DynamicPrintConfig &pring_cfg = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     return pring_cfg.get_abs_value("initial_layer_line_width", nozzle_diameter) * 16.0f;
 }
 

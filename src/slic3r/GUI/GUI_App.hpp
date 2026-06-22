@@ -13,6 +13,8 @@
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/BBLCloudServiceAgent.hpp"
+#include "orca/Session.hpp"
+#include "orca/Globals.hpp"
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "slic3r/GUI/WebUserLoginDialog.hpp"
 #include "slic3r/GUI/BindDialog.hpp"
@@ -679,6 +681,11 @@ public:
     AppConfig*      app_config{ nullptr };
     PresetBundle*   preset_bundle{ nullptr };
     PresetUpdater*  preset_updater{ nullptr };
+
+    // Phase 0.4a — engine session owned by the GUI for the migration window.
+    // Created in OnInit() after preset_bundle, registered globally via
+    // orca::set_session() so rewriter-produced call sites resolve.
+    std::unique_ptr<::orca::Session> m_orca_session;
     MainFrame*      mainframe{ nullptr };
     Plater*         plater_{ nullptr };
 

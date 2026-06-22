@@ -46,3 +46,11 @@ test.js
 internal_docs/
 *.flatpak
 /flatpak-repo/
+
+# Engine rewriter scratch build dirs
+engine/tools/rewriters/**/build/
+
+# Downstream marketplace URL overlay — included optionally by CMakeLists.txt
+# so packagers / forks can FORCE ORCA_MARKETPLACE_DEFAULT_URL without
+# committing the URL into the upstream tree.
+cmake/local-marketplace.cmake

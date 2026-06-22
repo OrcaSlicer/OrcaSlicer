@@ -1,0 +1,16 @@
+# Phase 5.1 — SDK workspace root.
+#
+# `orca-plugin-sdk` is the core library (cdylib + rlib). Phase 5.2 adds
+# `orca-plugin-macros` (proc-macro crate) alongside it; Phase 5.4 adds
+# the cargo-generate scaffold under templates/. Every new crate lands
+# in `members` below — keep ordering stable so cargo lockfile diffs
+# stay sane.
+
+[workspace]
+resolver = "3"
+members  = ["orca-plugin-macros", "orca-plugin-sdk", "orca-plugin-verify"]
+
+[workspace.package]
+edition    = "2024"
+license    = "AGPL-3.0-or-later"
+repository = "https://github.com/SoftFever/OrcaSlicer"

@@ -14,7 +14,9 @@
     #include <wx/rawbmp.h>
 #endif /* __WXGTK2__ */
 #include <glad/gl.h>
-#define NANOSVG_IMPLEMENTATION
+// The nanosvg parser implementation lives in the engine (libslic3r/NSVGUtils.cpp)
+// so liborca-engine.so is self-contained. Here we only pull in the declarations
+// plus the rasterizer implementation, which is GUI-only.
 #include "nanosvg/nanosvg.h"
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvg/nanosvgrast.h"
@@ -555,6 +557,24 @@ bool BitmapCache::parse_color4(const std::string& scolor, unsigned char* rgba_ou
     }
     return true;
 }
+// Local replacement for nanosvg's internal (static) nsvg__parseColorHex. The
+// nanosvg parser implementation now lives in the engine (libslic3r/NSVGUtils.cpp),
+// so its static helpers are no longer visible in this TU. Behavior matches the
+// upstream function: 2-digit (#RRGGBB) and 1-digit (#RGB) hex, gray fallback.
+static unsigned int parse_color_hex(const char *str)
+{
+    // Matches nanosvg's NSVG_RGB packing: r | g<<8 | b<<16.
+    auto pack = [](unsigned int r, unsigned int g, unsigned int b) {
+        return r | (g << 8) | (b << 16);
+    };
+    unsigned int r = 0, g = 0, b = 0;
+    if (sscanf(str, "#%2x%2x%2x", &r, &g, &b) == 3)
+        return pack(r, g, b);
+    if (sscanf(str, "#%1x%1x%1x", &r, &g, &b) == 3)
+        return pack(r * 17, g * 17, b * 17);
+    return pack(128, 128, 128);
+}
+
 //BBS Replace svg green with the specified colour
 bool BitmapCache::load_from_svg_file_change_color(const std::string &filename, unsigned width, unsigned height, ImTextureID &texture_id, const char *hexColor)
 {
@@ -565,7 +585,7 @@ bool BitmapCache::load_from_svg_file_change_color(const std::string &filename, u
     char temp_color[8];
     strncpy(temp_color, hexColor, 7);
     temp_color[7]             = '\0';
-    unsigned int change_color = nsvg__parseColorHex(temp_color);
+    unsigned int change_color = parse_color_hex(temp_color);
     change_color |= (unsigned int) (1.0f * 255) << 24; // opacity
     unsigned int green_color = 0xFF889600; // #009688
     for (NSVGshape* shape = image->shapes; shape != nullptr; shape = shape->next) {

@@ -49,7 +49,7 @@ std::string GLGizmoMmuSegmentation::on_get_name() const
 
 bool GLGizmoMmuSegmentation::on_is_selectable() const
 {
-    return (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF
+    return (::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology() == ptFFF
             && /*wxGetApp().get_mode() != comSimple && */wxGetApp().filaments_cnt() > 1);
 }
 
@@ -174,7 +174,7 @@ void GLGizmoMmuSegmentation::render_painter_gizmo()
 void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
 {
     GLGizmoPainterBase::data_changed(is_serializing);
-    if (m_state != On || wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptFFF || wxGetApp().extruders_edited_cnt() <= 1)
+    if (m_state != On || ::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology() != ptFFF || wxGetApp().extruders_edited_cnt() <= 1)
         return;
 
     ModelObject* model_object = m_c->selection_info()->model_object();

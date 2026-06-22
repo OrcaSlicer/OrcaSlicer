@@ -1,3 +1,8 @@
+// Provide the nanosvg parser implementation here so liborca-engine.so is
+// self-contained. NSVGUtils.hpp pulls in nanosvg/nanosvg.h below; defining
+// the implementation macro first compiles the parser into the engine. The
+// rasterizer implementation stays GUI-side (BitmapCache.cpp).
+#define NANOSVG_IMPLEMENTATION
 #include "NSVGUtils.hpp"
 #include <array>
 #include <charconv> // to_chars

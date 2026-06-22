@@ -12,7 +12,7 @@ namespace Slic3r { namespace GUI {
 #define FLOW_RATE_MAX_VALUE  1.15
 
 static wxString get_default_name(wxString filament_name, CalibMode mode){
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
         if (filament_name.compare(it->name) == 0) {
             if (!it->alias.empty())

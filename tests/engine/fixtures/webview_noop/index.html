@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- Phase 3.4.3 — webview noop fixture.
+     Subscribes to the SlicingFinished engine event via window.orca.events.on
+     and logs "got it" on receipt. The host (Slic3r::GUI::WebViewPluginHost)
+     injects the window.orca shim at page load; this page does no other
+     work. Verified manually since wxWebView needs a wxApp + display. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WebView Noop Listener</title>
+</head>
+<body>
+<h1>WebView Noop Listener</h1>
+<p id="status">Waiting for SlicingFinished...</p>
+<script>
+  // Defer until the host shim is ready (it ships before page scripts run,
+  // but be defensive in case the loader timing shifts).
+  function ready() {
+    return window.orca && window.orca.events && window.orca.events.on;
+  }
+  function arm() {
+    window.orca.log(1 /* debug */, 'webview_noop armed');
+    window.orca.events.on('SlicingFinished', function (payload) {
+      const msg = 'got it: ' + JSON.stringify(payload);
+      document.getElementById('status').textContent = msg;
+      window.orca.log(2 /* info */, msg);
+    });
+  }
+  if (ready()) arm();
+  else document.addEventListener('DOMContentLoaded', function () {
+    if (ready()) arm();
+  });
+</script>
+</body>
+</html>

@@ -163,7 +163,7 @@ void SendJob::process(Ctl &ctl)
 
     params.dev_id               = m_dev_id;
     params.project_name         = m_project_name + ".gcode.3mf";
-    params.preset_name          = wxGetApp().preset_bundle->prints.get_selected_preset_name();
+    params.preset_name          = ::orca::session().presets().raw_ptr()->prints.get_selected_preset_name();
 
     if (wxGetApp().plater()->using_exported_file())
         params.filename = wxGetApp().plater()->get_3mf_filename();

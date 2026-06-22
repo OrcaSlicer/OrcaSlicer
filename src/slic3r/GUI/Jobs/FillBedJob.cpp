@@ -8,6 +8,8 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "libnest2d/common.hpp"
 
+#include "orca/Config.hpp"
+
 #include <numeric>
 
 namespace Slic3r {
@@ -45,7 +47,7 @@ void FillBedJob::prepare()
     ModelObject *model_object = m_plater->model().objects[m_object_idx];
     if (model_object->instances.empty()) return;
 
-    const Slic3r::DynamicPrintConfig& global_config = wxGetApp().preset_bundle->full_config();
+    const Slic3r::DynamicPrintConfig& global_config = ::orca::session().presets().raw_ptr()->full_config();
     m_selected.reserve(model_object->instances.size());
     for (size_t oidx = 0; oidx < model.objects.size(); ++oidx)
     {
@@ -119,7 +121,7 @@ void FillBedJob::prepare()
 
     if (m_selected.empty()) return;
 
-    bool enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+    bool enable_wrapping = ::orca::config::get<::orca::keys::enable_wrapping_detection>(global_config).value_or(false);
     //add the virtual object into unselect list if has
     double scaled_exclusion_gap = scale_(1);
     plate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scaled_exclusion_gap);
@@ -228,10 +230,10 @@ void FillBedJob::process(Ctl &ctl)
 
     auto &partplate_list               = m_plater->get_partplate_list();
     auto &print                        = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
-    const Slic3r::DynamicPrintConfig& global_config = wxGetApp().preset_bundle->full_config();
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    const bool is_bbl = wxGetApp().preset_bundle->is_bbl_vendor();
-    if (is_bbl && params.avoid_extrusion_cali_region && global_config.opt_bool("scan_first_layer"))
+    const Slic3r::DynamicPrintConfig& global_config = ::orca::session().presets().raw_ptr()->full_config();
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
+    const bool is_bbl = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
+    if (is_bbl && params.avoid_extrusion_cali_region && ::orca::config::get<::orca::keys::scan_first_layer>(global_config).value_or(false))
         partplate_list.preprocess_nonprefered_areas(m_unselected, MAX_NUM_PLATES);
 
     update_selected_items_inflation(m_selected, m_plater->config(), params);

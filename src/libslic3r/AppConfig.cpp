@@ -11,6 +11,7 @@
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -42,6 +43,16 @@ namespace Slic3r {
 
 static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
 static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
+// Compile-time default for the plugin marketplace base URL.
+// Defined via -DORCA_MARKETPLACE_DEFAULT_URL="..." at CMake configure time
+// (see top-level CMakeLists.txt). Empty by default — upstream ships with no
+// marketplace registry; downstream forks point this at their hosted catalog
+// via cmake/local-marketplace.cmake.
+#ifdef ORCA_MARKETPLACE_DEFAULT_URL
+static const std::string MARKETPLACE_BASE_URL = ORCA_MARKETPLACE_DEFAULT_URL;
+#else
+static const std::string MARKETPLACE_BASE_URL = "";
+#endif
 static const std::string MODELS_STR = "models";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
@@ -1748,6 +1759,21 @@ std::string AppConfig::version_check_url() const
 std::string AppConfig::profile_update_url() const
 {
     return PROFILE_UPDATE_URL;
+}
+
+std::string AppConfig::marketplace_base_url() const
+{
+    // Resolution order:
+    //   1. `marketplace_url` (canonical key, surfaced in Preferences → Online)
+    //   2. `ORCA_MARKETPLACE_URL` env var (CI / QA)
+    //   3. compile-time `ORCA_MARKETPLACE_DEFAULT_URL` (empty by default)
+    auto from_settings = get("marketplace_url");
+    if (from_settings.empty()) {
+        if (const char* env = std::getenv("ORCA_MARKETPLACE_URL")) {
+            from_settings = env;
+        }
+    }
+    return from_settings.empty() ? MARKETPLACE_BASE_URL : from_settings;
 }
 
 bool AppConfig::exists()

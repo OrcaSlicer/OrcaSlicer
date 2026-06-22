@@ -14,6 +14,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "orca/Config.hpp"
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
 #include "libslic3r/BuildVolume.hpp"
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
@@ -1270,7 +1271,7 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
                 bool show_read_wipe_tower = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->fff_print()->is_step_done(psWipeTower);
-                float brim_width = wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("prime_tower_brim_width");
+                float brim_width = ::orca::config::get<::orca::keys::prime_tower_brim_width>(::orca::session().presets().raw_ptr()->prints.get_edited_preset().config).value_or(0.0);
 
                 const double margin = show_read_wipe_tower ? WIPE_TOWER_MARGIN : brim_width + 0.5; // 0.5 is the line width of wipe tower
 
@@ -1567,7 +1568,7 @@ void Selection::scale_to_fit_print_volume(const DynamicPrintConfig& config)
     const ConfigOptionPoints* opt = dynamic_cast<const ConfigOptionPoints*>(config.option("printable_area"));
     if (opt != nullptr) {
         BoundingBox bed_box_2D = get_extents(Polygon::new_scale(opt->values));
-        BoundingBoxf3 print_volume({ unscale<double>(bed_box_2D.min(0)), unscale<double>(bed_box_2D.min(1)), 0.0 }, { unscale<double>(bed_box_2D.max(0)), unscale<double>(bed_box_2D.max(1)), config.opt_float("printable_height") });
+        BoundingBoxf3 print_volume({ unscale<double>(bed_box_2D.min(0)), unscale<double>(bed_box_2D.min(1)), 0.0 }, { unscale<double>(bed_box_2D.max(0)), unscale<double>(bed_box_2D.max(1)), ::orca::config::get<::orca::keys::printable_height>(config).value_or(0.0) });
         Vec3d print_volume_size = print_volume.size();
         double sx = (box_size(0) != 0.0) ? print_volume_size(0) / box_size(0) : 0.0;
         double sy = (box_size(1) != 0.0) ? print_volume_size(1) / box_size(1) : 0.0;
@@ -3059,7 +3060,7 @@ void Selection::synchronize_unselected_instances(SyncRotationType sync_rotation_
                 new_inst_trafo_j.linear() = (old_inst_trafo_j.linear() * old_inst_trafo_i.linear().inverse()) * curr_inst_trafo_i.linear();
 
             bool should_synchronize_z = m_model->objects[volume_j->object_idx()]->instances[volume_j->instance_idx()]->auto_drop == false;
-            if (should_synchronize_z && wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptSLA)
+            if (should_synchronize_z && ::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology() != ptSLA)
                 new_inst_trafo_j.translation().z() = curr_inst_trafo_i.translation().z();
 
             assert(is_rotation_xy_synchronized(curr_inst_trafo_i, new_inst_trafo_j));

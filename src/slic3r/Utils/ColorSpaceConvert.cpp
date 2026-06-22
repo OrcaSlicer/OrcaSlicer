@@ -109,35 +109,9 @@ void RGB2Lab(float R, float G, float B, float* L, float* a, float* b)
     XYZ2Lab(X, Y, Z, L, a, b);
 }
 
-// The input r, g, b values should be in range [0, 1]. The output h is in range [0, 360], s is in range [0, 1] and v is in range [0, 1].
-void RGB2HSV(float r, float g, float b, float* h, float* s, float* v)
-{
-    float Cmax = std::max(std::max(r, g), b);
-    float Cmin = std::min(std::min(r, g), b);
-    float delta = Cmax - Cmin;
-
-    if (std::abs(delta) < 0.001) {
-        *h = 0.f;
-    }
-    else if (Cmax == r) {
-        *h = 60.f * fmod((g - b) / delta, 6.f);
-    }
-    else if (Cmax == g) {
-        *h = 60.f * ((b - r) / delta + 2);
-    }
-    else {
-        *h = 60.f * ((r - g) / delta + 4);
-    }
-
-    if (std::abs(Cmax) < 0.001) {
-        *s = 0.f;
-    }
-    else {
-        *s = delta / Cmax;
-    }
-
-    *v = Cmax;
-}
+// RGB2HSV moved to the engine (src/libslic3r/FlushVolCalc.cpp) — its only
+// consumer was engine-side, and keeping it here created an engine→GUI link
+// dependency once libslic3r became a shared library.
 
 float DeltaE00(float l1, float a1, float b1, float l2, float a2, float b2)
 {

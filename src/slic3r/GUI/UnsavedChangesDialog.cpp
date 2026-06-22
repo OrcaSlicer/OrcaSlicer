@@ -1140,7 +1140,7 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
     {
         std::vector<Preset::Type> types_for_save;
 
-        PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
+        PrinterTechnology printer_technology = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology();
 
         for (Tab* tab : wxGetApp().tabs_list)
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
@@ -1427,7 +1427,7 @@ void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent
         m_discard_btn ->Bind(wxEVT_ENTER_WINDOW, [this]                                    (wxMouseEvent& e) { show_info_line(Action::Discard); e.Skip(); });
 
     if (type == Preset::TYPE_INVALID) {
-        PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
+        PrinterTechnology printer_technology = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology();
         int presets_cnt = 0;
         for (Tab* tab : wxGetApp().tabs_list)
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
@@ -1671,7 +1671,7 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
     std::vector<PresetCollection*> presets_list;
     if (type == Preset::TYPE_INVALID)
     {
-        PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
+        PrinterTechnology printer_technology = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology();
 
         for (Tab* tab : wxGetApp().tabs_list)
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
@@ -1861,7 +1861,7 @@ FullCompareDialog::FullCompareDialog(const wxString& option_name, const wxString
 
 static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle = nullptr) {
     if (!preset_bundle)
-        preset_bundle = wxGetApp().preset_bundle;
+        preset_bundle = ::orca::session().presets().raw_ptr();
     return  type == Preset::Type::TYPE_PRINTER      ? &preset_bundle->printers :
             type == Preset::Type::TYPE_FILAMENT     ? &preset_bundle->filaments :
             type == Preset::Type::TYPE_SLA_MATERIAL ? &preset_bundle->sla_materials :
@@ -1987,7 +1987,7 @@ void DiffPresetDialog::create_buttons()
 
 
     auto enable_transfer = [this](const Preset::Type& type) {
-        const Preset& main_edited_preset = get_preset_collection(type, wxGetApp().preset_bundle)->get_edited_preset();
+        const Preset& main_edited_preset = get_preset_collection(type, ::orca::session().presets().raw_ptr())->get_edited_preset();
         if (main_edited_preset.is_dirty)
             return main_edited_preset.name == get_right_preset_name(type);
         return true;
@@ -2076,7 +2076,7 @@ void DiffPresetDialog::complete_dialog_creation()
 
 DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
     : DPIDialog(mainframe, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-    m_pr_technology(wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology())
+    m_pr_technology(::orca::session().presets().raw_ptr()->printers.get_edited_preset().printer_technology())
 {
 #if defined(__WXMSW__)
     // ys_FIXME! temporary workaround for correct font scaling
@@ -2087,10 +2087,10 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     // Init bundles
 
-    assert(wxGetApp().preset_bundle);
+    assert(::orca::session().presets().raw_ptr());
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    m_preset_bundle_left  = std::make_unique<PresetBundle>(*::orca::session().presets().raw_ptr());
+    m_preset_bundle_right = std::make_unique<PresetBundle>(*::orca::session().presets().raw_ptr());
 
     // Create UI items
 
@@ -2132,8 +2132,8 @@ void DiffPresetDialog::update_controls_visibility(Preset::Type type /* = Preset:
 
 void DiffPresetDialog::update_bundles_from_app()
 {
-    *m_preset_bundle_left  = *wxGetApp().preset_bundle;
-    *m_preset_bundle_right = *wxGetApp().preset_bundle;
+    *m_preset_bundle_left  = *::orca::session().presets().raw_ptr();
+    *m_preset_bundle_right = *::orca::session().presets().raw_ptr();
 
     m_pr_technology = m_preset_bundle_left.get()->printers.get_edited_preset().printer_technology();
 }

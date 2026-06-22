@@ -505,7 +505,7 @@ void ParamsPanel::rebuild_panels()
 void ParamsPanel::refresh_tabs()
 {
     auto& tabs_list = wxGetApp().tabs_list;
-    auto print_tech = wxGetApp().preset_bundle->printers.get_selected_preset().printer_technology();
+    auto print_tech = ::orca::session().presets().raw_ptr()->printers.get_selected_preset().printer_technology();
     for (auto tab : tabs_list)
         if (tab->supports_printer_technology(print_tech))
         {

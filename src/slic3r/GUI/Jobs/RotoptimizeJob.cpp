@@ -31,7 +31,7 @@ void RotoptimizeJob::prepare()
     m_accuracy = std::max(0.f, std::min(m_accuracy, 1.f));
     m_method_id = std::max(size_t(0), std::min(get_methods_count() - 1, m_method_id));
 
-    m_default_print_cfg = wxGetApp().preset_bundle->full_config();
+    m_default_print_cfg = ::orca::session().presets().raw_ptr()->full_config();
 
     const auto &sel = m_plater->get_selection().get_content();
 

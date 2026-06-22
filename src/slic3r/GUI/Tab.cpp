@@ -1,12 +1,15 @@
 // #include "libslic3r/GCodeSender.hpp"
 //#include "slic3r/Utils/Serial.hpp"
 #include "Tab.hpp"
+#include "PluginSettingsDispatcher.hpp"
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+
+#include "orca/Config.hpp"
 
 #include "Search.hpp"
 #include "OG_CustomCtrl.hpp"
@@ -198,7 +201,7 @@ void Tab::create_preset_tab()
 #endif //__WINDOWS__*/
     auto panel = this;
 
-    m_preset_bundle = wxGetApp().preset_bundle;
+    m_preset_bundle = ::orca::session().presets().raw_ptr();
 
     // Vertical sizer to hold the choice menu and the rest of the page.
 /*#ifdef __WXOSX__
@@ -638,7 +641,7 @@ Slic3r::GUI::PageShp Tab::add_options_page(const wxString& title, const std::str
 wxString Tab::translate_category(const wxString& title, Preset::Type preset_type)
 {
     if (preset_type == Preset::TYPE_PRINTER && title.Contains("Extruder ")) {
-        auto preset = wxGetApp().preset_bundle;
+        auto preset = ::orca::session().presets().raw_ptr();
         if (preset && preset->is_bbl_vendor()) {
             if (title == "Extruder 1") return _("Left Extruder");
             if (title == "Extruder 2") return _("Right Extruder");
@@ -1474,6 +1477,7 @@ static wxString support_combo_value_for_config(const DynamicPrintConfig &config,
     return
         ! config.opt_bool(support) ?
             _("None") :
+            // TODO(orca-types): manual migration — unknown key (support_material_auto not in ConfigDef)
             (is_fff && !config.opt_bool("support_material_auto")) ?
                 _("For support enforcers only") :
                 (config.opt_bool(buildplate_only) ? _("Support on build plate only") :
@@ -1489,7 +1493,7 @@ static wxString support_combo_value_for_config(const DynamicPrintConfig &config,
 
 static wxString pad_combo_value_for_config(const DynamicPrintConfig &config)
 {
-    return config.opt_bool("pad_enable") ? (config.opt_bool("pad_around_object") ? _("Around object") : _("Below object")) : _("None");
+    return config.opt_bool("pad_enable") ? (::orca::config::get<::orca::keys::pad_around_object>(config).value_or(false) ? _("Around object") : _("Below object")) : _("None");
 }
 
 void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
@@ -1664,8 +1668,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     }
 
     if (opt_key == "print_sequence" && m_config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject) {
-        auto printer_structure_opt = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
-        if (printer_structure_opt && printer_structure_opt->value == PrinterStructure::psI3) {
+        auto printer_structure_opt = ::orca::config::get_enum<::orca::keys::printer_structure, PrinterStructure>(m_preset_bundle->printers.get_edited_preset().config);
+        if (printer_structure_opt && *printer_structure_opt == PrinterStructure::psI3) {
             wxString msg_text = _(L("The current printer does not support timelapse in Traditional Mode when printing By-Object."));
             msg_text += "\n\n" + _(L("Still print by object?"));
 
@@ -1727,10 +1731,10 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             MessageDialog      dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_YES) {
-                auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
-                auto &filaments        = Slic3r::GUI::wxGetApp().preset_bundle->filaments;
+                auto &filament_presets = ::orca::session().presets().raw_ptr()->filament_presets;
+                auto &filaments        = ::orca::session().presets().raw_ptr()->filaments;
                 Slic3r::Preset *filament         = filaments.find_preset(filament_presets[interface_filament_id]);
-                std::string     filament_type    = filament->config.option<ConfigOptionStrings>("filament_type")->values[0];
+                std::string     filament_type    = ::orca::config::get_at<::orca::keys::filament_type>(filament->config, 0).value_or(std::string{});
 
                 new_conf.set_key_value("support_top_z_distance", new ConfigOptionFloat(0));
                 new_conf.set_key_value("support_interface_spacing", new ConfigOptionFloat(0));
@@ -1795,8 +1799,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     }
 
     if(opt_key=="layer_height"){
-        auto min_layer_height_from_nozzle=m_preset_bundle->full_config().option<ConfigOptionFloats>("min_layer_height")->values;
-        auto max_layer_height_from_nozzle=m_preset_bundle->full_config().option<ConfigOptionFloats>("max_layer_height")->values;
+        auto min_layer_height_from_nozzle=::orca::config::get_vec<::orca::keys::min_layer_height>(m_preset_bundle->full_config()).value_or(std::vector<double>{});
+        auto max_layer_height_from_nozzle=::orca::config::get_vec<::orca::keys::max_layer_height>(m_preset_bundle->full_config()).value_or(std::vector<double>{});
         auto layer_height_floor = *std::min_element(min_layer_height_from_nozzle.begin(), min_layer_height_from_nozzle.end());
         auto layer_height_ceil  = *std::max_element(max_layer_height_from_nozzle.begin(), max_layer_height_from_nozzle.end());
         const auto lh = m_config->opt_float("layer_height");
@@ -1866,17 +1870,17 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     //Orca: sync filament num if it's a multi tool printer
     if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material")){
         auto num_extruder = boost::any_cast<size_t>(value);
-        int         old_filament_size = wxGetApp().preset_bundle->filament_presets.size();
+        int         old_filament_size = ::orca::session().presets().raw_ptr()->filament_presets.size();
         std::vector<std::string> new_colors;
         for (int i = old_filament_size; i < num_extruder; ++i) {
             wxColour    new_col   = Plater::get_next_color_for_filament();
             std::string new_color = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
             new_colors.push_back(new_color);
         }
-        wxGetApp().preset_bundle->set_num_filaments(num_extruder, new_colors);
+        ::orca::session().presets().raw_ptr()->set_num_filaments(num_extruder, new_colors);
         wxGetApp().plater()->on_filament_count_change(num_extruder);
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+        ::orca::session().presets().raw_ptr()->export_selections(*wxGetApp().app_config);
     }
 
     //Orca: disable purge_in_prime_tower if single_extruder_multi_material is disabled
@@ -1910,7 +1914,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (m_preset_bundle->get_printer_extruder_count() > 1 && m_preset_bundle->is_bbl_vendor()) {
         int extruder_idx = std::atoi(opt_key.substr(opt_key.find_last_of('#') + 1).c_str());
         if (opt_key.find("min_layer_height") != std::string::npos) {
-            auto min_layer_height_from_nozzle = m_preset_bundle->full_config().option<ConfigOptionFloats>("min_layer_height")->values;
+            auto min_layer_height_from_nozzle = ::orca::config::get_vec<::orca::keys::min_layer_height>(m_preset_bundle->full_config()).value_or(std::vector<double>{});
             if (extruder_idx < min_layer_height_from_nozzle.size()) {
                 double value = min_layer_height_from_nozzle[extruder_idx];
                 std::fill(min_layer_height_from_nozzle.begin(), min_layer_height_from_nozzle.end(), value);
@@ -1920,7 +1924,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             m_config_manipulation.apply(m_config, &new_conf);
         }
         else if (opt_key.find("max_layer_height") != std::string::npos) {
-            auto max_layer_height_from_nozzle = m_preset_bundle->full_config().option<ConfigOptionFloats>("max_layer_height")->values;
+            auto max_layer_height_from_nozzle = ::orca::config::get_vec<::orca::keys::max_layer_height>(m_preset_bundle->full_config()).value_or(std::vector<double>{});
             if (extruder_idx < max_layer_height_from_nozzle.size()) {
                 double value = max_layer_height_from_nozzle[extruder_idx];
                 std::fill(max_layer_height_from_nozzle.begin(), max_layer_height_from_nozzle.end(), value);
@@ -2123,7 +2127,7 @@ void Tab::on_presets_changed()
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
     if (is_bbl_vendor_preset) {
         wxGetApp().plater()->get_partplate_list().set_render_option(true, true);
-        if (m_preset_bundle->printers.get_edited_preset().has_cali_lines(wxGetApp().preset_bundle)) {
+        if (m_preset_bundle->printers.get_edited_preset().has_cali_lines(::orca::session().presets().raw_ptr())) {
             wxGetApp().plater()->get_partplate_list().set_render_cali(true);
         } else {
             wxGetApp().plater()->get_partplate_list().set_render_cali(false);
@@ -2228,15 +2232,15 @@ void Tab::update_preset_description_line()
         description_line += "\t" + _(L("vendor")) + ": " + (m_type == Slic3r::Preset::TYPE_PRINTER ? "\n\t\t" : "") + parent->vendor->name +
                             ", ver: " + parent->vendor->config_version.to_string();
         if (m_type == Slic3r::Preset::TYPE_PRINTER) {
-            const std::string &printer_model = preset.config.opt_string("printer_model");
+            const std::string printer_model = ::orca::config::get<::orca::keys::printer_model>(preset.config).value_or(std::string{});
             if (! printer_model.empty())
                 description_line += "\n\n\t" + _(L("printer model")) + ": \n\t\t" + printer_model;
             switch (preset.printer_technology()) {
             case ptFFF:
             {
                 //FIXME add prefered_sla_material_profile for SLA
-                const std::string              &default_print_profile = preset.config.opt_string("default_print_profile");
-                const std::vector<std::string> &default_filament_profiles = preset.config.option<ConfigOptionStrings>("default_filament_profile")->values;
+                const std::string              default_print_profile = ::orca::config::get<::orca::keys::default_print_profile>(preset.config).value_or(std::string{});
+                const std::vector<std::string>  default_filament_profiles = ::orca::config::get_vec<::orca::keys::default_filament_profile>(preset.config).value_or(std::vector<std::string>{});
                 if (!default_print_profile.empty())
                     description_line += "\n\n\t" + _(L("default print profile")) + ": \n\t\t" + default_print_profile;
                 if (!default_filament_profiles.empty())
@@ -2253,11 +2257,11 @@ void Tab::update_preset_description_line()
             case ptSLA:
             {
                 //FIXME add prefered_sla_material_profile for SLA
-                const std::string &default_sla_material_profile = preset.config.opt_string("default_sla_material_profile");
+                const std::string default_sla_material_profile = ::orca::config::get<::orca::keys::default_sla_material_profile>(preset.config).value_or(std::string{});
                 if (!default_sla_material_profile.empty())
                     description_line += "\n\n\t" + _(L("default SLA material profile")) + ": \n\t\t" + default_sla_material_profile;
 
-                const std::string &default_sla_print_profile = preset.config.opt_string("default_sla_print_profile");
+                const std::string default_sla_print_profile = ::orca::config::get<::orca::keys::default_sla_print_profile>(preset.config).value_or(std::string{});
                 if (!default_sla_print_profile.empty())
                     description_line += "\n\n\t" + _(L("default SLA print profile")) + ": \n\t\t" + default_sla_print_profile;
                 break;
@@ -2793,6 +2797,10 @@ void TabPrint::build()
     //     optgroup->append_single_option_line(option);
 
     //     build_preset_description_line(optgroup.get());
+
+    // Phase 4.1.1 — let plugins append their own ORCA_SLOT_SETTINGS_PAGE
+    // pages after the built-in ones.
+    install_plugin_settings_pages_for(this, /*ORCA_SETTINGS_TAB_PRINT=*/0);
 }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
@@ -2825,7 +2833,7 @@ void TabPrint::toggle_options()
     if (!m_active_page) return;
     // BBS: whether the preset is Bambu Lab printer
     if (m_preset_bundle) {
-        bool is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
+        bool is_BBL_printer = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
         m_config_manipulation.set_is_BBL_Printer(is_BBL_printer);
     }
 
@@ -3070,7 +3078,7 @@ void TabPrintModel::update_model_config()
                     // same as global
                     DynamicConfig& global_cfg = m_preset_bundle->project_config;
                     if (global_cfg.has("curr_bed_type")) {
-                        BedType global_bed_type = global_cfg.opt_enum<BedType>("curr_bed_type");
+                        BedType global_bed_type = ::orca::config::get_enum<::orca::keys::curr_bed_type, BedType>(global_cfg).value_or(static_cast<BedType>(0));
                         m_config->set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(global_bed_type));
                     }
                 }
@@ -3284,7 +3292,7 @@ void TabPrintPlate::build()
 
     m_config->option("curr_bed_type", true);
     if (m_preset_bundle->project_config.has("curr_bed_type")) {
-        BedType global_bed_type = m_preset_bundle->project_config.opt_enum<BedType>("curr_bed_type");
+        BedType global_bed_type = ::orca::config::get_enum<::orca::keys::curr_bed_type, BedType>(m_preset_bundle->project_config).value_or(static_cast<BedType>(0));
         global_bed_type = BedType(global_bed_type - 1);
         m_config->set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(global_bed_type));
     }
@@ -3470,7 +3478,7 @@ void TabPrintPlate::update_custom_dirty(std::vector<std::string> &dirty_options,
         if (k == "curr_bed_type") {
             DynamicConfig& global_cfg = m_preset_bundle->project_config;
             if (global_cfg.has("curr_bed_type")) {
-                BedType global_bed_type = global_cfg.opt_enum<BedType>("curr_bed_type");
+                BedType global_bed_type = ::orca::config::get_enum<::orca::keys::curr_bed_type, BedType>(global_cfg).value_or(static_cast<BedType>(0));
                 if (m_config->opt_enum<BedType>("curr_bed_type") != global_bed_type) {
                     dirty_options.push_back(k);
                 }
@@ -4226,6 +4234,8 @@ void TabFilament::build()
         optgroup->append_single_option_line(option);
 
         //build_preset_description_line(optgroup.get());
+
+        install_plugin_settings_pages_for(this, /*ORCA_SETTINGS_TAB_FILAMENT=*/1);
 }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
@@ -4270,7 +4280,7 @@ void TabFilament::toggle_options()
         return;
     bool is_BBL_printer = false;
     if (m_preset_bundle) {
-        is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
+        is_BBL_printer = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
     }
 
     auto printer_cfg = m_preset_bundle->printers.get_edited_preset().config;
@@ -4284,9 +4294,9 @@ void TabFilament::toggle_options()
         bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
         toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling);
 
-        toggle_line("additional_cooling_fan_speed", printer_cfg.opt_bool("auxiliary_fan"));
+        toggle_line("additional_cooling_fan_speed", ::orca::config::get<::orca::keys::auxiliary_fan>(printer_cfg).value_or(false));
 
-        bool support_air_filtration = printer_cfg.opt_bool("support_air_filtration");
+        bool support_air_filtration = ::orca::config::get<::orca::keys::support_air_filtration>(printer_cfg).value_or(false);
         for (auto el : {"activate_air_filtration", "during_print_exhaust_fan_speed", "complete_print_exhaust_fan_speed"})
             toggle_line(el, support_air_filtration);
 
@@ -4308,7 +4318,7 @@ void TabFilament::toggle_options()
         std::string    bed_temp_1st_layer_key = "";
         if (proj_cfg.has("curr_bed_type"))
         {
-            bed_temp_1st_layer_key = get_bed_temp_1st_layer_key(proj_cfg.opt_enum<BedType>("curr_bed_type"));
+            bed_temp_1st_layer_key = get_bed_temp_1st_layer_key(::orca::config::get_enum<::orca::keys::curr_bed_type, BedType>(proj_cfg).value_or(static_cast<BedType>(0)));
         }
 
         const std::vector<std::string> bed_temp_keys = {"supertack_plate_temp_initial_layer", "cool_plate_temp_initial_layer",
@@ -4317,7 +4327,7 @@ void TabFilament::toggle_options()
 
         bool support_multi_bed_types = std::find(bed_temp_keys.begin(), bed_temp_keys.end(), bed_temp_1st_layer_key) ==
                                            bed_temp_keys.end() ||
-                                       is_BBL_printer || printer_cfg.opt_bool("support_multi_bed_types");
+                                       is_BBL_printer || ::orca::config::get<::orca::keys::support_multi_bed_types>(printer_cfg).value_or(false);
 
         for (const auto& key : bed_temp_keys)
         {
@@ -4336,11 +4346,11 @@ void TabFilament::toggle_options()
         toggle_line("adaptive_pressure_advance_model", has_adaptive_pa && pa);
         toggle_line("adaptive_pressure_advance_bridges", has_adaptive_pa && pa);
 
-        bool is_pellet_printer = printer_cfg.opt_bool("pellet_modded_printer");
+        bool is_pellet_printer = ::orca::config::get<::orca::keys::pellet_modded_printer>(printer_cfg).value_or(false);
         toggle_line("pellet_flow_coefficient", is_pellet_printer);
         toggle_line("filament_diameter", !is_pellet_printer);
 
-        toggle_line("activate_chamber_temp_control", printer_cfg.opt_bool("support_chamber_temp_control"));
+        toggle_line("activate_chamber_temp_control", ::orca::config::get<::orca::keys::support_chamber_temp_control>(printer_cfg).value_or(false));
 
         const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
         const unsigned int variant_idx = (unsigned int) std::max(selection, 0);
@@ -4363,7 +4373,7 @@ void TabFilament::toggle_options()
         toggle_option("filament_multitool_ramming_volume", multitool_ramming);
         toggle_option("filament_multitool_ramming_flow", multitool_ramming);
 
-        bool is_BBL_multi_extruder = is_BBL_printer && printer_cfg.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1;
+        bool is_BBL_multi_extruder = is_BBL_printer && ::orca::config::get_vec<::orca::keys::nozzle_diameter>(printer_cfg).value_or(std::vector<double>{}).size() > 1;
         const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
         const int extruder_idx = std::max(selection, 0);
         toggle_line("long_retractions_when_ec", is_BBL_multi_extruder, 256 + extruder_idx);
@@ -4438,6 +4448,8 @@ void TabPrinter::build()
     // ... and than for selected printer technology
     load_initial_data();
     m_printer_technology == ptSLA ? build_sla() : build_fff();
+
+    install_plugin_settings_pages_for(this, /*ORCA_SETTINGS_TAB_PRINTER=*/2);
 }
 
 void TabPrinter::build_fff()
@@ -4784,7 +4796,7 @@ void TabPrinter::extruders_count_changed(size_t extruders_count)
     }
     // Orca: support multi tool
     else if (m_extruders_count == 1 &&
-             m_preset_bundle->project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values.size()>1)
+             ::orca::session().presets().get_vec<::orca::keys::flush_volumes_matrix>(::orca::ConfigScope::Project).value_or(std::vector<double>{}).size()>1)
         m_preset_bundle->update_multi_material_filament_presets();
 
     /* This function should be call in any case because of correct updating/rebuilding
@@ -5237,12 +5249,14 @@ void TabPrinter::on_preset_loaded()
         m_base_preset_name = base_name;
         std::string prev_nozzle_volume_type = wxGetApp().app_config->get_nozzle_volume_types_from_config(base_name);
         if (!prev_nozzle_volume_type.empty()) {
+            // TODO(orca-types): manual migration — mutating pointer (deserialize on EnumsGeneric)
             ConfigOptionEnumsGeneric* nozzle_volume_type_option = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
             if (nozzle_volume_type_option->deserialize(prev_nozzle_volume_type)) {
                 use_default_nozzle_volume_type = false;
             }
         }
         if (use_default_nozzle_volume_type) {
+            // TODO(orca-types): manual migration — vector-write via raw values + EnumsGeneric on both sides
             m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
         }
     }
@@ -5426,6 +5440,7 @@ void TabPrinter::toggle_options()
     if (!m_active_page || m_presets->get_edited_preset().printer_technology() == ptSLA)
         return;
 
+    // TODO(orca-types): manual migration — pointer captured then values[i] cast to NozzleVolumeType/ExtruderType enum
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = m_config->option<ConfigOptionEnumsGeneric>("extruder_type");
         auto get_index_for_extruder =
@@ -5437,7 +5452,7 @@ void TabPrinter::toggle_options()
     //BBS: whether the preset is Bambu Lab printer
     bool is_BBL_printer = false;
     if (m_preset_bundle) {
-       is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
+       is_BBL_printer = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
     }
 
     bool have_multiple_extruders = true;
@@ -5465,7 +5480,7 @@ void TabPrinter::toggle_options()
     
 
     if (m_active_page->title() == L("Machine G-code")) {
-        PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+        PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
         std::string   printer_type  = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
         toggle_line("wrapping_detection_gcode", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
     }
@@ -5801,13 +5816,13 @@ void Tab::load_current_preset()
 #endif
             }
             //update the object config due to extruder count change
-            DynamicPrintConfig& new_print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-            std::vector<std::string> new_variant_list = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionStrings>("printer_extruder_variant")->values;
-            int new_extruder_count = wxGetApp().preset_bundle->get_printer_extruder_count();
+            DynamicPrintConfig& new_print_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+            std::vector<std::string> new_variant_list = ::orca::session().presets().get_vec<::orca::keys::printer_extruder_variant>(::orca::ConfigScope::PrinterPreset).value_or(std::vector<std::string>{});
+            int new_extruder_count = ::orca::session().presets().raw_ptr()->get_printer_extruder_count();
             if (prev_extruder_count != new_extruder_count || prev_variant_list.size() != new_variant_list.size())
             {
                 //process the object params here
-                Model& model = wxGetApp().plater()->model();
+                Model& model = ::orca::session().project().raw();
                 size_t num_objects = model.objects.size();
                 for (int i = 0; i < num_objects; ++i) {
                     ModelObject* object = model.objects[i];
@@ -6222,7 +6237,7 @@ bool Tab::select_preset(
 
         if (delete_third_printer) {
             wxGetApp().CallAfter([filament_presets, process_presets]() {
-                PresetBundle *preset_bundle     = wxGetApp().preset_bundle;
+                PresetBundle *preset_bundle     = ::orca::session().presets().raw_ptr();
                 std::string   old_filament_name = preset_bundle->filaments.get_edited_preset().name;
                 std::string   old_process_name  = preset_bundle->prints.get_edited_preset().name;
 
@@ -6693,7 +6708,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     // Ensures that custom filaments based on system are not accidentally allowed for all printers
     // Can still be set for all after creation
     if (m_presets->type() == Preset::TYPE_FILAMENT && !exist_preset && edited_preset.is_system) {
-        Preset* _curr_printer = const_cast<Preset*>(&wxGetApp().preset_bundle->printers.get_selected_preset_base());
+        Preset* _curr_printer = const_cast<Preset*>(&::orca::session().presets().raw_ptr()->printers.get_selected_preset_base());
         ConfigOptionStrings* compatible_printers = m_config->option<ConfigOptionStrings>("compatible_printers");
         if (nullptr != _curr_printer && compatible_printers && compatible_printers->values.empty())
             compatible_printers->values.push_back(_curr_printer->name);
@@ -7109,6 +7124,7 @@ void TabPrinter::set_extruder_volume_type(int extruder_id, NozzleVolumeType type
     // -1 means single extruder, so we should default use extruder id 0
     if (extruder_id == -1)
         extruder_id = 0;
+    // TODO(orca-types): manual migration — mutating pointer (writes EnumsGeneric values[i])
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     assert(nozzle_volumes->values.size() > (size_t)extruder_id);
     nozzle_volumes->values[extruder_id] = type;
@@ -7116,6 +7132,7 @@ void TabPrinter::set_extruder_volume_type(int extruder_id, NozzleVolumeType type
 
     //save to app config
     if (!m_base_preset_name.empty()) {
+        // TODO(orca-types): manual migration — serialize() on EnumsGeneric option pointer
         ConfigOptionEnumsGeneric* nozzle_volume_type_option = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
         std::string nozzle_volume_type_str = nozzle_volume_type_option->serialize();
         wxGetApp().app_config->save_nozzle_volume_types_to_config(m_base_preset_name, nozzle_volume_type_str);
@@ -7373,6 +7390,7 @@ void Tab::update_extruder_variants(int extruder_id)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << extruder_id;
     if (m_extruder_switch) {
+        // TODO(orca-types): manual migration — mutating pointer (resize + values[i] writes)
         auto    nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
         int extruder_nums = m_preset_bundle->get_printer_extruder_count();
         nozzle_volumes->values.resize(extruder_nums);
@@ -7419,6 +7437,7 @@ void Tab::update_extruder_variants(int extruder_id)
 void Tab::switch_excluder(int extruder_id)
 {
     Preset & printer_preset = m_preset_bundle->printers.get_edited_preset();
+    // TODO(orca-types): manual migration — pointer captured then values[i] cast to NozzleVolumeType/ExtruderType enum
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
     std::pair<std::string, std::string> variant_keys[]{
@@ -7859,7 +7878,7 @@ void TabSLAMaterial::reload_config()
 void TabSLAMaterial::toggle_options()
 {
     const Preset &current_printer = m_preset_bundle->printers.get_edited_preset();
-    std::string model = current_printer.config.opt_string("printer_model");
+    std::string model = ::orca::config::get<::orca::keys::printer_model>(current_printer.config).value_or(std::string{});
     m_config_manipulation.toggle_field("material_print_speed", model != "SL1");
 }
 

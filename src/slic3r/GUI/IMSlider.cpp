@@ -1,5 +1,6 @@
 #include "IMSlider.hpp"
 #include "libslic3r/GCode.hpp"
+#include "orca/Config.hpp"
 #include "GUI_App.hpp"
 #include "NotificationManager.hpp"
 #include "Widgets/StateColor.hpp"
@@ -72,11 +73,11 @@ bool check_color_change(PrintObject *object, size_t frst_layer_id, size_t layers
 
 static std::string gcode(Type type)
 {
-    Slic3r::DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
+    Slic3r::DynamicPrintConfig config = ::orca::session().presets().raw_ptr()->full_config();
     switch (type) {
     //BBS
-    case Template:    return config.opt_string("template_custom_gcode");
-    case PausePrint:  return config.opt_string("machine_pause_gcode");
+    case Template:    return ::orca::config::get<::orca::keys::template_custom_gcode>(config).value_or(std::string{});
+    case PausePrint:  return ::orca::config::get<::orca::keys::machine_pause_gcode>(config).value_or(std::string{});
 
     default:          return "";
     }
@@ -334,8 +335,8 @@ void IMSlider::SetModeAndOnlyExtruder(const bool is_one_extruder_printed_model, 
 
     m_is_wipe_tower = m_mode != SingleExtruder;
 
-    auto config = wxGetApp().preset_bundle->full_config();
-    m_is_spiral_vase = config.option<ConfigOptionBool>("spiral_mode")->value;
+    auto config = ::orca::session().presets().raw_ptr()->full_config();
+    m_is_spiral_vase = ::orca::config::get<::orca::keys::spiral_mode>(config).value_or(false);
 
     m_can_change_color = can_change_color && !m_is_spiral_vase;
 

@@ -14,7 +14,6 @@ void Lab2RGB(float L, float a, float b, float* R, float* G, float* B);
 void RGB2XYZ(float R, float G, float B, float* X, float* Y, float* Z);
 void XYZ2Lab(float X, float Y, float Z, float* L, float* a, float* b);
 void RGB2Lab(float R, float G, float B, float* L, float* a, float* b);
-void RGB2HSV(float r, float g, float b, float* h, float* s, float* v);
 
 float DeltaE00(float l1, float a1, float b1, float l2, float a2, float b2);
 float DeltaE94(float l1, float a1, float b1, float l2, float a2, float b2);

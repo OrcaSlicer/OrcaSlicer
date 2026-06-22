@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
+#include "orca/Config.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
 //#include "GUI_ObjectLayers.hpp"
@@ -57,7 +58,7 @@ wxDEFINE_EVENT(EVT_PARTPLATE_LIST_PLATE_SELECT, IntEvent);
 
 static PrinterTechnology printer_technology()
 {
-    return wxGetApp().preset_bundle->printers.get_selected_preset().printer_technology();
+    return ::orca::session().presets().raw_ptr()->printers.get_selected_preset().printer_technology();
 }
 
 static const Selection& scene_selection()
@@ -72,7 +73,7 @@ static const Selection& scene_selection()
 // Config from current edited printer preset
 static DynamicPrintConfig& printer_config()
 {
-    return wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    return ::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
 }
 
 static int filaments_count()
@@ -2071,8 +2072,8 @@ void ObjectList::add_category_to_settings_from_selection(const std::vector< std:
     take_snapshot(snapshot_text);
 
     const DynamicPrintConfig& from_config = printer_technology() == ptFFF ?
-                                            wxGetApp().preset_bundle->prints.get_edited_preset().config :
-                                            wxGetApp().preset_bundle->sla_prints.get_edited_preset().config;
+                                            ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config :
+                                            ::orca::session().presets().raw_ptr()->sla_prints.get_edited_preset().config;
 
     for (auto& opt : category_options) {
         auto& opt_key = opt.first;
@@ -2111,7 +2112,7 @@ void ObjectList::add_category_to_settings_from_frequent(const std::vector<std::s
                                                           "Object settings added";
     take_snapshot(snapshot_text);
 
-    const DynamicPrintConfig& from_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const DynamicPrintConfig& from_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     for (auto& opt_key : options)
     {
         if (find(opt_keys.begin(), opt_keys.end(), opt_key) == opt_keys.end()) {
@@ -2385,7 +2386,7 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
         // BBS
         int extruder_id = 0;
         if (new_volume->type() == ModelVolumeType::MODEL_PART && model_object.config.has("extruder"))
-            extruder_id = model_object.config.opt_int("extruder");
+            extruder_id = ::orca::config::get<::orca::keys::extruder>(model_object.config.get()).value_or(0);
         new_volume->config.set_key_value("extruder", new ConfigOptionInt(extruder_id));
         // update source data
         new_volume->source.input_file = input_file;
@@ -2498,7 +2499,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     // BBS
     int extruder_id = 0;
     if (new_volume->type() == ModelVolumeType::MODEL_PART && model_object.config.has("extruder"))
-        extruder_id = model_object.config.opt_int("extruder");
+        extruder_id = ::orca::config::get<::orca::keys::extruder>(model_object.config.get()).value_or(0);
     new_volume->config.set_key_value("extruder", new ConfigOptionInt(extruder_id));
     new_volume->source.is_from_builtin_objects = true;
 
@@ -2568,7 +2569,7 @@ void ObjectList::load_shape_object(const std::string &type_name)
 void ObjectList::load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center)
 {
     // Add mesh to model as a new object
-    Model& model = wxGetApp().plater()->model();
+    Model& model = ::orca::session().project().raw();
 
 #ifdef _DEBUG
     check_model_ids_validity(model);
@@ -2845,7 +2846,7 @@ bool ObjectList::del_subobject_from_object(const int obj_idx, const int idx, con
                 if (obj_item) {
                     // BBS
                     if (last_volume->config.has("extruder")) {
-                        int extruder_id = last_volume->config.opt_int("extruder");
+                        int extruder_id = ::orca::config::get<::orca::keys::extruder>(last_volume->config.get()).value_or(0);
                         object->config.set("extruder", extruder_id);
                     }
                     wxString extruder = object->config.has("extruder") ? wxString::Format("%d", object->config.extruder()) : _devL("1");
@@ -2888,8 +2889,8 @@ void ObjectList::split()
     if (!get_volume_by_item(item, volume)) return;
     DynamicPrintConfig&	config = printer_config();
     // BBS
-    const ConfigOptionStrings* filament_colors = config.option<ConfigOptionStrings>("filament_colour", false);
-    const auto filament_cnt = (filament_colors == nullptr) ? size_t(1) : filament_colors->size();
+    const auto filament_colors = ::orca::config::get_vec<::orca::keys::filament_colour>(config);
+    const auto filament_cnt = filament_colors ? filament_colors->size() : size_t(1);
     if (!volume->is_splittable()) {
         wxMessageBox(_(L("The target object contains only one part and can not be split.")));
         return;
@@ -3364,13 +3365,13 @@ DynamicPrintConfig ObjectList::get_default_layer_config(const int obj_idx)
 {
     DynamicPrintConfig config;
     coordf_t layer_height = object(obj_idx)->config.has("layer_height") ?
-                            object(obj_idx)->config.opt_float("layer_height") :
-                            wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("layer_height");
+                            ::orca::config::get<::orca::keys::layer_height>(object(obj_idx)->config.get()).value_or(0.0) :
+                            ::orca::session().presets().get<::orca::keys::layer_height>(::orca::ConfigScope::PrintPreset).value_or(0.0);
     config.set_key_value("layer_height",new ConfigOptionFloat(layer_height));
     // BBS
     int extruder = object(obj_idx)->config.has("extruder") ?
-        object(obj_idx)->config.opt_int("extruder") :
-        wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("extruder");
+        ::orca::config::get<::orca::keys::extruder>(object(obj_idx)->config.get()).value_or(0) :
+        ::orca::session().presets().get<::orca::keys::extruder>(::orca::ConfigScope::PrintPreset).value_or(0);
     config.set_key_value("extruder",    new ConfigOptionInt(0));
 
     return config;
@@ -3514,7 +3515,7 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
 
     const CutObjectBase cut_id = init_obj->cut_id;
     // Delete all connectors for related objects (which have the same cut_id)
-    Model& model = wxGetApp().plater()->model();
+    Model& model = ::orca::session().project().raw();
     for (int idx = int(m_objects->size())-1; idx >= 0; idx--)
         if (ModelObject* obj = object(idx); obj->cut_id.is_equal(cut_id)) {
             obj->delete_connectors();
@@ -4503,19 +4504,19 @@ void ObjectList::del_layer_range(const t_layer_height_range& range)
 
 static double get_min_layer_height(const int extruder_idx)
 {
-    const DynamicPrintConfig& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    return config.opt_float("min_layer_height", std::max(0, extruder_idx - 1));
+    const DynamicPrintConfig& config = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
+    return ::orca::config::get_at<::orca::keys::min_layer_height>(config, std::max(0, extruder_idx - 1)).value_or(0.0);
 }
 
 static double get_max_layer_height(const int extruder_idx)
 {
-    const DynamicPrintConfig& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const DynamicPrintConfig& config = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
     int extruder_idx_zero_based = std::max(0, extruder_idx - 1);
-    double max_layer_height = config.opt_float("max_layer_height", extruder_idx_zero_based);
+    double max_layer_height = ::orca::config::get_at<::orca::keys::max_layer_height>(config, extruder_idx_zero_based).value_or(0.0);
 
     // In case max_layer_height is set to zero, it should default to 75 % of nozzle diameter:
     if (max_layer_height < EPSILON)
-        max_layer_height = 0.75 * config.opt_float("nozzle_diameter", extruder_idx_zero_based);
+        max_layer_height = 0.75 * ::orca::config::get_at<::orca::keys::nozzle_diameter>(config, extruder_idx_zero_based).value_or(0.0);
 
     return max_layer_height;
 }
@@ -4563,7 +4564,7 @@ void ObjectList::add_layer_range_after_current(const t_layer_height_range curren
                 const auto old_config = ranges.at(next_range);
                 const coordf_t delta = next_range.second - next_range.first;
                 // Layer height of the current layer.
-                const coordf_t old_min_layer_height = get_min_layer_height(old_config.opt_int("extruder"));
+                const coordf_t old_min_layer_height = get_min_layer_height(::orca::config::get<::orca::keys::extruder>(old_config.get()).value_or(0));
                 // Layer height of the layer to be inserted.
                 const coordf_t new_min_layer_height = get_min_layer_height(0);
                 if (delta >= old_min_layer_height + new_min_layer_height - EPSILON) {
@@ -4655,7 +4656,7 @@ void ObjectList::add_layer_item(const t_layer_height_range& range,
 
     const auto layer_item = m_objects_model->AddLayersChild(layers_item,
                                                             range,
-                                                            config.opt_int("extruder"),
+                                                            ::orca::config::get<::orca::keys::extruder>(config).value_or(0),
                                                             layer_idx);
     add_settings_item(layer_item, &config);
 }

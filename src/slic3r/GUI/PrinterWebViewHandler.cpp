@@ -48,10 +48,10 @@ namespace {
 
 DynamicPrintConfig* get_active_printer_config()
 {
-    if (wxGetApp().preset_bundle == nullptr)
+    if (::orca::session().presets().raw_ptr() == nullptr)
         return nullptr;
 
-    return &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    return &::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
 }
 
 std::string json_string(const json& node, const char* key)

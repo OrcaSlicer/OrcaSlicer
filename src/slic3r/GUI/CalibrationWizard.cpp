@@ -7,6 +7,8 @@
 #include "Tabbook.hpp"
 #include "CaliHistoryDialog.hpp"
 
+#include "orca/Config.hpp"
+
 namespace Slic3r { namespace GUI {
 
 #define CALIBRATION_DEBUG
@@ -22,7 +24,7 @@ std::map<int, Preset*> get_cached_selected_filament(MachineObject* obj) {
     std::map<int, Preset*> selected_filament_map;
     if (!obj) return selected_filament_map;
 
-    PresetCollection* filament_presets = &wxGetApp().preset_bundle->filaments;
+    PresetCollection* filament_presets = &::orca::session().presets().raw_ptr()->filaments;
     for (auto selected_prest : obj->selected_cali_preset) {
         Preset* preset = filament_presets->find_preset(selected_prest.name);
         if (!preset)
@@ -45,7 +47,7 @@ std::map<int, TrayInfo> get_cached_selected_filament_for_multi_extruder(MachineO
     if (!obj)
         return selected_filament_map;
 
-    PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
+    PresetCollection *filament_presets = &::orca::session().presets().raw_ptr()->filaments;
     for (auto selected_prest : obj->selected_cali_preset) {
         TrayInfo tray_info;
         tray_info.preset = filament_presets->find_preset(selected_prest.name);
@@ -224,7 +226,7 @@ bool CalibrationWizard::save_preset(const std::string &old_preset_name, const st
         return false;
     }
 
-    PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
+    PresetCollection *filament_presets = &::orca::session().presets().raw_ptr()->filaments;
     Preset* preset = filament_presets->find_preset(old_preset_name);
     if (!preset) {
         message = wxString::Format(_L("The selected preset: %s was not found."), old_preset_name);
@@ -283,7 +285,7 @@ bool CalibrationWizard::save_preset(const std::string &old_preset_name, const st
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
     // If saving the preset changes compatibility with other presets, keep the now incompatible dependent presets selected, however with a "red flag" icon showing that they are
     // no more compatible.
-    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Never);
+    ::orca::session().presets().raw_ptr()->update_compatible(PresetSelectCompatibleType::Never);
 
     // BBS if create a new prset name, preset changed from preset name to new preset name
     if (!exist_preset) { wxGetApp().plater()->sidebar().update_presets_from_to(Preset::Type::TYPE_FILAMENT, old_preset_name, new_preset->name); }
@@ -300,7 +302,7 @@ bool CalibrationWizard::save_preset_with_index(const std::string &old_preset_nam
         return false;
     }
 
-    PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
+    PresetCollection *filament_presets = &::orca::session().presets().raw_ptr()->filaments;
     Preset           *preset           = filament_presets->find_preset(old_preset_name);
     if (!preset) {
         message = wxString::Format(_L("The selected preset: %s was not found."), old_preset_name);
@@ -367,7 +369,7 @@ bool CalibrationWizard::save_preset_with_index(const std::string &old_preset_nam
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
     // If saving the preset changes compatibility with other presets, keep the now incompatible dependent presets selected, however with a "red flag" icon showing that they are
     // no more compatible.
-    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Never);
+    ::orca::session().presets().raw_ptr()->update_compatible(PresetSelectCompatibleType::Never);
 
     // BBS if create a new prset name, preset changed from preset name to new preset name
     if (!exist_preset) { wxGetApp().plater()->sidebar().update_presets_from_to(Preset::Type::TYPE_FILAMENT, old_preset_name, new_preset->name); }
@@ -640,12 +642,12 @@ void PressureAdvanceWizard::on_device_connected(MachineObject* obj)
 
 static bool get_preset_info(const DynamicConfig& config, const BedType plate_type, int& nozzle_temp, int& bed_temp, float& max_volumetric_speed)
 {
-    const ConfigOptionInts* nozzle_temp_opt = config.option<ConfigOptionInts>("nozzle_temperature");
+    auto nozzle_temp_opt = ::orca::config::get_at<::orca::keys::nozzle_temperature>(config, 0);
     const ConfigOptionInts* opt_bed_temp_ints = config.option<ConfigOptionInts>(get_bed_temp_key(plate_type));
-    const ConfigOptionFloats* speed_opt = config.option<ConfigOptionFloats>("filament_max_volumetric_speed");
+    auto speed_opt = ::orca::config::get_at<::orca::keys::filament_max_volumetric_speed>(config, 0);
     if (nozzle_temp_opt && speed_opt && opt_bed_temp_ints) {
-        nozzle_temp = nozzle_temp_opt->get_at(0);
-        max_volumetric_speed = speed_opt->get_at(0);
+        nozzle_temp = *nozzle_temp_opt;
+        max_volumetric_speed = *speed_opt;
         bed_temp = opt_bed_temp_ints->get_at(0);
         if (bed_temp >= 0 && nozzle_temp >= 0 && max_volumetric_speed >= 0) {
             return true;
@@ -656,9 +658,8 @@ static bool get_preset_info(const DynamicConfig& config, const BedType plate_typ
 
 static bool get_flow_ratio(const DynamicConfig& config, float& flow_ratio)
 {
-    const ConfigOptionFloatsNullable *flow_ratio_opt = config.option<ConfigOptionFloatsNullable>("filament_flow_ratio");
-    if (flow_ratio_opt) {
-        flow_ratio = flow_ratio_opt->get_at(0);
+    if (auto v = ::orca::config::get_at<::orca::keys::filament_flow_ratio>(config, 0)) {
+        flow_ratio = *v;
         if (flow_ratio > 0)
             return true;
     }
@@ -776,7 +777,7 @@ void PressureAdvanceWizard::on_cali_start()
             calib_info.filament_prest = temp_filament_preset;
 
             std::map<int, DynamicPrintConfig> filament_list = preset_page->get_filament_ams_list();
-            calib_info.filament_color = filament_list[selected_filaments.begin()->first].opt_string("filament_colour", 0u);
+            calib_info.filament_color = ::orca::config::get_at<::orca::keys::filament_colour>(filament_list[selected_filaments.begin()->first], 0).value_or(std::string{});
 
             wxArrayString values = preset_page->get_custom_range_values();
             if (values.size() != 3) {
@@ -858,7 +859,7 @@ void PressureAdvanceWizard::on_cali_start()
             calib_info.print_prest    = preset_page->get_print_preset();
             calib_info.filament_prest = temp_filament_preset;
             std::map<int, DynamicPrintConfig> filament_list = preset_page->get_filament_ams_list();
-            calib_info.filament_color = filament_list[item.first].opt_string("filament_colour", 0u);
+            calib_info.filament_color = ::orca::config::get_at<::orca::keys::filament_colour>(filament_list[item.first], 0).value_or(std::string{});
             calib_info.params.mode    = CalibMode::Calib_Auto_PA_Line;
             calib_infos.emplace_back(calib_info);
         }
@@ -1274,7 +1275,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
         if (selected_filaments.empty() && stage == CaliPresetStage::CALI_MANUAL_STAGE_2 && obj_cali_mode == CalibMode::Calib_Flow_Rate) {
             if (!curr_obj->selected_cali_preset.empty()) {
                 int selected_tray_id = curr_obj->selected_cali_preset.front().tray_id;
-                PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
+                PresetCollection *filament_presets = &::orca::session().presets().raw_ptr()->filaments;
                 Preset* preset = filament_presets->find_preset(curr_obj->selected_cali_preset.front().name);
                 plate_type = curr_obj->selected_cali_preset.front().bed_type;
                 if (preset) {
@@ -1308,7 +1309,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             }
             else if (stage == CaliPresetStage::CALI_MANUAL_STAGE_2) {
                 cali_stage = 2;
-                auto flow_ratio_values = temp_filament_preset->config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->values;
+                auto flow_ratio_values = ::orca::config::get_vec<::orca::keys::filament_flow_ratio>(temp_filament_preset->config).value_or(std::vector<double>{});
                 std::map<std::string, ConfigIndexValue> key_value_map = generate_index_key_value(curr_obj, "filament_flow_ratio", cali_value);
                 if (!key_value_map.empty()) {
                     flow_ratio_values[key_value_map.begin()->second.index] = key_value_map.begin()->second.value;
@@ -1325,7 +1326,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             calib_info.filament_prest = temp_filament_preset;
 
             std::map<int, DynamicPrintConfig> filament_list = preset_page->get_filament_ams_list();
-            calib_info.filament_color = filament_list[selected_filaments.begin()->first].opt_string("filament_colour", 0u);
+            calib_info.filament_color = ::orca::config::get_at<::orca::keys::filament_colour>(filament_list[selected_filaments.begin()->first], 0).value_or(std::string{});
 
             if (cali_stage > 0) {
                 if (!CalibUtils::calib_flowrate(cali_stage, calib_info, wx_err_string)) {
@@ -1709,7 +1710,7 @@ void MaxVolumetricSpeedWizard::on_cali_start()
         calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
         calib_info.filament_prest = selected_filaments.begin()->second;
         std::map<int, DynamicPrintConfig> filament_list = preset_page->get_filament_ams_list();
-        calib_info.filament_color = filament_list[selected_filaments.begin()->first].opt_string("filament_colour", 0u);
+        calib_info.filament_color = ::orca::config::get_at<::orca::keys::filament_colour>(filament_list[selected_filaments.begin()->first], 0).value_or(std::string{});
     }
 
     calib_info.bed_type      = plate_type;

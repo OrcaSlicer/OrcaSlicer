@@ -103,7 +103,7 @@ AuxiliaryList::~AuxiliaryList()
 
 void AuxiliaryList::init_auxiliary()
 {
-	Model& model = wxGetApp().plater()->model();
+	Model& model = ::orca::session().project().raw();
 	std::string aux_path = encode_path(model.get_auxiliary_file_temp_path().c_str());
 	m_auxiliary_model->Init(aux_path);
 }

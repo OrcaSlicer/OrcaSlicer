@@ -600,7 +600,7 @@ void GLGizmoRotate3D::data_changed(bool is_serializing) {
 
     bool is_wipe_tower = selection.is_wipe_tower();
     if (is_wipe_tower) {
-        DynamicPrintConfig& config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        DynamicPrintConfig& config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
         float wipe_tower_rotation_angle =
             dynamic_cast<const ConfigOptionFloat *>(
                 config.option("wipe_tower_rotation_angle"))

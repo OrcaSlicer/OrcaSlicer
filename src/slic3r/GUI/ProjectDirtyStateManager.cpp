@@ -30,8 +30,8 @@ void ProjectDirtyStateManager::update_from_presets()
     if (!app.plater()->get_project_filename().IsEmpty()) {
         for (const auto &[type, name] : app.get_selected_presets()) { 
             if (type == Preset::Type::TYPE_FILAMENT) { 
-                m_presets_dirty |= m_initial_filament_presets_names != wxGetApp().preset_bundle->filament_presets;
-                if (ConfigOption *color_option = wxGetApp().preset_bundle->project_config.option("filament_colour")) {
+                m_presets_dirty |= m_initial_filament_presets_names != ::orca::session().presets().raw_ptr()->filament_presets;
+                if (ConfigOption *color_option = ::orca::session().presets().raw_ptr()->project_config.option("filament_colour")) {
                     auto colors = static_cast<ConfigOptionStrings *>(color_option->clone());
                     m_presets_dirty |= m_initial_filament_presets_colors != colors->values;
                     delete colors;
@@ -63,8 +63,8 @@ void ProjectDirtyStateManager::reset_initial_presets()
     GUI_App &app = wxGetApp();
     for (const auto &[type, name] : app.get_selected_presets()) { 
         if (type == Preset::Type::TYPE_FILAMENT) {
-            m_initial_filament_presets_names = wxGetApp().preset_bundle->filament_presets;
-            if (ConfigOption *color_option = wxGetApp().preset_bundle->project_config.option("filament_colour")) {
+            m_initial_filament_presets_names = ::orca::session().presets().raw_ptr()->filament_presets;
+            if (ConfigOption *color_option = ::orca::session().presets().raw_ptr()->project_config.option("filament_colour")) {
                 auto colors = static_cast<ConfigOptionStrings *>(color_option->clone());
                 m_initial_filament_presets_colors = colors->values;
                 delete colors;

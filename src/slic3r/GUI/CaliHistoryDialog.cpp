@@ -2,6 +2,7 @@
 #include "I18N.hpp"
 
 #include "libslic3r/Utils.hpp"
+#include "orca/Config.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "format.hpp"
@@ -39,10 +40,10 @@ bool support_nozzle_volume(const MachineObject* obj)
         return false;
     Preset * machine_preset = get_printer_preset(obj);
     if (machine_preset) {
-        int extruder_nums = machine_preset->config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values.size();
-        auto nozzle_volume_opt = machine_preset->config.option<ConfigOptionFloatsNullable>("nozzle_volume");
-        if (nozzle_volume_opt) {
-            int printer_variant_size = nozzle_volume_opt->values.size();
+        int extruder_nums = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(machine_preset->config).value_or(std::vector<double>{}).size();
+        auto nozzle_volume_vec = ::orca::config::get_vec<::orca::keys::nozzle_volume>(machine_preset->config);
+        if (nozzle_volume_vec) {
+            int printer_variant_size = nozzle_volume_vec->size();
             return (printer_variant_size / extruder_nums) > 1;
         }
     }
@@ -61,7 +62,7 @@ int get_colume_idx(CaliColumnType type, MachineObject* obj)
 
 static wxString get_preset_name_by_filament_id(std::string filament_id)
 {
-    auto preset_bundle = wxGetApp().preset_bundle;
+    auto preset_bundle = ::orca::session().presets().raw_ptr();
     auto collection = &preset_bundle->filaments;
     wxString preset_name = "";
     for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
@@ -638,7 +639,7 @@ void EditCalibrationHistoryDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject *obj)
 {
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
 
     wxArrayString         filament_items;
     std::set<std::string> filament_id_set;

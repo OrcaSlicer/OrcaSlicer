@@ -9,6 +9,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "orca/Config.hpp"
 //BBS: add convex hull logic for toolpath check
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
@@ -1367,13 +1368,13 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
 
     // BBS: data for rendering color arrangement recommendation
-    m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    m_nozzle_nums = orca::config::get_vec<orca::keys::nozzle_diameter>(print.config()).value_or(std::vector<double>{}).size();
     // Orca hack: Hide filament group for non-bbl printers
     if (!print.is_BBL_printer()) m_nozzle_nums = 1;
     std::vector<int>         filament_maps = print.get_filament_maps();
-    std::vector<std::string> color_opt     = print.config().option<ConfigOptionStrings>("filament_colour")->values;
-    std::vector<std::string> type_opt      = print.config().option<ConfigOptionStrings>("filament_type")->values;
-    std::vector<unsigned char> support_filament_opt = print.config().option<ConfigOptionBools>("filament_is_support")->values;
+    std::vector<std::string> color_opt     = orca::config::get_vec<orca::keys::filament_colour>(print.config()).value_or(std::vector<std::string>{});
+    std::vector<std::string> type_opt      = orca::config::get_vec<orca::keys::filament_type>(print.config()).value_or(std::vector<std::string>{});
+    std::vector<unsigned char> support_filament_opt = orca::config::get_vec<orca::keys::filament_is_support>(print.config()).value_or(std::vector<unsigned char>{});
     for (auto extruder_id : m_viewer.get_used_extruders_ids()) {
         if (filament_maps[extruder_id] == 1) {
             m_left_extruder_filament.push_back({type_opt[extruder_id], color_opt[extruder_id], extruder_id, (bool)(support_filament_opt[extruder_id])});
@@ -1407,7 +1408,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         if (!gcode_result.printable_area.empty()) {
             // bed shape detected in the gcode
             printable_area = gcode_result.printable_area;
-            const auto bundle = wxGetApp().preset_bundle;
+            const auto bundle = ::orca::session().presets().raw_ptr();
             if (bundle != nullptr && !m_settings_ids.printer.empty()) {
                 const Preset* preset = bundle->printers.find_preset(m_settings_ids.printer);
                 if (preset != nullptr) {
@@ -1832,7 +1833,7 @@ void GCodeViewer::update_layers_slider_mode()
 
     // BBS
     if (wxGetApp().filaments_cnt() > 1) {
-        const ModelObjectPtrs &objects = wxGetApp().plater()->model().objects;
+        const ModelObjectPtrs &objects = ::orca::session().project().raw().objects;
 
         // check if whole model uses just only one extruder
         if (!objects.empty()) {
@@ -4025,7 +4026,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::ColorPrint: {
         //BBS: replace model custom gcode with current plate custom gcode
-        const std::vector<CustomGCode::Item>& custom_gcode_per_print_z = wxGetApp().is_editor() ? wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
+        const std::vector<CustomGCode::Item>& custom_gcode_per_print_z = wxGetApp().is_editor() ? ::orca::session().project().raw().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
         size_t total_items = 1;
         // BBS: no ColorChange type, use ToolChange
         //const std::vector<uint8_t>& used_extruders_ids = m_viewer.get_used_extruders_ids();
@@ -4195,7 +4196,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             PartialTimes items;
 
             //BBS: replace model custom gcode with current plate custom gcode
-            std::vector<CustomGCode::Item> custom_gcode_per_print_z = wxGetApp().is_editor() ? wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
+            std::vector<CustomGCode::Item> custom_gcode_per_print_z = wxGetApp().is_editor() ? ::orca::session().project().raw().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
             const size_t extruders_count = get_extruders_count();
             std::vector<ColorRGBA> last_color(extruders_count);
             for (size_t i = 0; i < extruders_count; ++i) {
@@ -4476,7 +4477,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     // Custom G-code overview
     std::vector<CustomGCode::Item> custom_gcode_per_print_z = wxGetApp().is_editor() ?
-                                                                  wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes :
+                                                                  ::orca::session().project().raw().get_curr_plate_custom_gcodes().gcodes :
                                                                   m_custom_gcode_per_print_z;
     if (custom_gcode_per_print_z.size() != 0) {
         float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;

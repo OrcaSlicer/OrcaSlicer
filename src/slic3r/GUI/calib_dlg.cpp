@@ -10,6 +10,7 @@
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
+#include "orca/Config.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -36,7 +37,7 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
 
 std::vector<std::string> get_shaper_type_values()
 {
-    if (auto* preset_bundle = wxGetApp().preset_bundle) {
+    if (auto* preset_bundle = ::orca::session().presets().raw_ptr()) {
         auto printer_config = &preset_bundle->printers.get_edited_preset().config;
         const auto* gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
         const ConfigOptionDef* def = printer_config->def()->get("input_shaping_type");
@@ -861,11 +862,11 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     SetForegroundColour(wxColour("#363636"));
     SetFont(Label::Body_14);
 
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
-    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+    const auto* preset_bundle = ::orca::session().presets().raw_ptr();
+    const GCodeFlavor gcode_flavor = (preset_bundle != nullptr)
+        ? ::orca::config::get_enum<::orca::keys::gcode_flavor, GCodeFlavor>(preset_bundle->printers.get_edited_preset().config).value_or(static_cast<GCodeFlavor>(0))
+        : static_cast<GCodeFlavor>(0);
+    const bool reprap_firmware = gcode_flavor == GCodeFlavor::gcfRepRapFirmware;
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
@@ -888,8 +889,8 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     // Determine firmware-specific note
     wxString firmware_note = _L("Please ensure the selected type is compatible with your firmware version.");
-    if (gcode_flavor_option) {
-        switch (gcode_flavor_option->value) {
+    {
+        switch (gcode_flavor) {
         case GCodeFlavor::gcfMarlinFirmware:
         case GCodeFlavor::gcfMarlinLegacy:
             firmware_note = _L("Marlin version => 2.1.2\nFixed-Time motion not yet implemented.");
@@ -1012,11 +1013,11 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = m_tiFreqStartX->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartX);
     read_double = read_double && m_tiFreqEndX->GetTextCtrl()->GetValue().ToDouble(&m_params.freqEndX);
 
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
-    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+    const auto* preset_bundle = ::orca::session().presets().raw_ptr();
+    const GCodeFlavor gcode_flavor = (preset_bundle != nullptr)
+        ? ::orca::config::get_enum<::orca::keys::gcode_flavor, GCodeFlavor>(preset_bundle->printers.get_edited_preset().config).value_or(static_cast<GCodeFlavor>(0))
+        : static_cast<GCodeFlavor>(0);
+    const bool reprap_firmware = gcode_flavor == GCodeFlavor::gcfRepRapFirmware;
 
     if (!reprap_firmware) {
         read_double = read_double && m_tiFreqStartY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartY);
@@ -1079,11 +1080,11 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     SetForegroundColour(wxColour("#363636"));
     SetFont(Label::Body_14);
 
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
-    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+    const auto* preset_bundle = ::orca::session().presets().raw_ptr();
+    const GCodeFlavor gcode_flavor = (preset_bundle != nullptr)
+        ? ::orca::config::get_enum<::orca::keys::gcode_flavor, GCodeFlavor>(preset_bundle->printers.get_edited_preset().config).value_or(static_cast<GCodeFlavor>(0))
+        : static_cast<GCodeFlavor>(0);
+    const bool reprap_firmware = gcode_flavor == GCodeFlavor::gcfRepRapFirmware;
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
@@ -1106,8 +1107,8 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     // Determine firmware-specific note
     wxString firmware_note = _L("Check firmware compatibility.");
-    if (gcode_flavor_option) {
-        switch (gcode_flavor_option->value) {
+    {
+        switch (gcode_flavor) {
         case GCodeFlavor::gcfMarlinFirmware:
         case GCodeFlavor::gcfMarlinLegacy:
             firmware_note = _L("Marlin version => 2.1.2\nFixed-Time motion not yet implemented.");
@@ -1209,11 +1210,11 @@ Input_Shaping_Damp_Test_Dlg::~Input_Shaping_Damp_Test_Dlg() {
 void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
     bool read_double = false;
     read_double = m_tiFreqX->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartX);
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
-    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+    const auto* preset_bundle = ::orca::session().presets().raw_ptr();
+    const GCodeFlavor gcode_flavor = (preset_bundle != nullptr)
+        ? ::orca::config::get_enum<::orca::keys::gcode_flavor, GCodeFlavor>(preset_bundle->printers.get_edited_preset().config).value_or(static_cast<GCodeFlavor>(0))
+        : static_cast<GCodeFlavor>(0);
+    const bool reprap_firmware = gcode_flavor == GCodeFlavor::gcfRepRapFirmware;
 
     if (!reprap_firmware) {
         read_double = read_double && m_tiFreqY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartY);
@@ -1295,20 +1296,19 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     settings_sizer->AddSpacer(FromDIP(5));
 
     // Detect GCode Flavor and set appropriate values and units
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
+    const auto* preset_bundle = ::orca::session().presets().raw_ptr();
+    const GCodeFlavor gcode_flavor = (preset_bundle != nullptr)
+        ? ::orca::config::get_enum<::orca::keys::gcode_flavor, GCodeFlavor>(preset_bundle->printers.get_edited_preset().config).value_or(static_cast<GCodeFlavor>(0))
+        : static_cast<GCodeFlavor>(0);
 
     wxString start_value_str;
     wxString end_value_str;
     wxString units_str;
 
-    if (gcode_flavor_option &&
-        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
-        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
+    if (preset_bundle != nullptr &&
+        gcode_flavor == GCodeFlavor::gcfMarlinFirmware &&
+        ::orca::config::get_at<::orca::keys::machine_max_junction_deviation>(
+            preset_bundle->printers.get_edited_preset().config, 0).value_or(0.0) > 0) {
             // Using Junction Deviation (mm)
             start_value_str = wxString::Format("%.3f", 0.000);
             end_value_str   = wxString::Format("%.3f", 0.250);
@@ -1350,13 +1350,14 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     note_text->Wrap(FromDIP(300));
     settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
-    if (gcode_flavor_option) {
+    if (preset_bundle != nullptr) {
         wxString note_msg_2;
-        switch (gcode_flavor_option->value) {
+        switch (gcode_flavor) {
             case GCodeFlavor::gcfMarlinFirmware: {
                 // Check if machine_max_junction_deviation is set and > 0
-                const auto* max_jd_option = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
-                if (max_jd_option && !max_jd_option->values.empty() && max_jd_option->values[0] > 0) {
+                const double max_jd_first = ::orca::config::get_at<::orca::keys::machine_max_junction_deviation>(
+                    preset_bundle->printers.get_edited_preset().config, 0).value_or(0.0);
+                if (max_jd_first > 0) {
                     note_msg_2 += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
                 } else {
                     note_msg_2 += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
@@ -1410,16 +1411,15 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
     // Get max values based on GCode Flavor
     double max_end_value = 100.0;
     double warning_threshold = 20.0;
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
+    const auto* preset_bundle = ::orca::session().presets().raw_ptr();
+    const GCodeFlavor gcode_flavor = (preset_bundle != nullptr)
+        ? ::orca::config::get_enum<::orca::keys::gcode_flavor, GCodeFlavor>(preset_bundle->printers.get_edited_preset().config).value_or(static_cast<GCodeFlavor>(0))
+        : static_cast<GCodeFlavor>(0);
 
-    if (gcode_flavor_option &&
-        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
-        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
+    if (preset_bundle != nullptr &&
+        gcode_flavor == GCodeFlavor::gcfMarlinFirmware &&
+        ::orca::config::get_at<::orca::keys::machine_max_junction_deviation>(
+            preset_bundle->printers.get_edited_preset().config, 0).value_or(0.0) > 0) {
             // Using Junction Deviation (mm)
             max_end_value = 0.3;
             warning_threshold = 0.25;

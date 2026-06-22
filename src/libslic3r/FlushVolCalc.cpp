@@ -1,11 +1,34 @@
 #include <cmath>
 #include <assert.h>
-#include "slic3r/Utils/ColorSpaceConvert.hpp"
+#include <algorithm>
 #include "Utils.hpp"
 #include "FlushVolCalc.hpp"
 
 
 namespace Slic3r {
+
+// RGB→HSV conversion, used below for color-distance estimation. Previously this
+// lived in the GUI layer (src/slic3r/Utils/ColorSpaceConvert.cpp), which pulls
+// in wxWidgets; depending on it from the engine created an engine→GUI symbol
+// back-reference. It's pure math, so it now lives here in the engine.
+static void RGB2HSV(float r, float g, float b, float* h, float* s, float* v)
+{
+    float Cmax  = std::max(std::max(r, g), b);
+    float Cmin  = std::min(std::min(r, g), b);
+    float delta = Cmax - Cmin;
+
+    if (std::abs(delta) < 0.001f)
+        *h = 0.f;
+    else if (Cmax == r)
+        *h = 60.f * std::fmod((g - b) / delta, 6.f);
+    else if (Cmax == g)
+        *h = 60.f * ((b - r) / delta + 2);
+    else
+        *h = 60.f * ((r - g) / delta + 4);
+
+    *s = (std::abs(Cmax) < 0.001f) ? 0.f : delta / Cmax;
+    *v = Cmax;
+}
 
 const int g_min_flush_volume_from_support = 700;
 const int g_flush_volume_to_support = 230;

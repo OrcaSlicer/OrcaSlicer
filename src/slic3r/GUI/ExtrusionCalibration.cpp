@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Preset.hpp"
+#include "orca/Config.hpp"
 #include "I18N.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcgraph.h>
@@ -422,18 +423,18 @@ void ExtrusionCalibration::on_click_cali(wxCommandEvent& event)
         int bed_temp = -1;
         float max_volumetric_speed = -1;
 
-        PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+        PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
         if (preset_bundle) {
             for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
                 wxString filament_name = wxString::FromUTF8(it->name);
                 if (filament_name.compare(m_comboBox_filament->GetValue()) == 0) {
                     try {
                         bed_temp = get_bed_temp(&it->config);
-                        const ConfigOptionInts* nozzle_temp_opt = it->config.option<ConfigOptionInts>("nozzle_temperature");
-                        const ConfigOptionFloats* speed_opt = it->config.option<ConfigOptionFloats>("filament_max_volumetric_speed");
-                        if (nozzle_temp_opt && speed_opt) {
-                            nozzle_temp = nozzle_temp_opt->get_at(0);
-                            max_volumetric_speed = speed_opt->get_at(0);
+                        auto nozzle_temp_v = ::orca::config::get_at<::orca::keys::nozzle_temperature>(it->config, 0);
+                        auto speed_v = ::orca::config::get_at<::orca::keys::filament_max_volumetric_speed>(it->config, 0);
+                        if (nozzle_temp_v && speed_v) {
+                            nozzle_temp = *nozzle_temp_v;
+                            max_volumetric_speed = static_cast<float>(*speed_v);
                             if (bed_temp >= 0 && nozzle_temp >= 0 && max_volumetric_speed >= 0) {
                                 int curr_tray_id = ams_id * 4 + tray_id;
                                 if (tray_id == VIRTUAL_TRAY_MAIN_ID)
@@ -542,18 +543,18 @@ void ExtrusionCalibration::on_click_save(wxCommandEvent &event)
     float max_volumetric_speed = -1;
     std::string setting_id;
     std::string name;
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
             wxString filament_name = wxString::FromUTF8(it->name);
             if (filament_name.compare(m_comboBox_filament->GetValue()) == 0) {
                 if (obj) {
                     bed_temp    = get_bed_temp(&it->config);
-                    const ConfigOptionInts* nozzle_temp_opt = it->config.option<ConfigOptionInts>("nozzle_temperature");
-                    const ConfigOptionFloats* speed_opt = it->config.option<ConfigOptionFloats>("filament_max_volumetric_speed");
-                    if (nozzle_temp_opt && speed_opt) {
-                        nozzle_temp = nozzle_temp_opt->get_at(0);
-                        max_volumetric_speed = speed_opt->get_at(0);
+                    auto nozzle_temp_v = ::orca::config::get_at<::orca::keys::nozzle_temperature>(it->config, 0);
+                    auto speed_v = ::orca::config::get_at<::orca::keys::filament_max_volumetric_speed>(it->config, 0);
+                    if (nozzle_temp_v && speed_v) {
+                        nozzle_temp = *nozzle_temp_v;
+                        max_volumetric_speed = static_cast<float>(*speed_v);
                     }
                     setting_id = it->setting_id;
                     name = it->name;
@@ -597,7 +598,7 @@ void ExtrusionCalibration::update_combobox_filaments()
     int filament_index = -1;
     int curr_selection = -1;
     wxArrayString filament_items;
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     if (preset_bundle && obj) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
         std::string printer_type = obj->printer_type;
@@ -675,7 +676,7 @@ wxString ExtrusionCalibration::get_bed_type_incompatible(bool incompatible)
     else {
         m_button_cali->Disable();
         std::string filament_alias = "";
-        PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+        PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
         if (preset_bundle) {
             for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {
                 wxString filament_name = wxString::FromUTF8(filament_it->name);
@@ -750,7 +751,7 @@ void ExtrusionCalibration::update_filament_info()
         return;
     }
 
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     int bed_temp_int = -1;
     if (preset_bundle) {
         for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {

@@ -639,7 +639,7 @@ bool SendMultiMachinePage::get_ams_mapping_result(std::string &mapping_array_str
             BOOST_LOG_TRIVIAL(error) << "get_ams_mapping_result, plater is nullptr";
         }
 
-        for (int i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); i++) {
+        for (int i = 0; i < ::orca::session().presets().raw_ptr()->filament_presets.size(); i++) {
             int  tray_id = -1;
             json mapping_item_v1;
             mapping_item_v1["ams_id"]  = 0xff;
@@ -654,8 +654,8 @@ bool SendMultiMachinePage::get_ams_mapping_result(std::string &mapping_array_str
                     tray_id                      = m_ams_mapping_result[k].tray_id;
                     mapping_item["ams"]          = tray_id;
                     mapping_item["filamentType"] = m_filaments[k].type;
-                    if (i >= 0 && i < wxGetApp().preset_bundle->filament_presets.size()) {
-                        auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
+                    if (i >= 0 && i < ::orca::session().presets().raw_ptr()->filament_presets.size()) {
+                        auto it = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i]);
                         if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                     }
                     /* nozzle id */
@@ -1412,11 +1412,11 @@ void SendMultiMachinePage::sync_ams_list()
     std::vector<std::string> brands;
     std::vector<std::string> display_materials;
     std::vector<std::string> m_filaments_id;
-    auto                     preset_bundle = wxGetApp().preset_bundle;
+    auto                     preset_bundle = ::orca::session().presets().raw_ptr();
 
     for (auto filament_name : preset_bundle->filament_presets) {
         for (int f_index = 0; f_index < preset_bundle->filaments.size(); f_index++) {
-            PresetCollection* filament_presets = &wxGetApp().preset_bundle->filaments;
+            PresetCollection* filament_presets = &::orca::session().presets().raw_ptr()->filaments;
             Preset* preset = &filament_presets->preset(f_index);
 
             if (preset && filament_name.compare(preset->name) == 0) {
@@ -1456,7 +1456,7 @@ void SendMultiMachinePage::sync_ams_list()
 
     for (auto i = 0; i < extruders.size(); i++) {
         auto          extruder = extruders[i] - 1;
-        auto          colour = wxGetApp().preset_bundle->project_config.opt_string("filament_colour", (unsigned int)extruder);
+        auto          colour = ::orca::session().presets().raw_ptr()->project_config.opt_string("filament_colour", (unsigned int)extruder);
         unsigned char rgb[4];
         bmcache.parse_color4(colour, rgb);
 

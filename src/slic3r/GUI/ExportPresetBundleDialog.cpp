@@ -222,7 +222,7 @@ void ExportPresetBundleDialog::InitExportData()
         EndModal(wxCANCEL);
     }
 
-    PresetBundle preset_bundle(*wxGetApp().preset_bundle);
+    PresetBundle preset_bundle(*::orca::session().presets().raw_ptr());
 
     const std::deque<Preset>& printer_presets = preset_bundle.printers.get_presets();
     // for all the printers
@@ -293,7 +293,7 @@ void ExportPresetBundleDialog::InitExportData()
 
 void ExportPresetBundleDialog::OnRequestPresets()
 {
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
     json res;
     res["command"]     = "response_export_preset_profile";
     res["sequence_id"] = "2000";
@@ -374,7 +374,7 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
 
     std::vector<Preset*> selected_processes;
     for (const auto& name : process_names) {
-        if (Preset* p = wxGetApp().preset_bundle->prints.find_preset(name, false))
+        if (Preset* p = ::orca::session().presets().raw_ptr()->prints.find_preset(name, false))
             selected_processes.push_back(p);
     }
 

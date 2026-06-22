@@ -1,0 +1,20 @@
+{
+  "name": "@orca/plugin-types",
+  "version": "0.1.0",
+  "description": "TypeScript types + factories for OrcaSlicer plugins (Phase 5.3).",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@10.33.4",
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.3"
+  },
+  "types": "dist/index.d.ts"
+}

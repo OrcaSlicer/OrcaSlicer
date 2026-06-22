@@ -27,6 +27,8 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
 
+#include "orca/Config.hpp"
+
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
@@ -80,7 +82,7 @@ PresetComboBox::PresetComboBox(wxWindow* parent, Preset::Type preset_type, const
     m_type(preset_type),
     m_last_selected(wxNOT_FOUND),
     m_em_unit(em_unit(this)),
-    m_preset_bundle(preset_bundle ? preset_bundle : wxGetApp().preset_bundle)
+    m_preset_bundle(preset_bundle ? preset_bundle : ::orca::session().presets().raw_ptr())
 {
 #ifdef __WXMSW__
     if (preset_type == Preset::TYPE_FILAMENT)
@@ -249,20 +251,20 @@ int PresetComboBox::update_ams_color()
             name = m_collection->get_preset_name_by_alias(Preset::remove_suffix_modified(GetValue().ToUTF8().data()));
         auto *preset = m_collection->find_preset(name);
         if (preset)
-            color = preset->config.opt_string("default_filament_colour", 0u);
+            color = ::orca::config::get_at<::orca::keys::default_filament_colour>(preset->config, 0).value_or(std::string{});
         if (color.empty()) return -1;
     } else {
-        auto &ams_list = wxGetApp().preset_bundle->filament_ams_list;
+        auto &ams_list = ::orca::session().presets().raw_ptr()->filament_ams_list;
         auto  iter     = ams_list.find(idx);
         if (iter == ams_list.end()) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": ams %1% out of range %2%") % idx % ams_list.size();
             return -1;
         }
-        color = iter->second.opt_string("filament_colour", 0u);
-        ctype = iter->second.opt_string("filament_colour_type", 0u);
+        color = ::orca::config::get_at<::orca::keys::filament_colour>(iter->second, 0).value_or(std::string{});
+        ctype = ::orca::config::get_at<::orca::keys::filament_colour_type>(iter->second, 0).value_or(std::string{});
         colors = iter->second.opt<ConfigOptionStrings>("filament_multi_colour")->values;
     }
-    DynamicPrintConfig *cfg        = &wxGetApp().preset_bundle->project_config;
+    DynamicPrintConfig *cfg        = &::orca::session().presets().raw_ptr()->project_config;
     auto color_head = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone()); // single color (the first color if multi-color filament)
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
@@ -328,13 +330,13 @@ wxString PresetComboBox::get_tooltip(const Preset &preset)
     if (m_type == Preset::TYPE_FILAMENT) {
         int temperature[4] = { 0,0,0,0 };
         if (preset.config.has("nozzle_temperature_initial_layer")) //get the nozzle_temperature_initial_layer
-            temperature[0] = preset.config.opt_int("nozzle_temperature_initial_layer", 0);
+            temperature[0] = ::orca::config::get_at<::orca::keys::nozzle_temperature_initial_layer>(preset.config, 0).value_or(0);
         if (preset.config.has("nozzle_temperature")) //get the nozzle temperature
-            temperature[1] = preset.config.opt_int("nozzle_temperature", 0);
+            temperature[1] = ::orca::config::get_at<::orca::keys::nozzle_temperature>(preset.config, 0).value_or(0);
         if (preset.config.has("bed_temperature_initial_layer")) //get the bed_temperature_initial_layer
-            temperature[2] = preset.config.opt_int("bed_temperature_initial_layer", 0);
+            temperature[2] = preset.config.opt_int("bed_temperature_initial_layer", 0); // TODO(orca-types): AppConfig key
         if (preset.config.has("bed_temperature")) //get the bed_temperature
-            temperature[3] = preset.config.opt_int("bed_temperature", 0);
+            temperature[3] = preset.config.opt_int("bed_temperature", 0); // TODO(orca-types): AppConfig key
 
         tooltip += wxString::Format("\nNozzle First Layer:%d, Other Layer:%d\n Bed First Layer:%d, Other Layers:%d",
             temperature[0], temperature[1], temperature[2], temperature[3]);
@@ -488,7 +490,7 @@ void PresetComboBox::add_connected_printers(std::string selected, bool alias_nam
         if (!printer_preset)
             continue;
         printer_preset->is_visible = true;
-        auto printer_model = printer_preset->config.opt_string("printer_model");
+        auto printer_model = ::orca::config::get<::orca::keys::printer_model>(printer_preset->config).value_or(std::string{});
         boost::replace_all(printer_model, "Bambu Lab ", "");
         auto text = iter->second->get_dev_name() + " (" + printer_model + ")";
         int  item_id = Append(from_u8(text), wxNullBitmap, &m_first_printer_idx + std::distance(machine_list.begin(), iter));
@@ -518,7 +520,7 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
         int icon_width = 24;
         for (auto &entry : m_preset_bundle->filament_ams_list) {
             auto &      tray        = entry.second;
-            auto  name = tray.opt_string("tray_name", 0u);
+            auto  name = tray.opt_string("tray_name", 0u); // TODO(orca-types): AppConfig key
             if (name.size() > 3)
                 icon_width = 32;
         }
@@ -529,8 +531,8 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
                 set_label_marker(Append(_L("Right filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
             }
             auto &      tray        = entry.second;
-            std::string filament_id = tray.opt_string("filament_id", 0u);
-            auto        name        = tray.opt_string("tray_name", 0u);
+            std::string filament_id = tray.opt_string("filament_id", 0u); // TODO(orca-types): AppConfig key
+            auto        name        = tray.opt_string("tray_name", 0u); // TODO(orca-types): AppConfig key
             if (filament_id.empty()) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  %1% 's filament_id is empty.") % name;
                 continue;
@@ -538,7 +540,7 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
             auto iter = std::find_if(filaments.begin(), filaments.end(),
                 [&filament_id, this](auto &f) { return f.is_compatible && m_collection->get_preset_base(f) == &f && f.filament_id == filament_id; });
             if (iter == filaments.end()) {
-                auto filament_type = tray.opt_string("filament_type", 0u);
+                auto filament_type = ::orca::config::get_at<::orca::keys::filament_type>(tray, 0).value_or(std::string{});
                 if (!filament_type.empty()) {
                     filament_type = "Generic " + filament_type;
                     iter          = std::find_if(filaments.begin(), filaments.end(),
@@ -550,14 +552,14 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
                 continue;
             }
             const_cast<Preset&>(*iter).is_visible = true;
-            auto color = tray.opt_string("filament_colour", 0u);
+            auto color = ::orca::config::get_at<::orca::keys::filament_colour>(tray, 0).value_or(std::string{});
             auto multi_color = tray.opt<ConfigOptionStrings>("filament_multi_colour")->values;
             wxBitmap bmp(*get_extruder_color_icon(color, name, icon_width, 16));
             auto text = get_preset_name(*iter);
             int      item_id = Append(text, bmp.ConvertToImage(), &m_first_ams_filament + entry.first);
             SetFlag(GetCount() - 1, (int) FilamentAMSType::FROM_AMS);
             if (text == selected) {
-                DynamicPrintConfig *cfg    = &wxGetApp().preset_bundle->project_config;
+                DynamicPrintConfig *cfg    = &::orca::session().presets().raw_ptr()->project_config;
                 if (cfg) {
                     auto colors = static_cast<ConfigOptionStrings *>(cfg->option("filament_colour")->clone());
                     if (m_filament_idx < colors->values.size()) {
@@ -692,7 +694,7 @@ wxBitmap *PresetComboBox::get_bmp(Preset const &preset)
     static wxBitmap sbmp;
     if (m_type == Preset::TYPE_FILAMENT) {
         Preset const & preset2 = &m_collection->get_selected_preset() == &preset ? m_collection->get_edited_preset() : preset;
-        wxString color = preset2.config.opt_string("default_filament_colour", 0);
+        wxString color = ::orca::config::get_at<::orca::keys::default_filament_colour>(preset2.config, 0).value_or(std::string{});
         wxColour clr(color);
         if (clr.IsOk()) {
             std::string bitmap_key = "default_filament_colour_" + color.ToStdString();
@@ -987,7 +989,7 @@ bool PlaterPresetComboBox::switch_to_tab()
         const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
         if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
         {
-            const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
+            const std::string& preset_name = ::orca::session().presets().raw_ptr()->filaments.get_preset_name_by_alias(selected_preset);
             if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
                 wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
             else {
@@ -1011,7 +1013,7 @@ bool PlaterPresetComboBox::switch_to_tab()
             // Call select_preset() only if there is new preset and not just modified
             if (!boost::algorithm::ends_with(selected_preset, Preset::suffix_modified()))
             {
-                const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
+                const std::string& preset_name = ::orca::session().presets().raw_ptr()->filaments.get_preset_name_by_alias(selected_preset);
                 wxGetApp().get_tab(m_type)->select_preset(preset_name);
             }
         }
@@ -1033,7 +1035,7 @@ bool PlaterPresetComboBox::switch_to_tab()
 void PlaterPresetComboBox::change_extruder_color()
 {
     // get current color
-    DynamicPrintConfig* cfg = &wxGetApp().preset_bundle->project_config;
+    DynamicPrintConfig* cfg = &::orca::session().presets().raw_ptr()->project_config;
     auto colors = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone());
     wxColour clr(colors->values[m_filament_idx]);
     if (!clr.IsOk())
@@ -1206,8 +1208,8 @@ void PlaterPresetComboBox::update()
         {
 #if 0
             // Assign an extruder color to the selected item if the extruder color is defined.
-            filament_rgb = is_selected ? selected_filament_preset->config.opt_string("filament_colour", 0) :
-                                         preset.config.opt_string("filament_colour", 0);
+            filament_rgb = is_selected ? ::orca::config::get_at<::orca::keys::filament_colour>(selected_filament_preset->config, 0).value_or(std::string{}) :
+                                         ::orca::config::get_at<::orca::keys::filament_colour>(preset.config, 0).value_or(std::string{});
             extruder_rgb = (is_selected && !filament_color.empty()) ? filament_color : filament_rgb;
             single_bar = filament_rgb == extruder_rgb;
 
@@ -1219,10 +1221,10 @@ void PlaterPresetComboBox::update()
                     continue;
                 else if (preset.is_compatible && preset_filament_vendors.count(name) > 0)
                     uncompatible_presets.erase(name);
-                preset_filament_vendors[name] = preset.config.option<ConfigOptionStrings>("filament_vendor")->values.at(0);
+                preset_filament_vendors[name] = ::orca::config::get_at<::orca::keys::filament_vendor>(preset.config, 0).value_or(std::string{});
                 if (preset_filament_vendors[name] == "Bambu Lab")
                     preset_filament_vendors[name] = "Bambu";
-                preset_filament_types[name] = preset.config.option<ConfigOptionStrings>("filament_type")->values.at(0);
+                preset_filament_types[name] = ::orca::config::get_at<::orca::keys::filament_type>(preset.config, 0).value_or(std::string{});
             //}
         }
         wxBitmap* bmp = get_bmp(preset);
@@ -1238,7 +1240,7 @@ void PlaterPresetComboBox::update()
         else if (preset.is_default || preset.is_system) {
             //BBS: move system to the end
             if (m_type == Preset::TYPE_PRINTER) {
-                auto printer_model = preset.config.opt_string("printer_model");
+                auto printer_model = ::orca::config::get<::orca::keys::printer_model>(preset.config).value_or(std::string{});
 
                 // ORCA: Make system printer presets display the dirty "*" prefix when edited.
                 name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + printer_model : printer_model);
@@ -1540,7 +1542,7 @@ FilamentColor PlaterPresetComboBox::get_cur_color_info()
 
 void PlaterPresetComboBox::show_default_color_picker()
 {
-    DynamicPrintConfig* cfg = &wxGetApp().preset_bundle->project_config;
+    DynamicPrintConfig* cfg = &::orca::session().presets().raw_ptr()->project_config;
     auto colors = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone());
     wxColour current_clr(colors->values[m_filament_idx]);
     if (!current_clr.IsOk())
@@ -1558,7 +1560,7 @@ void PlaterPresetComboBox::show_default_color_picker()
 
 void PlaterPresetComboBox::sync_colour_config(const std::vector<std::string> &clrs, bool is_gradient)
 {
-    DynamicPrintConfig *cfg = &wxGetApp().preset_bundle->project_config;
+    DynamicPrintConfig *cfg = &::orca::session().presets().raw_ptr()->project_config;
 
     // Clone the string vector and patch the value at current extruder index.
     auto multi_colour_opt = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone());
@@ -1586,7 +1588,7 @@ void PlaterPresetComboBox::sync_colour_config(const std::vector<std::string> &cl
 
     wxGetApp().plater()->update_project_dirty_from_presets();
 
-    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+    ::orca::session().presets().raw_ptr()->export_selections(*wxGetApp().app_config);
     update();  // refresh the preset combobox with new config
 
     wxGetApp().plater()->on_config_change(cfg_new);
@@ -1926,16 +1928,16 @@ GUI::CalibrateFilamentComboBox::~CalibrateFilamentComboBox()
 
 void GUI::CalibrateFilamentComboBox::load_tray(DynamicPrintConfig &config)
 {
-    m_tray_name = config.opt_string("tray_name", 0u);
+    m_tray_name = config.opt_string("tray_name", 0u); // TODO(orca-types): AppConfig key
     size_t pos = m_tray_name.find("HT-");
     if (pos != std::string::npos) {
         m_tray_name = m_tray_name.substr(pos + 3);
     }
-    m_filament_id = config.opt_string("filament_id", 0u);
-    m_tag_uid = config.opt_string("tag_uid", 0u);
-    m_filament_type  = config.opt_string("filament_type", 0u);
-    m_filament_color = config.opt_string("filament_colour", 0u);
-    m_filament_exist = config.opt_bool("filament_exist", 0u);
+    m_filament_id = config.opt_string("filament_id", 0u); // TODO(orca-types): AppConfig key
+    m_tag_uid = config.opt_string("tag_uid", 0u); // TODO(orca-types): AppConfig key
+    m_filament_type  = ::orca::config::get_at<::orca::keys::filament_type>(config, 0).value_or(std::string{});
+    m_filament_color = ::orca::config::get_at<::orca::keys::filament_colour>(config, 0).value_or(std::string{});
+    m_filament_exist = config.opt_bool("filament_exist", 0u); // TODO(orca-types): AppConfig key
     wxColor clr(m_filament_color);
     clr_picker->SetBitmap(*get_extruder_color_icon(m_filament_color, m_tray_name, FromDIP(20), FromDIP(20)));
 #ifdef __WXOSX__

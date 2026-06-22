@@ -12,6 +12,10 @@
 
 #include <nlohmann/json.hpp>
 
+// Phase 2.4.5 — forward declaration only; the registration entry point uses
+// orca::Session* without dragging the engine public headers into this file.
+namespace orca { class Session; }
+
 namespace Slic3r {
 
 class MoonrakerPrinterAgent : public IPrinterAgent
@@ -22,6 +26,20 @@ public:
 
     static AgentInfo get_agent_info_static();
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
+
+    // Phase 2.4.5 — register this agent kind with the engine's plugin registry.
+    // The vtable adds a "moonraker" ORCA_SLOT_PRINTER_AGENT entry; subsequent
+    // orca::Session::create_printer_agent("moonraker") calls construct a fresh
+    // MoonrakerPrinterAgent and adapt it through orca::PrinterAgentAdapter.
+    //
+    // log_dir is captured by a function-local static on first call, then used
+    // for the lifetime of the process; subsequent calls' log_dir argument is
+    // ignored. The same value drives the legacy NetworkAgentFactory path.
+    //
+    // Idempotent — multiple calls register the slot only once (later calls
+    // no-op so the test harness can be re-entered safely).
+    static void register_with_orca_session(::orca::Session* session,
+                                           const std::string& log_dir);
 
     // Cloud Agent Dependency
     void set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud) override;

@@ -484,9 +484,16 @@ if (APPLE)
         )
 endif ()
 
-add_library(libslic3r STATIC ${lisbslic3r_sources}
+add_library(libslic3r SHARED ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
-    ${OpenVDBUtils_SOURCES})
+    ${OpenVDBUtils_SOURCES}
+    # libnest2d is header-only (INTERFACE) since the engine extraction; its
+    # explicit template instantiations for the libslic3r geometry backend used
+    # to live in deps_src/libnest2d/src/libnest2d.cpp. Compile that TU here so
+    # the nest<>() symbols land in liborca-engine.so (consumers like the
+    # libnest2d tests and the GUI arrange code link them from the engine).
+    ${CMAKE_SOURCE_DIR}/deps_src/libnest2d/src/libnest2d.cpp)
+set_target_properties(libslic3r PROPERTIES OUTPUT_NAME orca-engine)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
 if (SLIC3R_STATIC)
@@ -578,22 +585,22 @@ target_link_libraries(libslic3r
     PUBLIC
         Eigen3::Eigen
         admesh
+        boost_libs
         libigl
         libnest2d
+        libslic3r_cgal
         miniz
         opencv_world
     PRIVATE
         ${CMAKE_DL_LIBS}
         ${EXPAT_LIBRARIES}
         ${OCCT_LIBS}
-        boost_libs
         cereal::cereal
         clipper
         Clipper2
         draco::draco
         glu-libtess
         JPEG::JPEG
-        libslic3r_cgal
         mcut
         noise::noise
         PNG::PNG

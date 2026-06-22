@@ -136,7 +136,7 @@ void SLAImportJob::finalize(bool canceled, std::exception_ptr &eptr)
         config.apply(SLAFullPrintConfig::defaults());
         config += std::move(p->profile);
 
-        wxGetApp().preset_bundle->load_config_model(name, std::move(config));
+        ::orca::session().presets().raw_ptr()->load_config_model(name, std::move(config));
         wxGetApp().load_current_presets();
     }
 

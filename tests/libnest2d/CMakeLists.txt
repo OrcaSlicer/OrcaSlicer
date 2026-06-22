@@ -9,7 +9,10 @@ add_executable(${_TEST_NAME}_tests
   libnest2d_test_utils.hpp
 )
 
-target_link_libraries(${_TEST_NAME}_tests test_common libnest2d Catch2::Catch2WithMain)
+# libnest2d is now an INTERFACE (header-only) library and no longer carries a
+# transitive libslic3r dependency, so this test — which includes libslic3r.h
+# via printer_parts.cpp — must link libslic3r explicitly for its headers.
+target_link_libraries(${_TEST_NAME}_tests test_common libnest2d libslic3r Catch2::Catch2WithMain)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 orcaslicer_copy_test_dlls()

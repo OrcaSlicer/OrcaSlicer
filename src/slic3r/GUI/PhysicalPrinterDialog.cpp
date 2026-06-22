@@ -96,7 +96,7 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     input_sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, BORDER_W);
 
 
-    m_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    m_config = &::orca::session().presets().raw_ptr()->printers.get_edited_preset().config;
     m_optgroup = new ConfigOptionsGroup(this, _L("Print Host upload"), m_config);
     check_host_key_valid();
     build_printhost_settings(m_optgroup);
@@ -725,7 +725,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 }
 
                 // For bbl printers, show option to control the device tab
-                if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+                if (::orca::session().presets().raw_ptr()->is_bbl_vendor()) {
                     m_optgroup->show_field("bbl_use_print_host_webui");
                     const bool use_print_host_webui = !current_webui.empty();
                     if (Field* printhost_webui_field = m_optgroup->get_field("bbl_use_print_host_webui"); printhost_webui_field) {

@@ -1460,7 +1460,7 @@ void ObjectGridTable::update_volume_values_from_object(int row, int col)
 {
     ObjectGridRow* grid_row = m_grid_data[row - 1];
     bool need_refresh = false;
-    DynamicPrintConfig&  global_config   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    DynamicPrintConfig&  global_config   = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     if (grid_row->row_type == row_object) {
         int next_row = row + 1;
         while ((next_row - 1) < m_grid_data.size())
@@ -1933,7 +1933,7 @@ void ObjectGridTable::construct_object_configs(ObjectGrid *object_grid)
     }
     int object_count = m_panel->m_model->objects.size();
     PartPlateList& partplate_list = m_panel->m_plater->get_partplate_list();
-    DynamicPrintConfig&  global_config   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    DynamicPrintConfig&  global_config   = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     const DynamicPrintConfig* plater_config = m_panel->m_plater->config();
     const DynamicPrintConfig&  filament_config = *plater_config;
 
@@ -2167,7 +2167,7 @@ void ObjectGridTable::reload_cell_data(int row, const std::string& category)
     if (row == 0)
         return;
     ObjectGridRow* grid_row = m_grid_data[row - 1];
-    DynamicPrintConfig&  global_config   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    DynamicPrintConfig&  global_config   = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
 
     if (grid_row->row_type == row_object) {
         reload_object_data(grid_row, category, global_config);
@@ -2811,7 +2811,7 @@ int ObjectTablePanel::init_filaments_and_colors()
 {
     //DynamicPrintConfig&  global_config   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
     const DynamicPrintConfig* global_config = m_plater->config();
-    const std::vector<std::string> filament_presets = wxGetApp().preset_bundle->filament_presets;
+    const std::vector<std::string> filament_presets = ::orca::session().presets().raw_ptr()->filament_presets;
     m_filaments_count = filament_presets.size();
     if (m_filaments_count <= 0) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not get filaments, count: %1%, set to default") %m_filaments_count;

@@ -1,0 +1,133 @@
+// Phase 3.2.5 — Canonical WIT interface spec for Orca plugins.
+//
+// This file is the authoritative definition of the host surface a guest
+// authored against the Component Model (wit-bindgen for Rust, jco for
+// JavaScript, etc.) binds to. Two materializations exist concurrently:
+//
+//   - The flat C-ABI projection in engine/include/orca/plugin_api.h,
+//     consumed by guests written as a minimal cdylib that import
+//     `orca_log`, `orca_check_permission`, etc. by name. This is the
+//     surface WasmImports installs on a wasmtime_linker_t today.
+//
+//   - The Component Model surface declared below, consumed by guests
+//     authored with wit-bindgen / jco. Both forms expose identical
+//     semantics — the WIT version just produces richer typed bindings.
+//
+// When updating the host vtable in plugin_api.h, update this file in
+// lockstep. The two surfaces MUST stay observationally equivalent.
+
+package orca:engine@0.1.0;
+
+// ---------------------------------------------------------------------------
+// Shared types
+// ---------------------------------------------------------------------------
+interface types {
+    /// Mirrors orca_error_code_t in engine/include/orca/c_api.h. Update
+    /// both at once when adding a new variant.
+    enum error-code {
+        unknown,
+        invalid-argument,
+        not-found,
+        already-exists,
+        io-error,
+        parse-error,
+        cancelled,
+        unsupported,
+        permission-denied,
+    }
+
+    /// Bit positions match the ORCA_PERM_* macros in plugin_api.h.
+    flags permission {
+        network,
+        filesystem-read,
+        filesystem-write,
+        settings-read,
+        settings-write,
+        profiles-install,
+        device-control,
+        slice-intercept,
+        gcode-modify,
+        ui-attach,
+        events-raw,
+    }
+
+    enum log-level { trace, debug, info, warn, error }
+}
+
+// ---------------------------------------------------------------------------
+// Logging — mirrors orca_log in plugin_api.h.
+// ---------------------------------------------------------------------------
+interface log {
+    use types.{log-level};
+
+    /// Emit a log line at the given level. Safe to call from any thread.
+    log: func(level: log-level, message: string);
+}
+
+// ---------------------------------------------------------------------------
+// Capability inspection — mirrors orca_check_permission. A guest can ask
+// the host whether a permission bit is granted *without* triggering a
+// permission-denied error from a gated import.
+// ---------------------------------------------------------------------------
+interface permissions {
+    use types.{permission};
+
+    /// True when the named permission is granted to this plugin.
+    check: func(p: permission) -> bool;
+}
+
+// ---------------------------------------------------------------------------
+// PlaceholderParser variable injection — mirrors
+// orca_placeholder_set_{string,int,float}. All three upsert a single
+// named variable into the engine's placeholder context.
+// ---------------------------------------------------------------------------
+interface placeholder {
+    use types.{error-code};
+
+    set-string: func(name: string, value: string) -> result<_, error-code>;
+    set-int:    func(name: string, value: s64)    -> result<_, error-code>;
+    set-float:  func(name: string, value: float64) -> result<_, error-code>;
+}
+
+// ---------------------------------------------------------------------------
+// Profile pack loader — mirrors orca_load_profile_pack. Gated on
+// permission.profiles-install.
+// ---------------------------------------------------------------------------
+interface profiles {
+    use types.{error-code};
+
+    load-pack: func(dir: string) -> result<_, error-code>;
+}
+
+// ---------------------------------------------------------------------------
+// Mandatory plugin exports. Mirrors plugin_api.h §"Mandatory plugin
+// exports" — the three lifecycle hooks every plugin must implement.
+// ---------------------------------------------------------------------------
+interface lifecycle {
+    use types.{error-code};
+
+    /// Engine invokes this BEFORE register to detect debug/release
+    /// ABI mismatches. The guest returns true when its own debug/release
+    /// flavor matches `engine-is-debug`.
+    check-debug-consistent: func(engine-is-debug: bool) -> bool;
+
+    /// Engine invokes this once on load. `registry` is an opaque host
+    /// handle the guest passes back to slot-registration imports.
+    register: func(abi-version: u32, registry: u64) -> result<_, error-code>;
+
+    /// Engine invokes this once just before unload. The plugin tears
+    /// down its state and unsubscribes any outstanding event handlers.
+    unregister: func();
+}
+
+// ---------------------------------------------------------------------------
+// World — what a complete Orca plugin imports and exports.
+// ---------------------------------------------------------------------------
+world plugin {
+    import log;
+    import permissions;
+    import placeholder;
+    import profiles;
+
+    export lifecycle;
+}

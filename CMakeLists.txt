@@ -128,6 +128,23 @@ option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 # If SLIC3R_FHS is 1 -> SLIC3R_DESKTOP_INTEGRATION is always 0, othrewise variable.
 CMAKE_DEPENDENT_OPTION(SLIC3R_DESKTOP_INTEGRATION "Allow performing desktop integration during runtime" 1 "NOT SLIC3R_FHS" 0)
 
+# Default base URL for the plugin marketplace.
+#   - empty (the upstream default) → marketplace tab renders an empty-state
+#     and `MarketplaceClient::is_configured()` returns false. Users opt in
+#     by setting the `marketplace_url` AppConfig key, the `ORCA_MARKETPLACE_URL`
+#     env var, or building with `-DORCA_MARKETPLACE_DEFAULT_URL=<url>`.
+#   - downstream forks point this at their hosted registry. A fork-local
+#     overlay (`cmake/local-marketplace.cmake`, gitignored) is loaded
+#     optionally and may FORCE this cache variable.
+set(ORCA_MARKETPLACE_DEFAULT_URL "" CACHE STRING "Default marketplace registry URL; empty disables the marketplace tab")
+include(cmake/local-marketplace.cmake OPTIONAL)
+if(NOT ORCA_MARKETPLACE_DEFAULT_URL STREQUAL "")
+    add_compile_definitions(ORCA_MARKETPLACE_DEFAULT_URL="${ORCA_MARKETPLACE_DEFAULT_URL}")
+    message(STATUS "ORCA_MARKETPLACE_DEFAULT_URL: ${ORCA_MARKETPLACE_DEFAULT_URL}")
+else()
+    message(STATUS "ORCA_MARKETPLACE_DEFAULT_URL: (empty — marketplace disabled by default)")
+endif()
+
 set(OPENVDB_FIND_MODULE_PATH "" CACHE PATH "Path to OpenVDB installation's find modules.")
 
 set(SLIC3R_GTK "3" CACHE STRING "GTK version to use with wxWidgets on Linux")
@@ -882,6 +899,16 @@ endfunction()
 # libslic3r, OrcaSlicer GUI and the OrcaSlicer executable.
 add_subdirectory(deps_src)
 add_subdirectory(src)
+
+# Public name for the engine shared library. The underlying target is libslic3r
+# (defined in src/libslic3r/CMakeLists.txt) with OUTPUT_NAME=orca-engine, so the
+# shipped file is liborca-engine.so. The alias lets engine consumers and
+# Phase 0.4 rewriter output refer to the canonical orca-engine name. Declared
+# before add_subdirectory(engine) so engine targets (e.g. the CLI) can link it.
+add_library(orca-engine ALIAS libslic3r)
+
+add_subdirectory(engine)
+
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 
 add_dependencies(gettext_make_pot hintsToPot)

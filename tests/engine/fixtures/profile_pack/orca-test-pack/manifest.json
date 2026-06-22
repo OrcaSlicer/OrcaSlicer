@@ -1,0 +1,11 @@
+{
+  "id":          "orcaslicer.test.profile_pack",
+  "name":        "Orca Test Profile Pack",
+  "version":     "0.1.0",
+  "author":      "Orca Test",
+  "description": "Phase 2.5.3 minimum-viable vendor pack fixture",
+  "permissions": ["profiles_install"],
+  "provides": {
+    "profile_dir": "vendor"
+  }
+}

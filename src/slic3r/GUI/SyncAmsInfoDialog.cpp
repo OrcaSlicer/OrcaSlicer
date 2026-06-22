@@ -29,6 +29,8 @@
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
 
+#include "orca/Config.hpp"
+
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 
@@ -221,8 +223,8 @@ void SyncAmsInfoDialog::deal_ok()
 
 bool SyncAmsInfoDialog::get_is_double_extruder()
 {
-    const auto &full_config = wxGetApp().preset_bundle->full_config();
-    size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto &full_config = ::orca::session().presets().raw_ptr()->full_config();
+    size_t      nozzle_nums = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config).value_or(std::vector<double>{}).size();
     // This dialog has dedicated left/right layout logic only for true 2-nozzle printers.
     // For toolchangers with 3+ tools (or any filament_map beyond {1,2}),
     // fall back to the generic list flow so all tools are shown.
@@ -236,7 +238,7 @@ bool SyncAmsInfoDialog::get_is_double_extruder()
     if (!plate)
         return true;
 
-    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    const auto &project_config = ::orca::session().presets().raw_ptr()->project_config;
     auto         filament_maps = plate->get_real_filament_maps(project_config);
     for (int map_id : filament_maps) {
         if (map_id != 1 && map_id != 2) {
@@ -247,7 +249,7 @@ bool SyncAmsInfoDialog::get_is_double_extruder()
 }
 
 bool SyncAmsInfoDialog::is_dirty_filament() {
-    PresetCollection *m_presets = &wxGetApp().preset_bundle->filaments;
+    PresetCollection *m_presets = &::orca::session().presets().raw_ptr()->filaments;
     if (m_check_dirty_fialment && m_presets && m_presets->get_edited_preset().is_dirty) {
         return true;
     }
@@ -370,7 +372,7 @@ void SyncAmsInfoDialog::update_map_when_change_map_mode()
         m_cur_colors_in_thumbnail = m_back_cur_colors_in_thumbnail;
     } else if (m_map_mode == MapModeEnum::Override) {
         if (m_ams_combo_info.empty()) {
-            wxGetApp().preset_bundle->get_ams_cobox_infos(m_ams_combo_info);
+            ::orca::session().presets().raw_ptr()->get_ams_cobox_infos(m_ams_combo_info);
         }
         for (size_t i = 0; i < m_ams_combo_info.ams_filament_colors.size(); i++) {
             auto result = decode_ams_color(m_ams_combo_info.ams_filament_colors[i]);
@@ -1248,9 +1250,9 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
     obj_->get_ams_colors(m_cur_colors_in_thumbnail);
     // try color and type mapping
 
-    const auto &full_config    = wxGetApp().preset_bundle->full_config();
-    const auto &project_config = wxGetApp().preset_bundle->project_config;
-    size_t      nozzle_nums    = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto &full_config    = ::orca::session().presets().raw_ptr()->full_config();
+    const auto &project_config = ::orca::session().presets().raw_ptr()->project_config;
+    size_t      nozzle_nums    = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config).value_or(std::vector<double>{}).size();
     m_filaments_map            = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
 
     int               filament_result = 0;
@@ -1373,7 +1375,7 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
             BOOST_LOG_TRIVIAL(error) << "get_ams_mapping_result, plater is nullptr";
         }
 
-        for (int i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); i++) {
+        for (int i = 0; i < ::orca::session().presets().raw_ptr()->filament_presets.size(); i++) {
             int  tray_id = -1;
             json mapping_item_v1;
             mapping_item_v1["ams_id"]  = 0xff;
@@ -1388,8 +1390,8 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
                     tray_id                      = m_ams_mapping_result[k].tray_id;
                     mapping_item["ams"]          = tray_id;
                     mapping_item["filamentType"] = m_filaments[k].type;
-                    if (i >= 0 && i < wxGetApp().preset_bundle->filament_presets.size()) {
-                        auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
+                    if (i >= 0 && i < ::orca::session().presets().raw_ptr()->filament_presets.size()) {
+                        auto it = ::orca::session().presets().raw_ptr()->filaments.find_preset(::orca::session().presets().raw_ptr()->filament_presets[i]);
                         if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                     }
                     /* nozzle id */
@@ -1432,14 +1434,14 @@ bool SyncAmsInfoDialog::build_nozzles_info(std::string &nozzles_info)
     json nozzle_info_json = json::array();
     nozzles_info          = nozzle_info_json.dump();
 
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     if (!preset_bundle) return false;
-    auto opt_nozzle_diameters = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    auto opt_nozzle_diameters = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter"); // TODO(orca-types): manual migration — captured ConfigOption pointer reused downstream for size()/get_at()/nullptr check
     if (opt_nozzle_diameters == nullptr) {
         BOOST_LOG_TRIVIAL(error) << "build_nozzles_info, opt_nozzle_diameters is nullptr";
         return false;
     }
-    auto opt_nozzle_volume_type = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    auto opt_nozzle_volume_type = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type"); // TODO(orca-types): manual migration — captured ConfigOptionEnumsGeneric pointer reused downstream; typed surface projects Enums to int via ConfigOptionInts which is not the same runtime type
     if (opt_nozzle_volume_type == nullptr) {
         BOOST_LOG_TRIVIAL(error) << "build_nozzles_info, opt_nozzle_volume_type is nullptr";
         return false;
@@ -1472,7 +1474,7 @@ bool SyncAmsInfoDialog::can_hybrid_mapping(DevExtderSystem data)
     // Mixed mappings are not allowed
     return false;
 
-    if (data.GetTotalExtderCount() <= 1 || !wxGetApp().preset_bundle) return false;
+    if (data.GetTotalExtderCount() <= 1 || !::orca::session().presets().raw_ptr()) return false;
 
     // The default two extruders are left, right, but the order of the extruders on the machine is right, left.
     // Therefore, some adjustments need to be made.
@@ -1484,8 +1486,8 @@ bool SyncAmsInfoDialog::can_hybrid_mapping(DevExtderSystem data)
         flow_type_of_machine.push_back(type_str);
     }
     // get the nozzle type of preset --> flow_types
-    const Preset &      current_printer = wxGetApp().preset_bundle->printers.get_selected_preset();
-    const Preset *      base_printer    = wxGetApp().preset_bundle->printers.get_preset_base(current_printer);
+    const Preset &      current_printer = ::orca::session().presets().raw_ptr()->printers.get_selected_preset();
+    const Preset *      base_printer    = ::orca::session().presets().raw_ptr()->printers.get_preset_base(current_printer);
     std::string         base_name       = base_printer->name;
     auto                flow_data       = wxGetApp().app_config->get_nozzle_volume_types_from_config(base_name);
     std::vector<string> flow_types;
@@ -1526,9 +1528,9 @@ void SyncAmsInfoDialog::auto_supply_with_ext(std::vector<DevAmsTray> slots)
 
 bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &error_message) const
 {
-    if (data.GetTotalExtderCount() <= 1 || !wxGetApp().preset_bundle) return false;
+    if (data.GetTotalExtderCount() <= 1 || !::orca::session().presets().raw_ptr()) return false;
 
-    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    const auto &project_config = ::orca::session().presets().raw_ptr()->project_config;
     // check nozzle used
     auto                       used_filaments = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_filaments();                   // 1 based
     auto                       filament_maps  = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config); // 1 based
@@ -1541,7 +1543,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
 
     std::sort(used_extruders.begin(), used_extruders.end());
 
-    auto nozzle_volume_type_opt = dynamic_cast<const ConfigOptionEnumsGeneric *>(wxGetApp().preset_bundle->project_config.option("nozzle_volume_type"));
+    auto nozzle_volume_type_opt = dynamic_cast<const ConfigOptionEnumsGeneric *>(::orca::session().presets().raw_ptr()->project_config.option("nozzle_volume_type"));
     for (auto i = 0; i < used_extruders.size(); i++) {
         if (nozzle_volume_type_opt) {
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType) (nozzle_volume_type_opt->get_at(used_extruders[i]));
@@ -1573,7 +1575,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             if (target_machine_nozzle_id < flow_type_of_machine.size()) {
                 if (flow_type_of_machine[target_machine_nozzle_id] != used_extruders_flow[it->first]) {
                     wxString pos;
-                    auto sai_nz_pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+                    auto sai_nz_pt = ::orca::session().presets().raw_ptr()->printers.get_edited_preset().get_printer_type(::orca::session().presets().raw_ptr());
                     if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID) {
                         pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     } else if ((target_machine_nozzle_id == MAIN_EXTRUDER_ID)) {
@@ -1817,7 +1819,7 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
             // target print
             std::string target_model_id;
             if (m_print_type == PrintFromType::FROM_NORMAL) {
-                PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+                PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
                 target_model_id             = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
             } else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW) {
                 if (m_required_data_plate_data_list.size() > 0) { target_model_id = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id; }
@@ -1896,7 +1898,7 @@ bool SyncAmsInfoDialog::is_blocking_printing(MachineObject *obj_)
     std::string source_model = "";
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
-        PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+        PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
         source_model                = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
 
     } else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW) {
@@ -1925,7 +1927,7 @@ bool SyncAmsInfoDialog::is_same_nozzle_type(std::string &filament_type, NozzleTy
     NozzleType nozzle_type        = obj_->GetExtderSystem()->GetNozzleType(0);
     auto       printer_nozzle_hrc = Print::get_hrc_by_nozzle_type(nozzle_type);
 
-    auto                   preset_bundle = wxGetApp().preset_bundle;
+    auto                   preset_bundle = ::orca::session().presets().raw_ptr();
     MaterialHash::iterator iter          = m_materialList.begin();
     while (iter != m_materialList.end()) {
         Material *    item                = iter->second;
@@ -1958,7 +1960,7 @@ bool SyncAmsInfoDialog::is_same_printer_model()
 
     if (obj_ == nullptr) { return result; }
 
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    PresetBundle *preset_bundle = ::orca::session().presets().raw_ptr();
     if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) != obj_->printer_type) {
         if ((obj_->is_support_upgrade_kit && obj_->installed_upgrade_kit) && (preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == "C12")) {
             return true;
@@ -2348,8 +2350,8 @@ void SyncAmsInfoDialog::update_show_status()
     // do ams mapping if no ams result
     if (m_ams_mapping_result.empty()) { do_ams_mapping(obj_); }
 
-    const auto &full_config = wxGetApp().preset_bundle->full_config();
-    size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto &full_config = ::orca::session().presets().raw_ptr()->full_config();
+    size_t      nozzle_nums = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config).value_or(std::vector<double>{}).size();
 
     // the nozzle type of preset and machine are different
     if (get_is_double_extruder()) {
@@ -2557,11 +2559,11 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
     std::vector<std::string> brands;
     std::vector<std::string> display_materials;
     std::vector<std::string> m_filaments_id;
-    auto                     preset_bundle = wxGetApp().preset_bundle;
+    auto                     preset_bundle = ::orca::session().presets().raw_ptr();
 
     for (auto filament_name : preset_bundle->filament_presets) {
         for (int f_index = 0; f_index < preset_bundle->filaments.size(); f_index++) {
-            PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
+            PresetCollection *filament_presets = &::orca::session().presets().raw_ptr()->filaments;
             Preset *          preset           = &filament_presets->preset(f_index);
             int               size             = preset_bundle->filaments.size();
             if (preset && filament_name.compare(preset->name) == 0) {
@@ -2614,7 +2616,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
     bool is_first_row    = true;
     for (auto i = 0; i < extruders.size(); i++) {
         auto          extruder = extruders[i] - 1;
-        auto          colour   = wxGetApp().preset_bundle->project_config.opt_string("filament_colour", (unsigned int) extruder);
+        auto          colour   = ::orca::session().presets().get_at<::orca::keys::filament_colour>(::orca::ConfigScope::Project, (unsigned int) extruder).value_or(std::string{});
         unsigned char rgb[4];
         bmcache.parse_color4(colour, rgb);
 
@@ -2772,11 +2774,11 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
     std::vector<std::string> brands;
     std::vector<std::string> display_materials;
     std::vector<std::string> m_filaments_id;
-    auto                     preset_bundle = wxGetApp().preset_bundle;
+    auto                     preset_bundle = ::orca::session().presets().raw_ptr();
 
     for (auto filament_name : preset_bundle->filament_presets) {
         for (int f_index = 0; f_index < preset_bundle->filaments.size(); f_index++) {
-            PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
+            PresetCollection *filament_presets = &::orca::session().presets().raw_ptr()->filaments;
             Preset *          preset           = &filament_presets->preset(f_index);
             int               size             = preset_bundle->filaments.size();
             if (preset && filament_name.compare(preset->name) == 0) {
@@ -2798,7 +2800,7 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
         }
     }
     if (m_ams_combo_info.empty()) {
-        wxGetApp().preset_bundle->get_ams_cobox_infos(m_ams_combo_info);
+        ::orca::session().presets().raw_ptr()->get_ams_cobox_infos(m_ams_combo_info);
     }
     std::vector<int> extruders(wxGetApp().plater()->get_extruders_colors().size());
     std::iota(extruders.begin(), extruders.end(), 1);
@@ -2826,7 +2828,7 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
     bool is_first_row    = true;
     for (auto i = 0; i < extruders.size(); i++) {
         auto          extruder = extruders[i] - 1;
-        auto          colour   = wxGetApp().preset_bundle->project_config.opt_string("filament_colour", (unsigned int) extruder);
+        auto          colour   = ::orca::session().presets().get_at<::orca::keys::filament_colour>(::orca::ConfigScope::Project, (unsigned int) extruder).value_or(std::string{});
         unsigned char rgb[4];
         bmcache.parse_color4(colour, rgb);
 
@@ -3233,10 +3235,10 @@ void SyncAmsInfoDialog::update_lan_machine_list()
 
 SyncNozzleAndAmsDialog::SyncNozzleAndAmsDialog(InputInfo &input_info)
     : BaseTransparentDPIFrame(static_cast<wxWindow *>(wxGetApp().mainframe),
-                              wxGetApp().preset_bundle->get_printer_extruder_count() == 1 ? 370 :320,
+                              ::orca::session().presets().raw_ptr()->get_printer_extruder_count() == 1 ? 370 :320,
                               input_info.dialog_pos,
                               90,
-                              wxGetApp().preset_bundle->get_printer_extruder_count() == 1 ? _L("Successfully synchronized nozzle information.") :
+                              ::orca::session().presets().raw_ptr()->get_printer_extruder_count() == 1 ? _L("Successfully synchronized nozzle information.") :
                                                                                             _L("Successfully synchronized nozzle and AMS number information."),
                               _L("Continue to sync filaments"),
                               _CTX(L_CONTEXT("Cancel", "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),

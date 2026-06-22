@@ -252,7 +252,7 @@ wxDataViewItem EditGCodeDialog::add_presets_placeholders()
     const std::set<std::string> print_options    = get_set_from_vec(is_fff ? Preset::print_options()    : Preset::sla_print_options());
     const std::set<std::string> material_options = get_set_from_vec(is_fff ? Preset::filament_options() : Preset::sla_material_options());
     const std::set<std::string> printer_options  = get_set_from_vec(is_fff ? Preset::printer_options()  : Preset::sla_printer_options());
-    const auto& full_config = wxGetApp().preset_bundle->full_config();
+    const auto& full_config = ::orca::session().presets().raw_ptr()->full_config();
     const auto& tab_list    = wxGetApp().tabs_list;
 
     Tab* tab_print = nullptr;
@@ -361,7 +361,7 @@ void EditGCodeDialog::selection_changed(wxDataViewEvent& evt)
         // This allows custom placeholders to override the default ones for this dialog
         // Override custom def if selection is within the preset category
         if (!def || m_params_list->GetSelectedTopLevelCategory() == "Presets") {
-            const auto& full_config = wxGetApp().preset_bundle->full_config();
+            const auto& full_config = ::orca::session().presets().raw_ptr()->full_config();
             if (const ConfigDef* config_def = full_config.def(); config_def && config_def->has(opt_key)) {
                 def = config_def->get(opt_key);
             }

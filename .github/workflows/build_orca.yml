@@ -425,6 +425,15 @@ jobs:
           chmod +x "$appimage"
           if $tests; then tar -cvpf build_tests.tar build/tests; fi
 
+      - name: Engine no-wx invariant + C ABI test
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # liborca-engine.so must remain wx-free, and the C ABI must keep
+          # working for headless/FFI consumers. Both are Phase 0 exit criteria.
+          ./engine/scripts/verify_no_wx.sh ./build/src/libslic3r/RelWithDebInfo/liborca-engine.so
+          ctest --test-dir ./build -C RelWithDebInfo --output-on-failure -R '^engine_c_abi$'
+
         # Use tar because upload-artifacts won't always preserve directory structure
         # and doesn't preserve file permissions
       - name: Upload Test Artifact

@@ -1,0 +1,20 @@
+[package]
+name = "orca-plugin-verify"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
+goblin = "0.10.7"
+jsonschema = "0.46.5"
+libloading = "0.9.0"
+orca-plugin-sdk = { version = "0.1.0", path = "../orca-plugin-sdk" }
+semver = "1.0.28"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+tempfile = "3.27.0"
+wasmparser = "0.251.0"
+wasmtime = "45.0.0"
+zip = "8.6.0"

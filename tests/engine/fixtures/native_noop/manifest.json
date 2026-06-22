@@ -1,0 +1,9 @@
+{
+  "id":          "test.fixture.native_noop",
+  "name":        "Native Noop Observer",
+  "version":     "0.0.1",
+  "author":      "OrcaSlicer Tests",
+  "description": "Phase 3.4.1 native runtime smoke fixture — registers a real ORCA_SLOT_PIPELINE_OBSERVER vtable.",
+  "permissions": [],
+  "provides":    ["pipeline_observer"]
+}

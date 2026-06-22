@@ -1,0 +1,74 @@
+name: Build Orca plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: so
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: dylib
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: dylib
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: dll
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2.9.1
+        with:
+          key: ${{ matrix.target }}
+
+      - run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p staging/{{plugin_id}}
+          cp plugin.json staging/{{plugin_id}}/manifest.json
+          if [ -f settings.schema.json ]; then
+            cp settings.schema.json staging/{{plugin_id}}/
+          fi
+          cp target/${{ matrix.target }}/release/lib{{project-name}}.${{ matrix.ext }} \
+             staging/{{plugin_id}}/{{plugin_id}}.${{ matrix.ext }} || \
+          cp target/${{ matrix.target }}/release/{{project-name}}.${{ matrix.ext }} \
+             staging/{{plugin_id}}/{{plugin_id}}.${{ matrix.ext }}
+
+      # Phase 6.6 — gate releases on `orca-plugin-verify`. Catches manifest
+      # drift, missing provides[], permission under-declaration, and broken
+      # ABI handshakes BEFORE the artifact reaches the marketplace.
+      - name: Install orca-plugin-verify
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: cargo install --locked orca-plugin-verify || true
+
+      - name: Verify staged plugin
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: orca-plugin-verify --smoke staging/{{plugin_id}}
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: {{project-name}}-${{ matrix.target }}
+          path: staging/

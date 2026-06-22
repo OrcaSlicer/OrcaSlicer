@@ -6,6 +6,8 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
+#include "orca/Config.hpp"
+
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -103,7 +105,7 @@ void ArrangeJob::clear_input()
 ArrangePolygon ArrangeJob::prepare_arrange_polygon(void* model_instance)
 {
     ModelInstance* instance = (ModelInstance*)model_instance;
-    const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
+    const Slic3r::DynamicPrintConfig& config = ::orca::session().presets().raw_ptr()->full_config();
     return get_instance_arrange_poly(instance, config);
 }
 
@@ -247,8 +249,8 @@ void ArrangeJob::prepare_all() {
 
     prepare_wipe_tower();
 
-    const DynamicPrintConfig& current_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+    const DynamicPrintConfig& current_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+    bool   enable_wrapping = ::orca::config::get<::orca::keys::enable_wrapping_detection>(current_config).value_or(false);
 
     // add the virtual object into unselect list if has
     plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, MAX_NUM_PLATES);
@@ -257,7 +259,7 @@ void ArrangeJob::prepare_all() {
 arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<int>& extruder_ids)
 {
     PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
-    const auto& full_config = wxGetApp().preset_bundle->full_config();
+    const auto& full_config = ::orca::session().presets().raw_ptr()->full_config();
     int plate_count = ppl.get_plate_count();
     int plate_index_valid = std::min(plate_index, plate_count - 1);
 
@@ -265,7 +267,7 @@ arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<i
     int extruder_size = extruder_ids.size();
 
     Vec3d wipe_tower_size, wipe_tower_pos;
-    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+    int nozzle_nums = ::orca::session().presets().raw_ptr()->get_printer_extruder_count();
     auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, nozzle_nums, extruder_size);
     arrange_poly.bed_idx = plate_index;
     return arrange_poly;
@@ -286,7 +288,7 @@ void ArrangeJob::prepare_wipe_tower()
     bool need_wipe_tower = false;
 
     // if wipe tower is explicitly disabled, no need to estimate
-    DynamicPrintConfig& current_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    DynamicPrintConfig& current_config = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
     auto                op = current_config.option("enable_prime_tower");
     bool enable_prime_tower = op && op->getBool();
     if (!enable_prime_tower || params.is_seq_print) return;
@@ -424,8 +426,8 @@ void ArrangeJob::prepare_partplate() {
         m_unselected.emplace_back(std::move(ap));
     }
 
-    const DynamicPrintConfig &current_config  = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+    const DynamicPrintConfig &current_config  = ::orca::session().presets().raw_ptr()->prints.get_edited_preset().config;
+    bool   enable_wrapping = ::orca::config::get<::orca::keys::enable_wrapping_detection>(current_config).value_or(false);
 
     // add the virtual object into unselect list if has
     plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, current_plate_index + 1);
@@ -441,10 +443,10 @@ void ArrangeJob::prepare()
     params = init_arrange_params(m_plater);
 
     //BBS update extruder params and speed table before arranging
-    const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
+    const Slic3r::DynamicPrintConfig& config = ::orca::session().presets().raw_ptr()->full_config();
     auto& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
     auto print_config = print.config();
-    int numExtruders = wxGetApp().preset_bundle->filament_presets.size();
+    int numExtruders = ::orca::session().presets().raw_ptr()->filament_presets.size();
 
     Model::setExtruderParams(config, numExtruders);
     Model::setPrintSpeedTable(config, print_config);
@@ -527,10 +529,10 @@ void ArrangeJob::process(Ctl &ctl)
 
     auto & partplate_list = m_plater->get_partplate_list();
 
-    const Slic3r::DynamicPrintConfig& global_config = wxGetApp().preset_bundle->full_config();
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    const bool is_bbl = wxGetApp().preset_bundle->is_bbl_vendor();
-    if (is_bbl && params.avoid_extrusion_cali_region && global_config.opt_bool("scan_first_layer"))
+    const Slic3r::DynamicPrintConfig& global_config = ::orca::session().presets().raw_ptr()->full_config();
+    PresetBundle* preset_bundle = ::orca::session().presets().raw_ptr();
+    const bool is_bbl = ::orca::session().presets().raw_ptr()->is_bbl_vendor();
+    if (is_bbl && params.avoid_extrusion_cali_region && ::orca::config::get<::orca::keys::scan_first_layer>(global_config).value_or(false))
         partplate_list.preprocess_nonprefered_areas(m_unselected, MAX_NUM_PLATES);
 
     update_arrange_params(params, m_plater->config(), m_selected);
@@ -540,7 +542,7 @@ void ArrangeJob::process(Ctl &ctl)
 
     Points      bedpts = get_shrink_bedpts(m_plater->config(),params);
 
-    bool   enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+    bool   enable_wrapping = ::orca::config::get<::orca::keys::enable_wrapping_detection>(global_config).value_or(false);
     partplate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scale_(1));
 
     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << bedpts[0].transpose() << ", " << bedpts[1].transpose() << ", " << bedpts[2].transpose() << ", " << bedpts[3].transpose();

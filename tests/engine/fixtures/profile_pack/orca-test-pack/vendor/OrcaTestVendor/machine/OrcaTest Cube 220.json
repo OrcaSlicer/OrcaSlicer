@@ -1,0 +1,12 @@
+{
+    "type":            "machine_model",
+    "name":            "OrcaTest Cube 220",
+    "model_id":        "OrcaTestCube220",
+    "nozzle_diameter": "0.4",
+    "machine_tech":    "FFF",
+    "family":          "OrcaTest",
+    "bed_model":       "",
+    "bed_texture":     "",
+    "hotend_model":    "",
+    "default_materials": ""
+}

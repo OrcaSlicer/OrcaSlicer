@@ -12,6 +12,7 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
+#include "orca/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
 
@@ -201,9 +202,9 @@ static const float g_max_flush_multiplier = 3.f;
 
 bool is_flush_config_modified()
 {
-    const auto                &project_config    = wxGetApp().preset_bundle->project_config;
-    const std::vector<double> &config_matrix     = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
-    const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
+    const auto                &project_config    = ::orca::session().presets().raw_ptr()->project_config;
+    const std::vector<double> config_matrix     = ::orca::config::get_vec<::orca::keys::flush_volumes_matrix>(project_config).value_or(std::vector<double>{});
+    const std::vector<double> config_multiplier = ::orca::config::get_vec<::orca::keys::flush_multiplier>(project_config).value_or(std::vector<double>{});
 
     bool has_modify = false;
     for (int i = 0; i < config_multiplier.size(); i++) {
@@ -230,18 +231,18 @@ bool is_flush_config_modified()
 
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
 {
-    auto                      &project_config = wxGetApp().preset_bundle->project_config;
+    auto                      &project_config = ::orca::session().presets().raw_ptr()->project_config;
 
     WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
     dlg.ShowModal();
     if (dlg.GetSubmitFlag()) {
         auto matrix = dlg.GetFlattenMatrix();
         auto flush_multipliers = dlg.GetMultipliers();
-        (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
-        (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
+        ::orca::config::put_vec<::orca::keys::flush_volumes_matrix>(project_config, std::vector<double>(matrix.begin(), matrix.end()));
+        ::orca::config::put_vec<::orca::keys::flush_multiplier>(project_config, std::vector<double>(flush_multipliers.begin(), flush_multipliers.end()));
         bool flushing_volume_modify = is_flush_config_modified();
         wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+        ::orca::session().presets().raw_ptr()->export_selections(*wxGetApp().app_config);
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxPostEvent(parent, event);
     }
@@ -258,12 +259,12 @@ static std::vector<float> MatrixFlatten(const WipingDialog::VolumeMatrix& matrix
 
 wxString WipingDialog::BuildTableObjStr()
 {
-    auto full_config = wxGetApp().preset_bundle->full_config();
-    auto filament_colors = full_config.option<ConfigOptionStrings>("filament_colour")->values;
-    auto flush_multiplier = full_config.option<ConfigOptionFloats>("flush_multiplier")->values;
-    int nozzle_num = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-    auto raw_matrix_data = full_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
-    auto nozzle_flush_dataset = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset")->values;
+    auto full_config = ::orca::session().presets().raw_ptr()->full_config();
+    auto filament_colors = ::orca::config::get_vec<::orca::keys::filament_colour>(full_config).value_or(std::vector<std::string>{});
+    auto flush_multiplier = ::orca::config::get_vec<::orca::keys::flush_multiplier>(full_config).value_or(std::vector<double>{});
+    int nozzle_num = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config).value_or(std::vector<double>{}).size();
+    auto raw_matrix_data = ::orca::config::get_vec<::orca::keys::flush_volumes_matrix>(full_config).value_or(std::vector<double>{});
+    auto nozzle_flush_dataset = ::orca::config::get_vec<::orca::keys::nozzle_flush_dataset>(full_config).value_or(std::vector<int>{});
 
     std::vector<std::vector<double>> flush_matrixs;
     for (int idx = 0; idx < nozzle_num; ++idx) {
@@ -372,7 +373,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(main_sizer);
     this->SetBackgroundColour(*wxWHITE);
-    auto filament_count = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    auto filament_count = ::orca::config::get_vec<::orca::keys::filament_colour>(::orca::session().presets().raw_ptr()->project_config).value_or(std::vector<std::string>{}).size();
 
     // Estimate table scroll area size based on filament count
     // Each table cell is ~60x25 DIP, plus headers and borders
@@ -520,17 +521,17 @@ int WipingDialog::CalcFlushingVolume(const wxColour& from, const wxColour& to, i
 
 WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
 {
-    auto& preset_bundle = wxGetApp().preset_bundle;
+    auto* preset_bundle = ::orca::session().presets().raw_ptr();
     auto full_config = preset_bundle->full_config();
     auto& ams_multi_color_filament = preset_bundle->ams_multi_color_filment;
 
-    std::vector<std::string> filament_color_strs = full_config.option<ConfigOptionStrings>("filament_colour")->values;
+    std::vector<std::string> filament_color_strs = ::orca::config::get_vec<::orca::keys::filament_colour>(full_config).value_or(std::vector<std::string>{});
     std::vector<std::vector<wxColour>> multi_colors;
     std::vector<wxColour> filament_colors;
     for (auto color_str : filament_color_strs)
         filament_colors.emplace_back(color_str);
 
-    int flush_dataset_value = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset")->values[extruder_id];
+    int flush_dataset_value = ::orca::config::get_at<::orca::keys::nozzle_flush_dataset>(full_config, extruder_id).value_or(0);
     // Support for multi-color filament
     for (int i = 0; i < filament_colors.size(); ++i) {
         std::vector<wxColour> single_filament;

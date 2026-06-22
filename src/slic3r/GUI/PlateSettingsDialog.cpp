@@ -405,7 +405,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         }
     }
 
-    if (!wxGetApp().preset_bundle->is_bbl_vendor())
+    if (!::orca::session().presets().raw_ptr()->is_bbl_vendor())
       m_bed_type_choice->Disable();
 
     wxStaticText* m_bed_type_txt = new wxStaticText(this, wxID_ANY, _L("Bed type"));

@@ -119,7 +119,7 @@ wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_o
     // Orca: 
     // We can't use Orca's default values as-is because they sometimes depend on other values. 
     // Parent preset configuration values will be used instead.
-    if (const Preset* print_parent_preset = wxGetApp().preset_bundle->prints.get_selected_preset_parent()) {
+    if (const Preset* print_parent_preset = ::orca::session().presets().raw_ptr()->prints.get_selected_preset_parent()) {
         const DynamicPrintConfig& parent_config = print_parent_preset->config;
 
         if (!parent_config.has(opt_id))

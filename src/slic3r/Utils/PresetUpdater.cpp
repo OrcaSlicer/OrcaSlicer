@@ -1421,7 +1421,7 @@ static bool reload_configs_update_gui()
 	// System profiles should not trigger any substitutions, user profiles may trigger substitutions, but these substitutions
 	// were already presented to the user on application start up. Just do substitutions now and keep quiet about it.
 	// However throw on substitutions in system profiles, those shall never happen with system profiles installed over the air.
-	GUI::wxGetApp().preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
+	::orca::session().presets().raw_ptr()->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
 	GUI::wxGetApp().load_current_presets();
 	GUI::wxGetApp().plater()->set_bed_shape();
 
@@ -1464,7 +1464,7 @@ PresetUpdater::UpdateResult PresetUpdater::config_update(const Semver& old_slic3
                 return R_INCOMPAT_EXIT;
             }
             for(auto b : bundles){
-            Semver cur_ver = GUI::wxGetApp().preset_bundle->get_vendor_profile_version(b);
+            Semver cur_ver = ::orca::session().presets().raw_ptr()->get_vendor_profile_version(b);
             GUI::wxGetApp()
                 .plater()
                 ->get_notification_manager()

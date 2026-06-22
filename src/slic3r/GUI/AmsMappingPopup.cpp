@@ -3,6 +3,7 @@
 
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Thread.hpp"
+#include "orca/Config.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
@@ -979,8 +980,9 @@ void AmsMapingPopup::update_ams_data_multi_machines()
 
 void AmsMapingPopup::update_title(MachineObject* obj)
 {
-    const auto& full_config = wxGetApp().preset_bundle->full_config();
-    size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto& full_config = ::orca::session().presets().raw_ptr()->full_config();
+    auto nozzle_diameter_vec = ::orca::config::get_vec<::orca::keys::nozzle_diameter>(full_config);
+    size_t nozzle_nums = nozzle_diameter_vec ? nozzle_diameter_vec->size() : 0;
     if (nozzle_nums > 1)
     {
         if (m_show_type == ShowType::LEFT)
