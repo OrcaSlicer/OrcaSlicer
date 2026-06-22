@@ -1710,21 +1710,23 @@ void PrintObject::detect_surfaces_type()
                         const double wall_band  = wall_loops <= 0 ? 0. :
                             double(layerm->flow(frExternalPerimeter).scaled_width()) +
                             double(layerm->flow(frPerimeter).scaled_width()) * double(wall_loops - 1);
-                        const double inset      = wall_band + scale_(layerm->region().config().top_surface_expansion_margin.value);
-
-                        // Ignore a section whose top is only slivers or a tiny patch (e.g. slicing noise from a
-                        // near-vertical or sloped wall): expanding that would flood the surrounding internal-solid
-                        // infill with top. Require the top to have a part at least ~2 top-infill lines wide - the
-                        // opening drops anything thinner, so such sections are skipped entirely.
-                        const float min_top = float(layerm->flow(frTopSolidInfill).scaled_width());
+                        const double margin     = scale_(layerm->region().config().top_surface_expansion_margin.value);
+                        // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
+                        const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
 
                         ExPolygons grown;
                         for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
-                            const ExPolygons island_top = intersection_ex(T, island);
+                            // The top infill only exists inside the perimeters, so seed and measure from the infill
+                            // region (the island minus the wall band), not the raw slice. A section whose only
+                            // exposed top lies in the wall band - i.e. a layer where the top is just the walls
+                            // themselves - has no infill here and is skipped, instead of being flooded inward by
+                            // the expansion. Thin slivers inside the infill region are dropped by the opening too.
+                            const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
+                            const ExPolygons island_top    = intersection_ex(T, infill_region);
                             if (opening_ex(island_top, min_top).empty())
-                                continue; // no substantial top surface in this section - never expand into it
-                            // part of this island the expansion may occupy: the island held clear of its walls
-                            const ExPolygons allowed = inset > 0. ? offset_ex(island, -float(inset)) : ExPolygons{ island };
+                                continue; // no real top infill in this section - never expand into it
+                            // hold the expansion clear of the walls by the configured margin
+                            const ExPolygons allowed = margin > 0. ? offset_ex(infill_region, -float(margin)) : infill_region;
                             append(grown, intersection_ex(offset_ex_2(island_top, d, jt), allowed));
                         }
 
