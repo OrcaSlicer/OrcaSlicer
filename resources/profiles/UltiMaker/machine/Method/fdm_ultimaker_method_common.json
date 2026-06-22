@@ -1,0 +1,8 @@
+{
+    "type": "machine",
+    "name": "fdm_ultimaker_method_common",
+    "inherits": "fdm_ultimaker_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "makerbot_lava"
+}

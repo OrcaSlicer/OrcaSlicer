@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+	"setting_id": "Generic PLA @Ultimaker Original+",
+	"name": "Generic PLA @Ultimaker Original+",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFL99",
+	"filament_type": [
+		"PLA"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"Ultimaker Original+ 0.4 nozzle"
+	],
+	"nozzle_temperature": [
+		"215"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"bed_temperature": [
+		"0"
+	],
+	"bed_temperature_initial_layer": [
+		"0"
+	]
+}

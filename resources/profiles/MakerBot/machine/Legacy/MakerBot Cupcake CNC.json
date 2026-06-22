@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Cupcake CNC",
+    "model_id": "MakerBot Cupcake CNC",
+    "nozzle_diameter": "0.4;0.6",
+    "machine_tech": "FFF",
+    "family": "Legacy",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_cupcake.stl",
+    "bed_texture": "makerbot_cupcake_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Cupcake CNC;Generic PETG @MakerBot Cupcake CNC"
+}

@@ -1,0 +1,77 @@
+{
+    "type": "machine",
+    "setting_id": "Ultimaker 2+ 0.8 nozzle",
+    "name": "Ultimaker 2+ 0.8 nozzle",
+    "model_id": "Ultimaker 2+",
+    "inherits": "fdm_ultimaker_classic_common",
+    "from": "system",
+    "instantiation": "true",
+    "gcode_flavor": "ultigcode",
+    "printer_model": "Ultimaker 2+",
+    "printer_variant": "0.8",
+    "default_print_profile": "0.32mm Draft @Ultimaker 2+ 0.8 nozzle",
+    "default_filament_profile": [
+        "Generic PLA @Ultimaker 2+"
+    ],
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "nozzle_type": [
+        "brass"
+    ],
+    "extruder_type": [
+        "Direct Drive"
+    ],
+    "printer_extruder_id": [
+        "1"
+    ],
+    "z_offset": [
+        "0"
+    ],
+    "host_type": "ultimakerlink",
+    "printer_vendor": "UltiMaker",
+    "makerbot_bot_type": "",
+    "printer_structure": "corexy",
+    "support_multi_bed_types": "1",
+    "printable_area": [
+        "0x0",
+        "223x0",
+        "223x223",
+        "0x223"
+    ],
+    "printable_height": "205",
+    "min_layer_height": [
+        "0.16"
+    ],
+    "max_layer_height": [
+        "0.64"
+    ],
+    "thumbnails": "300x300/PNG",
+    "machine_max_acceleration_extruding": [
+        "2000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2000"
+    ],
+    "machine_max_speed_e": [
+        "150"
+    ],
+    "machine_max_acceleration_x": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_speed_x": [
+        "150",
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "150",
+        "150"
+    ],
+    "machine_start_gcode": "G28 ; Home all axes\nG1 Z15.0 F6000 ; Move the platform down 15mm\nG92 E0\nG1 F200 E3\nG92 E0",
+    "machine_end_gcode": "M104 S0 ; extruder off\nM140 S0 ; heated bed off\nG91 ; relative positioning\nG1 E-1 F300\nG1 Z+0.5 E-5 X-20 Y-20 F9000\nG28 X0 Y0\nM84\nG90"
+}

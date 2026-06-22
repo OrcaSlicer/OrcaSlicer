@@ -1,0 +1,76 @@
+{
+    "type": "machine",
+    "name": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "printer_technology": "FFF",
+    "deretraction_speed": [
+        "40"
+    ],
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "gcode_flavor": "marlin",
+    "silent_mode": "0",
+    "machine_max_acceleration_e": [
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_acceleration_x": [
+        "500"
+    ],
+    "machine_max_acceleration_y": [
+        "500"
+    ],
+    "machine_max_acceleration_z": [
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.07"
+    ],
+    "printable_height": "250",
+    "extruder_clearance_radius": "65",
+    "extruder_clearance_height_to_rod": "34",
+    "extruder_clearance_height_to_lid": "34"
+}

@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Ultimaker Original",
+    "model_id": "Ultimaker Original",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Classic",
+    "vendor": "UltiMaker",
+    "bed_model": "ultimaker_original.stl",
+    "bed_texture": "ultimaker_original_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @Ultimaker Original;Generic PETG @Ultimaker Original"
+}

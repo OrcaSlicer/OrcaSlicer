@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Sketch Sprint",
+    "model_id": "MakerBot Sketch Sprint",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Sketch",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_sketch_sprint.stl",
+    "bed_texture": "makerbot_sketch_sprint_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Sketch Sprint;Generic PETG @MakerBot Sketch Sprint"
+}

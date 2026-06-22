@@ -1,0 +1,88 @@
+{
+    "type": "machine",
+    "setting_id": "UltiMaker S5 0.8 nozzle",
+    "name": "UltiMaker S5 0.8 nozzle",
+    "model_id": "UltiMaker S5",
+    "inherits": "fdm_ultimaker_sseries_common",
+    "from": "system",
+    "instantiation": "true",
+    "gcode_flavor": "ultigcode",
+    "printer_model": "UltiMaker S5",
+    "printer_variant": "0.8",
+    "default_print_profile": "0.32mm Draft @UltiMaker S5 0.8 nozzle",
+    "default_filament_profile": [
+        "Generic PLA @UltiMaker S5",
+        "Generic PLA @UltiMaker S5"
+    ],
+    "nozzle_diameter": [
+        "0.8",
+        "0.8"
+    ],
+    "nozzle_type": [
+        "brass",
+        "brass"
+    ],
+    "extruder_type": [
+        "Direct Drive",
+        "Direct Drive"
+    ],
+    "printer_extruder_id": [
+        "1",
+        "2"
+    ],
+    "z_offset": [
+        "0",
+        "0"
+    ],
+    "host_type": "ultimakerlink",
+    "printer_vendor": "UltiMaker",
+    "makerbot_bot_type": "",
+    "printer_structure": "corexy",
+    "support_multi_bed_types": "1",
+    "printable_area": [
+        "0x0",
+        "330x0",
+        "330x240",
+        "0x240"
+    ],
+    "printable_height": "300",
+    "min_layer_height": [
+        "0.16",
+        "0.16"
+    ],
+    "max_layer_height": [
+        "0.64",
+        "0.64"
+    ],
+    "thumbnails": "300x300/PNG",
+    "machine_max_acceleration_extruding": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_speed_e": [
+        "150",
+        "150"
+    ],
+    "machine_max_acceleration_x": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_speed_x": [
+        "150",
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "150",
+        "150"
+    ],
+    "machine_start_gcode": "; UltiMaker S-Series / Factor Start\nG28\nG1 Z15.0 F6000\nG92 E0\nG1 F200 E5\nG92 E0",
+    "machine_end_gcode": "; UltiMaker S-Series / Factor End\nM104 S0\nM140 S0\nG28 X0 Y0\nM84"
+}

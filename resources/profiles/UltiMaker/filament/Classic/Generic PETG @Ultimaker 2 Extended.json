@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"setting_id": "Generic PETG @Ultimaker 2 Extended",
+	"name": "Generic PETG @Ultimaker 2 Extended",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFG99",
+	"filament_type": [
+		"PETG"
+	],
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Ultimaker 2 Extended 0.25 nozzle",
+		"Ultimaker 2 Extended 0.4 nozzle",
+		"Ultimaker 2 Extended 0.6 nozzle",
+		"Ultimaker 2 Extended 0.8 nozzle"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"bed_temperature": [
+		"0"
+	],
+	"bed_temperature_initial_layer": [
+		"0"
+	]
+}

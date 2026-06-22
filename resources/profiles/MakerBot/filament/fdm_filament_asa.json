@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_asa",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"filament_type": [
+		"ASA"
+	],
+	"filament_density": [
+		"1.07"
+	],
+	"filament_cost": [
+		"26"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	]
+}

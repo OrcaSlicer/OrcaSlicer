@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_pet",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"filament_type": [
+		"PETG"
+	],
+	"filament_density": [
+		"1.27"
+	],
+	"filament_cost": [
+		"22"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	]
+}

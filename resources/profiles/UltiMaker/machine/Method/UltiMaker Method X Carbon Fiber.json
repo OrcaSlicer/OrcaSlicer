@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "UltiMaker Method X Carbon Fiber",
+    "model_id": "UltiMaker Method X Carbon Fiber",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Method",
+    "vendor": "UltiMaker",
+    "bed_model": "ultimaker_method_x_cf.stl",
+    "bed_texture": "ultimaker_method_x_cf_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @UltiMaker Method X Carbon Fiber;Generic PETG @UltiMaker Method X Carbon Fiber"
+}

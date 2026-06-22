@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Method X Carbon Fiber",
+    "model_id": "MakerBot Method X Carbon Fiber",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Lava",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_method_x_cf.stl",
+    "bed_texture": "makerbot_method_x_cf_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Method X Carbon Fiber;Generic PETG @MakerBot Method X Carbon Fiber"
+}

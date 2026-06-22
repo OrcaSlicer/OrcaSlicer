@@ -1,0 +1,22 @@
+{
+    "type": "process",
+    "name": "fdm_process_ultimaker_common",
+    "inherits": "fdm_process_common",
+    "from": "system",
+    "instantiation": "false",
+    "adaptive_layer_height": "1",
+    "bottom_shell_layers": "3",
+    "bottom_shell_thickness": "0",
+    "sparse_infill_density": "15%",
+    "top_shell_layers": "5",
+    "top_shell_thickness": "1.0",
+    "wall_infill_order": "inner wall/outer wall/infill",
+    "default_acceleration": "1000",
+    "outer_wall_acceleration": "500",
+    "inner_wall_acceleration": "1000",
+    "travel_acceleration": "1000",
+    "sparse_infill_acceleration": "1000",
+    "internal_solid_infill_acceleration": "1000",
+    "bridge_acceleration": "500",
+    "top_surface_acceleration": "500"
+}

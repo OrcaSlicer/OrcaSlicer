@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Replicator 2",
+    "model_id": "MakerBot Replicator 2",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8;1",
+    "machine_tech": "FFF",
+    "family": "Legacy",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_replicator_2.stl",
+    "bed_texture": "makerbot_replicator_2_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Replicator 2;Generic PETG @MakerBot Replicator 2"
+}

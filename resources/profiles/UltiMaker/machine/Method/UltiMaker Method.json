@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "UltiMaker Method",
+    "model_id": "UltiMaker Method",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Method",
+    "vendor": "UltiMaker",
+    "bed_model": "ultimaker_method.stl",
+    "bed_texture": "ultimaker_method_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @UltiMaker Method;Generic PETG @UltiMaker Method"
+}

@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"setting_id": "Generic ASA @MakerBot Method XL",
+	"name": "Generic ASA @MakerBot Method XL",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFB98",
+	"filament_type": [
+		"ASA"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"MakerBot Method XL 0.4 nozzle"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"bed_temperature": [
+		"100"
+	],
+	"bed_temperature_initial_layer": [
+		"100"
+	]
+}

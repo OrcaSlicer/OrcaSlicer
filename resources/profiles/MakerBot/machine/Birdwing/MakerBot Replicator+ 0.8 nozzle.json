@@ -1,0 +1,85 @@
+{
+    "type": "machine",
+    "setting_id": "MakerBot Replicator+ 0.8 nozzle",
+    "name": "MakerBot Replicator+ 0.8 nozzle",
+    "inherits": "fdm_makerbot_birdwing_common",
+    "from": "system",
+    "instantiation": "true",
+    "gcode_flavor": "makerbot_birdwing",
+    "printer_model": "MakerBot Replicator+",
+    "model_id": "MakerBot Replicator+",
+    "printer_variant": "0.8",
+    "default_filament_profile": [
+        "Generic PLA @MakerBot Replicator+"
+    ],
+    "default_print_profile": "0.32mm Draft @MakerBot Replicator+ 0.8 nozzle",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "nozzle_type": [
+        "brass"
+    ],
+    "extruder_type": [
+        "Direct Drive"
+    ],
+    "default_nozzle_volume_type": [
+        "Standard"
+    ],
+    "printer_extruder_id": [
+        "1"
+    ],
+    "z_offset": [
+        "0"
+    ],
+    "host_type": "makerbotlink",
+    "printer_vendor": "MakerBot",
+    "gpx_machine_type": "",
+    "makerbot_bot_type": "replicator_plus",
+    "printer_structure": "corexy",
+    "support_multi_bed_types": "1",
+    "printable_area": [
+        "0x0",
+        "295x0",
+        "295x195",
+        "0x195"
+    ],
+    "printable_height": "165",
+    "min_layer_height": [
+        "0.16"
+    ],
+    "max_layer_height": [
+        "0.64"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_speed_e": [
+        "150"
+    ],
+    "machine_max_acceleration_x": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_speed_x": [
+        "150",
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "150",
+        "150"
+    ],
+    "machine_start_gcode": "; makerbot_tool_type=[smart_extruder_type]\n; generated_by=Orca Slicer\n; --- MAKERBOT BIRDWING START (MakerBot Replicator+) ---\nM104 S[nozzle_temperature_initial_layer] T0\nM109 S[nozzle_temperature_initial_layer] T0\nG90 ; Absolute Koordinaten\nG1 X98 Y-90 Z5 F9000 ; Fahrt zum Prime-Start (vorne)\nG1 Z0.24 F600 ; Absenken auf Prime-Line-Hoehe\nM83 ; Relative Extrusion fuer Prime Line\nG1 E5 F200 ; Anker setzen\nG1 X-98 Y-90 E18 F1000 ; Prime Line quer ueber die Front\nG1 E-0.5 F1500 ; kurzer Retract\nG1 Z2 F600 ; Duese anheben\nG1 X0 Y0 F9000 ; ins Zentrum\nG1 Z[first_layer_height] F600 ; auf erste Schichthoehe\nG1 E0.5 F1200 ; Unretract",
+    "machine_end_gcode": "; ===== MB BIRDWING END (MakerBot Replicator+) =====\nM400 ; alle Bewegungen abwarten\nG92 E0 ; Reset E\nG1 E-5.0 F2400 ; Retract\nG1 X0 Y90 F7200 ; Warteposition Mitte-Hinten (NICHT Parkposition)\nM132 Z ; Koordinaten zuruecksetzen\nG1 Z158 F180 ; Bett absenken, Extruder noch nicht geparkt\nG1 X140 Y90 F6000 ; finale Parkposition (Ecke)\nM104 S0 T0 ; Heizung aus\nM141 S0 ; Kammer aus\nM107 ; Luefter aus\nM73 P100 ; Fortschritt 100%\nM84 ; Motoren aus\n; ===== END =====",
+    "thumbnails": "320x200/PNG,110x80/PNG,55x40/PNG,640x640/PNG,320x320/PNG,120x120/PNG",
+    "smart_extruder_count": "1",
+    "smart_extruder_type": [
+        "mk13_experimental"
+    ]
+}

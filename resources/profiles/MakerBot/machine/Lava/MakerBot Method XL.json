@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Method XL",
+    "model_id": "MakerBot Method XL",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Lava",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_method_xl.stl",
+    "bed_texture": "makerbot_method_xl_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Method XL;Generic PETG @MakerBot Method XL"
+}

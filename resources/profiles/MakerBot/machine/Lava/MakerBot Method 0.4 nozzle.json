@@ -1,0 +1,98 @@
+{
+    "type": "machine",
+    "setting_id": "MakerBot Method 0.4 nozzle",
+    "name": "MakerBot Method 0.4 nozzle",
+    "inherits": "fdm_makerbot_lava_common",
+    "from": "system",
+    "instantiation": "true",
+    "gcode_flavor": "makerbot_lava",
+    "printer_model": "MakerBot Method",
+    "model_id": "MakerBot Method",
+    "printer_variant": "0.4",
+    "default_filament_profile": [
+        "Generic PLA @MakerBot Method",
+        "Generic PLA @MakerBot Method"
+    ],
+    "default_print_profile": "0.20mm Standard @MakerBot Method 0.4 nozzle",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
+    "nozzle_type": [
+        "hardened_steel",
+        "hardened_steel"
+    ],
+    "extruder_type": [
+        "Direct Drive",
+        "Direct Drive"
+    ],
+    "default_nozzle_volume_type": [
+        "Standard",
+        "Standard"
+    ],
+    "printer_extruder_id": [
+        "1",
+        "2"
+    ],
+    "z_offset": [
+        "0",
+        "0"
+    ],
+    "host_type": "makerbotlink",
+    "printer_vendor": "MakerBot",
+    "gpx_machine_type": "",
+    "makerbot_bot_type": "method",
+    "printer_structure": "corexy",
+    "support_multi_bed_types": "1",
+    "printable_area": [
+        "0x0",
+        "152x0",
+        "152x190",
+        "0x190"
+    ],
+    "printable_height": "196",
+    "min_layer_height": [
+        "0.08",
+        "0.08"
+    ],
+    "max_layer_height": [
+        "0.32",
+        "0.32"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_speed_e": [
+        "150",
+        "150"
+    ],
+    "machine_max_acceleration_x": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_speed_x": [
+        "150",
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "150",
+        "150"
+    ],
+    "machine_start_gcode": "M140 S[bed_temperature_initial_layer_single] T0 ; Set Platform Temp\nM104 S[nozzle_temperature_initial_layer] T0 ; Set Extruder Temp\nG90 ; Use Absolute Positioning\nG28 ; Home\nM132 X Y Z A B ; Set Current Position to Home\nG161 X Y F3300 ; Move to min axes positions\nM7 T0 ; Wait For Platform to Heat\nM6 T0 ; Wait For Extruders to Heat\nM651 ; Turn on back fan\nM907 X100 Y100 Z40 A80 B20 ; Set Stepper Currents\n; Purge Line\nM83 ; Relative Extrusion\nG1 X-26.18 Y-75.90 Z0.200 F420\nG1 X26.18 Y-75.90 E10\nM82 ; Absolute Extrusion",
+    "machine_end_gcode": "M104 S0 T0 ; Set Toolhead Temp to 0\nM140 S0 T0 ; Set Platform Temp to 0\nG162 Z F1800 ; Move to max axes position\nG28 X Y ; Home\nM652 ; Turn off back fan\nM132 X Y Z A B ; Set Home Position\nG91 ; Use Relative Positioning\nM18 ; Disable Axes",
+    "thumbnails": "140x106/PNG,212x300/PNG,90x90/PNG,120x120/PNG,320x320/PNG,640x640/PNG",
+    "smart_extruder_count": "2",
+    "smart_extruder_type": [
+        "mk14",
+        "mk14_s"
+    ]
+}

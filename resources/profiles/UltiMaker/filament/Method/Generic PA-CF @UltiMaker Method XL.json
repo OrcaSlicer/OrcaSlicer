@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"setting_id": "Generic PA-CF @UltiMaker Method XL",
+	"name": "Generic PA-CF @UltiMaker Method XL",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFN98",
+	"filament_type": [
+		"PA-CF"
+	],
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"UltiMaker Method XL 0.4 nozzle"
+	],
+	"bed_temperature": [
+		"100"
+	],
+	"bed_temperature_initial_layer": [
+		"100"
+	],
+	"chamber_temperature": [
+		"55"
+	],
+	"activate_chamber_temp_control": [
+		"1"
+	]
+}

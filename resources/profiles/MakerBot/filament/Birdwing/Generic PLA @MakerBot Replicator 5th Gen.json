@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"setting_id": "Generic PLA @MakerBot Replicator 5th Gen",
+	"name": "Generic PLA @MakerBot Replicator 5th Gen",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFL99",
+	"filament_type": [
+		"PLA"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"MakerBot Replicator 5th Gen 0.4 nozzle"
+	],
+	"nozzle_temperature": [
+		"215"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
+	],
+	"bed_temperature": [
+		"0"
+	],
+	"bed_temperature_initial_layer": [
+		"0"
+	]
+}

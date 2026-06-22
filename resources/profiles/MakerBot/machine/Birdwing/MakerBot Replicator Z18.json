@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Replicator Z18",
+    "model_id": "MakerBot Replicator Z18",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8;1",
+    "machine_tech": "FFF",
+    "family": "Birdwing",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_replicator_z18.stl",
+    "bed_texture": "makerbot_replicator_z18_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Replicator Z18;Generic PETG @MakerBot Replicator Z18"
+}

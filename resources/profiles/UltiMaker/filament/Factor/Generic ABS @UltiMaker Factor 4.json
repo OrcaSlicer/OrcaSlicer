@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"setting_id": "Generic ABS @UltiMaker Factor 4",
+	"name": "Generic ABS @UltiMaker Factor 4",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFB99",
+	"filament_type": [
+		"ABS"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"UltiMaker Factor 4 0.4 nozzle",
+		"UltiMaker Factor 4 0.6 nozzle"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"bed_temperature": [
+		"100"
+	],
+	"bed_temperature_initial_layer": [
+		"100"
+	]
+}

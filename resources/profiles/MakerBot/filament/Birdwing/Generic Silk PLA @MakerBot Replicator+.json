@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"setting_id": "Generic Silk PLA @MakerBot Replicator+",
+	"name": "Generic Silk PLA @MakerBot Replicator+",
+	"inherits": "fdm_filament_pla_silk",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFL99",
+	"filament_type": [
+		"PLA"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"MakerBot Replicator+ 0.2 nozzle",
+		"MakerBot Replicator+ 0.4 nozzle",
+		"MakerBot Replicator+ 0.6 nozzle",
+		"MakerBot Replicator+ 0.8 nozzle",
+		"MakerBot Replicator+ 1 nozzle"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"bed_temperature": [
+		"0"
+	],
+	"bed_temperature_initial_layer": [
+		"0"
+	]
+}

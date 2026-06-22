@@ -1,0 +1,72 @@
+{
+    "type": "machine",
+    "name": "fdm_makerbot_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "marlin",
+    "machine_max_acceleration_e": [
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_acceleration_travel": [
+        "500"
+    ],
+    "machine_max_acceleration_x": [
+        "500"
+    ],
+    "machine_max_acceleration_y": [
+        "500"
+    ],
+    "machine_max_acceleration_z": [
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printable_height": "250",
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "2"
+    ]
+}

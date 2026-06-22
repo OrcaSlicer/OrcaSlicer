@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "UltiMaker S7",
+    "model_id": "UltiMaker S7",
+    "nozzle_diameter": "0.25;0.4;0.8",
+    "machine_tech": "FFF",
+    "family": "SSERIES",
+    "vendor": "UltiMaker",
+    "bed_model": "ultimaker_S7.stl",
+    "bed_texture": "ultimaker_s7_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @UltiMaker S7;Generic PETG @UltiMaker S7"
+}

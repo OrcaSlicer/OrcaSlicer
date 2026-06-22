@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "MakerBot Replicator 5th Gen",
+    "model_id": "MakerBot Replicator 5th Gen",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Birdwing",
+    "vendor": "MakerBot",
+    "bed_model": "makerbot_replicator_5th_gen.stl",
+    "bed_texture": "makerbot_replicator_5th_gen_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MakerBot Replicator 5th Gen;Generic PETG @MakerBot Replicator 5th Gen"
+}

@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+	"setting_id": "Generic Silk PLA @Ultimaker Original+",
+	"name": "Generic Silk PLA @Ultimaker Original+",
+	"inherits": "fdm_filament_pla_silk",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFL99",
+	"filament_type": [
+		"PLA"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"Ultimaker Original+ 0.4 nozzle"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"bed_temperature": [
+		"0"
+	],
+	"bed_temperature_initial_layer": [
+		"0"
+	]
+}

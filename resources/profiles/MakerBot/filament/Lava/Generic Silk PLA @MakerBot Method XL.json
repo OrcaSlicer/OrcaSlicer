@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"setting_id": "Generic Silk PLA @MakerBot Method XL",
+	"name": "Generic Silk PLA @MakerBot Method XL",
+	"inherits": "fdm_filament_pla_silk",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFL99",
+	"filament_type": [
+		"PLA"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"MakerBot Method XL 0.4 nozzle"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"bed_temperature": [
+		"0"
+	],
+	"bed_temperature_initial_layer": [
+		"0"
+	]
+}

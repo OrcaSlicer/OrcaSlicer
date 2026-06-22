@@ -1,0 +1,35 @@
+{
+	"type": "filament",
+	"setting_id": "Generic ABS @Ultimaker 3 Extended",
+	"name": "Generic ABS @Ultimaker 3 Extended",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFB99",
+	"filament_type": [
+		"ABS"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"Ultimaker 3 Extended 0.25 nozzle",
+		"Ultimaker 3 Extended 0.4 nozzle",
+		"Ultimaker 3 Extended 0.8 nozzle"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"bed_temperature": [
+		"100"
+	],
+	"bed_temperature_initial_layer": [
+		"100"
+	]
+}

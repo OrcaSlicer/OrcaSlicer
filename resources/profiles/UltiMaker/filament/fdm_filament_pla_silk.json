@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_pla_silk",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"instantiation": "false",
+	"filament_type": [
+		"PLA"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_cost": [
+		"24"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	]
+}

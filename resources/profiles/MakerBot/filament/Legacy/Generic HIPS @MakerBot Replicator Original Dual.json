@@ -1,0 +1,49 @@
+{
+	"type": "filament",
+	"setting_id": "Generic HIPS @MakerBot Replicator Original Dual",
+	"name": "Generic HIPS @MakerBot Replicator Original Dual",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFB99",
+	"filament_type": [
+		"ABS"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"MakerBot Replicator Original Dual 0.2 nozzle",
+		"MakerBot Replicator Original Dual 0.4 nozzle",
+		"MakerBot Replicator Original Dual 0.6 nozzle",
+		"MakerBot Replicator Original Dual 0.8 nozzle",
+		"MakerBot Replicator Original Dual 1 nozzle"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"filament_diameter": [
+		"1.77"
+	],
+	"bed_temperature": [
+		"110"
+	],
+	"bed_temperature_initial_layer": [
+		"110"
+	],
+	"filament_retract_length": [
+		"1.3"
+	],
+	"filament_retraction_speed": [
+		"25"
+	],
+	"filament_deretraction_speed": [
+		"25"
+	],
+	"filament_max_volumetric_speed": [
+		"4.0"
+	]
+}

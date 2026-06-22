@@ -1,0 +1,81 @@
+{
+    "type": "machine",
+    "setting_id": "MakerBot Replicator Original 0.6 nozzle",
+    "name": "MakerBot Replicator Original 0.6 nozzle",
+    "inherits": "fdm_makerbot_legacy_common",
+    "from": "system",
+    "instantiation": "true",
+    "gcode_flavor": "makerbot_legacy",
+    "printer_model": "MakerBot Replicator Original",
+    "model_id": "MakerBot Replicator Original",
+    "printer_variant": "0.6",
+    "default_filament_profile": [
+        "Generic PLA @MakerBot Replicator Original"
+    ],
+    "default_print_profile": "0.28mm Draft @MakerBot Replicator Original 0.6 nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "nozzle_type": [
+        "brass"
+    ],
+    "extruder_type": [
+        "Direct Drive"
+    ],
+    "default_nozzle_volume_type": [
+        "Standard"
+    ],
+    "printer_extruder_id": [
+        "1"
+    ],
+    "z_offset": [
+        "0"
+    ],
+    "host_type": "makerbotlink",
+    "printer_vendor": "MakerBot",
+    "gpx_machine_type": "r1",
+    "makerbot_bot_type": "",
+    "printer_structure": "corexy",
+    "support_multi_bed_types": "1",
+    "printable_area": [
+        "0x0",
+        "225x0",
+        "225x145",
+        "0x145"
+    ],
+    "printable_height": "150",
+    "min_layer_height": [
+        "0.12"
+    ],
+    "max_layer_height": [
+        "0.48"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_speed_e": [
+        "100"
+    ],
+    "machine_max_acceleration_x": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_speed_x": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_y": [
+        "100",
+        "100"
+    ],
+    "machine_start_gcode": "G162 X Y F2000 ; home XY axes maximum\nG161 Z F900 ; home Z axis minimum\nG92 Z-5 ; set Z to -5\nG1 Z0.0 F900 ; move Z to '0'\nG161 Z F100 ; home Z axis minimum\nM132 X Y Z A B ; Recall stored home offsets\nG1 X152 Y75 Z0 A0 B0\nG1 X-141 Y-74 Z40 F3300.0 ; move to waiting position\nG130 X20 Y20 A20 B20 ; Lower stepper Vrefs while heating\nM109 S[bed_temperature_initial_layer_single] T0 ; Set platform (bed) temperature\nM134 T0 ; Wait for platform to reach temperature\nM135 T0 ; Load right Toolhead\nM104 S[nozzle_temperature_initial_layer] T0 ; Set extruder temperature\nM133 T0 ; Wait for Toolhead to heat\nG130 X127 Y127 A127 B127 ; Set Stepper motor Vref to defaults",
+    "machine_end_gcode": "M18 A B ; Turn off A and B Steppers\nG1 Z155 F900\nG162 X Y F2000\nM18 X Y Z ; Turn off steppers after a build\nM109 S0 T0\nM104 S0 T0\nM70 P5 ; We <3 Making Things!\nM72 P1 ; Play Ta-Da song",
+    "use_relative_e_distances": "0"
+}

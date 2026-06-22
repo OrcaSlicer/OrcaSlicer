@@ -1,0 +1,2095 @@
+{
+	"name": "MakerBot",
+	"version": "01.00.00.02",
+	"config_version": "1.0.0.0",
+	"force_update": "1",
+	"description": "MakerBot configurations",
+	"machine_model_list": [
+		{
+			"name": "MakerBot Thing-O-Matic ABP",
+			"sub_path": "machine/Legacy/MakerBot Thing-O-Matic ABP.json"
+		},
+		{
+			"name": "MakerBot Replicator Original",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original.json"
+		},
+		{
+			"name": "MakerBot Replicator Original Dual",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original Dual.json"
+		},
+		{
+			"name": "MakerBot Replicator 2X",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2X.json"
+		},
+		{
+			"name": "MakerBot Thing-O-Matic Acrylic",
+			"sub_path": "machine/Legacy/MakerBot Thing-O-Matic Acrylic.json"
+		},
+		{
+			"name": "MakerBot Replicator 2",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2.json"
+		},
+		{
+			"name": "MakerBot Cupcake CNC",
+			"sub_path": "machine/Legacy/MakerBot Cupcake CNC.json"
+		},
+		{
+			"name": "MakerBot Sketch Large",
+			"sub_path": "machine/Sketch/MakerBot Sketch Large.json"
+		},
+		{
+			"name": "MakerBot Sketch",
+			"sub_path": "machine/Sketch/MakerBot Sketch.json"
+		},
+		{
+			"name": "MakerBot Sketch Sprint",
+			"sub_path": "machine/Sketch/MakerBot Sketch Sprint.json"
+		},
+		{
+			"name": "MakerBot Replicator+",
+			"sub_path": "machine/Birdwing/MakerBot Replicator+.json"
+		},
+		{
+			"name": "MakerBot Replicator 5th Gen",
+			"sub_path": "machine/Birdwing/MakerBot Replicator 5th Gen.json"
+		},
+		{
+			"name": "MakerBot Replicator Mini+",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Mini+.json"
+		},
+		{
+			"name": "MakerBot Replicator Z18",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Z18.json"
+		},
+		{
+			"name": "MakerBot Replicator Mini",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Mini.json"
+		},
+		{
+			"name": "MakerBot Method X Carbon Fiber",
+			"sub_path": "machine/Lava/MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "MakerBot Method",
+			"sub_path": "machine/Lava/MakerBot Method.json"
+		},
+		{
+			"name": "MakerBot Method X",
+			"sub_path": "machine/Lava/MakerBot Method X.json"
+		},
+		{
+			"name": "MakerBot Method XL",
+			"sub_path": "machine/Lava/MakerBot Method XL.json"
+		}
+	],
+	"process_list": [
+		{
+			"name": "fdm_process_common",
+			"sub_path": "process/fdm_process_common.json"
+		},
+		{
+			"name": "fdm_process_makerbot_common",
+			"sub_path": "process/fdm_process_makerbot_common.json"
+		},
+		{
+			"name": "0.56mm Coarse @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.56mm Coarse @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.60mm Coarse @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.60mm Coarse @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.64mm Coarse @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.64mm Coarse @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.10mm Extra Fine @MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "process/Legacy/0.10mm Extra Fine @MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.72mm Extra Coarse @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.72mm Extra Coarse @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.10mm Extra Fine @MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "process/Legacy/0.10mm Extra Fine @MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.06mm Ultra Fine @MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "process/Legacy/0.06mm Ultra Fine @MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.64mm Coarse @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.64mm Coarse @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.72mm Extra Coarse @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.72mm Extra Coarse @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.64mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.64mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "process/Legacy/0.04mm Ultra Fine @MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.56mm Coarse @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.56mm Coarse @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "process/Legacy/0.04mm Ultra Fine @MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.06mm Ultra Fine @MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "process/Legacy/0.06mm Ultra Fine @MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.10mm Extra Fine @MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "process/Legacy/0.10mm Extra Fine @MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "0.80mm Extra Coarse @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.80mm Extra Coarse @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.80mm Extra Coarse @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.80mm Extra Coarse @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.80mm Extra Coarse @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.80mm Extra Coarse @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.64mm Coarse @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.64mm Coarse @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.72mm Extra Coarse @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.72mm Extra Coarse @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.56mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "process/Legacy/0.56mm Coarse @MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "process/Legacy/0.36mm Draft @MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "process/Legacy/0.04mm Ultra Fine @MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.80mm Extra Coarse @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.80mm Extra Coarse @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.16mm Optimal @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.60mm Coarse @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.60mm Coarse @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.56mm Coarse @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.56mm Coarse @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.60mm Coarse @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.60mm Coarse @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.72mm Extra Coarse @MakerBot Replicator 2 1 nozzle",
+			"sub_path": "process/Legacy/0.72mm Extra Coarse @MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.20mm Standard @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.06mm Ultra Fine @MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "process/Legacy/0.06mm Ultra Fine @MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "0.60mm Coarse @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.60mm Coarse @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "process/Legacy/0.04mm Ultra Fine @MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "0.10mm Extra Fine @MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "process/Legacy/0.10mm Extra Fine @MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "process/Legacy/0.32mm Draft @MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "process/Legacy/0.24mm Draft @MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "process/Legacy/0.08mm Extra Fine @MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "process/Legacy/0.48mm Coarse @MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.12mm Fine @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.40mm Coarse @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original 1 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "process/Legacy/0.28mm Draft @MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "0.06mm Ultra Fine @MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "process/Legacy/0.06mm Ultra Fine @MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "process/Legacy/0.42mm Coarse @MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.20mm Standard @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.16mm Optimal @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.12mm Fine @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.28mm Draft @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.28mm Draft @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.08mm Extra Fine @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.24mm Draft @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.32mm Draft @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.16mm Optimal @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.24mm Draft @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.20mm Standard @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.08mm Extra Fine @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.08mm Extra Fine @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.28mm Draft @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "process/Sketch/0.20mm Standard @MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.12mm Fine @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.12mm Fine @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.16mm Optimal @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.32mm Draft @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Sketch 0.4 nozzle",
+			"sub_path": "process/Sketch/0.24mm Draft @MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "process/Sketch/0.32mm Draft @MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "0.10mm Extra Fine @MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.10mm Extra Fine @MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "0.64mm Coarse @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.64mm Coarse @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.48mm Coarse @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.48mm Coarse @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.36mm Draft @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.42mm Coarse @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.48mm Coarse @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.40mm Coarse @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.64mm Coarse @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.64mm Coarse @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.60mm Coarse @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.60mm Coarse @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.10mm Extra Fine @MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.10mm Extra Fine @MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.72mm Extra Coarse @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.72mm Extra Coarse @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.72mm Extra Coarse @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.72mm Extra Coarse @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.48mm Coarse @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.04mm Ultra Fine @MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.40mm Coarse @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.04mm Ultra Fine @MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.36mm Draft @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.36mm Draft @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.40mm Coarse @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.60mm Coarse @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.60mm Coarse @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.48mm Coarse @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.06mm Ultra Fine @MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.06mm Ultra Fine @MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.06mm Ultra Fine @MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.06mm Ultra Fine @MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "0.80mm Extra Coarse @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.80mm Extra Coarse @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.16mm Optimal @MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.56mm Coarse @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.56mm Coarse @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "0.48mm Coarse @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.48mm Coarse @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.42mm Coarse @MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "process/Birdwing/0.42mm Coarse @MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.28mm Draft @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "0.40mm Coarse @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.40mm Coarse @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.08mm Extra Fine @MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.12mm Fine @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.56mm Coarse @MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "process/Birdwing/0.56mm Coarse @MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.24mm Draft @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "process/Birdwing/0.32mm Draft @MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "0.80mm Extra Coarse @MakerBot Replicator+ 1 nozzle",
+			"sub_path": "process/Birdwing/0.80mm Extra Coarse @MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "process/Birdwing/0.20mm Standard @MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.12mm Fine @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.08mm Extra Fine @MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.20mm Standard @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.32mm Draft @MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.32mm Draft @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.08mm Extra Fine @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.28mm Draft @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.12mm Fine @MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.16mm Optimal @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.12mm Fine @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.20mm Standard @MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.24mm Draft @MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.24mm Draft @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.32mm Draft @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.28mm Draft @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.32mm Draft @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.16mm Optimal @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.08mm Extra Fine @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.24mm Draft @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.28mm Draft @MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Draft @MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "process/Lava/0.28mm Draft @MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.20mm Standard @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.20mm Standard @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @MakerBot Method XL 0.4 nozzle",
+			"sub_path": "process/Lava/0.24mm Draft @MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.08mm Extra Fine @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.16mm Optimal @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @MakerBot Method X 0.4 nozzle",
+			"sub_path": "process/Lava/0.12mm Fine @MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Optimal @MakerBot Method 0.4 nozzle",
+			"sub_path": "process/Lava/0.16mm Optimal @MakerBot Method 0.4 nozzle.json"
+		}
+	],
+	"filament_list": [
+		{
+			"name": "fdm_filament_common",
+			"sub_path": "filament/fdm_filament_common.json"
+		},
+		{
+			"name": "fdm_filament_abs",
+			"sub_path": "filament/fdm_filament_abs.json"
+		},
+		{
+			"name": "fdm_filament_pa",
+			"sub_path": "filament/fdm_filament_pa.json"
+		},
+		{
+			"name": "fdm_filament_asa",
+			"sub_path": "filament/fdm_filament_asa.json"
+		},
+		{
+			"name": "fdm_filament_pla",
+			"sub_path": "filament/fdm_filament_pla.json"
+		},
+		{
+			"name": "fdm_filament_pla_silk",
+			"sub_path": "filament/fdm_filament_pla_silk.json"
+		},
+		{
+			"name": "fdm_filament_pet",
+			"sub_path": "filament/fdm_filament_pet.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator Original",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Replicator Original.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Thing-O-Matic Acrylic",
+			"sub_path": "filament/Legacy/Generic ABS @MakerBot Thing-O-Matic Acrylic.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Replicator 2",
+			"sub_path": "filament/Legacy/Generic PETG @MakerBot Replicator 2.json"
+		},
+		{
+			"name": "Generic HIPS @MakerBot Replicator 2X",
+			"sub_path": "filament/Legacy/Generic HIPS @MakerBot Replicator 2X.json"
+		},
+		{
+			"name": "Generic HIPS @MakerBot Replicator Original Dual",
+			"sub_path": "filament/Legacy/Generic HIPS @MakerBot Replicator Original Dual.json"
+		},
+		{
+			"name": "Generic HIPS @MakerBot Replicator Original",
+			"sub_path": "filament/Legacy/Generic HIPS @MakerBot Replicator Original.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator 2",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Replicator 2.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Thing-O-Matic ABP",
+			"sub_path": "filament/Legacy/Generic ABS @MakerBot Thing-O-Matic ABP.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator Original Dual",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Replicator Original Dual.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Thing-O-Matic ABP",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Thing-O-Matic ABP.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator 2X",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Replicator 2X.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator 2X",
+			"sub_path": "filament/Legacy/Generic ABS @MakerBot Replicator 2X.json"
+		},
+		{
+			"name": "Generic HIPS @MakerBot Thing-O-Matic Acrylic",
+			"sub_path": "filament/Legacy/Generic HIPS @MakerBot Thing-O-Matic Acrylic.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Thing-O-Matic Acrylic",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Thing-O-Matic Acrylic.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Cupcake CNC",
+			"sub_path": "filament/Legacy/Generic PETG @MakerBot Cupcake CNC.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator Original Dual",
+			"sub_path": "filament/Legacy/Generic ABS @MakerBot Replicator Original Dual.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator Original",
+			"sub_path": "filament/Legacy/Generic ABS @MakerBot Replicator Original.json"
+		},
+		{
+			"name": "Generic HIPS @MakerBot Thing-O-Matic ABP",
+			"sub_path": "filament/Legacy/Generic HIPS @MakerBot Thing-O-Matic ABP.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Cupcake CNC",
+			"sub_path": "filament/Legacy/Generic PLA @MakerBot Cupcake CNC.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Sketch Sprint",
+			"sub_path": "filament/Sketch/Generic ABS @MakerBot Sketch Sprint.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Sketch Sprint",
+			"sub_path": "filament/Sketch/Generic PETG @MakerBot Sketch Sprint.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Sketch",
+			"sub_path": "filament/Sketch/Generic Silk PLA @MakerBot Sketch.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Sketch",
+			"sub_path": "filament/Sketch/Generic PETG @MakerBot Sketch.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Sketch Large",
+			"sub_path": "filament/Sketch/Generic Silk PLA @MakerBot Sketch Large.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Sketch Large",
+			"sub_path": "filament/Sketch/Generic PLA @MakerBot Sketch Large.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Sketch",
+			"sub_path": "filament/Sketch/Generic ABS @MakerBot Sketch.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Sketch Sprint",
+			"sub_path": "filament/Sketch/Generic ASA @MakerBot Sketch Sprint.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Sketch Large",
+			"sub_path": "filament/Sketch/Generic ASA @MakerBot Sketch Large.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Sketch Sprint",
+			"sub_path": "filament/Sketch/Generic Silk PLA @MakerBot Sketch Sprint.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Sketch Sprint",
+			"sub_path": "filament/Sketch/Generic PLA @MakerBot Sketch Sprint.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Sketch Large",
+			"sub_path": "filament/Sketch/Generic ABS @MakerBot Sketch Large.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Sketch Large",
+			"sub_path": "filament/Sketch/Generic PETG @MakerBot Sketch Large.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Sketch",
+			"sub_path": "filament/Sketch/Generic PLA @MakerBot Sketch.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Sketch",
+			"sub_path": "filament/Sketch/Generic ASA @MakerBot Sketch.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Replicator 5th Gen",
+			"sub_path": "filament/Birdwing/Generic ASA @MakerBot Replicator 5th Gen.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Replicator Mini",
+			"sub_path": "filament/Birdwing/Generic ASA @MakerBot Replicator Mini.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Replicator+",
+			"sub_path": "filament/Birdwing/Generic ASA @MakerBot Replicator+.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Replicator Mini",
+			"sub_path": "filament/Birdwing/Generic Silk PLA @MakerBot Replicator Mini.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Replicator 5th Gen",
+			"sub_path": "filament/Birdwing/Generic PETG @MakerBot Replicator 5th Gen.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator Mini",
+			"sub_path": "filament/Birdwing/Generic ABS @MakerBot Replicator Mini.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator+",
+			"sub_path": "filament/Birdwing/Generic PLA @MakerBot Replicator+.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Replicator Mini",
+			"sub_path": "filament/Birdwing/Generic PETG @MakerBot Replicator Mini.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator 5th Gen",
+			"sub_path": "filament/Birdwing/Generic PLA @MakerBot Replicator 5th Gen.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Replicator+",
+			"sub_path": "filament/Birdwing/Generic PETG @MakerBot Replicator+.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Replicator Mini+",
+			"sub_path": "filament/Birdwing/Generic Silk PLA @MakerBot Replicator Mini+.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Replicator+",
+			"sub_path": "filament/Birdwing/Generic Silk PLA @MakerBot Replicator+.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Replicator Z18",
+			"sub_path": "filament/Birdwing/Generic PETG @MakerBot Replicator Z18.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Replicator Mini+",
+			"sub_path": "filament/Birdwing/Generic PETG @MakerBot Replicator Mini+.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Replicator Z18",
+			"sub_path": "filament/Birdwing/Generic ASA @MakerBot Replicator Z18.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Replicator Z18",
+			"sub_path": "filament/Birdwing/Generic Silk PLA @MakerBot Replicator Z18.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Replicator Mini+",
+			"sub_path": "filament/Birdwing/Generic ASA @MakerBot Replicator Mini+.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator 5th Gen",
+			"sub_path": "filament/Birdwing/Generic ABS @MakerBot Replicator 5th Gen.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Replicator 5th Gen",
+			"sub_path": "filament/Birdwing/Generic Silk PLA @MakerBot Replicator 5th Gen.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator Z18",
+			"sub_path": "filament/Birdwing/Generic ABS @MakerBot Replicator Z18.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator Mini",
+			"sub_path": "filament/Birdwing/Generic PLA @MakerBot Replicator Mini.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator+",
+			"sub_path": "filament/Birdwing/Generic ABS @MakerBot Replicator+.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator Mini+",
+			"sub_path": "filament/Birdwing/Generic PLA @MakerBot Replicator Mini+.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Replicator Mini+",
+			"sub_path": "filament/Birdwing/Generic ABS @MakerBot Replicator Mini+.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Replicator Z18",
+			"sub_path": "filament/Birdwing/Generic PLA @MakerBot Replicator Z18.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Method X Carbon Fiber",
+			"sub_path": "filament/Lava/Generic ABS @MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Method XL",
+			"sub_path": "filament/Lava/Generic PETG @MakerBot Method XL.json"
+		},
+		{
+			"name": "Generic PA-CF @MakerBot Method X",
+			"sub_path": "filament/Lava/Generic PA-CF @MakerBot Method X.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Method X",
+			"sub_path": "filament/Lava/Generic PLA @MakerBot Method X.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Method X",
+			"sub_path": "filament/Lava/Generic ASA @MakerBot Method X.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Method XL",
+			"sub_path": "filament/Lava/Generic Silk PLA @MakerBot Method XL.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Method XL",
+			"sub_path": "filament/Lava/Generic ASA @MakerBot Method XL.json"
+		},
+		{
+			"name": "Generic PA-CF @MakerBot Method XL",
+			"sub_path": "filament/Lava/Generic PA-CF @MakerBot Method XL.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Method X",
+			"sub_path": "filament/Lava/Generic Silk PLA @MakerBot Method X.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Method X",
+			"sub_path": "filament/Lava/Generic PETG @MakerBot Method X.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Method X",
+			"sub_path": "filament/Lava/Generic ABS @MakerBot Method X.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Method X Carbon Fiber",
+			"sub_path": "filament/Lava/Generic Silk PLA @MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Method X Carbon Fiber",
+			"sub_path": "filament/Lava/Generic PLA @MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Method XL",
+			"sub_path": "filament/Lava/Generic PLA @MakerBot Method XL.json"
+		},
+		{
+			"name": "Generic PA-CF @MakerBot Method X Carbon Fiber",
+			"sub_path": "filament/Lava/Generic PA-CF @MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Method X Carbon Fiber",
+			"sub_path": "filament/Lava/Generic PETG @MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Method X Carbon Fiber",
+			"sub_path": "filament/Lava/Generic ASA @MakerBot Method X Carbon Fiber.json"
+		},
+		{
+			"name": "Generic Silk PLA @MakerBot Method",
+			"sub_path": "filament/Lava/Generic Silk PLA @MakerBot Method.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Method XL",
+			"sub_path": "filament/Lava/Generic ABS @MakerBot Method XL.json"
+		},
+		{
+			"name": "Generic PLA @MakerBot Method",
+			"sub_path": "filament/Lava/Generic PLA @MakerBot Method.json"
+		},
+		{
+			"name": "Generic PETG @MakerBot Method",
+			"sub_path": "filament/Lava/Generic PETG @MakerBot Method.json"
+		},
+		{
+			"name": "Generic ASA @MakerBot Method",
+			"sub_path": "filament/Lava/Generic ASA @MakerBot Method.json"
+		},
+		{
+			"name": "Generic ABS @MakerBot Method",
+			"sub_path": "filament/Lava/Generic ABS @MakerBot Method.json"
+		}
+	],
+	"machine_list": [
+		{
+			"name": "fdm_machine_common",
+			"sub_path": "machine/fdm_machine_common.json"
+		},
+		{
+			"name": "fdm_makerbot_common",
+			"sub_path": "machine/fdm_makerbot_common.json"
+		},
+		{
+			"name": "fdm_makerbot_legacy_common",
+			"sub_path": "machine/Legacy/fdm_makerbot_legacy_common.json"
+		},
+		{
+			"name": "fdm_makerbot_sketch_common",
+			"sub_path": "machine/Sketch/fdm_makerbot_sketch_common.json"
+		},
+		{
+			"name": "fdm_makerbot_birdwing_common",
+			"sub_path": "machine/Birdwing/fdm_makerbot_birdwing_common.json"
+		},
+		{
+			"name": "fdm_makerbot_lava_common",
+			"sub_path": "machine/Lava/fdm_makerbot_lava_common.json"
+		},
+		{
+			"name": "MakerBot Replicator 2 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Thing-O-Matic Acrylic 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Thing-O-Matic Acrylic 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2 0.2 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2 0.2 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original Dual 0.2 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original Dual 0.2 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original 0.8 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original 0.8 nozzle.json"
+		},
+		{
+			"name": "MakerBot Thing-O-Matic Acrylic 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Thing-O-Matic Acrylic 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Cupcake CNC 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Cupcake CNC 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2 0.8 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2 0.8 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original Dual 1 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original Dual 1 nozzle.json"
+		},
+		{
+			"name": "MakerBot Cupcake CNC 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Cupcake CNC 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2X 0.2 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2X 0.2 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2X 0.8 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2X 0.8 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original 0.2 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original 0.2 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original 1 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original 1 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2X 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2X 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2X 1 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2X 1 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original Dual 0.8 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original Dual 0.8 nozzle.json"
+		},
+		{
+			"name": "MakerBot Thing-O-Matic ABP 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Thing-O-Matic ABP 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original Dual 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original Dual 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Original Dual 0.6 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator Original Dual 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Thing-O-Matic ABP 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Thing-O-Matic ABP 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2X 0.4 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2X 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 2 1 nozzle",
+			"sub_path": "machine/Legacy/MakerBot Replicator 2 1 nozzle.json"
+		},
+		{
+			"name": "MakerBot Sketch Sprint 0.4 nozzle",
+			"sub_path": "machine/Sketch/MakerBot Sketch Sprint 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Sketch 0.4 nozzle",
+			"sub_path": "machine/Sketch/MakerBot Sketch 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Sketch Large 0.4 nozzle",
+			"sub_path": "machine/Sketch/MakerBot Sketch Large 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator+ 0.4 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator+ 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Z18 1 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Z18 1 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Z18 0.6 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Z18 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator+ 1 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator+ 1 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator+ 0.6 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator+ 0.6 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Z18 0.4 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Z18 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Mini+ 0.4 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Mini+ 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Z18 0.8 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Z18 0.8 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator+ 0.8 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator+ 0.8 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Mini 0.4 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Mini 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator Z18 0.2 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator Z18 0.2 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator+ 0.2 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator+ 0.2 nozzle.json"
+		},
+		{
+			"name": "MakerBot Replicator 5th Gen 0.4 nozzle",
+			"sub_path": "machine/Birdwing/MakerBot Replicator 5th Gen 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Method XL 0.4 nozzle",
+			"sub_path": "machine/Lava/MakerBot Method XL 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Method 0.4 nozzle",
+			"sub_path": "machine/Lava/MakerBot Method 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Method X 0.4 nozzle",
+			"sub_path": "machine/Lava/MakerBot Method X 0.4 nozzle.json"
+		},
+		{
+			"name": "MakerBot Method X Carbon Fiber 0.4 nozzle",
+			"sub_path": "machine/Lava/MakerBot Method X Carbon Fiber 0.4 nozzle.json"
+		}
+	]
+}

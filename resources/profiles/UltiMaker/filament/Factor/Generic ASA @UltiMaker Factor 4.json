@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"setting_id": "Generic ASA @UltiMaker Factor 4",
+	"name": "Generic ASA @UltiMaker Factor 4",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"instantiation": "true",
+	"filament_id": "OGFB98",
+	"filament_type": [
+		"ASA"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"UltiMaker Factor 4 0.4 nozzle",
+		"UltiMaker Factor 4 0.6 nozzle"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"bed_temperature": [
+		"100"
+	],
+	"bed_temperature_initial_layer": [
+		"100"
+	]
+}

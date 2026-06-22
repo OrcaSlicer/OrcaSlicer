@@ -1,0 +1,8 @@
+{
+    "type": "machine",
+    "name": "fdm_makerbot_lava_common",
+    "inherits": "fdm_makerbot_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "makerbot_lava"
+}

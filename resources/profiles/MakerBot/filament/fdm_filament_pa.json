@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_pa",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"filament_type": [
+		"PA"
+	],
+	"filament_density": [
+		"1.04"
+	],
+	"filament_cost": [
+		"20"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	]
+}
