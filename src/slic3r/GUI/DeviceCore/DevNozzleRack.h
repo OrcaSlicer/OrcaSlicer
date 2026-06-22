@@ -84,9 +84,10 @@ public:
     void SendReadingFinished();
 
     // firmware
-    void AddNozzleFirmwareInfo(int nozzle_id, const DevFirmwareVersionInfo& info) { m_rack_nozzles_firmware[nozzle_id] = info; }
+    void AddNozzleFirmwareInfo(int nozzle_id, const DevFirmwareVersionInfo& info);
     void ClearNozzleFirmwareInfo() { m_rack_nozzles_firmware.clear(); }
     DevFirmwareVersionInfo GetNozzleFirmwareInfo(int nozzle_id) const;
+    std::string GetCachedNozzleSN(int nozzle_id) const;
 
     // setters
     void  Reset();
@@ -130,5 +131,6 @@ private:
 
     std::map<int, DevNozzle> m_rack_nozzles; // Map of nozzle ID to DevNozzle objects
     std::map<int, DevFirmwareVersionInfo> m_rack_nozzles_firmware;
+    std::map<int, std::string> m_rack_nozzles_sn_cache;
 };
 };

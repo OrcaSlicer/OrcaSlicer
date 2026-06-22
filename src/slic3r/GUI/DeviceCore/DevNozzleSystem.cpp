@@ -260,7 +260,7 @@ DevFirmwareVersionInfo DevNozzle::GetFirmwareInfo() const
         }
         else
         {
-            if (m_nozzle_id == 0)
+            if (GetTotalExtruderCount() == 1 || AtRightExtruder())
             {
                 return nozzle_rack->GetNozzleSystem()->GetExtruderNozzleFirmware();
             }

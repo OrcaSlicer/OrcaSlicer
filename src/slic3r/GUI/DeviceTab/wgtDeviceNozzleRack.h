@@ -71,7 +71,7 @@ public:
     wgtDeviceNozzleRackToolHead(wxWindow* parent) : wxPanel(parent) { CreateGui(); }
 
 public:
-    void UpdateToolHeadInfo(const DevNozzle& extruder_nozzle);
+    void UpdateToolHeadInfo(const DevNozzle& extruder_nozzle, bool active);
     void Rescale();
 
 private:
@@ -80,8 +80,10 @@ private:
 private:
     bool m_extruder_nozzle_exist = false;
     std::string m_filament_color;
+    bool m_right_active = true;
 
     // GUI
+    wgtDeviceNozzleRackTitle* m_title_box{nullptr};
     ScalableBitmap* m_extruder_nozzle_normal = nullptr;
     ScalableBitmap* m_extruder_nozzle_empty  = nullptr;
     wxStaticBitmap* m_toolhead_icon;

@@ -19,6 +19,7 @@ void DevNozzleRack::Reset()
     m_position = RACK_POS_UNKNOWN;
     m_status = RACK_STATUS_UNKNOWN;
     m_rack_nozzles.clear();
+    m_rack_nozzles_sn_cache.clear();
 }
 
 void DevNozzleRack::SendReadingFinished()
@@ -40,10 +41,24 @@ DevNozzle DevNozzleRack::GetNozzle(int idx) const
     return iter->second;
 }
 
+void DevNozzleRack::AddNozzleFirmwareInfo(int nozzle_id, const DevFirmwareVersionInfo& info)
+{
+    m_rack_nozzles_firmware[nozzle_id] = info;
+    if (!info.sn.empty()) {
+        m_rack_nozzles_sn_cache[nozzle_id] = info.sn;
+    }
+}
+
 DevFirmwareVersionInfo DevNozzleRack::GetNozzleFirmwareInfo(int nozzle_id) const
 {
     auto iter = m_rack_nozzles_firmware.find(nozzle_id);
     return iter != m_rack_nozzles_firmware.end() ? iter->second : DevFirmwareVersionInfo();
+}
+
+std::string DevNozzleRack::GetCachedNozzleSN(int nozzle_id) const
+{
+    auto iter = m_rack_nozzles_sn_cache.find(nozzle_id);
+    return iter != m_rack_nozzles_sn_cache.end() ? iter->second : "";
 }
 
 

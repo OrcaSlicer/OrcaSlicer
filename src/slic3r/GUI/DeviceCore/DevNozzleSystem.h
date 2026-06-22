@@ -79,6 +79,7 @@ namespace Slic3r
 
        int  GetLogicExtruderId() const;// warning: logical extruder id
        int  GetExtruderId() const;// warning: physical extruder id
+       int  GetTotalExtruderCount() const;
 
        /* holder nozzle*/
        bool IsOnRack() const { return m_on_rack; }
@@ -94,7 +95,6 @@ namespace Slic3r
        void SetOnRack(bool on_rack) { m_on_rack = on_rack; };
        void SetStatus(int stat) { m_stat = stat; }
    private:
-       int  GetTotalExtruderCount() const;
 
    private:
        bool m_on_rack = false;
