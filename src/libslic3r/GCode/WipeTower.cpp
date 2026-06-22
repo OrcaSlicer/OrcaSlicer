@@ -2152,9 +2152,11 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
         int base_temp = is_first_layer() ? m_filpar[new_tool].nozzle_temperature_initial_layer : m_filpar[new_tool].nozzle_temperature;
         if (interface_layer) {
             int interface_temp = m_filpar[new_tool].interface_print_temperature;
-            if (interface_temp > 0 && interface_temp != base_temp)
+            // H2C: emit no live temp command in the tower, matching BambuStudio (which leaves only
+            // a commented ;VM109). The carousel firmware manages the interface temp via M620.13 T.
+            if (interface_temp > 0 && interface_temp != base_temp && !m_is_multiple_nozzle)
                 writer.set_extruder_temp(interface_temp, true);
-            if (m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
+            if (m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp && !m_is_multiple_nozzle)
                 writer.set_extruder_temp(base_temp, false);
             float pre_dist = m_filpar[new_tool].tower_interface_pre_extrusion_dist;
             float pre_len = m_filpar[new_tool].tower_interface_pre_extrusion_length;
@@ -2203,7 +2205,8 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
         if (interface_layer) {
             int base_temp = is_first_layer() ? m_filpar[new_tool].nozzle_temperature_initial_layer : m_filpar[new_tool].nozzle_temperature;
             int interface_temp = m_filpar[new_tool].interface_print_temperature;
-            if (!m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
+            // H2C: see note above, no live temp command emitted in the tower.
+            if (!m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp && !m_is_multiple_nozzle)
                 writer.set_extruder_temp(base_temp, false);
         }
 

@@ -835,7 +835,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         //BBS: increase toolchange count
-        gcodegen.m_toolchange_count++;
+        // H2C: count only real tool changes; wipe-tower/nozzle-change tcr entries would
+        // otherwise inflate it and desync the M620 O{n} carousel ordinal (matches BBS).
+        if (!Vortek::WipeTower::is_h2c_printer(gcodegen.m_print) || tcr.is_tool_change)
+            gcodegen.m_toolchange_count++;
 
         std::string toolchange_gcode_str;
 
@@ -938,6 +941,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 float filament_area = float((M_PI / 4.f) * pow(full_config.filament_diameter.get_at(new_filament_id), 2));
                 float purge_length = purge_volume / filament_area;
 
+                // H2C: on a contact (interface) layer the M620.13 interface purge replaces the
+                // normal carousel flush (like BambuStudio). Zero flush_length so M620.10 uses L0
+                // and change_filament_gcode emits a single SYNC T0 (no extra dwell, no double purge).
+                const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(gcodegen.m_print);
+                if (is_h2c_multi_nozzle && full_config.enable_tower_interface_features && tcr.is_contact)
+                    purge_length = 0.f;
+
                 int old_filament_e_feedrate = (old_filament_id != -1) ? (int)(60.0 * full_config.filament_max_volumetric_speed.get_at(old_filament_id) / filament_area) : 200;
                 old_filament_e_feedrate = old_filament_e_feedrate == 0 ? 100 : old_filament_e_feedrate;
                 int new_filament_e_feedrate = (int)(60.0 * full_config.filament_max_volumetric_speed.get_at(new_filament_id) / filament_area);
@@ -966,10 +976,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 int interface_temp = full_config.filament_tower_interface_print_temp.get_at(new_filament_id);
                 if (interface_temp == -1)
                     interface_temp = full_config.nozzle_temperature_range_high.get_at(new_filament_id);
-                if (full_config.enable_tower_interface_features && tcr.is_contact)
+                // H2C keeps the new filament at its real print temp (BambuStudio emits P265/C265).
+                // The interface temp is carried only by the M620.13 T param, not by inflating the
+                // filament working temperature.
+                if (full_config.enable_tower_interface_features && tcr.is_contact && !is_h2c_multi_nozzle)
                     new_filament_temp = interface_temp;
                 config.set_key_value("new_filament_temp", new ConfigOptionInt(new_filament_temp));
-                if (full_config.enable_tower_interface_features && tcr.is_contact) {
+                if (full_config.enable_tower_interface_features && tcr.is_contact && !is_h2c_multi_nozzle) {
                     auto temps = full_config.nozzle_temperature.values;
                     if (new_filament_id >= 0 && new_filament_id < (int)temps.size())
                         temps[new_filament_id] = interface_temp;
@@ -1045,7 +1058,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("flush_length", new ConfigOptionFloat(purge_length));
                 float flush_length_a0 = purge_length;
                 float flush_length_a1 = purge_length;
-                const bool is_h2c_multi_nozzle = Vortek::WipeTower::is_h2c_printer(gcodegen.m_print);
                 if (is_h2c_multi_nozzle) {
                     int new_nozzle_id = -1;
                     if (gcodegen.m_print) {
