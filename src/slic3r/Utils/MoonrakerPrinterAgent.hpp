@@ -145,10 +145,13 @@ private:
     int resume_print(const std::string& dev_id);
     int cancel_print(const std::string& dev_id);
 
+    friend class QidiPrinterAgent;
+
     // File upload
     bool upload_gcode(const std::string& local_path, const std::string& filename,
                       const std::string& base_url, const std::string& api_key,
-                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn,
+                      const std::string& plate_index = std::string());
 
     // JSON-RPC helper
     bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,

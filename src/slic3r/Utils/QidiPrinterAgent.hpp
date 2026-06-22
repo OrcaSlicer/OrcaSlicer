@@ -21,7 +21,14 @@ public:
     // Override filament sync (Qidi-specific implementation)
     bool fetch_filament_info(std::string dev_id) override;
 
+    static bool normalize_3mf_for_upload_in_place(const std::string& path);
+
+    int start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
+
 private:
+    static bool normalize_3mf_for_upload(const std::string& source_path, std::string& normalized_path);
+
     struct QidiFilamentDict
     {
         std::map<int, std::string> colors;

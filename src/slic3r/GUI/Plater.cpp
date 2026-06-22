@@ -165,6 +165,7 @@
 #include "FileArchiveDialog.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/OrcaCloudServiceAgent.hpp"
+#include "../Utils/QidiPrinterAgent.hpp"
 #include "StepMeshDialog.hpp"
 #include "FilamentMapDialog.hpp"
 #include "CloneDialog.hpp"
@@ -15022,6 +15023,13 @@ void Plater::export_gcode_3mf(bool export_all)
             plate_idx = PLATE_ALL_IDX;
         export_3mf(output_path, SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode | SaveStrategy::SkipModel, plate_idx); // BBS: silence
 
+        const DynamicPrintConfig& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (!export_all && printer_config.opt_bool("use_3mf") && printer_config.opt_string("printer_agent") == "qidi" &&
+            !QidiPrinterAgent::normalize_3mf_for_upload_in_place(output_path.string())) {
+            show_error(this, _L("Failed to prepare Qidi 3MF export."), false);
+            return;
+        }
+
         RemovableDriveManager& removable_drive_manager = *wxGetApp().removable_drive_manager();
 
 
@@ -16289,6 +16297,12 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         if (result < 0) {
             wxString msg = _L("Abnormal print file data. Please slice again");
             show_error(this, msg, false);
+            return;
+        }
+
+        if (physical_printer_config->opt_string("printer_agent") == "qidi" &&
+            !QidiPrinterAgent::normalize_3mf_for_upload_in_place(p->m_print_job_data._3mf_path.string())) {
+            show_error(this, _L("Failed to prepare Qidi 3MF upload."), false);
             return;
         }
 

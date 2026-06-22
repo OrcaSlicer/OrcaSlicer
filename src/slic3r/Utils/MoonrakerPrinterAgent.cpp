@@ -1931,7 +1931,8 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
                                          const std::string& base_url,
                                          const std::string& api_key,
                                          OnUpdateStatusFn   update_fn,
-                                         WasCancelledFn     cancel_fn)
+                                         WasCancelledFn     cancel_fn,
+                                         const std::string& plate_index)
 {
     namespace fs = boost::filesystem;
 
@@ -1961,8 +1962,10 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
         http.header("X-Api-Key", api_key);
     }
     http.form_add("root", "gcodes") // Upload to gcodes directory
-        .form_add("print", "false") // Don't auto-start print
-        .form_add_file("file", source_path.string(), safe_filename)
+        .form_add("print", "false"); // Don't auto-start print
+    if (!plate_index.empty())
+        http.form_add("plateindex", plate_index);
+    http.form_add_file("file", source_path.string(), safe_filename)
         .timeout_connect(5)
         .timeout_max(300) // 5 minutes for large files
         .on_complete([&](std::string body, unsigned status) {
