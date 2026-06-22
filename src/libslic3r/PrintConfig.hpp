@@ -92,7 +92,7 @@ enum InfillPattern : int {
 // Returns true for all Magma infill patterns (solid after injection during printing).
 // Add future Magma geometries here (ipMagmaHex, etc.)
 inline bool is_magma_pattern(InfillPattern p) {
-    return p == ipMagmaTriangle;
+    return p == ipMagmaTriangle || p == ipMagmaRectilinear;
 }
 
 enum class MagmaTubeWidthMode : int {

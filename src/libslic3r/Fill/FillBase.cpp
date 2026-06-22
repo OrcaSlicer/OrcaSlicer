@@ -77,6 +77,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipLockedZag:           return new FillLockedZag();
     // Magma pattern for vertical reinforcement infill
     case ipMagmaTriangle:       return new FillMagmaTriangle();
+    case ipMagmaRectilinear:    return new FillMagmaRectilinear();
     default: throw Slic3r::InvalidArgument("unknown type");
     }
 }

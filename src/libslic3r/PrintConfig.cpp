@@ -2917,6 +2917,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("octagramspiral");
     // Magma infill pattern
     def->enum_values.push_back("magmatriangle");
+    def->enum_values.push_back("magmarectilinear");
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
     def->enum_labels.push_back(L("Zig Zag"));
@@ -2945,6 +2946,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Octagram Spiral"));
     // Magma infill pattern
     def->enum_labels.push_back(L("Magma Triangle"));
+    def->enum_labels.push_back(L("Magma Rectilinear"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
     def           = this->add("lateral_lattice_angle_1", coFloat);

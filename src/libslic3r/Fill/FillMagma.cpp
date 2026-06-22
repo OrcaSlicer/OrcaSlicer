@@ -257,4 +257,89 @@ void FillMagmaTriangle::_fill_surface_single(
     }
 }
 
+// ============================================================================
+// FillMagmaRectilinear — square grid (2 perpendicular single-wall families)
+// ============================================================================
+
+std::pair<float, Point> FillMagmaRectilinear::_infill_direction(const Surface *surface) const
+{
+    float out_angle = 0.f;
+    if (surface->bridge_angle >= 0)
+        out_angle = float(surface->bridge_angle);
+    return std::make_pair(out_angle, Point(0, 0));
+}
+
+void FillMagmaRectilinear::_fill_surface_single(
+    const FillParams &params,
+    unsigned int /*thickness_layers*/,
+    const std::pair<float, Point> & /*direction*/,
+    ExPolygon          expolygon,
+    Polylines         &polylines_out)
+{
+    if (!this->tube_map) {
+        BOOST_LOG_TRIVIAL(error) << "FillMagmaRectilinear: null tube_map on layer " << this->layer_id;
+        return;
+    }
+
+    FillParams no_anchor_params = params;
+    no_anchor_params.anchor_length     = 0.f;
+    no_anchor_params.anchor_length_max = 0.f;
+
+    const double cs    = this->tube_map->cell_spacing();
+    const int    layer = static_cast<int>(this->layer_id);
+
+    // Cached lattice with this layer's spiral offset.
+    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const double off_x = lattice.offset_x();
+    const double off_y = lattice.offset_y();
+
+    BoundingBox bbox = expolygon.contour.bounding_box();
+    double x_min = unscale<double>(bbox.min.x()) - cs;
+    double x_max = unscale<double>(bbox.max.x()) + cs;
+    double y_min = unscale<double>(bbox.min.y()) - cs;
+    double y_max = unscale<double>(bbox.max.y()) + cs;
+
+    // Square grid: lines spaced cs apart in both axes (no skew).
+    int row_min = static_cast<int>(std::floor((y_min - off_y) / cs));
+    int row_max = static_cast<int>(std::ceil ((y_max - off_y) / cs));
+    int col_min = static_cast<int>(std::floor((x_min - off_x) / cs));
+    int col_max = static_cast<int>(std::ceil ((x_max - off_x) / cs));
+
+    auto clip_lines = [&](Polylines &raw) -> Polylines {
+        Polylines clipped;
+        for (Polyline &pl : raw) {
+            Polylines frags = intersection_pl(Polylines{std::move(pl)}, expolygon);
+            append(clipped, std::move(frags));
+        }
+        return clipped;
+    };
+
+    // --- Horizontal lines (one per row b): y = b*cs + off_y ---
+    {
+        Polylines raw;
+        for (int b = row_min; b <= row_max; ++b) {
+            coord_t y_s = coord_t(scale_(b * cs + off_y));
+            raw.push_back(make_horiz_segment(x_min, x_max, y_s));
+        }
+        Polylines clipped = clip_lines(raw);
+        if (!clipped.empty())
+            chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
+    }
+
+    // --- Vertical lines (one per column a): x = a*cs + off_x ---
+    {
+        Polylines raw;
+        for (int a = col_min; a <= col_max; ++a) {
+            coord_t x_s = coord_t(scale_(a * cs + off_x));
+            Polyline pl;
+            pl.points.push_back(Point(x_s, coord_t(scale_(y_min))));
+            pl.points.push_back(Point(x_s, coord_t(scale_(y_max))));
+            raw.push_back(std::move(pl));
+        }
+        Polylines clipped = clip_lines(raw);
+        if (!clipped.empty())
+            chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
+    }
+}
+
 } // namespace Slic3r

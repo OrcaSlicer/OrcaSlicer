@@ -64,6 +64,30 @@ protected:
         Polylines &polylines_out) override;
 };
 
+// Magma Rectilinear (square grid) infill pattern.
+//
+// Two perpendicular single-wall line families (one horizontal per row, one
+// vertical per column) forming square cells. Seals more easily than the triangle
+// (circumscribed/inscribed ratio sqrt2 ~= 1.41 vs 2.0) and prints faster (straight
+// axis-aligned lines, 2 families instead of 3). Window gaps for U-tube pairs are
+// added in a later step (#24); for now the squares are closed.
+class FillMagmaRectilinear : public FillMagmaBase
+{
+public:
+    Fill* clone() const override { return new FillMagmaRectilinear(*this); }
+    ~FillMagmaRectilinear() override = default;
+
+protected:
+    float _layer_angle(size_t idx) const override { return 0.f; }
+    std::pair<float, Point> _infill_direction(const Surface *surface) const override;
+    void _fill_surface_single(
+        const FillParams &params,
+        unsigned int thickness_layers,
+        const std::pair<float, Point> &direction,
+        ExPolygon expolygon,
+        Polylines &polylines_out) override;
+};
+
 } // namespace Slic3r
 
 #endif // slic3r_FillMagma_hpp_
