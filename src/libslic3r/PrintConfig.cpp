@@ -2131,23 +2131,21 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_expansion", coFloat);
     def->label = L("Top surface expansion");
     def->category = L("Strength");
-    def->tooltip = L("Expands the top surfaces by this distance in all directions, as far as the part allows "
-                     "(the expansion never leaves the part or crosses a wall). This enlarges the top solid infill "
-                     "and, in particular, grows it over the covered material left by features rising from the "
-                     "middle of a top surface - filling the holes and gaps so the features rest on it. "
-                     "Set to 0 to disable.");
+    def->tooltip = L("Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+                     "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane."
+                     "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top."
+                     "The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection.");
     def->sidetext = L("mm");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("top_surface_expansion_margin", coFloat);
-    def->label = L("Top surface expansion wall margin");
+    def->label = L("Top expansion wall margin");
     def->category = L("Strength");
-    def->tooltip = L("When top surface expansion is greater than 0, the expansion is kept at least this far from "
-                     "the outer walls, to avoid artifacts such as a hull line where the top infill meets the "
-                     "perimeter. Where the original top surface is already closer than this to a wall, it is kept "
-                     "as-is. Set to 0 to let the expansion reach the walls.");
+    def->tooltip = L("Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+                     "This can cause contraction marks (such as the hull line) on the outer walls.\n"
+                     "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 10;
@@ -2155,16 +2153,17 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("top_surface_expansion_direction", coEnum);
-    def->label = L("Top surface expansion direction");
+    def->label = L("Top expansion direction");
     def->category = L("Strength");
-    def->tooltip = L("Direction in which the top surface expansion grows. Inward grows the top into the holes and "
-                     "gaps left by features rising from the middle of a top surface; outward grows the outer edge of "
-                     "the top toward the walls. Inward and outward does both.");
+    def->tooltip = L("Direction in which the top surface expansion grows.\n"
+                     " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+                     " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+                     " - Inward and Outward does both.");
     def->enum_keys_map = &ConfigOptionEnum<TopSurfaceExpansionDirection>::get_enum_values();
     def->enum_values.push_back("inward_and_outward");
     def->enum_values.push_back("inward");
     def->enum_values.push_back("outward");
-    def->enum_labels.push_back(L("Inward and outward"));
+    def->enum_labels.push_back(L("Inward and Outward"));
     def->enum_labels.push_back(L("Inward"));
     def->enum_labels.push_back(L("Outward"));
     def->mode = comAdvanced;
