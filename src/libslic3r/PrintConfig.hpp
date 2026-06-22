@@ -43,7 +43,12 @@ enum GCodeFlavor : unsigned char {
     gcfMach3, 
     gcfMachinekit,
     gcfSmoothie, 
-    gcfNoExtrusion
+    gcfNoExtrusion,
+    // --- MakerBot / UltiMaker Fork ---
+    gcfMakerBotLegacy,    // Replicator 1/2/2X  → .x3g (GPX)
+    gcfMakerBotBirdwing,  // Replicator+/Z18/5thGen → .makerbot (JSON-toolpath)
+    gcfMakerBotLava,      // Method/Method X/XL + Sketch → .makerbot (print.gcode)
+    gcfUltiGCode          // UltiMaker Classic/S/Factor → .ufp
 };
 
 
@@ -77,7 +82,10 @@ enum class WipeTowerType {
 };
 
 enum PrintHostType {
-    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
+    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker,
+    // --- MakerBot / UltiMaker Fork ---
+    htMakerbotLink,  // JSON-RPC über SSL (Birdwing/Lava/Sketch)
+    htUltimakerLink  // REST-API (UltiMaker Classic/S/Factor/Method)
 };
 
 enum AuthorizationType {
@@ -1361,6 +1369,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                gcode_add_line_number))
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
+    // --- MakerBot / UltiMaker Fork: Smart Extruder ---
+    ((ConfigOptionInt,                 smart_extruder_count))
+    ((ConfigOptionStrings,             smart_extruder_type))
 
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))

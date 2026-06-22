@@ -3046,12 +3046,26 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         return;
 
     // extrusion role tag
-    if (boost::starts_with(comment, reserved_tag(ETags::Role))) {
-        set_extrusion_role(ExtrusionEntity::string_to_role(comment.substr(reserved_tag(ETags::Role).length())));
-        if (m_extrusion_role == erExternalPerimeter)
-            m_seams_detector.activate(true);
-        m_processing_start_custom_gcode = (m_extrusion_role == erCustom && m_g1_line_id == 0);
-        return;
+    // FIX 2026-06-20: Robust gegen s_IsBBLPrinter. reserved_tag(ETags::Role)
+    // liefert je nach s_IsBBLPrinter " FEATURE: " (BBL) oder "TYPE:" (compat).
+    // Fuer MakerBot/UltiMaker bleibt s_IsBBLPrinter=true, der G-Code schreibt
+    // aber ";TYPE:..." -> ohne diesen Fix kein Match, keine Linienfarben.
+    // Wir akzeptieren beide Varianten; die Strings sind kollisionsfrei.
+    {
+        static const std::string role_tag_bbl    = " FEATURE: ";
+        static const std::string role_tag_compat = "TYPE:";
+        const std::string* matched = nullptr;
+        if (boost::starts_with(comment, role_tag_bbl))
+            matched = &role_tag_bbl;
+        else if (boost::starts_with(comment, role_tag_compat))
+            matched = &role_tag_compat;
+        if (matched != nullptr) {
+            set_extrusion_role(ExtrusionEntity::string_to_role(comment.substr(matched->length())));
+            if (m_extrusion_role == erExternalPerimeter)
+                m_seams_detector.activate(true);
+            m_processing_start_custom_gcode = (m_extrusion_role == erCustom && m_g1_line_id == 0);
+            return;
+        }
     }
 
     // ; OBJECT_ID  start

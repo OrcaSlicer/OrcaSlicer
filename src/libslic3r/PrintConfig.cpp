@@ -150,7 +150,10 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "simplyprint",    htSimplyPrint },
     { "elegoolink",     htElegooLink },
     { "3dprinteros",    ht3DPrinterOS },
-    { "moonraker",      htMoonraker }
+    { "moonraker",      htMoonraker     },
+    // --- MakerBot / UltiMaker Fork ---
+    { "makerbotlink",   htMakerbotLink  },
+    { "ultimakerlink",  htUltimakerLink }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -173,7 +176,12 @@ static t_config_enum_values s_keys_map_GCodeFlavor {
     { "smoothie",       gcfSmoothie },
     { "mach3",          gcfMach3 },
     { "machinekit",     gcfMachinekit },
-    { "no-extrusion",   gcfNoExtrusion }
+    { "no-extrusion",   gcfNoExtrusion   },
+    // --- MakerBot / UltiMaker Fork ---
+    { "makerbot_legacy",   gcfMakerBotLegacy   },
+    { "makerbot_birdwing", gcfMakerBotBirdwing },
+    { "makerbot_lava",     gcfMakerBotLava     },
+    { "ultigcode",         gcfUltiGCode        }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(GCodeFlavor)
 
@@ -3924,6 +3932,15 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("RepRapFirmware");
     def->enum_labels.push_back("Repetier");
     def->enum_labels.push_back("Marlin 2");
+    // --- MakerBot / UltiMaker Fork ---
+    def->enum_values.push_back("makerbot_legacy");
+    def->enum_values.push_back("makerbot_birdwing");
+    def->enum_values.push_back("makerbot_lava");
+    def->enum_values.push_back("ultigcode");
+    def->enum_labels.push_back(L("MakerBot Legacy (.x3g)"));
+    def->enum_labels.push_back(L("MakerBot Birdwing (.makerbot)"));
+    def->enum_labels.push_back(L("MakerBot Lava / Method (.makerbot)"));
+    def->enum_labels.push_back(L("UltiGCode (.ufp)"));
     //def->enum_labels.push_back("RepRap/Sprinter");
     //def->enum_labels.push_back("Teacup");
     //def->enum_labels.push_back("MakerWare (MakerBot)");
@@ -4887,6 +4904,11 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("Elegoo Link");
     def->enum_labels.push_back("3DPrinterOS");
     def->enum_labels.push_back("Moonraker (Klipper)");
+    // --- MakerBot / UltiMaker Fork ---
+    def->enum_values.push_back("makerbotlink");
+    def->enum_values.push_back("ultimakerlink");
+    def->enum_labels.push_back("MakerBot Link");
+    def->enum_labels.push_back("UltiMaker Link");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -7310,6 +7332,46 @@ void PrintConfigDef::init_fff_params()
                      "Otherwise, the rectilinear pattern will be used by default.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    // --- MakerBot / UltiMaker Fork: Smart Extruder profile keys ---
+    // Ohne diese Registrierung entfernt Orca beide Keys beim Laden
+    // von MakerBot/UltiMaker-Maschinenprofilen als "incorrect keys".
+    // readonly = true: these reflect the PHYSICALLY installed toolhead and
+    // must only ever be written by BirdwingHandshakeDialog / MakerbotDiscoveryDialog
+    // after actually querying the connected printer - never hand-edited here,
+    // since a mismatch between this value and the real hardware silently
+    // produces a wrong meta.json (wrong extruder family / retract profile).
+    def = this->add("smart_extruder_count", coInt);
+    def->label   = L("Smart Extruder Count");
+    def->tooltip = L("Number of active Smart Extruders: "
+                     "0 = none, 1 = Birdwing single, 2 = Lava/Method dual. "
+                     "Set automatically by the printer discovery / handshake dialog.");
+    def->category = L("Extruder");
+    def->mode    = comAdvanced;
+    def->readonly = true;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("smart_extruder_type", coStrings);
+    def->label   = L("Smart Extruder Types");
+    def->tooltip = L("Per-extruder Smart Extruder type for MakerBot and UltiMaker Method printers. "
+                     "Set automatically by the printer discovery / handshake dialog.");
+    def->category = L("Extruder");
+    def->mode    = comAdvanced;
+    def->readonly = true;
+    def->enum_values = { "none",
+                         "mk13", "mk13_impla", "mk13_experimental",
+                         "mk14", "mk14_s", "mk14_p",
+                         "mk14_hot", "mk14_hot_s", "mk14_c",
+                         "labs_extruder" };
+    def->enum_labels = { L("None"),
+                         L("Smart Extruder+"), L("Tough Smart Extruder+"),
+                         L("Experimental / LABS"),
+                         L("Model Extruder (1A)"), L("Support Extruder (2A)"),
+                         L("Support Extruder (SR-30)"),
+                         L("Model Extruder 1XA"), L("Support Extruder 2XA"),
+                         L("Composite Extruder 1C"),
+                         L("LABS Gen 2 Extruder") };
+    def->set_default_value(new ConfigOptionStrings{ "none" });
 }
 
 void PrintConfigDef::init_extruder_option_keys()

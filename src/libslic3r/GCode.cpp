@@ -48,6 +48,7 @@
 #include <boost/nowide/cstdlib.hpp>
 
 #include "SVG.hpp"
+#include "Format/MakerBotExport.hpp"  // MakerBot / UltiMaker Fork
 
 #include <tbb/parallel_for.h>
 #include "calib.hpp"
@@ -2190,6 +2191,10 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     else {
         BOOST_LOG_TRIVIAL(info) << boost::format("rename_file from %1% to %2% successfully")% path_tmp % path;
     }
+
+    // --- MakerBot / UltiMaker Fork ---
+    // Archive creation moved to BackgroundSlicingProcess::export_gcode()
+    // so it runs AFTER the final copy to the user-selected path.
 
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
@@ -6811,19 +6816,30 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     char buf[64];
     assert(is_decimal_separator_point());
 
+    // BUG FIX (2026-06-20): capture the role-change BEFORE it gets folded into
+    // m_last_processor_extrusion_role below, so WIDTH/HEIGHT can also use it.
+    // Without this, WIDTH/HEIGHT tags were re-emitted purely based on whether
+    // the NUMERIC value changed since the last line - completely independent
+    // of whether the extrusion role changed. Whenever a new role's computed
+    // width/height happens to numerically coincide with the previous role's
+    // last emitted value (e.g. Precise Wall making outer-wall width equal to
+    // inner-wall width on thin objects), the tag was silently skipped even
+    // though the role changed.
+    const bool role_changed = (path.role() != m_last_processor_extrusion_role);
+
     if (path.role() != m_last_processor_extrusion_role) {
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
     }
 
-    if (last_was_wipe_tower || m_last_width != path.width) {
+    if (last_was_wipe_tower || role_changed || m_last_width != path.width) {
         m_last_width = path.width;
         sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width).c_str(), m_last_width);
         gcode += buf;
     }
 
-    if (last_was_wipe_tower || std::abs(m_last_height - path.height) > EPSILON) {
+    if (last_was_wipe_tower || role_changed || std::abs(m_last_height - path.height) > EPSILON) {
         m_last_height = path.height;
         sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height).c_str(), m_last_height);
         gcode += buf;
