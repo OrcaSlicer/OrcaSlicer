@@ -587,6 +587,28 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
         bool                     arrange_after_import = false;
         bool                     is_stringhell        = false;
     };
+    // MakerBot Heritage models (from resources/handy_models/, Draco-compressed .drc)
+    // MakerBot Heritage models path: resources/handy_models/
+    static const std::vector<HandyModel> makerbot_heritage_models = {
+        {L("20mm Calibration Box"),    {"20mm_Calibration_Box.drc"},          true },
+        {L("MakerBot Nut & Bolt"),     {"Makerbot_Nut_Bolt.drc"},             true },
+        {L("MakerBot Key Ring"),       {"MakerBot Key Ring outside.drc",
+                                        "MakerBot Key Ring inside.drc"},      true },
+        {L("Laurana"),                 {"Laurana.drc"},                        true },
+        {L("Octopus"),                 {"Octopus.drc"},                        true },
+        {L("Mr Jaws"),                 {"Mr_Jaws.drc"},                        true },
+        {L("Teapot"),                  {"Teapot.drc"},                         true },
+        {L("Mini Maze"),               {"Mini_Maze.drc"},                      true },
+        {L("Chain Linked"),            {"Chain_Linked.drc"},                   true },
+        {L("Hilbert Cube"),            {"hilbert_cube1.drc",
+                                        "hilbert_cube1_support.drc"},          true },
+        {L("Unleash Your Creativity"), {"Unleash_Your_Creativity.drc"},        true },
+        {L("2-Color Dragon"),          {"2color_dragon_heart.drc",
+                                        "2color_heartless_dragon.drc"},        true },
+        {L("Traffic Cone"),            {"Traffic_Cone_Rings_Orange.drc",
+                                        "Traffic_Cone_Rings_White.drc"},       true },
+    };
+
     static const std::vector<HandyModel> handy_models = {
         {L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
         {L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
@@ -598,6 +620,20 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
         {L("Stanford Bunny"),      {"Stanford_Bunny.drc"}},
         {L("Orca String Hell"),    {"Orca_stringhell.drc"},                                   false, true},
     };
+
+    // MakerBot Heritage submenu
+    wxMenu* mb_heritage_menu = new wxMenu();
+    for (const auto& mb_model : makerbot_heritage_models) {
+        auto* item = mb_heritage_menu->Append(wxID_ANY, _(mb_model.label));
+        mb_heritage_menu->Bind(wxEVT_MENU, [mb_model](wxCommandEvent&) {
+            std::vector<boost::filesystem::path> input_files;
+            for (const auto& fn : mb_model.file_names)
+                input_files.push_back(
+                    boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / fn);
+            plater()->load_files(input_files, LoadStrategy::LoadModel);
+        }, item->GetId());
+    }
+    sub_menu->AppendSubMenu(mb_heritage_menu, _L("MakerBot Heritage"));
 
     for (const auto& model : handy_models) {
         append_menu_item(

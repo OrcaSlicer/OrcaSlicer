@@ -1,3 +1,6 @@
+#include "libslic3r/Format/MakerBotExport.hpp"
+#include "libslic3r/Format/UltimakerUFPExport.hpp"
+#include "libslic3r/Format/GPXExport.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
@@ -826,7 +829,39 @@ void BackgroundSlicingProcess::finalize_gcode()
 		throw Slic3r::ExportError(_u8L("Unknown error occurred during exporting G-code."));
 	}
 	switch (copy_ret_val) {
-	case CopyFileResult::SUCCESS: break; // no error
+	case CopyFileResult::SUCCESS:
+		// MakerBot / UltiMaker Fork: create native archive at final export path.
+		// Three vendors/formats, three fully independent modules - no call
+		// depends on any of the others being present.
+		{
+			const GCodeFlavor _bsp_f2 = m_fff_print->config().gcode_flavor.value;
+			// DEBUG (2026-06-18): unconditional, always logs - tells us exactly what
+			// flavor this dispatch saw at runtime, regardless of which branch (if any)
+			// matches below. Reference: gcfMakerBotLegacy=13, gcfMakerBotBirdwing=14,
+			// gcfMakerBotLava=15, gcfUltiGCode=16 (see PrintConfig.hpp enum order).
+			BOOST_LOG_TRIVIAL(info) << "MakerBot/UltiMaker Fork: finalize_gcode() dispatch sees gcode_flavor="
+				<< (int)_bsp_f2 << " for export_path=" << m_export_path;
+			if (_bsp_f2 == gcfMakerBotBirdwing || _bsp_f2 == gcfMakerBotLava) {
+				const std::string _arch2 = MakerBotExport::pack_to_archive(export_path, m_fff_print->config());
+				if (!_arch2.empty())
+					BOOST_LOG_TRIVIAL(info) << "MakerBotExport: archive at " << _arch2;
+				else
+					BOOST_LOG_TRIVIAL(warning) << "MakerBotExport: failed for " << export_path;
+			} else if (_bsp_f2 == gcfUltiGCode) {
+				const std::string _arch2 = UltimakerUFPExport::pack_to_archive(export_path, m_fff_print->config());
+				if (!_arch2.empty())
+					BOOST_LOG_TRIVIAL(info) << "UltimakerUFPExport: archive at " << _arch2;
+				else
+					BOOST_LOG_TRIVIAL(warning) << "UltimakerUFPExport: failed for " << export_path;
+			} else if (_bsp_f2 == gcfMakerBotLegacy) {
+				const std::string _arch2 = GPXExport::pack_to_archive(export_path, m_fff_print->config());
+				if (!_arch2.empty())
+					BOOST_LOG_TRIVIAL(info) << "GPXExport: archive at " << _arch2;
+				else
+					BOOST_LOG_TRIVIAL(warning) << "GPXExport: failed for " << export_path;
+			}
+		}
+		break; // no error
 	case CopyFileResult::FAIL_COPY_FILE:
 		throw Slic3r::ExportError(GUI::format(_L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%"), error_message));
 		break;
@@ -872,7 +907,36 @@ void BackgroundSlicingProcess::export_gcode()
 		throw Slic3r::ExportError(_utf8(L("Unknown error when exporting G-code.")));
 	}
 	switch (copy_ret_val) {
-	case CopyFileResult::SUCCESS: break; // no error
+	case CopyFileResult::SUCCESS:
+		// MakerBot / UltiMaker Fork: create native archive at final export path.
+		// Three vendors/formats, three fully independent modules - no call
+		// depends on any of the others being present.
+		{
+			const GCodeFlavor _bsp_f = m_fff_print->config().gcode_flavor.value;
+			// DEBUG (2026-06-18): see matching comment in finalize_gcode() above.
+			BOOST_LOG_TRIVIAL(info) << "MakerBot/UltiMaker Fork: export_gcode() dispatch sees gcode_flavor="
+				<< (int)_bsp_f << " for export_path=" << m_export_path;
+			if (_bsp_f == gcfMakerBotBirdwing || _bsp_f == gcfMakerBotLava) {
+				const std::string _arch = MakerBotExport::pack_to_archive(export_path, m_fff_print->config());
+				if (!_arch.empty())
+					BOOST_LOG_TRIVIAL(info) << "MakerBotExport: archive created at " << _arch;
+				else
+					BOOST_LOG_TRIVIAL(warning) << "MakerBotExport: failed for " << export_path;
+			} else if (_bsp_f == gcfUltiGCode) {
+				const std::string _arch = UltimakerUFPExport::pack_to_archive(export_path, m_fff_print->config());
+				if (!_arch.empty())
+					BOOST_LOG_TRIVIAL(info) << "UltimakerUFPExport: archive created at " << _arch;
+				else
+					BOOST_LOG_TRIVIAL(warning) << "UltimakerUFPExport: failed for " << export_path;
+			} else if (_bsp_f == gcfMakerBotLegacy) {
+				const std::string _arch = GPXExport::pack_to_archive(export_path, m_fff_print->config());
+				if (!_arch.empty())
+					BOOST_LOG_TRIVIAL(info) << "GPXExport: archive created at " << _arch;
+				else
+					BOOST_LOG_TRIVIAL(warning) << "GPXExport: failed for " << export_path;
+			}
+		}
+		break; // no error
 	case CopyFileResult::FAIL_COPY_FILE:
 		//throw Slic3r::ExportError((boost::format(_utf8(L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%"))) % error_message).str());
 		//break;

@@ -2835,6 +2835,25 @@ void TabPrint::toggle_options()
 
     m_config_manipulation.toggle_print_fff_options(m_config, m_type < Preset::TYPE_COUNT);
 
+    // MakerBot / UltiMaker Fork: Legacy printers go through gpx to produce
+    // .x3g - gpx's arc (G2/G3) support is unreliable/version-dependent, and
+    // unlike other unsupported codes (e.g. M204, which gpx just warns about
+    // and drops) a bad arc conversion can silently produce wrong geometry
+    // instead of a warning. Hard lock rather than just default-off, since an
+    // existing profile might already have it enabled from before the printer
+    // was switched to this flavor.
+    if (m_preset_bundle) {
+        const auto* gcf_opt = m_preset_bundle->printers.get_edited_preset().config
+            .option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+        const bool is_gpx_legacy = gcf_opt && gcf_opt->value == gcfMakerBotLegacy;
+        toggle_line("enable_arc_fitting", !is_gpx_legacy);
+        if (is_gpx_legacy && m_config->opt_bool("enable_arc_fitting")) {
+            DynamicPrintConfig new_conf = *m_config;
+            new_conf.set_key_value("enable_arc_fitting", new ConfigOptionBool(false));
+            load_config(new_conf);
+        }
+    }
+
     Field *field = m_active_page->get_field("support_style");
     auto   support_type = m_config->opt_enum<SupportType>("support_type");
     if (auto choice = dynamic_cast<Choice*>(field)) {
@@ -4478,6 +4497,10 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
         optgroup->append_single_option_line("use_3mf");
+        // MakerBot / UltiMaker Fork: Smart Extruder configuration
+        // Visibility is controlled by toggle_options() based on gcode_flavor.
+        optgroup->append_single_option_line("smart_extruder_count");
+        optgroup->append_single_option_line("smart_extruder_type");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
         optgroup->append_single_option_line("enable_power_loss_recovery", "printer_basic_information_advanced#power-loss-recovery");
         //option  = optgroup->get_option("wrapping_exclude_area");
@@ -5414,6 +5437,17 @@ void TabPrinter::on_gcode_flavor_changed()
     if (!flavor_option)
         return;
     update_input_shaper_menu(flavor_option->value);
+
+    // MakerBot / UltiMaker Fork: rebuild extruder pages on flavor change
+    // so the sidebar correctly reflects the new printer family.
+    {
+        const auto _f = flavor_option->value;
+        if (_f == gcfMakerBotLegacy   ||
+            _f == gcfMakerBotBirdwing ||
+            _f == gcfMakerBotLava     ||
+            _f == gcfUltiGCode)
+            build_unregular_pages();
+    }
 }
 
 void TabPrinter::toggle_options()
@@ -5453,6 +5487,24 @@ void TabPrinter::toggle_options()
 
         bool gcf_is_marlin_firmware = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value == GCodeFlavor::gcfMarlinFirmware;
         toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf_is_marlin_firmware);
+
+        // MakerBot / UltiMaker Fork: adjust visible settings per printer family
+        {
+            const auto _f = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+            const bool _is_mb_um = (_f == gcfMakerBotLegacy   ||
+                                    _f == gcfMakerBotBirdwing ||
+                                    _f == gcfMakerBotLava     ||
+                                    _f == gcfUltiGCode);
+            if (_is_mb_um) {
+                // These settings are not applicable to MakerBot/UltiMaker hardware
+                toggle_line("pellet_modded_printer",   false);
+                toggle_line("use_firmware_retraction", false);
+            }
+            // Smart Extruder options: only for Birdwing (1 extruder) and Lava/Method (2)
+            const bool _has_smart = (_f == gcfMakerBotBirdwing || _f == gcfMakerBotLava);
+            toggle_line("smart_extruder_count", _has_smart);
+            toggle_line("smart_extruder_type",  _has_smart);
+        }
 
         const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
         toggle_line("parallel_printheads_count", support_parallel_printheads);

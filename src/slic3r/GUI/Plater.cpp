@@ -239,6 +239,143 @@ static string get_diameter_string(float diameter)
     return s;
 }
 
+
+// =============================================================================
+// MakerBot / UltiMaker Fork – Smart Extruder Sidebar Helpers
+// =============================================================================
+struct SmartExtruderSidebarItem
+{
+    std::string value;
+    wxString    label;
+    std::string image_file;
+};
+
+static boost::filesystem::path makerbot_profile_asset_path(const std::string& filename)
+{
+    return boost::filesystem::absolute(
+        boost::filesystem::path(resources_dir()) / "profiles" / "MakerBot" / filename
+    ).make_preferred();
+}
+
+static std::string makerbot_profile_asset_or_placeholder(const std::string& filename)
+{
+    const boost::filesystem::path path = makerbot_profile_asset_path(filename);
+    return boost::filesystem::exists(path) ? path.string() : std::string("printer_placeholder");
+}
+
+// Safe string extraction – never throws on missing/wrong-type keys.
+static std::string config_string_if_present(const DynamicPrintConfig& cfg, const std::string& key)
+{
+    try {
+        if (cfg.has(key))
+            return cfg.opt_string(key);
+    } catch (...) {}
+    return std::string();
+}
+
+// Combine printer_model / model_id / printer_vendor into a lower-case identity string.
+// Used as fallback when gcode_flavor is unavailable (e.g. imported 3MF, user copies).
+static std::string smart_extruder_identity_from_config(const DynamicPrintConfig& cfg)
+{
+    std::string identity;
+    for (const std::string& key : {"printer_model", "model_id", "printer_notes", "printer_vendor"}) {
+        const std::string value = config_string_if_present(cfg, key);
+        if (!value.empty()) {
+            if (!identity.empty()) identity += " ";
+            identity += value;
+        }
+    }
+    return boost::algorithm::to_lower_copy(identity);
+}
+
+static bool printer_model_looks_like_method(const std::string& m) { return m.find("method") != std::string::npos; }
+static bool printer_model_looks_like_z18   (const std::string& m) { return m.find("z18")    != std::string::npos; }
+static bool printer_model_looks_like_sketch(const std::string& m) { return m.find("sketch")  != std::string::npos; }
+static bool printer_model_looks_like_birdwing(const std::string& m)
+{
+    return printer_model_looks_like_z18(m) ||
+           m.find("replicator+")   != std::string::npos ||
+           m.find("replicator 5th") != std::string::npos ||
+           m.find("5th gen")       != std::string::npos ||
+           m.find("mini+")         != std::string::npos ||
+           m.find("mini")          != std::string::npos;
+}
+
+static bool smart_extruder_is_birdwing(const DynamicPrintConfig& cfg)
+{
+    const auto* gcf = cfg.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+    const std::string id = smart_extruder_identity_from_config(cfg);
+    if (printer_model_looks_like_sketch(id)) return false;
+    return (gcf && gcf->value == gcfMakerBotBirdwing) || printer_model_looks_like_birdwing(id);
+}
+
+static bool smart_extruder_is_lava_or_method(const DynamicPrintConfig& cfg)
+{
+    const auto* gcf = cfg.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+    const std::string id = smart_extruder_identity_from_config(cfg);
+    if (printer_model_looks_like_sketch(id)) return false;
+    // gcfMakerBotLava + "method"-Name = MakerBot Method/X/XL
+    // gcfUltiGCode  + "method"-Name   = UltiMaker Method X CF
+    // gcfUltiGCode  ohne "method"      = UltiMaker Classic/S/Factor → KEIN Smart Extruder
+    const bool name_is_method = printer_model_looks_like_method(id);
+    const bool flavor_is_lava = gcf && gcf->value == gcfMakerBotLava;
+    const bool is_makerbot    = id.find("makerbot")  != std::string::npos;
+    return name_is_method && (flavor_is_lava || is_makerbot || name_is_method);
+}
+
+static int smart_extruder_count_from_config(const DynamicPrintConfig& cfg)
+{
+    if (const auto* o = cfg.opt<ConfigOptionInt>("smart_extruder_count"))
+        if (o->value > 0) return o->value;
+
+    if (const auto* o = cfg.opt<ConfigOptionStrings>("smart_extruder_type")) {
+        int n = 0;
+        for (const std::string& v : o->values)
+            if (!v.empty() && v != "none") ++n;
+        if (n > 0) return n;
+    }
+
+    if (smart_extruder_is_birdwing(cfg))       return 1;
+    if (smart_extruder_is_lava_or_method(cfg)) return 2;
+    return 0;
+}
+
+static std::vector<SmartExtruderSidebarItem>
+smart_extruder_sidebar_items_for_config(const DynamicPrintConfig& cfg, int slot)
+{
+    const bool is_birdwing    = smart_extruder_is_birdwing(cfg);
+    const bool is_lava_method = smart_extruder_is_lava_or_method(cfg);
+    const std::string id      = smart_extruder_identity_from_config(cfg);
+
+    if ((!is_birdwing && !is_lava_method) || printer_model_looks_like_sketch(id))
+        return {};
+
+    const bool z18 = printer_model_looks_like_z18(id);
+
+    if (is_birdwing) {
+        return {
+            {"mk13",              _L("Smart Extruder+"),       z18 ? "z18 mk13_cover.png"              : "5th gen mk13_cover.png"},
+            {"mk13_impla",        _L("Tough Smart Extruder+"), z18 ? "z18 mk13 impla_cover.png"        : "5th gen mk13 impla_cover.png"},
+            {"mk13_experimental", _L("Experimental / LABS"),   "5th gen z18 mk13 experimental_cover.png"}
+        };
+    }
+    if (is_lava_method || printer_model_looks_like_method(id)) {
+        if (slot == 0) return {
+            {"mk14",          _L("Model Extruder (1A)"),   "method mk14_cover.png"},
+            {"mk14_hot",      _L("Model Extruder 1XA"),    "method mk14 hot_cover.png"},
+            {"mk14_c",        _L("Composite Extruder 1C"), "method mk14 c_cover.png"},
+            {"labs_extruder", _L("LABS Gen 2 Extruder"),   "method labs_cover.png"}
+        };
+        return {
+            {"mk14_s",     _L("Support Extruder (2A)"),    "method mk14 s_cover.png"},
+            {"mk14_hot_s", _L("Support Extruder 2XA"),     "method mk14 hot s_cover.png"},
+            {"mk14_p",     _L("Support Extruder (SR-30)"), "method mk14 s_cover.png"}
+        };
+    }
+    return {};
+}
+// =============================================================================
+
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 {
     std::string name = into_u8(wxs_name);
@@ -418,6 +555,13 @@ enum class ActionButtonType : int {
 struct ExtruderGroup : StaticGroup
 {
     ExtruderGroup(wxWindow * parent, int index, wxString const &title);
+    // MakerBot / UltiMaker Fork: Smart Extruder printer mode
+    // When true, the AMS row is hidden and no "Not installed" is shown.
+    bool m_is_smart_extruder_printer = false;
+    void set_smart_extruder_printer(bool val) {
+        m_is_smart_extruder_printer = val;
+        update_ams();
+    }
     wxStaticBoxSizer *sizer        = nullptr;
     ScalableButton *  btn_edit     = nullptr;
     ComboBox *        combo_diameter = nullptr;
@@ -491,6 +635,13 @@ struct Sidebar::priv
 
     // Printer - bed
     StaticBox *     panel_printer_bed = nullptr;
+    // MakerBot / UltiMaker Fork: Smart Extruder sidebar panels
+    ComboBox*       combo_smart_extruder_1 { nullptr };
+    ComboBox*       combo_smart_extruder_2 { nullptr };
+    wxStaticBitmap* image_smart_extruder_1 { nullptr };
+    wxStaticBitmap* image_smart_extruder_2 { nullptr };
+    StaticBox*      panel_smart_extruder_1 { nullptr };
+    StaticBox*      panel_smart_extruder_2 { nullptr };
     wxStaticBitmap *image_printer_bed = nullptr;
     ComboBox *      combo_printer_bed = nullptr;
 
@@ -608,8 +759,10 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     if (vsizer_printer->GetItemCount() == 0) {
         wxBoxSizer *hsizer_printer = new wxBoxSizer(wxHORIZONTAL);
         hsizer_printer->Add(panel_printer_preset, 1, wxEXPAND, 0);
-        hsizer_printer->Add(panel_nozzle_dia , 0, wxLEFT, FromDIP(4));
-        hsizer_printer->Add(panel_printer_bed, 0, wxLEFT, FromDIP(4));
+        if (panel_nozzle_dia)       hsizer_printer->Add(panel_nozzle_dia,       0, wxLEFT, FromDIP(4));
+        if (panel_smart_extruder_1) hsizer_printer->Add(panel_smart_extruder_1, 0, wxLEFT, FromDIP(4));
+        if (panel_smart_extruder_2) hsizer_printer->Add(panel_smart_extruder_2, 0, wxLEFT, FromDIP(4));
+        if (panel_printer_bed)      hsizer_printer->Add(panel_printer_bed,       0, wxLEFT, FromDIP(4));
         //hsizer_printer->Add(btn_sync_printer , 0, wxLEFT, FromDIP(4));
         vsizer_printer->AddSpacer(FromDIP(SidebarProps::ContentMarginV()));
         vsizer_printer->Add(hsizer_printer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ContentMargin()));
@@ -645,11 +798,57 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     // ref: https://github.com/OrcaSlicer/OrcaSlicer/pull/11610#discussion_r2607411847
     panel_printer_bed->Show(preset_bundle.is_bbl_vendor() || cfg.opt_bool("support_multi_bed_types"));
 
-    extruder_dual_sizer->Show(isDual);
+    // MakerBot / UltiMaker Fork: Standard AMS dual widget only for BBL.
+    // For MakerBot Lava/Method + UltiMaker Method, the Smart Extruder panels are used instead.
+    const bool show_standard_dual = isDual && isBBL;
+    extruder_dual_sizer->Show(show_standard_dual);
 
-    // NEEDFIX requires AMS check or any type of ???
-    // Single nozzle & non ams
-    panel_nozzle_dia->Show(!isDual && preset_bundle.get_printer_extruder_count() < 2);
+    // Smart Extruder detection (robust: works without smart_extruder_count in config)
+    const int  _sm_count     = smart_extruder_count_from_config(cfg);
+    const bool _is_birdwing  = _sm_count > 0 && smart_extruder_is_birdwing(cfg);
+    const bool _is_lava      = _sm_count > 0 && smart_extruder_is_lava_or_method(cfg);
+    const bool _is_smart     = _is_birdwing || _is_lava;
+
+    // Populate Smart Extruder combo boxes
+    auto _populate_se = [this, &cfg](ComboBox* combo, wxStaticBitmap* image,
+                                      int slot, const std::string& cur) {
+        if (!combo) return;
+        const auto items = smart_extruder_sidebar_items_for_config(cfg, slot);
+        wxWindowUpdateLocker lock(combo);
+        combo->Clear();
+        int sel = 0;
+        for (size_t i = 0; i < items.size(); ++i) {
+            combo->Append(items[i].label);
+            if (items[i].value == cur) sel = int(i);
+        }
+        if (combo->GetCount() > 0) {
+            combo->SetSelection(sel);
+            combo->SetToolTip(items[size_t(sel)].label);
+            if (image) {
+                image->SetBitmap(create_scaled_bitmap(
+                    makerbot_profile_asset_or_placeholder(items[size_t(sel)].image_file),
+                    this->plater, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+                image->SetToolTip(items[size_t(sel)].label);
+            }
+        }
+    };
+
+    std::vector<std::string> _sv;
+    if (const auto* o = cfg.opt<ConfigOptionStrings>("smart_extruder_type")) _sv = o->values;
+    if (_is_birdwing) {
+        if (_sv.empty() || _sv[0].empty() || _sv[0] == "none") _sv = {"mk13_experimental"};
+        _populate_se(combo_smart_extruder_1, image_smart_extruder_1, 0, _sv[0]);
+    } else if (_is_lava) {
+        if (_sv.size() < 2) _sv = {"mk14", "mk14_s"};
+        _populate_se(combo_smart_extruder_1, image_smart_extruder_1, 0, _sv[0]);
+        _populate_se(combo_smart_extruder_2, image_smart_extruder_2, 1, _sv[1]);
+    }
+
+    // Panel visibility
+    if (panel_nozzle_dia)       panel_nozzle_dia->Show(!_is_lava && !show_standard_dual);
+    if (panel_smart_extruder_1) panel_smart_extruder_1->Show(_is_smart);
+    if (panel_smart_extruder_2) panel_smart_extruder_2->Show(_is_lava);
+
     extruder_single_sizer->Show(false);
 
     // ORCA ensure printer section is visible after changing printer from printer selection dialog
@@ -1175,6 +1374,16 @@ void ExtruderGroup::update_ams()
     for (; index < 4; ++index)
         ams[index]->Close();
 
+    // MakerBot / UltiMaker Fork: hide AMS elements for Smart Extruder printers
+    if (m_is_smart_extruder_printer) {
+        ams_not_installed_msg->Hide();
+        for (size_t _i = 0; _i < 4; ++_i)
+            ams[_i]->Close();
+        btn_up->Hide();
+        btn_down->Hide();
+        sizer->Layout();
+        return;
+    }
     ams_not_installed_msg->Show(ams_n4 == 0 && ams_n1 == 0);
     btn_up->Show(page_cur > 0);
     btn_down->Show(page_cur + 1 < page_num);
@@ -1914,6 +2123,101 @@ Sidebar::Sidebar(Plater *parent)
 
         p->panel_nozzle_dia->SetSizer(nozzle_dia_sizer);
 
+        // MakerBot / UltiMaker Fork: Smart Extruder selector panels.
+        // Design mirrors the bed-plate selector: thumbnail image + compact dropdown.
+        auto create_smart_extruder_panel = [this, panel_color](
+            int slot, ComboBox** combo_out, wxStaticBitmap** image_out) -> StaticBox*
+        {
+            auto* panel = new StaticBox(p->m_panel_printer_content);
+            panel->SetCornerRadius(FromDIP(PRINTER_PANEL_RADIUS));
+            panel->SetBorderColor(panel_color.bd_normal);
+            panel->SetMinSize(FromDIP(PRINTER_PANEL_SIZE));
+
+            ScalableBitmap bmp(panel, "printer_placeholder", PRINTER_THUMBNAIL_SIZE.GetHeight());
+            auto* image = new wxStaticBitmap(panel, wxID_ANY, bmp.bmp(), wxDefaultPosition, wxDefaultSize, 0);
+
+            auto* combo = new ComboBox(panel, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
+            combo->SetBorderWidth(0);
+            combo->GetDropDown().SetUseContentWidth(true);
+            combo->SetMinSize(FromDIP(wxSize(18, -1)));
+            combo->SetMaxSize(FromDIP(wxSize(18, -1)));
+
+            auto open_combo = [combo](wxMouseEvent& evt) { combo->wxEvtHandler::ProcessEvent(evt); };
+            panel->Bind(wxEVT_LEFT_DOWN, open_combo);
+            image->Bind(wxEVT_LEFT_DOWN, open_combo);
+
+            combo->Bind(wxEVT_COMBOBOX, [this, combo, image, slot](wxCommandEvent& e) {
+                const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+                const auto items = smart_extruder_sidebar_items_for_config(cfg, slot);
+                const int sel    = e.GetSelection();
+                if (sel >= 0 && size_t(sel) < items.size()) {
+                    const auto& item = items[size_t(sel)];
+                    image->SetBitmap(create_scaled_bitmap(
+                        makerbot_profile_asset_or_placeholder(item.image_file),
+                        this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+                    image->SetToolTip(item.label);
+                    combo->SetToolTip(item.label);
+
+                    std::vector<std::string> vals;
+                    if (const auto* o = cfg.opt<ConfigOptionStrings>("smart_extruder_type"))
+                        vals = o->values;
+                    if (vals.size() <= size_t(slot))
+                        vals.resize(size_t(slot) + 1, "none");
+                    vals[size_t(slot)] = item.value;
+
+                    if (PresetBundle* bundle = wxGetApp().preset_bundle) {
+                        auto* new_opt  = new ConfigOptionStrings();
+                        new_opt->values = vals;
+                        bundle->printers.get_edited_preset().config
+                               .set_key_value("smart_extruder_type", new_opt);
+                        if (Tab* tab = wxGetApp().get_tab(Preset::TYPE_PRINTER)) {
+                            tab->reload_config();
+                            tab->update_dirty();
+                        }
+                    }
+                }
+                e.Skip();
+            });
+
+            auto focus_bg = [panel, image, combo, panel_color](bool focused) {
+                auto bg = StateColor::darkModeColorFor(focused ? panel_color.bg_focus : panel_color.bg_normal);
+                panel->SetBackgroundColor(bg);
+                panel->SetBorderColor(focused ? panel_color.bd_focus : panel_color.bd_normal);
+                image->SetBackgroundColour(bg);
+                combo->SetBackgroundColour(bg);
+            };
+            combo->Bind(wxEVT_SET_FOCUS,  [focus_bg](auto& e) { focus_bg(true);  e.Skip(); });
+            combo->Bind(wxEVT_KILL_FOCUS, [focus_bg](auto& e) { focus_bg(false); e.Skip(); });
+
+            for (wxWindow* w : std::initializer_list<wxWindow*>{panel, image, combo}) {
+                w->Bind(wxEVT_ENTER_WINDOW, [panel, combo, panel_color](wxMouseEvent& e) {
+                    if (!combo->HasFocus()) panel->SetBorderColor(panel_color.bd_hover); e.Skip(); });
+                w->Bind(wxEVT_LEAVE_WINDOW, [panel, combo, panel_color](wxMouseEvent& e) {
+                    wxWindow* ev = dynamic_cast<wxWindow*>(e.GetEventObject());
+                    wxPoint sp  = ev ? ev->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
+                    wxWindow* nw = wxFindWindowAtPoint(sp);
+                    if (!combo->HasFocus() && (!nw || !panel->IsDescendant(nw)))
+                        panel->SetBorderColor(panel_color.bd_normal);
+                    e.Skip();
+                });
+            }
+
+            wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+            sizer->Add(combo, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+            sizer->Add(image, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+            panel->SetSizer(sizer);
+
+            if (combo_out)  *combo_out  = combo;
+            if (image_out)  *image_out  = image;
+            return panel;
+        };
+
+        p->panel_smart_extruder_1 = create_smart_extruder_panel(0, &p->combo_smart_extruder_1, &p->image_smart_extruder_1);
+        p->panel_smart_extruder_2 = create_smart_extruder_panel(1, &p->combo_smart_extruder_2, &p->image_smart_extruder_2);
+        p->panel_smart_extruder_1->Hide();
+        p->panel_smart_extruder_2->Hide();
+
+
         // Bed type selection
         p->panel_printer_bed = new StaticBox(p->m_panel_printer_content);
         p->panel_printer_bed->SetCornerRadius(FromDIP(PRINTER_PANEL_RADIUS));
@@ -2645,7 +2949,13 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
 
         bool is_dual_extruder = nozzle_diameter->size() == 2;
-        p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
+        // MakerBot / UltiMaker Fork: MakerBot Method/Method X/XL (Lava flavor)
+        // are genuine dual-extruder printers – show the dual extruder widget.
+        const auto *_mb_f = printer_preset.config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+        const bool _is_mb_lava_dual = _mb_f &&
+            _mb_f->value == gcfMakerBotLava && is_dual_extruder;
+        p->layout_printer(preset_bundle.use_bbl_network(),
+            (isBBL && is_dual_extruder) || _is_mb_lava_dual);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
@@ -3745,6 +4055,16 @@ bool Sidebar::should_show_SEMM_buttons()
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
+
+    // MakerBot / UltiMaker Fork: these printers use the Smart Extruder
+    // paradigm, not SEMM.  Suppress AMS/SEMM buttons entirely to avoid
+    // the misleading "AMS Not installed" row in the Prepare sidebar.
+    if (const auto *_f = cfg.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
+        const auto _fl = _f->value;
+        if (_fl == gcfMakerBotLegacy   || _fl == gcfMakerBotBirdwing ||
+            _fl == gcfMakerBotLava      || _fl == gcfUltiGCode)
+            return false;
+    }
 
     return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
 }
@@ -14893,10 +15213,76 @@ void Plater::export_gcode(bool prefer_removable)
     fs::path output_path;
     {
         std::string ext = default_output_file.extension().string();
-        wxFileDialog dlg(this, (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:"),
+        // MakerBot / UltiMaker Fork: use native format in Save dialog
+        // Resolve gcode_flavor with inheritance (user copies inherit but may not store it)
+        GCodeFlavor _gcf_val = gcfMarlinLegacy;
+        {
+            const auto& _pc = wxGetApp().preset_bundle->printers;
+            const auto& _ep = _pc.get_edited_preset();
+            // First: try direct config lookup
+            if (const auto* g = _ep.config.opt<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor"))
+                _gcf_val = g->value;
+            else {
+                // Fallback: walk inheritance chain
+                std::string _inh = _ep.config.opt_string("inherits");
+                for (int _d = 0; _d < 5 && !_inh.empty(); ++_d) {
+                    if (const Preset* _pp = _pc.find_preset(_inh, false)) {
+                        if (const auto* g2 = _pp->config.opt<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
+                            _gcf_val = g2->value; break;
+                        }
+                        _inh = _pp->config.opt_string("inherits");
+                    } else break;
+                }
+                // Last resort: check printer name
+                if (_gcf_val == gcfMarlinLegacy) {
+                    const std::string& _pn = _ep.name;
+                    if (_pn.find("Method") != std::string::npos)
+                        _gcf_val = gcfMakerBotLava;
+                    else if (_pn.find("MakerBot") != std::string::npos &&
+                             _pn.find("Replicator 2") == std::string::npos &&
+                             _pn.find("Original") == std::string::npos &&
+                             _pn.find("Cupcake") == std::string::npos)
+                        _gcf_val = gcfMakerBotBirdwing;
+                    else if (_pn.find("Replicator") != std::string::npos ||
+                             _pn.find("Cupcake") != std::string::npos ||
+                             _pn.find("Thing-O-Matic") != std::string::npos ||
+                             _pn.find("ThingOMatic") != std::string::npos)
+                        // Cupcake through Replicator 2X: pre-Birdwing Sailfish/legacy
+                        // lineage, exported as plain .gcode + GPX-converted .x3g.
+                        _gcf_val = gcfMakerBotLegacy;
+                    else if (_pn.find("UltiMaker") != std::string::npos)
+                        _gcf_val = gcfUltiGCode;
+                }
+            }
+        }
+        const wxString _wildcards =
+            (_gcf_val == gcfMakerBotBirdwing || _gcf_val == gcfMakerBotLava)
+                ? _L("MakerBot Archive (*.makerbot)|*.makerbot|G-code (*.gcode)|*.gcode")
+            : (_gcf_val == gcfUltiGCode)
+                ? _L("UltiMaker File Package (*.ufp)|*.ufp|G-code (*.gcode)|*.gcode")
+            : (_gcf_val == gcfMakerBotLegacy)
+                ? _L("X3G File (*.x3g)|*.x3g|G-code (*.gcode)|*.gcode")
+            : GUI::file_wildcards((printer_technology() == ptFFF) ? FT_GCODE : FT_SL1, ext);
+        const wxString _dlg_title =
+            (_gcf_val == gcfMakerBotBirdwing || _gcf_val == gcfMakerBotLava)
+                ? _L("Save MakerBot archive as:")
+            : (_gcf_val == gcfUltiGCode)
+                ? _L("Save UltiMaker file as:")
+            : (_gcf_val == gcfMakerBotLegacy)
+                ? _L("Save X3G file as:")
+            : (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:");
+        // Auto-correct file extension for MakerBot/UltiMaker
+        fs::path _out_file = default_output_file;
+        if (_gcf_val == gcfMakerBotBirdwing || _gcf_val == gcfMakerBotLava)
+            _out_file = _out_file.parent_path() / (_out_file.stem().string() + ".makerbot");
+        else if (_gcf_val == gcfUltiGCode)
+            _out_file = _out_file.parent_path() / (_out_file.stem().string() + ".ufp");
+        else if (_gcf_val == gcfMakerBotLegacy)
+            _out_file = _out_file.parent_path() / (_out_file.stem().string() + ".x3g");
+        wxFileDialog dlg(this, _dlg_title,
             start_dir,
-            from_path(default_output_file.filename()),
-            GUI::file_wildcards((printer_technology() == ptFFF) ? FT_GCODE : FT_SL1, ext),
+            from_path(_out_file.filename()),
+            _wildcards,
             wxFD_SAVE | wxFD_OVERWRITE_PROMPT
         );
         if (dlg.ShowModal() == wxID_OK) {

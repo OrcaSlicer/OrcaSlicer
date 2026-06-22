@@ -33,6 +33,7 @@
 // BBS
 #include "BBLTopbar.hpp"
 #include "PrinterWebView.hpp"
+#include "slic3r/GUI/DeviceTab/MakerbotDevicePanel.hpp" // MakerBot/UltiMaker Fork
 #include "calib_dlg.hpp"
 #include "MultiMachinePage.hpp"
 
@@ -385,6 +386,7 @@ public:
     CalibrationPanel*     m_calibration{ nullptr };
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
+    MakerbotDevicePanel*  m_makerbot_device_panel{nullptr}; // MakerBot/UltiMaker Fork
     wxLogWindow*          m_log_window { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };

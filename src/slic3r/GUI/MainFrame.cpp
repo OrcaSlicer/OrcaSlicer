@@ -1429,6 +1429,50 @@ void MainFrame::show_device(bool bBBLPrinter) {
             m_monitor->Show(false);
             m_tabpanel->RemovePage(idx);
         }
+
+        // === MakerBot/UltiMaker Fork (FIX 2026-06-20) ===
+        // Native Device-Panel statt generischer WebView fuer MakerBot/UltiMaker.
+        // Ohne dies laedt PrinterWebView http://<ip>/ und der Drucker liefert
+        // nur ein Verzeichnis-Listing ("Index of /") statt einer Steuer-UI.
+        {
+            const auto& mb_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+            const auto* mb_ht_opt = mb_cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
+            const bool is_makerbot_host = mb_ht_opt != nullptr &&
+                (mb_ht_opt->value == htMakerbotLink || mb_ht_opt->value == htUltimakerLink);
+            if (is_makerbot_host) {
+                // Falls schon eingehaengt: nur aktualisieren.
+                if (m_makerbot_device_panel != nullptr &&
+                    m_tabpanel->FindPage(m_makerbot_device_panel) != wxNOT_FOUND) {
+                    m_makerbot_device_panel->update_ui_for_printer(mb_cfg);
+                    fit_tab_labels();
+                    return;
+                }
+                // Eine evtl. vorhandene WebView aus dem Tab nehmen.
+                if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
+                    m_printer_view->Show(false);
+                    m_tabpanel->RemovePage(idx);
+                }
+                if (m_makerbot_device_panel == nullptr) {
+                    m_makerbot_device_panel = new MakerbotDevicePanel(m_tabpanel);
+                    m_makerbot_device_panel->SetBackgroundColour(*wxWHITE);
+                }
+                m_makerbot_device_panel->update_ui_for_printer(mb_cfg);
+                m_makerbot_device_panel->Show(false);
+                m_tabpanel->InsertPage(tpMonitor, m_makerbot_device_panel, _L("Device"),
+                                       std::string("tab_monitor_active"),
+                                       std::string("tab_monitor_active"));
+                fit_tab_labels();
+                return;
+            }
+            // Kein MakerBot/UltiMaker: evtl. zuvor eingehaengtes Panel entfernen.
+            if (m_makerbot_device_panel != nullptr &&
+                (idx = m_tabpanel->FindPage(m_makerbot_device_panel)) != wxNOT_FOUND) {
+                m_makerbot_device_panel->Show(false);
+                m_tabpanel->RemovePage(idx);
+            }
+        }
+        // === Ende MakerBot/UltiMaker Fork ===
+
         if (m_printer_view == nullptr) {
             m_printer_view = new PrinterWebView(m_tabpanel);
             Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {

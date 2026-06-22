@@ -1513,7 +1513,25 @@ void Choice::set_selection()
     choice_ctrl* field = dynamic_cast<choice_ctrl*>(window);
 	switch (m_opt.type) {
 	case coEnum:{
-        field->SetSelection(m_opt.default_value->getInt());
+        // Do NOT use the raw enum integer as a combobox index. Several enums
+        // (gcode_flavor, *_pattern, host_type, curr_bed_type, ...) skip values
+        // that are hidden from the UI (commented out in their enum_values/
+        // enum_labels definition), so the underlying int and the combobox's
+        // visible position diverge. Using getInt() directly silently produces
+        // an out-of-range / blank selection for any value past the first
+        // contiguous run - which is exactly what happened to all four
+        // MakerBot/UltiMaker gcode_flavor entries (they sit after eight
+        // hidden legacy flavors). Resolve via the serialized string key and
+        // its real position in enum_values instead; fall back to the old
+        // behaviour if the key can't be found (keeps unaffected enums safe).
+        const std::string serialized = m_opt.default_value->serialize();
+        size_t idx = 0;
+        for (; idx < m_opt.enum_values.size(); ++idx)
+            if (m_opt.enum_values[idx] == serialized)
+                break;
+        field->SetSelection(idx < m_opt.enum_values.size()
+                             ? static_cast<int>(idx)
+                             : m_opt.default_value->getInt());
 		break;
 	}
 	case coFloat:
@@ -1665,7 +1683,12 @@ void Choice::set_value(const boost::any& value, bool change_event)
                 m_opt_id == "internal_solid_infill_pattern" || m_opt_id == "sparse_infill_pattern" ||
                 m_opt_id == "support_base_pattern" || m_opt_id == "support_interface_pattern" ||
                 m_opt_id == "ironing_pattern" || m_opt_id == "support_ironing_pattern" ||
-                m_opt_id == "support_style" || m_opt_id == "curr_bed_type" || m_opt_id == "wipe_tower_wall_type")
+                m_opt_id == "support_style" || m_opt_id == "curr_bed_type" || m_opt_id == "wipe_tower_wall_type" ||
+                // MakerBot / UltiMaker Fork: gcode_flavor also skips hidden legacy
+                // entries (reprap/teacup/makerware/sailfish/mach3/machinekit/smoothie/
+                // no-extrusion), so its raw int no longer matches the combobox position
+                // once the new makerbot_legacy/birdwing/lava/ultigcode entries are used.
+                m_opt_id == "gcode_flavor")
 		{
 			std::string key;
 			const t_config_enum_values& map_names = *m_opt.enum_keys_map;

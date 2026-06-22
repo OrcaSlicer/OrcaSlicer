@@ -38,6 +38,9 @@
 #include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
 #include "CrealityDiscoveryDialog.hpp"
+#include "MakerbotDiscoveryDialog.hpp"   // MakerBot / UltiMaker Fork
+#include "BirdwingHandshakeDialog.hpp"   // MakerBot / UltiMaker Fork
+#include "slic3r/Utils/MakerbotLink.hpp" // MakerBot / UltiMaker Fork
 #include "MsgDialog.hpp"
 #include "OAuthDialog.hpp"
 #include "SimplyPrint.hpp"
@@ -214,6 +217,42 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             // per-device-unique service type _Creality-<MAC-hex>._udp, so the
             // standard fixed-service-name Bonjour browser does not find them.
             // Dispatch to the Creality-specific scanner instead.
+            // MakerBot / UltiMaker Fork: eigener Discovery-Dialog
+            if (host_type == htMakerbotLink || host_type == htUltimakerLink) {
+                const int filter = (host_type == htMakerbotLink)  ? 0 :
+                                   (host_type == htUltimakerLink) ? 1 : 2;
+                MakerbotDiscoveryDialog dialog(this, filter);
+                if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
+                    wxString new_url = wxString::FromUTF8(dialog.selected_ip());
+                    m_optgroup->set_value("print_host", new_url, true);
+                    m_optgroup->get_field("print_host")->field_changed();
+                    if (dialog.selected_is_birdwing()) {
+                        m_config->set_key_value("host_type",
+                            new ConfigOptionEnum<PrintHostType>(htMakerbotLink));
+                        // Auto-open Handshake Dialog after selecting Birdwing printer
+                        std::unique_ptr<MakerbotLink> mb_link(
+                            static_cast<MakerbotLink*>(PrintHost::get_print_host(m_config)));
+                        if (mb_link) {
+                            GUI::BirdwingHandshakeDialog dlg(this, *mb_link);
+                            if (dlg.ShowModal() == wxID_OK && !dlg.get_token().empty()) {
+                                m_optgroup->set_value("printhost_password",
+                                    wxString::FromUTF8("OrcaSlicer:" + dlg.get_token()), true);
+                                // FIX 2026-06-21: Token zusaetzlich in m_config
+                                // persistieren, sonst geht er bei save_preset
+                                // verloren (set_value fuellt nur das UI-Feld).
+                                m_config->set_key_value("printhost_password",
+                                    new ConfigOptionString("OrcaSlicer:" + dlg.get_token()));
+                                show_info(this,
+                                    _L("MakerBot Birdwing paired successfully! "
+                                       "The token has been saved."),
+                                    _L("Connected"));
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+
             if (host_type == htCrealityPrint) {
                 CrealityDiscoveryDialog dialog(this);
                 if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
@@ -266,7 +305,47 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     auto print_host_test = [=](wxWindow* parent) {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_test_btn, "printer_host_test", _L("Test"));
 
-        m_printhost_test_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
+        m_printhost_test_btn->Bind(wxEVT_BUTTON, [this, m_optgroup](wxCommandEvent& e) {
+            // MakerBot / UltiMaker Fork: Birdwing needs handwheel authorization dialog
+            {
+                const auto host_type = m_config->opt_enum<PrintHostType>("host_type");
+                if (host_type == htMakerbotLink) {
+                    const std::string host_str = m_config->opt_string("print_host");
+                    const bool is_lava = host_str.find(":2222") != std::string::npos;
+                    // Empty hostname → open Discovery Dialog first
+                    if (host_str.empty()) {
+                        MakerbotDiscoveryDialog disc(this, 0);
+                        if (disc.ShowModal() == wxID_OK && !disc.selected_ip().empty()) {
+                            wxString new_url = wxString::FromUTF8(disc.selected_ip());
+                            m_optgroup->set_value("print_host", new_url, true);
+                            m_optgroup->get_field("print_host")->field_changed();
+                        } else { return; }
+                    }
+                    if (!is_lava) {
+                        // Birdwing: show handshake dialog with GIF + countdown
+                        std::unique_ptr<MakerbotLink> mb_link(
+                            static_cast<MakerbotLink*>(PrintHost::get_print_host(m_config)));
+                        if (mb_link) {
+                            GUI::BirdwingHandshakeDialog dlg(this, *mb_link);
+                            if (dlg.ShowModal() == wxID_OK && !dlg.get_token().empty()) {
+                                // Store token as API key
+                                m_optgroup->set_value("printhost_password",
+                                    wxString::FromUTF8("OrcaSlicer:" + dlg.get_token()), true);
+                                // FIX 2026-06-21: Token zusaetzlich in m_config
+                                // persistieren, sonst geht er bei save_preset
+                                // verloren (set_value fuellt nur das UI-Feld).
+                                m_config->set_key_value("printhost_password",
+                                    new ConfigOptionString("OrcaSlicer:" + dlg.get_token()));
+                                show_info(this,
+                                    _L("MakerBot Birdwing paired successfully! "
+                                       "The authorization token has been saved."),
+                                    _L("Connected"));
+                            }
+                        }
+                        return;
+                    }
+                }
+            }
             std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
             if (!host) {
                 const wxString text = _L("Could not get a valid Printer Host reference");
