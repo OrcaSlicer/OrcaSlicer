@@ -26,8 +26,6 @@
 #include "format.hpp"
 #include "AABBTreeLines.hpp"
 
-#include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <float.h>
 #include <iterator>
@@ -1300,7 +1298,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
-            || opt_key == "top_surface_hole_contraction"
+            || opt_key == "top_surface_expansion"
+            || opt_key == "top_surface_expansion_margin"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
             || opt_key == "internal_solid_filament_id"
@@ -1690,57 +1689,46 @@ void PrintObject::detect_surfaces_type()
                         }
                     }
 
-                    // ORCA: Grow the top surfaces over the covered material left by raised features so the
-                    // top solid infill covers a larger, more continuous area. Two complementary operations,
-                    // both driven by the configured distance d:
-                    //   (1) Holes inside a top surface (enclosed feature footprints) are reduced by d: each
-                    //       interior hole is shrunk inward, so the surrounding top grows over a d-wide band.
-                    //   (2) Gaps between two *different* top regions are unioned: each region is expanded
-                    //       outward by 2*d and only the area where two regions' expansions overlap is kept,
-                    //       so a region never just expands on its own and the overlap fully spans any gap
-                    //       narrower than 2*d (instead of leaving a thin sliver).
-                    // The combined fill is clipped to the solid material (never crossing a void) and excludes
-                    // bottom surfaces, then merged back into the top.
-                    const double hole_contraction = layerm->region().config().top_surface_hole_contraction.value;
-                    if (hole_contraction > 0. && ! top.empty()) {
-                        const double     d           = scale_(hole_contraction);
-                        const auto       jt          = Clipper2Lib::JoinType::Miter;
-                        const ExPolygons top_expolys = to_expolygons(top);
-                        const ExPolygons comps       = union_ex(top_expolys); // connected top regions
-                        const ExPolygons solid       = union_ex(layerm_slices_surfaces);
+                    // ORCA: Expand the top surfaces outward by top_surface_expansion in every direction. This
+                    // enlarges the top solid infill and, in particular, grows it over the covered material left
+                    // by features rising from the middle of a top surface (filling holes and joining tops so the
+                    // features rest on it). The expansion stays inside the section it belongs to: each connected
+                    // solid island has its own outer wall, so the top is grown within each island separately and
+                    // clipped to it - growing one island's top across the gap into another island (which may have
+                    // no top surface, leaving a partially filled layer) is never allowed. The top infill sits
+                    // inside the perimeters, so the margin is measured from the walls: the island is inset by the
+                    // band the walls consume (outer wall + inner walls) plus the configured margin, making that
+                    // value the real clearance between the expanded top and the walls (avoiding a hull line). The
+                    // original top is unioned back in, so where it already sits within that band it is kept as-is.
+                    // Never claims a bottom surface.
+                    const double top_expansion = layerm->region().config().top_surface_expansion.value;
+                    if (top_expansion > 0. && ! top.empty()) {
+                        const double     d        = scale_(top_expansion);
+                        const auto       jt       = Clipper2Lib::JoinType::Miter;
+                        const ExPolygons T        = union_ex(to_expolygons(top));
+                        const int    wall_loops = layerm->region().config().wall_loops.value;
+                        const double wall_band  = wall_loops <= 0 ? 0. :
+                            double(layerm->flow(frExternalPerimeter).scaled_width()) +
+                            double(layerm->flow(frPerimeter).scaled_width()) * double(wall_loops - 1);
+                        const double inset      = wall_band + scale_(layerm->region().config().top_surface_expansion_margin.value);
 
-                        ExPolygons new_top = top_expolys;
+                        // Ignore a section whose top is only slivers or a tiny patch (e.g. slicing noise from a
+                        // near-vertical or sloped wall): expanding that would flood the surrounding internal-solid
+                        // infill with top. Require the top to have a part at least ~2 top-infill lines wide - the
+                        // opening drops anything thinner, so such sections are skipped entirely.
+                        const float min_top = float(layerm->flow(frTopSolidInfill).scaled_width());
 
-                        // (1) Reduce the holes inside the top surfaces by d. Growing a region by d shrinks
-                        //     its holes by d; clipping the grown region back to its own (hole-free) outline
-                        //     keeps the outer edge fixed, so only the holes contract. Restricted to the
-                        //     solid material so real voids (through-holes) are never covered. This stands on
-                        //     its own and does not rely on the overlap step below.
-                        ExPolygons outlines; // top outlines with their holes filled
-                        outlines.reserve(comps.size());
-                        for (const ExPolygon &ex : comps)
-                            outlines.emplace_back(ex.contour);
-                        outlines = union_ex(outlines);
-                        const ExPolygons reduced = intersection_ex(offset_ex_2(comps, d, jt), outlines);
-                        append(new_top, intersection_ex(diff_ex(reduced, comps), solid));
-
-                        // (2) Union separate top regions across the gaps between them: expand each region
-                        //     outward by 2d and keep ONLY the area where two different regions' expansions
-                        //     overlap (the gap material between them), so a region never expands on its own.
-                        if (comps.size() >= 2) {
-                            ExPolygons seen, overlap;
-                            for (const ExPolygon &c : comps) {
-                                const ExPolygons e = offset_ex_2(ExPolygons{ c }, d, jt);
-                                append(overlap, intersection_ex(e, seen));
-                                ExPolygons merged = seen;
-                                append(merged, e);
-                                seen = union_ex(merged);
-                            }
-                            append(new_top, intersection_ex(union_ex(overlap), solid));
+                        ExPolygons grown;
+                        for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
+                            const ExPolygons island_top = intersection_ex(T, island);
+                            if (opening_ex(island_top, min_top).empty())
+                                continue; // no substantial top surface in this section - never expand into it
+                            // part of this island the expansion may occupy: the island held clear of its walls
+                            const ExPolygons allowed = inset > 0. ? offset_ex(island, -float(inset)) : ExPolygons{ island };
+                            append(grown, intersection_ex(offset_ex_2(island_top, d, jt), allowed));
                         }
 
-                        // Combine, and never claim a bottom surface.
-                        new_top = diff_ex(union_ex(new_top), to_expolygons(bottom));
+                        ExPolygons new_top = diff_ex(union_ex(T, grown), to_expolygons(bottom));
                         top.clear();
                         surfaces_append(top, std::move(new_top), stTop);
                     }

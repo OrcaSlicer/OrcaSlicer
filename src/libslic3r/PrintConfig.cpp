@@ -2116,16 +2116,31 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(100));
+
     def = this->add("top_surface_hole_contraction", coFloat);
     def = this->add("top_surface_hole_contraction", coFloatOrPercent);
     def = this->add("top_surface_hole_contraction", coFloat);
     def->label = L("Top surface hole contraction");
+    def = this->add("top_surface_expansion", coFloat);
+    def->label = L("Top surface expansion");
     def->category = L("Strength");
-    def->tooltip = L("When raised features sit on a top surface, they split it into separate top areas with covered "
-                     "gaps in between. This fills the direct gaps between top surfaces so the top solid infill covers "
-                     "a larger, more continuous area, reducing weak spots around the features. Only gaps that lie "
-                     "directly between two top surfaces and are narrower than about twice this value are bridged; "
-                     "dead-end gaps and the outer edge are left untouched. Set to 0 to disable.");
+    def->tooltip = L("Expands the top surfaces by this distance in all directions, as far as the part allows "
+                     "(the expansion never leaves the part or crosses a wall). This enlarges the top solid infill "
+                     "and, in particular, grows it over the covered material left by features rising from the "
+                     "middle of a top surface - filling the holes and gaps so the features rest on it. "
+                     "Set to 0 to disable.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("top_surface_expansion_margin", coFloat);
+    def->label = L("Top surface expansion wall margin");
+    def->category = L("Strength");
+    def->tooltip = L("When top surface expansion is greater than 0, the expansion is kept at least this far from "
+                     "the outer walls, to avoid artifacts such as a hull line where the top infill meets the "
+                     "perimeter. Where the original top surface is already closer than this to a wall, it is kept "
+                     "as-is. Set to 0 to let the expansion reach the walls.");
     def->sidetext = L("mm");
     def->min = 0;
     def->mode = comAdvanced;
