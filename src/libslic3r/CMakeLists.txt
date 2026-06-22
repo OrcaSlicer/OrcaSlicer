@@ -186,6 +186,19 @@ set(lisbslic3r_sources
     Format/AMF.hpp
     Format/DRC.cpp
     Format/DRC.hpp
+    # MakerBot / UltiMaker Fork – alle Format-Dateien
+    Format/GCodeArchiveUtils.cpp
+    Format/GCodeArchiveUtils.hpp
+    Format/MakerBotExport.cpp
+    Format/MakerBotExport.hpp
+    Format/MakerBotToolpath.cpp
+    Format/MakerBotToolpath.hpp
+    Format/GPXExport.cpp
+    Format/GPXExport.hpp
+    Format/MakerbotTranslator.cpp
+    Format/MakerbotTranslator.hpp
+    Format/UltimakerUFPExport.cpp
+    Format/UltimakerUFPExport.hpp
     Format/bbs_3mf.cpp
     Format/bbs_3mf.hpp
     format.hpp
