@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -3971,6 +3971,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "La température de buse recommandée pour ce type de filament est de [%d, %d] degrés Celsius."
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -7996,7 +7999,10 @@ msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
-msgstr "Applique les normales lissées à la vue réaliste.\n\nNécessite un rechargement manuel de la scène pour prendre effet (clic droit sur la vue 3D → « Tout recharger »)."
+msgstr ""
+"Applique les normales lissées à la vue réaliste.\n"
+"\n"
+"Nécessite un rechargement manuel de la scène pour prendre effet (clic droit sur la vue 3D → « Tout recharger »)."
 
 msgid "Anti-aliasing"
 msgstr "Anticrénelage"
@@ -10970,6 +10976,9 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "L'option de paroi précise sera ignorée pour les séquences de parois extérieure-intérieure ou intérieure-extérieure-intérieure."
 
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
+
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Le rétrécissement du filament ne sera pas utilisé car le rétrécissement des filaments utilisés ne correspond pas."
 
@@ -12747,7 +12756,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Optimisation du biais de flambage en Z (expérimental)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, no-c-format, no-boost-format
+#, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Resserre l’onde gyroïde le long de l’axe Z (vertical) à faible densité de remplissage afin de raccourcir la longueur effective des colonnes verticales et d’améliorer la résistance au flambage en compression selon l’axe Z. La consommation de filament est préservée. Aucun effet à partir d’environ 30 % de densité de remplissage. S’applique uniquement lorsque le motif de remplissage est réglé sur Gyroïde."
 
