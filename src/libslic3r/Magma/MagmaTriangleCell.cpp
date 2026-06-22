@@ -28,9 +28,10 @@ namespace magma {
 
 double calculate_auto_interior_width(double nozzle_diameter)
 {
-    // Fallback when nozzle outer diameter is not specified.
-    // Uses 3.0× bore as a conservative default.
-    return nozzle_diameter * 3.0;
+    // Fallback when nozzle outer diameter is not specified: a conservative
+    // bore-relative default. Same multiple as resolve_nozzle_flat() so full-auto
+    // mode (no measured flat) keeps the tube opening and the flat in step.
+    return nozzle_diameter * MAGMA_FLAT_BORE_MULTIPLE;
 }
 
 double calculate_auto_interior_width_from_od(double nozzle_od, double line_width)

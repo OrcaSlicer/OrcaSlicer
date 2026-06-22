@@ -300,6 +300,8 @@ set(lisbslic3r_sources
     Magma/MagmaTubeMap.hpp
     Magma/MagmaInjection.cpp
     Magma/MagmaInjection.hpp
+    Magma/MagmaInjectionOrder.cpp
+    Magma/MagmaInjectionOrder.hpp
     Magma/MagmaTubeSolver.hpp
     Magma/MagmaGreedyWarmStart.cpp
     Magma/MagmaGreedyWarmStart.hpp
@@ -520,8 +522,6 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 add_library(magma_tube_solver STATIC
     Magma/MagmaTubeSolver.cpp
     Magma/MagmaTubeSolver.hpp
-    Magma/MagmaInjectionOrder.cpp
-    Magma/MagmaInjectionOrder.hpp
 )
 target_include_directories(magma_tube_solver
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}

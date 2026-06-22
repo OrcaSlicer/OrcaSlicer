@@ -179,39 +179,52 @@ std::string generate_injection_gcode(
 
     // --- Config values ---
     double injection_speed_vol = config.magma_injection_speed.value;
-    bool iron_tube_ends      = config.magma_iron_tube_ends.value;
     double fill_factor       = config.magma_tube_fill_factor.value;
     if (fill_factor <= 0)
         return {};
 
     double slam_depth        = 0.0;  // resolved below (auto mode needs extruder/nozzle info)
     int    dwell_ms          = config.magma_injection_dwell.value;
-    double inj_z_hop         = config.magma_injection_z_hop.value;
     bool inj_retract         = config.magma_injection_retract.value;
+
+    // Crater wipe ("plow the displaced rim back, scrape nozzle clean").
+    bool   wipe_enabled      = config.magma_injection_iron.value;
+    int    wipe_turns        = std::max(1, config.magma_injection_iron_turns.value);
+    // Wipe speed: explicit setting if given, else the slicer's ironing speed (this
+    // replaces ironing and is the same kind of slow surface-finishing move), else
+    // travel speed as a last resort.
+    double wipe_speed_mms    = config.magma_injection_iron_speed.value > 0.0
+        ? config.magma_injection_iron_speed.value
+        : (config.ironing_speed.value > 0.0 ? config.ironing_speed.value : config.travel_speed.value);
+    if (wipe_speed_mms < 1.0) wipe_speed_mms = 30.0;
+    double wipe_hover        = std::max(0.0, config.magma_injection_iron_hover.value);
+    double wipe_margin       = std::max(0.0, config.magma_injection_iron_margin.value);
 
     // Get extruder info (ToolOrdering handles filament switching before we get here)
     unsigned int extruder_id = gcodegen.writer().filament()->id();
     double filament_diameter = config.filament_diameter.get_at(extruder_id);
     double filament_area = (PI / 4.0) * filament_diameter * filament_diameter;
 
-    // Resolve Z-slam depth: auto-derive from nozzle cone geometry, or use the
-    // manual value. Auto presses just far enough that the cone above the flat
-    // widens to cover the tube opening: z = (opening - flat) / (2*tan(half_angle)),
-    // with a 0.1mm floor for seal contact even when the flat already covers it.
+    // Resolve Z-slam depth: auto-derive from nozzle cone geometry (cone widens
+    // from the flat to cover the opening), or use the manual value. The seal math
+    // lives in MagmaTriangleCell.hpp so the injection here and Print::validate()
+    // stay in lockstep.
+    double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
+                                           config.nozzle_diameter.get_at(extruder_id));
     if (config.magma_injection_z_slam_auto.value) {
-        double opening = tube_map.tube_opening_diameter();
-        double flat    = config.magma_nozzle_outer_diameter.value;
-        if (flat <= 0.0)
-            flat = 3.0 * config.nozzle_diameter.get_at(extruder_id);  // matches auto tube-sizing fallback
-        double half_angle_rad = config.magma_nozzle_cone_half_angle.value * PI / 180.0;
-        double gap = opening - flat;
-        double computed = (gap > 0.0 && half_angle_rad > 1e-6)
-                              ? gap / (2.0 * std::tan(half_angle_rad)) : 0.0;
-        slam_depth = std::max(0.1, computed);
+        slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
+                                     config.magma_nozzle_cone_half_angle.value);
     } else {
-        slam_depth = config.magma_injection_z_slam.value;
+        slam_depth = std::min(config.magma_injection_z_slam.value, MAGMA_SLAM_CLAMP);
     }
-    slam_depth = std::min(slam_depth, 3.5);
+
+    // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
+    // tip sinks into the softening tube top and keeps the seal pressed shut as the
+    // channel fills. Ramps from slam_depth to slam_depth + plunge_depth, clamped so
+    // the total intrusion stays bounded.
+    double plunge_depth = config.magma_injection_plunge.value
+                              ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
+                              : 0.0;
 
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
     // Injection volume is geometrically computed from tube dimensions; applying
@@ -248,20 +261,14 @@ std::string generate_injection_gcode(
         if (volume <= 0)
             continue;
 
-        // Travel to injection point.
-        // travel_to() handles its own retract/z-hop for long moves.
+        // Travel to injection point. The built-in travel_to() handles retraction,
+        // avoid-crossing-perimeters, and the printer's own z-hop; the unretract
+        // below also undoes any lift it applied.
         Point scaled_pos(scale_(pt.position.x()), scale_(pt.position.y()));
         gcode += gcodegen.travel_to(scaled_pos, erMagmaInjection, "move to injection point");
 
-        // Return from injection z-hop to layer height.
-        // (Manual Z because built-in lift doesn't support custom heights.)
-        if (inj_z_hop > 0) {
-            sprintf(buf, "G1 Z%.3f F%d ; injection z-hop down\n", layer_z, z_feedrate);
-            gcode += buf;
-        }
-
-        // Unretract — undoes both the injection retract (state-tracked via
-        // GCodeWriter::retract) and any travel retract from travel_to().
+        // Unretract — undoes the previous injection's retract (state-tracked via
+        // GCodeWriter::retract) and any travel retract/lift from travel_to().
         gcode += gcodegen.unretract();
 
         // Z-slam: lower nozzle into surface to seal against hole
@@ -303,23 +310,45 @@ std::string generate_injection_gcode(
         Vec2d xy(gcodegen.writer().get_position().x(),
                  gcodegen.writer().get_position().y());
 
+        // Per-segment extrusion amounts. With viz waypoints we split E along the
+        // tube path (drives the preview slider); otherwise a single segment, or,
+        // when plunging, a fixed split so Z can ramp smoothly.
+        std::vector<double> seg_e;
         if (waypoints.size() >= 2) {
             double total_path_len = 0;
             for (size_t i = 1; i < waypoints.size(); ++i)
                 total_path_len += (waypoints[i] - waypoints[i - 1]).norm();
-
             for (size_t i = 1; i < waypoints.size(); ++i) {
                 double seg_len = (waypoints[i] - waypoints[i - 1]).norm();
-                double seg_e = (total_path_len > 0)
+                seg_e.push_back((total_path_len > 0)
                     ? filament_length * (seg_len / total_path_len)
-                    : filament_length / double(waypoints.size() - 1);
-                gcode += gcodegen.writer().extrude_to_xy(
-                    xy, seg_e, "injection segment");
+                    : filament_length / double(waypoints.size() - 1));
             }
+        } else if (plunge_depth > 0.0) {
+            const int N = 8;
+            for (int i = 0; i < N; ++i)
+                seg_e.push_back(filament_length / double(N));
         } else {
-            sprintf(buf, "Magma injection %.2f mm3", volume);
+            seg_e.push_back(filament_length);
+        }
+
+        // Emit the segments, optionally sinking Z a little before each so the
+        // nozzle plunges from slam_depth to slam_depth + plunge_depth by the end.
+        const int K = (int) seg_e.size();
+        for (int k = 0; k < K; ++k) {
+            if (plunge_depth > 0.0) {
+                double z = layer_z - (slam_depth + plunge_depth * double(k + 1) / double(K));
+                sprintf(buf, "G1 Z%.3f F%d ; injection plunge\n", z, z_feedrate);
+                gcode += buf;
+                // The raw Z move above sets F to the (fast) Z feedrate and bypasses
+                // the writer's speed tracking, so the writer won't restore it.
+                // Re-emit the injection feedrate or the extrude below inherits the
+                // Z feedrate and injects far too fast.
+                sprintf(buf, "G1 F%.3f\n", feedrate_mmmin);
+                gcode += buf;
+            }
             gcode += gcodegen.writer().extrude_to_xy(
-                xy, filament_length, std::string(buf));
+                xy, seg_e[k], K > 1 ? "injection segment" : "Magma injection");
         }
 
         // Dwell: hold nozzle sealed while plastic spreads through tube
@@ -328,26 +357,121 @@ std::string generate_injection_gcode(
             gcode += buf;
         }
 
-        // Retract BEFORE z-slam release to avoid dragging filament up
-        // from the injection point as the nozzle lifts.
-        // Uses writer().retract() directly instead of gcodegen.retract() because:
-        //   - gcodegen.retract() adds wipe moves (nozzle is z-slammed into surface)
-        //   - gcodegen.retract() adds Z-lift (we manage Z manually: slam release then hop)
-        //   - gcodegen.retract() resets E (unnecessary mid-injection-loop)
+        // --- Finish: break the seal, retract, then wipe the crater ---
+        // Lift a little to crack the seal BEFORE retracting, so we don't pull the
+        // freshly-injected plug back up through the still-sealed interface. 0.3mm
+        // relieves the contact pressure regardless of how deep the plunge was.
+        const double break_lift = 0.3;
+        double deep_z = layer_z - slam_depth - plunge_depth;   // nozzle depth after plunge
+        sprintf(buf, "G1 Z%.3f F%d ; injection break-lift\n", deep_z + break_lift, z_feedrate);
+        gcode += buf;
         if (inj_retract)
             gcode += gcodegen.writer().retract();
 
-        // Z-slam release: return to normal layer height
-        if (slam_depth > 0) {
+        if (wipe_enabled) {
+            // Crater ironing: spiral the nozzle inward over the injection point so
+            // the angled cone plows the displaced rim back into the crater (pushing
+            // it in + down) and irons the surface flat, while scraping the nozzle
+            // clean so it doesn't string to the next tube. The flat hovers over
+            // neighbouring cells (so it never irons a neighbour's air hole shut)
+            // and only descends to layer height over our own crater.
+
+            // Classify the pass for the preview. Role = Ironing: this is a special
+            // ironing finish, not an injection, so it shouldn't carry the injection
+            // role. WIPE markers wrap the moves so the processor registers them as
+            // the "Wipe" move type (its own preview toggle) rather than lumping these
+            // non-extruding plow moves under the injection role -- role and move-type
+            // are independent in the viewer, and a non-extruding clean-up reads
+            // naturally as a wipe. Only the injection extrusion stays Magma injection.
+            sprintf(buf, ";%s%s\n",
+                    GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
+                    ExtrusionEntity::role_to_string(erIroning).c_str());
+            gcode += buf;
+            gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start) + "\n";
+
+            // Centre = current nozzle XY (the injection point). All spiral points
+            // are computed relative to it, in G-code (origin-applied) coordinates.
+            Vec2d c(gcodegen.writer().get_position().x(),
+                    gcodegen.writer().get_position().y());
+
+            // Nozzle geometry: r_flat = radius of the flat tip (resolved once above);
+            // the cone above it rises at cone_rad from vertical.
+            double r_flat   = seal_flat / 2.0;
+            double cone_rad = config.magma_nozzle_cone_half_angle.value * PI / 180.0;
+
+            // R_open = our tube opening's vertex radius (inset/hollow triangle, so
+            //          it already excludes the cell walls / line width).
+            // D      = centre-to-centre distance to an edge-sharing neighbour cell
+            //          (for the triangle grid this is exactly side/sqrt(3)).
+            double R_open   = tube_map.tube_opening_diameter() / 2.0;
+            double D        = triangle_side_length(tube_map.cell_spacing()) / std::sqrt(3.0);
+
+            // cap = largest spiral radius at which the flat may PRESS (descend to
+            // layer height). A neighbour air hole's far vertex sits at (D + R_open)
+            // from us; we keep the flat's outer edge (r_flat past the spiral radius)
+            // at least 0.5mm short of it so a sliver of every neighbour hole stays
+            // open for air to escape. Inside cap we press; outside (or if cap <= 0,
+            // i.e. cells too tight to press anywhere) we hover.
+            double cap      = (D + R_open) - 0.5 - r_flat;
+
+            // crater_r = footprint radius of the intrusion: the cone reaches this
+            //            radius at the bottom of the slam+plunge.
+            // start_R  = begin the spiral this far out, so it catches the whole
+            //            displaced rim (margin beyond the footprint).
+            double crater_r = r_flat + (slam_depth + plunge_depth) * std::tan(cone_rad);
+            double start_R  = crater_r + wipe_margin;
+
+            double hover_z  = layer_z + wipe_hover;                   // height while hovering
+            int    wf       = std::max(60, (int)(wipe_speed_mms * 60.0));  // mm/s -> mm/min
+            const int seg_per_rev = 16;                              // circle smoothness
+
+            // Z is a STEP, not a ramp: press flat ON the surface (layer height)
+            // everywhere it is safe (inside the neighbour-clear cap), and only
+            // hover above the surface where the flat would otherwise reach a
+            // neighbour's air hole (rad > cap), or always if cap <= 0 (no room).
+            auto iron_z = [&](double rad) {
+                return (cap > 0.0 && rad <= cap) ? layer_z : hover_z;
+            };
+            auto emit_iron = [&](double rad, double ang, const char* tag) {
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; %s\n",
+                        c.x() + rad * std::cos(ang), c.y() + rad * std::sin(ang),
+                        iron_z(rad), wf, tag);
+                gcode += buf;
+            };
+
+            // One full rotation at the start radius first, to shear/plow the whole
+            // rim evenly before converging (avoids dragging a wad inward).
+            for (int s = 1; s <= seg_per_rev; ++s)
+                emit_iron(start_R, double(s) / double(seg_per_rev) * 2.0 * PI, "crater iron rim");
+
+            // Then spiral inward to the centre.
+            int total = std::max(1, wipe_turns * seg_per_rev);
+            for (int s = 1; s <= total; ++s) {
+                double frac = double(s) / double(total);            // 0..1, outer -> centre
+                emit_iron(start_R * (1.0 - frac), frac * wipe_turns * 2.0 * PI, "crater iron");
+            }
+            // One short stroke across the centre to flatten the gathered mound,
+            // only where we can actually press (cap > 0, i.e. there is room).
+            if (cap > 0.0) {
+                double fl = std::min(cap, r_flat);
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron flatten\n", c.x() - fl, c.y(), layer_z, wf); gcode += buf;
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron flatten\n", c.x() + fl, c.y(), layer_z, wf); gcode += buf;
+            }
+            // Return to centre at layer height and resync the writer position (the
+            // raw moves above bypassed its tracking) so the next travel_to plans
+            // its path/avoid-crossing from the right spot.
+            sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron end\n", c.x(), c.y(), layer_z, wf);
+            gcode += buf;
+            gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End) + "\n";
+            gcodegen.writer().set_position(Vec3d(c.x(), c.y(), layer_z));
+        } else {
+            // No wipe: just return to layer height and resync the writer's Z.
             sprintf(buf, "G1 Z%.3f F%d ; z-slam release\n", layer_z, z_feedrate);
             gcode += buf;
+            Vec3d p = gcodegen.writer().get_position(); p.z() = layer_z;
+            gcodegen.writer().set_position(p);
         }
-
-        // Post-injection Z-hop to clear nozzle from ooze blob
-        if (inj_z_hop > 0) {
-            sprintf(buf, "G1 Z%.3f F%d ; injection z-hop\n", layer_z + inj_z_hop, z_feedrate);
-            gcode += buf;
-        }
+        // No manual z-hop: the next iteration's travel_to() handles lift + travel.
     }
 
     // Reset forced dimensions
@@ -357,71 +481,6 @@ std::string generate_injection_gcode(
     sprintf(buf, ";%s0\n",
             GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width).c_str());
     gcode += buf;
-
-    // --- Ironing of tube ends ---
-    if (iron_tube_ends) {
-        // Emit ironing role tag
-        sprintf(buf, ";%s%s\n",
-                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
-                ExtrusionEntity::role_to_string(erIroning).c_str());
-        gcode += buf;
-
-        // Ironing parameters: use magma-specific values if set, otherwise fall back
-        // to regular ironing settings. Print::validate() ensures at least one source
-        // is configured when magma_iron_tube_ends is enabled.
-        double ir_flow_pct = (config.magma_ironing_flow.value > 0)
-            ? config.magma_ironing_flow.value / 100.0
-            : config.ironing_flow.value / 100.0;
-        double ir_spacing = (config.magma_ironing_spacing.value > 0)
-            ? config.magma_ironing_spacing.value
-            : config.ironing_spacing.value;
-        if (ir_spacing <= 0)
-            ir_spacing = 0.1;  // safety floor — config min allows 0
-        double ir_speed = (config.magma_ironing_speed.value > 0)
-            ? config.magma_ironing_speed.value * 60.0
-            : config.ironing_speed.value * 60.0;  // mm/s → mm/min
-
-        float nozzle_d = config.nozzle_diameter.get_at(extruder_id);
-        double ir_height = actual_layer_height * ir_flow_pct;
-        double ir_flow_mm3_per_mm = nozzle_d * ir_height;
-        double ir_e_per_mm = ir_flow_mm3_per_mm * e_per_mm3;
-
-        // Iron each injection hole with serpentine parallel lines
-        for (const auto& pt : points) {
-            double radius = tube_map.interior_width() / 2.0 - nozzle_d / 2.0;
-            if (radius <= 0.05)
-                continue;
-
-            bool left_to_right = true;
-            for (double dy = -radius; dy <= radius + 0.001; dy += ir_spacing) {
-                double r2 = radius * radius - dy * dy;
-                if (r2 <= 0)
-                    continue;
-                double half_chord = std::sqrt(r2);
-
-                double x0 = pt.position.x() + (left_to_right ? -half_chord : half_chord);
-                double x1 = pt.position.x() + (left_to_right ? half_chord : -half_chord);
-                double y  = pt.position.y() + dy;
-
-                // Travel to line start
-                Point start_s(scale_(x0), scale_(y));
-                gcode += gcodegen.travel_to(start_s, erIroning, "iron start");
-                gcode += gcodegen.unretract();
-
-                // Extrude ironing line (use point_to_gcode for correct
-                // instance offset — Vec2d(x1,y) is object-local coords).
-                double line_len = 2.0 * half_chord;
-                double e_val = line_len * ir_e_per_mm;
-                gcode += gcodegen.writer().set_speed(ir_speed);
-                gcode += gcodegen.writer().extrude_to_xy(
-                    gcodegen.point_to_gcode(Point(scale_(x1), scale_(y))),
-                    e_val, "tube iron");
-
-                left_to_right = !left_to_right;
-            }
-            gcode += gcodegen.retract(false, false);
-        }
-    }
 
     return gcode;
 }

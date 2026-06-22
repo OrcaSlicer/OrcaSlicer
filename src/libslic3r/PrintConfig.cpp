@@ -5668,36 +5668,62 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10));
 
-    def = this->add("magma_iron_tube_ends", coBool);
-    def->label = L("Iron tube ends");
+    def = this->add("magma_injection_iron", coBool);
+    def->label = L("Crater ironing");
     def->category = L("Strength");
-    def->tooltip = L("Iron over tube injection points after filling. Smooths the top surface and "
-                     "helps seal the tube opening. Uses your configured ironing speed and flow settings.");
+    def->tooltip = L("A special ironing pass after each injection that clears the injection artifact: "
+                     "the nozzle spirals inward over the injection point so the angled cone plows the "
+                     "displaced rim back into the crater (pushing it in and down) and irons the surface "
+                     "flat while scraping the nozzle clean, so it doesn't string plastic to the next "
+                     "tube.\n\n"
+                     "The nozzle hovers over neighbouring cells (so it never irons a neighbour's air "
+                     "hole shut) and only presses down over its own crater.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(true));
 
-    def = this->add("magma_ironing_flow", coPercent);
-    def->label = L("Magma ironing flow");
+    def = this->add("magma_injection_iron_turns", coInt);
+    def->label = L("Crater iron turns");
     def->category = L("Strength");
-    def->tooltip = L("Flow rate for ironing over Magma tube ends, as a percentage of layer height. "
-                     "Set to 0 to use your regular ironing flow setting. "
-                     "If 0 and regular ironing is disabled, slicing will report an error.");
-    def->sidetext = L("%");
-    def->min = 0;
-    def->max = 100;
+    def->tooltip = L("Number of inward-spiral turns in the crater ironing pass. More turns take "
+                     "shallower cuts (cleaner result) but add time per injection.");
+    def->min = 1;
+    def->max = 6;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionPercent(0));
+    def->set_default_value(new ConfigOptionInt(2));
 
-    def = this->add("magma_ironing_spacing", coFloat);
-    def->label = L("Magma ironing spacing");
+    def = this->add("magma_injection_iron_speed", coFloat);
+    def->label = L("Crater iron speed");
     def->category = L("Strength");
-    def->tooltip = L("Line spacing for ironing over Magma tube ends. "
-                     "Set to 0 to use your regular ironing spacing setting.");
-    def->sidetext = L("mm");
+    def->tooltip = L("Speed of the crater ironing moves. Set to 0 to use your regular ironing speed "
+                     "(this is the same kind of slow surface-finishing move).");
+    def->sidetext = L("mm/s");
     def->min = 0;
-    def->max = 2;
+    def->max = 200;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("magma_injection_iron_hover", coFloat);
+    def->label = L("Crater iron hover");
+    def->category = L("Strength");
+    def->tooltip = L("How far above layer height the nozzle hovers while it is over neighbouring "
+                     "cells during the ironing pass, so it doesn't smear material into a neighbour's "
+                     "air hole. It descends to layer height once it is safely over its own crater.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 1.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def = this->add("magma_injection_iron_margin", coFloat);
+    def->label = L("Crater iron start margin");
+    def->category = L("Strength");
+    def->tooltip = L("How far outside the crater footprint the inward spiral starts, so it catches "
+                     "the full displaced rim. Larger starts further out.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 5.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.5));
 
     def = this->add("magma_tube_solver_mode", coEnum);
     def->label = L("Tube solver quality");
@@ -5748,17 +5774,6 @@ void PrintConfigDef::init_fff_params()
     def->max = 600;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(60));
-
-    def = this->add("magma_ironing_speed", coFloat);
-    def->label = L("Magma ironing speed");
-    def->category = L("Strength");
-    def->tooltip = L("Speed for ironing over Magma tube ends. "
-                     "Set to 0 to use your regular ironing speed setting.");
-    def->sidetext = L("mm/s");
-    def->min = 0;
-    def->max = 100;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("magma_injection_park", coBool);
     def->label = L("Park during temp change");
@@ -5853,6 +5868,31 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("magma_injection_plunge", coBool);
+    def->label = L("Plunge while injecting");
+    def->category = L("Strength");
+    def->tooltip = L("Sink the nozzle deeper into the tube top as the injection proceeds, instead of "
+                     "holding a single fixed Z-slam. The hot nozzle melts its way into the softening "
+                     "surface and keeps the seal pressed shut while the channel fills, so plastic is "
+                     "driven down the tube rather than mushrooming out around the nozzle.\n\n"
+                     "The nozzle ramps from the sealing depth (manual or auto Z-slam) down to that "
+                     "depth plus the plunge depth below, spread across the injection.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("magma_injection_plunge_depth", coFloat);
+    def->label = L("Plunge depth");
+    def->category = L("Strength");
+    def->tooltip = L("How much deeper the nozzle ramps during a plunge injection, on top of the "
+                     "sealing Z-slam depth, by the time the injection finishes. Larger values press "
+                     "the hot nozzle harder into the tube top (better seal and surface melting) but "
+                     "risk digging into the part. Start around 0.4mm and tune.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 2.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.4));
+
     def = this->add("magma_injection_dwell", coInt);
     def->label = L("Injection dwell time");
     def->category = L("Strength");
@@ -5866,24 +5906,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 
-    def = this->add("magma_injection_z_hop", coFloat);
-    def->label = L("Injection Z-hop");
-    def->category = L("Strength");
-    def->tooltip = L("Lift the nozzle by this amount after each injection before traveling "
-                     "to the next injection point. This clears the nozzle from any ooze blob "
-                     "at the injection site and prevents dragging plastic across the surface.\n\n"
-                     "Set to 0 to disable (nozzle stays at layer height between injections).");
-    def->sidetext = L("mm");
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(4.0));
-
     def = this->add("magma_injection_retract", coBool);
     def->label = L("Retract after injection");
     def->category = L("Strength");
-    def->tooltip = L("Retract the filament after each injection using your normal retraction "
-                     "settings. This reduces ooze and stringing while traveling between "
-                     "injection points.\n\n"
+    def->tooltip = L("After each injection the nozzle first lifts slightly to crack the seal at "
+                     "the tube top, then retracts -- so retraction pulls back through open air "
+                     "instead of sucking the freshly injected plug back up out of the tube. "
+                     "Reduces ooze and stringing on the travel to the next injection.\n\n"
                      "Uses the same retraction length and speed configured for your filament.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));

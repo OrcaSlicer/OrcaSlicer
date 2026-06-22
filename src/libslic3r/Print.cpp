@@ -1377,28 +1377,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         if (!has_magma)
             continue;
 
-        // Injection/ironing settings are in PrintObjectConfig (per-object)
+        // Injection settings are in PrintObjectConfig (per-object)
         const auto& obj_cfg = object->config();
-
-        // Ironing requires either regular ironing enabled or magma-specific ironing params
-        if (obj_cfg.magma_iron_tube_ends.value) {
-            bool has_magma_ironing = obj_cfg.magma_ironing_flow.value > 0
-                && obj_cfg.magma_ironing_spacing.value > 0
-                && obj_cfg.magma_ironing_speed.value > 0;
-            // Check region ironing setting (still in PrintRegionConfig)
-            bool has_regular_ironing = false;
-            for (const auto& region : object->all_regions()) {
-                if (region.get().config().ironing_type.value != IroningType::NoIroning) {
-                    has_regular_ironing = true;
-                    break;
-                }
-            }
-            if (!has_magma_ironing && !has_regular_ironing) {
-                return {L("Magma tube end ironing requires either regular ironing to be enabled "
-                          "or all Magma ironing parameters (flow, spacing, speed) to be set."),
-                        nullptr, "magma_iron_tube_ends"};
-            }
-        }
 
         // Warn if inner zone also uses Magma (defeats purpose of dual zones)
         for (const auto& region : object->all_regions()) {
@@ -1442,7 +1422,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             double cell_sp = line_w * std::sqrt(3.0);  // approximate; actual uses interior_width
             // Use actual interior width if available for more accurate estimate
             double iw = rcfg.magma_interior_width.value;
-            if (iw <= 0) iw = nozzle_d * 3.0;  // auto default
+            if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
             cell_sp = iw + line_w * std::sqrt(3.0);
             double excess_frac = 3.0 * line_w / (4.0 * cell_sp);
             double corrected_w = line_w * (1.0 - excess_frac);
@@ -1510,31 +1490,58 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 break;
             }
 
-            // (2) Opening so much larger than the flat that auto Z-slam would crush.
-            if (obj_cfg.magma_injection_z_slam_auto.value) {
-                double flat = rcfg.magma_nozzle_outer_diameter.value;
-                if (flat <= 0.0) flat = 3.0 * nozzle_d;
+            // (2) Seal prediction: at its deepest (z-slam + plunge, clamped) does
+            // the nozzle cone widen enough to cover the tube opening with margin?
+            // This catches both an auto opening-too-big-for-the-flat (slam clamped)
+            // and a too-shallow manual z-slam. Uses the same seal math the injection
+            // G-code applies (MagmaTriangleCell.hpp) so the warning can't drift.
+            {
+                double flat = magma::resolve_nozzle_flat(rcfg.magma_nozzle_outer_diameter.value, nozzle_d);
                 double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
                 if (line_w <= 0) line_w = nozzle_d;
                 double iw = rcfg.magma_interior_width.value;
-                if (iw <= 0) iw = nozzle_d * 3.0;
+                if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
                 double cell_sp    = magma::cell_spacing_from_geometry(iw, line_w);
                 double inset_side = magma::triangle_side_length(cell_sp) - line_w * std::sqrt(3.0);
                 double opening    = inset_side > 0.0 ? 2.0 * inset_side / std::sqrt(3.0) : 0.0;
-                double cone_rad   = rcfg.magma_nozzle_cone_half_angle.value * 0.0174532925199433; // deg->rad
-                double z_needed   = (opening > flat && cone_rad > 1e-6)
-                    ? (opening - flat) / (2.0 * std::tan(cone_rad)) : 0.0;
-                if (z_needed > 0.5) {
+                double cone_deg   = rcfg.magma_nozzle_cone_half_angle.value;
+
+                double slam = obj_cfg.magma_injection_z_slam_auto.value
+                    ? magma::auto_slam_depth(opening, flat, cone_deg)
+                    : std::min(obj_cfg.magma_injection_z_slam.value, magma::MAGMA_SLAM_CLAMP);
+                double plunge = obj_cfg.magma_injection_plunge.value
+                    ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value) : 0.0;
+                double covered = magma::cone_coverage_at_depth(slam + plunge, flat, cone_deg);
+
+                if (opening > 0.0 && covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
                     if (warning) {
                         warning->string = Slic3r::format(
-                            L("Magma tube opening (%.2f mm) is much larger than the nozzle flat "
-                              "(%.2f mm): auto Z-slam would press %.2f mm to seal it, likely crushing "
-                              "the print. Reduce the injection tube width or use a nozzle with a "
-                              "larger flat."),
-                            opening, flat, z_needed);
+                            L("Magma injection may not seal: at its deepest the nozzle covers only "
+                              "%.2f mm (Z-slam %.2f + plunge %.2f mm) but the tube opening is %.2f mm. "
+                              "Increase the Z-slam or plunge depth, reduce the injection tube width, or "
+                              "use a nozzle with a larger flat."),
+                            covered, slam, plunge, opening);
                         warning->object = object;
                         warning->is_warning = true;
                     }
+                }
+            }
+
+            // (3) Injection speed above the injection filament's melt rate. It is
+            // silently capped at G-code time, so warn the user it won't run as set.
+            {
+                int inj_filament = obj_cfg.magma_injection_filament.value;  // 0 = current/sparse
+                int inj_ext = inj_filament > 0 ? (inj_filament - 1) : sparse_ext;
+                double max_vol = m_config.filament_max_volumetric_speed.get_at(inj_ext);
+                double inj_speed = obj_cfg.magma_injection_speed.value;
+                if (warning && warning->string.empty() && max_vol > 0.0 && inj_speed > max_vol) {
+                    warning->string = Slic3r::format(
+                        L("Magma injection speed (%.1f mm3/s) exceeds the injection filament's max "
+                          "volumetric speed (%.1f mm3/s) and will be capped to it. Lower the injection "
+                          "speed or raise the filament's max volumetric speed."),
+                        inj_speed, max_vol);
+                    warning->object = object;
+                    warning->is_warning = true;
                 }
             }
             break;  // only check first Magma region per object
@@ -2626,7 +2633,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         // first object that uses Magma.
         bool any_magma = false;
         bool spread_heat = false;
-        struct Gathered { coordf_t print_z; Point world; int object_idx, instance_idx, pair_index; };
+        const PrintObject* first_magma = nullptr;
+        struct Gathered { coordf_t print_z; Point world; int object_idx, instance_idx, pair_index; double inj_volume; };
         std::vector<Gathered> items;
 
         for (int oi = 0; oi < int(m_objects.size()); ++oi) {
@@ -2636,9 +2644,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 continue;
             if (!any_magma) {
                 any_magma = true;
+                first_magma = obj;
                 spread_heat = obj->config().magma_injection_ordering.value
                               == MagmaInjectionOrdering::SpreadHeat;
             }
+            const double fill_factor = std::max(0.0, obj->config().magma_tube_fill_factor.value);
             const std::vector<magma::UTubePair>& pairs = tm->u_tube_pairs();
             const PrintInstances& instances = obj->instances();
             for (int pi = 0; pi < int(pairs.size()); ++pi) {
@@ -2653,8 +2663,29 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     items.push_back({ cap_z,
                         Point(scale_(pr.injection_center.x()) + instances[ii].shift.x(),
                               scale_(pr.injection_center.y()) + instances[ii].shift.y()),
-                        oi, ii, pi });
+                        oi, ii, pi, pr.volume_mm3 * fill_factor });
             }
+        }
+
+        // Injection-phase timing model (representative scalars from the first
+        // Magma object + machine speeds) so the heat decay runs in real seconds.
+        magma::InjectionTiming timing;
+        if (first_magma != nullptr) {
+            const PrintObjectConfig& oc = first_magma->config();
+            double travel = m_config.travel_speed.value;
+            timing.travel_speed_mm_s = travel > 1.0 ? travel : 150.0;
+            double dwell_s = std::max(0, oc.magma_injection_dwell.value) / 1000.0;
+            // Rough per-injection finishing time (dwell + crater wipe) so the heat
+            // decay clock is realistic; the wipe term is a coarse estimate (turns x
+            // pi x ~2mm representative radius / speed) -- exactness isn't needed.
+            double wipe_s = 0.0;
+            if (oc.magma_injection_iron.value) {
+                double ws = oc.magma_injection_iron_speed.value > 1.0 ? oc.magma_injection_iron_speed.value : 30.0;
+                wipe_s = std::max(1, oc.magma_injection_iron_turns.value) * 3.14159265 * 2.0 / ws;
+            }
+            timing.per_injection_fixed_s = dwell_s + wipe_s;
+            double vol_speed = oc.magma_injection_speed.value;
+            timing.vol_speed_mm3_s = vol_speed > 0.01 ? vol_speed : 10.0;
         }
 
         if (any_magma && !items.empty()) {
@@ -2668,12 +2699,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 coordf_t zmax = items[i].print_z + EPSILON;
                 size_t j = i;
                 Points world_pts;
-                for (; j < items.size() && items[j].print_z <= zmax; ++j)
+                std::vector<double> world_vol;
+                for (; j < items.size() && items[j].print_z <= zmax; ++j) {
                     world_pts.push_back(items[j].world);
+                    world_vol.push_back(items[j].inj_volume);
+                }
                 coordf_t bucket_z = 0.5 * (items[i].print_z + items[j - 1].print_z);
 
                 std::vector<size_t> order = magma::order_injection_points(
-                    world_pts, spread_heat, 0.75,
+                    world_pts, world_vol, timing, spread_heat,
                     [this]() { this->throw_if_canceled(); });
 
                 std::vector<MagmaInjectionTarget> ordered;
