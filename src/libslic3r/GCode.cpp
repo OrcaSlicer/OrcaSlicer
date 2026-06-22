@@ -976,10 +976,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 int interface_temp = full_config.filament_tower_interface_print_temp.get_at(new_filament_id);
                 if (interface_temp == -1)
                     interface_temp = full_config.nozzle_temperature_range_high.get_at(new_filament_id);
-                if (full_config.enable_tower_interface_features && tcr.is_contact)
+                // H2C keeps the new filament at its real print temp (BambuStudio emits P265/C265).
+                // The interface temp is carried only by the M620.13 T param, not by inflating the
+                // filament working temperature.
+                if (full_config.enable_tower_interface_features && tcr.is_contact && !is_h2c_multi_nozzle)
                     new_filament_temp = interface_temp;
                 config.set_key_value("new_filament_temp", new ConfigOptionInt(new_filament_temp));
-                if (full_config.enable_tower_interface_features && tcr.is_contact) {
+                if (full_config.enable_tower_interface_features && tcr.is_contact && !is_h2c_multi_nozzle) {
                     auto temps = full_config.nozzle_temperature.values;
                     if (new_filament_id >= 0 && new_filament_id < (int)temps.size())
                         temps[new_filament_id] = interface_temp;
