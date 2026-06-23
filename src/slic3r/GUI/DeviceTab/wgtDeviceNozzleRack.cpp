@@ -187,7 +187,8 @@ void wgtDeviceNozzleRack::UpdateRackInfo(std::shared_ptr<DevNozzleRack> rack)
         if (nozzle_system->GetOwner() && nozzle_system->GetOwner()->GetExtderSystem()) {
             active_ext_id = nozzle_system->GetOwner()->GetExtderSystem()->GetCurrentExtderId();
         }
-        m_toolhead_panel->UpdateToolHeadInfo(nozzle_system->GetExtNozzle(active_ext_id), true, m_nozzle_rack.lock());
+        bool is_right_active = (active_ext_id == MAIN_EXTRUDER_ID);
+        m_toolhead_panel->UpdateToolHeadInfo(nozzle_system->GetExtNozzle(MAIN_EXTRUDER_ID), is_right_active, m_nozzle_rack.lock());
         m_rack_area->UpdateRackInfo(m_nozzle_rack);
     }
 }
@@ -302,7 +303,7 @@ void wgtDeviceNozzleRackToolHead::UpdateToolHeadInfo(const DevNozzle& extruder_n
         m_nozzle_flowtype_label->SetLabel(extruder_nozzle.GetNozzleFlowTypeStr());
     }
 
-    m_title_box->SetLabel(active ? (active && !extruder_nozzle.IsEmpty() && extruder_nozzle.AtLeftExtruder() ? _L("Toolhead (Left)") : _L("Toolhead (Right)")) : _L("Toolhead"));
+    m_title_box->SetLabel(_L("Toolhead"));
 
     /* Icon*/
     bool extruder_exist   = !extruder_nozzle.IsEmpty();
