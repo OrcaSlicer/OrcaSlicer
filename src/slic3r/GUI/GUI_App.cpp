@@ -406,7 +406,7 @@ static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_d
     std::cerr << "Migrating Flatpak data dir: " << data_dir_path << std::endl;
 
     std::string legacy_data_dir_str = data_dir_path.string();
-    boost::replace_first(legacy_data_dir_str, "com.orcaslicer.OrcaSlicer", "io.github.orcaslicer.OrcaSlicer");
+    boost::replace_first(legacy_data_dir_str, "com.orcaslicer.OrcaSlicer", "io.github.softfever.OrcaSlicer");
     const fs::path legacy_data_dir(legacy_data_dir_str);
 
     std::cerr << "Legacy Flatpak data dir: " << legacy_data_dir << std::endl;
@@ -472,7 +472,7 @@ static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
     /* FT_OBJ */     { L("OBJ files"),       { ".obj"sv } },
     /* FT_AMF */     { L("AMF files"),       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
     /* FT_3MF */     { L("3MF files"),       { ".3mf"sv } },
-    /* FT_GCODE_3MF */ {L("Gcode 3MF files"), {".gcode.3mf"sv}},
+    /* FT_GCODE_3MF */ {L("G-code 3MF files"), {".gcode.3mf"sv}},
     /* FT_GCODE */   { L("G-code files"),    { ".gcode"sv} },
 #ifdef __APPLE__
     /* FT_MODEL */
@@ -4493,7 +4493,7 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
             /* delete old user settings */
             bool     transfer_preset_changes = false;
             wxString header = _L("Some presets are modified.") + "\n" +
-                _L("You can keep the modified presets to the new project, discard or save changes as new presets.");
+                _L("You can keep the modified presets for the new project, discard, or save changes as new presets.");
             wxGetApp().check_and_keep_current_preset_changes(_L("User logged out"), header, ActionButtons::KEEP | ActionButtons::SAVE, &transfer_preset_changes);
 
             remove_user_presets();
@@ -6241,8 +6241,11 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
 
 bool GUI_App::check_preset_parent_available(const std::pair<std::string, std::map<std::string, std::string>>& preset_data)
 {
-    std::string inherits_name = preset_data.second.at(BBL_JSON_KEY_INHERITS);
-    // // If contains "fdm_", "@System", and "@base", is a common base template that doesn't need to be installed
+    auto it = preset_data.second.find(BBL_JSON_KEY_INHERITS);
+    if (it == preset_data.second.end() || it->second.empty())
+        return true;
+    const std::string& inherits_name = it->second;
+    // If contains "fdm_", "@System", and "@base", is a common base template that doesn't need to be installed
     if (inherits_name.find("fdm_") != std::string::npos || inherits_name.find("@System") != std::string::npos || inherits_name.find("@base") != std::string::npos)
         return true;
 
@@ -6785,6 +6788,9 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
     // BBS
     m_user_sync_token.reset(new int(0));
     if (with_progress_dlg) {
+        // Mark a manual progress dialog as active so restart_sync_user_preset() ignores
+        // repeat triggers while it is on screen (prevents stacking modal dialogs).
+        m_sync_user_preset_dlg_active = true;
         auto dlg = new ProgressDialog(_L("Loading"), "", 100, this->mainframe, wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT);
         dlg->Update(0, _L("Loading user preset"));
         progressFn = [this, dlg](int percent) {
@@ -6796,7 +6802,9 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             return is_closing() || dlg->WasCanceled() || t.expired();
         };
         finishFn = [this, dlg](bool) {
-            CallAfter([=]{ dlg->Destroy(); });
+            // Clear the guard together with destroying the dialog, on the GUI thread, so the
+            // next manual sync is allowed exactly once this dialog leaves the screen.
+            CallAfter([=]{ dlg->Destroy(); m_sync_user_preset_dlg_active = false; });
         };
     }
     else {
@@ -6810,7 +6818,10 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 
     m_sync_update_thread = Slic3r::create_thread(
         [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
-            if (!m_agent) return;
+            // finishFn tears down the progress dialog (and clears the re-entrancy guard), so it
+            // must run on every exit path — otherwise an early bail-out would leak the modal
+            // dialog and leave the guard stuck, blocking all later manual syncs.
+            if (!m_agent) { finishFn(false); return; }
 
             // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
             scan_orphaned_info_files();
@@ -7070,6 +7081,14 @@ void GUI_App::stop_sync_user_preset()
 
 void GUI_App::restart_sync_user_preset()
 {
+    // A manual sync's progress dialog is already on screen — ignore repeat triggers so a
+    // second modal dialog can never stack. This matters most offline: each attempt blocks
+    // on a long HTTP timeout and can't be cancelled mid-request, and on macOS the global
+    // menu bar stays clickable even while the dialog disables the main window, so without
+    // this guard repeated clicks pile up modal dialogs and wedge the UI (force-quit only).
+    if (m_sync_user_preset_dlg_active)
+        return;
+
     if (!m_user_sync_token) {
         // No sync running. If a restart helper is already in flight it will
         // start the new sync once the old thread is joined — don't race it.

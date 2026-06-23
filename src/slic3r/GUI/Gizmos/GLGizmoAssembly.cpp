@@ -162,7 +162,7 @@ void GLGizmoAssembly::render_input_window_warning(bool same_model_object)
     if (not_assembled_warning) {
         m_imgui->warning_text(
             _L("Warning") + ": " +
-            _L("It is recommended to assemble the objects first,\nbecause the objects is restriced to bed \nand only parts can be lifted.")
+            _L("It is recommended to assemble objects first,\nbecause they are restricted to the bed \nand only parts can be lifted.")
         );
     }
 }

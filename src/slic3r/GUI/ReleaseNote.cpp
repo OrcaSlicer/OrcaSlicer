@@ -137,7 +137,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
 
-    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in when Orca Slicer launches next time."), LB_AUTO_WRAP);
+    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in the next time Orca Slicer launches."), LB_AUTO_WRAP);
     operation_tips->SetMinSize(wxSize(FromDIP(260), -1));
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
@@ -255,7 +255,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
     // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
-    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on Github"), "", LB_AUTO_WRAP);
+    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
     github_link->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         EndModal(wxID_YES);
     });
@@ -1059,7 +1059,7 @@ void PrintErrorDialog::init_button_list()
     init_button(FILAMENT_EXTRUDED, _L("Filament Extruded, Continue"));
     init_button(RETRY_FILAMENT_EXTRUDED, _L("Not Extruded Yet, Retry"));
     init_button(CONTINUE, _L("Finished, Continue"));
-    init_button(LOAD_VIRTUAL_TRAY, _L("Load Filament"));
+    init_button(LOAD_VIRTUAL_TRAY, _L("Load"));
     init_button(OK_BUTTON, _L("OK"));
     init_button(FILAMENT_LOAD_RESUME, _L("Filament Loaded, Resume"));
     init_button(JUMP_TO_LIVEVIEW, _L("View Liveview"));
