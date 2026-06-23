@@ -66,8 +66,8 @@ public:
      * BBL/OrcaSlicer compresses filament arrays to the number of physical extruders
      * (e.g. 2 for H2C).  G-code templates, however, index arrays by logical slot
      * (e.g. 0-6 for a 7-slot project).  This function reads the maximum value of
-     * `filament_self_index` from ori_full_print_config — which records the logical
-     * slot count before any per-extruder compression — and falls back to the
+     * `filament_self_index` from ori_full_print_config - which records the logical
+     * slot count before any per-extruder compression - and falls back to the
      * compressed count only if the key is absent.
      */
     static size_t get_logical_filament_count(const Slic3r::GCode& gcode);

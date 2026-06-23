@@ -350,7 +350,7 @@ void WipeTower::initialize_nozzle_status(
 
     // Collect filament IDs to seed from: prefer per-layer sequences, fall back to used_filaments.
     // The 3-arg LayeredNozzleGroupResult::create() does NOT populate _layer_filament_sequences,
-    // so the recorder would remain empty — causing get_filament_in_nozzle() to always return -1
+    // so the recorder would remain empty - causing get_filament_in_nozzle() to always return -1
     // and filament_in_nozzle_change to be true on every tool change, adding spurious 56s penalties.
     const auto& layer_seqs = group_result.get_layer_filament_sequences();
     if (!layer_seqs.empty()) {

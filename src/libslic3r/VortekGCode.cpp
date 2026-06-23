@@ -334,7 +334,7 @@ std::vector<int> GCode::remap_ints_by_filament_vortek(const Slic3r::GCode& gcode
             int final_idx = (idx >= 0 && idx < (int)opt->values.size()) ? idx : (int)i;
             if (final_idx >= 0 && final_idx < (int)opt->values.size()) {
                 int val = opt->get_at(final_idx);
-                // ConfigOptionIntsNullable uses INT_MAX as the nil sentinel — treat nil as 0.
+                // ConfigOptionIntsNullable uses INT_MAX as the nil sentinel - treat nil as 0.
                 if (val != std::numeric_limits<int>::max())
                     dst[i] = val;
             }
@@ -376,7 +376,7 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
 {
     // Derive logical filament slot count (NOT the compressed physical-extruder count)
     // via get_logical_filament_count(), which reads filament_self_index from
-    // ori_full_print_config — the config snapshot taken before per-extruder compression.
+    // ori_full_print_config - the config snapshot taken before per-extruder compression.
     size_t num_filaments = get_logical_filament_count(gcode);
     if (num_filaments == 0)
         return;
@@ -385,7 +385,7 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
     gcode.placeholder_parser().set("filament_pre_cooling_temperature",    new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature", num_filaments)));
 
     // filament_pre_cooling_temperature_nc: pass through as-is from preset.
-    // BBL empirically outputs P0 when the preset value is 0 (e.g. PA filament) —
+    // BBL empirically outputs P0 when the preset value is 0 (e.g. PA filament) -
     // firmware handles nil values internally. No synthetic fallback.
     gcode.placeholder_parser().set("filament_pre_cooling_temperature_nc",
         new Slic3r::ConfigOptionInts(remap_ints_by_filament_vortek(gcode, "filament_pre_cooling_temperature_nc", num_filaments)));
