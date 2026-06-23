@@ -199,11 +199,15 @@ void MoonrakerPrinterAgent::install_device_cert(std::string dev_id, bool lan_onl
 
 bool MoonrakerPrinterAgent::start_discovery(bool start, bool sending)
 {
-    (void) sending;
-    if (start) {
-        announce_printhost_device();
-    }
-    return true;
+    // Discovery is not properly implemented, avoid populating machine list
+    // with stale device
+    // (void) sending;
+    // if (start) {
+    //     announce_printhost_device();
+    // }
+    // return true;
+
+    return BAMBU_NETWORK_SUCCESS;
 }
 
 int MoonrakerPrinterAgent::ping_bind(std::string ping_code)
@@ -344,11 +348,17 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
     if (cancel_fn && cancel_fn()) {
         return BAMBU_NETWORK_ERR_CANCELED;
     }
-    // Determine the G-code file to upload
-    // params.filename may be .3mf, params.dst_file contains actual G-code
+    // Determine the G-code file to upload.
+    // - params.dst_file, when set, points directly at the sliced G-code.
+    // - Otherwise params.filename is the exported .3mf archive; the sliced
+    //   G-code sits next to it with the same stem (".12345.0.3mf" ->
+    //   ".12345.0.gcode"), so swap the extension to upload the actual G-code
+    //   rather than the archive (which Klipper cannot print).
     std::string gcode_path = params.filename;
     if (!params.dst_file.empty()) {
         gcode_path = params.dst_file;
+    } else if (boost::iends_with(gcode_path, ".3mf")) {
+        gcode_path.replace(gcode_path.size() - 4, 4, ".gcode");
     }
 
     // Check if file exists and has .gcode extension
@@ -359,8 +369,19 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
     }
 
-    // Extract filename for upload (relative to gcodes root)
-    std::string upload_filename = source_path.filename().string();
+    // Use the human-readable project name for the uploaded file rather than the
+    // internal temp G-code name (e.g. ".12345.0.gcode"). Fall back to the source
+    // file's own name when no project name is available.
+    std::string upload_filename = params.project_name.empty()
+                                      ? source_path.filename().string()
+                                      : params.project_name;
+
+    // SDCARD_PRINT_FILE parses its parameters by whitespace, so the printed
+    // filename must not contain spaces; collapse any whitespace to underscores.
+    std::replace_if(
+        upload_filename.begin(), upload_filename.end(),
+        [](unsigned char c) { return std::isspace(c) != 0; }, '_');
+
     if (!boost::iends_with(upload_filename, ".gcode")) {
         upload_filename += ".gcode";
     }
@@ -379,11 +400,12 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_CANCELED;
     }
 
-    // Start print via gcode script (simpler than JSON-RPC)
+    // Start print via Moonraker's print API, referencing the file we just uploaded.
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
-    std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
-    if (!send_gcode(device_info.dev_id, gcode)) {
+
+    std::string start_error;
+    if (!start_print_file(device_info.base_url, device_info.api_key, upload_filename, start_error)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     }
 
@@ -1213,7 +1235,8 @@ bool MoonrakerPrinterAgent::send_gcode(const std::string& dev_id, const std::str
     bool        success = false;
     std::string http_error;
 
-    auto http = Http::post(join_url(device_info.base_url, "/printer/gcode/script"));
+    auto full_url = join_url(device_info.base_url, "/printer/gcode/script");
+    auto http = Http::post(full_url);
     if (!device_info.api_key.empty()) {
         http.header("X-Api-Key", device_info.api_key);
     }
@@ -1785,9 +1808,12 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     payload["print"]["print_error"]         = 0;
 
     // Map homed axes to bit field: X=bit0, Y=bit1, Z=bit2
-    // WARNING: This only sets bits 0-2, clearing support flags (bit 3+)
-    // Bit 3 = 220V voltage, bit 4 = auto recovery, etc.
-    // This is acceptable for Moonraker (no AMS, different feature set)
+    // NOTE: home_flag is a packed BBL status field. MachineObject::parse_home_flag()
+    // decodes the storage state from bits 8-9 (get_flag_bits(flag, 8, 2)) and writes it
+    // to DevStorage. We encode HAS_SDCARD_NORMAL there (bits 8-9 = 01) so the printer
+    // reports its virtual_sdcard as present and LAN printing is allowed; otherwise the
+    // bits stay 0 (NO_SDCARD) and printing is blocked. Other support bits (3=220V,
+    // 4=auto-recovery, etc.) are intentionally left 0 for Moonraker.
     int home_flag = 0;
     if (status_cache.contains("toolhead") && status_cache["toolhead"].contains("homed_axes")) {
         std::string homed = status_cache["toolhead"]["homed_axes"].get<std::string>();
@@ -1798,6 +1824,7 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         if (homed.find('Z') != std::string::npos)
             home_flag |= 4; // bit 2
     }
+    home_flag |= (1 << 8); // bits 8-9 = 01 -> HAS_SDCARD_NORMAL (virtual_sdcard always present)
     payload["print"]["home_flag"] = home_flag;
 
     // Moonraker doesn't provide temperature ranges via API - use hardcoded defaults
@@ -2022,41 +2049,82 @@ int MoonrakerPrinterAgent::cancel_print(const std::string& dev_id)
     return send_gcode(dev_id, "CANCEL_PRINT") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
 }
 
-bool MoonrakerPrinterAgent::send_jsonrpc_command(const std::string&    base_url,
-                                                 const std::string&    api_key,
-                                                 const nlohmann::json& request,
-                                                 std::string&          response) const
+bool MoonrakerPrinterAgent::start_print_file(const std::string& base_url,
+                                             const std::string& api_key,
+                                             const std::string& filename,
+                                             std::string&       error_msg) const
 {
-    std::string request_str = request.dump();
-    std::string url         = join_url(base_url, "/printer/print/start");
+    // Start the given file (path relative to the gcodes root). The filename is
+    // sent both as a query parameter and in the JSON body: Moonraker accepts
+    // either, and sending a body avoids a body-less POST (which curl would treat
+    // as a streamed upload and try to read via the file-read callback).
+    std::string url = join_url(base_url, "/printer/print/start") +
+                      "?filename=" + Http::url_encode(filename);
 
-    bool        success = false;
-    std::string http_error;
+    nlohmann::json payload;
+    payload["filename"] = filename;
+
+    bool success = false;
 
     auto http = Http::post(url);
     if (!api_key.empty()) {
         http.header("X-Api-Key", api_key);
     }
     http.header("Content-Type", "application/json")
-        .set_post_body(request_str)
+        .set_post_body(payload.dump())
         .timeout_connect(5)
         .timeout_max(10)
         .on_complete([&](std::string body, unsigned status) {
+            (void) body;
             if (status == 200) {
-                response = body;
-                success  = true;
+                success = true;
             } else {
-                http_error = "HTTP " + std::to_string(status);
+                error_msg = "HTTP " + std::to_string(status);
             }
         })
-        .on_error([&](std::string body, std::string err, unsigned status) { http_error = err; })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            (void) body;
+            error_msg = err;
+            if (status > 0) {
+                error_msg += " (HTTP " + std::to_string(status) + ")";
+            }
+        })
         .perform_sync();
 
-    if (!success) {
-        BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: JSON-RPC command failed: " << http_error;
+    if (success) {
+        return true;
     }
 
-    return success;
+    // Moonraker holds the /printer/print/start response until the print actually
+    // begins, so a slow PRINT_START (heating, homing, bed mesh) can exceed our HTTP
+    // timeout even though the command was accepted and the print is starting. Don't
+    // report failure on the HTTP result alone: poll print_stats and treat a
+    // printing/paused state as success. print_stats.state flips to "printing" as soon
+    // as the file starts streaming, which is earlier than the held HTTP response.
+    BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: start print not confirmed over HTTP (" << error_msg
+                               << "); verifying print_stats state";
+    for (int attempt = 0; attempt < 10; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+        nlohmann::json status;
+        std::string    query_err;
+        if (!query_printer_status(base_url, api_key, status, query_err)) {
+            continue;
+        }
+
+        std::string state;
+        if (status.contains("print_stats") && status["print_stats"].contains("state") &&
+            status["print_stats"]["state"].is_string()) {
+            state = status["print_stats"]["state"].get<std::string>();
+        }
+        if (state == "printing" || state == "paused") {
+            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: print confirmed started (print_stats.state=" << state << ")";
+            return true;
+        }
+    }
+
+    BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: start print failed: " << error_msg << ", url: " << url;
+    return false;
 }
 
 void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, const std::string& base_url, const std::string& api_key, uint64_t generation)
@@ -2092,7 +2160,7 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
         }
 
 // Orca todo: disable websocket for now, as we don't use MonitorPanel for Moonraker printers yet
-#if 0
+#if 1
         // Query initial status
         nlohmann::json initial_status;
         if (query_printer_status(base_url, api_key, initial_status, error_msg)) {
