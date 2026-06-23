@@ -2352,12 +2352,19 @@ void TreeSupport::draw_circles()
                 base_areas = intersection_ex(base_areas, m_machine_border);
 
                 // Belt floor: clip tree support polygons by the belt surface plane.
-                // ts_layer->print_z is at LOCAL Z (global offset applied later in
-                // _generate_support_material), so use init_local to subtract
-                // belt_global_z_offset from z_shift.
+                // Non-organic tree support layers inherit their print_z from the
+                // (already globally-offset) object layers — see plan_layer_heights()
+                // and add_tree_support_layer(); only ORGANIC layers get the global
+                // Z offset applied later in _generate_support_material(). So here
+                // ts_layer->print_z is in the GLOBAL frame and we must use init()
+                // (global), not init_local(): mixing a local-frame clip plane with
+                // a global print_z displaces the cutoff line by belt_global_z_offset
+                // along the shear axis, leaving an un-clipped wedge of support below
+                // the belt floor. In per-object (non-global) mode belt_global_z_offset
+                // is 0 so init() and init_local() coincide — this is a no-op there.
                 {
                     BeltFloorContext ctx;
-                    if (ctx.init_local(m_slicing_params, *m_print_config, m_object->belt_global_z_offset())
+                    if (ctx.init(m_slicing_params, *m_print_config)
                         && m_print_config->belt_support_floor_mode.value == BeltSupportFloorMode::GeneratorOnly) {
                         Polygons belt_surface = ctx.surface_polygon(ts_layer->print_z);
                         base_areas     = diff_ex(base_areas,     belt_surface);

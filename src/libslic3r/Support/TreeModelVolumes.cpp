@@ -172,11 +172,17 @@ TreeModelVolumes::TreeModelVolumes(
             if (ctx.is_active()
                 && pcfg2.belt_support_floor_mode.value == BeltSupportFloorMode::GeneratorOnly) {
                 m_belt_floor = ctx.compute_per_layer_floors(num_layers, [&](size_t layer_idx) -> double {
-                    // Use local print_z (subtract global offset from object layer).
-                    return (layer_idx >= num_raft_layers)
-                        ? print_object.get_layer(layer_idx - num_raft_layers)->print_z
-                          - print_object.belt_global_z_offset()
-                        : 0.;
+                    // Object layers: local print_z (subtract global offset).
+                    if (layer_idx >= num_raft_layers)
+                        return print_object.get_layer(layer_idx - num_raft_layers)->print_z
+                               - print_object.belt_global_z_offset();
+                    // Belt raft layers (below the object): each carries its own
+                    // local print_z in m_raft_layers. The belt floor is a tilted
+                    // plane, so the half-plane to clip grows as print_z drops —
+                    // using 0 here clipped every below-object layer against the
+                    // Z=0 belt surface, under-clipping the raft region and leaving
+                    // a dense support mass below the floor.
+                    return (layer_idx < m_raft_layers.size()) ? m_raft_layers[layer_idx] : 0.;
                 });
             }
         }
