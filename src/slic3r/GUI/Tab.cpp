@@ -3946,6 +3946,15 @@ void TabFilament::build()
         option.opt.is_code = true;
         option.opt.height = 15;
         optgroup->append_single_option_line(option);
+        optgroup->m_on_change = [this](const t_config_option_key& opt_key, const boost::any& value) {
+            DynamicPrintConfig& filament_config = m_preset_bundle->filaments.get_edited_preset().config;
+
+            update_dirty();
+            if (opt_key == "adaptive_pressure_advance_model")
+                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config);
+
+            on_value_change(opt_key, value);
+        };
         //
 
         optgroup = page->new_optgroup(L("Print chamber temperature"), L"param_chamber_temp");

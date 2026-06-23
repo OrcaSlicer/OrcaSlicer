@@ -53,7 +53,7 @@ namespace GUI {
 //------------------------------------------
 
 PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
-    DPIDialog(parent, wxID_ANY, _L("Printer"), wxDefaultPosition, wxSize(45 * wxGetApp().em_unit(), -1), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+    DPIDialog(parent, wxID_ANY, _L("Physical Printer"), wxDefaultPosition, wxSize(45 * wxGetApp().em_unit(), -1), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
