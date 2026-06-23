@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4069,6 +4069,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "La temperatura recomanada del broquet d'aquest tipus de filament és de [%d, %d] graus Celsius."
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -11180,6 +11183,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "L'opció de paret precisa s'ignorarà per a les seqüències de parets exterior-interior o interior-exterior-interior."
+
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "La contracció del filament no s'utilitzarà perquè la contracció del filament per als filaments utilitzats difereix significativament."

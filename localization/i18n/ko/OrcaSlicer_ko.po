@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -4059,6 +4059,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "이 필라멘트 유형의 권장 노즐 온도는 [%d, %d]°C입니다"
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -11138,6 +11141,9 @@ msgstr ""
 "더 빠른 속도를 얻으려면 프린터 구성에서 machine_max_acceleration_travel 값을 조정할 수 있습니다."
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
