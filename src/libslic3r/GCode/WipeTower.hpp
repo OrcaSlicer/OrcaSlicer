@@ -63,7 +63,7 @@ public:
 		Vec2f origin_start_pos;  // not rotated
 
         std::vector<Vec2f> wipe_path;
-        bool is_extruder_change;
+        bool is_extruder_change{false};
     };
 
 	struct ToolChangeResult

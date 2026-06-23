@@ -302,6 +302,7 @@ Slic3r::WipeTower::NozzleChangeResult WipeTower::nozzle_change(Slic3r::WipeTower
     result.start_pos = writer.start_pos_rotated();
     result.end_pos   = writer.pos();
     result.gcode     = std::move(writer.gcode());
+    result.is_extruder_change = !is_same_extruder(tower, old_filament_id, new_filament_id, tower.m_cur_layer_id);
     return result;
 }
 

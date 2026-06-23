@@ -2477,6 +2477,7 @@ WipeTower::NozzleChangeResult WipeTower::ramming(int old_filament_id, int new_fi
     result.origin_start_pos = initial_position;
     result.end_pos   = writer.pos_rotated();
     result.gcode     = writer.gcode();
+    result.is_extruder_change = extruder_change;
     return result;
 }
 
