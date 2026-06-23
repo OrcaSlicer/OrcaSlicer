@@ -1506,6 +1506,16 @@ void TreeSupport::generate_toolpaths()
     // ORCA: base angle used for explicit interlaced interface orientation.
     const float base_support_angle = Geometry::deg2rad(object_config.support_angle.value);
 
+    // Belt floor: the lowest support layer rests on the moving, tilted belt, not
+    // on a flat bed — so it must NOT get the bed first-layer treatment (a brim on
+    // interface areas, a first-layer-flow sheath at raft_first_layer_density on
+    // base areas). That treatment draws a loop along the Z=0 belt-floor line that
+    // reads as a stray brim/skirt. Gate those layer_id==0 special cases off when
+    // the belt floor is active; false on non-belt printers so behavior is unchanged.
+    BeltFloorContext belt_ctx;
+    const bool belt_floor_active = belt_ctx.init(m_slicing_params, *m_print_config)
+        && m_print_config->belt_support_floor_mode.value == BeltSupportFloorMode::GeneratorOnly;
+
     // generate tree support tool paths
     tbb::parallel_for(
         tbb::blocked_range<size_t>(m_raft_layers, m_object->support_layer_count()),
@@ -1539,7 +1549,7 @@ void TreeSupport::generate_toolpaths()
                     filler_interface->angle = base_support_angle + M_PI_2; // default interface angle is perpendicular to support angle
                     if (area_group.type != SupportLayer::BaseType) {
                         // interface
-                        if (layer_id == 0) {
+                        if (layer_id == 0 && !belt_floor_active) {
                             Flow flow = m_raft_layers == 0 ? m_object->print()->brim_flow() : support_flow;
                             ExtrusionRole brim_role = (area_group.type == SupportLayer::RoofType && !area_group.interface_as_base) ?
                                 erSupportMaterialInterface : erSupportMaterial;
@@ -1623,11 +1633,19 @@ void TreeSupport::generate_toolpaths()
                     }
                     else {
                         // base_areas
-                        bool support_base_on_bed = (layer_id == 0 && m_raft_layers == 0);
+                        bool support_base_on_bed = (layer_id == 0 && m_raft_layers == 0 && !belt_floor_active);
                         Flow flow = support_base_on_bed ? m_support_params.first_layer_flow : support_flow;
                         bool need_infill = with_infill;
                         if(m_object_config->support_base_pattern==smpDefault)
                             need_infill &= area_group.need_infill;
+                        if (belt_floor_active && layer_id <= 1) {
+                            double a = unscale<double>(unscale<double>(poly.area()));
+                            BOOST_LOG_TRIVIAL(warning) << "[BELT-WEDGE] toolpath base layer_id=" << layer_id
+                                << " z=" << ts_layer->print_z << " area=" << a
+                                << " on_bed=" << support_base_on_bed << " need_infill=" << need_infill
+                                << " wall_count=" << wall_count
+                                << " path=" << ((need_infill && m_support_params.base_fill_pattern != ipLightning) ? "perim+infill" : "tree_paths");
+                        }
                         // Orca: Use rectilinear for support base on the bed
                         const InfillPattern base_fill_pattern = support_base_on_bed ? ipRectilinear : m_support_params.base_fill_pattern;
                         std::shared_ptr<Fill> filler_support = std::shared_ptr<Fill>(Fill::new_from_type(base_fill_pattern));
@@ -1644,7 +1662,7 @@ void TreeSupport::generate_toolpaths()
                         std::unique_ptr<ExtrusionEntityCollection> base_eec = std::make_unique<ExtrusionEntityCollection>();
                         base_eec->no_sort = true;
                         ExtrusionEntitiesPtr &base_dst = base_eec->entities;
-                        if (layer_id == 0) {
+                        if (layer_id == 0 && !belt_floor_active) {
                             float density = float(m_object_config->raft_first_layer_density.value * 0.01);
                             fill_expolygons_with_sheath_generate_paths(base_dst, loops, filler_support.get(), density, erSupportMaterial, flow,
                                                                        m_support_params, true, false);
@@ -1916,9 +1934,16 @@ void TreeSupport::generate()
                 if (!belt_ext_layers.empty()) {
                     auto &sl_vec = m_object->support_layers();
                     sl_vec.insert(sl_vec.begin(), belt_ext_layers.begin(), belt_ext_layers.end());
-                    BOOST_LOG_TRIVIAL(debug) << "[BELT-CALIB] wedge ext layers=" << belt_ext_layers.size()
+                    auto area_mm2 = [](const ExPolygons &eps) { double a = 0; for (auto &e : eps) a += e.area(); return unscale<double>(unscale<double>(a)); };
+                    BOOST_LOG_TRIVIAL(warning) << "[BELT-WEDGE] ext layers=" << belt_ext_layers.size()
                         << " z=" << belt_ext_layers.front()->print_z << ".." << belt_ext_layers.back()->print_z
-                        << " seeded=" << seeded;
+                        << " seeded=" << seeded << " num_extra=" << num_extra
+                        << " src_area=" << area_mm2(source_areas)
+                        << " bottom_area=" << area_mm2(belt_ext_layers.front()->base_areas)
+                        << " top_area=" << area_mm2(belt_ext_layers.back()->base_areas);
+                } else {
+                    BOOST_LOG_TRIVIAL(warning) << "[BELT-WEDGE] no ext layers emitted (seeded=" << seeded
+                        << " num_extra=" << num_extra << ")";
                 }
             }
         }
