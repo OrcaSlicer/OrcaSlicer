@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -4175,6 +4175,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "Диапазон рекомендуемых температур печати данным типом материала составляет [%d, %d] градусов Цельсия."
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -11505,6 +11508,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Параметр точной стенки будет проигнорирован для последовательностей стен «внешняя-внутренняя» или «внутренняя-внешняя-внутренняя»."
+
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Компенсация усадки материала не будет использоваться, поскольку усадка у используемых материалов не совпадает."

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -4058,6 +4058,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "该耗材的推荐喷嘴温度是[%d, %d]摄氏度"
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -11169,6 +11172,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "当壁序列为外内或内外内时，精确墙壁选项将被忽略。"
+
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "不会使用耗材收缩率，因为所用耗材的耗材收缩率不匹配。"
