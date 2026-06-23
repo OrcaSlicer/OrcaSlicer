@@ -6725,9 +6725,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
         // Custom SET_PRINT_FEATURE command to signal the current region to Klipper
         // Contributed by Hwang Younsang <famtory@gmail.com>
-        int p_val = 3;
+        int p_val = 0;
         if (m_last_processor_extrusion_role == erExternalPerimeter || m_last_processor_extrusion_role == erOverhangPerimeter) {
             p_val = 1;
+        } else if (is_bridge(m_last_processor_extrusion_role)) {
+            p_val = 3;
         } else if (is_infill(m_last_processor_extrusion_role)) {
             p_val = 2;
         }
