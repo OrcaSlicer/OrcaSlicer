@@ -525,7 +525,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_split_options->Add(m_split_options_line, 1, wxALIGN_CENTER, 0);
 
     m_options_other = new wxPanel(m_scroll_area);
-
+    m_options_other->SetBackgroundColour(m_scroll_area->GetBackgroundColour());
 
     auto option_timelapse = new PrintOption(m_options_other, _L("Timelapse"), wxEmptyString, ops_no_auto, "timelapse");
 
@@ -2281,6 +2281,9 @@ void SelectMachineDialog::update_options_layout()
             if (option->IsShown()) { m_sizer_options->Add(option, 0, wxEXPAND); }
         }
     }
+
+    m_sizer_options->Layout();
+    m_options_other->Layout();
 }
 
 void SelectMachineDialog::update_option_opts(MachineObject *obj)
