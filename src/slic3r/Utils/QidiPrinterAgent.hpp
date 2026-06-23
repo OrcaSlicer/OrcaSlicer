@@ -21,7 +21,16 @@ public:
     // Override filament sync (Qidi-specific implementation)
     bool fetch_filament_info(std::string dev_id) override;
 
+    // Print operations — emit QiDi multi-color box config, then delegate to base.
+    int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
+    int start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
+
 private:
+    // Push enable_box + value_t<tool> SAVE_VARIABLEs before a print starts.
+    // Returns false if any command fails (caller should abort the print).
+    bool apply_box_mapping(const PrintParams& params) const;
     struct QidiFilamentDict
     {
         std::map<int, std::string> colors;
