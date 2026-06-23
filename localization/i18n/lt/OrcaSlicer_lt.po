@@ -3,12 +3,12 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -95,11 +95,11 @@ msgstr "Versija:"
 msgid "Latest version"
 msgstr "Paskutinė versija"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "Palaiko piešimą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "Taikyti"
 
@@ -109,7 +109,7 @@ msgstr "Tik paryškintiems kabantiems"
 msgid "Erase all"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "Paryškinti kabančias vietas"
 
@@ -180,7 +180,7 @@ msgstr "Nenaudoti automatinių atramų"
 msgid "Done"
 msgstr "Atlikta"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "Atramos sugeneruotos"
 
@@ -196,7 +196,7 @@ msgstr ""
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Patalpinti ant paviršiaus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "Paguldyti ant paviršiaus"
 
@@ -204,7 +204,7 @@ msgstr "Paguldyti ant paviršiaus"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "Gijų skaičius viršija didžiausią palaikomą piešimo įrankio. Piešimo įrankyje bus pasiekiami tik pirmosios %1% gijos."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "Spalvotas piešimas"
 
@@ -371,34 +371,34 @@ msgstr "Pasukti (santykinai)"
 msgid "Scale ratios"
 msgstr "Mastelis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objekto veiksmai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Tūrio veiksmai"
 
 msgid "Translate"
 msgstr "Išversti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "Grupės veiksmai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "Nustatyti orientaciją"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "Nustatyti mastelį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "Atstatyti padėtį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "Iš naujo nustatyti sukimąsi"
 
@@ -695,7 +695,7 @@ msgstr "Jungtis"
 msgid "Cut by Plane"
 msgstr "Iškirpti su plokštuma"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "netinkami kraštai atsirado dėl pjovimo įrankio. Ar norite sutvarkyti dabar?"
 
@@ -764,7 +764,7 @@ msgstr "%d trikampiai"
 msgid "Show wireframe"
 msgstr "Rodyti vielinį rėmą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "Negalima taikyti, kai atliekama proceso peržiūra."
 
@@ -789,7 +789,7 @@ msgstr "Siūlių piešimas"
 msgid "Remove selection"
 msgstr "Pašalinti pasirinkimą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "Įjungiamas siūlių piešimas"
 
@@ -813,7 +813,7 @@ msgstr "Teksto plyšiai"
 msgid "Angle"
 msgstr "Kampas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Embedded depth"
 msgstr ""
 "Įspaudimo\n"
@@ -1331,7 +1331,7 @@ msgstr "Pakartotinai įkelti SVG failą iš disko."
 msgid "Change file"
 msgstr "Pakeisti failą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change to another SVG file."
 msgstr "Pakeisti į kitą .svg failą"
 
@@ -1617,7 +1617,7 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "Įspėjimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "Neapibrėžtas"
 
@@ -1640,11 +1640,12 @@ msgstr "Gija"
 msgid "Machine"
 msgstr "Įrenginys"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "Konfigūracijos paketas buvo įkeltas, tačiau kai kurios reikšmės nebuvo atpažintos."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Konfigūracijos failas „%1%“ buvo įkeltas, tačiau kai kurios reikšmės nebuvo atpažintos."
 
@@ -1766,7 +1767,7 @@ msgstr "Prisiminti mano pasirinkimą"
 msgid "Click to download new version in default browser: %s"
 msgstr "Spustelėkite, kad atsisiųstumėte naują versiją numatytoje naršyklėje: %s"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "OrcaSlicer needs an update"
 msgstr "OrcaSlicer reikia atnaujinti"
 
@@ -1827,7 +1828,7 @@ msgstr ""
 msgid "Some presets are modified."
 msgstr "Kai kurie nustatymai pakeisti."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Pakeistus išankstinius nustatymus galite išsaugoti naujame projekte, išmesti arba išsaugoti pakeitimus kaip naujus išankstinius nustatymus."
 
@@ -2018,7 +2019,8 @@ msgstr "Pervardyti"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "OrcaSlicer grafinės vartotojo sąsajos inicijavimas nepavyko"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Fatališka klaida, užfiksuota išimtis: %1%"
 
@@ -2043,22 +2045,22 @@ msgstr "Greitis"
 msgid "Strength"
 msgstr "Stiprumas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "Viršutiniai vientisi sluoksniai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "Mažiausias viršutinio apvalkalo storis"
 
 msgid "Top Surface Density"
 msgstr "Viršutinio paviršiaus tankis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "Apatiniai ištisiniai sluoksniai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "Mažiausias apatinio apvalkalo storis"
 
@@ -2068,14 +2070,14 @@ msgstr "Apatinio paviršiaus tankis"
 msgid "Ironing"
 msgstr "Lyginimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fuzzy skin"
 msgstr "Grublėtas paviršius"
 
 msgid "Extruders"
 msgstr "Ekstruderiai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "Išspaudimo plotis"
 
@@ -2085,23 +2087,23 @@ msgstr "Valymo parinktys"
 msgid "Bed adhesion"
 msgstr "Sukibimas su pagrindu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "Pridėti dalį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "Pridėti neigiamą elementą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "Pridėti modifikatorių"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "Pridėti atramų blokatorių"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "Pridėti priverstines atramas"
 
@@ -2202,15 +2204,15 @@ msgstr ""
 msgid "Text"
 msgstr "Teskstas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "Aukščio diapazono modifikatorius"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "Pridėti nustatymus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "Keisti tipą"
 
@@ -2226,11 +2228,11 @@ msgstr "Priverstinės atramos"
 msgid "Change part type"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "Nustatyti kaip atskirą objektą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "Nustatyti kaip atskirus objektus"
 
@@ -2249,7 +2251,7 @@ msgstr ""
 msgid "Automatically drops the selected object to the build plate."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "Sutaisyti objektą"
 
@@ -2320,19 +2322,19 @@ msgstr "Nuvalyti į objekto atramas"
 msgid "Edit in Parameter Table"
 msgstr "Taisyti Parametrų lentelėje"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "Konvertuoti iš colių"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "Grąžinti į colius"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "Konvertuoti iš metrų"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Grąžinti į metrus"
 
@@ -2348,31 +2350,31 @@ msgstr "Objektų jungimo / atėmimo / susikirtimo įrankiai"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Įrankiai modeliams sujungti ir iškirpti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "Išilgai X ašies"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "Atspindėti pagal X ašį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "Išilgai Y ašies"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "Atspindėti pagal Y ašį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "Išilgai Z ašies"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "Atspindėti pagal Z ašį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "Atspindėti objektą"
 
@@ -2403,14 +2405,14 @@ msgstr "Pridėti modelius"
 msgid "Show Labels"
 msgstr "Rodyti etiketes"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "Į objektus"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Suskaidyti pasirinktą objektą į kelis objektus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "Į dalis"
 
@@ -2438,7 +2440,7 @@ msgstr ""
 msgid "Delete this filament"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "Pasirinkti viską"
 
@@ -2451,7 +2453,7 @@ msgstr ""
 msgid "Select all objects on all plates"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "Ištrinti visus"
 
@@ -2587,25 +2589,25 @@ msgstr[2] "%1$d neuždarų briaunų"
 msgid "Click the icon to repair model object"
 msgstr "Spustelėkite piktogramą, kad pataisytumėte modelio objektą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "Dešiniuoju pelės mygtuku spustelėkite piktogramą, kad išskleistumėte objekto nustatymus"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "Spustelėkite piktogramą, kad atstatytumėte visus objekto nustatymus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "Dešiniuoju pelės mygtuku spustelėkite piktogramą, kad išskleistumėte objekto spausdinimo savybių meniu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Spustelėkite piktogramą, kad įjungtumėte / išjungtumėte objekto spausdinimo galimybę"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "Spustelėkite piktogramą, kad redaguotumėte objekto atramų piešimą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "Spustelėkite piktogramą, kad redaguotumėte objekto spalvinimą"
 
@@ -2645,7 +2647,7 @@ msgstr "Pašalinkite neigiamą tūrį iš pjūvyje esančio objekto"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "Norėdami nutraukti ryšius, galite ištrinti visus jungtis iš visų susijusių objektų."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -2678,15 +2680,15 @@ msgstr "Manipuliavimas objektu"
 msgid "Group manipulation"
 msgstr "Manipuliavimas grupe"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "Keičiami objekto parametrai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "Dalies nustatymai keitimui"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "Keičiami sluoksnių ribų nustatymai"
 
@@ -2714,7 +2716,7 @@ msgstr "Jei pirmasis pasirinktas elementas yra objektas, tuomet ir antrasis priv
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Jei pirmasis pasirinktas elementas ira dalis, tuomet antrasis taip pat privalo būti to paties objekto dalis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Paskutinės vientiso objekto dalies tipas negali būti keičiamas."
 
@@ -2771,7 +2773,7 @@ msgstr "Pridėti aukščio ribas"
 msgid "Invalid numeric."
 msgstr "Netinkamas skaičius."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "vieną langelį galima nukopijuoti tik į vieną ar daugiau to paties stulpelio langelių"
 
@@ -2836,19 +2838,19 @@ msgstr "Linijos tipas"
 msgid "1x1 Grid: %d mm"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "Daugiau"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "Atidaryti nuostatas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "Kitas patarimas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "Atidaryti dokumentaciją žiniatinklio naršyklėje."
 
@@ -2879,11 +2881,11 @@ msgstr "Pasirinktinis G-kodas"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "Įveskite pasirinktinį kodą dabartiniam sluoksniui:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "Peršokti į sluoksnį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "Įveskite sluoksnio numerį"
 
@@ -2962,14 +2964,14 @@ msgstr "Jungiamasi..."
 msgid "Auto Refill"
 msgstr "Automatinis papildymas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "Įkelti"
 
 msgid "Unload"
 msgstr "Išleisti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Pasirinkite AMS angą, tada paspauskite \"Įkelti\" arba \"išstumti\" mygtuką, kad automatiškai įkeltumėte arba išstumtumėte gijas."
 
@@ -3079,7 +3081,7 @@ msgstr "Įkaitinti purkštuką"
 msgid "Cut filament"
 msgstr "Nukirpti giją"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "Išstumti atgal dabartinę giją"
 
@@ -3119,7 +3121,7 @@ msgstr ""
 msgid "No matching items..."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "Atšaukti visus"
 
@@ -3144,7 +3146,7 @@ msgstr ""
 msgid "Expert settings"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Developer mode"
 msgstr "Kūrėjo režimas"
 
@@ -3177,7 +3179,7 @@ msgstr "Išdėstymas"
 msgid "Arranging canceled."
 msgstr "Išdėstymas atšauktas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Išdėstymas atliktas, tačiau liko neapdorotų objektų. Sumažinkite tarpus ir pabandykite dar kartą."
 
@@ -3245,7 +3247,7 @@ msgstr "Prisijungti nepavyko"
 msgid "Please check the printer network connection."
 msgstr "Prašome patikrinti spausdintuvo kompiuterinio tinklo jungtį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "Nenormalūs spausdinimo failo duomenys. Prašome susluoksniuoti dar kartą."
 
@@ -3258,7 +3260,7 @@ msgstr "Įkėlimo užduotis viršijo laukimo laiką. Prašome patikrinti tinklo 
 msgid "Cloud service connection failed. Please try again."
 msgstr "Nepavyko prisijungti prie debesies paslaugos. Prašome bandyti iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "Nerastas spausdinimo failas. Prašome išsluoksniuoti iš naujo."
 
@@ -3271,18 +3273,18 @@ msgstr "Nepavyko išsiųsti spausdinimo užduoties. Prašome bandyti iš naujo."
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "Nepavyko failo įkelti į ftp serverį. Prašome pabandyti iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Paspaudę nuorodą viršuje, galite patikrinti aktualią Bambu serverio būseną."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "Spausdinimo failo dydis per didelis. Prašome pakoreguoti dydį ir bandyti pakartotinai."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Nerastas spausdinimo failas. Prašome dar kartą išsluoksniuoti ir išsiųsti spausdinimui."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Nepavyko spausdinimo failo įkelti į FTP serverį. Patikrinkite tinklo būseną ir bandykite dar kartą."
 
@@ -3334,7 +3336,7 @@ msgstr ""
 msgid "Sending G-code file over LAN"
 msgstr "Vietiniu tinklu siunčiamas G-kodo failas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "Į SD kortelę siunčiamas G-kodo failas"
 
@@ -3405,7 +3407,7 @@ msgstr ""
 msgid "Importing SLA archive"
 msgstr "Importuojamas SLA archyvas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "SLA archyve nėra jokių išankstinių nustatymų. Prieš importuodami SLA archyvą, pirmiausia suaktyvinkite SLA spausdintuvo nustatymą."
 
@@ -3418,7 +3420,7 @@ msgstr "Importavimas atliktas."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Importuotame SLA archyve nebuvo jokių išankstinių nustatymų. Dabartiniai SLA nustatymai buvo naudojami kaip atsarginiai."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Negalite įkelti SLA projekto su kelių dalių objektu ant pagrindo"
 
@@ -3446,7 +3448,7 @@ msgstr "Diegiama"
 msgid "Install failed"
 msgstr "Diegimas nepavyko"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "License Info"
 msgstr "Dalys saugomos autorių teisių"
 
@@ -3562,7 +3564,7 @@ msgstr "Kita spalva"
 msgid "Custom Color"
 msgstr "Pasirinktinė spalva"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "Dinaminis srauto kalibravimas"
 
@@ -3572,7 +3574,7 @@ msgstr "Purkštuko temperatūra ir didžiausias tūrinis greitis įtakoja kalibr
 msgid "Nozzle Diameter"
 msgstr "Purkštuko diametras"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "Plokštės tipas"
 
@@ -3594,7 +3596,7 @@ msgstr "Pagrindo temperatūra"
 msgid "mm³"
 msgstr "mm³"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Start"
 msgstr "Pradėti kalibravimą"
 
@@ -3607,7 +3609,7 @@ msgstr "Kalibravimas baigtas. Raskite tolydžiausiai išspausdintą liniją ant
 msgid "Save"
 msgstr "Išsaugoti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "Gale"
 
@@ -3696,18 +3698,18 @@ msgstr ""
 msgid "Enable AMS"
 msgstr "Įjungti AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "Spausdinti su gijomis iš AMS"
 
 msgid "Disable AMS"
 msgstr "Išjungti AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
 msgstr "Spausdinti su ant dėžės sumontuota gija"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Pasikeiskite drėgmės sugėriklį, kai jis sudrėgsta. Indikatorius gali veikti netiksliai šiais atvejais: kai atidarytas dangtelis, arba pakeistas drėgmės sugėriklio pakelis. Drėgmės sugėrimui reikia keleto valandų. Žema temperatūra taip pat sulėtina šį procesą."
 
@@ -3726,11 +3728,11 @@ msgstr "Paspauskite, norėdami rankiniu būdu pasirinkti AMS lizdą"
 msgid "Do not Enable AMS"
 msgstr "Nejungti AMS"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print using filament on external spool."
 msgstr "Spausdinkite naudodami išorinėje ritėje esančią giją"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Spausdinti AMS gijomis"
 
@@ -3755,7 +3757,7 @@ msgstr ""
 msgid "The printer does not currently support auto refill."
 msgstr "Šiuo metu spausdintuvas nepalaiko automatinio papildymo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "AMS atsarginė gija neįjungta, įjunkite ją AMS nustatymuose."
 
@@ -3776,7 +3778,7 @@ msgstr "AMS nustatymai"
 msgid "Insertion update"
 msgstr "Įdėklo atnaujinimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "Įdėjus naują Bambu Lab giją, AMS automatiškai nuskaitys jos informaciją. Tai trunka apie 20 sekundžių."
 
@@ -3786,11 +3788,11 @@ msgstr "Pastaba: jei spausdinimo metu įdedama nauja gija, AMS automatiškai nen
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "Įdėjus naują giją, AMS automatiškai nenuskaitys jos informacijos, todėl ją reikės įvesti rankiniu būdu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "Įjungimo metu atnaujinimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "AMS paleidimo metu automatiškai nuskaitys įdėts gijos informaciją. Tai užtruks apie 1 minutę. Nuskaitymo procesas sukels gijos ritės sukimąsi."
 
@@ -3845,7 +3847,7 @@ msgstr "Kalibravimas"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "Nepavyko atsisiųsti papildinio. Patikrinkite savo užkardos nustatymus ir VPN programinę įrangą, ir bandykite dar kartą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
 
@@ -3867,7 +3869,7 @@ msgstr ") norėdami nustatyti spausdinimo galvutės padėtį. Taip išvengiama, 
 msgid "Go Home"
 msgstr "Grįžti į pradinę padėtį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Įvyko klaida. Sistemoje galėjo pritrūkti atminties arba įvyko programos klaida"
 
@@ -3875,11 +3877,11 @@ msgstr "Įvyko klaida. Sistemoje galėjo pritrūkti atminties arba įvyko progra
 msgid "A fatal error occurred: \"%1%\""
 msgstr "Įvyko lemtinga klaida: „%1%“"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "Išsaugokite projektą ir iš naujo paleiskite programą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "Vykdomas G-kodas iš prieš tai buvusio failo..."
 
@@ -3944,7 +3946,7 @@ msgstr "Laikinojo G-kodo kopijavimas baigtas, bet eksportuoto kodo nepavyko atid
 msgid "G-code file exported to %1%"
 msgstr "G-kodo failas eksportuotas į %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "Nežinoma G kodo eksporto klaida."
 
@@ -3958,7 +3960,7 @@ msgstr ""
 "Klaidos pranešimas: %1%.\n"
 "Šaltinio failas: %2%."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Nepavyko nukopijuoti laikinojo G-kodo į išvesties G-kodą"
 
@@ -4005,14 +4007,14 @@ msgstr "Pasirinkite STL failą, iš kurio norite importuoti pagrindo formą:"
 msgid "Invalid file format."
 msgstr "Netinkamas failo formatas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "Klaida! Netinkamas modelis"
 
 msgid "The selected file contains no geometry."
 msgstr "Pasirinktame faile nėra geometrijos."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Pasirinktame faile yra keletas nesusijusių sričių. Tai nepalaikoma."
 
@@ -4039,7 +4041,7 @@ msgstr "Rekomenduojama minimali temperatūra negali būti aukštesnė už rekome
 msgid "Please check.\n"
 msgstr "Prašome patikrinti.\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4053,7 +4055,10 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "Rekomenduojama šio tipo gijos spausdinimo temperatūra yra nuo %d iki %d laipsnių Celsijaus."
 
-#, fuzzy
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
+
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4061,11 +4066,12 @@ msgstr ""
 "Per mažas maksimalus tūrinis greitis.\n"
 "Atstatyta į 0,5."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Dabartinė kameros temperatūra yra aukštesnė už saugią medžiagos temperatūrą, dėl to medžiaga gali suminkštėti ir užkimšti spausdinimo galvutę. Maksimali saugi medžiagos temperatūra yra %d laipsnių Celsijaus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4073,7 +4079,7 @@ msgstr ""
 "Per mažas sluoksnio aukštis.\n"
 "Atstatyta į 0,2."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4090,7 +4096,7 @@ msgstr ""
 "\n"
 "Pirmojo sluoksnio aukštis bus atstatytas į 0,2."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4103,7 +4109,7 @@ msgstr ""
 "\n"
 "Ši vertė bus atstatyta į 0."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4169,7 +4175,8 @@ msgstr ""
 "seam_slope_start_height turi būti mažesnis nei layer_height.\n"
 "Atstatoma į 0."
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4195,7 +4202,7 @@ msgstr ""
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Tačiau spausdintuvai su I3 konstrukcija negeneruos pakadrinių vaizdo įrašų."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -4420,7 +4427,7 @@ msgstr ""
 msgid "AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d℃."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded."
 msgstr "Dabartinė kameros temperatūra arba tikslinė kameros temperatūra viršija 45 ℃. Norint išvengti ekstruderio užsikimšimo, negalima įkelti žemos temperatūros gijų (PLA/PETG/TPU)."
 
@@ -4567,7 +4574,7 @@ msgstr "Profiliai"
 msgid "Print settings"
 msgstr "Spausdinimo nustatymai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "Gijos parametrai"
 
@@ -4592,7 +4599,8 @@ msgstr "Tuščia eilutė"
 msgid "Value is out of range."
 msgstr "Dydis netelpa į ribas."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s negali būti procentai"
 
@@ -4832,7 +4840,7 @@ msgstr "Bokštas"
 msgid "Total"
 msgstr "Iš viso"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "Bendra sąmata"
 
@@ -4911,11 +4919,11 @@ msgstr "nuo"
 msgid "Usage"
 msgstr "Naudojimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "Sluoksnio aukštis (mm)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "Linijos plotis (mm)"
 
@@ -4931,7 +4939,7 @@ msgstr ""
 msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "Ventiliatoriaus greitis (%)"
 
@@ -4947,7 +4955,7 @@ msgstr ""
 msgid "Seams"
 msgstr "Siūlės"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "Gijos keitimai"
 
@@ -4972,7 +4980,7 @@ msgstr "Spalvos pakeitimas"
 msgid "Print"
 msgstr "Spausdinti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "Spausdintuvas"
 
@@ -5088,18 +5096,18 @@ msgstr ""
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "Įrankio judėjimas"
 
 msgid "Tool Rotate"
 msgstr "Įrankio sukimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "Perkelti objektą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "Automatinio orientavimo parametrai"
 
@@ -5231,7 +5239,7 @@ msgstr "Plėtimosi santykis"
 msgid "Section View"
 msgstr "Sekcijos peržiūra"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "Surinkimo valdymas"
 
@@ -5260,7 +5268,7 @@ msgstr "Objektas yra už spausdinimo pagrindo ribų."
 msgid "A G-code path goes beyond the max print height."
 msgstr "G-kode judėjimo maršrutas viršija maksimalų spausdinimo aukštį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "G-kode judėjimo maršrutas išeina už spausdinimo plokštės ribų."
 
@@ -5321,7 +5329,7 @@ msgstr "Kalibravimo žingsnio pasirinkimas"
 msgid "Micro lidar calibration"
 msgstr "Mikro lidaro kalibravimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "Spausdinimo pagrindo išlyginimas"
 
@@ -5396,7 +5404,7 @@ msgid ""
 "on the printer, as shown in the figure:"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "Netinkama įvestis."
 
@@ -5406,7 +5414,7 @@ msgstr "Naujas langas"
 msgid "Open a new window"
 msgstr "Atidaryti naują langą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "Programa uždaroma"
 
@@ -5655,7 +5663,7 @@ msgstr "Įklijuoti"
 msgid "Paste clipboard"
 msgstr "Įklijuoti iškarpinės turinį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "Ištrinti pasirinktus"
 
@@ -5665,7 +5673,7 @@ msgstr "Ištrina pasirinktus"
 msgid "Deletes all objects"
 msgstr "Ištrina visus objektus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "Klonuoti pasirinktą"
 
@@ -5829,11 +5837,13 @@ msgstr "&Vaizdas"
 msgid "&Help"
 msgstr "Pagalba"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Failas tokiu pavadinimu jau egzistuoja: %s. Ar norite jį pakeisti?"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Konfigūracija tokiu pavadinimu jau egzistuoja: %s. Ar norite ją pakeisti?"
 
@@ -5859,7 +5869,7 @@ msgstr[0] "Eksportuota %d konfigūracija. (tik nesisteminė konfigūracija)"
 msgstr[1] "Eksportuotos %d konfigūracijos. (tik nesisteminės konfigūracijos)"
 msgstr[2] "Eksportuota %d konfigūracijų. (tik nesisteminės konfigūracijos)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "Eksportuoti rezultatą"
 
@@ -5906,7 +5916,7 @@ msgstr "Įrenginys, su kuriuo bandote bendrauti, šiuo metu yra perkrautas ir ne
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Grotuvas neveikia tinkamai. Prašome iš naujo įdiegti sistemos grotuvą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Grotuvas neįkeltas. Spustelėkite \"paleisti\" mygtuką, kad bandytumėte iš naujo."
 
@@ -5928,7 +5938,7 @@ msgstr "Iškilo problema. Atnaujinkite spausdintuvo programinę įrangą ir band
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "LAN tiesioginė peržiūra („Liveview“) išjungta. Įjunkite tiesioginę peržiūrą spausdintuvo ekrane."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "Prašome įvesti norimo prijungti spausdintuvo IP adresą."
 
@@ -6228,7 +6238,7 @@ msgstr "Pasiekiamas"
 msgid "Input access code"
 msgstr "Įvesti prieigos kodą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "Negalite rasti jūsų įrenginių?"
 
@@ -6253,15 +6263,15 @@ msgstr "neleidžiami simboliai:"
 msgid "illegal suffix:"
 msgstr "neleidžiamas plėtinys:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "Neleidžiama, kad pavadinimas būtų tuščias."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "Neleidžiama, kad pavadinimas prasidėtų tarpo simboliu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "Neleidžiama, kad pavadinimas baigtųsi tarpo simboliu."
 
@@ -6284,7 +6294,7 @@ msgstr ""
 msgid "Switching failed"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "Spausdinimo eiga"
 
@@ -6303,7 +6313,7 @@ msgstr ""
 msgid "Clear"
 msgstr "Išvalyti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -6392,7 +6402,8 @@ msgstr "Atsisunčiama..."
 msgid "Cloud Slicing..."
 msgstr "Sluoksniavimas debesyje..."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "Debesies sluoksniavimo eilėje yra dar %s užduotys priekyje."
 
@@ -6404,7 +6415,7 @@ msgstr "Sluoksnis: %s"
 msgid "Layer: %d/%d"
 msgstr "Sluoksnis: %d/%d"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr "Prašome prieš įtraukiant ar išstumiant giją įkaitinti purkštuką virš 170 laipsnių."
 
@@ -6417,7 +6428,7 @@ msgstr ""
 msgid "Please select an AMS slot before calibration"
 msgstr "Prieš kalibruodami pasirinkite AMS lizdą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "Negaliu nuskaityti gijos informacijos: gija įdėta į įrankio galvutę, išimkite giją ir bandykite dar kartą."
 
@@ -6600,7 +6611,7 @@ msgstr "%s informacija"
 msgid "Skip"
 msgstr "Praleisti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Newer 3MF version"
 msgstr "Naujesnė 3MF versija"
 
@@ -6616,7 +6627,7 @@ msgstr "Atsisiųsti Beta versiją"
 msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "3MF versija yra naujesnė, negu dabar naudojama Orca Slicer versija."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr "Atnaujinus Orca Slicer programinę įrangą galėsite naudoti visas 3MF failo funkcijas."
 
@@ -6651,7 +6662,7 @@ msgstr "Daugiau nerodyti šio dialogo lango"
 msgid "3D Mouse disconnected."
 msgstr "3D pelė atjungta."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A new configuration is available. Update now?"
 msgstr "Yra nauja konfigūracija. Atnaujinti dabar?"
 
@@ -6676,15 +6687,15 @@ msgstr "Pasiekiama nauja spausdintuvo konfigūracija."
 msgid "Undo integration failed."
 msgstr "Integracijos atšaukimas nepavyko."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "Eksportuojama."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "Yra atnaujinimas!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "Eikite į atsisiuntimo puslapį."
 
@@ -6816,7 +6827,7 @@ msgstr "Apatinis"
 msgid "Enable detection of build plate position"
 msgstr "Įjungti spausdinimo pagrindo pozicijos atpažinimą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "Spausdinimo pagrindo lokalizavimo žymė įjungta. Spausdinimas bus pristabdytas, jei žymė išeis už nustatytų ribų."
 
@@ -6862,7 +6873,7 @@ msgstr ""
 msgid "First Layer Inspection"
 msgstr "Pirmojo sluoksnio apžiūra"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "Atstatymas po žingsnių praleidimo"
 
@@ -6875,7 +6886,7 @@ msgstr ""
 msgid "Allow Prompt Sound"
 msgstr "Leisti garsus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "Aptikti gijos susipainiojimus"
 
@@ -7129,18 +7140,18 @@ msgstr "Sėkmingai atjungtas. Įrenginį %s(%s) dabar galima saugiai išimti iš
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "Nepavyko išimti įrenginio %s (%s)."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Aptiktas ankstesnis neišsaugotas projektas. Ar norite jį atkurti?"
 
 msgid "Restore"
 msgstr "Atkurti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "Kaitinamo pagrindo temperatūra yra gana aukšta. Spausdinant šią giją uždaroje kameroje, antgalis gali užsikimšti. Prašome atidaryti priekines duris ir (arba) nuimti viršutinį stiklą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "Gijai reikalingas kietesnis negu standartinis šio spausdintuvo antgalis. Norint išvengti antgalio dilimo ar pažeidimo, rekomenduojama pakeisti esamą antgalį į kietesnį, arba naudoti kitą giją, kuriai tinka standartinis antgalis."
 
@@ -7169,7 +7180,7 @@ msgstr "Įkelti 3MF"
 msgid "BambuStudio Project"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "3MF nepalaikomas Orca Slicer. Įkeliami tik geometrijos duomenys."
 
@@ -7192,7 +7203,7 @@ msgstr "Ar norėtumėte, kad „OrcaSlicer“ automatiškai ištaisytų šią pr
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "3mf versija %s yra naujesnė už %s versiją %s, rasta nepažįstamų raktų:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "Geriau jau atnaujinkite savo programinę įrangą\n"
 
@@ -7214,7 +7225,7 @@ msgstr ""
 msgid "Invalid values found in the 3MF:"
 msgstr "3MF rasti netinkami duomenys:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "Prašome juos ištaisyti parametrų skirtukuose"
 
@@ -7236,11 +7247,11 @@ msgstr "Prašome patvirtinti, kad šiuose nustatymuose esantys G-kodai yra saug�
 msgid "Customized Preset"
 msgstr "Pakeisti nustatymai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Komponentų pavadinimai STEP faile nėra UTF-8 formato!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Pavadinimas gali rodyti neskaitomus simbolius!"
 
@@ -7257,7 +7268,8 @@ msgstr "Nulinio tūrio objektai pašalinti"
 msgid "The volume of the object is zero"
 msgstr "Objekto tūris nulinis"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
@@ -7268,7 +7280,7 @@ msgstr ""
 msgid "Object too small"
 msgstr "Objektas per mažas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -7284,7 +7296,7 @@ msgstr "Aptiktas kelių dalių objektas"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Ar įkelti šiuos failus kaip vieną objektą su keliomis detalėmis?\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "Aptiktas objektas su keliomis detalėmis"
 
@@ -7319,14 +7331,15 @@ msgstr ""
 msgid "Export AMF file:"
 msgstr "Eksportuoti AMF failą:"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "Išsaugoti failą kaip:"
 
 msgid "Export OBJ file:"
 msgstr "Eksportuoti OBJ failą:"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
 "Do you want to replace it?"
@@ -7340,7 +7353,7 @@ msgstr "Patvirtinti Išsaugoti kaip"
 msgid "Delete object which is a part of cut object"
 msgstr "Pašalinti objektą su dalimi perpjauto objekto"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -7365,7 +7378,7 @@ msgstr "Vyksta kitas eksportavimo procesas."
 msgid "Unable to replace with more than one volume"
 msgstr "Nepavyko pakeisti daugiau nei vienu tomu"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "Klaida keičiant"
 
@@ -7375,7 +7388,7 @@ msgstr "Pakeisti iš:"
 msgid "Select a new file"
 msgstr "Pasirinkite naują failą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Nepasirinktas keičiamas failas"
 
@@ -7463,7 +7476,7 @@ msgstr ""
 msgid "Sync now"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Jūs galite išsaugoti pakeistus nustatymus naujam projektui arba juos ištrinti"
 
@@ -7473,7 +7486,7 @@ msgstr "Naujo projekto kūrimas"
 msgid "Load project"
 msgstr "Įkelti projektą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -7487,18 +7500,18 @@ msgstr "Išsaugoti projektą"
 msgid "Importing Model"
 msgstr "Importuojamas modelis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preparing 3MF file..."
 msgstr "paruošti 3MF failą..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Atsisuntimas nepavyko, nežinomas failo tipas."
 
 msgid "Downloading project..."
 msgstr "projektas atsisiunčiamas..."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Atsisiųsti nepavyko. Failo dydžio išimtis."
 
@@ -7524,11 +7537,11 @@ msgstr "Importuoti SLA archyvą"
 msgid "The selected file"
 msgstr "Pasirinktame faile"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "nėra galiojančio G-kodo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Įkeliant G-kodo failą įvyko klaida"
 
@@ -7558,25 +7571,25 @@ msgstr "Atidaryti kaip projektą"
 msgid "Import geometry only"
 msgstr "Importuoti tik geometriją"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Vienu metu gali būti atidarytas tik vienas G-kodo failas."
 
 msgid "G-code loading"
 msgstr "Įkeliamas G-kodas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-kodas negali būti įkeltas kartu su modeliais!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "Negalima pridėti modelių peržiūros režime!"
 
 msgid "All objects will be removed, continue?"
 msgstr "Visi objektai bus pašalinti, ar tęsti?"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Dabartiniame projekte yra neišsaugotų pakeitimų. Ar išsaugoti prieš tęsiant?"
 
@@ -7648,7 +7661,7 @@ msgstr "Įkelti ir spausdinti"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Nenormalūs spausdinimo failo duomenys. Atlikite sluoksniavimą dar kartą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -7734,7 +7747,8 @@ msgstr "Trikampių: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Plokštė %d: %s nesiūloma naudoti spausdinant gijomis %s(%s). Jei vis tiek norite spausdinti, nustatykite nenulinę pagrindo šiai gijai temperatūrą."
 
@@ -7762,7 +7776,7 @@ msgstr ""
 msgid "rear"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Kalbos keitimas reikalauja programos paleidimo iš naujo.\n"
 
@@ -7790,7 +7804,7 @@ msgstr "Šiaurės Amerika"
 msgid "Others"
 msgstr "Kita"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Keičiant regioną bus atjungta jūsų paskyra.\n"
 
@@ -7860,7 +7874,7 @@ msgstr "Numatytas puslapis"
 msgid "Set the page opened on startup."
 msgstr "Nustatyti, kuris puslapis atsidarys paleidus programą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "Įjungti tamsųjį režimą"
 
@@ -7936,7 +7950,7 @@ msgstr "Jei įjungta, STEP failo importavimo metu atsiras parametrų nustatymų 
 msgid "Auto backup"
 msgstr "Automatinis atsarginis kopijavimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Periodiškai saugoti jūsų projekto atsargines kopijas kad programos gedimo atveju jį būtų galima atkurti."
 
@@ -8123,6 +8137,15 @@ msgstr ""
 msgid "Renders cast shadows on the plate in realistic view."
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the realistic view.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -8212,7 +8235,7 @@ msgstr "Tikrinti tik stabilius atnaujinimus"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatiškai sinchronizuoti naudotojo nustatymus (spausdintuvas/gija/procesas)"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Automatinis įmontuotų nustatymų atnaujinimas."
 
@@ -8282,11 +8305,11 @@ msgstr ""
 msgid "Open Windows Default Apps Settings"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Susieti .3mf failus su Orca Slicer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Jei įjungta, \"Orca Slicer\" nustatoma kaip numatytasis .3mf failų atidarymo įrankis"
 
@@ -8296,19 +8319,19 @@ msgstr ""
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Susieti .stl failus su Orca Slicer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Jei įjungta, \"Orca Slicer\" nustatoma kaip numatytoji programa .stl failams atverti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "Susieti .step/.stp failus su Orca Slicer"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Jei įjungta, \"Orca Slicer\" nustatoma kaip numatytoji programa .step failams atverti"
 
@@ -8409,7 +8432,7 @@ msgstr "Padidinti vaizdą"
 msgid "Other"
 msgstr "Kita"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reverse scroll direction while zooming"
 msgstr "Apversta pelės ratuko didinimo kryptis"
 
@@ -8443,11 +8466,11 @@ msgstr "derinimo išsaugojimo mygtukas"
 msgid "Save debug settings"
 msgstr "išsaugoti testavimo nuostatas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "TESTAVIMO nuostatos sėkmingai išsaugotos!"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "Pakeista debesų aplinka, prašome prisijungti iš naujo!"
 
@@ -8466,7 +8489,7 @@ msgstr ""
 msgid "Left filaments"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "AMS gijos"
 
@@ -8500,7 +8523,7 @@ msgstr ""
 msgid "Unsupported"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Pridėti / pašalinkite gijas"
 
@@ -8537,7 +8560,7 @@ msgstr "Prašome įvesti sluoksnių skaičių (>=2)."
 msgid "Plate name"
 msgstr "Plokštės pavadinimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Toks pats, kaip ir bendras plokštės tipas"
 
@@ -8574,7 +8597,7 @@ msgstr "Priimti"
 msgid "Log Out"
 msgstr "Atsijungti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Laiko ir gijos sąnaudoms sužinoti susluoksniuokite visą plokštę"
 
@@ -8635,7 +8658,7 @@ msgstr "Nustatymai \"%1%\" jau yra."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "Nustatymai \"%1%\" jau yra, tačiau jie nesuderinami su dabartiniu spausdintuvu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Atkreipkite dėmesį, kad išsaugojus bus perrašytas dabartinis išankstinis nustatymas."
 
@@ -8759,7 +8782,7 @@ msgstr "Naudojama gija nesutampa su gija AMS lizde. Atnaujinkite spausdintuvo pr
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Įjungus spiralės vazos režimą, I3 struktūros spausdintuvai negeneruos pakadrinių vaizdo įrašų."
 
@@ -8778,7 +8801,7 @@ msgstr ""
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "G-kodo generavimo metu pasirinktas spausdintuvo tipas neatitinka šiuo metu pasirinkto spausdintuvo. Rekomenduojame sluoksniavimui naudoti tą patį spausdintuvo tipą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS sistemoje yra nežinomų gijų. Prašome patikrinti, ar tai yra reikalingos gijos. Jei viskas tvarkoje, spausdinimą galite pradėti paspaudę „Patvirtinti“."
 
@@ -8910,7 +8933,7 @@ msgstr ""
 msgid "Storage needs to be inserted before printing."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Neįmanoma išsiųsti spausdinimo užduoties spausdintuvui, kurio programinę įrangą reikia atnaujinti."
 
@@ -8965,7 +8988,7 @@ msgstr ""
 msgid "Connection failed. Click the icon to retry"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Negalima nusiųsti spausdinimo užduočių programinės įrangos atnaujinimo metu"
 
@@ -8975,7 +8998,7 @@ msgstr "Pasirinktas spausdintuvas nesuderinamas su išrinktais spausdintuvų nus
 msgid "Storage needs to be inserted before send to printer."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Spausdintuvas privalo būti tame pačiame tinkle kaip ir Orca Slicer."
 
@@ -8991,7 +9014,7 @@ msgstr ""
 msgid "Sending failed, please try again!"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "Sluoksniavimas baigtas."
 
@@ -9007,11 +9030,11 @@ msgstr "Nepavyko prisijungti prie soketo"
 msgid "Failed to publish login request"
 msgstr "Nepavyko paskelbti prisijungimo užklausos"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "Įrenginio bilieto laukimo laikas baigėsi"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "Serverio bilieto laukimo laikas baigėsi"
 
@@ -9118,7 +9141,7 @@ msgstr "Ieškoti nustatymuose"
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Paspauskite, norėdami atkurti visus nustatymus pagal paskutinį išsaugotą profilį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Norint sklandžiai filmuoti laiko intervalais, reikia valymo bokšto. Be valymo bokšto modelyje gali būti trūkumų. Ar tikrai norite išjungti valymo bokštą?"
 
@@ -9134,7 +9157,7 @@ msgstr ""
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Tikslaus Z aukščio ir pirminio bokšto įjungimas gali sukelti pjaustymo klaidų. Ar vis tiek norite įjungti tikslų Z aukštį?"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Pakadriniam tolygiam video reikia Prime bokšto. Spausdinant be Prime bokštelio modelis gali turėti trūkumų. Ar tikrai norite išjungti Prime bokštą?"
 
@@ -9153,7 +9176,7 @@ msgstr ""
 "Naudojant atraminę medžiagą atraminei sąsajai, rekomenduojame šiuos nustatymus:\n"
 "0 viršutinis Z atstumas, 0 sąsajos tarpas, susipynęs tiesinis modelis ir išjungtas nepriklausomas atraminio sluoksnio aukštis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -9304,7 +9327,7 @@ msgstr "Sienos"
 msgid "Top/bottom shells"
 msgstr "Viršutiniai/apatiniai paviršiai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "Pradinio sluoksnio greitis"
 
@@ -9332,7 +9355,7 @@ msgstr "Pagreitis (XY)"
 msgid "Raft"
 msgstr "Platforma"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "Atramų gija"
 
@@ -9398,7 +9421,7 @@ msgstr "Pagrindinė informacija"
 msgid "Recommended nozzle temperature"
 msgstr "Rekomenduojama purkštuko temperatūra"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Rekomenduojamas šios gijos purkštuko temperatūros diapazonas. 0 reiškia, kad nenustatyta"
 
@@ -9420,29 +9443,29 @@ msgstr "Pagrindo temperatūra, kai įdiegtas „Cool Plate SuperTack“. Vertė 
 msgid "Cool Plate"
 msgstr "Šalta plokštė"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Pagrindo temperatūra, kai sumontuota šalta plokštė. Reikšmė 0 reiškia, kad gija nepalaiko spausdinimo ant šaltos plokštės."
 
 msgid "Textured Cool Plate"
 msgstr "Tekstūruota vėsi plokštė"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Pagrindo temperatūra, kai sumontuota šalta plokštė. Reikšmė 0 reiškia, kad gija negalima spausdinti ant tekstūrinės šaltos plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Pagrindo temperatūra, kai sumontuota inžinerinė plokštė. Reikšmė 0 reiškia, kad gija nepalaiko spausdinimo ant inžinerinės plokštės."
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Lygi PEI plokštė / aukštos temperatūros plokštė"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Pagrindo temperatūra, kai įdiegta lygi PEI plokštė/aukštos temperatūros plokštė. Vertė 0 reiškia, kad gija nepalaiko spausdinimo ant lygi PEI plokštės/aukštos temperatūros plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Pagrindo temperatūra, kai sumontuota tekstūruota PEI plokštė. Reikšmė 0 reiškia, kad gija nepalaiko spausdinimo ant tekstūruotos PEI plokštės."
 
@@ -9458,14 +9481,14 @@ msgstr "Dalies aušinimo ventiliatorius"
 msgid "Min fan speed threshold"
 msgstr "Min. ventiliatoriaus greičio riba"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
 msgstr "Detalių aušinimo ventiliatorius veiks mažiausiu ventiliatoriaus greičiu, kai numatoma sluoksnio trukmė bus ilgesnė už ribinę vertę. Kai sluoksnio trukmė trumpesnė už ribinę vertę, ventiliatoriaus greitis bus apskaičiuojamas tarp mažiausio ir didžiausio ventiliatoriaus greičio, atsižvelgiant į sluoksnio spausdinimo trukmę"
 
 msgid "Max fan speed threshold"
 msgstr "Maks ventiliatoriaus greičio riba"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Detalių aušinimo ventiliatorius veiks didžiausiu greičiu, kai numatoma sluoksnio trukmė bus trumpesnė už ribinę vertę"
 
@@ -9691,7 +9714,8 @@ msgstr ""
 "Ar tikrai norite ištrinti pasirinktą išankstinį nustatymą?\n"
 "Jei išankstinis nustatymas atitinka šiuo metu spausdintuve naudojamą giją, iš naujo nustatykite tos angos gijos informaciją."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Ar tikrai naudojate %1% pasirinktą išankstinį nustatymą?"
 
@@ -9741,21 +9765,21 @@ msgstr ""
 msgid "Click to reset current value and attach to the global value."
 msgstr "Spustelėkite , jei norite iš naujo nustatyti dabartinę reikšmę ir prijungti ją prie bendros reikšmės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Spustelėkite , jei norite atsisakyti dabartinio pakeitimo ir atstatyti išsaugotą reikšmę."
 
 msgid "Process Settings"
 msgstr "Proceso nustatymai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "Neišsaugoti pakeitimai"
 
 msgid "Transfer or discard changes"
 msgstr "Pakeitimų perkėlimas arba atmetimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old value"
 msgstr "Sena vertė"
 
@@ -9800,7 +9824,7 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Spustelėkite dešinįjį pelės klavišą, kad būtų rodomas visas tekstas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "Pakeitimai nebus išsaugoti"
 
@@ -10341,36 +10365,36 @@ msgstr "Objektų pasirinkimas pagal stačiakampį"
 msgid "Arrow Up"
 msgstr "Rodyklė aukštyn"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Perkelti pasirinktą 10 mm teigiama Y kryptimi"
 
 msgid "Arrow Down"
 msgstr "Rodyklė žemyn"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Perkelti pasirinktą10 mm neigiama Y kryptimi"
 
 msgid "Arrow Left"
 msgstr "Rodyklė Kairėn"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Perkelti pasirinktą10 mm neigiama X kryptimi"
 
 msgid "Arrow Right"
 msgstr "Rodyklė dešinėn"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "Perkelti pasirinktą10 mm teigiama X kryptimi"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "Judėjimo žingsnis nustatytas į 1 mm"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "klaviatūra 1-9: nustatyti objekto/dalies giją"
 
@@ -10467,7 +10491,7 @@ msgstr ""
 msgid "Set extruder number for the objects and parts"
 msgstr "Nustatykite ekstruderio numerį objektams ir dalims"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "Ištrinti objektus, dalis, modifikatorius"
 
@@ -10520,7 +10544,7 @@ msgstr "versijos %s atnaujinimo informacija:"
 msgid "Network plug-in update"
 msgstr "Tinklo papildinio atnaujinimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
 msgstr "Spustelėkite OK, kad kitą kartą paleidus \"Orca Slicer\" būtų atnaujintas tinklo papildinys."
 
@@ -10665,11 +10689,11 @@ msgstr "Sėkmingas atnaujinimas"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Ar tikrai norite atnaujinti? Tai užtruks apie 10 minučių. Neišjunkite maitinimo, kol spausdintuvas atnaujinamas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Buvo aptiktas svarbus atnaujinimas, kurį reikia paleisti, kad spausdinimas būtų tęsiamas. Ar norite atnaujinti dabar? Taip pat galite atnaujinti vėliau, naudodami \"Atnaujinti programinę įrangą\"."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "Įterptinės programinės įrangos versija yra nenormali. Prieš spausdinant reikia pataisyti ir atnaujinti. Ar norite atnaujinti dabar? Taip pat galite atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami \"Orca\"."
 
@@ -10683,7 +10707,7 @@ msgstr ""
 msgid "Repair finished"
 msgstr "Taisymas baigtas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Repair failed"
 msgstr "Taisymas nepavyko."
 
@@ -10694,7 +10718,7 @@ msgstr "Taisymas atšauktas"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Failo %1% kopijavimas į %2% nepavyko: %3%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Prieš atnaujinant konfigūraciją reikia patikrinti neišsaugotus pakeitimus."
 
@@ -10710,7 +10734,8 @@ msgstr "Atidaryti G-kodo failą:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Vienas objektas turi tuščią pradinį sluoksnį ir jo negalima spausdinti. Iškirpkite apačią arba įjunkite atramas."
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Objekto negalima spausdinti dėl tuščio sluoksnio tarp %1% ir %2%."
 
@@ -10718,7 +10743,7 @@ msgstr "Objekto negalima spausdinti dėl tuščio sluoksnio tarp %1% ir %2%."
 msgid "Object: %1%"
 msgstr "Objektas: %1%"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Objekto dalys šiuose aukščiuose gali būti per plonos arba gali būti pažeista objekto 3D figūra"
 
@@ -10728,7 +10753,7 @@ msgstr ""
 msgid "Filament change extrusion role G-code"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "Negalima spausdinti jokio objekto. Jis gali būti per mažas"
 
@@ -10772,7 +10797,8 @@ msgstr ""
 msgid "Internal Bridge"
 msgstr "Vidinis tiltas"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
 msgstr "Nepavyko apskaičiuoti linijos pločio %1%. Negalima gauti \"%2%\" reikšmės. "
 
@@ -10785,7 +10811,7 @@ msgstr "neapibrėžta klaida"
 msgid "too many files"
 msgstr "per daug failų"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "per didelis failas"
 
@@ -10807,7 +10833,7 @@ msgstr "ne ZIP archyvas"
 msgid "invalid header or corrupted"
 msgstr "negaliojanti arba sugadinta antraštė"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Saving to RAID is not supported."
 msgstr "įrašymas į RAID nepalaikomas"
 
@@ -10856,7 +10882,7 @@ msgstr "neteisingas parametras"
 msgid "invalid filename"
 msgstr "neteisingas failo pavadinimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "per mažas buferis"
 
@@ -10866,7 +10892,7 @@ msgstr "vidinė klaida"
 msgid "file not found"
 msgstr "failas nerastas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "per didelis archyvas"
 
@@ -10876,7 +10902,8 @@ msgstr "patvirtinimas nepavyko"
 msgid "write callback failed"
 msgstr "nepavyko įrašyti grįžtamojo ryšio"
 
-#, fuzzy, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% yra per arti uždraustos srities, spausdinant gali įvykti susidūrimų."
 
@@ -10900,7 +10927,7 @@ msgstr "Pirminis bokštas"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " yra per arti kitų, todėl gali įvykti susidūrimai.\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " yra per arti uždraustosios zonos, todėl įvyks susidūrimai.\n"
 
@@ -10934,7 +10961,7 @@ msgstr ""
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Pasirinkite spausdinimo seką \"Pagal objektą\", jei norite spausdinti kelis objektus spiralinės vazos režimu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spiralinės vazos režimas neveikia, kai objekte yra daugiau nei viena medžiaga."
 
@@ -10968,30 +10995,30 @@ msgstr "Dumblo susidarymo prevencija palaikoma tik naudojant nuvalymo bokštą, 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/Sprinter\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Pirminis bokštas nepalaikomas spausdinant \"Pagal objektą\"."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "Pagrindinis bokštas nepalaikomas, kai įjungtas prisitaikantis sluoksnio aukštis. Reikalaujama, kad visi objektai turėtų vienodą sluoksnio aukštį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Valymo bokštui reikia, kad bet koks \"atraminis tarpas\" būtų sluoksnio aukščio kartotinis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "Valymo bokštui reikia, kad visų objektų sluoksnio aukštis būtų vienodas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "Valymo bokštui reikia, kad visi objektai būtų spausdinami ant vienodo skaičiaus platformos sluoksnių."
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "Pirminis bokštas palaikomas keliems objektams tik tuo atveju, jei jie spausdinami tuo pačiu atramų z aukščio atstumu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "Pirminis bokštas reikalauja, kad visi objektai būtų susluoksniuoti vienodo aukščio sluoksniais."
 
@@ -11001,18 +11028,18 @@ msgstr "Pagrindinis bokštas palaikomas tik tuo atveju, jei visi objektai turi t
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Vienas ar daugiau objektų buvo priskirti ekstruderiui, kurio spausdintuvas neturi."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Per mažas linijos plotis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Per didelis linijos plotis"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Spausdinti su keliais skirtingo skersmens purkštukais. Jei atrama turi būti spausdinama su dabartine gija (support_filament == 0 arba support_interface_filament == 0), visi purkštukai turi būti vienodo skersmens."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Pagrindinis bokštas reikalauja, kad atramos ir objekto sluoksnio aukštis būtų toks pat."
 
@@ -11037,7 +11064,7 @@ msgstr "Tuščiavidurio pagrindo raštas nepalaikomas šio atramos tipo; Vietoj 
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Naudojamos priverstinės atramos, tačiau atramų funkcija išjungta. Įjunkite atramas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Sluoksnio aukštis negali viršyti purkštuko skersmens."
 
@@ -11105,6 +11132,9 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Tiksli sienos parinktis bus ignoruojama išorinės-vidinės arba vidinės-išorinės-vidinės sienų sekose."
 
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
+
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Gijų susitraukimas nenaudojamas, nes naudojamų gijų susitraukimas labai skiriasi."
 
@@ -11117,7 +11147,7 @@ msgstr "Eksportuojamas G-kodas"
 msgid "Generating G-code"
 msgstr "Generuojamas G-kodas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "Nepavyko apdoroti šablono filename_format."
 
@@ -11148,7 +11178,7 @@ msgstr ""
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "Nespausdinama pagrindo sritis"
 
@@ -11164,7 +11194,7 @@ msgstr "Pasirinktinis pagrindo modelis"
 msgid "Elephant foot compensation"
 msgstr "Dramblio pėdos kompensacija"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Taip sutraukiamas pirmasis spausdinio sluoksnis, kad būtų kompensuotas dramblio pėdos efektas."
 
@@ -11183,14 +11213,14 @@ msgid ""
 "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Tai kiekvieno sluoksnio aukštis. Mažesni sluoksnių aukščiai užtikrina didesnį tikslumą, bet ilgesnį spausdinimo laiką."
 
 msgid "Printable height"
 msgstr "Spausdinamas aukštis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "Tai didžiausias spausdinamas aukštis, kurį riboja spausdinimo zonos aukštis."
 
@@ -11269,7 +11299,7 @@ msgstr "Slaptažodis"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Nepaisyti HTTPS sertifikato atšaukimo patikrų"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Nepaisyti HTTPS sertifikato atšaukimo patikrų, jei paskirstymo taškų trūksta arba jie neprisijungę. Jei nepavyksta prisijungti, galite įjungti šią parinktį savarankiškai pasirašytiems sertifikatams."
 
@@ -11288,14 +11318,14 @@ msgstr "HTTP santrauka"
 msgid "Avoid crossing walls"
 msgstr "Vengti kirsti sieną"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Apvažiuoti ir vengti važiuoti per sieną, nes dėl to ant paviršiaus gali atsirasti žymė."
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Vengti kirsti sieną - Didžiausias apylankos ilgis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Didžiausias apylankos atstumas, kad būtų išvengta sienos kirtimo: Spausdintuvas neaplenks sienos, jei aplenkimo atstumas yra didesnis nei ši vertė. Apylankos ilgis gali būti nurodomas kaip absoliuti vertė arba kaip procentinė dalis (pvz., 50 %) nuo tiesioginio judėjimo kelio. Nustačius 0 reikšmę, ši funkcija bus išjungta."
 
@@ -11308,59 +11338,59 @@ msgstr "Kiti sluoksniai"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Pagrindo temperatūra sluoksniams, išskyrus pradinį. Vertė 0 reiškia, kad gija nepalaiko spausdinimo ant „Cool Plate SuperTack“."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Pagrindo temperatūra po pirmojo sluoksnio. 0 reiškia, kad gija nepalaiko spausdinimo ant šaltos plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Sluoksnių, išskyrus pradinį, pagrindo temperatūra. Reikšmė 0 reiškia, kad gija nepalaiko spausdinimo ant tekstūrinės šaltos plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Pagrindo temperatūra po pirmojo sluoksnio. 0 reiškia, kad gija nepalaiko spausdinimo ant inžinerinės plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Pagrindo temperatūra po pirmojo sluoksnio. 0 reiškia, kad gija nepalaiko spausdinimo ant aukštos temperatūros plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Pagrindo temperatūra po pirmojo sluoksnio. 0 reiškia, kad gija nepalaiko spausdinimo ant tekstūruotos PEI plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "Pradinis sluoksnis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "Pradinė sluoksnio pagrindo temperatūra"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Pradinio sluoksnio pagrindo temperatūra. Reikšmė 0 reiškia, kad gija nepalaiko spausdinimo ant šaltos plokštės „SuperTack“."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant šaltos plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Pradinio sluoksnio pagrindo temperatūra. Reikšmė 0 reiškia, kad gija nepalaiko spausdinimo ant tekstūruotos šaltos plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant inžinerinės plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant aukštos temperatūros plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant tekstūruotos PEI plokštės."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "Spausdintuvo palaikomi pagrindo tipai."
 
@@ -11394,7 +11424,7 @@ msgstr "Tai yra apatinio korpuso vientisų sluoksnių skaičius, įskaitant apat
 msgid "Bottom shell thickness"
 msgstr "Apatinio apvalkalo storis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Pjaustant didinamas apatinių vientisų sluoksnių skaičius, jei pagal apatinius apvalkalo sluoksnius apskaičiuotas storis yra plonesnis už šią vertę. Taip galima išvengti per plono apvalkalo, kai sluoksnių aukštis yra mažas. 0 reiškia, kad šis nustatymas išjungtas ir apatinio apvalkalo storis visiškai nustatomas pagal apatinio apvalkalo sluoksnius."
 
@@ -11774,11 +11804,11 @@ msgstr ""
 "Reikšmė 0 įjungia apvertimą kiekviename lyginiame sluoksnyje nepriklausomai.\n"
 "Kai aptikti iškyšos sienelę neįjungta, ši parinktis ignoruojama ir apvertimas atliekamas nepriklausomai nuo kiekvieno lyginio sluoksnio."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "Sulėtinti greitį dėl iškyšų"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "Įjunkite šią parinktį, kad spausdinant iškyšas sulėtėtų spausdinimas."
 
@@ -11824,7 +11854,7 @@ msgstr "Vidinių tiltų greitis. Jei reikšmė išreiškiama procentais, ji bus 
 msgid "Brim width"
 msgstr "Krašto plotis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Atstumas nuo modelio iki išorinės krašto linijos."
 
@@ -11837,7 +11867,7 @@ msgstr "Taip reguliuojamas modelių išorinės ir (arba) vidinės pusės krašto
 msgid "Brim-object gap"
 msgstr "Tarpas tarp krašto ir objekto"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Sukuriamas tarpas tarp vidinės krašto linijos ir objekto, todėl galima lengviau jį atskirti."
 
@@ -11852,11 +11882,11 @@ msgid ""
 "Note: The resulting value will not be affected by the first-layer flow ratio."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Kraštas atitinka kompensuotą kontūrą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -11911,18 +11941,18 @@ msgstr "į viršų suderinamas įrenginys"
 msgid "Condition"
 msgstr "Sąlyga"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Loginė išraiška, kurioje naudojamos aktyvaus spausdintuvo profilio konfigūracijos vertės. Jei ši išraiška yra \"tiesa\", šis profilis laikomas suderinamu su aktyviu spausdintuvo profiliu."
 
 msgid "Select profiles"
 msgstr "Pasirinkite profilius"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Loginė išraiška, kurioje naudojamos aktyvaus spausdinimo profilio konfigūracijos reikšmės. Jei ši išraiška lygi „tiesa“, šis profilis laikomas suderinamu su aktyviuoju spausdinimo profiliu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Spausdinimo seka, leidžianti spausdinti sluoksnį po sluoksnio arba objektą po objekto."
 
@@ -11944,14 +11974,14 @@ msgstr "Kaip objektų sąrašas"
 msgid "Slow printing down for better layer cooling"
 msgstr "Sulėtinti spausdinimą, kad geriau būtų aušinami sluoksniai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "Įjunkite šią parinktį, jei norite sulėtinti spausdinimo greitį, kad galutinė sluoksnio trukmė nebūtų trumpesnė už maksimalaus ventiliatoriaus greičio slenkstičio nustatytą sluoksnio trukmės ribą, kad sluoksnį būtų galima aušinti ilgiau. Tai gali pagerinti smulkių detalių kokybę."
 
 msgid "Normal printing"
 msgstr "Įprastas spausdinimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Tai numatytasis pagreitis tiek įprastam spausdinimui, tiek judėjimui po pirmojo sluoksnio."
 
@@ -11982,7 +12012,7 @@ msgstr ""
 msgid "Enable this to override the fan speed set in custom G-code after print completion."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code."
 msgstr "Ištraukimo ventiliatoriaus greitis spausdinimo metu. Šis greitis bus viršesnis už greitį, nurodytą gijos pasirinktiniame G-kodo."
 
@@ -11998,7 +12028,7 @@ msgstr "Pirmiesiems sluoksniams išjungti visus aušinimo ventiliatorius. Tai ga
 msgid "Don't support bridges"
 msgstr "Nekurti atramų tiltams"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Taip išjungiami atraminiai tilteliai, todėl sumažėja reikalingų atramų kiekis. Tiltus paprastai galima spausdinti tiesiogiai be atramų priimtinu atstumu."
 
@@ -12086,14 +12116,14 @@ msgstr "Išjungta"
 msgid "Max bridge length"
 msgstr "Maksimalus tilto ilgis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Maksimalus tiltų, kuriems nereikia atramos, ilgis. Nustatykite 0, jei norite, kad būtų remiami visi tiltai, ir labai didelę reikšmę, jei nenorite, kad būtų remiami jokie tiltai."
 
 msgid "End G-code"
 msgstr "Pabaigos G-kodas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Pridėti pabaigos G-kodą, kai bus baigtas visas spausdinimas."
 
@@ -12103,7 +12133,7 @@ msgstr "Tarp objektų G-kodas"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "Įterpti G kodą tarp objektų. Šis parametras bus taikomas tik tada, kai spausdinsite modelius po vieną objektą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "Pridėti pabaigos G-kodą, kai bus baigta spausdinti ši gija."
 
@@ -12134,7 +12164,7 @@ msgstr "Vidutiniai"
 msgid "Top surface pattern"
 msgstr "Viršutinio paviršiaus raštas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "Tai viršutinio paviršiaus užpildymo linijomis modelis."
 
@@ -12165,7 +12195,7 @@ msgstr "Oktagramos spiralė"
 msgid "Bottom surface pattern"
 msgstr "Apatinio paviršiaus užpildo linijų raštas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Tai apatinio paviršiaus užpildymo linijioms raštas, išskyrus tiltų užpildymą."
 
@@ -12178,7 +12208,7 @@ msgstr "Vidinio vientiso užpildo linijų raštas. Jei įjungta funkcija aptikti
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Išorinės sienos linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "Išorinės sienos, kuri yra išorinė ir matoma, greitis. Naudojamas lėtesnis nei vidinės sienelės greitis, kad būtų pasiekta geresnė kokybė."
 
@@ -12254,18 +12284,18 @@ msgstr "Pagal laikrodžio rodyklę"
 msgid "Height to rod"
 msgstr "Aukštis iki strypo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Atstumas nuo purkštuko galo iki apatinio strypo. Naudojamas siekiant išvengti susidūrimų spausdinant pagal objektus."
 
 msgid "Height to lid"
 msgstr "Aukštis iki dangtelio"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Atstumas nuo antgalio galo iki dangtelio. Naudojamas siekiant išvengti susidūrimų spausdinant pagal objektus."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Tarpas aplink ekstruderį. Naudojamas siekiant išvengti susidūrimų spausdinant pagal objektus."
 
@@ -12403,7 +12433,7 @@ msgstr "Numatytasis linijos plotis, jei kitų linijų plotis lygus 0. Jei išrei
 msgid "Keep fan always on"
 msgstr "Visada laikyti ventiliatorių įjungtą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Jei įjungsite šį nustatymą, aušinimo ventiliatorius niekada nebus sustabdytas ir veiks bent minimaliu greičiu, kad sumažėtų įjungimo ir išjungimo dažnis."
 
@@ -12424,7 +12454,7 @@ msgstr ""
 msgid "Layer time"
 msgstr "Sluoksnio laikas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Dalių aušinimo ventiliatorius bus įjungtas sluoksniams, kurių numatomas laikas yra trumpesnis už šią vertę. Ventiliatoriaus greitis nustatomas tarp mažiausio ir didžiausio ventiliatoriaus greičio pagal sluoksnio spausdinimo laiką."
 
@@ -12450,7 +12480,7 @@ msgstr "Čia galite įdėti pastabas apie giją."
 msgid "Required nozzle HRC"
 msgstr "Būtinas antgalis HRC"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "Mažiausia antgalio HRC, kurios reikia norint spausdinti gijomis. Nulis reiškia, kad antgalio HRC netikrinama."
 
@@ -12490,7 +12520,7 @@ msgstr ""
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Gijos tūris, kurį galima išlydyti ir išspausti per sekundę. Jei nustatytas per didelis ir nepagrįstas greitis, spausdinimo greitį riboja maksimalus tūrinis greitis. Ši reikšmė negali būti lygi nuliui."
 
@@ -12524,7 +12554,7 @@ msgstr ""
 msgid "By Highest Temp"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "G-kodo ekstruzijos apskaičiavimui naudojamas gijos skersmuo, todėl jis yra svarbus ir turi būti tikslus."
 
@@ -12595,7 +12625,7 @@ msgstr "Greitis, naudojamas pačioje pakrovimo fazės pradžioje."
 msgid "Unloading speed"
 msgstr "Iškrovimo greitis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Greitis, naudojamas gijos išleidimui ant valymo bokštelio (neturi įtakos pradinei išleidimo daliai iškart po lyginimo)."
 
@@ -12713,14 +12743,14 @@ msgstr "Srautas, naudojamas gijai įspausti prieš keičiant įrankį."
 msgid "Density"
 msgstr "Tankis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Gijų tankis, tik statistikai."
 
 msgid "g/cm³"
 msgstr "g/cm³"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "Gijos medžiagos tipas."
 
@@ -12751,14 +12781,14 @@ msgstr ""
 msgid "Softening temperature"
 msgstr "Minkštėjimo temperatūra"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Esant tokiai temperatūrai medžiaga suminkštėja, todėl, kai pagrindo temperatūra yra lygi arba didesnė už ją, labai rekomenduojama atidaryti priekines dureles ir (arba) nuimti viršutinį stiklą, kad būtų išvengta užsikimšimo."
 
 msgid "Price"
 msgstr "Kaina"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Gijos kaina, tik statistikai."
 
@@ -12777,7 +12807,7 @@ msgstr "(Nenurodyta)"
 msgid "Sparse infill direction"
 msgstr "Reto užpildymo kryptis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Reto užpildymo rašto kampas, kuriuo nustatoma linijų pradžios arba pagrindinė kryptis."
 
@@ -12824,7 +12854,7 @@ msgstr ""
 msgid "Sparse infill pattern"
 msgstr "Reto užpildymo raštas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Vidinio reto užpildymo linijomis modelis."
 
@@ -12958,11 +12988,11 @@ msgstr "Vidinių sienų pagreitis."
 msgid "Acceleration of travel moves."
 msgstr "Judėjimo judesių pagreitis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Viršutinio paviršiaus užpildymo pagreitis. Naudojant mažesnę vertę gali pagerėti viršutinio paviršiaus kokybė."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Išorinės sienos pagreitis: naudojant mažesnę vertę galima pagerinti kokybę."
 
@@ -12978,7 +13008,7 @@ msgstr "Retų užpildų pagreitis. Jei reikšmė išreikšta procentais (pvz., 1
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Vidinio vientiso užpildo pagreitis. Jei reikšmė išreikšta procentais (pvz., 100 %), ji bus apskaičiuota pagal numatytąjį pagreitį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Tai pirmojo sluoksnio spausdinimo pagreitis. Naudojant ribotą pagreitį galima pagerinti sukibimą su pagrindu."
 
@@ -13035,23 +13065,23 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Pradinio sluoksnio linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Pradinio sluoksnio aukštis"
 
-#, fuzzy
-msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Pradinio sluoksnio aukštis. Šiek tiek padidinus pradinio sluoksnio aukštį galima pagerinti pagrindo plokštės sukibimą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Greitis taikomas pirmajam sluoksniui, išskyrus vientiso užpildo ruožus."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Pradinio sluoksnio užpildymas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Pirmojo sluoksnio vientiso užpildo dalių greitis."
 
@@ -13061,18 +13091,17 @@ msgstr "Pradinio sluoksnio judėjimo greitis"
 msgid "Travel speed of the first layer."
 msgstr "Pradinio sluoksnio judėjimo greitis."
 
-#, fuzzy
-msgid "This is the number of top interface layers."
-msgstr "Viršutinių sąsajos sluoksnių skaičius"
+msgid "Number of slow layers"
+msgstr ""
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Keli pirmieji sluoksniai spausdinami lėčiau nei įprastai. Greitis palaipsniui linijiniu būdu didinamas per nurodytą sluoksnių skaičių."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Pradinė sluoksnio purkštuko temperatūra"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Purkštuko temperatūra pradiniam sluoksniui spausdinti, kai naudojama ši gija."
 
@@ -13143,7 +13172,7 @@ msgstr "Lyginimo greitis"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Dėl šio nustatymo spausdinant sienas įrankio galvutė atsitiktinai trūkčioja, todėl paviršius atrodo grublėtas. Šiuo nustatymu kontroliuojama grublėtumo padėtis."
 
@@ -13165,7 +13194,7 @@ msgstr "Visos sienos"
 msgid "Fuzzy skin thickness"
 msgstr "Grublėto paviršiaus storis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "Plotis, kurio ribose turi būti drebėjimas. Rekomenduojama, kad jis būtų mažesnis už išorinės sienos linijos plotį."
 
@@ -13295,7 +13324,7 @@ msgstr "Sluoksniai ir perimetrai"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Nespausdinti tarpo užpildymo, kurio ilgis yra mažesnis už nurodytą ribą (mm). Šis nustatymas taikomas viršutiniam, apatiniam ir vientisam užpildui, o jei naudojamas klasikinis perimetro generatorius - ir sienos tarpo užpildymui."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Tarpų užpildymo greitis. Tarpai paprastai būna netaisyklingo pločio, todėl juos reikia spausdinti lėčiau."
 
@@ -13326,7 +13355,7 @@ msgstr "Įjunkite šią funkciją, kad kiekvienos G kodo eilutės pradžioje bū
 msgid "Scan first layer"
 msgstr "Nuskaityti pirmąjį sluoksnį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Įjunkite šią funkciją, kad spausdintuvo kamera būtų galima patikrinti pirmojo sluoksnio kokybę."
 
@@ -13342,7 +13371,7 @@ msgstr ""
 msgid "Nozzle type"
 msgstr "Purkštuko tipas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Nuo purkštuko medžiagos priklauso antgalio atsparumas abrazyvui ir tai, kokią giją galima spausdinti."
 
@@ -13358,7 +13387,7 @@ msgstr ""
 msgid "Nozzle HRC"
 msgstr "Purkštuko HRC"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "Antgalio kietumas. Nulis reiškia, kad sluoksniavimo antgalio kietumas netikrinamas."
 
@@ -13442,7 +13471,7 @@ msgstr "Spausdintuvo valandos kaina."
 msgid "money/h"
 msgstr "pinigai/h"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "Kameros temperatūros kontrolės palaikymas"
 
@@ -13505,7 +13534,7 @@ msgstr "Įjunkite tai, kad gautumėte komentuojamą G-kodo failą su kiekviena e
 msgid "Infill combination"
 msgstr "Užpildymo derinys"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Automatiškai sujungti kelių sluoksnių retą užpildą, kad būtų spausdinama kartu ir sutrumpėtų laikas. Siena vis tiek spausdinama su pradiniu sluoksnio aukščiu."
 
@@ -13612,11 +13641,12 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Vidinio reto užpildo linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Užpildo ir sienos persidengimas"
 
-#, fuzzy, no-c-format, no-boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Užpildo plotas šiek tiek padidintas, kad persidengtų su siena ir geriau sukibtų. Procentinė vertė yra santykinė su reto užpildo linijos pločiu. Nustatykite šią vertę ~10-15 %, kad sumažintumėte galimą perteklinį išspaudimą ir medžiagos sankaupas, dėl kurių susidaro šiurkštus viršutinis paviršius."
 
@@ -13627,7 +13657,7 @@ msgstr "Viršutinio ir apatinio vientiso užpildo ir sienos persidengimas"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "Viršutinė vientiso užpildo sritis šiek tiek padidinta, kad geriau sutaptų su siena ir kad viršutinio užpildo vietoje, kur jis jungiasi su sienomis, atsirastų kuo mažiau skylučių. 25-30 % vertė yra geras pradinis taškas, sumažinantis skylučių atsiradimą. Procentinė vertė yra santykinė su reto užpildo linijos pločiu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "Vidinio reto užpildymo greitis."
 
@@ -13646,7 +13676,7 @@ msgstr "Priverstinai sukuriami vientisi apvalkalai tarp gretimų medžiagų ir (
 msgid "Maximum width of a segmented region"
 msgstr "Didžiausias segmentuotos srities plotis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Didžiausias segmentuotos srities plotis. Nulis išjungia šią funkciją."
 
@@ -13692,26 +13722,26 @@ msgstr "Blokuotų ribų vengimas"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "Atstumas nuo modelio išorės, kai nesukuriamos susikertančios struktūros, matuojamas ląstelėmis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Lyginimo tipas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "Lyginant naudojamas nedidelis srautas, kuris spausdina tame pačiame paviršiaus aukštyje, kad plokšti paviršiai būtų lygesni. Šis nustatymas kontroliuoja, kurie sluoksniai lyginami."
 
 msgid "No ironing"
 msgstr "Nėra lyginimo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "Viršutiniai paviršiai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "Aukščiausias paviršius"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "All solid layers"
 msgstr "Visas vientisas sluoksnis"
 
@@ -13721,18 +13751,18 @@ msgstr "Lyginimo raštas"
 msgid "The pattern that will be used when ironing."
 msgstr "Raštas, kuris bus naudojamas lyginant."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Medžiagos kiekis, kuris turi būti išspaustas lyginimo metu. Jis yra susijęs su įprasto sluoksnio aukščio srautu. Dėl per didelės vertės paviršiuje atsiras perteklinis išspaudimas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "Atstumas tarp lyginimui naudojamų linijų."
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "Atstumas, kurį reikia išlaikyti nuo kraštų. Jei reikšmė 0, nustatoma pusė purkštuko skersmens."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "Lyginimo linijų spausdinimo greitis."
 
@@ -13789,11 +13819,11 @@ msgstr "Šis G kodas įterpiamas po kiekvieno sluoksnio keitimo po Z pakėlimo."
 msgid "Clumping detection G-code"
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Silent Mode"
 msgstr "Palaikomas tylusis režimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Ar įrenginys palaiko tylųjį režimą, kai spausdindamas naudoja mažesnį pagreitį."
 
@@ -14042,7 +14072,7 @@ msgid ""
 "To disable input shaping, use the Disable type."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "Kai įjungtas automatinis aušinimas, dalių ventiliatoriaus greitis gali būti padidintas. Tai didžiausias dalių aušinimo ventiliatoriaus greitis."
 
@@ -14157,7 +14187,7 @@ msgstr "\"Orca Slicer\" gali įkelti G-kodo failus į spausdintuvą. Šiame lauk
 msgid "Nozzle volume"
 msgstr "Purkštuko tūris"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Purkštuko tūris tarp pjaustytuvo ir purkštuko galo."
 
@@ -14194,14 +14224,14 @@ msgstr "Nustačius nulį, atstumas, kuriuo gija išleidžiama iš stovėjimo pad
 msgid "Start end points"
 msgstr "Pradžios ir pabaigos taškai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Pradžios ir pabaigos taškai, t. y. nuo pjaustymo zonos iki šiukšliadėžės."
 
 msgid "Reduce infill retraction"
 msgstr "Sumažinti užpildų įtraukimą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "Neįtraukti, kai judėjimas vyksta tik užpildytoje zonoje. Tai reiškia, kad ištekėjimo nematyti. Tai gali sutrumpinti įtraukimo laiką sudėtingam modeliui ir sutaupyti laiką spausdinimui, tačiau sluoksniavimas ir G kodo generavimas bus lėtesni."
 
@@ -14211,7 +14241,7 @@ msgstr "Pasirinkus šią parinktį sumažės neaktyvių ekstruderių temperatūr
 msgid "Filename format"
 msgstr "Failų pavadinimų formatas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "Eksportuodami vartotojai gali pasirinkti projekto failų pavadinimus."
 
@@ -14233,11 +14263,12 @@ msgstr "Spausdintinos iškyšos - Skylės plotas"
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
 msgstr "Didžiausias modelio pagrindo skylės plotas prieš ją užpildant kūgine medžiaga. 0 reikšmė užpildys visas modelio pagrindo skyles."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect overhang walls"
 msgstr "Aptikti išsikišusią sieną"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Nustatykite iškyšos procentinę dalį, palyginti su linijos pločiu, ir naudokite skirtingą spausdinimo greitį. Jei iškyša 100%%, naudojamas tilto greitis."
 
@@ -14260,11 +14291,11 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Vidinės sienos linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "Tai vidinių sienų greitis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Vieno sluoksnio sienų skaičius."
 
@@ -14311,30 +14342,30 @@ msgstr "Spausdintuvo variantas"
 msgid "Raft contact Z distance"
 msgstr "Platformos kontakto Z atstumas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z tarpas tarp platformos ir objekto. Jei viršutinis atramos Z atstumas yra 0, ši reikšmė ignoruojama ir objektas spausdinamas tiesiogiai kontaktuojant su platforma (be tarpo)."
 
 msgid "Raft expansion"
 msgstr "Platformos išplėtimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Tai išplečia visus platformos sluoksnius XY plokštumoje."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Pradinio sluoksnio tankis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Pirmojo platformos arba atraminio sluoksnio tankis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Pradinio sluoksnio išplėtimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Kad pagerėtų sukibimas su pagrindu, išplečiamas pirmasis platformos arba atraminis sluoksnis."
 
@@ -14344,7 +14375,7 @@ msgstr "Platformos sluoksniai"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Objektas bus padidintas šiuo atraminių sluoksnių skaičiumi. Šią funkciją naudokite norėdami išvengti deformacijų spausdinant ABS."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "G kodo kelias generuojamas supaprastinus modelių kontūrus, kad būtų išvengta pernelyg didelio taškų ir G kodo linijų skaičiaus. Mažesnė vertė reiškia didesnę skiriamąją gebą ir ilgesnį sluoksniavimo laiką."
 
@@ -14357,15 +14388,15 @@ msgstr "Įtraukimas įjungiamas tik tada, kai judėjimo atstumas yra ilgesnis u�
 msgid "Retract amount before wipe"
 msgstr "Įtraukiamas kiekis prieš nuvalymą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Greito įtraukimo prieš nuvalymą ilgis, palyginti su įtraukimo ilgiu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Įtraukti, kai keičiamas sluoksnis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "Priverstinis įtraukimas, kai keičiasi sluoksnis."
 
@@ -14375,7 +14406,7 @@ msgstr "Įtraukimo ilgis"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "Tam tikras kiekis medžiagos ekstruderyje yra įtraukiamas atgal, kad ilgos kelionės metu nesusidarytų išsiliejimas. Nustatykite nulį, kad išjungtumėte įtraukimą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "Ilgas įtraukimas, kai pjaunama (beta)"
 
@@ -14397,7 +14428,7 @@ msgstr ""
 msgid "Z-hop height"
 msgstr "Z šuolio aukštis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Kiekvieną kartą, kai gija įtraukiama, purkštukas šiek tiek pakeliamas, kad tarp purkštuko ir spaudinio atsirastų tarpas. Taip purkštukas, judėdamas daugiau, neužkliudo spaudinio. Naudojant spiralines linijas z pakėlimui, galima išvengti stygų susidarymo."
 
@@ -14476,14 +14507,14 @@ msgstr "Kai įtraukimas kompensuojamas po judesio, ekstruderis išstums šį pap
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Kai atitraukimas kompensuojamas pakeitus įrankį, ekstruderis išstums šį papildomą gijos kiekį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Įtraukimo greitis"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "Gijos įtraukimo į purkštuką greitis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Atitraukimo greitis"
 
@@ -14508,7 +14539,7 @@ msgstr "Išjungti M73 generavimą: Nustatyti likusį spausdinimo laiką galutini
 msgid "Seam position"
 msgstr "Siūlės padėtis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Kiekvienos išorinės sienos dalies pradinė padėtis."
 
@@ -14648,7 +14679,7 @@ msgstr "Valymo greitis nustatomas pagal šioje konfigūracijoje nurodytą greič
 msgid "Skirt distance"
 msgstr "Apvado atstumas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Tai atstumas nuo apvado iki krašto arba objekto."
 
@@ -14661,7 +14692,7 @@ msgstr "Kampas nuo objekto centro iki apvado pradžios taško. Nulis yra labiaus
 msgid "Skirt height"
 msgstr "Apvado aukštis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "Kiek sluoksnių apvado. Paprastai tik vienas sluoksnis."
 
@@ -14700,7 +14731,7 @@ msgstr "Objektui"
 msgid "Skirt loops"
 msgstr "Apvado kontūrai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Tai yra apvado kontūrų skaičius. 0 reiškia, kad apvadas išjungtas."
 
@@ -14730,7 +14761,7 @@ msgstr "Spausdinimo greitis eksportuotame G-kode bus sulėtintas, kai numatomas 
 msgid "Minimum sparse infill threshold"
 msgstr "Minimali reto užpildymo riba"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Reto užpildymo sritys, kurios yra mažesnės už šią ribinę vertę, pakeičiamos vidiniu vientisu užpildymu."
 
@@ -14752,11 +14783,11 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Vidinio vientiso užpildo linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Tai vidinio vientiso užpildo greitis, neįskaitant viršutinio ar apatinio paviršiaus."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Tai leidžia atlikti spiralinį išlyginimą, kuris išlygina išorinio kontūro Z judesius ir paverčia vientisą modelį į vienos sienelės atspaudą su vientisais apatiniais sluoksniais. Galutiniame sudarytame modelyje nėra siūlės."
 
@@ -14787,7 +14818,7 @@ msgstr "Galinis srauto santykis spiralėje"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Nustato baigiamojo srauto santykį, kai baigiama spiralė. Paprastai spiralės perėjimo metu srauto santykis keičiamas nuo 100 % iki 0 % paskutinio ciklo metu, todėl kai kuriais atvejais spiralės pabaigoje gali būti nepakankamas išspaudimas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Jei pasirinktas lygus arba tradicinis režimas, kiekvienam spaudiniui bus sukurtas pakadrinis vaizdo įrašas. Atspausdinus kiekvieną sluoksnį, kameros fotoaparatu padaroma momentinė nuotrauka. Baigus spausdinti, visos šios momentinės nuotraukos sudedamos į laike rodomą vaizdo įrašą. Jei pasirinktas sklandus režimas, po kiekvieno sluoksnio atspausdinimo įrankio galvutė persikels į perteklinį lataką ir tada padarys momentinę nuotrauką. Kadangi darant momentinę nuotrauką iš purkštuko gali ištekėti lydalo gija, norint nuvalyti purkštuką, naudojant sklandųjį režimą reikalingas pirminis bokštelis."
 
@@ -14822,11 +14853,11 @@ msgstr ""
 msgid "Start G-code"
 msgstr "Pradžios G-kodas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "G kodo paleidimas, kai pradedamas visas spausdinimas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "Paleisti G-kodą, kai pradedama spausdinti šia gija."
 
@@ -14911,7 +14942,7 @@ msgstr "Ši vertė bus pridėta (arba atimta) prie visų išvesties G kodo Z koo
 msgid "Enable support"
 msgstr "Įgalinti atramas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "Įgalinti atramų generavimą."
 
@@ -14933,7 +14964,7 @@ msgstr "Medis (rankinis)"
 msgid "Support/object XY distance"
 msgstr "Atramos/objekto XY atstumas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "Šiuo parametru nustatomas objekto ir atramos XY atstumas."
 
@@ -14952,7 +14983,7 @@ msgstr "Šį nustatymą naudokite norėdami pasukti atraminį modelį horizontal
 msgid "On build plate only"
 msgstr "Tik ant pagrindo plokštės"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Šis nustatymas generuoja tik tas atramas, kurios prasideda ant spausdinimo plokštės."
 
@@ -14971,21 +15002,21 @@ msgstr ""
 msgid "Top Z distance"
 msgstr "Viršutinis Z atstumas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "Z tarpas tarp atramos viršaus ir objekto."
 
 msgid "Bottom Z distance"
 msgstr "Apatinis Z atstumas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z tarpas tarp objekto ir atramos apačios. Jei viršutinis atramos Z atstumas yra 0 ir apačioje yra sąsajos sluoksniai, ši reikšmė ignoruojama ir atrama spausdinama tiesiogiai kontaktuojant su objektu (be tarpo)."
 
 msgid "Support/raft base"
 msgstr "Atraminis ir (arba) platformos pagrindas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
@@ -15000,18 +15031,18 @@ msgstr "Jei įmanoma, vengti naudoti atraminės sąsajos giją atraminiam pagrin
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Atramos linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Sąsaja naudoja kontūro raštą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Viršutinį kontaktinį atramų sluoksnį uždenkite kilpomis. Išjungta pagal numatytuosius nustatymus."
 
 msgid "Support/raft interface"
 msgstr "Atramų ir (arba) platformos sąsaja"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
@@ -15019,6 +15050,10 @@ msgstr "Gija skirta spausdinti atramos sąsają. \"Numatytoji\" reiškia, kad at
 
 msgid "Top interface layers"
 msgstr "Viršutiniai sąsajos sluoksniai"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "This is the number of top interface layers."
+msgstr "Viršutinių sąsajos sluoksnių skaičius"
 
 msgid "Bottom interface layers"
 msgstr "Apatiniai sąsajos sluoksniai"
@@ -15042,11 +15077,11 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Apatinės sąsajos tarpas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Atstumas tarp apatinių sąsajos linijų. 0 reiškia vientisą sąsają."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "Atramų sąsajų greitis."
 
@@ -15070,7 +15105,7 @@ msgstr "Tuščiaviduris"
 msgid "Interface pattern"
 msgstr "Sąsajos raštas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "Linijinis atraminės sąsajos raštas. Numatytasis netirpios atraminės sąsajos raštas yra tiesiaeigis, o tirpios atraminės sąsajos numatytasis raštas yra koncentrinis."
 
@@ -15080,18 +15115,18 @@ msgstr "Tiesiaeigis, persipynęs"
 msgid "Base pattern spacing"
 msgstr "Pagrindinio rašto tarpai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "Atstumai tarp atraminių linijų."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Įprastų atramų išplėtimas"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Padidinkite (+) arba sumažinkite (-) įprastinės atramos horizontalųjį atstumą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Atramų greitis."
 
@@ -15129,7 +15164,7 @@ msgstr "Atraminis sluoksnis naudoja sluoksnio aukštį, nepriklausomą nuo objek
 msgid "Threshold angle"
 msgstr "Ribinis kampas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15262,15 +15297,15 @@ msgstr ""
 "\n"
 "Jei įjungtas, šis parametras taip pat nustato gkodo kintamąjį chamber_temperature, kuris gali būti naudojamas norimai kameros temperatūrai perduoti spausdinimo pradžios makrokomandai arba tokiai šiluminio įšilimo makrokomandai: (kiti kintamieji) CHAMBER_TEMP=[chamber_temperature]. Tai gali būti naudinga, jei jūsų spausdintuvas nepalaiko M141/M191 komandų arba jei norite, kad spausdinimo pradžios makrokomandoje būtų tvarkomas šilumos įšildymas, jei nėra aktyvaus kameros šildytuvo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Po pradinio sluoksnio esančių sluoksnių purkštuko temperatūra."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect thin walls"
 msgstr "Aptikti plonas sieneles"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Aptikti ploną sienelę, kurioje negali būti dviejų eilučių pločio. Spausdinimui naudoti vieną liniją. Gali būti, kad nebus išspausdinta labai gerai, nes tai nėra uždaras kontūras."
 
@@ -15289,21 +15324,21 @@ msgstr ""
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Viršutinių paviršių linijos plotis. Jei išreiškiamas %, jis bus apskaičiuojamas pagal purkštuko skersmenį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "Viršutinio vientiso paviršiaus užpildo greitis."
 
 msgid "Top shell layers"
 msgstr "Viršutiniai apvalkalo sluoksniai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Tai viršutinio apvalkalo vientisų sluoksnių skaičius, įskaitant viršutinį paviršiaus sluoksnį. Kai pagal šią reikšmę apskaičiuotas storis yra plonesnis už viršutinio apvalkalo storį, viršutinio apvalkalo sluoksnių skaičius bus padidintas."
 
 msgid "Top shell thickness"
 msgstr "Viršutinio apvalkalo storis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Sluoksniuojant didinamas viršutinių vientisų sluoksnių skaičius, jei pagal viršutinius apvalkalo sluoksnius apskaičiuotas storis yra plonesnis už šią vertę. Taip galima išvengti per plono apvalkalo, kai sluoksnių aukštis yra mažas. 0 reiškia, kad šis nustatymas išjungtas ir viršutinio apvalkalo storis visiškai nustatomas pagal viršutinio apvalkalo sluoksnius."
 
@@ -15323,18 +15358,18 @@ msgstr ""
 "Apatinio paviršiaus sluoksnio tankis. Skirtas estetinėms arba funkcinėms reikmėms, ne tam, kad išspręstų tokias problemas kaip per didelis ekstruzijos kiekis. \n"
 "ĮSPĖJIMAS: Šio parametro sumažinimas gali neigiamai paveikti sluoksnio sukibimą su pagrindu."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Judėjimo greitis, kuris yra greitesnis ir be ekstruzijos."
 
 msgid "Wipe while retracting"
 msgstr "Nuvalyti įtraukiant"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Įtraukiant antgalį judinti išilgai paskutinio išspaudimo kelio, kad būtų išvalyta ant antgalio nutekėjusi medžiaga. Tai gali sumažinti artefaktų kiekį, kai po judėjimo spausdinama nauja dalis."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Valymo atstumas"
 
@@ -15351,7 +15386,7 @@ msgstr ""
 "\n"
 "Nustačius toliau esančio įvilkimo kiekio prieš valymą nustatymo reikšmę, bet koks perteklinis įvilkimas bus atliktas prieš valymą, priešingu atveju jis bus atliktas po jo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Valymo bokštas gali būti naudojamas likučiams ant purkštuko išvalyti ir kameros slėgiui purkštuko viduje stabilizuoti, kad spausdinant objektus būtų išvengta paviršiaus defektų."
 
@@ -15367,18 +15402,18 @@ msgstr "Valymo tūriai"
 msgid "Flush multiplier"
 msgstr "Išleidimo daugiklis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Faktinis išleidimo kiekis yra lygus išleidimo daugikliui, padaugintam iš lentelėje nurodytų išleidimo kiekių."
 
 msgid "Prime volume"
 msgstr "Pagrindinis tūris"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Medžiagos kiekis, skirtas ekstruderiui užpildyti ant bokšto."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Pagrindinio bokšto plotis."
 
@@ -15492,11 +15527,11 @@ msgstr ""
 msgid "Infill gap."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "Pakeitus giją, valymas bus atliekamas objektų užpildų viduje. Tai gali sumažinti atliekų kiekį ir sutrumpinti spausdinimo laiką. Jei sienos atspausdintos iš skaidraus filamento, mišrios spalvos užpildas bus matomas išorėje. Jis nebus taikomas, nebent įjungtas pirminis bokštas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Pakeitus giją, valymas bus atliekamas objektų atramos viduje. Tai gali sumažinti atliekų kiekį ir sutrumpinti spausdinimo laiką. Tai nebus veiksminga, jei nebus įjungtas pirminis bokštas."
 
@@ -15530,14 +15565,14 @@ msgstr "Purkštuko temperatūra, kai įrankis šiuo metu nenaudojamas kelių įr
 msgid "X-Y hole compensation"
 msgstr "X-Y angų kompensavimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Objekto angos XY plokštumoje bus padidintos arba sumažintos pagal nustatytą vertę. Teigiama reikšmė didina skyles. Neigiama reikšmė skyles sumažina. Ši funkcija naudojama šiek tiek pakoreguoti dydį, kai objektas turi surinkimo problemų."
 
 msgid "X-Y contour compensation"
 msgstr "X-Y kontūro kompensavimas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Objekto kontūras XY plokštumoje bus padidintas arba sumažintas pagal nustatytą vertę. Teigiama reikšmė didina kontūrą. Neigiama reikšmė kontūrą sumažina. Ši funkcija naudojama šiek tiek pakoreguoti dydį, kai objektas yra surenkamas."
 
@@ -15588,7 +15623,7 @@ msgstr "Naudoti santykinius E atstumus"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "Naudojant parinktį „label_objects“ rekomenduojama naudoti santykinį išspaudimą. Kai kurie ekstruzijos įrenginiai veikia geriau, jei ši parinktis nepažymėta (absoliučiosios ekstruzijos režimas). Valymo bokštas suderinamas tik su santykiniu režimu. Jį rekomenduojama naudoti daugumoje spausdintuvų. Pagal numatytuosius nustatymus pažymėta."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Klasikinis sienų generatorius sukuria pastovaus pločio sieneles, o labai plonoms sritims užpildyti naudojamas tarpų užpildymas. \"Arachnės\" variklis gamina kintamo išspaudimo pločio sienas."
 
@@ -15598,7 +15633,7 @@ msgstr "Arachnė"
 msgid "Wall transition length"
 msgstr "Sienų perėjimo ilgis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Pereinant nuo vieno sienelių skaičiaus prie kito, kai detalė tampa plonesnė, sienelių segmentams padalyti arba sujungti skiriama tam tikra erdvė. Jis išreiškiamas procentais nuo purkštuko skersmens."
 
@@ -15662,7 +15697,7 @@ msgstr "Mažiausias sienos plotis"
 msgid "Width of the wall that will replace thin features (according to the Minimum feature size) of the model. If the Minimum wall width is thinner than the thickness of the feature, the wall will become as thick as the feature itself. It's expressed as a percentage over nozzle diameter."
 msgstr "Sienos, kuri pakeis plonus modelio elementus, plotis (pagal minimalų elemento dydį). Jei Minimalus sienos plotis yra plonesnis už elemento storį, siena taps tokio pat storio kaip ir pats elementas. Jis išreiškiamas procentais nuo purkštuko skersmens."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
 msgstr "Aptikti siaurą vidinį vientisą užpildą"
 
@@ -15687,14 +15722,14 @@ msgstr " nepatenka į intervalą "
 msgid "Export 3MF"
 msgstr "Eksportuoti 3MF"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Eksportuokite projektą kaip 3MF."
 
 msgid "Export slicing data"
 msgstr "Eksportuoti sluoksniavimo duomenis"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Eksportuoti sluoksniavimo duomenis į katalogą."
 
@@ -15722,7 +15757,7 @@ msgstr "Sluoksniuoti"
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Sluoksniuoja plokštes: 0-visos plokštės, i-plokštė i, kitos-negaliojančios"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Rodoma komandos pagalba."
 
@@ -15747,14 +15782,14 @@ msgstr "eksportuoti mažiausio dydžio 3MF."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "maksimalus trikampių skaičius plokštelėje sluoksniavimui."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "maksimalus vienos plokštės sluoksniavimo laikas sekundėmis."
 
@@ -15773,14 +15808,14 @@ msgstr "Patikrinti norminius elementus."
 msgid "Output Model Info"
 msgstr "Išvesti modelio informaciją"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Išvedama modelio informacija."
 
 msgid "Export Settings"
 msgstr "Eksportavimo nustatymai"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Nustatymai eksportuojami į failą."
 
@@ -15868,7 +15903,7 @@ msgstr "Įkrovos sąraše esančių objektų klonavimas."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Naudojant „Naujausius“, įkelkite naujausius proceso/mašinos nustatymus"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Įkelti \"naujausio\" proceso/įrenginio nustatymus iš nurodyto failo, kai naudojamas \"naujausias\"."
 
@@ -15905,7 +15940,7 @@ msgstr "Įkelkite ir išsaugokite nustatymus nurodytame kataloge. Tai naudinga n
 msgid "Output directory"
 msgstr "Išvesties katalogas"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Eksportuojamų failų išvesties katalogas."
 
@@ -16177,11 +16212,11 @@ msgstr "Įvesties failo pavadinimas be plėtinio"
 msgid "Source filename of the first object, without extension."
 msgstr "Pirmojo objekto šaltinio failo pavadinimas be plėtinio."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr "Vektorių sudaro du elementai: taško x ir y koordinatės. Vertės mm."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y dimension of the bounding box. Values in mm."
 msgstr "Vektorių sudaro du elementai: x ir y ribojančio bloko matmenys. Reikšmės mm."
 
@@ -16344,15 +16379,15 @@ msgstr "Nepavyko įkelti modelio failo."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr ""
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Nežinomas failo formatas. Įvesties failo plėtinys turi būti .stl, .obj, .amf(.xml)."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf arba .zip.amf."
 
@@ -16404,7 +16439,7 @@ msgstr "Kalibruoti"
 msgid "Finish"
 msgstr "Baigti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Kaip naudoti kalibravimo rezultatus?"
 
@@ -16482,7 +16517,7 @@ msgstr "Pasirinkite giją, kurią norite kalibruoti."
 msgid "The input value size must be 3."
 msgstr "Įvesties reikšmės dydis turi būti 3."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -16494,7 +16529,8 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr ""
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Jau yra ankstesnio kalibravimo rezultatas tokiu pačiu pavadinimu: %s. Išsaugomas tik vienas iš to paties pavadinimo rezultatų. Ar tikrai norite pakeisti ankstesnį rezultatą?"
 
@@ -16504,7 +16540,8 @@ msgid ""
 "Are you sure you want to override the historical result?"
 msgstr ""
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Šis įrenginio tipas gali talpinti tik %d istorijos rezultatų iš vieno purkštuko. Šis rezultatas nebus išsaugotas."
 
@@ -16585,7 +16622,7 @@ msgstr "Be to, srauto greičio kalibravimas labai svarbus putojančioms medžiag
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Srauto greičio kalibravimas matuoja numatyto ir faktinio išspaudimo tūrio santykį. Numatytasis nustatymas gerai veikia \"Bambu Lab\" spausdintuvuose ir su oficialiomis gijomis, nes jos iš anksto sukalibruotos ir tiksliai sureguliuotos. Įprastai naudojamoms gijoms paprastai nereikia atlikti srauto greičio kalibravimo, nebent atlikus kitus kalibravimus vis dar matote išvardytus defektus. Išsamesnės informacijos rasite wiki straipsnyje."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -16632,7 +16669,7 @@ msgstr "Pavadinimas negali būti ilgesnis nei 40 simbolių."
 msgid "Please find the best line on your plate"
 msgstr "Raskite geriausią liniją ant pagrindo"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Raskite kampą su tobulu išspaudimo laipsniu"
 
@@ -16792,14 +16829,15 @@ msgstr "Nėra ankstesnių rezultatų"
 msgid "Success to get history result"
 msgstr "Sėkmingai gauti senesnį rezultatą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Senesnių srauto dinamikos kalibravimo įrašų atnaujinimas"
 
 msgid "Action"
 msgstr "Veiksmas"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Šis įrenginio tipas gali talpinti tik %d ankstesnių rezultatų iš vieno purkštuko."
 
@@ -17404,11 +17442,11 @@ msgstr "Gijos išankstinis nustatymas"
 msgid "Create"
 msgstr "Sukurti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Pardavėjas nepasirinktas, pasirinkite pardavėją iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Pasirinktinis pardavėjas neįvestas, įveskite pasirinktinį pardavėją."
 
@@ -17418,25 +17456,26 @@ msgstr "\"Bambu\" arba \"Generic\" negalima naudoti kaip pasirinktinių gijų pa
 msgid "Filament type is not selected, please reselect type."
 msgstr "Nepasirinktas gijos tipas, pasirinkite tipą iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "Gijos serijinis numeris neįvestas, įveskite serijinį numerį."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Gijų pardavėjo arba serijos numerio įvesties laukelyje gali būti praleidžiamųjų simbolių. Ištrinkite ir įveskite iš naujo."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Visi pasirinktinio pardavėjo ar serijos numerio įvesties duomenys yra tarpai. Įveskite iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "Pardavėjas negali būti skaičius. Prašome įvesti iš naujo."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Dar nepasirinkote spausdintuvo arba išankstinio nustatymo. Pasirinkite bent vieną."
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
@@ -17482,7 +17521,7 @@ msgstr "Importuoti nustatymus"
 msgid "Create Type"
 msgstr "Sukurti tipą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "Modelis nerastas, iš naujo pasirinkite pardavėją."
 
@@ -17523,18 +17562,18 @@ msgstr "Failas viršija %d MB, importuokite dar kartą."
 msgid "Exception in obtaining file size, please import again."
 msgstr "Išimtis gaunant failo dydį, importuokite dar kartą."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Nerastas nustatymų kelias, iš naujo pasirinkite pardavėją."
 
 msgid "The printer model was not found, please reselect."
 msgstr "Spausdintuvo modelis nerastas, pasirinkite iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "Purkštuko skersmuo nerastas, pasirinkite iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "Spausdintuvo išankstinis nustatymas nerastas, pasirinkite iš naujo."
 
@@ -17550,11 +17589,11 @@ msgstr "Proceso nustatymų šablonas"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Dar nepasirinkote, pagal kurį spausdintuvo išankstinį nustatymą kurti. Pasirinkite spausdintuvo gamintoją ir modelį"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Pirmojo puslapio spausdintinos srities skiltyje įvedėte neleistiną reikšmę. Prieš jį kurdami patikrinkite."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -17580,14 +17619,14 @@ msgstr ""
 "Nepavyko sukurti proceso nustatymų. Taip:\n"
 "\n"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "Pardavėjas nerastas, pasirinkite iš naujo."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "Dabartinis pardavėjas neturi modelių, pasirinkite iš naujo."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Nepasirinkote pardavėjo ir modelio arba neįvedėte pasirinktinio pardavėjo ir modelio."
 
@@ -17600,7 +17639,7 @@ msgstr "Visi pasirinktinio spausdintuvo tiekėjo arba modelio įvesties duomenys
 msgid "Please check bed printable shape and origin input."
 msgstr "Patikrinkite pagrindo spausdinimo formą ir pradžią."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Dar nepasirinkote spausdintuvo, kuriuo norite pakeisti antgalį, pasirinkite."
 
@@ -17639,7 +17678,7 @@ msgstr "Eikite į spausdintuvo nustatymus, kad galėtumėte redaguoti išankstin
 msgid "Filament Created"
 msgstr "Sukurta gija"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -17694,7 +17733,8 @@ msgstr "atidaryti zip raštu nepavyksta"
 msgid "Export successful"
 msgstr "Sėkmingai eksportuota"
 
-#, fuzzy, c-format, boost-format
+# TODO: Review, changed by lang refactor. PR 14254
+#, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
@@ -17726,7 +17766,7 @@ msgstr ""
 "Vartotojo iš anksto nustatytas gijų rinkinys.\n"
 "Galima bendrinti su kitais."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Spausdintuvų pavadinimai rodomi tik tada, kai pakeistos spausdintuvo, gijų ir proceso išankstinės nuostatos."
 
@@ -17753,7 +17793,7 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "Pasirinkite bent vieną spausdintuvą arba giją."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "Pasirinkite tipą, kurį norite eksportuoti"
 
@@ -17818,7 +17858,7 @@ msgstr "[Reikia ištrinti]"
 msgid "Edit Preset"
 msgstr "Redaguoti nustatymą"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "Daugiau informacijos rasite Wiki"
 
@@ -17877,6 +17917,9 @@ msgstr ""
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Nepavyksta sukalibruoti: galbūt dėl to, kad nustatytas kalibravimo vertės intervalas yra per didelis arba žingsnis yra per mažas"
+
+msgid "Physical Printer"
+msgstr "Fizinis spausdintuvas"
 
 msgid "Print Host upload"
 msgstr "Įkėlimas spausdinimui tinkle"
@@ -18295,7 +18338,7 @@ msgstr "spausdintuvus vienu metu. (Priklauso nuo to, kiek įrenginių gali būti
 msgid "Wait"
 msgstr "Laukti"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "minutę kiekvienai partijai. (Priklauso nuo to, kiek laiko trunka įkaitinimas.)"
 
@@ -18596,7 +18639,7 @@ msgstr "Įspėjimas: Jei krašto tipas nenustatytas kaip „pieštas“, krašto
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Nustatykite šio objekto krašto tipą kaip „pieštas“"
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 msgid "invalid brim ears"
 msgstr " netinkamos krašto \"ausys\""
 
@@ -18963,8 +19006,8 @@ msgstr ""
 "Laiko intervalas\n"
 "Ar žinojote, kad kiekvieno spausdinimo metu galite sukurti laiko intervalų vaizdo įrašą?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
-#, fuzzy
 msgid ""
 "Auto-Arrange\n"
 "Did you know that you can auto-arrange all the objects in your project?"
@@ -18972,8 +19015,8 @@ msgstr ""
 "Automatinis išdėstymas\n"
 "Ar žinojote, kad galite automatiškai išdėstyti visus savo projekto objektus?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
-#, fuzzy
 msgid ""
 "Auto-Orient\n"
 "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
@@ -19071,9 +19114,9 @@ msgstr ""
 "Suskirstykite atspaudus į plokštes\n"
 "Ar žinojote, kad daug dalių turintį modelį galite padalyti į atskiras spausdinti paruoštas plokštes? Tai supaprastins visų dalių apskaitos procesą."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
-#, fuzzy
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19089,8 +19132,8 @@ msgstr ""
 "Atramų piešimas\n"
 "Ar žinojote, kad galite nupiešti savo atramų vietą? Ši funkcija leidžia lengvai naudoti atraminę medžiagą tik tose modelio dalyse, kuriose jos iš tikrųjų reikia."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
-#, fuzzy
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
@@ -19098,8 +19141,8 @@ msgstr ""
 "Įvairių tipų atramos\n"
 "Ar žinojote, kad galite rinktis iš kelių tipų atramų? Medžio formos atramos puikiai tinka organiniams modeliams, taupo gijas ir padidina spausdinimo greitį. Išbandykite jas!"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
-#, fuzzy
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
@@ -19115,8 +19158,8 @@ msgstr ""
 "Kraštas geresniam sukibimui\n"
 "Ar žinojote, kad kai spausdinimo modeliai turi nedidelę sąlyčio sąsają su spausdinimo paviršiumi, rekomenduojama naudoti kraštą?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
-#, fuzzy
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
@@ -19132,8 +19175,8 @@ msgstr ""
 "Daiktų krūva\n"
 "Ar žinojote, kad objektus galima sudėti į krūvą kaip vieną?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
-#, fuzzy
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
@@ -19149,9 +19192,9 @@ msgstr ""
 "Padidinkite stiprumą\n"
 "Ar žinojote, kad modelio tvirtumui padidinti galite naudoti daugiau sienų kontūrų ir didesnį reto užpildo tankį?"
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
-#, fuzzy
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -19159,8 +19202,8 @@ msgstr ""
 "Kai reikia spausdinti atidarius spausdintuvo dureles\n"
 "Ar žinojote, kad atidarius spausdintuvo dureles gali sumažėti ekstruderio ir (arba) karštosios jungties užsikimšimo tikimybė, kai spausdinate žemesnės temperatūros filamentą su aukštesne korpuso temperatūra. Daugiau informacijos apie tai rasite \"Wiki\"."
 
+# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
-#, fuzzy
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
@@ -19239,9 +19282,6 @@ msgstr ""
 
 #~ msgid "Number of top interface layers."
 #~ msgstr "Viršutinių sąsajos sluoksnių skaičius."
-
-#~ msgid "Physical Printer"
-#~ msgstr "Fizinis spausdintuvas"
 
 #~ msgid "Bed Leveling"
 #~ msgstr "Lyginimas pagal spausdinimo pagrindą"
@@ -19823,7 +19863,7 @@ msgstr ""
 #~ msgid "The AMS will estimate Bambu filament's remaining capacity after the filament info is updated. During printing, remaining capacity will be updated automatically."
 #~ msgstr "Atnaujinus gijų informaciją, AMS įvertins likusį Bambu gijų kiekį. Spausdinimo metu likęs kiekis bus atnaujinamas automatiškai."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 #~ msgid "The recommended minimum temperature is less than 190℃ or the recommended maximum temperature is greater than 300℃.\n"
 #~ msgstr "Rekomenduojama minimali temperatūra yra žemesnė nei 190 laipsnių arba maksimali temperatūra aukštesnė nei 300 laipsnių.\n"
 
@@ -20571,7 +20611,7 @@ msgstr ""
 #~ msgid "This object will be used to purge the nozzle after a filament change to save filament and decrease the print time. Colors of the objects will be mixed as a result. It will not take effect, unless the prime tower is enabled."
 #~ msgstr "Šis objektas bus naudojamas purkštukui išvalyti po gijos pakeitimo, kad būtų sutaupyta gija ir sutrumpintas spausdinimo laikas. Dėl to objektų spalvos bus sumaišytos. Jis neveiks, jei nebus įjungtas pirminis bokštas."
 
-#, fuzzy
+# TODO: Review, changed by lang refactor. PR 14254
 #~ msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
 #~ msgstr "Mažiausias plonų elementų storis. Modelio elementai, kurie yra plonesni už šią vertę, nebus spausdinami, o elementai, kurie yra storesni už minimalų elemento dydį, bus praplatinti iki minimalaus sienelės pločio. Jis išreiškiamas procentais nuo purkštuko skersmens"
 
