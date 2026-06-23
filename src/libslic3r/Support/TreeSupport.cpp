@@ -2202,6 +2202,16 @@ void TreeSupport::draw_circles()
     coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
     const float tree_brim_width = config.tree_support_brim_width.value;
 
+    // Belt floor: the first object layer is not on a flat bed — it rests on the
+    // tilted, moving belt. So the first-object-layer adhesion features (the tree
+    // support brim, the hybrid first-layer base expansion) must be suppressed:
+    // their expanded contact rings project to a stray brim/skirt loop sitting in
+    // the Z=0 belt plane around the support footprint. false on non-belt printers,
+    // so behavior there is unchanged.
+    BeltFloorContext belt_ctx;
+    const bool belt_floor_active = belt_ctx.init(m_slicing_params, *m_print_config)
+        && m_print_config->belt_support_floor_mode.value == BeltSupportFloorMode::GeneratorOnly;
+
     if (m_object->support_layer_count() <= m_raft_layers)
         return;
     BOOST_LOG_TRIVIAL(info) << "draw_circles for object: " << m_object->model_object()->name;
@@ -2312,7 +2322,7 @@ void TreeSupport::draw_circles()
                                 circle.points[i] = circle.points[i] * scale + node.position;
                             }
                         }
-                        if (obj_layer_nr == 0 && m_raft_layers == 0) {
+                        if (obj_layer_nr == 0 && m_raft_layers == 0 && !belt_floor_active) {
                             double brim_width = !config.tree_support_auto_brim ? tree_brim_width : std::max(MIN_BRANCH_RADIUS_FIRST_LAYER, std::min(node.radius + node.dist_mm_to_top / (scale * branch_radius) * 0.5, MAX_BRANCH_RADIUS_FIRST_LAYER) - node.radius);
                             auto tmp=offset(circle, scale_(brim_width));
                             if(!tmp.empty())
@@ -2532,7 +2542,7 @@ void TreeSupport::draw_circles()
                 // part. area_poly is collected from ePolygon nodes above, which are the normal
                 // support nodes in Hybrid mode. Apply the expansion before area_groups and
                 // lslices are built so toolpaths and brim avoidance use the same footprint.
-                if (layer_nr == 0 && m_raft_layers == 0 && m_support_params.support_style == smsTreeHybrid &&
+                if (layer_nr == 0 && m_raft_layers == 0 && !belt_floor_active && m_support_params.support_style == smsTreeHybrid &&
                     m_object_config->raft_first_layer_expansion.value > 0.f) {
                     ExPolygons expanded_base_areas;
                     const float inflate_factor_1st_layer = float(scale_(m_object_config->raft_first_layer_expansion.value));
