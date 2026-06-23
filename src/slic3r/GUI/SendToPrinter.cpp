@@ -300,7 +300,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_storage_panel->Layout();
 
     // try to connect
-    m_statictext_printer_msg = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
+    m_statictext_printer_msg = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(400), -1), wxALIGN_CENTER_HORIZONTAL);
     m_statictext_printer_msg->SetFont(::Label::Body_13);
     m_statictext_printer_msg->SetForegroundColour(*wxBLACK);
     m_statictext_printer_msg->Hide();
@@ -760,9 +760,25 @@ void SendToPrinterDialog::update_priner_status_msg(wxString msg, bool is_warning
         if (str_new != str_old) {
             if (m_statictext_printer_msg->GetLabel() != msg) {
                 m_statictext_printer_msg->SetLabel(msg);
-                m_statictext_printer_msg->SetMinSize(wxSize(FromDIP(400), -1));
-                m_statictext_printer_msg->SetMaxSize(wxSize(FromDIP(400), -1));
-                m_statictext_printer_msg->Wrap(FromDIP(400));
+                const int wrap_width = FromDIP(400);
+                m_statictext_printer_msg->Wrap(wrap_width);
+                int line_count = 1;
+                const wxString wrapped_label = m_statictext_printer_msg->GetLabel();
+                for (size_t i = 0; i < wrapped_label.length(); ++i) {
+                    if (wrapped_label[i] == '\n')
+                        ++line_count;
+                }
+                wxCoord text_width = 0;
+                wxCoord text_height = 0;
+                m_statictext_printer_msg->GetTextExtent(msg, &text_width, &text_height);
+                const int extent_line_count = text_width > 0 ?
+                    std::max(1, (static_cast<int>(text_width) + wrap_width - 1) / wrap_width) : 1;
+                line_count = std::max(line_count, extent_line_count);
+                const int line_height = std::max(m_statictext_printer_msg->GetCharHeight(), static_cast<int>(text_height));
+                const int min_height = std::max(m_statictext_printer_msg->GetBestSize().GetHeight(),
+                                                line_count * line_height + FromDIP(2));
+                m_statictext_printer_msg->SetMinSize(wxSize(wrap_width, min_height));
+                m_statictext_printer_msg->SetMaxSize(wxDefaultSize);
                 m_statictext_printer_msg->Show();
                 Layout();
                 Fit();
@@ -1488,6 +1504,9 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Send_Button(false);
         Enable_Refresh_Button(true);
     } else if (status == PrintDialogStatus::PrintStatusPublicInitFailed) {
+        wxString msg_text = _L(
+            "Failed to initialize the printer file transfer. Please check the connection and try again.");
+        update_print_status_msg(msg_text, true, true);
         Enable_Send_Button(false);
         Enable_Refresh_Button(true);
     } else if (status == PrintDialogStatus::PrintStatusPublicUploadFiled) {
@@ -1665,30 +1684,18 @@ extern void     refresh_agora_url(char const *device, char const *dev_ver, char 
 void SendToPrinterDialog::GetConnection()
 {
     DeviceManager *dm  = GUI::wxGetApp().getDeviceManager();
+    MachineObject *obj = dm ? dm->get_selected_machine() : nullptr;
 
-    MachineObject *obj = dm->get_selected_machine();
-    if (obj == nullptr) {
+    if (!obj)
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : obj is empty";
-        m_connection_status = ConnectionStatus::NOT_START;
-    }
-
-    int remote_proto = obj->get_file_remote();
-    if (!remote_proto) {
+    if (obj && !obj->get_file_remote())
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : remote_proto is not support";
-        m_connection_status = ConnectionStatus::NOT_START;
-    }
+    if (obj && obj->is_camera_busy_off())
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : camera is busy";
 
-    if (obj->is_camera_busy_off()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : camera is busy";
-        m_connection_status = ConnectionStatus::NOT_START;
-    }
+    NetworkAgent* agent = wxGetApp().getAgent();
 
-    NetworkAgent *agent         = wxGetApp().getAgent();
-    std::string   agent_version = agent ? agent->get_version() : "";
-    std::string   dev_ver       = obj->get_ota_version();
-    std::string   dev_id        = obj->get_dev_id();
-
-     if (m_url_timer && m_url_timer->IsRunning())
+    if (m_url_timer && m_url_timer->IsRunning())
      {
          m_url_timer->Stop();
      }
@@ -1711,19 +1718,40 @@ void SendToPrinterDialog::GetConnection()
          m_url_timer->GetId());
      m_url_timer->StartOnce(8000);
 
-    if (agent) {
+    if (obj && agent)
+    {
+        std::string dev_ver = obj->get_ota_version();
+        std::string dev_id = obj->get_dev_id();
+
         if (m_tcp_try_connect) {
             std::string devIP      = obj->get_dev_ip();
             std::string accessCode = obj->get_access_code();
             std::string url        = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Connect method tcp";
-            m_filetransfer_tunnel  = std::make_unique<FileTransferTunnel>(module(), url);
-            m_filetransfer_tunnel->on_connection([this](bool is_success, int err_code, std::string error_msg) {
-                CallAfter([this, is_success, err_code, error_msg]() {
-                       OnConnection(is_success, err_code, error_msg);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Connect method tcp, dev_id=" << dev_id
+                                    << ", dev_ip=" << devIP << ", access_code_len=" << accessCode.size();
+
+            try
+            {
+                m_filetransfer_tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+                m_filetransfer_tunnel->on_connection([this](bool is_success, int err_code, std::string error_msg)
+                {
+                    CallAfter([this, is_success, err_code, error_msg]()
+                    {
+                        OnConnection(is_success, err_code, error_msg);
+                    });
                 });
-            });
-            m_filetransfer_tunnel->start_connect();
+                m_filetransfer_tunnel->start_connect();
+            }
+            catch (const std::exception& e)
+            {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": tcp FileTransferTunnel unavailable for dev_id=" <<
+ dev_id
+                                           << " dev_ip=" << devIP << ": " << e.what();
+                if (m_url_timer && m_url_timer->IsRunning()) m_url_timer->Stop();
+                m_filetransfer_tunnel.reset();
+                m_connection_status = ConnectionStatus::CONNECTION_FAILED;
+                show_status(PrintDialogStatus::PrintStatusPublicInitFailed);
+            }
         }
         else if (m_tutk_try_connect)
         {
@@ -1751,11 +1779,28 @@ void SendToPrinterDialog::GetConnection()
                 if (boost::algorithm::starts_with(url, "bambu:///"))
                 {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Connect method tutk";
-                    m_filetransfer_tunnel = std::make_unique<FileTransferTunnel>(module(), url);
-                    m_filetransfer_tunnel->on_connection([this](bool is_success, int err_code, std::string error_msg) {
-                        CallAfter([this, is_success, err_code, error_msg]() { OnConnection(is_success, err_code, error_msg); });
-                    });
-                    m_filetransfer_tunnel->start_connect();
+                    try
+                    {
+                        m_filetransfer_tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+                        m_filetransfer_tunnel->on_connection(
+                            [this](bool is_success, int err_code, std::string error_msg)
+                            {
+                                CallAfter([this, is_success, err_code, error_msg]()
+                                {
+                                    OnConnection(is_success, err_code, error_msg);
+                                });
+                            });
+                        m_filetransfer_tunnel->start_connect();
+                    }
+                    catch (const std::exception& e)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": tutk FileTransferTunnel unavailable: " << e.
+what();
+                        if (m_url_timer && m_url_timer->IsRunning()) m_url_timer->Stop();
+                        m_filetransfer_tunnel.reset();
+                        m_connection_status = ConnectionStatus::CONNECTION_FAILED;
+                        show_status(PrintDialogStatus::PrintStatusPublicInitFailed);
+                    }
                 }
                 else
                 {
@@ -1854,8 +1899,17 @@ void SendToPrinterDialog::ResetTunnelAndJob()
 
 void SendToPrinterDialog::CreateMediaAbilityJob()
 {
-     nlohmann::json media_ability = {{"cmd_type", 7}};
-     m_filetransfer_mediability_job = std::make_unique<FileTransferJob>(module(), std::string(media_ability.dump()));
+    nlohmann::json media_ability = {{"cmd_type", 7}};
+    try
+    {
+        m_filetransfer_mediability_job = std::make_unique<FileTransferJob>(module(), std::string(media_ability.dump()));
+    }
+    catch (const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": FileTransferJob unavailable: " << e.what();
+         show_status(PrintDialogStatus::PrintStatusPublicInitFailed);
+         return;
+     }
      m_filetransfer_mediability_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res) {
          //this pl
          CallAfter([this, res, resp_ec, json_res] {
@@ -1910,11 +1964,20 @@ void SendToPrinterDialog::CreateUploadFileJob(const std::string &path, const std
         {"cmd_type", 5},
     };
     upload_params["dest_storage"] = m_selected_storage;
-    upload_params["dest_name"]    = name; // filenme no path
-    upload_params["file_path"]    = path;
+    upload_params["dest_name"] = name; // filenme no path
+    upload_params["file_path"] = path;
 
-      BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Begin CreateUploadFileJob";
-    m_filetransfer_uploadfile_job = std::make_unique<FileTransferJob>(module(), std::string(upload_params.dump()));
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Begin CreateUploadFileJob";
+    try
+    {
+        m_filetransfer_uploadfile_job = std::make_unique<FileTransferJob>(module(), std::string(upload_params.dump()));
+    }
+    catch (const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": FileTransferJob unavailable: " << e.what();
+        show_status(PrintDialogStatus::PrintStatusPublicUploadFiled);
+        return;
+    }
     m_filetransfer_uploadfile_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res) { //
         CallAfter([this, res, resp_ec, json_res, bin_res] {
             UploadFileRessultCallback(res, resp_ec,json_res, bin_res);
