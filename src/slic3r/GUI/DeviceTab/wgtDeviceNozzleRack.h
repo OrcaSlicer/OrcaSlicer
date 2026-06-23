@@ -91,7 +91,6 @@ private:
 
     Label* m_nozzle_diamenter_label;
     Label* m_nozzle_flowtype_label;
-    wxPanel* m_color_swatch = nullptr;
 };
 
 class wgtDeviceNozzleRackArea : public wxPanel
