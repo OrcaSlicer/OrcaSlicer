@@ -96,7 +96,7 @@ endif()
 if(ORCA_TOOLS)
     # OrcaSlicer_profile_validator
     if(APPLE)
-        add_executable(OrcaSlicer_profile_validator MACOSX_BUNDLE dev-utils/OrcaSlicer_profile_validator.cpp)
+        add_executable(OrcaSlicer_profile_validator MACOSX_BUNDLE dev-utils/OrcaSlicer_profile_validator.cpp dev-utils/nanosvg_impl.cpp)
         set_target_properties(OrcaSlicer_profile_validator PROPERTIES
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_BUNDLE_NAME "OrcaSlicer Profile Validator"
@@ -107,7 +107,7 @@ if(ORCA_TOOLS)
             MACOSX_BUNDLE_GUI_IDENTIFIER "com.orcaslicer.OrcaSlicer.profile-validator"
         )
     else()
-        add_executable(OrcaSlicer_profile_validator dev-utils/OrcaSlicer_profile_validator.cpp)
+        add_executable(OrcaSlicer_profile_validator dev-utils/OrcaSlicer_profile_validator.cpp dev-utils/nanosvg_impl.cpp)
     endif()
     target_link_libraries(OrcaSlicer_profile_validator libslic3r boost_headeronly libcurl OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(OrcaSlicer_profile_validator PRIVATE -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
