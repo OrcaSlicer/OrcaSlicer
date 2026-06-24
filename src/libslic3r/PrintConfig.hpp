@@ -86,13 +86,13 @@ enum InfillPattern : int {
     // Magma infill patterns for vertical reinforcement
     ipMagmaTriangle,
     ipMagmaRectilinear,
+    ipMagmaTriHex,
     ipCount,
 };
 
 // Returns true for all Magma infill patterns (solid after injection during printing).
-// Add future Magma geometries here (ipMagmaHex, etc.)
 inline bool is_magma_pattern(InfillPattern p) {
-    return p == ipMagmaTriangle || p == ipMagmaRectilinear;
+    return p == ipMagmaTriangle || p == ipMagmaRectilinear || p == ipMagmaTriHex;
 }
 
 enum class MagmaTubeWidthMode : int {

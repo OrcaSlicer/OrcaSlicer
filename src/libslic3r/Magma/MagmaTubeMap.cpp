@@ -58,7 +58,28 @@ double CellPresence::distance(int layer_id) const
     return distances[idx];
 }
 
-void CellPresence::mark_present(int layer_id, double area_val, double dist_val)
+double CellPresence::opening_radius(int layer_id) const
+{
+    if (layer_id < first_layer || layer_id > last_layer)
+        return 0.0;
+    int idx = layer_id - first_layer;
+    if (idx < 0 || idx >= int(opening_radii.size()))
+        return 0.0;
+    return opening_radii[idx];
+}
+
+Vec2d CellPresence::injection_point(int layer_id) const
+{
+    if (layer_id < first_layer || layer_id > last_layer)
+        return Vec2d(0.0, 0.0);
+    int idx = layer_id - first_layer;
+    if (idx < 0 || idx >= int(injection_pts.size()))
+        return Vec2d(0.0, 0.0);
+    return injection_pts[idx];
+}
+
+void CellPresence::mark_present(int layer_id, double area_val, double dist_val,
+                               double opening_r, const Vec2d &inj_pt)
 {
     if (first_layer == INT_MAX) {
         // First time: initialize
@@ -67,6 +88,8 @@ void CellPresence::mark_present(int layer_id, double area_val, double dist_val)
         layers.assign(1, true);
         areas.assign(1, area_val);
         distances.assign(1, dist_val);
+        opening_radii.assign(1, opening_r);
+        injection_pts.assign(1, inj_pt);
         return;
     }
 
@@ -76,6 +99,8 @@ void CellPresence::mark_present(int layer_id, double area_val, double dist_val)
         layers.insert(layers.begin(), extend, false);
         areas.insert(areas.begin(), extend, 0.0);
         distances.insert(distances.begin(), extend, 0.0);
+        opening_radii.insert(opening_radii.begin(), extend, 0.0);
+        injection_pts.insert(injection_pts.begin(), extend, Vec2d(0.0, 0.0));
         first_layer = layer_id;
     }
     if (layer_id > last_layer) {
@@ -83,13 +108,17 @@ void CellPresence::mark_present(int layer_id, double area_val, double dist_val)
         layers.insert(layers.end(), extend, false);
         areas.insert(areas.end(), extend, 0.0);
         distances.insert(distances.end(), extend, 0.0);
+        opening_radii.insert(opening_radii.end(), extend, 0.0);
+        injection_pts.insert(injection_pts.end(), extend, Vec2d(0.0, 0.0));
         last_layer = layer_id;
     }
 
     int idx = layer_id - first_layer;
-    layers[idx]    = true;
-    areas[idx]     = area_val;
-    distances[idx] = dist_val;
+    layers[idx]        = true;
+    areas[idx]         = area_val;
+    distances[idx]     = dist_val;
+    opening_radii[idx] = opening_r;
+    injection_pts[idx] = inj_pt;
 }
 
 // ============================================================================
@@ -211,8 +240,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // output stays byte-identical; a new pattern drops in via MagmaPatterns.hpp.
     // In dual-infill mode sparse_infill_pattern is the inner yolk pattern, so the tube
     // map must use the outer (reinforcement) pattern's geometry/lattice instead.
-    map->m_pattern  = config.dual_infill_enabled.value ? config.dual_infill_outer_pattern.value
-                                                       : config.sparse_infill_pattern.value;
+    map->m_pattern  = magma_effective_pattern(config);
     map->m_geometry = &magma_geometry_for(map->m_pattern);
 
     // Nominal config layer height (fallback for missing layers in lookup tables)
@@ -256,20 +284,35 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
         map->m_layer_height
     );
 
-    // Min tube height: window height (×2 for solid wall above+below) plus 2 layers of padding.
-    map->m_min_tube_height_mm = map->m_window_spec.window_height_mm * 2.0
+    // Min tube height: window height plus enough sealing wall above it (×1.5 ≈ half a
+    // window of wall for the nozzle to seal against) plus 2 layers of padding. The
+    // sealing wall (≈0.5×window + 2 layers) must exceed the nozzle z-slam depth so the
+    // slam doesn't punch through into the window — true for typical square/triangle
+    // geometry; see the seal discussion for tying this directly to slam depth.
+    map->m_min_tube_height_mm = map->m_window_spec.window_height_mm * 1.5
                                 + 2.0 * double(map->m_min_layer_height);
 
     // Tube height from user config (mm).
     // Clamped to m_min_tube_height_mm so tubes always fit at least one U-tube pair.
     {
         double user_tube_mm = std::max(1.0, config.magma_tube_height.value);
-        map->m_max_tube_height_mm = std::max(user_tube_mm, map->m_min_tube_height_mm);
+        // Candidate tube heights are layer-boundary differences — discrete steps of
+        // one layer height. A [min,max] window narrower than one layer can straddle a
+        // gap between two consecutive achievable heights and admit NONE (e.g. min=max=
+        // 4.96mm with 0.2mm layers: 24 layers=4.8mm is too short, 25=5.0mm too tall),
+        // silently yielding 0 tubes. Keep the window at least one (max) layer wide so a
+        // discrete height always lands inside it. Widening only raises the upper bound;
+        // the solver still picks the largest discrete height ≤ the true max.
+        double layer_headroom = slicing_params.max_layer_height > 0.0
+            ? slicing_params.max_layer_height
+            : double(map->m_layer_height);
+        double floor_mm = map->m_min_tube_height_mm + layer_headroom;
+        map->m_max_tube_height_mm = std::max(user_tube_mm, floor_mm);
 
         if (user_tube_mm < map->m_min_tube_height_mm) {
             map->m_warning_message = Slic3r::format(
                 "Magma max tube height (%.1fmm) is too short to fit a complete U-tube pair. "
-                "Minimum is %.1fmm (2 × window height + 2 layers). "
+                "Minimum is %.1fmm (1.5 × window height + 2 layers). "
                 "Using minimum tube height.",
                 user_tube_mm, map->m_min_tube_height_mm);
         }
@@ -367,11 +410,29 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
             << " (line_correction=" << (map->m_overlap_line_correction ? "on" : "off") << ")";
     }
 
+    // Cap-seal clearance gate (used by scan_layers' geometry-sanity check): the
+    // injection nozzle flat seats at the cell centre, so a tube layer needs ≥ flat/2
+    // clearance from that centre to the nearest boundary. A spike poking toward the
+    // centre — or a centre sitting too close to a wall — collapses this even when the
+    // area is fine. (flat/2 exactly: no margin, or boundary cells whose centre is just
+    // over flat/2 from a wall get wrongly dropped.) Resolved from the injection
+    // filament's nozzle, matching MagmaInjection.
+    {
+        int inj_filament = obj_config.magma_injection_filament.value;
+        unsigned int inj_idx = (inj_filament > 0)
+            ? (unsigned int)(inj_filament - 1)
+            : (unsigned int)std::max(0, config.sparse_infill_filament.value - 1);
+        double nozzle_dia = print_config.nozzle_diameter.get_at(inj_idx);
+        double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value, nozzle_dia);
+        map->m_min_cap_clearance = 0.5 * seal_flat;  // nozzle flat radius
+    }
+
     // Build phases (scan_layers uses m_effective_line_width for area threshold).
-    // scan_layers' 90%-of-ideal area gate already excludes pinched/under-area
+    // scan_layers' 70%-of-ideal area gate already excludes pinched/under-area
     // layers from a cell's presence, so no separate constriction pass is needed.
     map->scan_layers(layers);
     map->assign_tubes(progress_fn, throw_if_canceled);
+    map->assign_extra_vents();   // tri-hex: add manifold legs (no-op for other patterns)
     map->precompute_window_end_z();
 
     map->compute_volumes(layers);
@@ -385,6 +446,51 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
             if (pair.volume_mm3 > 0)
                 ids.push_back(pair.pair_end_layer);
         sort_remove_duplicates(ids);
+    }
+
+    // Catch-all: Magma is enabled but produced no reinforcement tubes. Surfaces the
+    // actual OUTCOME (not just a bad-setting guess) with the most likely reason, so an
+    // empty slice never passes silently. Overrides any earlier setting-level warning —
+    // with zero tubes those are moot (no injection happens at all).
+    if (map->m_pairs.empty()) {
+        // Tallest contiguous single-cell column. If even this is below the minimum tube
+        // height, no tube can form regardless of pairing; otherwise the failure is in
+        // pairing (adjacency / shared height), not part height.
+        double tallest_run_mm = 0.0;
+        for (const auto &kv : map->m_cells) {
+            const CellPresence &cp = kv.second;
+            if (cp.first_layer == INT_MAX) continue;
+            int run_start = -1;
+            for (int L = cp.first_layer; L <= cp.last_layer; ++L) {
+                bool present = cp.present(L);
+                if (present && run_start < 0) run_start = L;
+                if ((!present || L == cp.last_layer) && run_start >= 0) {
+                    int run_end = present ? L : L - 1;
+                    tallest_run_mm = std::max(tallest_run_mm,
+                                              map->span_height_mm(run_start, run_end));
+                    run_start = -1;
+                }
+            }
+        }
+
+        std::string reason;
+        if (map->m_cells.empty()) {
+            reason =
+                "no Magma cells fit inside the part — the cell size is too large for this "
+                "object's cross-section. Reduce the Magma interior width or infill spacing.";
+        } else if (tallest_run_mm + 1e-6 < map->m_min_tube_height_mm) {
+            reason = Slic3r::format(
+                "the reinforced region is only %.1fmm tall, below the %.1fmm minimum for one "
+                "U-tube (1.5 × window height + 2 layers). Use a taller part, or reduce the "
+                "Magma interior width to shrink the window (and the minimum).",
+                tallest_run_mm, map->m_min_tube_height_mm);
+        } else {
+            reason =
+                "cells are tall enough but none could be paired into U-tubes — neighbouring "
+                "cells may not share enough height or area. Try a smaller cell size, denser "
+                "infill spacing, or a more uniform part shape.";
+        }
+        map->m_warning_message = "Magma produced no reinforcement tubes: " + reason;
     }
 
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -412,11 +518,84 @@ double MagmaTubeMap::tube_opening_diameter() const
     return m_geometry->opening_diameter(m_cell_spacing, m_effective_line_width);
 }
 
+double MagmaTubeMap::cap_opening_diameter(const UTubePair &pair) const
+{
+    // Per-tube seal opening: the injection cell's ACTUAL clipped opening at the cap
+    // layer (measured during scan_layers), so the auto z-slam spreads exactly to
+    // this tube's opening instead of the global ideal. Boundary-cap tubes have
+    // smaller openings and would otherwise be over-slammed.
+    auto it = m_cells.find(pair.cell_a);
+    if (it != m_cells.end()) {
+        double r = it->second.opening_radius(pair.pair_end_layer);
+        if (r > 0.0)
+            return 2.0 * r;
+    }
+    return tube_opening_diameter();
+}
+
 double MagmaTubeMap::neighbor_centroid_distance() const
 {
     // Centre-to-centre distance to an edge-sharing neighbour, via the per-shape
     // geometry (triangle: side/sqrt(3); square: cell spacing).
     return m_geometry->neighbor_centroid_distance(m_cell_spacing);
+}
+
+double MagmaTubeMap::cell_bore_at(const TriangleCell &cell, int layer) const
+{
+    // Ideal (full) open bore for this cell's kind: kind 0 (triangle/square cell, or the
+    // tri-hex hex hub) inscribes the interior width; tri-hex triangle vents inscribe the
+    // inset triangle (side e - lw·√3, inscribed diameter = side/√3).
+    double ideal_bore;
+    if (cell.kind == 0) {
+        ideal_bore = m_interior_width;
+    } else {
+        double e     = m_cell_spacing * INV_SQRT3;
+        double inset = e - m_line_width * SQRT3;
+        ideal_bore = inset > 0.0 ? inset * INV_SQRT3 : m_interior_width;
+    }
+    // Narrow on clipped layers: the bead area scales with bore², so the per-layer bore is
+    // the ideal scaled by sqrt(area(layer) / max_area). max_area ≈ the unclipped area.
+    auto it = m_cells.find(cell);
+    if (it == m_cells.end())
+        return ideal_bore;
+    const CellPresence &p = it->second;
+    double a = p.area(layer);
+    if (a <= 0.0)
+        return ideal_bore;
+    double amax = 0.0;
+    for (double av : p.areas)
+        amax = std::max(amax, av);
+    if (amax <= 0.0)
+        return ideal_bore;
+    return ideal_bore * std::sqrt(std::min(1.0, a / amax));
+}
+
+const MagmaLattice& MagmaTubeMap::topology_lattice() const
+{
+    if (!m_topology_lattice)
+        m_topology_lattice = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0);
+    return *m_topology_lattice;
+}
+
+// ============================================================================
+// cell_inset_polygons — a cell's hollow open cross-section
+// ============================================================================
+//
+// The single source of truth for "cell inner corners after accounting for line
+// width": the cell's wall outline (cell_corners) inset by half the bead width.
+// Used by the presence scan (ideal + clipped area), the per-kind ideal cache, and
+// volume integration so every path measures a cell the same way. offset_ex can
+// split or empty a thin cell, hence ExPolygons.
+static ExPolygons cell_inset_polygons(const MagmaLattice &lattice,
+                                      const TriangleCell &cell,
+                                      double half_line_width)
+{
+    std::vector<Vec2d> corners = lattice.cell_corners(cell);
+    Polygon poly;
+    poly.points.reserve(corners.size());
+    for (const Vec2d &c : corners)
+        poly.points.emplace_back(scale_(c.x()), scale_(c.y()));
+    return offset_ex(poly, -scale_(half_line_width));
 }
 
 // ============================================================================
@@ -425,29 +604,59 @@ double MagmaTubeMap::neighbor_centroid_distance() const
 
 void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
 {
-    // Pre-compute ideal inset triangle area (scaled^2) for interior cells.
-    // Uses m_effective_line_width (post overlap correction) so the inset matches
-    // the actual deposited bead width, not the nominal line width.
+    // Half the deposited bead width: the inset between a cell's wall outline
+    // (cell_corners) and its hollow open cross-section. Uses m_effective_line_width
+    // (post overlap correction) so the inset matches the actual bead, not nominal.
     const double half_line_width = m_effective_line_width * 0.5;
-    const double inset_area_mm2 = m_geometry->inset_open_area(m_cell_spacing, m_effective_line_width);
-    const double inset_area_scaled2 = inset_area_mm2 * 1e12;  // (1e6)^2
 
-    // Boundary cells require ≥90% of ideal tube area to be considered for
-    // tube pairing and injection.  At lower coverage the cell is clipped by the
-    // infill boundary edge — infill lines still print (FillMagma clips to the
-    // fill region independently) but the tube shouldn't receive injection.
-    const double min_area_scaled2 = inset_area_scaled2 * 0.90;
+    // Per-layer presence gate: a cell counts as present on a layer if its clipped
+    // tube area is ≥70% of ideal. Deliberately loose — injection volume scales with
+    // each layer's ACTUAL clipped area (see compute_volumes), so an admitted partial
+    // cell is injected proportionally, never over-injected. A little mid-tube clipping
+    // is harmless; what actually governs a reliable injection is the SEAL at the cap
+    // layer (the nozzle must press against solid wall around the opening), not uniform
+    // per-layer fullness. 70% also keeps marginal boundary/corner cells present on the
+    // first layer (whose fill region is ~0.08mm/side smaller from the wider first-layer
+    // wall) without any special-case grace. Applied per-kind (see ideal_area_for below)
+    // so tri-hex's small triangle vents are gated against their own ideal, not the hub's.
+    const double presence_area_frac = 0.70;
 
     // Interior inset: if cell center is this far inside the zone region,
     // the tube inscribed circle (diameter = interior_width) fits entirely.
     // This is the tube-flow-relevant check, not the triangle-corner check.
     const coord_t interior_inset = scale_(m_interior_width * 0.5);
 
-    // FIXED reference lattice for cell IDENTITY (a,b,c coordinates).
-    // Cell identity must be stable across layers for tube pairing to work.
-    // Spiral offset is applied per-layer for POSITION checks below.
-    std::unique_ptr<MagmaLattice> ref_lattice_ptr = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0);
-    const MagmaLattice &ref_lattice = *ref_lattice_ptr;
+    // FIXED reference lattice for cell IDENTITY (a,b,c coordinates). Cell identity must
+    // be stable across layers for tube pairing to work; spiral offset is applied
+    // per-layer for POSITION checks below. Shared (cached) zero-offset instance.
+    const MagmaLattice &ref_lattice = topology_lattice();
+
+    // Per-kind ideal {open area (scaled^2), opening radius (mm)}, cached on first use.
+    // Derived from cell_inset_polygons — the SAME inset-of-cell_corners the boundary
+    // and volume paths use — so every code path measures a cell identically. This is
+    // what sizes tri-hex's small triangle vents correctly (they'd otherwise inherit
+    // the much larger hex-hub area and be over-injected / wrongly gated). Single-kind
+    // patterns (triangle/square) just populate kind 0. opening radius = farthest inset
+    // corner from the cell centre. Indexed by kind (0=hub/tri/square, 1/2=trihex vents).
+    std::pair<double, double> kind_ideal[3];
+    bool kind_done[3] = { false, false, false };
+    auto ideal_for = [&](const TriangleCell &cell) -> std::pair<double, double> {
+        const uint8_t k = cell.kind;
+        if (k < 3 && kind_done[k]) return kind_ideal[k];
+        ExPolygons inset = cell_inset_polygons(ref_lattice, cell, half_line_width);
+        double area = 0.0;
+        for (const ExPolygon &ep : inset)
+            area += std::abs(ep.area());
+        Vec2d  ctr = ref_lattice.cell_center(cell);
+        Point  ctr_pt(scale_(ctr.x()), scale_(ctr.y()));
+        double opr_scaled = 0.0;
+        for (const ExPolygon &ep : inset)
+            for (const Point &p : ep.contour.points)
+                opr_scaled = std::max(opr_scaled, (ctr_pt - p).cast<double>().norm());
+        std::pair<double, double> val{ area, unscale<double>(opr_scaled) };
+        if (k < 3) { kind_ideal[k] = val; kind_done[k] = true; }
+        return val;
+    };
 
     for (int i = 0; i < int(layers.size()); ++i) {
         const Layer *layer = layers[i];
@@ -502,10 +711,17 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
             }
 
             if (is_interior) {
-                // Distance to nearest boundary (mm)
                 Point proj = projection_onto(zone_regions, center_pt);
                 double dist_mm = unscale<double>((center_pt - proj).cast<double>().norm());
-                m_cells[cell].mark_present(layer_id, inset_area_scaled2, dist_mm);
+                // Same clearance gate as the boundary path. Interior cells almost always
+                // pass (centre ≥ interior_inset from any wall), but this still catches a
+                // too-small interior width where even an unclipped cell can't seat the nozzle.
+                if (dist_mm < m_min_cap_clearance)
+                    continue;
+                // Unclipped: cavity == full cell, so the injection point is the cell centre.
+                std::pair<double, double> ideal = ideal_for(cell);
+                m_cells[cell].mark_present(layer_id, ideal.first, dist_mm,
+                                           ideal.second, center_mm);
                 continue;
             }
 
@@ -521,14 +737,9 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
             if (!in_region)
                 continue;
 
-            // Boundary cell: compute actual tube area at spiral-offset position
-            std::vector<Vec2d> corners = layer_lattice.cell_corners(cell);
-            Polygon triangle;
-            triangle.points.reserve(corners.size());
-            for (const Vec2d &corner : corners)
-                triangle.points.emplace_back(scale_(corner.x()), scale_(corner.y()));
-
-            ExPolygons inset = offset_ex(triangle, -scale_(half_line_width));
+            // Boundary cell: actual open area at the spiral-offset position = the cell's
+            // inset open polygon clipped to the zone.
+            ExPolygons inset = cell_inset_polygons(layer_lattice, cell, half_line_width);
             if (inset.empty())
                 continue;
 
@@ -540,13 +751,48 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
             for (const ExPolygon &ep : clipped)
                 area += std::abs(ep.area());
 
-            if (area < min_area_scaled2)
+            if (area < presence_area_frac * ideal_for(cell).first)
                 continue;
 
-            // Distance to nearest boundary (mm)
+            // Injection point: centroid of the largest clipped piece. For an unclipped
+            // cell this equals the cell centre; for a clipped cell it shifts INTO the
+            // cavity (away from the part wall), giving the nozzle more clearance. For a
+            // regular polygon the centroid is the inscribed-circle centre, so this is
+            // exact for square/hex and good for triangle. Fall back to the cell centre if
+            // a concave clip puts the centroid outside the opening.
+            const ExPolygon *piece = &clipped.front();
+            for (const ExPolygon &ep : clipped)
+                if (std::abs(ep.area()) > std::abs(piece->area())) piece = &ep;
+            Point inj_pt = piece->contour.centroid();
+            if (!piece->contains(inj_pt))
+                inj_pt = center_pt;
+            Vec2d inj_mm(unscale<double>(inj_pt.x()), unscale<double>(inj_pt.y()));
+
+            // Geometry-sanity gate at the injection point: the nozzle flat seats here, so
+            // it needs ≥ flat/2 clearance to the opening boundary. A spike poking toward
+            // the injection point collapses this even when the area is fine. Clearance is
+            // measured at the actual injection point — not whether a clear circle exists
+            // elsewhere in the opening.
+            double clearance_mm = unscale<double>(
+                (inj_pt - projection_onto(clipped, inj_pt)).cast<double>().norm());
+            if (clearance_mm < m_min_cap_clearance)
+                continue;
+
+            // Opening radius: farthest point of the clipped opening from the injection
+            // point — the seal cone must spread this far to cover it. Drives the per-tube
+            // auto z-slam (see cap_opening_diameter()).
+            double opening_r_scaled = 0.0;
+            for (const ExPolygon &ep : clipped)
+                for (const Point &p : ep.contour.points)
+                    opening_r_scaled = std::max(opening_r_scaled,
+                                                (inj_pt - p).cast<double>().norm());
+            double opening_r = unscale<double>(opening_r_scaled);
+
+            // distance: cell centre → nearest boundary, for injection-side preference.
             Point proj = projection_onto(zone_regions, center_pt);
             double dist_mm = unscale<double>((center_pt - proj).cast<double>().norm());
-            m_cells[cell].mark_present(layer_id, area, dist_mm);
+
+            m_cells[cell].mark_present(layer_id, area, dist_mm, opening_r, inj_mm);
         }
     }
 
@@ -577,10 +823,9 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
 
 void MagmaTubeMap::assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if_canceled)
 {
-    // Reference lattice for cell topology (neighbors/is_up). Offset-independent,
-    // so a zero-offset lattice serves every layer's connectivity queries.
-    std::unique_ptr<MagmaLattice> solver_lattice = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0);
-    MagmaTubeSolver solver(*solver_lattice, m_cells, m_layer_data,
+    // Cell topology (neighbors/is_up) — offset-independent, so the cached zero-offset
+    // lattice serves every layer's connectivity queries.
+    MagmaTubeSolver solver(topology_lattice(), m_cells, m_layer_data,
                            m_min_tube_height_mm, m_max_tube_height_mm,
                            m_num_layers, m_dodge_distance,
                            m_solver_mode, m_solver_timeout);
@@ -593,6 +838,118 @@ void MagmaTubeMap::assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if
             "for better coverage.",
             solver.unknown_block_count());
     }
+}
+
+// ============================================================================
+// MagmaTubeMap — assign_extra_vents (tri-hex manifold legs)
+// ============================================================================
+//
+// The solver matched each hub-tube to exactly ONE primary vent (cell_b). This pass —
+// tri-hex only, purely additive — gives each remaining triangle vent extra legs on the
+// bordering hub-tubes whose entire [start,cap] range it can fill. Per DESIGN-TRIHEX.md
+// §4: a candidate hub-tube is feasible only if the vent is present AND unclaimed (not
+// already its own primary) on EVERY layer of the range (a block/claim inside the range
+// would trap air). Among feasible candidates we pick a max-coverage NON-overlapping
+// subset by weighted interval scheduling (a vent can be one leg per layer, but may serve
+// several stacked hub-tubes at disjoint heights). Each vent is independent — hubs are
+// uncapped, so any hub-tube can host legs from several of its bordering vents. Because
+// feasibility was already secured by the solver's matching, this can never strand a hub.
+
+void MagmaTubeMap::assign_extra_vents()
+{
+    if (m_pattern != ipMagmaTriHex || m_pairs.empty())
+        return;
+
+    // Cached zero-offset lattice for neighbour topology (vent -> its bordering hubs).
+    const MagmaLattice &lat = topology_lattice();
+
+    auto hub_of  = [](const UTubePair &p) { return p.cell_a.kind == THK_HEX ? p.cell_a : p.cell_b; };
+    auto vent_of = [](const UTubePair &p) { return p.cell_a.kind == THK_HEX ? p.cell_b : p.cell_a; };
+
+    // Index hub-tubes by their hub cell; collect each vent's primary-claimed ranges.
+    std::unordered_map<TriangleCell, std::vector<int>, TriangleCellHash> tubes_by_hub;
+    std::unordered_map<TriangleCell, std::vector<std::pair<int, int>>, TriangleCellHash> primary_claim;
+    for (int pi = 0; pi < int(m_pairs.size()); ++pi) {
+        const UTubePair &p = m_pairs[pi];
+        tubes_by_hub[hub_of(p)].push_back(pi);
+        primary_claim[vent_of(p)].push_back({ p.pair_start_layer, p.pair_end_layer });
+    }
+
+    int extra_legs_added = 0;
+
+    for (const auto &cell_kv : m_cells) {
+        const TriangleCell &V = cell_kv.first;
+        if (V.kind == THK_HEX)              // hubs are not vents
+            continue;
+        const CellPresence &pres = cell_kv.second;
+
+        auto it_claim = primary_claim.find(V);
+        auto available_at = [&](int L) -> bool {
+            if (!pres.present(L))
+                return false;
+            if (it_claim != primary_claim.end())
+                for (const auto &rng : it_claim->second)
+                    if (L >= rng.first && L <= rng.second)
+                        return false;       // busy as this layer's primary
+            return true;
+        };
+
+        // Feasible candidate hub-tubes on V's bordering hubs (excluding tubes where V is
+        // already the primary) whose ENTIRE range is available.
+        struct Cand { int pi; int start; int cap; };
+        std::vector<Cand> cands;
+        for (const CellId &H : lat.neighbors(V)) {
+            auto it = tubes_by_hub.find(H);
+            if (it == tubes_by_hub.end())
+                continue;
+            for (int pi : it->second) {
+                const UTubePair &p = m_pairs[pi];
+                if (vent_of(p) == V)
+                    continue;
+                bool ok = true;
+                for (int L = p.pair_start_layer; L <= p.pair_end_layer; ++L)
+                    if (!available_at(L)) { ok = false; break; }
+                if (ok)
+                    cands.push_back({ pi, p.pair_start_layer, p.pair_end_layer });
+            }
+        }
+        if (cands.empty())
+            continue;
+
+        // Weighted interval scheduling: max total layers covered by a non-overlapping
+        // subset. Sort by cap, DP with latest-compatible-predecessor, then backtrack.
+        std::sort(cands.begin(), cands.end(),
+                  [](const Cand &a, const Cand &b) { return a.cap < b.cap; });
+        const int n = int(cands.size());
+        auto wt = [&](int i) { return cands[i].cap - cands[i].start + 1; };  // layers covered
+        std::vector<int> pred(n, -1);
+        for (int i = 0; i < n; ++i)
+            for (int j = i - 1; j >= 0; --j)
+                if (cands[j].cap < cands[i].start) { pred[i] = j; break; }
+        std::vector<int> best(n + 1, 0);   // best[i] over cands[0..i-1]
+        for (int i = 1; i <= n; ++i) {
+            int incl = wt(i - 1) + (pred[i - 1] >= 0 ? best[pred[i - 1] + 1] : 0);
+            best[i] = std::max(best[i - 1], incl);
+        }
+        for (int i = n; i > 0; ) {
+            int incl = wt(i - 1) + (pred[i - 1] >= 0 ? best[pred[i - 1] + 1] : 0);
+            if (incl > best[i - 1]) {       // candidate i-1 is in the optimal set
+                const int pi = cands[i - 1].pi;
+                m_pairs[pi].extra_vents.push_back(V);
+                // Register the leg as covered so get_unfilled_cell_interiors() does NOT
+                // solid-fill it (which would block the injected cavity), exactly as the
+                // solver registers cell_a/cell_b. Covers V over this hub-tube's range.
+                m_cell_pair_index[V].push_back(pi);
+                ++extra_legs_added;
+                i = (pred[i - 1] >= 0) ? pred[i - 1] + 1 : 0;
+            } else {
+                --i;
+            }
+        }
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MagmaTriHex extra-vent sweep: added " << extra_legs_added
+        << " extra vent legs across " << m_pairs.size() << " hub-tubes";
 }
 
 // Old greedy PQ code deleted — replaced by MagmaTubeSolver (CP-SAT).
@@ -622,23 +979,39 @@ void MagmaTubeMap::precompute_window_end_z()
 void MagmaTubeMap::precompute_injection_data()
 {
     for (UTubePair &pair : m_pairs) {
-        // Determine injection side based on edge preference:
-        // Interior = inject into cell further from edge (default)
-        // Exterior = inject into cell closer to edge
         int cap_layer = pair.pair_end_layer;
-        auto it_a = m_cells.find(pair.cell_a);
-        auto it_b = m_cells.find(pair.cell_b);
-        if (it_a != m_cells.end() && it_b != m_cells.end()) {
-            double dist_a = it_a->second.distance(cap_layer);
-            double dist_b = it_b->second.distance(cap_layer);
-            bool swap = (m_injection_edge_pref == MagmaInjectionEdgePref::Interior)
-                ? (dist_a < dist_b)   // A is closer to edge, want interior → swap
-                : (dist_a > dist_b);  // A is further from edge, want exterior → swap
-            if (swap)
+
+        // Choose the injection (cap) side.
+        if (pair.cell_a.kind != pair.cell_b.kind) {
+            // Tri-hex: a pair's two cells differ in kind. The injection HUB is always
+            // the hexagon (THK_HEX == kind 0); the triangle is the vent. Edge preference
+            // does not apply — the geometry fixes which side is the hub.
+            if (pair.cell_a.kind != THK_HEX)
                 std::swap(pair.cell_a, pair.cell_b);
+        } else {
+            // Single-kind patterns (triangle / square): edge preference picks the side.
+            // Interior = inject into the cell further from the part edge (default);
+            // Exterior = inject into the cell closer to the edge.
+            auto it_a = m_cells.find(pair.cell_a);
+            auto it_b = m_cells.find(pair.cell_b);
+            if (it_a != m_cells.end() && it_b != m_cells.end()) {
+                double dist_a = it_a->second.distance(cap_layer);
+                double dist_b = it_b->second.distance(cap_layer);
+                bool swap = (m_injection_edge_pref == MagmaInjectionEdgePref::Interior)
+                    ? (dist_a < dist_b)   // A is closer to edge, want interior → swap
+                    : (dist_a > dist_b);  // A is further from edge, want exterior → swap
+                if (swap)
+                    std::swap(pair.cell_a, pair.cell_b);
+            }
         }
 
-        pair.injection_center = m_layer_data[cap_layer].lattice->cell_center(pair.cell_a);
+        // Injection point = the cap layer's stored clipped-cavity centroid (== cell
+        // centre for unclipped cells). Falls back to the regular lattice centre if the
+        // cell record is missing (shouldn't happen for a paired cell).
+        auto it_inj = m_cells.find(pair.cell_a);
+        pair.injection_center = (it_inj != m_cells.end())
+            ? it_inj->second.injection_point(cap_layer)
+            : m_layer_data[cap_layer].lattice->cell_center(pair.cell_a);
         pair.window_center_layer = window_center_layer(pair);
     }
 }
@@ -684,32 +1057,64 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
         double window_height_mm = 0.0;
         double overlap_excess_volume = 0.0;
 
+        // Manifold members: hub (cell_a) + primary leg (cell_b) + extra legs. For
+        // triangle/square this is exactly {cell_a, cell_b} (extra_vents empty).
+        const int num_legs  = 1 + int(pair.extra_vents.size());   // primary + extras
+        const int num_cells = 1 + num_legs;                       // hub + legs
+
+        // Overlap excess per unit tube height (mm² of doubled-deposit plastic occupying
+        // cavity). Tri-hex attributes by corner count: each Kagome vertex (degree 4)
+        // splits its rhombus (excess_area_per_cell_mm2 = 2w²/√3) ¼ into each incident
+        // cell, so a hub (hexagon, 6 corners) takes 1.5 rhombi and each vent (triangle,
+        // 3 corners) 0.75 — accurate per-cell attribution, no clamp (a tiny vent may net
+        // negative, which the per-pair max(0) below floors). The cells differ in kind, so
+        // this is robust to whether cell_a/cell_b is the hub (precompute runs later).
+        // Single-cell-type patterns (triangle/square) charge their per-cell value across
+        // every cell uniformly.
+        double excess_rate_mm2;
+        if (m_pattern == ipMagmaTriHex) {
+            auto corner_charge = [&](const TriangleCell &c) {
+                return 0.25 * ((c.kind == THK_HEX) ? 6.0 : 3.0) * excess_area_per_cell_mm2;
+            };
+            excess_rate_mm2 = corner_charge(pair.cell_a) + corner_charge(pair.cell_b);
+            for (const TriangleCell &ev : pair.extra_vents)
+                excess_rate_mm2 += corner_charge(ev);
+        } else {
+            excess_rate_mm2 = excess_area_per_cell_mm2 * double(num_cells);
+        }
+
         for (int layer_id = pair.pair_start_layer; layer_id <= pair.pair_end_layer; ++layer_id) {
             auto it_a = m_cells.find(pair.cell_a);
             auto it_b = m_cells.find(pair.cell_b);
 
             double area_a = (it_a != m_cells.end()) ? it_a->second.area(layer_id) : 0.0;
-            double area_b = (it_b != m_cells.end()) ? it_b->second.area(layer_id) : 0.0;
+            double area_legs = (it_b != m_cells.end()) ? it_b->second.area(layer_id) : 0.0;
+            for (const TriangleCell &ev : pair.extra_vents) {
+                auto it_e = m_cells.find(ev);
+                if (it_e != m_cells.end())
+                    area_legs += it_e->second.area(layer_id);
+            }
 
             auto h_it = layer_heights.find(layer_id);
             double lh = (h_it != layer_heights.end()) ? h_it->second : double(m_layer_height);
 
-            tube_volume_scaled2_mm += (area_a + area_b) * lh;
+            tube_volume_scaled2_mm += (area_a + area_legs) * lh;
 
             // Accumulate window height for window layers (pure Z check)
             if (m_layer_data[layer_id].bottom_z() < pair.window_end_z)
                 window_height_mm += lh;
 
-            // Per-layer overlap excess: 2 cells per pair
-            overlap_excess_volume += excess_area_per_cell_mm2 * 2.0 * lh;
+            // Per-layer overlap excess (per-cell attribution computed above).
+            overlap_excess_volume += excess_rate_mm2 * lh;
         }
 
         // Convert: area in scaled^2 → mm^2 via SCALING_FACTOR^2 (1e-12)
         double tube_volume = tube_volume_scaled2_mm * SCALING_FACTOR * SCALING_FACTOR;
 
-        // Window gap volume: opening between paired cell interiors along shared edge.
-        // Length = inset side (not full edge — interiors are smaller than the outer triangle).
-        double window_volume = m_geometry->window_volume(m_cell_spacing, m_line_width, window_height_mm);
+        // Window gap volume: opening between the hub interior and each leg interior along
+        // their shared edge. One window per leg (all the same height, pinned to the bottom).
+        double window_volume = m_geometry->window_volume(m_cell_spacing, m_line_width, window_height_mm)
+                             * double(num_legs);
 
         double orig_volume = tube_volume + window_volume;
         pair.volume_mm3 = std::max(0.0, orig_volume - overlap_excess_volume);
@@ -721,16 +1126,16 @@ void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
             ++zero_volume_pairs;
     }
 
-    // Warn when average overlap correction is aggressive — may indicate triangles
+    // Warn when average overlap correction is aggressive — may indicate cells
     // too small for reliable injection. Threshold: 33% average volume loss.
     double avg_reduction_frac = (total_orig_volume > 0.0)
         ? total_overlap_excess / total_orig_volume : 0.0;
     if (avg_reduction_frac > 0.33) {
         m_warning_message = Slic3r::format(
-            L("Magma triangle vertex overlap correction reduced average injection "
-              "volume by %1%%%. %2% tube pair(s) have zero injection volume. "
-              "Consider increasing the interior width to create larger triangles "
-              "with less overlap."),
+            L("Magma line-overlap correction reduced average injection "
+              "volume by %1%%%. %2% tube(s) have zero injection volume. "
+              "Consider increasing the interior width to create larger cells "
+              "with less wall overlap."),
             int(std::round(avg_reduction_frac * 100)),
             zero_volume_pairs);
     }
@@ -781,14 +1186,8 @@ ExPolygons MagmaTubeMap::get_unfilled_cell_interiors(int layer_id) const
         if (covered)
             continue;
 
-        // Unfilled cell — build inset triangle at spiral-offset position
-        std::vector<Vec2d> corners = lattice.cell_corners(cell);
-        Polygon triangle;
-        triangle.points.reserve(corners.size());
-        for (const Vec2d &c : corners)
-            triangle.points.emplace_back(scale_(c.x()), scale_(c.y()));
-
-        ExPolygons inset = offset_ex(triangle, -scale_(half_lw));
+        // Unfilled cell — its solid inset open polygon at the spiral-offset position.
+        ExPolygons inset = cell_inset_polygons(lattice, cell, half_lw);
         for (ExPolygon &ep : inset)
             result.push_back(std::move(ep));
     }

@@ -88,6 +88,30 @@ protected:
         Polylines &polylines_out) override;
 };
 
+// Magma Tri-hex (trihexagonal) infill pattern.
+//
+// Hexagon hub cells with up/down triangle vent cells filling the gaps (see
+// MagmaTriHexCell.hpp / DESIGN-TRIHEX.md). The walls are the tiling's edges; the
+// toolpath generates them directly from the lattice cell corners (deduplicating
+// shared edges) rather than as analytic line families, since hexagons segment the
+// lines. Window gaps are the shared edges of open hub<->vent pairs.
+class FillMagmaTriHex : public FillMagmaBase
+{
+public:
+    Fill* clone() const override { return new FillMagmaTriHex(*this); }
+    ~FillMagmaTriHex() override = default;
+
+protected:
+    float _layer_angle(size_t idx) const override { return 0.f; }
+    std::pair<float, Point> _infill_direction(const Surface *surface) const override;
+    void _fill_surface_single(
+        const FillParams &params,
+        unsigned int thickness_layers,
+        const std::pair<float, Point> &direction,
+        ExPolygon expolygon,
+        Polylines &polylines_out) override;
+};
+
 } // namespace Slic3r
 
 #endif // slic3r_FillMagma_hpp_

@@ -233,7 +233,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "octagramspiral", ipOctagramSpiral },
     // Magma infill patterns for vertical reinforcement
     { "magmatriangle", ipMagmaTriangle },
-    { "magmarectilinear", ipMagmaRectilinear }
+    { "magmarectilinear", ipMagmaRectilinear },
+    { "magmatrihex", ipMagmaTriHex }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -2918,6 +2919,7 @@ void PrintConfigDef::init_fff_params()
     // Magma infill pattern
     def->enum_values.push_back("magmatriangle");
     def->enum_values.push_back("magmarectilinear");
+    def->enum_values.push_back("magmatrihex");
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
     def->enum_labels.push_back(L("Zig Zag"));
@@ -2947,6 +2949,7 @@ void PrintConfigDef::init_fff_params()
     // Magma infill pattern
     def->enum_labels.push_back(L("Magma Triangle"));
     def->enum_labels.push_back(L("Magma Rectilinear"));
+    def->enum_labels.push_back(L("Magma Tri-hex"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
     def           = this->add("lateral_lattice_angle_1", coFloat);
@@ -5417,8 +5420,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("magmatriangle");
     def->enum_values.push_back("magmarectilinear");
+    def->enum_values.push_back("magmatrihex");
     def->enum_labels.push_back(L("Magma Triangle"));
     def->enum_labels.push_back(L("Magma Rectilinear"));
+    def->enum_labels.push_back(L("Magma Tri-hex"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMagmaTriangle));
 
@@ -5872,14 +5877,18 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_injection_z_slam_auto", coBool);
     def->label = L("Auto Z-slam depth");
     def->category = L("Strength");
-    def->tooltip = L("Compute the injection Z-slam depth automatically from the nozzle geometry "
-                     "instead of setting it by hand. Uses the tube opening, the nozzle tip flat, "
-                     "and the nozzle cone half-angle: "
-                     "z_slam = max(0.1, (opening - flat) / (2 * tan(angle))). When the flat already "
-                     "covers the opening it presses a minimal 0.1mm for a clean seal.\n\n"
-                     "When enabled, the manual Z-slam depth field is ignored.");
+    def->tooltip = L("Compute the injection Z-slam depth automatically from the nozzle geometry, "
+                     "individually for each tube, instead of setting one value by hand. For every "
+                     "U-tube it uses that tube's actual opening at the injection (cap) layer along "
+                     "with the nozzle tip flat and cone half-angle: "
+                     "z_slam = max(0.1, (opening - flat) / (2 * tan(angle))). Edge and corner cells "
+                     "have smaller openings, so they get a shallower slam — each injection seals to "
+                     "its own opening instead of being over-pressed for the largest one. When the "
+                     "flat already covers the opening it presses a minimal 0.1mm for a clean seal.\n\n"
+                     "Recommended: leave this enabled. When enabled, the manual Z-slam depth field "
+                     "is ignored.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("magma_injection_plunge", coBool);
     def->label = L("Plunge while injecting");

@@ -203,6 +203,21 @@ class Print;
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
         };
 
+        // Magma injection tube geometry for the preview's custom tube renderer, drawn
+        // independently of the toolpath polyline. One entry per manifold vertex (model
+        // coords, per-layer centre + width); `brk` marks the first point of a new
+        // sub-polyline (the hub column, then each vent leg). `layer_id` is the injection
+        // (cap) layer, used to reveal the manifold as the layer slider passes it.
+        struct MagmaTubeVertex
+        {
+            Vec3f        position{ Vec3f::Zero() }; // model mm, absolute Z
+            float        width{ 0.0f };            // mm
+            unsigned int layer_id{ 0 };            // injection (cap) layer
+            unsigned int gcode_id{ 0 };            // gcode line of the injection (reveal point)
+            uint8_t      fill_step{ 0 };           // top→down/bottom→up fill-animation offset, folded onto gcode_id in synchronize_moves
+            bool         brk{ false };             // start of a new sub-polyline
+        };
+
         struct SliceWarning {
             int         level;                  // 0: normal tips, 1: warning; 2: error
             std::string msg;                    // enum string
@@ -213,6 +228,9 @@ class Print;
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        // Magma injection tube manifolds (see MagmaTubeVertex) — rendered by a separate
+        // custom pass, not part of `moves` (the nozzle toolpath).
+        std::vector<MagmaTubeVertex> magma_tube_vertices;
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -264,6 +282,7 @@ class Print;
             filename = other.filename;
             id = other.id;
             moves = other.moves;
+            magma_tube_vertices = other.magma_tube_vertices;
             lines_ends = other.lines_ends;
             printable_area = other.printable_area;
             bed_exclude_area = other.bed_exclude_area;
@@ -789,19 +808,23 @@ class Print;
         ExtrusionRole m_extrusion_role;
 
         // Pending tube visualization data parsed from ; MAGMA_TUBE comments.
-        // When active, the next erMagmaInjection Extrude is replaced with
-        // synthetic vertices tracing the U-tube spiral path.
+        // When active, the next erMagmaInjection Extrude is replaced with synthetic
+        // vertices tracing the manifold: lines[0] is the HUB column (injection top →
+        // window), lines[1..] are leg columns that BRANCH from the hub's last point
+        // (the window junction). Each line carries its own render width. As the
+        // injection's G1 E commands tick, the hub fills first, then all legs advance
+        // together (simultaneous branching).
         struct PendingTubeViz {
-            std::vector<Vec3f> waypoints;
-            float  width = 0.f;
-            bool   active = false;
-            size_t cursor = 0;              // next waypoint index to emit
-            float  dx = 0.f, dy = 0.f, dz = 0.f;  // model → viewer translation
-            bool   offsets_computed = false;
-            void reset() {
-                waypoints.clear(); width = 0.f; active = false;
-                cursor = 0; offsets_computed = false; dx = dy = dz = 0.f;
-            }
+            // pts and widths are parallel (one render width per point), so a column can
+            // taper layer-by-layer where the part clips the cell.
+            struct Line { std::vector<Vec3f> pts; std::vector<float> widths; };
+            std::vector<Line> lines;       // [0] = hub, [1..] = branching legs
+            // True between a MAGMA_TUBE comment and the end of its injection plunge, so the
+            // in-place plunge extrudes classify as Extrude (not Unretract) and render as a
+            // thin mark. Cleared when the injection's first XY move (crater wipe / travel to
+            // the next site) arrives, else it leaks to the next injection's unretract.
+            bool active = false;
+            void reset() { lines.clear(); active = false; }
         };
         PendingTubeViz m_pending_tube_viz;
 
@@ -1087,10 +1110,6 @@ class Print;
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
-        // Emit synthetic tube-visualization vertices for Magma injection.
-        // Called from process_G1() instead of store_move_vertex() when
-        // m_pending_tube_viz is active and the move is an injection extrude.
-        void emit_tube_viz_vertex(bool internal_only);
 
         void set_extrusion_role(ExtrusionRole role);
 

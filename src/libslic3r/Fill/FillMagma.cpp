@@ -7,6 +7,9 @@
 
 #include <cmath>
 #include <algorithm>
+#include <array>
+#include <set>
+#include <tuple>
 #include <boost/log/trivial.hpp>
 
 namespace Slic3r {
@@ -497,6 +500,115 @@ void FillMagmaRectilinear::_fill_surface_single(
         if (!clipped.empty())
             chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
     }
+}
+
+// ============================================================================
+// FillMagmaTriHex — trihexagonal (hex hubs + up/down triangle vents)
+// ============================================================================
+//
+// The trihexagonal walls are the tiling's edges. Hexagons break any analytic line
+// family into segments, so instead of generating line families we emit the walls
+// directly from the lattice cell corners and deduplicate each shared edge (every
+// edge is shared by exactly one hex and one triangle). A window is the shared edge
+// of an open hub<->vent pair on this layer, which we drop. chain_or_connect_infill
+// then stitches the collinear segments back into runs.
+
+std::pair<float, Point> FillMagmaTriHex::_infill_direction(const Surface *surface) const
+{
+    float out_angle = 0.f;
+    if (surface->bridge_angle >= 0)
+        out_angle = float(surface->bridge_angle);
+    return std::make_pair(out_angle, Point(0, 0));
+}
+
+void FillMagmaTriHex::_fill_surface_single(
+    const FillParams &params,
+    unsigned int /*thickness_layers*/,
+    const std::pair<float, Point> & /*direction*/,
+    ExPolygon          expolygon,
+    Polylines         &polylines_out)
+{
+    if (!this->tube_map) {
+        BOOST_LOG_TRIVIAL(error) << "FillMagmaTriHex: null tube_map on layer " << this->layer_id;
+        return;
+    }
+
+    FillParams no_anchor_params = params;
+    no_anchor_params.anchor_length     = 0.f;
+    no_anchor_params.anchor_length_max = 0.f;
+
+    const double cs    = this->tube_map->cell_spacing();
+    const int    layer = static_cast<int>(this->layer_id);
+    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+
+    // Canonical key for an undirected edge, rounded to ~1um so the same wall
+    // computed from each of its two adjacent cells dedups exactly.
+    auto qd = [](double mm) -> coord_t { return coord_t(std::llround(mm * 1e6 / 1000.0)) * 1000; };
+    auto ekey = [&](const Vec2d &a, const Vec2d &b) -> std::array<coord_t, 4> {
+        coord_t ax = qd(a.x()), ay = qd(a.y()), bx = qd(b.x()), by = qd(b.y());
+        if (std::tie(ax, ay) > std::tie(bx, by)) { std::swap(ax, bx); std::swap(ay, by); }
+        return { ax, ay, bx, by };
+    };
+    auto cell_edge_keys = [&](const std::vector<Vec2d> &c, std::set<std::array<coord_t, 4>> &out) {
+        const size_t n = c.size();
+        for (size_t i = 0; i < n; ++i) out.insert(ekey(c[i], c[(i + 1) % n]));
+    };
+
+    // Window gaps: the shared edge between the hub (cell_a) and EACH of its legs — the
+    // primary vent (cell_b) plus any extra manifold legs — for every open pair on this
+    // layer. extra_vents is empty for triangle/square, so this reduces to the single
+    // hub<->vent edge there.
+    std::set<std::array<coord_t, 4>> window_edges;
+    for (const auto &pair : this->tube_map->u_tube_pairs()) {
+        if (!this->tube_map->window_open_at(pair, layer))
+            continue;
+        std::set<std::array<coord_t, 4>> hub_edges;
+        cell_edge_keys(lattice.cell_corners(pair.cell_a), hub_edges);
+        auto cut_shared = [&](const magma::CellId &leg) {
+            std::vector<Vec2d> cl = lattice.cell_corners(leg);
+            for (size_t i = 0; i < cl.size(); ++i) {
+                auto k = ekey(cl[i], cl[(i + 1) % cl.size()]);
+                if (hub_edges.count(k)) window_edges.insert(k);
+            }
+        };
+        cut_shared(pair.cell_b);
+        for (const magma::CellId &ev : pair.extra_vents)
+            cut_shared(ev);
+    }
+
+    // Enumerate cells over the expanded region; emit each unique wall edge once.
+    BoundingBox bbox = expolygon.contour.bounding_box();
+    coord_t m = coord_t(scale_(cs));
+    bbox.min -= Point(m, m);
+    bbox.max += Point(m, m);
+    std::vector<magma::CellId> cells = lattice.enumerate_cells(bbox);
+
+    std::set<std::array<coord_t, 4>> seen;
+    Polylines raw;
+    for (const magma::CellId &cell : cells) {
+        std::vector<Vec2d> corners = lattice.cell_corners(cell);
+        const size_t n = corners.size();
+        for (size_t i = 0; i < n; ++i) {
+            const Vec2d &a = corners[i];
+            const Vec2d &b = corners[(i + 1) % n];
+            auto k = ekey(a, b);
+            if (!seen.insert(k).second)    // already emitted from the adjacent cell
+                continue;
+            if (window_edges.count(k))     // open window — leave the gap
+                continue;
+            Polyline pl;
+            pl.points.push_back(Point(scale_(a.x()), scale_(a.y())));
+            pl.points.push_back(Point(scale_(b.x()), scale_(b.y())));
+            raw.push_back(std::move(pl));
+        }
+    }
+
+    // Clip to the fill region and connect. The edges are independent cell walls (no per-line
+    // sweep order to preserve, unlike the triangle/square line families), so clip the whole
+    // batch in one Clipper pass instead of one call per edge — there are many edges per layer.
+    Polylines clipped = intersection_pl(raw, expolygon);
+    if (!clipped.empty())
+        chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
 }
 
 } // namespace Slic3r

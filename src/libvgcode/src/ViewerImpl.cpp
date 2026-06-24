@@ -904,7 +904,20 @@ void ViewerImpl::reset()
     delete_buffers(m_heights_widths_angles_buf_id);
     delete_textures(m_positions_tex_id);
     delete_buffers(m_positions_buf_id);
+
+    // Magma tube buffers
+    m_magma_enabled_segments_count = 0;
+    delete_textures(m_magma_enabled_segments_tex_id);
+    delete_buffers(m_magma_enabled_segments_buf_id);
+    delete_textures(m_magma_colors_tex_id);
+    delete_buffers(m_magma_colors_buf_id);
+    delete_textures(m_magma_hwa_tex_id);
+    delete_buffers(m_magma_hwa_buf_id);
+    delete_textures(m_magma_positions_tex_id);
+    delete_buffers(m_magma_positions_buf_id);
 #endif // ENABLE_OPENGL_ES
+    m_magma_vertices.clear();
+    m_magma_valid.clear();
 }
 
 // On some graphic cards texture buffers using GL_RGB32F format do not work, see:
@@ -1087,6 +1100,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     reset();
 
     m_vertices = std::move(gcode_data.vertices);
+    m_magma_vertices = std::move(gcode_data.magma_vertices);
     m_tool_colors = std::move(gcode_data.tools_colors);
     m_color_print_colors = std::move(gcode_data.color_print_colors);
     m_vertices_colors.resize(m_vertices.size());
@@ -1215,6 +1229,58 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 #endif // ENABLE_OPENGL_ES
     }
 
+#ifndef ENABLE_OPENGL_ES
+    // Build the custom magma tube buffers (independent of the toolpath). Reuse the same
+    // miter/frame computation and the segment shader/template, but in their own buffers so
+    // the branching manifold renders without polluting (or being polluted by) the nozzle
+    // toolpath. Seam-type separators in m_magma_vertices break the hub column from each
+    // vent leg, so each sub-polyline is an independent, capped, properly-mitered tube.
+    m_magma_enabled_segments_count = 0;
+    if (!m_magma_vertices.empty() && m_travels_radius > 0.0f && m_wipes_radius > 0.0f) {
+        m_magma_valid = BitSet<>(m_magma_vertices.size());
+        m_magma_valid.setAll();
+        std::vector<Vec4> mpos, mhwa;
+        mpos.reserve(m_magma_vertices.size());
+        mhwa.reserve(m_magma_vertices.size());
+        extract_pos_and_or_hwa(m_magma_vertices, m_travels_radius, m_wipes_radius, m_magma_valid, &mpos, &mhwa, true);
+
+        const float magma_color = static_cast<float>((255 << 16) | (25 << 8) | 0); // MagmaInjection colour
+        std::vector<float> mcol(m_magma_vertices.size(), magma_color);
+
+        if (!mpos.empty()) {
+            int old_bound_texture = 0;
+            glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &old_bound_texture));
+
+            glsafe(glGenBuffers(1, &m_magma_positions_buf_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_magma_positions_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, mpos.size() * sizeof(Vec4), mpos.data(), GL_STATIC_DRAW));
+            glsafe(glGenTextures(1, &m_magma_positions_tex_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_positions_tex_id));
+
+            glsafe(glGenBuffers(1, &m_magma_hwa_buf_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_magma_hwa_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, mhwa.size() * sizeof(Vec4), mhwa.data(), GL_STATIC_DRAW));
+            glsafe(glGenTextures(1, &m_magma_hwa_tex_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_hwa_tex_id));
+
+            glsafe(glGenBuffers(1, &m_magma_colors_buf_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_magma_colors_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, mcol.size() * sizeof(float), mcol.data(), GL_STATIC_DRAW));
+            glsafe(glGenTextures(1, &m_magma_colors_tex_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_colors_tex_id));
+
+            // enabled-segments buffer is (re)filled per view in update_enabled_entities().
+            glsafe(glGenBuffers(1, &m_magma_enabled_segments_buf_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_magma_enabled_segments_buf_id));
+            glsafe(glGenTextures(1, &m_magma_enabled_segments_tex_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_enabled_segments_tex_id));
+
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, old_bound_texture));
+        }
+    }
+#endif // ENABLE_OPENGL_ES
+
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     update_enabled_entities();
@@ -1302,6 +1368,28 @@ void ViewerImpl::update_enabled_entities()
         glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_options.size() * sizeof(uint32_t), enabled_options.data(), GL_STATIC_DRAW));
     else
         glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_STATIC_DRAW));
+
+    // Magma tubes: reveal each manifold as the move slider reaches its injection. Gate the
+    // (geometrically valid) Extrude segments by gcode_id <= the gcode_id at the slider head,
+    // so a tube appears exactly when its injection happens and stays for later layers.
+    if (m_magma_enabled_segments_buf_id != 0 && !m_magma_vertices.empty()) {
+        const size_t   head       = std::min<size_t>(range[1], m_vertices.size() - 1);
+        const uint32_t reveal_max = m_vertices[head].gcode_id;
+        const bool     magma_vis  = m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::MagmaInjection)];
+        std::vector<uint32_t> menabled;
+        menabled.reserve(m_magma_vertices.size());
+        if (magma_vis)
+            for (size_t i = 0; i + 1 < m_magma_vertices.size(); ++i)
+                if (m_magma_valid[i] && m_magma_vertices[i].type == EMoveType::Extrude &&
+                    m_magma_vertices[i].gcode_id <= reveal_max)
+                    menabled.push_back(static_cast<uint32_t>(i));
+        m_magma_enabled_segments_count = menabled.size();
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_magma_enabled_segments_buf_id));
+        if (!menabled.empty())
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, menabled.size() * sizeof(uint32_t), menabled.data(), GL_STATIC_DRAW));
+        else
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_STATIC_DRAW));
+    }
 
     glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
 #endif // ENABLE_OPENGL_ES
@@ -1394,6 +1482,7 @@ void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matr
     const Mat4x4 inv_view_matrix = inverse(view_matrix);
     const Vec3 camera_position = { inv_view_matrix[12], inv_view_matrix[13], inv_view_matrix[14] };
     render_segments(view_matrix, projection_matrix, camera_position);
+    render_magma_segments(view_matrix, projection_matrix, camera_position);
     render_options(view_matrix, projection_matrix);
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -2090,6 +2179,68 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     }
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
+}
+
+void ViewerImpl::render_magma_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position)
+{
+#ifndef ENABLE_OPENGL_ES
+    // Independent pass for the magma injection tubes: same segment shader/template as the
+    // toolpath, but bound to the parallel magma buffers. Gated by the MagmaInjection role's
+    // visibility toggle. Not part of the toolpath polyline, so it ignores the move slider.
+    if (m_segments_shader_id == 0 || m_magma_enabled_segments_count == 0)
+        return;
+    if (!m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::MagmaInjection)])
+        return;
+
+    int curr_active_texture = 0;
+    glsafe(glGetIntegerv(GL_ACTIVE_TEXTURE, &curr_active_texture));
+    int curr_shader = 0;
+    glsafe(glGetIntegerv(GL_CURRENT_PROGRAM, &curr_shader));
+    const bool curr_cull_face = glIsEnabled(GL_CULL_FACE);
+    glcheck();
+
+    glsafe(glUseProgram(m_segments_shader_id));
+    glsafe(glUniform1i(m_uni_segments_positions_tex_id, 0));
+    glsafe(glUniform1i(m_uni_segments_height_width_angle_tex_id, 1));
+    glsafe(glUniform1i(m_uni_segments_colors_tex_id, 2));
+    glsafe(glUniform1i(m_uni_segments_segment_index_tex_id, 3));
+    glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
+    glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
+    glsafe(glDisable(GL_CULL_FACE));
+
+    std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
+    for (int i = 0; i < (int)curr_bound_texture.size(); ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + i));
+        glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_bound_texture[i]));
+    }
+
+    glsafe(glActiveTexture(GL_TEXTURE0));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_positions_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_magma_positions_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE1));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_hwa_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_magma_hwa_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE2));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_colors_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_magma_colors_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE3));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_magma_enabled_segments_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_magma_enabled_segments_buf_id));
+
+    m_segment_template.render(m_magma_enabled_segments_count);
+
+    if (curr_cull_face)
+        glsafe(glEnable(GL_CULL_FACE));
+    glsafe(glUseProgram(curr_shader));
+    for (int i = 0; i < (int)curr_bound_texture.size(); ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + i));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_bound_texture[i]));
+    }
+    glsafe(glActiveTexture(curr_active_texture));
+#else
+    (void)view_matrix; (void)projection_matrix; (void)camera_position;
+#endif // ENABLE_OPENGL_ES
 }
 
 void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)

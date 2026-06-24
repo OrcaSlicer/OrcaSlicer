@@ -48,90 +48,49 @@ std::vector<InjectionPoint> collect_injection_points(
     return points;
 }
 
-// Generate the spiral-following center-line of a U-tube and simplify with
-// Douglas-Peucker.  Returns waypoints tracing: top of cell_a → descent →
-// window crossing → ascent → top of cell_b.
-static std::vector<Vec3d> build_tube_viz_waypoints(
-    const MagmaTubeMap& tube_map,
-    const UTubePair& pair,
-    double layer_z,         // Z at pair_end_layer
-    int    window_center_layer)
+// One renderable column of an injection manifold: a centerline with a per-point render
+// width (parallel vectors), so the column can taper layer-by-layer where the part clips it.
+struct TubeVizLine { std::vector<Vec3d> pts; std::vector<double> widths; };
+
+// Keep at most max_n points per column (endpoints + evenly spaced), preserving widths. The
+// preview reveals the tube one segment at a time to animate the fill, so a straight column
+// needs intermediate points (RDP would collapse it to 2, which can't animate); this bounds
+// the count instead of keeping every layer.
+static void subsample_with_widths(std::vector<Vec3d>& pts, std::vector<double>& widths, size_t max_n)
 {
-    float  iw = tube_map.interior_width();
-
-    // Helper: Z height for a given layer index (uses actual per-layer print_z)
-    auto z_for_layer = [&](int L) -> double {
-        return tube_map.print_z(L);
-    };
-
-    // Z offsets: raise tube bottom so rendered cylinder doesn't poke through floor
-    double z_bot_raw = z_for_layer(pair.pair_start_layer);
-    double z_bot = z_bot_raw + iw / 2.0;  // sit ON the floor
-    double z_window = z_for_layer(window_center_layer);
-    // Clamp window Z above the raised bottom
-    if (z_window < z_bot)
-        z_window = z_bot;
-
-    std::vector<Vec3d> full_path;
-
-    // Phase 1: Descend through cell A (top → window center)
-    for (int L = pair.pair_end_layer; L >= window_center_layer; --L) {
-        Vec2d c = tube_map.lattice_at(L).cell_center(pair.cell_a);
-        double z = (L == pair.pair_end_layer) ? layer_z :
-                   (L <= window_center_layer) ? z_window :
-                   std::max(z_for_layer(L), z_bot);
-        full_path.push_back({c.x(), c.y(), z});
+    if (pts.size() <= max_n || max_n < 2)
+        return;
+    std::vector<Vec3d>  np;  np.reserve(max_n);
+    std::vector<double> nw;  nw.reserve(max_n);
+    for (size_t i = 0; i < max_n; ++i) {
+        const size_t idx = (i * (pts.size() - 1)) / (max_n - 1); // includes first and last
+        np.push_back(pts[idx]);
+        nw.push_back(idx < widths.size() ? widths[idx] : 0.4);
     }
-
-    // Phase 2: Cross to cell B at window center Z
-    {
-        Vec2d c = tube_map.lattice_at(window_center_layer).cell_center(pair.cell_b);
-        full_path.push_back({c.x(), c.y(), z_window});
-    }
-
-    // Phase 3: Ascend through cell B (window center → top)
-    for (int L = window_center_layer + 1; L <= pair.pair_end_layer; ++L) {
-        Vec2d c = tube_map.lattice_at(L).cell_center(pair.cell_b);
-        double z = (L == pair.pair_end_layer) ? layer_z :
-                   std::max(z_for_layer(L), z_bot);
-        full_path.push_back({c.x(), c.y(), z});
-    }
-
-    // Simplify with 3D Ramer-Douglas-Peucker.
-    // When spirals are off, each phase is a straight line so RDP reduces
-    // ~20-120 points down to ~5 (top_A, bot_A, window_B, bot_B, top_B).
-    // When spirals are on, RDP keeps points where the helix bends noticeably.
-    if (full_path.size() > 2) {
-        Eigen::MatrixXd P(full_path.size(), 3);
-        for (size_t i = 0; i < full_path.size(); ++i)
-            P.row(i) = full_path[i].transpose();
-
-        Eigen::MatrixXd S;
-        Eigen::VectorXi J;
-        igl::ramer_douglas_peucker(P, double(iw) * 0.1, S, J);
-
-        std::vector<Vec3d> simplified;
-        simplified.reserve(S.rows());
-        for (int i = 0; i < S.rows(); ++i)
-            simplified.push_back(S.row(i).transpose());
-        return simplified;
-    }
-    return full_path;
+    pts = std::move(np); widths = std::move(nw);
 }
 
-// Format waypoints as a MAGMA_TUBE G-code comment.
-static std::string format_tube_viz_comment(const std::vector<Vec3d>& waypoints, float width)
+// Format the manifold (hub + legs) as ONE MAGMA_TUBE comment. lines[0] is the hub; the
+// rest branch from the hub's last point. Each point carries its own width:
+// pts=x,y,z,w;... (see GCodeProcessor's parser).
+static std::string format_tube_viz_comment(const std::vector<TubeVizLine>& lines)
 {
     std::ostringstream oss;
     oss << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Magma_Tube)
-        << "n=" << waypoints.size() << " w=" << width << " pts=";
-    for (size_t i = 0; i < waypoints.size(); ++i) {
-        if (i > 0) oss << ';';
-        char buf[64];
-        snprintf(buf, sizeof(buf), "%.3f,%.3f,%.3f",
-                 waypoints[i].x(), waypoints[i].y(), waypoints[i].z());
-        oss << buf;
-    }
+        << "np=" << lines.size() << " n=";
+    for (size_t i = 0; i < lines.size(); ++i) { if (i) oss << ','; oss << lines[i].pts.size(); }
+    oss << " pts=";
+    bool first = true;
+    for (const TubeVizLine& line : lines)
+        for (size_t k = 0; k < line.pts.size(); ++k) {
+            if (!first) oss << ';';
+            first = false;
+            char buf[80];
+            snprintf(buf, sizeof(buf), "%.3f,%.3f,%.3f,%.3f",
+                     line.pts[k].x(), line.pts[k].y(), line.pts[k].z(),
+                     k < line.widths.size() ? line.widths[k] : 0.1);
+            oss << buf;
+        }
     oss << '\n';
     return oss.str();
 }
@@ -261,6 +220,19 @@ std::string generate_injection_gcode(
         if (volume <= 0)
             continue;
 
+        // Per-tube auto z-slam: seal to THIS tube's actual cap opening (measured in
+        // scan_layers) instead of the global ideal — boundary-cap tubes have smaller
+        // openings and would otherwise be over-slammed. Manual mode keeps the fixed
+        // slam_depth resolved above. plunge_depth tracks slam_depth.
+        if (config.magma_injection_z_slam_auto.value) {
+            const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
+            slam_depth = auto_slam_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
+                                         config.magma_nozzle_cone_half_angle.value);
+            plunge_depth = config.magma_injection_plunge.value
+                               ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
+                               : 0.0;
+        }
+
         // Travel to injection point. The built-in travel_to() handles retraction,
         // avoid-crossing-perimeters, and the printer's own z-hop; the unretract
         // below also undoes any lift it applied.
@@ -293,62 +265,103 @@ std::string generate_injection_gcode(
                 display_dim);
         gcode += buf;
 
-        // Build tube visualization waypoints (simplified with 3D RDP)
-        const auto& pair = tube_map.u_tube_pairs()[pt.pair_index];
-        auto waypoints = build_tube_viz_waypoints(
-            tube_map, pair, layer_z, pt.window_center_layer);
+        // Tube visualization: ONE MAGMA_TUBE comment carrying the whole manifold — a HUB
+        // column (injection top → window) at the hub bore, plus one LEG per vent (cell_b +
+        // extra_vents), each branching from the hub's last point and drawn at its own vent
+        // bore. The renderer fills the hub, then advances all legs together. Columns follow
+        // the spiral per layer and are RDP-simplified; the hub also sizes the E-split below.
+        const auto&  pair    = tube_map.u_tube_pairs()[pt.pair_index];
+        const int    cap     = pair.pair_end_layer;
+        const int    wc      = pt.window_center_layer;
+        const double iw      = tube_map.interior_width();
+        const double z_floor = tube_map.print_z(pair.pair_start_layer) + iw * 0.5;
+        auto z_at = [&](int L) { double z = tube_map.print_z(L); return z < z_floor ? z_floor : z; };
 
-        // Emit tube visualization metadata for GCodeProcessor
-        if (!waypoints.empty())
-            gcode += format_tube_viz_comment(waypoints, tube_map.interior_width());
+        std::vector<TubeVizLine> lines;
+        // Hub column: injection top → window, at the injection XY (pts[0] = the nozzle).
+        // Per-point width = the hub's per-layer bore (narrows where the part clips it).
+        TubeVizLine hub;
+        for (int L = cap; L >= wc; --L) {
+            hub.pts.push_back({ pair.injection_center.x(), pair.injection_center.y(),
+                                (L == cap) ? layer_z : z_at(L) });
+            hub.widths.push_back(tube_map.cell_bore_at(pair.cell_a, L));
+        }
+        subsample_with_widths(hub.pts, hub.widths, 16);
+        const Vec3d junction = hub.pts.empty()
+            ? Vec3d(pair.injection_center.x(), pair.injection_center.y(), z_at(wc))
+            : hub.pts.back();
+        lines.push_back(std::move(hub));
+        // Each leg starts at the hub's BOTTOM (the junction, at the window Z) so the
+        // manifold reads as the hub tube ending at the bottom and branching out: fan
+        // HORIZONTALLY to the vent (same Z), then rise up the vent. Rendered sequentially
+        // (each leg a contiguous Noop-separated run). NOTE: multi-vent manifolds still
+        // show a "spider" — leg 2+'s Noop separator has its previous point at the prior
+        // vent-top, and the gcode→viewer convert inserts a phantom vertex there, drawing
+        // a diagonal back to the junction. Single-vent (triangle/rectilinear/1-vent tri-hex)
+        // is correct because the Noop's previous point IS the junction (hub bottom).
+        auto add_leg = [&](const magma::CellId& vent) {
+            TubeVizLine leg;
+            // Start at the hub bottom with the HUB bore, so the connector through the window
+            // is a frustum tapering from the wide hub/window mouth down to the thin vent,
+            // instead of a tiny constant-width line. The vent column then holds the vent bore.
+            leg.pts.push_back(junction);                          // hub bottom (junction)
+            leg.widths.push_back(tube_map.cell_bore_at(pair.cell_a, wc));
+            for (int L = wc; L <= cap; ++L) {
+                Vec2d c = tube_map.lattice_at(L).cell_center(vent);
+                leg.pts.push_back({ c.x(), c.y(), (L == cap) ? layer_z : z_at(L) });
+                leg.widths.push_back(tube_map.cell_bore_at(vent, L));
+            }
+            subsample_with_widths(leg.pts, leg.widths, 16);
+            if (leg.pts.size() >= 2)
+                lines.push_back(std::move(leg));
+        };
+        add_leg(pair.cell_b);
+        for (const auto& ev : pair.extra_vents)
+            add_leg(ev);
+        // Shift the manifold from object-local MODEL coords into G-code coords using the
+        // RELIABLE nozzle position (the writer is parked at this injection point after the
+        // travel above). hub[0] is the model injection centre, so obj_off maps it onto the
+        // real injection XY. The preview parser then applies only the standard gcode->render
+        // offset (plate + extruder) like any move — no fragile m_end_position reconstruction.
+        const Vec2d obj_off(gcodegen.writer().get_position().x() - pair.injection_center.x(),
+                            gcodegen.writer().get_position().y() - pair.injection_center.y());
+        for (auto& line : lines)
+            for (auto& p : line.pts) { p.x() += obj_off.x(); p.y() += obj_off.y(); }
+        // The MAGMA_TUBE comment carries the manifold geometry (hub + legs, per-layer
+        // centres and widths) to the preview's separate custom tube renderer. It does NOT
+        // drive the toolpath: the injection below renders as the real in-place nozzle move.
+        if (!lines[0].pts.empty())
+            gcode += format_tube_viz_comment(lines);
 
-        // Split injection into per-segment G1 E commands so the preview
-        // slider shows progressive tube filling.  Each G1 gets its own
-        // G-code line number, giving it a separate slider position.
+        // Split the injection into a few G1 segments so the plunge Z ramps smoothly (and
+        // the slider gets a handful of steps). No longer tied to any per-vertex viz tick.
         double filament_length = volume * e_per_mm3;
         gcode += gcodegen.writer().set_speed(feedrate_mmmin);
         Vec2d xy(gcodegen.writer().get_position().x(),
                  gcodegen.writer().get_position().y());
 
-        // Per-segment extrusion amounts. With viz waypoints we split E along the
-        // tube path (drives the preview slider); otherwise a single segment, or,
-        // when plunging, a fixed split so Z can ramp smoothly.
         std::vector<double> seg_e;
-        if (waypoints.size() >= 2) {
-            double total_path_len = 0;
-            for (size_t i = 1; i < waypoints.size(); ++i)
-                total_path_len += (waypoints[i] - waypoints[i - 1]).norm();
-            for (size_t i = 1; i < waypoints.size(); ++i) {
-                double seg_len = (waypoints[i] - waypoints[i - 1]).norm();
-                seg_e.push_back((total_path_len > 0)
-                    ? filament_length * (seg_len / total_path_len)
-                    : filament_length / double(waypoints.size() - 1));
-            }
-        } else if (plunge_depth > 0.0) {
-            const int N = 8;
-            for (int i = 0; i < N; ++i)
-                seg_e.push_back(filament_length / double(N));
-        } else {
-            seg_e.push_back(filament_length);
-        }
+        const int N = (plunge_depth > 0.0) ? 8 : 1;
+        for (int i = 0; i < N; ++i)
+            seg_e.push_back(filament_length / double(N));
 
-        // Emit the segments, optionally sinking Z a little before each so the
-        // nozzle plunges from slam_depth to slam_depth + plunge_depth by the end.
+        // Emit the segments, optionally sinking Z a little each so the nozzle plunges
+        // from slam_depth to slam_depth + plunge_depth by the end. The plunge Z is FOLDED
+        // INTO the extrude move (one continuous G1 X Y Z E), never a separate G1 Z. A
+        // separate Z move is a Travel that lands BETWEEN the viz vertices in the preview
+        // buffer, shattering the tube polyline into disconnected pieces with degenerate
+        // 180° miters. Folding keeps every viz tick a single contiguous Extrude — and it's
+        // physically truer to slam-melt (the nozzle plunges WHILE extruding).
         const int K = (int) seg_e.size();
         for (int k = 0; k < K; ++k) {
+            const char* seg_comment = K > 1 ? "injection segment" : "Magma injection";
             if (plunge_depth > 0.0) {
                 double z = layer_z - (slam_depth + plunge_depth * double(k + 1) / double(K));
-                sprintf(buf, "G1 Z%.3f F%d ; injection plunge\n", z, z_feedrate);
-                gcode += buf;
-                // The raw Z move above sets F to the (fast) Z feedrate and bypasses
-                // the writer's speed tracking, so the writer won't restore it.
-                // Re-emit the injection feedrate or the extrude below inherits the
-                // Z feedrate and injects far too fast.
-                sprintf(buf, "G1 F%.3f\n", feedrate_mmmin);
-                gcode += buf;
+                gcode += gcodegen.writer().extrude_to_xyz(
+                    Vec3d(xy.x(), xy.y(), z), seg_e[k], seg_comment);
+            } else {
+                gcode += gcodegen.writer().extrude_to_xy(xy, seg_e[k], seg_comment);
             }
-            gcode += gcodegen.writer().extrude_to_xy(
-                xy, seg_e[k], K > 1 ? "injection segment" : "Magma injection");
         }
 
         // Dwell: hold nozzle sealed while plastic spreads through tube
@@ -433,23 +446,41 @@ std::string generate_injection_gcode(
             auto iron_z = [&](double rad) {
                 return (cap > 0.0 && rad <= cap) ? layer_z : hover_z;
             };
-            auto emit_iron = [&](double rad, double ang, const char* tag) {
-                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; %s\n",
-                        c.x() + rad * std::cos(ang), c.y() + rad * std::sin(ang),
-                        iron_z(rad), wf, tag);
-                gcode += buf;
+
+            // Build the iron path (one full rim rotation to shear the whole rim evenly,
+            // then spiral inward to the centre) as 3D points, then RDP-simplify before
+            // emitting. The radius shrinks to 0, so a fixed seg/rev massively over-resolves
+            // the inner turns; RDP at a sub-line-width tolerance keeps the rim's smoothness
+            // but collapses the redundant inner points — far fewer G-code moves (file size +
+            // preview slider steps) with negligible change to the ironed path. 3D so the
+            // press/hover Z step is preserved.
+            std::vector<Vec3d> iron_pts;
+            iron_pts.reserve(static_cast<size_t>(seg_per_rev) * (wipe_turns + 1) + 2);
+            auto add_iron = [&](double rad, double ang) {
+                iron_pts.emplace_back(c.x() + rad * std::cos(ang), c.y() + rad * std::sin(ang), iron_z(rad));
             };
-
-            // One full rotation at the start radius first, to shear/plow the whole
-            // rim evenly before converging (avoids dragging a wad inward).
-            for (int s = 1; s <= seg_per_rev; ++s)
-                emit_iron(start_R, double(s) / double(seg_per_rev) * 2.0 * PI, "crater iron rim");
-
-            // Then spiral inward to the centre.
-            int total = std::max(1, wipe_turns * seg_per_rev);
+            for (int s = 1; s <= seg_per_rev; ++s)                          // rim
+                add_iron(start_R, double(s) / double(seg_per_rev) * 2.0 * PI);
+            const int total = std::max(1, wipe_turns * seg_per_rev);        // spiral inward
             for (int s = 1; s <= total; ++s) {
-                double frac = double(s) / double(total);            // 0..1, outer -> centre
-                emit_iron(start_R * (1.0 - frac), frac * wipe_turns * 2.0 * PI, "crater iron");
+                const double frac = double(s) / double(total);              // 0..1, outer -> centre
+                add_iron(start_R * (1.0 - frac), frac * wipe_turns * 2.0 * PI);
+            }
+            if (iron_pts.size() > 2) {
+                Eigen::MatrixXd P(iron_pts.size(), 3);
+                for (size_t i = 0; i < iron_pts.size(); ++i) P.row(i) = iron_pts[i].transpose();
+                Eigen::MatrixXd S; Eigen::VectorXi J;
+                igl::ramer_douglas_peucker(P, 0.08, S, J);                  // 0.08 mm: well under line width
+                std::vector<Vec3d> simplified; simplified.reserve(J.size());
+                for (int i = 0; i < J.size(); ++i) {
+                    const int idx = J(i);
+                    if (idx >= 0 && idx < int(iron_pts.size())) simplified.push_back(iron_pts[idx]);
+                }
+                iron_pts = std::move(simplified);
+            }
+            for (const Vec3d& p : iron_pts) {
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron\n", p.x(), p.y(), p.z(), wf);
+                gcode += buf;
             }
             // One short stroke across the centre to flatten the gathered mound,
             // only where we can actually press (cap > 0, i.e. there is room).

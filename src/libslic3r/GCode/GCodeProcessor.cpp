@@ -891,6 +891,22 @@ public:
             if (it != m_gcode_lines_map.end() && it->first == move.gcode_id)
                 move.gcode_id = it->second;
         }
+
+        // Magma injection viz vertices live outside result.moves, so the loop above didn't
+        // remap them — but they carry the same input-line gcode_ids and the preview gates each
+        // manifold (gcode_id <= reveal_max, where reveal_max comes from a remapped move) in
+        // output-line space. Left unremapped they reveal out of step with the nozzle, a skew
+        // that grows over the print as arc-fitting and inserted cooling lines accumulate. Each
+        // vertex's gcode_id is the injection's reveal line (a real gcode line with an exact map
+        // entry) and its fill_step is held separately, so this is the identical forward-sweep
+        // remap used for moves; fold the fill-animation step back on in output-line space.
+        auto mit = m_gcode_lines_map.begin();
+        for (GCodeProcessorResult::MagmaTubeVertex& mv : result.magma_tube_vertices) {
+            while (mit != m_gcode_lines_map.end() && mit->first < mv.gcode_id)
+                ++mit;
+            if (mit != m_gcode_lines_map.end() && mit->first == mv.gcode_id)
+                mv.gcode_id = static_cast<unsigned int>(mit->second) + mv.fill_step;
+        }
     }
 
     size_t get_size() const { return m_size; }
@@ -1561,6 +1577,7 @@ void GCodeProcessorResult::reset() {
     lock();
 
     moves.clear();
+    magma_tube_vertices.clear();
     lines_ends.clear();
     printable_area = Pointfs();
     //BBS: add bed exclude area
@@ -3031,44 +3048,112 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // Magma tube visualization metadata
     if (boost::starts_with(comment, reserved_tag(ETags::Magma_Tube))) {
         m_pending_tube_viz.reset();
-        // Parse: n=<int> w=<float> pts=x,y,z;x,y,z;...
-        auto data = comment.substr(reserved_tag(ETags::Magma_Tube).size());
-        float w = 0.f;
-        int n = 0;
-        // Extract n= and w=
-        if (auto pos = data.find("n="); pos != std::string_view::npos) {
-            n = std::atoi(data.data() + pos + 2);
-        }
-        if (auto pos = data.find("w="); pos != std::string_view::npos) {
-            w = static_cast<float>(std::atof(data.data() + pos + 2));
-        }
-        m_pending_tube_viz.width = w;
-        // Extract pts=
-        if (auto pos = data.find("pts="); pos != std::string_view::npos) {
-            auto pts_str = data.substr(pos + 4);
-            constexpr size_t max_waypoints = 1024;
-            n = std::clamp(n, 0, (int)max_waypoints);
-            m_pending_tube_viz.waypoints.reserve(n > 0 ? n : 20);
-            size_t start = 0;
-            while (start < pts_str.size() &&
-                   m_pending_tube_viz.waypoints.size() < max_waypoints) {
-                // Find segment end for null-terminated sscanf buffer
-                auto semi = pts_str.find(';', start);
-                size_t seg_end = (semi != std::string_view::npos) ? semi : pts_str.size();
-                char pt_buf[64];
-                size_t len = std::min(seg_end - start, sizeof(pt_buf) - 1);
-                memcpy(pt_buf, pts_str.data() + start, len);
-                pt_buf[len] = '\0';
-                float x = 0, y = 0, z = 0;
-                if (std::sscanf(pt_buf, "%f,%f,%f", &x, &y, &z) == 3) {
-                    m_pending_tube_viz.waypoints.push_back(Vec3f(x, y, z));
-                }
-                if (semi == std::string_view::npos)
-                    break;
-                start = semi + 1;
+        // Format (multi-polyline manifold): np=<N> n=<c0>,<c1>,... pts=x,y,z,w;x,y,z,w;...
+        // line 0 = hub column, lines 1.. = legs branching from the hub's last point. Each
+        // point carries its own render width w (per-layer taper).
+        //
+        // HARDENED against malformed/malicious gcode: parse from a null-terminated COPY
+        // (length bounded by the gcode line), use strtol/strtof (which stop at delimiters
+        // and saturate rather than overflow), and cap every count. Any inconsistency makes
+        // the whole tube inert (reset + return) — never out-of-bounds.
+        constexpr long  MAX_LINES = 64;
+        constexpr long  MAX_PTS_PER_LINE = 1024;
+        constexpr size_t MAX_TOTAL_PTS = 16384;
+        const std::string buf(comment.substr(reserved_tag(ETags::Magma_Tube).size()));
+        auto after = [&](const char* key) -> const char* {
+            size_t pos = buf.find(key);
+            return pos == std::string::npos ? nullptr : buf.c_str() + pos + std::strlen(key);
+        };
+        const char* np_p  = after("np=");
+        const char* n_p   = after("n=");
+        const char* pts_p = after("pts=");
+        if (!np_p || !n_p || !pts_p)
+            return;  // not the new format / malformed → inert
+        long np = std::strtol(np_p, nullptr, 10);
+        if (np <= 0 || np > MAX_LINES)
+            return;
+        const size_t N = static_cast<size_t>(np);
+
+        std::vector<size_t> counts; counts.reserve(N);
+        { const char* p = n_p;
+          for (size_t i = 0; i < N; ++i) {
+              char* e = nullptr; long c = std::strtol(p, &e, 10);
+              if (e == p || c < 0 || c > MAX_PTS_PER_LINE) return;
+              counts.push_back(static_cast<size_t>(c)); p = e; if (*p == ',') ++p; } }
+        size_t total = 0; for (size_t c : counts) total += c;
+        if (total == 0 || total > MAX_TOTAL_PTS) return;
+
+        m_pending_tube_viz.lines.resize(N);
+        const char* p = pts_p;
+        for (size_t li = 0; li < N; ++li) {
+            auto& line = m_pending_tube_viz.lines[li];
+            line.pts.reserve(counts[li]);
+            line.widths.reserve(counts[li]);
+            for (size_t k = 0; k < counts[li]; ++k) {
+                char* e = nullptr;
+                float x = std::strtof(p, &e); if (e == p) { m_pending_tube_viz.reset(); return; } p = e; if (*p == ',') ++p;
+                float y = std::strtof(p, &e); if (e == p) { m_pending_tube_viz.reset(); return; } p = e; if (*p == ',') ++p;
+                float z = std::strtof(p, &e); if (e == p) { m_pending_tube_viz.reset(); return; } p = e; if (*p == ',') ++p;
+                float w = std::strtof(p, &e); if (e == p) { m_pending_tube_viz.reset(); return; } p = e; if (*p == ';') ++p;
+                line.pts.push_back(Vec3f(x, y, z));
+                line.widths.push_back(w > 0.f ? w : 0.1f);
             }
         }
-        m_pending_tube_viz.active = !m_pending_tube_viz.waypoints.empty();
+        m_pending_tube_viz.active = !m_pending_tube_viz.lines.empty()
+                                    && !m_pending_tube_viz.lines[0].pts.empty();
+
+        // Hand the manifold geometry to the preview's custom tube renderer (drawn
+        // independently of the toolpath). Each line (hub column, then each vent leg)
+        // becomes a sub-polyline; the first point of each is flagged as a break so the
+        // renderer doesn't join legs together. layer_id = the current (injection) layer.
+        //
+        // The comment carries G-code coords (the emitter already shifted the manifold onto
+        // the real injection XY; Z is absolute). Apply only the standard gcode->render
+        // offset — plate offset + extruder offset, Z minus the plate Z offset — exactly as
+        // store_move_vertex() does for every move. No m_end_position reconstruction.
+        if (!m_pending_tube_viz.lines.empty() && !m_pending_tube_viz.lines[0].pts.empty()) {
+            const auto& vlines = m_pending_tube_viz.lines;
+            const int   fid    = get_filament_id();
+            const Vec3f off(static_cast<float>(m_x_offset), static_cast<float>(m_y_offset), -m_z_offset);
+            const Vec3f eoff = (fid >= 0 && fid < static_cast<int>(m_extruder_offsets.size()))
+                               ? m_extruder_offsets[fid] : Vec3f::Zero();
+            // Animate the fill: as the injection plunges, reveal the hub top→down and the
+            // vents bottom→up. Map each point's fill fraction to a gcode line spread across
+            // the injection's plunge so the preview's gcode_id gate reveals it progressively.
+            float z_cap = -1e30f, z_win = 1e30f;
+            for (const auto& line : vlines)
+                for (const auto& p : line.pts) { z_cap = std::max(z_cap, p.z()); z_win = std::min(z_win, p.z()); }
+            const float z_span = std::max(1e-3f, z_cap - z_win);
+            const unsigned int FILL_SPAN = 9;             // total fill steps (~plunge span)
+            const unsigned int HUB_END   = FILL_SPAN / 2; // hub fills over steps [0, HUB_END]
+            for (size_t li = 0; li < vlines.size(); ++li) {
+                const bool  is_hub = (li == 0);
+                const auto& line   = vlines[li];
+                for (size_t k = 0; k < line.pts.size(); ++k) {
+                    const float z    = line.pts[k].z();
+                    float       frac = is_hub ? (z_cap - z) / z_span : (z - z_win) / z_span;
+                    frac = std::max(0.0f, std::min(1.0f, frac));
+                    // Sequential flow: the down-tube (hub) fills top->down FIRST over the first
+                    // half of the steps; only then do the vents / up-tube fill bottom->up over
+                    // the second half — the melt bottoms out the hub, flows across the window,
+                    // and rises in the vents, rather than both moving at once.
+                    const unsigned int step = is_hub
+                        ? static_cast<unsigned int>(std::lround(frac * HUB_END))
+                        : HUB_END + 1 + static_cast<unsigned int>(std::lround(frac * (FILL_SPAN - HUB_END - 1)));
+                    GCodeProcessorResult::MagmaTubeVertex mv;
+                    mv.position  = line.pts[k] + off + eoff;
+                    mv.width     = (k < line.widths.size()) ? line.widths[k] : 0.4f;
+                    mv.layer_id  = m_layer_id;
+                    // Reveal line = the injection's (input) gcode line. The per-point fill step is
+                    // kept separate so synchronize_moves can remap the line exactly (like a move)
+                    // and fold the step back on afterwards, in output-line space.
+                    mv.gcode_id  = m_line_id;
+                    mv.fill_step = static_cast<uint8_t>(step);
+                    mv.brk       = (k == 0);
+                    m_result.magma_tube_vertices.push_back(mv);
+                }
+            }
+        }
         return;
     }
 
@@ -3785,14 +3870,14 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
             return (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f || delta_pos[Z] != 0.0f) ? EMoveType::Travel : EMoveType::Retract;
         else if (delta_pos[E] > 0.0f) {
             if (delta_pos[X] == 0.0f && delta_pos[Y] == 0.0f) {
-                if (delta_pos[Z] == 0.0f) {
-                    // Magma injection: stationary extrude is real extrusion, not unretract.
-                    // Use pending tube viz flag (set by MAGMA_TUBE comment) rather than role,
-                    // so unretracts between injections classify correctly.
-                    if (m_extrusion_role == erMagmaInjection && m_pending_tube_viz.active)
-                        return EMoveType::Extrude;
+                // Magma injection: an in-place extrude is real extrusion, whether the
+                // nozzle is stationary or plunging (Z change while extruding = slam-melt).
+                // Keyed off the MAGMA_TUBE flag (not just role) so unretracts between
+                // injections still classify correctly.
+                if (m_extrusion_role == erMagmaInjection && m_pending_tube_viz.active)
+                    return EMoveType::Extrude;
+                if (delta_pos[Z] == 0.0f)
                     return EMoveType::Unretract;
-                }
                 return EMoveType::Travel;
             }
             else if (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f)
@@ -4193,16 +4278,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset);
     }
 
-    // store move
-    // Magma tube visualization: emit synthetic waypoint vertices
-    // instead of the real stationary-extrude vertex.
-    if (m_pending_tube_viz.active &&
-        type == EMoveType::Extrude &&
-        m_extrusion_role == erMagmaInjection) {
-        emit_tube_viz_vertex(false);
-    } else {
-        store_move_vertex(type);
-    }
+    // store move. Magma injection moves render as the real nozzle path (in-place
+    // plunge-while-extrude); the tube structure is drawn by a separate custom pass,
+    // not by hijacking this toolpath polyline.
+    store_move_vertex(type);
 }
 
 void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
@@ -5548,82 +5627,6 @@ void GCodeProcessor::process_filament_change(int id)
     store_move_vertex(EMoveType::Tool_change);
 }
 
-void GCodeProcessor::emit_tube_viz_vertex(bool internal_only)
-{
-    // Emit synthetic tube-visualization vertices for Magma injection.
-    // Each G1 E command from the split injection maps to one tube segment.
-    // On the first G1, we emit a start vertex (E=0) plus the first segment
-    // endpoint.  Each subsequent G1 emits one more segment endpoint.
-    // Because each G1 has its own line_id, the sequential slider steps
-    // through tube segments individually, showing progressive fill.
-    auto& tube = m_pending_tube_viz;
-    int filament_id = get_filament_id();
-    m_last_line_id = m_line_id;
-
-    float seg_e = static_cast<float>(m_end_position[E] - m_start_position[E]);
-    float tube_w = tube.width;
-    float tube_mm3_per_mm = static_cast<float>(M_PI / 4.0) * tube_w * tube_w;
-
-    auto emit_waypoint = [&](size_t wp_idx, float e_delta) {
-        Vec3f pos(tube.waypoints[wp_idx].x() + tube.dx,
-                  tube.waypoints[wp_idx].y() + tube.dy,
-                  tube.waypoints[wp_idx].z() + tube.dz);
-        m_result.moves.push_back({
-            m_last_line_id,
-            EMoveType::Extrude,
-            erMagmaInjection,
-            static_cast<unsigned char>(filament_id),
-            m_cp_color.current,
-            pos + m_extruder_offsets[filament_id],
-            e_delta,
-            m_feedrate,
-            0.0f,
-            tube_w, tube_w,
-            tube_mm3_per_mm,
-            0.0f,
-            m_fan_speed,
-            m_extruder_temps[filament_id],
-            0.0f,  // pressure_advance
-            0.0f,  // acceleration
-            0.0f,  // jerk
-            { 0.0f, 0.0f },
-            static_cast<float>(m_layer_id),
-            std::max<unsigned int>(1, m_layer_id) - 1,
-            internal_only,
-            m_object_label_id,
-            m_print_z
-        });
-    };
-
-    // Compute model → viewer offsets on first encounter.
-    // waypoints[0] corresponds to the nozzle's current G-code position.
-    if (!tube.offsets_computed) {
-        tube.dx = static_cast<float>(m_end_position[X]) + static_cast<float>(m_x_offset)
-                  - tube.waypoints[0].x();
-        tube.dy = static_cast<float>(m_end_position[Y]) + static_cast<float>(m_y_offset)
-                  - tube.waypoints[0].y();
-        // Z: waypoints are absolute model Z; only subtract m_z_offset.
-        // Do NOT use m_end_position[Z] — may be z-slammed.
-        tube.dz = -static_cast<float>(m_z_offset);
-        tube.offsets_computed = true;
-
-        emit_waypoint(0, 0.f);  // start vertex with E=0 (establishes path origin)
-        tube.cursor = 1;
-    }
-
-    // Emit next segment endpoint
-    if (tube.cursor < tube.waypoints.size()) {
-        emit_waypoint(tube.cursor, seg_e);
-        tube.cursor++;
-    }
-
-    // Reset when all waypoints consumed
-    if (tube.cursor >= tube.waypoints.size())
-        tube.reset();
-
-    // Do NOT update m_end_position — processor continues from real nozzle position
-}
-
 void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)
 {
     int filament_id = get_filament_id();
@@ -5637,6 +5640,15 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     const bool has_y = delta_y > 0.0f;
     const bool has_z = delta_z > 0.0f;
     const bool has_e = delta_e > 0.0f;
+
+    // End the MAGMA_TUBE injection window at the first XY move after the plunge. The plunge
+    // is N in-place segments (XY unchanged, Z/E only); the next XY move is the crater wipe or
+    // the travel to the next site. If the flag isn't cleared here it leaks to the next
+    // injection's unretract — an in-place E>0 move that would then misclassify as an Extrude
+    // and render as a phantom dot. Cleared before the thin-mark branch so the wipe itself
+    // draws normally.
+    if (m_pending_tube_viz.active && (has_x || has_y))
+        m_pending_tube_viz.reset();
     const float move_acceleration =
         (type == EMoveType::Travel) ? get_travel_acceleration(normal_mode) :
         ((type == EMoveType::Retract || type == EMoveType::Unretract) ? get_retract_acceleration(normal_mode) :
@@ -5662,6 +5674,17 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
 
+    // A Magma injection is an in-place extrude that deposits the whole TUBE VOLUME at one
+    // spot. The preview sizes extrusions by volume/distance, so that renders as a fat blob.
+    // Show a thin fixed mark for the nozzle move instead (the real E in the gcode is
+    // untouched — the injected plastic's spread is drawn by the separate custom tube pass).
+    float move_width = m_width, move_height = m_height, move_mm3 = m_mm3_per_mm;
+    if (type == EMoveType::Extrude && m_extrusion_role == erMagmaInjection && m_pending_tube_viz.active) {
+        move_width  = 0.4f;
+        move_height = 0.2f;
+        move_mm3    = 0.0f;
+    }
+
     m_result.moves.push_back({
         m_last_line_id,
         type,
@@ -5673,9 +5696,9 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         static_cast<float>(m_end_position[E] - m_start_position[E]),
         m_feedrate,
         0.0f, // actual feedrate
-        m_width,
-        m_height,
-        m_mm3_per_mm,
+        move_width,
+        move_height,
+        move_mm3,
         m_travel_dist,
         m_fan_speed,
         m_extruder_temps[filament_id],

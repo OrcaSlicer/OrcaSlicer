@@ -1358,7 +1358,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
         // Magma infill is incompatible with spiral vase (multi-cell grid vs single-wall spiral)
         for (const auto& region : all_regions) {
-            if (is_magma_pattern(region.get().config().sparse_infill_pattern.value)) {
+            if (is_magma_pattern(magma::magma_effective_pattern(region.get().config()))) {
                 return {L("Spiral vase mode is not compatible with Magma infill."),
                         nullptr, "spiral_mode"};
             }
@@ -1370,7 +1370,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         // Check if any region uses Magma pattern
         bool has_magma = false;
         for (const auto& region : object->all_regions()) {
-            if (is_magma_pattern(region.get().config().sparse_infill_pattern.value)) {
+            if (is_magma_pattern(magma::magma_effective_pattern(region.get().config()))) {
                 has_magma = true;
                 break;
             }
@@ -1386,7 +1386,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             const auto& rcfg = region.get().config();
             if (rcfg.dual_infill_enabled && is_magma_pattern(rcfg.sparse_infill_pattern.value)) {
                 if (warning) {
-                    warning->string = L("Inner infill zone uses Magma Triangle pattern. The inner zone is "
+                    warning->string = L("Inner infill zone uses a Magma pattern. The inner zone is "
                           "intended for lighter infill (e.g., gyroid). Magma injection will "
                           "fill both zones, which may use excessive material.");
                     warning->object = object;
@@ -1401,7 +1401,10 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         for (const auto& region : object->all_regions()) {
             const auto& rcfg = region.get().config();
             const auto& obj_cfg = object->config();
-            if (!is_magma_pattern(rcfg.sparse_infill_pattern.value))
+            // In dual-infill mode the reinforcement (and thus the seal geometry) is the OUTER
+            // pattern, not sparse_infill_pattern (the inner yolk) — match MagmaTubeMap::build.
+            const InfillPattern eff_pattern = magma::magma_effective_pattern(rcfg);
+            if (!is_magma_pattern(eff_pattern))
                 continue;
             if (!rcfg.magma_overlap_line_correction.value)
                 continue;
@@ -1425,7 +1428,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             double iw = rcfg.magma_interior_width.value;
             if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
             double cell_sp = magma::cell_spacing_from_geometry(iw, line_w);
-            double excess_frac = magma::magma_geometry_for(rcfg.sparse_infill_pattern.value)
+            double excess_frac = magma::magma_geometry_for(eff_pattern)
                                      .line_overlap_excess_fraction(cell_sp, line_w);
             double corrected_w = line_w * (1.0 - excess_frac);
             if (corrected_w < min_width)
@@ -1471,7 +1474,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         // injectable), or so wide that auto Z-slam would crush the print.
         for (const auto& region : object->all_regions()) {
             const auto& rcfg = region.get().config();
-            if (!is_magma_pattern(rcfg.sparse_infill_pattern.value))
+            const InfillPattern eff_pattern = magma::magma_effective_pattern(rcfg);
+            if (!is_magma_pattern(eff_pattern))
                 continue;
             int sparse_ext = std::max(0, rcfg.sparse_infill_filament.value - 1);
             double nozzle_d = m_config.nozzle_diameter.get_at(sparse_ext);
@@ -1504,7 +1508,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double iw = rcfg.magma_interior_width.value;
                 if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
                 double cell_sp    = magma::cell_spacing_from_geometry(iw, line_w);
-                double opening    = magma::magma_geometry_for(rcfg.sparse_infill_pattern.value)
+                double opening    = magma::magma_geometry_for(eff_pattern)
                                         .opening_diameter(cell_sp, line_w);
                 double cone_deg   = rcfg.magma_nozzle_cone_half_angle.value;
 

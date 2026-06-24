@@ -271,6 +271,11 @@ private:
     // cpu buffer to store vertices
     //
     std::vector<PathVertex> m_vertices;
+    // Magma injection tube geometry, rendered by a separate custom pass (Phase 2).
+    std::vector<PathVertex> m_magma_vertices;
+    // Which magma segments are geometrically valid (computed once in load(); the per-view
+    // enabled set is gated from this by gcode_id in update_enabled_entities()).
+    BitSet<> m_magma_valid;
 
     // Cache for the colors to reduce the need to recalculate colors of all the vertices.
     std::vector<float> m_vertices_colors;
@@ -458,12 +463,26 @@ private:
     size_t m_colors_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
+    //
+    // Magma injection tubes: a parallel set of buffers rendered by a separate pass,
+    // independent of the toolpath polyline (reuses the segment shader + template).
+    //
+    unsigned int m_magma_positions_buf_id{ 0 };
+    unsigned int m_magma_positions_tex_id{ 0 };
+    unsigned int m_magma_hwa_buf_id{ 0 };
+    unsigned int m_magma_hwa_tex_id{ 0 };
+    unsigned int m_magma_colors_buf_id{ 0 };
+    unsigned int m_magma_colors_tex_id{ 0 };
+    unsigned int m_magma_enabled_segments_buf_id{ 0 };
+    unsigned int m_magma_enabled_segments_tex_id{ 0 };
+    size_t m_magma_enabled_segments_count{ 0 };
 #endif // ENABLE_OPENGL_ES
 
     void update_view_full_range();
     void update_color_ranges();
     void update_heights_widths();
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);
+    void render_magma_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     void render_cog_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);

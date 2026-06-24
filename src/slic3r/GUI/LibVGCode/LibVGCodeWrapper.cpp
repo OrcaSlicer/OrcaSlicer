@@ -19,8 +19,6 @@
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/Layer.hpp"
-#include "libslic3r/Magma/MagmaTubeMap.hpp"
-#include "libslic3r/Magma/MagmaTriangleCell.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -276,6 +274,31 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         ret.vertices.emplace_back(vertex);
     }
     ret.vertices.shrink_to_fit();
+
+    // Magma injection tubes → separate buffer for the custom tube render (NOT the toolpath).
+    // Each sub-polyline is preceded by a Seam-type vertex so the renderer breaks between
+    // the hub column and each vent leg instead of joining them.
+    ret.magma_vertices.reserve(result.magma_tube_vertices.size() * 2);
+    for (const Slic3r::GCodeProcessorResult::MagmaTubeVertex& mv : result.magma_tube_vertices) {
+        if (mv.brk) {
+            PathVertex sep;
+            sep.position = convert(mv.position);
+            sep.type     = EMoveType::Seam;
+            sep.role     = EGCodeExtrusionRole::MagmaInjection;
+            sep.layer_id = static_cast<uint32_t>(mv.layer_id);
+            sep.gcode_id = static_cast<uint32_t>(mv.gcode_id);
+            ret.magma_vertices.push_back(sep);
+        }
+        PathVertex pv;
+        pv.position = convert(mv.position);
+        pv.height   = mv.width;          // round-ish cross-section: height == width
+        pv.width    = mv.width;
+        pv.type     = EMoveType::Extrude;
+        pv.role     = EGCodeExtrusionRole::MagmaInjection;
+        pv.layer_id = static_cast<uint32_t>(mv.layer_id);
+        pv.gcode_id = static_cast<uint32_t>(mv.gcode_id);
+        ret.magma_vertices.push_back(pv);
+    }
 
     ret.spiral_vase_mode = result.spiral_vase_mode;
 
@@ -558,113 +581,13 @@ static void convert_wipe_tower_to_vertices(const Slic3r::Print& print, const std
     Slic3r::sort_remove_duplicates(data.layers_zs);
 }
 
-static void convert_magma_injection_to_vertices(const Slic3r::Print& print,
-    std::vector<VerticesData>& vertices_data)
-{
-    for (const Slic3r::PrintObject* obj : print.objects()) {
-        const auto* tube_map = obj->magma_tube_map();
-        if (!tube_map)
-            continue;
-
-        const auto& pairs = tube_map->u_tube_pairs();
-        if (pairs.empty())
-            continue;
-
-        const auto& obj_layers = obj->layers();
-        if (obj_layers.empty())
-            continue;
-
-        const float interior_width = tube_map->interior_width();
-
-        vertices_data.emplace_back(VerticesData());
-        VerticesData& data = vertices_data.back();
-
-        // Collect layers_zs and build layer_id → layers_zs index map.
-        data.layers_zs.reserve(obj_layers.size());
-        std::map<int, uint32_t> lid_to_zs_idx;
-        for (size_t i = 0; i < obj_layers.size(); ++i) {
-            const float pz = static_cast<float>(obj_layers[i]->print_z);
-            // Find or insert into sorted layers_zs
-            auto it = std::lower_bound(data.layers_zs.begin(), data.layers_zs.end(), pz);
-            uint32_t idx;
-            if (it != data.layers_zs.end() && *it == pz) {
-                idx = static_cast<uint32_t>(std::distance(data.layers_zs.begin(), it));
-            } else {
-                idx = static_cast<uint32_t>(std::distance(data.layers_zs.begin(),
-                    data.layers_zs.insert(it, pz)));
-            }
-            lid_to_zs_idx[static_cast<int>(obj_layers[i]->id())] = idx;
-        }
-
-        // Iterate pairs → layers (not layers → pairs).
-        // Per pair we compute the z-slam floor once, then emit only visible layers.
-        Slic3r::magma::TriangleLattice lattice(tube_map->cell_spacing(), 0, 0);
-
-        for (const auto& pair : pairs) {
-            if (pair.volume_mm3 <= 0)
-                continue;
-
-            // Window center layer — tube fill only exists from this layer upward.
-            const int window_center = tube_map->window_center_layer(pair);
-
-            const Slic3r::Vec2d center_a = lattice.cell_center(pair.cell_a);
-            const Slic3r::Vec2d center_b = lattice.cell_center(pair.cell_b);
-
-            for (size_t layer_idx = 0; layer_idx < obj_layers.size(); ++layer_idx) {
-                const Slic3r::Layer* layer = obj_layers[layer_idx];
-                const int lid = static_cast<int>(layer->id());
-                if (lid < window_center || lid > pair.pair_end_layer)
-                    continue;
-
-                const float layer_z = static_cast<float>(layer->print_z);
-                const float lh = static_cast<float>(layer->height);
-                const auto zs_it = lid_to_zs_idx.find(lid);
-                assert(zs_it != lid_to_zs_idx.end());
-                const uint32_t vertex_layer_id = (zs_it != lid_to_zs_idx.end()) ? zs_it->second : 0;
-
-                for (const Slic3r::PrintInstance& instance : obj->instances()) {
-                    const float sx = Slic3r::unscale<float>(instance.shift.x());
-                    const float sy = Slic3r::unscale<float>(instance.shift.y());
-
-                    const float ax = static_cast<float>(center_a.x()) + sx;
-                    const float ay = static_cast<float>(center_a.y()) + sy;
-                    const float bx = static_cast<float>(center_b.x()) + sx;
-                    const float by = static_cast<float>(center_b.y()) + sy;
-
-                    // Noop separator + extrude start at cell_a
-#if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-                    PathVertex vertex = { convert(Slic3r::Vec3f(ax, ay, layer_z)), lh, interior_width,
-                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Noop, 0,
-                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
-#else
-                    PathVertex vertex = { convert(Slic3r::Vec3f(ax, ay, layer_z)), lh, interior_width,
-                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Noop, 0,
-                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
-#endif
-                    data.vertices.emplace_back(vertex);
-                    vertex.type = EMoveType::Extrude;
-                    data.vertices.emplace_back(vertex);
-
-                    // Extrude end at cell_b
-#if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-                    vertex = { convert(Slic3r::Vec3f(bx, by, layer_z)), lh, interior_width,
-                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Extrude, 0,
-                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
-#else
-                    vertex = { convert(Slic3r::Vec3f(bx, by, layer_z)), lh, interior_width,
-                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Extrude, 0,
-                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
-#endif
-                    data.vertices.emplace_back(vertex);
-                }
-            }
-        }
-    }
-}
+// NOTE: the pre-gcode "from Print" preview (convert(Print&) / load_as_preview) is
+// currently disabled and never called, so its magma converter was removed. It was also
+// triangle-hardcoded (TriangleLattice, cell_a/cell_b only, interior_width), so it would
+// have rendered tri-hex/rectilinear incorrectly. If that preview is ever revived, add a
+// pattern-generic magma converter here using make_magma_lattice(tube_map->pattern(), …),
+// iterating cell_b + extra_vents, and the per-cell bore — mirroring MagmaInjection's
+// build_column / cell_render_bore so both previews stay in sync.
 
 class ObjectHelper
 {
@@ -905,10 +828,8 @@ GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string
     if (!print.wipe_tower_data().tool_changes.empty() && print.is_step_done(Slic3r::psWipeTower))
         // extract vertices and layers zs from wipe tower
         convert_wipe_tower_to_vertices(print, str_tool_colors, data);
-    // extract vertices and layers zs from magma injection tube fills
-    // Guard: tube map is built during posPrepareInfill — only access after that step completes
-    if (print.is_step_done(Slic3r::posPrepareInfill))
-        convert_magma_injection_to_vertices(print, data);
+    // (Magma injection tubes for the pre-gcode preview were removed — see the note above
+    //  convert_brim_skirt_to_vertices; that preview path is disabled/never called.)
     // extract vertices and layers zs from objects
     convert_objects_to_vertices(print.objects(), str_tool_colors, str_color_print_colors, color_print_values, extruders_count, data);
 

@@ -21,6 +21,26 @@ struct SlicingParameters;
 
 namespace magma {
 
+// Effective Magma reinforcement pattern for a region. In dual-infill mode the reinforcement
+// is the OUTER zone (dual_infill_outer_pattern); otherwise it is the region's sparse pattern.
+// Single source of truth so MagmaTubeMap::build, the pre-slice warnings in Print::validate,
+// and the fill path all key off the same pattern (sparse_infill_pattern is the inner yolk in
+// dual mode and must NOT drive seal/overlap geometry).
+//
+// The dual outer-pattern option is typed as the full InfillPattern enum but only Magma values
+// are valid for the reinforcement zone (the GUI dropdown lists only those). An imported
+// profile / edited 3mf / API call could set a non-Magma value, which would build an ordinary
+// infill with no U-tube channels while injection still runs into nothing — so clamp a stray
+// non-Magma outer pattern to Triangle. The non-dual case returns the sparse pattern verbatim
+// (callers use is_magma_pattern() on the result to decide whether the region is Magma at all).
+inline InfillPattern magma_effective_pattern(const PrintRegionConfig &config) {
+    if (config.dual_infill_enabled.value) {
+        InfillPattern outer = config.dual_infill_outer_pattern.value;
+        return is_magma_pattern(outer) ? outer : ipMagmaTriangle;
+    }
+    return config.sparse_infill_pattern.value;
+}
+
 // Per-cell layer presence and interior area
 struct CellPresence {
     int first_layer = INT_MAX;   // first layer where cell exists in magma region
@@ -28,21 +48,32 @@ struct CellPresence {
     std::vector<bool>   layers;  // indexed [layer_id - first_layer]
     std::vector<double> areas;   // parallel, interior area in scaled^2 units
     std::vector<double> distances; // parallel, distance to nearest boundary (mm, unscaled)
+    std::vector<double> opening_radii; // parallel, max injection-point→opening boundary (mm)
+    std::vector<Vec2d>  injection_pts; // parallel, injection point (mm): clipped-opening
+                                       // centroid; == cell centre for unclipped cells
 
     bool   present(int layer_id) const;
     double area(int layer_id) const;
     double distance(int layer_id) const;
-    void   mark_present(int layer_id, double area_val, double dist_val = 0.0);
+    double opening_radius(int layer_id) const;
+    Vec2d  injection_point(int layer_id) const;
+    void   mark_present(int layer_id, double area_val, double dist_val,
+                        double opening_r, const Vec2d &inj_pt);
 };
 
-// A U-tube pair assignment
+// A U-tube pair assignment — for tri-hex, a manifold (one hub + N equal-length vent
+// legs). cell_a is the injection HUB, cell_b the PRIMARY vent leg (the 1-leg U-tube
+// for triangle/square). extra_vents holds any additional legs added by the post-solver
+// extra-vent sweep (empty for triangle/square). All legs span the same [start,cap] with
+// windows pinned to the tube bottom; one injection fills the hub + every leg.
 struct UTubePair {
-    TriangleCell cell_a;          // injection side
-    TriangleCell cell_b;          // vent side
+    TriangleCell cell_a;          // injection side (HUB for tri-hex)
+    TriangleCell cell_b;          // primary vent leg
+    std::vector<TriangleCell> extra_vents;  // tri-hex manifold: additional vent legs (sweep-assigned)
     int  pair_start_layer;        // first layer of this tube segment
     int  pair_end_layer;          // last layer of this tube segment (inclusive)
     double window_end_z;          // Z coordinate (mm) where the window ends — pure mm, no rounding
-    double volume_mm3;            // injection volume (both cells combined)
+    double volume_mm3;            // injection volume (hub + all legs combined)
 
     // Pre-computed during build (avoids lattice + binary search at G-code time)
     Vec2d  injection_center;      // XY center for injection (cell_a centroid at cap layer)
@@ -95,9 +126,19 @@ public:
     // nozzle flat (plus cone, when z-slamming) must cover to seal. Auto tube
     // sizing makes this approximately the nozzle tip flat. Used by auto z-slam.
     double tube_opening_diameter() const;
+    // Actual tube-opening diameter at a pair's cap (injection) layer: 2× the max
+    // distance from the injection cell centre to its clipped opening boundary.
+    // Falls back to tube_opening_diameter() if unavailable. Drives the per-tube
+    // auto z-slam so the seal matches each tube's real opening.
+    double cap_opening_diameter(const UTubePair &pair) const;
     // Centre-to-centre distance to an edge-sharing neighbour cell (injection crater
     // clearance), via the active pattern's geometry.
     double neighbor_centroid_distance() const;
+    // Per-layer render bore (mm) for a cell's injected column: the cell's ideal open bore
+    // (kind 0 = interior width; tri-hex vent = inset-triangle inscribed) scaled by
+    // sqrt(clipped_area(layer) / max_area), so a column narrows on layers where the part
+    // clips the cell. Cosmetic (preview only).
+    double cell_bore_at(const TriangleCell &cell, int layer) const;
 
     // Pre-built lattice with spiral offset for a given layer.
     // Eliminates repeated sin/cos + lattice construction. Returned through the
@@ -146,9 +187,17 @@ private:
     // Build phases
     void scan_layers(const std::vector<Layer*> &layers);
     void assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if_canceled);
+    // Tri-hex only: purely-additive post-solver pass that gives each vent extra legs
+    // on bordering hub-tubes whose full range it can fill (see DESIGN-TRIHEX.md §4).
+    void assign_extra_vents();
     void precompute_window_end_z();
     void precompute_injection_data();
     void compute_volumes(const std::vector<Layer*> &layers);
+
+    // Zero-offset lattice for cell IDENTITY (a,b,c,kind) + topology (neighbors/is_up).
+    // Both are offset-independent, so one cached instance serves scan_layers, the solver,
+    // and the extra-vent sweep instead of each constructing its own. Lazily built.
+    const MagmaLattice& topology_lattice() const;
 
     // Adaptive layer height helpers
     int    layer_at_height_from(int start_layer, double target_mm) const;
@@ -166,6 +215,9 @@ private:
     // Indexed by layer_id. Built in build() from the layers vector.
     std::vector<LayerData> m_layer_data;
 
+    // Cached zero-offset lattice (cell identity + topology); see topology_lattice().
+    mutable std::unique_ptr<MagmaLattice> m_topology_lattice;
+
     // Pattern selection (geometry formulas + lattice construction).
     // m_geometry points at the shared, stateless per-shape strategy
     // (magma_geometry_for); m_pattern picks the lattice factory.
@@ -178,6 +230,8 @@ private:
     double m_cell_spacing;
     float  m_interior_width;
     float  m_line_width;
+    double m_min_cap_clearance = 0.0; // min centre→boundary clearance for a sealable
+                                      // injection (≈ nozzle flat radius + margin)
     float  m_layer_height;            // nominal config layer height (fallback)
     float  m_min_layer_height;        // smallest layer height in the object
     double m_dodge_distance;          // boundary dodge distance in mm (stagger target)
