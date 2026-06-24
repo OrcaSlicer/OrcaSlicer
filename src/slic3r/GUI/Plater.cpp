@@ -2857,17 +2857,13 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_filament_title->SetBackgroundColor(title_bg);
     p->m_panel_filament_title->SetBackgroundColor2(0xF1F1F1);
     p->m_panel_filament_title->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent &e) {
-        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer || !p->m_bpButton_set_filament || !p->m_purge_mode_btn || !p->m_flushing_volume_btn || !p->m_bpButton_add_filament || !ams_btn)
+        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer || !p->m_purge_mode_btn || !p->m_flushing_volume_btn)
             return;
-        // ORCA exclude area of del button from titlebar collapse/expand feature to fix undesired collapse when user spams del filament button
-        // also block fold/unfold feature when user clicks to spacing between icons
-        int exclude_pt = p->m_bpButton_set_filament->GetPosition().x; // maximum fixed item
-        if      (p->m_purge_mode_btn->IsShown())        exclude_pt = p->m_purge_mode_btn->GetPosition().x;
-        else if (p->m_flushing_volume_btn->IsShown())   exclude_pt = p->m_flushing_volume_btn->GetPosition().x;
-        else if (p->m_bpButton_add_filament->IsShown()) exclude_pt = p->m_bpButton_add_filament->GetPosition().x - FromDIP(30); // reserve spacing for delete button
-        else if (ams_btn->IsShown())                    exclude_pt = ams_btn->GetPosition().x;
-        if (e.GetPosition().x > exclude_pt)
-            return;
+        // ORCA: the filament +/- /sync/settings buttons now live on the "Filaments" sub-header; only
+        // the purge-mode and flushing-volumes buttons remain on this group header. Exclude the
+        // right-aligned area beginning at the leftmost visible one so nearby clicks don't collapse.
+        if      (p->m_purge_mode_btn->IsShown()      && e.GetPosition().x > p->m_purge_mode_btn->GetPosition().x)      return;
+        else if (p->m_flushing_volume_btn->IsShown() && e.GetPosition().x > p->m_flushing_volume_btn->GetPosition().x) return;
         bool isShown = p->m_panel_filament_content->IsShown();
         p->m_panel_filament_content->Show(!isShown);
         p->m_panel_filament_separator->Show(isShown);
@@ -2878,8 +2874,10 @@ Sidebar::Sidebar(Plater *parent)
 
     wxBoxSizer* bSizer39;
     bSizer39 = new wxBoxSizer( wxHORIZONTAL );
-    p->m_filament_icon = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "filament");
-    p->m_staticText_filament_settings = new Label(p->m_panel_filament_title, _L("Project Filaments"), LB_PROPAGATE_MOUSE_EVENT);
+    // ORCA: the group header uses the "filament_group" icon; the per-filament "filament" icon
+    // moves to the "Filaments" sub-header below.
+    p->m_filament_icon = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "filament_group");
+    p->m_staticText_filament_settings = new Label(p->m_panel_filament_title, _L("Filament Management"), LB_PROPAGATE_MOUSE_EVENT);
     bSizer39->Add(p->m_filament_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
     bSizer39->Add(p->m_staticText_filament_settings, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
     bSizer39->SetMinSize(-1, FromDIP(30));
@@ -2933,55 +2931,9 @@ Sidebar::Sidebar(Plater *parent)
 
     bSizer39->Add(p->m_flushing_volume_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
     bSizer39->Hide(p->m_flushing_volume_btn); // ORCA Ensure button is hidden on launch while 1 filament exist
-
-    ScalableButton* add_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "add_filament");
-    add_btn->SetToolTip(_L("Add one filament"));
-    add_btn->Bind(wxEVT_BUTTON, [this, scrolled_sizer](wxCommandEvent& e){
-        add_filament();
-        update_filaments_counter();
-    });
-    p->m_bpButton_add_filament = add_btn;
-
-    // ORCA Moved add button after delete button to prevent add button position change when remove icon automatically hidden
-
-    ScalableButton* del_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "delete_filament");
-    del_btn->SetToolTip(_L("Remove last filament"));
-    del_btn->Bind(wxEVT_BUTTON, [this, scrolled_sizer](wxCommandEvent &e) {
-        delete_filament();
-        update_filaments_counter();
-    });
-    p->m_bpButton_del_filament = del_btn;
-
-    bSizer39->Add(del_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
-    bSizer39->Add(add_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing())); // ORCA Moved add button after delete button to prevent add button position change when remove icon automatically hidden
-
-    bSizer39->Hide(p->m_bpButton_del_filament); // ORCA Ensure button is hidden on launch while 1 filament exist
-
-    ams_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
-                                                 wxBU_EXACTFIT | wxNO_BORDER, false, 16); // ORCA match icon size with other icons as 16x16
-    ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
-    ams_btn->Bind(wxEVT_BUTTON, [this, scrolled_sizer](wxCommandEvent &e) {
-        sync_ams_list();
-    });
-
-    ams_btn->Bind(wxEVT_UPDATE_UI, &Sidebar::update_sync_ams_btn_enable, this);
-    p->m_bpButton_ams_filament = ams_btn;
-
-    bSizer39->Add(ams_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
-    //bSizer39->Add(FromDIP(10), 0, 0, 0, 0 );
-
-    ScalableButton* set_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "settings");
-    set_btn->SetToolTip(_L("Set filaments to use"));
-    set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
-        p->editing_filament = -1;
-        // wxGetApp().params_dialog()->Popup();
-        // wxGetApp().get_tab(Preset::TYPE_FILAMENT)->restore_last_select_item();
-        wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_FILAMENTS);
-        });
-    p->m_bpButton_set_filament = set_btn;
-
-    bSizer39->Add(set_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
     bSizer39->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
+    // ORCA: the filament add/remove/sync/settings buttons are created on the "Filaments"
+    // sub-header inside m_panel_filament_content (see below), not on this group header.
 
     // add filament content
     p->m_panel_filament_content = new wxScrolledWindow( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
@@ -3006,6 +2958,81 @@ Sidebar::Sidebar(Plater *parent)
 
     //bSizer_filament_content->Add(p->sizer_filaments, 1, wxALIGN_CENTER | wxALL);
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
+
+    // ORCA: "Filaments" sub-section header (under the "Filament Management" group, above the
+    // physical filament list). Mirrors the "Color Mixing" sub-section header styling and hosts
+    // the filament add/remove/sync/settings buttons (moved off the group header).
+    {
+        auto* filaments_title = new StaticBox(p->m_panel_filament_content, wxID_ANY, wxDefaultPosition,
+                                              wxDefaultSize, wxTAB_TRAVERSAL | wxBORDER_NONE);
+        filaments_title->SetBackgroundColor(wxColour(248, 248, 248));
+        filaments_title->SetBackgroundColor2(0xF1F1F1);
+        filaments_title->SetMinSize(wxSize(-1, FromDIP(30)));
+        filaments_title->SetMaxSize(wxSize(-1, FromDIP(30)));
+        auto* f_icon  = new ScalableButton(filaments_title, wxID_ANY, "filament");
+        auto* f_label = new Label(filaments_title, _L("Filaments"), LB_PROPAGATE_MOUSE_EVENT);
+
+        // Synchronize filament list from AMS
+        ams_btn = new ScalableButton(filaments_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
+                                     wxBU_EXACTFIT | wxNO_BORDER, false, 16);
+        ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
+        ams_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { sync_ams_list(); });
+        ams_btn->Bind(wxEVT_UPDATE_UI, &Sidebar::update_sync_ams_btn_enable, this);
+        p->m_bpButton_ams_filament = ams_btn;
+
+        // Set filaments to use
+        auto* set_btn = new ScalableButton(filaments_title, wxID_ANY, "settings");
+        set_btn->SetToolTip(_L("Set filaments to use"));
+        set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+            p->editing_filament = -1;
+            wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_FILAMENTS);
+        });
+        p->m_bpButton_set_filament = set_btn;
+
+        // Remove last filament
+        auto* del_btn = new ScalableButton(filaments_title, wxID_ANY, "delete_filament");
+        del_btn->SetToolTip(_L("Remove last filament"));
+        del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+            delete_filament();
+            update_filaments_counter();
+        });
+        p->m_bpButton_del_filament = del_btn;
+
+        // Add one filament
+        auto* add_btn = new ScalableButton(filaments_title, wxID_ANY, "add_filament");
+        add_btn->SetToolTip(_L("Add one filament"));
+        add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e){
+            add_filament();
+            update_filaments_counter();
+        });
+        p->m_bpButton_add_filament = add_btn;
+
+        auto* h_filaments = new wxBoxSizer(wxHORIZONTAL);
+        auto* white_left_f = new wxPanel(filaments_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
+        white_left_f->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+        h_filaments->Add(white_left_f, 0, wxEXPAND | wxTOP | wxBOTTOM, 0);
+        h_filaments->Add(f_icon, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
+        h_filaments->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
+        h_filaments->Add(f_label, 0, wxALIGN_CENTER_VERTICAL);
+        h_filaments->AddStretchSpacer();
+        h_filaments->Add(ams_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        h_filaments->Add(set_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        h_filaments->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        h_filaments->Add(add_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+        auto* white_right_f = new wxPanel(filaments_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
+        white_right_f->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+        h_filaments->Add(white_right_f, 0, wxEXPAND | wxTOP | wxBOTTOM, 0);
+        filaments_title->SetSizer(h_filaments);
+        filaments_title->Layout();
+
+        // Match prior launch state: delete button hidden with a single filament (show_SEMM_buttons
+        // takes over visibility afterwards).
+        if (p->combos_filament.size() <= 1)
+            del_btn->Hide();
+
+        sizer_filaments2->Add(filaments_title, 0, wxEXPAND, 0);
+    }
+
     sizer_filaments2->Add(p->sizer_filaments, 0, wxEXPAND, 0);
     // ORCA: Color Mixing section (under Filament Management, below the filament list).
     this->init_color_mix_panel(p->m_panel_filament_content, sizer_filaments2);
@@ -3320,8 +3347,8 @@ void Sidebar::update_all_preset_comboboxes()
 		p->m_staticText_filament_settings->SetLabel(_L("Pellets"));
         p->m_filament_icon->SetBitmap_("pellets");
     } else {
-		p->m_staticText_filament_settings->SetLabel(_L("Filament"));
-        p->m_filament_icon->SetBitmap_("filament");
+		p->m_staticText_filament_settings->SetLabel(_L("Filament Management"));
+        p->m_filament_icon->SetBitmap_("filament_group");
     }
 
     show_SEMM_buttons();
