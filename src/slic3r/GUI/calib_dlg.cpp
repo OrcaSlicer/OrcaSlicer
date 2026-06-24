@@ -1506,7 +1506,7 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/calibration/flow-ratio-calib");
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/flow_ratio_calib");
     bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
