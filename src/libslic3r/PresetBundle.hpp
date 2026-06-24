@@ -4,6 +4,7 @@
 #include "Preset.hpp"
 #include "AppConfig.hpp"
 #include "enum_bitmask.hpp"
+#include "MixedFilament.hpp"
 
 #include <memory>
 #include <shared_mutex>
@@ -345,6 +346,9 @@ public:
     // BBS: ams
     std::map<int, DynamicPrintConfig> filament_ams_list;
     std::vector<std::vector<std::string>> ams_multi_color_filment;
+
+    // Mixed (virtual) filaments for layer-based colour mixing.
+    MixedFilamentManager        mixed_filaments;
 
     std::vector<std::map<int, int>> extruder_ams_counts;
 

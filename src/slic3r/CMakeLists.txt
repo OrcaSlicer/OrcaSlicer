@@ -343,6 +343,18 @@ set(SLIC3R_GUI_SOURCES
     GUI/MediaPlayCtrl.h
     GUI/MeshUtils.cpp
     GUI/MeshUtils.hpp
+    GUI/MixedFilamentDialog.cpp
+    GUI/MixedFilamentDialog.hpp
+    GUI/MixedGradientSelector.hpp
+    GUI/MixedGradientSelector.cpp
+    GUI/MixedColorMatchPanel.cpp
+    GUI/MixedColorMatchPanel.hpp
+    GUI/MixedColorMatchHelpers.hpp
+    GUI/MixedColorMatchHelpers.cpp
+    GUI/MixedFilamentColorMapPanel.hpp
+    GUI/MixedFilamentColorMapPanel.cpp
+    GUI/MixedFilamentBadge.cpp
+    GUI/MixedFilamentBadge.hpp
     GUI/ModelMall.cpp
     GUI/ModelMall.hpp
     GUI/MonitorBasePanel.cpp

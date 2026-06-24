@@ -1313,6 +1313,9 @@ static std::vector<std::string> s_Preset_print_options{
     "interlocking_depth",
     "interlocking_boundary_avoidance",
     "interlocking_beam_width",
+    "dithering_local_z_mode",
+    "dithering_local_z_whole_objects",
+    "dithering_local_z_infill",
     "calib_flowrate_topinfill_special_order",
     // Z Anti-Aliasing (ZAA)
     "zaa_enabled",
@@ -3567,7 +3570,7 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
 
 static constexpr const std::initializer_list<const char*> optional_keys { "compatible_prints", "compatible_printers" };
 //BBS: skip these keys for dirty check
-static std::set<std::string> skipped_in_dirty = {"printer_settings_id", "print_settings_id", "filament_settings_id"};
+static std::set<std::string> skipped_in_dirty = {"printer_settings_id", "print_settings_id", "filament_settings_id", "mixed_filament_definitions"};
 
 bool PresetCollection::is_dirty(const Preset *edited, const Preset *reference)
 {

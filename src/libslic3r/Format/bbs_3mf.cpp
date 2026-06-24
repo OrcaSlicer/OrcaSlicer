@@ -2,6 +2,7 @@
 #include "../Exception.hpp"
 #include "../Model.hpp"
 #include "../Preset.hpp"
+#include "../MixedFilament.hpp"
 #include "../Utils.hpp"
 #include "../LocalesUtils.hpp"
 #include "../GCode.hpp"
@@ -2267,6 +2268,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         const ConfigOptionStrings* filament_ids_opt = config.option<ConfigOptionStrings>("filament_settings_id");
         int max_filament_id = filament_ids_opt ? filament_ids_opt->size() : std::numeric_limits<int>::max();
+        // ORCA mixed: virtual (mixed) filament IDs extend past the physical preset count,
+        // so painted mixed-filament assignments must not be clamped away on project load.
+        if (filament_ids_opt && max_filament_id >= 2) {
+            if (const auto *mixed_defs_opt = config.option<ConfigOptionString>("mixed_filament_definitions");
+                mixed_defs_opt != nullptr && !mixed_defs_opt->value.empty()) {
+                const ConfigOptionStrings *colours = config.option<ConfigOptionStrings>("filament_colour");
+                std::vector<std::string> physical_colors = colours ? colours->values : std::vector<std::string>();
+                physical_colors.resize(size_t(max_filament_id), "#FFFFFF");
+                MixedFilamentManager mixed_mgr;
+                mixed_mgr.auto_generate(physical_colors);
+                mixed_mgr.load_custom_entries(mixed_defs_opt->value, physical_colors);
+                max_filament_id = int(mixed_mgr.total_filaments(size_t(max_filament_id)));
+            }
+        }
         for (ModelObject* mo : m_model->objects) {
             const ConfigOptionInt* extruder_opt = dynamic_cast<const ConfigOptionInt*>(mo->config.option("extruder"));
             int extruder_id = 0;

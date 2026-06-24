@@ -175,6 +175,9 @@ public:
     void change_top_border_for_mode_sizer(bool increase_border);
     void update_filaments_area_height();
     void update_filaments_counter(bool force_layout = false);
+    // ORCA: Color Mixing panel — virtual "mixed" filaments (+/- with 4-mode Add dialog).
+    void init_color_mix_panel(wxWindow* parent, wxSizer* sizer);
+    void update_color_mix_panel();
     void msw_rescale();
     void sys_color_changed();
     void search();

@@ -881,7 +881,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 		        const PrintRegionConfig &region_config = layerm.region().config();
 		        FlowRole extrusion_role = surface.is_top() ? frTopSolidInfill : (surface.is_solid() ? frSolidInfill : frInfill);
 		        bool     is_bridge 	    = layer.id() > 0 && surface.is_bridge();
-		        params.extruder 	 = layerm.region().extruder(extrusion_role);
+		        params.extruder 	 = layerm.extruder(extrusion_role);
 		        params.pattern 		 = region_config.sparse_infill_pattern.value;
 		        params.density       = float(region_config.sparse_infill_density);
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
@@ -1158,7 +1158,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 	        	}
 	        if (internal_solid_fill == nullptr) {
 	        	// Produce another solid fill.
-		        params.extruder 	 = layerm.region().extruder(frSolidInfill);
+		        params.extruder 	 = layerm.extruder(frSolidInfill);
                 const auto top_pattern = layerm.region().config().top_surface_pattern;
                 if(top_pattern == ipMonotonic || top_pattern == ipMonotonicLine)
                     params.pattern = top_pattern;

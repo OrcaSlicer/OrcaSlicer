@@ -68,7 +68,24 @@ static std::vector<std::string> s_project_options {
     // whether dynamic per-nozzle filament mapping is active. Persisted with the project and
     // restored from a saved 3mf; reset to false on load and set true only by live device sync.
     "has_filament_switcher",
-    "enable_filament_dynamic_map"
+    "enable_filament_dynamic_map",
+    // Mixed filament / local-Z settings
+    "mixed_filament_gradient_mode",
+    "mixed_filament_height_lower_bound",
+    "mixed_filament_height_upper_bound",
+    "mixed_filament_advanced_dithering",
+    "mixed_filament_component_bias_enabled",
+    "mixed_filament_surface_indentation",
+    "mixed_filament_region_collapse",
+    "mixed_filament_definitions",
+    "mixed_color_layer_height_a",
+    "mixed_color_layer_height_b",
+    "dithering_z_step_size",
+    "dithering_local_z_mode",
+    "dithering_local_z_whole_objects",
+    "dithering_local_z_infill",
+    "dithering_local_z_direct_multicolor",
+    "dithering_step_painted_zones_only"
 };
 
 //Orca: add custom as default

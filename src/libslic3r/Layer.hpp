@@ -76,6 +76,7 @@ public:
     // (this collection contains only ExtrusionEntityCollection objects)
     ExtrusionEntityCollection   fills;
 
+    unsigned int extruder(FlowRole role) const;
     Flow    flow(FlowRole role) const;
     Flow    flow(FlowRole role, double layer_height) const;
     Flow    bridging_flow(FlowRole role, bool thick_bridge = false) const;
