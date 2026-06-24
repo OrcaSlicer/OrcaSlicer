@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ask PR author for label
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             function isPermissionDenied(error) {
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apply label command from PR author
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             function isPermissionDenied(error) {
