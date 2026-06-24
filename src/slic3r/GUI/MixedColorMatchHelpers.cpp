@@ -1119,11 +1119,15 @@ bool is_filament_compatible(const MixedFilament& mf)
             }
         }
     } else {
-        if (mf.component_a >= 1) fids.push_back(mf.component_a - 1);
-        if (mf.component_b >= 1) fids.push_back(mf.component_b - 1);
+        // ORCA: bound component ids to the physical filaments that currently exist; a printer
+        // change can leave a mixed entry referencing filaments beyond the new count.
+        PresetBundle* pb = wxGetApp().preset_bundle;
+        const unsigned int num_physical = pb ? unsigned(pb->filament_presets.size()) : 0u;
+        if (mf.component_a >= 1 && mf.component_a <= num_physical) fids.push_back(mf.component_a - 1);
+        if (mf.component_b >= 1 && mf.component_b <= num_physical) fids.push_back(mf.component_b - 1);
         if (!mf.gradient_component_ids.empty()) {
             for (unsigned int fid : MixedFilamentManager::decode_gradient_component_ids(mf.gradient_component_ids))
-                if (fid >= 1) fids.push_back(fid - 1);
+                if (fid >= 1 && fid <= num_physical) fids.push_back(fid - 1);
         }
     }
 

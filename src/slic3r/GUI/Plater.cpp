@@ -3960,6 +3960,13 @@ void Sidebar::update_color_mix_panel()
     for (size_t i = 0; i < mfs.size(); ++i) {
         MixedFilament& mf = mfs[i];
         if (mf.deleted) continue;
+        // ORCA: skip mixed entries that reference physical filaments which no longer exist
+        // (e.g. after switching to a printer/preset with fewer filaments). Their components are
+        // out of range for the current physical colour list, so rendering them is both wrong and
+        // unsafe.
+        if (mf.component_a == 0 || mf.component_b == 0 ||
+            mf.component_a > num_physical || mf.component_b > num_physical)
+            continue;
 
         const std::string synced_color = compute_mixed_filament_display_color(mf, display_context);
         if (mf.display_color != synced_color)
@@ -4499,9 +4506,14 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
             if (auto* opt = pb->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
                 opt->value = pb->mixed_filaments.serialize_custom_entries();
         }
+        // auto_generate() drops mixed entries referencing now-removed filaments, so the full
+        // panel rebuild is safe here.
+        update_color_mix_panel();
+    } else {
+        // Default path (e.g. switching printers): only refresh the per-feature/support filament
+        // combos. Avoid the heavier color-mix panel rebuild during the preset-change cascade.
+        update_dynamic_filament_list();
     }
-    // Refreshes the mixed-filament panel and the per-feature/support filament combos.
-    update_color_mix_panel();
 }
 
 void Sidebar::on_filaments_delete(size_t filament_id)
@@ -5580,7 +5592,10 @@ void Sidebar::auto_calc_flushing_volumes_internal(const int modify_id, const int
     int m_max_flush_volume = Slic3r::g_max_flush_volume;
     unsigned int m_number_of_extruders = (int)(sqrt(init_matrix.size()) + 0.001);
 
-    const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
+    // ORCA mixed filament: the flush matrix is sized for PHYSICAL filaments only, so request
+    // physical colours (mixed/virtual filaments must not be included here or the matrix indexing
+    // overflows and corrupts the heap).
+    const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config(nullptr, false);
     std::vector<std::vector<wxColour>> multi_colours;
 
     // Support for multi-color filament
