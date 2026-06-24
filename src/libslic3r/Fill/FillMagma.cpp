@@ -506,12 +506,60 @@ void FillMagmaRectilinear::_fill_surface_single(
 // FillMagmaTriHex — trihexagonal (hex hubs + up/down triangle vents)
 // ============================================================================
 //
-// The trihexagonal walls are the tiling's edges. Hexagons break any analytic line
-// family into segments, so instead of generating line families we emit the walls
-// directly from the lattice cell corners and deduplicate each shared edge (every
-// edge is shared by exactly one hex and one triangle). A window is the shared edge
-// of an open hub<->vent pair on this layer, which we drop. chain_or_connect_infill
-// then stitches the collinear segments back into runs.
+// The trihexagonal walls are three straight line families at 0/60/120 degrees — the SAME
+// generator as FillMagmaTriangle, but at HALF-integer lattice indices. The trihex tiling is
+// the rectified triangular grid, so its walls are the triangle pattern's three families shifted
+// by 1/2 in each index: horizontal at ly = k+0.5, the 60 deg family at lx = m+0.5, the 120 deg
+// family at lx+ly = n+0.5. That half-shift is exactly what opens the hub hexagons: no family
+// line passes through a hub vertex (integer ly/lx) or a vent centroid (thirds), so both stay
+// hollow, while every wall lies on exactly one family. Each open hub<->vent window is one wall
+// segment on one family; trihex_window_cuts classifies it and cuts the gap, then we generate
+// full lines per family, clip per line, and chain each family — long sweeps in three directions.
+
+// Tri-hex window cuts: classify each open hub<->vent shared edge into its line family and record
+// the interruption interval (x-interval for the horizontal family, y-interval for 60/120), the
+// trihexagonal analogue of triangle_window_cuts.
+static MagmaWindowCuts trihex_window_cuts(const magma::MagmaTubeMap &tm, int layer,
+                                          const magma::MagmaLattice &lat)
+{
+    MagmaWindowCuts cuts;
+    auto add_edge = [&](const Vec2d &P0, const Vec2d &P1) {
+        auto [lx0, ly0] = lat.to_lattice(P0.x(), P0.y());
+        auto [lx1, ly1] = lat.to_lattice(P1.x(), P1.y());
+        if (std::abs(ly0 - ly1) < 1e-3) {                       // horizontal family (const ly)
+            int k = int(std::lround(0.5 * (ly0 + ly1) - 0.5));
+            cuts.horiz[k].push_back({ std::min(P0.x(), P1.x()), std::max(P0.x(), P1.x()) });
+        } else if (std::abs(lx0 - lx1) < 1e-3) {                // 60 deg family (const lx)
+            int mcol = int(std::lround(0.5 * (lx0 + lx1) - 0.5));
+            cuts.col60[mcol].push_back({ std::min(P0.y(), P1.y()), std::max(P0.y(), P1.y()) });
+        } else {                                                // 120 deg family (const lx+ly)
+            int n = int(std::lround(0.5 * ((lx0 + ly0) + (lx1 + ly1)) - 0.5));
+            cuts.diag120[n].push_back({ std::min(P0.y(), P1.y()), std::max(P0.y(), P1.y()) });
+        }
+    };
+    for (const auto &pair : tm.u_tube_pairs()) {
+        if (!tm.window_open_at(pair, layer))
+            continue;
+        const std::vector<Vec2d> hub = lat.cell_corners(pair.cell_a);
+        auto cut_leg = [&](const magma::CellId &leg) {
+            const std::vector<Vec2d> lc = lat.cell_corners(leg);
+            // A hub and a vent share exactly one wall = the two corners common to both rings.
+            std::vector<Vec2d> shared;
+            for (const Vec2d &h : hub)
+                for (const Vec2d &l : lc)
+                    if ((h - l).squaredNorm() < 1e-6) { shared.push_back(h); break; }
+            if (shared.size() >= 2)
+                add_edge(shared[0], shared[1]);
+        };
+        cut_leg(pair.cell_b);
+        for (const magma::CellId &ev : pair.extra_vents)
+            cut_leg(ev);
+    }
+    for (auto &kv : cuts.horiz)   merge_intervals(kv.second);
+    for (auto &kv : cuts.col60)   merge_intervals(kv.second);
+    for (auto &kv : cuts.diag120) merge_intervals(kv.second);
+    return cuts;
+}
 
 std::pair<float, Point> FillMagmaTriHex::_infill_direction(const Surface *surface) const
 {
@@ -537,78 +585,101 @@ void FillMagmaTriHex::_fill_surface_single(
     no_anchor_params.anchor_length     = 0.f;
     no_anchor_params.anchor_length_max = 0.f;
 
-    const double cs    = this->tube_map->cell_spacing();
+    const double s     = this->tube_map->cell_spacing();
     const int    layer = static_cast<int>(this->layer_id);
     const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const double off_y = lattice.offset_y();
 
-    // Canonical key for an undirected edge, rounded to ~1um so the same wall
-    // computed from each of its two adjacent cells dedups exactly.
-    auto qd = [](double mm) -> coord_t { return coord_t(std::llround(mm * 1e6 / 1000.0)) * 1000; };
-    auto ekey = [&](const Vec2d &a, const Vec2d &b) -> std::array<coord_t, 4> {
-        coord_t ax = qd(a.x()), ay = qd(a.y()), bx = qd(b.x()), by = qd(b.y());
-        if (std::tie(ax, ay) > std::tie(bx, by)) { std::swap(ax, bx); std::swap(ay, by); }
-        return { ax, ay, bx, by };
-    };
-    auto cell_edge_keys = [&](const std::vector<Vec2d> &c, std::set<std::array<coord_t, 4>> &out) {
-        const size_t n = c.size();
-        for (size_t i = 0; i < n; ++i) out.insert(ekey(c[i], c[(i + 1) % n]));
-    };
+    MagmaWindowCuts gaps = trihex_window_cuts(*this->tube_map, layer, lattice);
 
-    // Window gaps: the shared edge between the hub (cell_a) and EACH of its legs — the
-    // primary vent (cell_b) plus any extra manifold legs — for every open pair on this
-    // layer. extra_vents is empty for triangle/square, so this reduces to the single
-    // hub<->vent edge there.
-    std::set<std::array<coord_t, 4>> window_edges;
-    for (const auto &pair : this->tube_map->u_tube_pairs()) {
-        if (!this->tube_map->window_open_at(pair, layer))
-            continue;
-        std::set<std::array<coord_t, 4>> hub_edges;
-        cell_edge_keys(lattice.cell_corners(pair.cell_a), hub_edges);
-        auto cut_shared = [&](const magma::CellId &leg) {
-            std::vector<Vec2d> cl = lattice.cell_corners(leg);
-            for (size_t i = 0; i < cl.size(); ++i) {
-                auto k = ekey(cl[i], cl[(i + 1) % cl.size()]);
-                if (hub_edges.count(k)) window_edges.insert(k);
-            }
-        };
-        cut_shared(pair.cell_b);
-        for (const magma::CellId &ev : pair.extra_vents)
-            cut_shared(ev);
-    }
-
-    // Enumerate cells over the expanded region; emit each unique wall edge once.
+    // Bounding box -> half-integer lattice index ranges for the 3 families. The lattice is
+    // skewed, so map all four bbox corners and take the spanning (ly, lx, lx+ly) box.
     BoundingBox bbox = expolygon.contour.bounding_box();
-    coord_t m = coord_t(scale_(cs));
-    bbox.min -= Point(m, m);
-    bbox.max += Point(m, m);
-    std::vector<magma::CellId> cells = lattice.enumerate_cells(bbox);
+    const double x_min = unscale<double>(bbox.min.x()) - s, x_max = unscale<double>(bbox.max.x()) + s;
+    const double y_min = unscale<double>(bbox.min.y()) - s, y_max = unscale<double>(bbox.max.y()) + s;
+    double lxv[4], lyv[4];
+    const double cx[4] = { x_min, x_max, x_min, x_max };
+    const double cy[4] = { y_min, y_min, y_max, y_max };
+    for (int i = 0; i < 4; ++i) { auto p = lattice.to_lattice(cx[i], cy[i]); lxv[i] = p.first; lyv[i] = p.second; }
+    const double ly_min = *std::min_element(lyv, lyv + 4), ly_max = *std::max_element(lyv, lyv + 4);
+    const double lx_min = *std::min_element(lxv, lxv + 4), lx_max = *std::max_element(lxv, lxv + 4);
+    double n_min = lxv[0] + lyv[0], n_max = n_min;
+    for (int i = 1; i < 4; ++i) { double n = lxv[i] + lyv[i]; n_min = std::min(n_min, n); n_max = std::max(n_max, n); }
 
-    std::set<std::array<coord_t, 4>> seen;
-    Polylines raw;
-    for (const magma::CellId &cell : cells) {
-        std::vector<Vec2d> corners = lattice.cell_corners(cell);
-        const size_t n = corners.size();
-        for (size_t i = 0; i < n; ++i) {
-            const Vec2d &a = corners[i];
-            const Vec2d &b = corners[(i + 1) % n];
-            auto k = ekey(a, b);
-            if (!seen.insert(k).second)    // already emitted from the adjacent cell
-                continue;
-            if (window_edges.count(k))     // open window — leave the gap
-                continue;
-            Polyline pl;
-            pl.points.push_back(Point(scale_(a.x()), scale_(a.y())));
-            pl.points.push_back(Point(scale_(b.x()), scale_(b.y())));
-            raw.push_back(std::move(pl));
+    const int row_min  = int(std::floor(ly_min - 0.5)) - 1, row_max  = int(std::ceil(ly_max - 0.5)) + 1;
+    const int col_min  = int(std::floor(lx_min - 0.5)) - 1, col_max  = int(std::ceil(lx_max - 0.5)) + 1;
+    const int diag_min = int(std::floor(n_min  - 0.5)) - 1, diag_max = int(std::ceil(n_max  - 0.5)) + 1;
+    // 60/120 deg lines run between these ly extremes (a touch past the bbox).
+    const double ly_lo = ly_min - 1.0, ly_hi = ly_max + 1.0;
+
+    auto clip_lines = [&](Polylines &raw) -> Polylines {
+        Polylines clipped;
+        for (Polyline &pl : raw) {
+            Polylines frags = intersection_pl(Polylines{ std::move(pl) }, expolygon);
+            append(clipped, std::move(frags));
         }
+        return clipped;
+    };
+
+    // --- Horizontal family: y = (k + 0.5)*s + off_y ---
+    {
+        Polylines raw;
+        for (int k = row_min; k <= row_max; ++k) {
+            coord_t y_s = coord_t(scale_((k + 0.5) * s + off_y));
+            auto it = gaps.horiz.find(k);
+            if (it == gaps.horiz.end())
+                raw.push_back(make_horiz_segment(x_min, x_max, y_s));
+            else
+                subtract_gaps(x_min, x_max, it->second, [&](double lo, double hi) {
+                    raw.push_back(make_horiz_segment(lo, hi, y_s));
+                });
+        }
+        Polylines clipped = clip_lines(raw);
+        if (!clipped.empty())
+            chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
     }
 
-    // Clip to the fill region and connect. The edges are independent cell walls (no per-line
-    // sweep order to preserve, unlike the triangle/square line families), so clip the whole
-    // batch in one Clipper pass instead of one call per edge — there are many edges per layer.
-    Polylines clipped = intersection_pl(raw, expolygon);
-    if (!clipped.empty())
-        chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
+    // --- 60 deg family: one line per column lx = m + 0.5 ---
+    {
+        Polylines raw;
+        for (int mcol = col_min; mcol <= col_max; ++mcol) {
+            Vec2d p0 = lattice.to_world(mcol + 0.5, ly_lo);
+            Vec2d p1 = lattice.to_world(mcol + 0.5, ly_hi);
+            auto it = gaps.col60.find(mcol);
+            if (it == gaps.col60.end()) {
+                Polyline pl;
+                pl.points.push_back(Point(scale_(p0.x()), scale_(p0.y())));
+                pl.points.push_back(Point(scale_(p1.x()), scale_(p1.y())));
+                raw.push_back(std::move(pl));
+            } else {
+                split_line_by_y_gaps(p0, p1, it->second, raw);
+            }
+        }
+        Polylines clipped = clip_lines(raw);
+        if (!clipped.empty())
+            chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
+    }
+
+    // --- 120 deg family: one line per diagonal lx + ly = n + 0.5 ---
+    {
+        Polylines raw;
+        for (int n = diag_min; n <= diag_max; ++n) {
+            Vec2d p0 = lattice.to_world((n + 0.5) - ly_lo, ly_lo);
+            Vec2d p1 = lattice.to_world((n + 0.5) - ly_hi, ly_hi);
+            auto it = gaps.diag120.find(n);
+            if (it == gaps.diag120.end()) {
+                Polyline pl;
+                pl.points.push_back(Point(scale_(p0.x()), scale_(p0.y())));
+                pl.points.push_back(Point(scale_(p1.x()), scale_(p1.y())));
+                raw.push_back(std::move(pl));
+            } else {
+                split_line_by_y_gaps(p0, p1, it->second, raw);
+            }
+        }
+        Polylines clipped = clip_lines(raw);
+        if (!clipped.empty())
+            chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
+    }
 }
 
 } // namespace Slic3r
