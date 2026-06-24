@@ -1010,7 +1010,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 // Shrink the extruder_clearance_radius a tiny bit, so that if the object arrangement algorithm placed the objects
                 // exactly by satisfying the extruder_clearance_radius, this test will not trigger collision.
                 object_skirt_offset = print.object_skirt_offset(&convex_hull0);
-                float obj_distance = print.is_all_objects_are_short() ? scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1) : scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
+                float obj_distance = print.is_all_objects_are_short() ? scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset)/2 - 0.1) : scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
 
                 Polygon convex_hull_no_offset = convex_hull0, convex_hull;
                 auto tmp = offset(convex_hull_no_offset, obj_distance, jtRound, scale_(0.1));
@@ -5982,13 +5982,13 @@ float Print::object_skirt_offset(const Polygon* hull) const
     float object_skirt_offset = 0;
 
     if (is_all_objects_are_short())
-        object_skirt_offset = skirt_border;
+        object_skirt_offset = skirt_border * 2;
     else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height)
-        object_skirt_offset = config().skirt_distance + line_width;
+        object_skirt_offset = config().skirt_distance + line_width*0.75;
     else if (skirt_border > config().extruder_clearance_radius / 2)
-        object_skirt_offset = (skirt_border - config().extruder_clearance_radius / 2);
+        object_skirt_offset = std::max(skirt_border /2. ,skirt_border - config().extruder_clearance_radius / 2);
     else
-        return 0;
+        object_skirt_offset = skirt_border / 2;
 
     return object_skirt_offset;
 }
