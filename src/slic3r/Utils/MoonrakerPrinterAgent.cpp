@@ -581,6 +581,16 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
+    // ORCA-CFS: Creality Filament System (CFS) on rooted K1/K1C/K1 SE/K1 Max is exposed as the
+    // Klipper `box` object over Moonraker. Try it first; it is the most specific match.
+    if (fetch_cfs_filament_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
+                                << (max_lane_index + 1) << " slots";
+        int ams_count = (max_lane_index + 4) / 4;
+        build_ams_payload(ams_count, max_lane_index, trays);
+        return true;
+    }
+
     // Try Moonraker filament data (more generic, supports any filament changer
     // software that reports lane data to Moonraker like AFC and recent Happy
     // Hare as of Feb 15, 2026)
@@ -734,6 +744,109 @@ std::string MoonrakerPrinterAgent::normalize_color_value(const std::string& colo
 }
 
 // Fetch filament info from moonraker database
+bool MoonrakerPrinterAgent::fetch_cfs_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    // ORCA-CFS: Query the Creality Filament System via the Klipper `box` object and convert each
+    // loaded slot to an AmsTrayData, mirroring fetch_moonraker_filament_data() (AFC) and
+    // fetch_hh_filament_info() (Happy Hare). The `box.same_material` array carries, per loaded slot:
+    //   [ "<filamentId>", "0RRGGBB", ["T1A"], "<MaterialName>" ]
+    // The slot label "T<unit><A..D>" maps to a 0-based tool index = (unit-1)*4 + ('A'..'D').
+    std::string url = join_url(device_info.base_url, "/printer/objects/query?box");
+
+    std::string response_body;
+    bool        success = false;
+    std::string http_error;
+
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty())
+        http.header("X-Api-Key", device_info.api_key);
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) { response_body = body; success = true; }
+            else http_error = "HTTP error: " + std::to_string(status);
+        })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            http_error = err;
+            if (status > 0) http_error += " (HTTP " + std::to_string(status) + ")";
+        })
+        .perform_sync();
+
+    if (!success) {
+        // Not an error: most Moonraker printers have no `box` object.
+        BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent::fetch_cfs_filament_data: no CFS box (" << http_error << ")";
+        return false;
+    }
+
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_cfs_filament_data: Invalid JSON response";
+        return false;
+    }
+
+    if (!json.contains("result") || !json["result"].contains("status")
+        || !json["result"]["status"].contains("box")) {
+        BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent::fetch_cfs_filament_data: no box in status";
+        return false;
+    }
+    const auto& box = json["result"]["status"]["box"];
+    if (!box.contains("same_material") || !box["same_material"].is_array()) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_cfs_filament_data: box present but no same_material";
+        return false;
+    }
+
+    auto norm_color = [](std::string c) -> std::string {
+        if (c.empty() || c == "-1") return std::string();
+        if (c.size() > 6) c = c.substr(c.size() - 6); // drop leading "0" of "0RRGGBB"
+        return "#" + c;
+    };
+    auto label_to_index = [](const std::string& label) -> int {
+        if (label.size() < 3 || (label[0] != 'T' && label[0] != 't')) return -1;
+        const int unit = label[1] - '0';
+        char letter = label[2];
+        if (letter >= 'a' && letter <= 'z') letter = static_cast<char>(letter - 'a' + 'A');
+        const int sidx = (letter >= 'A' && letter <= 'D') ? (letter - 'A') : -1;
+        if (unit < 1 || unit > 4 || sidx < 0) return -1;
+        return (unit - 1) * 4 + sidx;
+    };
+
+    trays.clear();
+    max_lane_index = 0;
+    auto* bundle = GUI::wxGetApp().preset_bundle;
+
+    for (const auto& entry : box["same_material"]) {
+        if (!entry.is_array() || entry.size() < 4)
+            continue;
+        const std::string color = entry[1].is_string() ? entry[1].get<std::string>() : std::string();
+        std::string label;
+        if (entry[2].is_array() && !entry[2].empty() && entry[2][0].is_string())
+            label = entry[2][0].get<std::string>();
+        const std::string name = entry[3].is_string() ? entry[3].get<std::string>() : std::string();
+
+        const int idx = label_to_index(label);
+        if (idx < 0)
+            continue;
+
+        AmsTrayData tray;
+        tray.slot_index   = idx;
+        tray.tray_type    = name;
+        tray.tray_color   = norm_color(color);
+        tray.has_filament = !name.empty();
+        tray.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(name)
+                                    : map_filament_type_to_generic_id(name);
+
+        max_lane_index = std::max(max_lane_index, idx);
+        trays.push_back(tray);
+    }
+
+    if (trays.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_cfs_filament_data: box present but no loaded slots";
+        return false;
+    }
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_cfs_filament_data: parsed " << trays.size() << " CFS slot(s)";
+    return true;
+}
+
 bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
 {
     // Fetch lane data from Moonraker database
