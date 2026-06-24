@@ -29,6 +29,11 @@ jobs:
       ubuntu-ver: '2404'
       ubuntu-ver-str: '_Ubuntu2404'
       ORCA_UPDATER_SIG_KEY: ${{ secrets.ORCA_UPDATER_SIG_KEY }}
+      # Branches whose builds are published to the nightly release. The
+      # belt-printer branch ships alongside main but its assets carry a `_belt`
+      # suffix (nightly_suffix) so they never overwrite the main nightly assets.
+      deploy_nightly: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer' }}
+      nightly_suffix: ${{ github.ref == 'refs/heads/belt-printer' && '_belt' || '' }}
 
     steps:
       - name: Checkout
@@ -160,7 +165,7 @@ jobs:
 
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -216,7 +221,7 @@ jobs:
           fi
 
       - name: Create DMG without notary
-        if: github.ref != 'refs/heads/main' && runner.os == 'macOS' && inputs.macos-combine-only
+        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/belt-printer' && runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
           # Load the `retry` helper (retries flaky commands such as `hdiutil create`).
@@ -262,13 +267,13 @@ jobs:
           if-no-files-found: ignore
 
       - name: Deploy Mac release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && env.deploy_nightly == 'true' && runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
           asset_path: ${{ github.workspace }}/OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
-          asset_name: OrcaSlicer_Mac_universal_nightly.dmg
+          asset_name: OrcaSlicer_Mac_universal_nightly${{ env.nightly_suffix }}.dmg
           asset_content_type: application/octet-stream
           max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
 
@@ -350,24 +355,24 @@ jobs:
           path: ${{ github.workspace }}/build/src/Release/OrcaSlicer_profile_validator.exe
 
       - name: Deploy Windows release portable
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && env.deploy_nightly == 'true' && runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
           asset_path: ${{ github.workspace }}/build/OrcaSlicer_Windows_${{ env.ver }}_portable.zip
-          asset_name: OrcaSlicer_Windows_nightly_portable.zip
+          asset_name: OrcaSlicer_Windows_nightly${{ env.nightly_suffix }}_portable.zip
           asset_content_type: application/x-zip-compressed
           max_releases: 1
 
       - name: Deploy Windows release installer
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && env.deploy_nightly == 'true' && runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
           asset_path: ${{ github.workspace }}/build/OrcaSlicer_Windows_Installer_${{ env.ver }}.exe
-          asset_name: OrcaSlicer_Windows_Installer_nightly.exe
+          asset_name: OrcaSlicer_Windows_Installer_nightly${{ env.nightly_suffix }}.exe
           asset_content_type: application/x-msdownload
           max_releases: 1
 
@@ -471,13 +476,13 @@ jobs:
           path: './build/src/Release/OrcaSlicer_profile_validator'
 
       - name: Deploy Ubuntu release
-        if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED }}
+        if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && env.deploy_nightly == 'true' && runner.os == 'Linux' && !vars.SELF_HOSTED }}
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
           asset_path: ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_${{ env.ver }}.AppImage
-          asset_name: OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_nightly.AppImage
+          asset_name: OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_nightly${{ env.nightly_suffix }}.AppImage
           asset_content_type: application/octet-stream
           max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
       - name: Deploy Ubuntu release
