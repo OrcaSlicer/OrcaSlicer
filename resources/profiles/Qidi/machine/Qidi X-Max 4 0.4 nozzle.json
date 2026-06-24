@@ -79,5 +79,6 @@
 		"150x150"
 	],
 	"fan_direction": "left",
+	"printer_agent": "qidi",
 	"use_3mf": "1"
 }
