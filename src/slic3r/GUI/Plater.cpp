@@ -18063,9 +18063,13 @@ void Plater::on_filament_count_change(size_t num_filaments)
         part_plate->update_first_layer_print_sequence(num_filaments);
     }
 
+    // ORCA: include virtual (mixed) filaments so painted mixed-colour regions are not stripped.
+    size_t total_filaments_for_paint = num_filaments;
+    if (wxGetApp().preset_bundle)
+        total_filaments_for_paint = wxGetApp().preset_bundle->mixed_filaments.total_filaments(num_filaments);
     for (ModelObject* mo : wxGetApp().model().objects) {
         for (ModelVolume* mv : mo->volumes) {
-            mv->update_extruder_count(num_filaments);
+            mv->update_extruder_count(total_filaments_for_paint);
         }
     }
 }
@@ -18410,7 +18414,7 @@ void Plater::on_activate()
 }
 
 // Get vector of extruder colors considering filament color, if extruder color is undefined.
-std::vector<std::string> Plater::get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result) const
+std::vector<std::string> Plater::get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result, bool include_mixed) const
 {
     if (wxGetApp().is_gcode_viewer() && result != nullptr)
         return result->extruder_colors;
@@ -18421,6 +18425,12 @@ std::vector<std::string> Plater::get_extruder_colors_from_plater_config(const GC
             return filament_colors;
 
         filament_colors = (config->option<ConfigOptionStrings>("filament_colour"))->values;
+        // ORCA: append enabled mixed (virtual) filament display colours so virtual extruder IDs
+        // (painted mixed regions / resolved tools) render with a colour in editor and preview.
+        if (include_mixed && wxGetApp().preset_bundle != nullptr) {
+            const auto mixed = wxGetApp().preset_bundle->mixed_filaments.display_colors();
+            filament_colors.insert(filament_colors.end(), mixed.begin(), mixed.end());
+        }
         return filament_colors;
     }
 }

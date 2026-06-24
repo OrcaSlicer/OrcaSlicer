@@ -864,6 +864,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         layer_tools.layer_index        = layerCount;
         layer_tools.object_layer_count = int(object.layers().size());
         layer_tools.layer_height       = layer->height;
+        // ORCA: resolve mixed (virtual) filament IDs to the physical extruder for this layer,
+        // so the per-layer tool sequence alternates correctly (collect_extruders reads region
+        // config filament IDs directly, bypassing LayerTools::extruder()).
+        auto rmix = [this, layerCount, layer, &object](int fid) -> unsigned int {
+            return this->resolve_mixed(unsigned(fid), layerCount, float(layer->print_z), float(layer->height), &object);
+        };
 
         // Override extruder with the next
     	for (; it_per_layer_extruder_override != per_layer_extruder_switches.end() && it_per_layer_extruder_override->first < layer->print_z + EPSILON; ++ it_per_layer_extruder_override)
@@ -887,11 +893,11 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 }
 
                 if (something_nonoverriddable){
-               		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
+               		layer_tools.extruders.emplace_back((extruder_override == 0) ? rmix(region.config().outer_wall_filament_id.value) : extruder_override);
                     if (extruder_override == 0 && region.config().wall_loops.value > 1)
-                        layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
+                        layer_tools.extruders.emplace_back(rmix(region.config().inner_wall_filament_id.value));
                     if (layerCount == 0) {
-                        firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
+                        firstLayerExtruders.emplace_back((extruder_override == 0) ? rmix(region.config().outer_wall_filament_id.value) : extruder_override);
                     }
                 }
 
@@ -925,13 +931,13 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             if (something_nonoverriddable || !m_print_config_ptr) {
             	if (extruder_override == 0) {
                     if (has_internal_solid)
-                        layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
+                        layer_tools.extruders.emplace_back(rmix(region.config().internal_solid_filament_id.value));
                     if (has_top_solid_surface)
-                        layer_tools.extruders.emplace_back(region.config().top_surface_filament_id);
+                        layer_tools.extruders.emplace_back(rmix(region.config().top_surface_filament_id.value));
                     if (has_bottom_surface)
-                        layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
+                        layer_tools.extruders.emplace_back(rmix(region.config().bottom_surface_filament_id.value));
 	                if (has_infill)
-	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
+	                    layer_tools.extruders.emplace_back(rmix(region.config().sparse_infill_filament_id.value));
                 } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
             		layer_tools.extruders.emplace_back(extruder_override);
             }

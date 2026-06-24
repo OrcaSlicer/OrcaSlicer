@@ -20,6 +20,15 @@
 
 namespace Slic3r::GUI {
 
+// ORCA: physical extruder colours + enabled mixed (virtual) filament display colours,
+// so the MMU painting palette lists the color mixes. Virtual IDs are contiguous after
+// the physical ones, matching the gizmo's palette-index -> extruder-id mapping.
+static std::vector<ColorRGBA> mmu_gizmo_extruder_colors()
+{
+    // get_extruders_colors() already appends enabled mixed (virtual) filament colours.
+    return wxGetApp().plater()->get_extruders_colors();
+}
+
 static inline void show_notification_extruders_limit_exceeded()
 {
     wxGetApp()
@@ -75,7 +84,7 @@ static std::vector<int> get_extruder_id_for_volumes(const ModelObject &model_obj
 
 void GLGizmoMmuSegmentation::init_extruders_data()
 {
-    m_extruders_colors      = wxGetApp().plater()->get_extruders_colors();
+    m_extruders_colors      = mmu_gizmo_extruder_colors();
     m_selected_extruder_idx = 0;
 
     // keep remap table consistent with current extruder count
@@ -178,16 +187,17 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
         return;
 
     ModelObject* model_object = m_c->selection_info()->model_object();
+    // ORCA: count includes mixed (virtual) filaments so the comparison stays stable when mixes exist.
+    const std::vector<ColorRGBA> current_colors = mmu_gizmo_extruder_colors();
     int prev_extruders_count = int(m_extruders_colors.size());
-    if (prev_extruders_count != wxGetApp().filaments_cnt()) {
+    if (prev_extruders_count != int(current_colors.size())) {
         if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
             show_notification_extruders_limit_exceeded();
 
         this->init_extruders_data();
         // Reinitialize triangle selectors because of change of extruder count need also change the size of GLIndexedVertexArray
-        if (prev_extruders_count != wxGetApp().filaments_cnt())
-            this->init_model_triangle_selectors();
-    } else if (wxGetApp().plater()->get_extruders_colors() != m_extruders_colors) {
+        this->init_model_triangle_selectors();
+    } else if (current_colors != m_extruders_colors) {
         this->init_extruders_data();
         this->update_triangle_selectors_colors();
     }
@@ -739,7 +749,12 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
         const TriangleMesh* mesh = &mv->mesh();
         m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors, 0.2));
         // Reset of TriangleSelector is done inside TriangleSelectorMmGUI's constructor, so we don't need it to perform it again in deserialize().
-        EnforcerBlockerType max_ebt = (EnforcerBlockerType)std::min(m_extruders_colors.size(), (size_t)EnforcerBlockerType::ExtruderMax);
+        // ORCA: cap by physical+mixed (virtual) total, not just the current colour list — otherwise
+        // painted virtual mixed-filament states get clamped away when the colour list lags the manager.
+        size_t max_states = m_extruders_colors.size();
+        if (auto* pb = wxGetApp().preset_bundle)
+            max_states = std::max(max_states, pb->mixed_filaments.total_filaments(size_t(std::max(wxGetApp().filaments_cnt(), 0))));
+        EnforcerBlockerType max_ebt = (EnforcerBlockerType)std::min(max_states, (size_t)EnforcerBlockerType::ExtruderMax);
         m_triangle_selectors.back()->deserialize(mv->mmu_segmentation_facets.get_data(), false, max_ebt);
         m_triangle_selectors.back()->request_update_render_data();
         m_triangle_selectors.back()->set_wireframe_needed(true);
@@ -766,8 +781,8 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
 
     // Extruder colors need to be reloaded before calling init_model_triangle_selectors to render painted triangles
     // using colors from loaded 3MF and not from printer profile in Slicer.
-    if (int prev_extruders_count = int(m_extruders_colors.size());
-        prev_extruders_count != wxGetApp().filaments_cnt() || wxGetApp().plater()->get_extruders_colors() != m_extruders_colors)
+    // ORCA: compare against physical+mixed colours (the comparison covers count and content changes).
+    if (mmu_gizmo_extruder_colors() != m_extruders_colors)
         this->init_extruders_data();
 
     this->init_model_triangle_selectors();

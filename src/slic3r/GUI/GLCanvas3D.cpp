@@ -2589,6 +2589,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 continue;
 
             unsigned int filaments_count = (unsigned int)dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"))->values.size();
+            // ORCA: include virtual (mixed) filaments so painted mixed-colour regions are not stripped here.
+            if (wxGetApp().preset_bundle)
+                filaments_count = (unsigned int)wxGetApp().preset_bundle->mixed_filaments.total_filaments(filaments_count);
             model_volume.update_extruder_count(filaments_count);
         }
     }
