@@ -2443,20 +2443,13 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             start_time = (long long)Slic3r::Utils::get_current_time_utc();
 
         m_skirt.clear();
-        m_skirt_groups.clear();
+        m_skirt_brim_groups.clear();
+        m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
         m_objectBrimAreas.clear();
         m_supportBrimAreas.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
-
-        const bool draft_shield = config().draft_shield != dsDisabled;
-
-        if (this->has_skirt() && draft_shield) {
-            // In case that draft shield is active, generate skirt first so brim
-            // can be trimmed to make room for it.
-            _make_skirt();
-        }
 
         //BBS: get the objects' indices when GCodes are generated
         ToolOrdering tool_ordering;
@@ -2548,11 +2541,16 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
 
-        if (has_skirt() && ! draft_shield) {
-            // In case that draft shield is NOT active, generate skirt now.
-            // It will be placed around the brim, so brim has to be ready.
+        if (has_skirt() || has_infinite_skirt() || has_brim()) {
+            // Generate skirt/brim groups after brim so per-object and draft-shield footprints
+            // include brims when grouping and offsetting skirt loops.
             assert(m_skirt.empty());
             _make_skirt();
+            if (m_config.print_sequence == PrintSequence::ByObject &&
+                m_config.skirt_type == stPerObject &&
+                this->has_shared_per_object_skirt()) {
+                throw Slic3r::SlicingError(L("Per-object skirts cannot fit between the objects in By object print sequence.\n\nMove the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."));
+            }
         }
 
         this->finalize_first_layer_convex_hull();
@@ -2644,6 +2642,8 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
 
 void Print::_make_skirt()
 {
+    const bool generate_skirt = this->has_skirt() || this->has_infinite_skirt();
+
     // First off we need to decide how tall the skirt must be.
     // The skirt_height option from config is expressed in layers, but our
     // object might have different layer heights, so we need to find the print_z
@@ -2655,11 +2655,13 @@ void Print::_make_skirt()
     // prepended to the first 'n' layers (with 'n' = skirt_height).
     // $skirt_height_z in this case is the highest possible skirt height for safety.
     coordf_t skirt_height_z = 0.;
-    for (const PrintObject *object : m_objects) {
-        size_t skirt_layers = this->has_infinite_skirt() ?
-            object->layer_count() :
-            std::min(size_t(m_config.skirt_height.value), object->layer_count());
-        skirt_height_z = std::max(skirt_height_z, object->m_layers[skirt_layers-1]->print_z);
+    if (generate_skirt) {
+        for (const PrintObject *object : m_objects) {
+            size_t skirt_layers = this->has_infinite_skirt() ?
+                object->layer_count() :
+                std::min(size_t(m_config.skirt_height.value), object->layer_count());
+            skirt_height_z = std::max(skirt_height_z, object->m_layers[skirt_layers-1]->print_z);
+        }
     }
 
     struct ObjectSkirtHull {
@@ -2673,7 +2675,7 @@ void Print::_make_skirt()
         Points object_points;
         // Get object layers up to skirt_height_z.
         for (const Layer *layer : object->m_layers) {
-            if (layer->print_z > skirt_height_z)
+            if (generate_skirt && layer->print_z > skirt_height_z)
                 break;
             for (const ExPolygon &expoly : layer->lslices)
                 // Collect the outer contour points only, ignore holes for the calculation of the convex hull.
@@ -2681,7 +2683,7 @@ void Print::_make_skirt()
         }
         // Get support layers up to skirt_height_z.
         for (const SupportLayer *layer : object->support_layers()) {
-            if (layer->print_z > skirt_height_z)
+            if (generate_skirt && layer->print_z > skirt_height_z)
                 break;
             layer->support_fills.collect_points(object_points);
         }
@@ -2771,17 +2773,15 @@ void Print::_make_skirt()
     };
 
     m_skirt.clear();
-    m_skirt_groups.clear();
+    m_skirt_brim_groups.clear();
+    m_has_shared_per_object_skirt = false;
+    for (const ObjectSkirtHull& object_hull : object_convex_hulls)
+        object_hull.object->m_skirt.clear();
 
-    if (m_config.skirt_type == stPerObject && m_config.print_sequence == PrintSequence::ByObject) {
-        for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
-            object_hull.object->m_skirt.clear();
-            append_skirt_loops_for_hull(object_hull.hull, object_hull.object->m_skirt, false);
-            object_hull.object->m_skirt.reverse();
-        }
-    } else if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
+    if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
         struct SkirtGroupItem {
             Points       occupied_points;
+            ObjectID     object_id;
             bool         emits_skirt;
         };
 
@@ -2811,13 +2811,13 @@ void Print::_make_skirt()
                 continue;
 
             // Orca: include the object's brim/support-brim footprint before checking skirt collisions.
-            group_items.push_back({ std::move(occupied_points), true });
+            group_items.push_back({ std::move(occupied_points), object->id(), true });
         }
 
         // Orca: the wipe tower contributes occupied area, but does not emit a skirt by itself.
         Points wipe_tower_points = this->first_layer_wipe_tower_corners();
         if (wipe_tower_points.size() >= 3)
-            group_items.push_back({ std::move(wipe_tower_points), false });
+            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), false });
 
         std::vector<size_t> parent(group_items.size());
         std::iota(parent.begin(), parent.end(), 0);
@@ -2843,14 +2843,17 @@ void Print::_make_skirt()
 
         auto build_grouped_points = [&]() {
             struct GroupData {
-                Points points;
-                bool   emits_skirt = false;
+                Points                points;
+                std::vector<ObjectID> object_ids;
+                bool                  emits_skirt = false;
             };
 
             std::map<size_t, GroupData> grouped;
             for (size_t i = 0; i < group_items.size(); ++i) {
                 GroupData& group = grouped[find_parent(i)];
                 append(group.points, group_items[i].occupied_points);
+                if (group_items[i].object_id.valid())
+                    group.object_ids.push_back(group_items[i].object_id);
                 group.emits_skirt = group.emits_skirt || group_items[i].emits_skirt;
             }
             return grouped;
@@ -2889,19 +2892,99 @@ void Print::_make_skirt()
             }
         }
 
+        auto make_group_brims = [this](const std::vector<ObjectID>& group_object_ids) {
+            std::vector<SkirtBrimGroup::Brim> brims;
+            std::vector<ObjectID> brim_object_ids;
+            for (ObjectID object_id : group_object_ids) {
+                const auto brim_it = m_brimMap.find(object_id);
+                if (brim_it != m_brimMap.end() && !brim_it->second.empty())
+                    brim_object_ids.push_back(object_id);
+            }
+
+            const bool global_combined_brim = m_config.combine_brims && m_config.skirt_type != stPerObject && m_brimMap.size() == 1;
+            auto brim_owner_ids = [&group_object_ids, global_combined_brim](const std::vector<ObjectID>& object_ids) {
+                return global_combined_brim ? group_object_ids : object_ids;
+            };
+
+            const bool combine_group_brims = m_config.combine_brims && brim_object_ids.size() > 1;
+            if (!combine_group_brims) {
+                for (ObjectID object_id : brim_object_ids)
+                    brims.push_back({ m_brimMap.at(object_id), brim_owner_ids({ object_id }) });
+                return brims;
+            }
+
+            std::vector<size_t> brim_parent(brim_object_ids.size());
+            std::iota(brim_parent.begin(), brim_parent.end(), 0);
+            auto find_brim_parent = [&brim_parent](size_t idx) {
+                while (brim_parent[idx] != idx) {
+                    brim_parent[idx] = brim_parent[brim_parent[idx]];
+                    idx = brim_parent[idx];
+                }
+                return idx;
+            };
+            auto unite_brims = [&brim_parent, &find_brim_parent](size_t a, size_t b) {
+                a = find_brim_parent(a);
+                b = find_brim_parent(b);
+                if (a != b)
+                    brim_parent[b] = a;
+            };
+
+            const coord_t brim_contact_distance = coord_t(brim_flow().scaled_spacing() * 2.);
+            for (size_t i = 0; i < brim_object_ids.size(); ++i) {
+                const auto area_i = m_objectBrimAreas.find(brim_object_ids[i]);
+                if (area_i == m_objectBrimAreas.end())
+                    continue;
+                for (size_t j = i + 1; j < brim_object_ids.size(); ++j) {
+                    const auto area_j = m_objectBrimAreas.find(brim_object_ids[j]);
+                    if (area_j != m_objectBrimAreas.end() &&
+                        !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
+                        unite_brims(i, j);
+                }
+            }
+
+            std::map<size_t, std::vector<ObjectID>> combined_brim_ids;
+            for (size_t i = 0; i < brim_object_ids.size(); ++i)
+                combined_brim_ids[find_brim_parent(i)].push_back(brim_object_ids[i]);
+
+            for (const auto& [_, object_ids] : combined_brim_ids) {
+                if (object_ids.size() == 1) {
+                    brims.push_back({ m_brimMap.at(object_ids.front()), brim_owner_ids(object_ids) });
+                    continue;
+                }
+
+                ExPolygons combined_area;
+                for (ObjectID object_id : object_ids)
+                    expolygons_append(combined_area, m_objectBrimAreas.at(object_id));
+                combined_area = union_ex(combined_area);
+                const float scaled_resolution  = float(scaled(m_config.resolution.value));
+                const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
+                combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
+
+                Polygons islands_area;
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), object_ids });
+            }
+
+            return brims;
+        };
+
         auto grouped_points = build_grouped_points();
         for (auto& [_, group] : grouped_points) {
             if (!group.emits_skirt || group.points.size() < 3)
                 continue;
+            if (generate_skirt && m_config.skirt_type == stPerObject && group.object_ids.size() > 1)
+                m_has_shared_per_object_skirt = true;
             // Orca: after merging, use the occupied outline directly; do not add skirt distance twice.
             ExtrusionEntityCollection group_skirt;
-            append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
+            if (generate_skirt)
+                append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
+            std::vector<SkirtBrimGroup::Brim> group_brims = make_group_brims(group.object_ids);
             if (!group_skirt.empty()) {
                 group_skirt.reverse();
                 // Orca: keep m_skirt as a flattened compatibility mirror for preview/extents.
                 m_skirt.append(group_skirt.entities);
-                m_skirt_groups.push_back(std::move(group_skirt));
             }
+            if (!group_skirt.empty() || !group_brims.empty())
+                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.object_ids), std::move(group_brims) });
         }
     }
 }
