@@ -4457,7 +4457,24 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     Layout();
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
-    update_dynamic_filament_list();
+
+    // ORCA mixed filament: ask the user (as in the fork) whether to (re)generate the pairwise
+    // auto gradients for the new physical filament count, then regenerate when accepted.
+    // confirm_auto_generated_gradients() honors the "auto_generate_gradients" preference and
+    // updates the engine's static flag.
+    if (wxGetApp().plater()->confirm_auto_generated_gradients(num_filaments)) {
+        if (PresetBundle* pb = wxGetApp().preset_bundle) {
+            std::vector<std::string> physical_colors;
+            if (auto* co = pb->project_config.option<ConfigOptionStrings>("filament_colour"))
+                physical_colors = co->values;
+            physical_colors.resize(num_filaments, "#26A69A");
+            pb->mixed_filaments.auto_generate(physical_colors);
+            if (auto* opt = pb->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                opt->value = pb->mixed_filaments.serialize_custom_entries();
+        }
+    }
+    // Refreshes the mixed-filament panel and the per-feature/support filament combos.
+    update_color_mix_panel();
 }
 
 void Sidebar::on_filaments_delete(size_t filament_id)
@@ -5741,6 +5758,11 @@ struct Plater::priv
     std::string m_cloud_missing_shown_sig;
     std::string m_inactive_shown_sig;
     std::string m_broken_shown_sig;
+    // ORCA mixed filament: cache of the last auto-gradient confirmation so the prompt is not
+    // repeated for the same physical filament count.
+    size_t m_last_auto_gradient_prompt_physical_count{0};
+    bool   m_last_auto_gradient_prompt_accepted{false};
+    bool   confirm_auto_generated_gradients(wxWindow *parent, size_t num_physical);
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
     bool m_is_publishing {false};
@@ -6847,6 +6869,58 @@ Plater::priv::~priv()
     // Saves the database of visited (already shown) hints into hints.ini.
     notification_manager->deactivate_loaded_hints();
     main_frame->m_tabpanel->Unbind(wxEVT_NOTEBOOK_PAGE_CHANGING, &priv::on_tab_selection_changing, this);
+}
+
+// ORCA mixed filament: prompt (for large filament counts) whether to auto-generate the pairwise
+// gradient/mixed filaments. Mirrors the Snapmaker fork behavior. Returns true when generation
+// should proceed and updates MixedFilamentManager's static enable flag accordingly.
+bool Plater::priv::confirm_auto_generated_gradients(wxWindow *parent, size_t num_physical)
+{
+    auto *app_config = wxGetApp().app_config;
+    if (app_config == nullptr)
+        return MixedFilamentManager::auto_generate_enabled();
+
+    const bool pref_enabled = app_config->get_bool("auto_generate_gradients");
+    if (!pref_enabled) {
+        m_last_auto_gradient_prompt_physical_count = 0;
+        m_last_auto_gradient_prompt_accepted = false;
+        MixedFilamentManager::set_auto_generate_enabled(false);
+        return false;
+    }
+
+    // Small counts generate only a handful of pairs; create them without prompting.
+    if (num_physical <= 4 || parent == nullptr || !parent->IsShownOnScreen()) {
+        m_last_auto_gradient_prompt_physical_count = 0;
+        m_last_auto_gradient_prompt_accepted = false;
+        MixedFilamentManager::set_auto_generate_enabled(true);
+        return true;
+    }
+
+    // Reuse the previous decision for the same physical count to avoid repeated prompts.
+    if (m_last_auto_gradient_prompt_physical_count == num_physical) {
+        MixedFilamentManager::set_auto_generate_enabled(m_last_auto_gradient_prompt_accepted);
+        return m_last_auto_gradient_prompt_accepted;
+    }
+
+    const size_t auto_gradient_count = num_physical * (num_physical - 1) / 2;
+    const wxString message = wxString::Format(
+        _L("Using %d physical filaments will create %d auto-generated gradients.\nDo you want to create them now?"),
+        int(num_physical), int(auto_gradient_count));
+    const int result = MessageDialog(parent, message,
+                                     wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Auto gradients"),
+                                     wxYES_NO | wxYES_DEFAULT | wxCENTRE | wxICON_QUESTION)
+                           .ShowModal();
+    const bool accepted = result == wxID_YES;
+    m_last_auto_gradient_prompt_physical_count = num_physical;
+    m_last_auto_gradient_prompt_accepted = accepted;
+    MixedFilamentManager::set_auto_generate_enabled(accepted);
+    return accepted;
+}
+
+bool Plater::confirm_auto_generated_gradients(size_t num_physical)
+{
+    return p != nullptr ? p->confirm_auto_generated_gradients(this, num_physical)
+                        : MixedFilamentManager::auto_generate_enabled();
 }
 
 void Plater::priv::update(unsigned int flags)

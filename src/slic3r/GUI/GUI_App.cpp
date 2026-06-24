@@ -937,6 +937,8 @@ void GUI_App::post_init()
     hms_query = new HMSQuery();
 
     m_show_gcode_window = app_config->get_bool("show_gcode_window");
+    // ORCA mixed filament: sync the auto-generate-gradients toggle from the app config.
+    MixedFilamentManager::set_auto_generate_enabled(app_config->get_bool("auto_generate_gradients"));
     if (m_networking_need_update) {
         show_network_plugin_download_dialog(false);
     }

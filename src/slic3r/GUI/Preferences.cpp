@@ -7,6 +7,7 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
@@ -1060,6 +1061,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 }
             }
         }
+        else if (param == "auto_generate_gradients") {
+            // ORCA mixed filament: apply the toggle live (no restart needed).
+            MixedFilamentManager::set_auto_generate_enabled(checkbox->GetValue());
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -1695,6 +1700,9 @@ void PreferencesDialog::create_items()
            "If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."),
         "export_sources_full_pathnames");
     g_sizer->Add(item_full_source_paths);
+
+    auto item_auto_gradients   = create_item_checkbox(_L("Auto-generate mixed filament gradients"), _L("If enabled, mixed (gradient) filaments are automatically generated for every pair of physical filaments whenever the filament count changes."), "auto_generate_gradients");
+    g_sizer->Add(item_auto_gradients);
 
     //// GENERAL > Preset
     g_sizer->Add(create_item_title(_L("Preset")), 1, wxEXPAND);
