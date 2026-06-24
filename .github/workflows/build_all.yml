@@ -5,6 +5,7 @@ on:
     branches:
      - main
      - release/*
+     - belt-printer
     paths:
      - 'deps/**'
      - 'src/**'
@@ -184,6 +185,9 @@ jobs:
       date:
       ver:
       ver_pure:
+      # Belt-printer nightlies share the main nightly release but carry a `_belt`
+      # suffix so they never overwrite the main assets.
+      nightly_suffix: ${{ github.ref == 'refs/heads/belt-printer' && '_belt' || '' }}
     steps:
     - name: "Remove unneeded stuff to free disk space"
       run:
@@ -242,12 +246,12 @@ jobs:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
     - name: Deploy Flatpak to nightly release
-      if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main'
+      if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer')
       uses: WebFreak001/deploy-nightly@v3.2.0
       with:
         upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
         release_id: 137995723
         asset_path: /__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
+        asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted

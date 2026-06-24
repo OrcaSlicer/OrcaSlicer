@@ -2032,6 +2032,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     // BBS
     m_curr_print = print;
+    m_skirt_group_done.clear();
 
     GCodeWriter::full_gcode_comment = print->config().gcode_comments;
     CNumericLocalesSetter locales_setter;
@@ -3223,6 +3224,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Ugly hack: Do not set the initial extruder if the extruder is primed using the MMU priming towers at the edge of the print bed.
         file.write(this->set_extruder(initial_extruder_id, 0.));
     }
+
+    this->m_objsWithBrim.clear();
+    this->m_objSupportsWithBrim.clear();
+    m_brim_done = false;
+
     // BBS: set that indicates objs with brim
     for (auto iter = print.m_brimMap.begin(); iter != print.m_brimMap.end(); ++iter) {
         if (!iter->second.empty())
@@ -4282,7 +4288,8 @@ namespace Skirt {
         std::map<unsigned int, std::pair<size_t, size_t>> skirt_loops_per_extruder_out;
         //For sequential print, the following test may fail when extruding the 2nd and other objects.
         // assert(skirt_done.empty());
-        if (skirt_done.empty() && print.has_skirt() && ! skirt.entities.empty() && layer_tools.has_skirt) {
+        const bool has_skirt_or_draft_shield = print.has_skirt() || print.has_infinite_skirt();
+        if (skirt_done.empty() && has_skirt_or_draft_shield && ! skirt.entities.empty() && layer_tools.has_skirt) {
             skirt_loops_per_extruder_all_printing(print, skirt, layer_tools, skirt_loops_per_extruder_out);
             skirt_done.emplace_back(layer_tools.print_z);
         }
@@ -4299,15 +4306,16 @@ namespace Skirt {
         // Extrude skirt at the print_z of the raft layers and normal object layers
         // not at the print_z of the interlaced support material layers.
         std::map<unsigned int, std::pair<size_t, size_t>> skirt_loops_per_extruder_out;
-        if (print.has_skirt() && ! skirt.entities.empty() && layer_tools.has_skirt &&
+        const bool has_skirt_or_draft_shield = print.has_skirt() || print.has_infinite_skirt();
+        if (has_skirt_or_draft_shield && ! skirt.entities.empty() && layer_tools.has_skirt &&
             // Not enough skirt layers printed yet.
             //FIXME infinite or high skirt does not make sense for sequential print!
             (skirt_done.size() < (size_t)print.config().skirt_height.value || print.has_infinite_skirt())) {
-            bool valid = ! skirt_done.empty() && skirt_done.back() < layer_tools.print_z - EPSILON;
-            assert(valid);
-            // This print_z has not been extruded yet (sequential print)
-            // FIXME: The skirt_done should not be empty at this point. The check is a workaround
-            if (valid) {
+            assert(!skirt_done.empty());
+            if (skirt_done.empty())
+                return skirt_loops_per_extruder_out;
+            // This print_z has not been extruded yet.
+            if (skirt_done.back() < layer_tools.print_z - EPSILON) {
 #if 0
                 // Prime just the first printing extruder. This is original Slic3r's implementation.
                 skirt_loops_per_extruder_out[layer_tools.extruders.front()] = std::pair<size_t, size_t>(0, print.config().skirt_loops.value);
@@ -4315,7 +4323,6 @@ namespace Skirt {
                 // Prime all extruders planned for this layer, see
                 skirt_loops_per_extruder_all_printing(print, skirt, layer_tools, skirt_loops_per_extruder_out);
 #endif
-                assert(!skirt_done.empty());
                 skirt_done.emplace_back(layer_tools.print_z);
             }
         }
@@ -4382,7 +4389,8 @@ std::string GCode::generate_skirt(const Print &print,
         const float skirt_start_angle,
         const LayerTools &layer_tools,
         const Layer& layer,
-        unsigned int extruder_id)
+        unsigned int extruder_id,
+        std::vector<coordf_t> &skirt_done)
 {
     
     bool first_layer = (layer.id() == 0 && abs(layer.bottom_z()) < EPSILON);
@@ -4392,8 +4400,8 @@ std::string GCode::generate_skirt(const Print &print,
     // Map from extruder ID to <begin, end> index of skirt loops to be extruded with that extruder.
     std::map<unsigned int, std::pair<size_t, size_t>> skirt_loops_per_extruder;
     skirt_loops_per_extruder = first_layer ?
-        Skirt::make_skirt_loops_per_extruder_1st_layer(print, skirt, layer_tools, m_skirt_done) :
-        Skirt::make_skirt_loops_per_extruder_other_layers(print, skirt, layer_tools, m_skirt_done);
+        Skirt::make_skirt_loops_per_extruder_1st_layer(print, skirt, layer_tools, skirt_done) :
+        Skirt::make_skirt_loops_per_extruder_other_layers(print, skirt, layer_tools, skirt_done);
 
     if (auto loops_it = skirt_loops_per_extruder.find(extruder_id); loops_it != skirt_loops_per_extruder.end()) {
         const std::pair<size_t, size_t> loops = loops_it->second;
@@ -4401,7 +4409,7 @@ std::string GCode::generate_skirt(const Print &print,
         set_origin(unscaled(offset));
 
         m_avoid_crossing_perimeters.use_external_mp();
-        Flow layer_skirt_flow = print.skirt_flow().with_height(float(m_skirt_done.back() - (m_skirt_done.size() == 1 ? 0. : m_skirt_done[m_skirt_done.size() - 2])));
+        Flow layer_skirt_flow = print.skirt_flow().with_height(float(skirt_done.back() - (skirt_done.size() == 1 ? 0. : skirt_done[skirt_done.size() - 2])));
         double mm3_per_mm = layer_skirt_flow.mm3_per_mm();
         // Decide where to start looping:
         // - If it’s the first layer or if we do NOT want a single-wall skirt/draft shield,
@@ -4441,6 +4449,84 @@ std::string GCode::generate_skirt(const Print &print,
             m_avoid_crossing_perimeters.disable_once();
     }
     return gcode;
+}
+
+static size_t find_skirt_brim_group_idx(const Print& print, ObjectID object_id)
+{
+    const std::vector<Print::SkirtBrimGroup>& groups = print.skirt_brim_groups();
+    for (size_t idx = 0; idx < groups.size(); ++idx)
+        if (std::find(groups[idx].object_ids.begin(), groups[idx].object_ids.end(), object_id) != groups[idx].object_ids.end())
+            return idx;
+    return size_t(-1);
+}
+
+std::string GCode::generate_object_skirt_group(const Print &print,
+        const PrintObject &object,
+        const LayerTools &layer_tools,
+        const Layer& layer,
+        unsigned int extruder_id)
+{
+    if (print.config().skirt_type != stPerObject || print.skirt_brim_groups().empty())
+        return {};
+
+    const size_t group_idx = find_skirt_brim_group_idx(print, object.id());
+    if (group_idx == size_t(-1) || print.skirt_brim_groups()[group_idx].skirt.empty())
+        return {};
+
+    LayerTools object_skirt_tools = layer_tools;
+    object_skirt_tools.extruders  = { extruder_id };
+    object_skirt_tools.has_skirt  = true;
+
+    return generate_skirt(print, print.skirt_brim_groups()[group_idx].skirt, Point(0, 0), object.config().skirt_start_angle,
+                          object_skirt_tools, layer, extruder_id, m_skirt_group_done[group_idx]);
+}
+
+std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, bool first_layer)
+{
+    if (!first_layer)
+        return {};
+
+    auto emit_brim = [this](const ExtrusionEntityCollection& brim, const std::vector<ObjectID>& object_ids) {
+        std::string gcode;
+        const bool already_emitted = std::none_of(object_ids.begin(), object_ids.end(), [this](ObjectID object_id) {
+            return m_objsWithBrim.find(object_id) != m_objsWithBrim.end();
+        });
+        if (already_emitted || brim.empty())
+            return gcode;
+
+        this->set_origin(0., 0.);
+        m_avoid_crossing_perimeters.use_external_mp();
+        for (const ExtrusionEntity* ee : brim.entities)
+            if (ee != nullptr)
+                gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
+        m_avoid_crossing_perimeters.use_external_mp(false);
+        m_avoid_crossing_perimeters.disable_once();
+        for (ObjectID object_id : object_ids)
+            m_objsWithBrim.erase(object_id);
+        return gcode;
+    };
+
+    const bool has_per_object_skirt_or_shield = print.config().skirt_type == stPerObject &&
+                                                (print.has_skirt() || print.has_infinite_skirt());
+    if (print.config().combine_brims && !has_per_object_skirt_or_shield &&
+        print.config().print_sequence != PrintSequence::ByObject && print.m_brimMap.size() == 1) {
+        const auto brim_it = print.m_brimMap.begin();
+        return emit_brim(brim_it->second, { brim_it->first });
+    }
+
+    const size_t group_idx = find_skirt_brim_group_idx(print, object.id());
+    if (group_idx != size_t(-1)) {
+        std::string gcode;
+        for (const Print::SkirtBrimGroup::Brim& brim : print.skirt_brim_groups()[group_idx].brims)
+            if (std::find(brim.object_ids.begin(), brim.object_ids.end(), object.id()) != brim.object_ids.end())
+                gcode += emit_brim(brim.brim, brim.object_ids);
+        return gcode;
+    }
+
+    const auto brim_it = print.m_brimMap.find(object.id());
+    if (brim_it == print.m_brimMap.end())
+        return {};
+    return emit_brim(brim_it->second, { object.id() });
 }
 
 // In sequential mode, process_layer is called once per each object and its copy,
@@ -4554,8 +4640,6 @@ LayerResult GCode::process_layer(
     }
 
     PrinterStructure printer_structure           = m_config.printer_structure.value;
-    PrintSequence print_sequence = m_config.print_sequence;
-    bool sequence_by_layer = print_sequence == PrintSequence::ByLayer;
     bool is_i3_printer = printer_structure == PrinterStructure::psI3;
     bool is_multi_extruder = m_config.nozzle_diameter.size() > 1;
 
@@ -5151,27 +5235,17 @@ LayerResult GCode::process_layer(
     bool has_insert_wrapping_detection_gcode = false;
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
+    m_skirt_group_done.resize(print.skirt_brim_groups().size());
     for (unsigned int extruder_id : layer_tools.extruders)
     {
-        if ((print.config().skirt_type == stCombined ||
-             (print.config().skirt_type == stPerObject && print.config().print_sequence == PrintSequence::ByLayer)) &&
-            !print.skirt_groups().empty()) {
-            bool skirt_generated_for_current_print_z = false;
-            for (const ExtrusionEntityCollection& skirt_group : print.skirt_groups()) {
-                if (skirt_group.empty())
+        if (print.config().skirt_type == stCombined && !print.skirt_brim_groups().empty()) {
+            for (size_t group_idx = 0; group_idx < print.skirt_brim_groups().size(); ++group_idx) {
+                const Print::SkirtBrimGroup& group = print.skirt_brim_groups()[group_idx];
+                if (group.skirt.empty())
                     continue;
 
-                // Orca: each grouped skirt is emitted as its own collection so higher skirt layers
-                // follow the same per-group behavior as the first layer.
-                if (first_layer)
-                    m_skirt_done.clear();
-                else if (skirt_generated_for_current_print_z && !m_skirt_done.empty())
-                    m_skirt_done.pop_back();
-
-                std::string skirt_gcode = generate_skirt(print, skirt_group, Point(0, 0), layer.object()->config().skirt_start_angle,
-                                                          layer_tools, layer, extruder_id);
-                if (!skirt_gcode.empty())
-                    skirt_generated_for_current_print_z = true;
+                std::string skirt_gcode = generate_skirt(print, group.skirt, Point(0, 0), layer.object()->config().skirt_start_angle,
+                                                          layer_tools, layer, extruder_id, m_skirt_group_done[group_idx]);
                 gcode += std::move(skirt_gcode);
             }
         }
@@ -5245,108 +5319,20 @@ LayerResult GCode::process_layer(
 
         std::vector<InstanceToPrint> &instances_to_print = filament_to_print_instances[extruder_id];
 
-        // BBS
-        if (print.config().skirt_type == stPerObject &&
-            print.config().print_sequence == PrintSequence::ByObject &&
-            !layer.object()->object_skirt().empty() &&
-            ((layer.id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled))
-           )
-        {
-            for (InstanceToPrint& instance_to_print : instances_to_print) {
-                
-                if (instance_to_print.print_object.object_skirt().empty())
-                    continue;
-                
-                if (this->m_objSupportsWithBrim.find(instance_to_print.print_object.id()) != this->m_objSupportsWithBrim.end() &&
-                    print.m_supportBrimMap.at(instance_to_print.print_object.id()).entities.size() > 0)
-                    continue;
-
-                if (this->m_objsWithBrim.find(instance_to_print.print_object.id()) != this->m_objsWithBrim.end() &&
-                    print.m_brimMap.at(instance_to_print.print_object.id()).entities.size() > 0)
-                    continue;
-                if (first_layer)
-                    m_skirt_done.clear();
-
-                if (layer.id() == 1 && m_skirt_done.size() > 1)
-                    m_skirt_done.erase(m_skirt_done.begin()+1,m_skirt_done.end());
-
-                const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
-                gcode += generate_skirt(print, instance_to_print.print_object.object_skirt(), offset, instance_to_print.print_object.config().skirt_start_angle, layer_tools, layer, extruder_id);
-            }
-        }
-
-        // Orca: Print unified global brim after the skirt and before any object.
-        // Only do this if `combine_brims` is enabled and we are printing by layer.
-        if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
-            const ObjectID unified_object_id = [&]() -> ObjectID {
-                ObjectID id;
-                for (const auto& [obj_id, brim] : print.m_brimMap) {
-                    const bool has_printable_entities = std::any_of(brim.entities.begin(), brim.entities.end(),
-                                                                    [](const ExtrusionEntity* ee) { return ee != nullptr; });
-                    if (!has_printable_entities)
-                        continue;
-
-                    if (id.valid())
-                        return ObjectID();
-
-                    id = obj_id;
-                }
-                return id;
-            }();
-
-            if (unified_object_id.valid() && this->m_objsWithBrim.find(unified_object_id) != this->m_objsWithBrim.end()) {
-                const ExtrusionEntityCollection& unified_brim = print.m_brimMap.at(unified_object_id);
-                this->set_origin(0., 0.);
-                for (const ExtrusionEntity* ee : unified_brim.entities)
-                    if (ee != nullptr)
-                        gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
-
-                // Mark brim as printed for this object to avoid per-object brim emission later.
-                this->m_objsWithBrim.erase(unified_object_id);
-            }
-        }
-
         // We are almost ready to print. However, we must go through all the objects twice to print the overridden extrusions first (infill/perimeter wiping feature):
         std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache;
         for (int print_wipe_extrusions = is_anything_overridden; print_wipe_extrusions>=0; --print_wipe_extrusions) {
             if (is_anything_overridden && print_wipe_extrusions == 0)
                 gcode+="; PURGING FINISHED\n";
 
-            bool skirt_generated_for_current_print_z = false;
-
             for (InstanceToPrint &instance_to_print : instances_to_print) {
-                if (print.config().skirt_type == stPerObject && 
-                    !instance_to_print.print_object.object_skirt().empty() &&
-                    print.config().print_sequence == PrintSequence::ByLayer)
-                {
-                    const LayerToPrint& layer_to_print = layers[instance_to_print.layer_id];
-                    const Layer* skirt_layer = layer_to_print.object_layer;
-                    if (skirt_layer == nullptr && layer_to_print.support_layer != nullptr &&
-                        layer_to_print.support_layer->id() < layer_to_print.support_layer->object()->slicing_parameters().raft_layers()) {
-                        skirt_layer = layer_to_print.support_layer;
-                    }
-
-                    if (skirt_layer != nullptr &&
-                        (skirt_layer->id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled)) {
-                        const bool skirt_first_layer = (skirt_layer->id() == 0 && std::abs(skirt_layer->bottom_z()) < EPSILON);
-                        if (skirt_first_layer)
-                            m_skirt_done.clear();
-
-                        if (skirt_generated_for_current_print_z && !m_skirt_done.empty())
-                            m_skirt_done.pop_back();
-
-                        const Point& offset      = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
-                        std::string  skirt_gcode = generate_skirt(print, instance_to_print.print_object.object_skirt(), offset,
-                                                                  instance_to_print.print_object.config().skirt_start_angle, layer_tools,
-                                                                  *skirt_layer, extruder_id);
-                        if (!skirt_gcode.empty())
-                            skirt_generated_for_current_print_z = true;
-                        gcode += std::move(skirt_gcode);
-                    }
-                }
-
                 const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
+                if (print_wipe_extrusions == (is_anything_overridden ? 1 : 0)) {
+                    gcode += generate_object_skirt_group(print, instance_to_print.print_object, layer_tools, layer, extruder_id);
+                    gcode += generate_object_brim(print, instance_to_print.print_object, first_layer);
+                }
+
                 // To control print speed of the 1st object layer printed over raft interface.
                 bool object_layer_over_raft = layer_to_print.object_layer && layer_to_print.object_layer->id() > 0 &&
                     instance_to_print.print_object.slicing_parameters().raft_layers() == layer_to_print.object_layer->id();
@@ -5445,20 +5431,6 @@ LayerResult GCode::process_layer(
                 // Sequential tool path ordering of multiple parts within the same object, aka. perimeter tracking (#5511)
                 for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
                     const auto& by_region_specific = is_anything_overridden ? island.by_region_per_copy(by_region_per_copy_cache, static_cast<unsigned int>(instance_to_print.instance_id), extruder_id, print_wipe_extrusions != 0) : island.by_region;
-                    //BBS: add brim by obj by extruder
-                    if (first_layer) {
-                        if (this->m_objsWithBrim.find(instance_to_print.print_object.id()) != this->m_objsWithBrim.end() && !print_wipe_extrusions) {
-                            this->set_origin(0., 0.);
-                            m_avoid_crossing_perimeters.use_external_mp();
-                            for (const ExtrusionEntity* ee : print.m_brimMap.at(instance_to_print.print_object.id()).entities) {
-                                gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
-                            }
-                            m_avoid_crossing_perimeters.use_external_mp(false);
-                            // Allow a straight travel move to the first object point.
-                            m_avoid_crossing_perimeters.disable_once();
-                            this->m_objsWithBrim.erase(instance_to_print.print_object.id());
-                        }
-                    }
                     // When starting a new object, use the external motion planner for the first travel move.
                     const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
                     std::pair<const PrintObject*, Point> this_object_copy(&instance_to_print.print_object, offset);

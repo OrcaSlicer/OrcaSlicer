@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -3971,6 +3971,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "La température de buse recommandée pour ce type de filament est de [%d, %d] degrés Celsius."
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -7990,13 +7993,16 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr "Affiche les ombres portées sur la plaque dans la vue réaliste."
 
 msgid "Smooth normals"
-msgstr ""
+msgstr "Normales lissées"
 
 msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
 msgstr ""
+"Applique les normales lissées à la vue réaliste.\n"
+"\n"
+"Nécessite un rechargement manuel de la scène pour prendre effet (clic droit sur la vue 3D → « Tout recharger »)."
 
 msgid "Anti-aliasing"
 msgstr "Anticrénelage"
@@ -10970,6 +10976,9 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "L'option de paroi précise sera ignorée pour les séquences de parois extérieure-intérieure ou intérieure-extérieure-intérieure."
 
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
+
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Le rétrécissement du filament ne sera pas utilisé car le rétrécissement des filaments utilisés ne correspond pas."
 
@@ -12989,7 +12998,7 @@ msgid "Travel speed of the first layer."
 msgstr "Vitesse de déplacement de la couche initiale"
 
 msgid "Number of slow layers"
-msgstr ""
+msgstr "Nombre de couches lentes"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Les premières couches sont imprimées plus lentement que la normale. La vitesse augmente progressivement de manière linéaire sur le nombre de couches spécifié."

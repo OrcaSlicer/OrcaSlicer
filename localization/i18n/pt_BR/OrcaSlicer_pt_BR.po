@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-18 09:16-0300\n"
+"POT-Creation-Date: 2026-06-22 20:13-0300\n"
 "PO-Revision-Date: 2026-06-19 20:49-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -3994,6 +3994,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "A temperatura do bico recomendada para este tipo de filamento é [%d, %d] graus Celsius."
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -11102,6 +11105,9 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "A opção de parede precisa será ignorada para sequências externa-interna ou interna-externa-interna."
 
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
+
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "A contração de filamento não será usada porque a contração dos filamentos usados difere significativamente."
 
@@ -13102,9 +13108,6 @@ msgstr "Velocidade de deslocamento da primeira camada."
 
 msgid "Number of slow layers"
 msgstr ""
-
-msgid "This is the number of top interface layers."
-msgstr "Este é o número de camadas de interface superiores."
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "As primeiras camadas são impressas mais lentamente do que o normal. A velocidade é aumentada gradualmente de forma linear sobre o número especificado de camadas."
@@ -15121,6 +15124,9 @@ msgstr ""
 
 msgid "Top interface layers"
 msgstr "Camadas de interface superior"
+
+msgid "This is the number of top interface layers."
+msgstr "Este é o número de camadas de interface superiores."
 
 msgid "Bottom interface layers"
 msgstr "Camadas de interface inferior"
@@ -19208,7 +19214,8 @@ msgstr ""
 "Divida suas impressões em placas\n"
 "Você sabia que pode dividir um modelo que tem diversas peças em placas individuais distintas prontas para imprimir? Isso simplifica o processo de manter o controle de todas as peças."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19280,7 +19287,8 @@ msgstr ""
 "Melhorar a resistência\n"
 "Você sabia que pode usar mais voltas de parede e maior densidade de preenchimento esparso mais alta para melhorar a resistência do modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
