@@ -193,20 +193,18 @@ void StaticBox::doRender(wxDC& dc)
         if ((border_width && border_color.count() > 0) || background_color.count() > 0) {
             wxRect rc(0, 0, size.x, size.y);
             if (border_width && border_color.count() > 0) {
-                if (dc.GetContentScaleFactor() == 1.0) {
-                    int d  = floor(border_width / 2.0);
-                    int d2 = floor(border_width - 1);
-                    rc.x += d;
-                    rc.width -= d2;
-                    rc.y += d;
-                    rc.height -= d2;
-                } else {
-                    int d  = 1;
-                    rc.x += d;
-                    rc.width -= d;
-                    rc.y += d;
-                    rc.height -= d;
-                }
+                const double scale = dc.GetContentScaleFactor();
+
+                // Snap rect edges to physical pixel boundaries so the 1px pen doesn't straddle a pixel boundary
+                auto snap = [&](int logical) -> int {
+                    return (int)(ceil(logical * scale) / scale);
+                };
+
+                int deflate = snap(border_width / 2.0);  // at 175%: snap(0.5) = snap→1/1.75 ≈ 1
+                rc.x      += deflate;
+                rc.y      += deflate;
+                rc.width  -= deflate * 2;
+                rc.height -= deflate * 2;
                 dc.SetPen(wxPen(border_color.colorForStates(states), border_width, border_style));
             } else {
                 dc.SetPen(wxPen(background_color.colorForStates(states)));

@@ -114,10 +114,24 @@ void set_logging_level(unsigned int level)
 {
     logSeverity = level_to_boost(level);
 
+    // Orca: force at info or lower level logging for pre-release builds.
+    // Note: not setting to debug or trace as they might affect long time usage especially with BBL printers.
+    const std::string version = SoftFever_VERSION;
+    if (level < (unsigned int) boost::log::trivial::info &&
+        (boost::algorithm::icontains(version, "dev") || boost::algorithm::icontains(version, "alpha") ||
+         boost::algorithm::icontains(version, "beta"))) {
+        logSeverity = boost::log::trivial::info;
+    }
+
     boost::log::core::get()->set_filter
     (
         boost::log::trivial::severity >= logSeverity
     );
+}
+
+void set_logging_file(const std::string &file)
+{
+	boost::log::add_file_log(file);
 }
 
 unsigned int level_string_to_boost(std::string level)
@@ -376,6 +390,14 @@ void flush_logs()
 		g_log_sink->flush();
 
 	return;
+}
+
+// ORCA
+boost::filesystem::path get_log_file_name()
+{
+    if (g_log_sink)
+        return g_log_sink->locked_backend()->get_current_file_name();
+    return {};
 }
 
 #ifdef _WIN32

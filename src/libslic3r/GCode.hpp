@@ -343,7 +343,16 @@ private:
         const float skirt_start_angle,
         const LayerTools &layer_tools,
         const Layer& layer,
+        unsigned int extruder_id,
+        std::vector<coordf_t> &skirt_done);
+    std::string generate_object_skirt_group(const Print &print,
+        const PrintObject &object,
+        const LayerTools &layer_tools,
+        const Layer& layer,
         unsigned int extruder_id);
+    std::string generate_object_brim(const Print &print,
+        const PrintObject &object,
+        bool first_layer);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -559,6 +568,7 @@ private:
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);
     // ORCA: Add support for role based fan speed control
     std::array<bool, ExtrusionRole::erCount> m_is_role_based_fan_on;
+    std::array<int, ExtrusionRole::erCount>  m_role_based_fan_marker_layer;
     // Markers for the Pressure Equalizer to recognize the extrusion type.
     // The Pressure Equalizer removes the markers from the final G-code.
     bool                                m_enable_extrusion_role_markers;
@@ -608,8 +618,8 @@ private:
 
     std::unique_ptr<SmallAreaInfillFlowCompensator> m_small_area_infill_flow_compensator;
     
-    // Heights (print_z) at which the skirt has already been extruded.
-    std::vector<coordf_t>               m_skirt_done;
+    // Heights (print_z) at which each grouped skirt has already been extruded.
+    std::vector<std::vector<coordf_t>>   m_skirt_group_done;
     // Has the brim been extruded already? Brim is being extruded only for the first object of a multi-object print.
     bool                                m_brim_done;
     // Flag indicating whether the nozzle temperature changes from 1st to 2nd layer were performed.

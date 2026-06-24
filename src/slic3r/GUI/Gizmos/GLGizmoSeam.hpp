@@ -28,7 +28,7 @@ protected:
 
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
 
-    std::string get_gizmo_entering_text() const override { return _u8L("Entering Seam painting"); }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering seam painting"); }
     std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Seam painting"); }
     std::string get_action_snapshot_name() const override { return _u8L("Paint-on seam editing"); }
     static const constexpr float      CursorRadiusMin = 0.05f; // cannot be zero

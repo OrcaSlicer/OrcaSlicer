@@ -833,8 +833,7 @@ Polygons tryExPolygonOffset(const ExPolygons& islandAreaEx, const Print& print)
     }
     return loops;
 }
-//BBS: a function creates the ExtrusionEntityCollection from the brim area defined by ExPolygons
-ExtrusionEntityCollection makeBrimInfill(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area) {
+static ExtrusionEntityCollection makeBrimInfillImpl(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area, bool apply_plate_offset) {
     Polygons        loops = tryExPolygonOffset(singleBrimArea, print);
     Flow  flow = print.brim_flow();
     loops = union_pt_chained_outside_in(loops);
@@ -864,14 +863,27 @@ ExtrusionEntityCollection makeBrimInfill(const ExPolygons& singleBrimArea, const
     optimize_polylines_by_reversing(&all_loops);
     all_loops = connect_brim_lines(std::move(all_loops), offset(singleBrimArea, float(SCALED_EPSILON)), float(flow.scaled_spacing()) * 2.f);
 
-    //BBS: finally apply the plate offset which may very large
-    auto plate_offset = print.get_plate_origin();
-    Point scaled_plate_offset = Point(scaled(plate_offset.x()), scaled(plate_offset.y()));
-    for (Polyline& one_loop : all_loops)
-        one_loop.translate(scaled_plate_offset);
+    if (apply_plate_offset) {
+        //BBS: finally apply the plate offset which may very large
+        auto plate_offset = print.get_plate_origin();
+        Point scaled_plate_offset = Point(scaled(plate_offset.x()), scaled(plate_offset.y()));
+        for (Polyline& one_loop : all_loops)
+            one_loop.translate(scaled_plate_offset);
+    }
 
     extrusion_entities_append_loops_and_paths(brim.entities, std::move(all_loops), erBrim, float(flow.mm3_per_mm()), float(flow.width()), float(print.skirt_first_layer_height()));
     return brim;
+}
+
+//BBS: a function creates the ExtrusionEntityCollection from the brim area defined by ExPolygons
+ExtrusionEntityCollection makeBrimInfill(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area)
+{
+    return makeBrimInfillImpl(singleBrimArea, print, islands_area, true);
+}
+
+ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area)
+{
+    return makeBrimInfillImpl(singleBrimArea, print, islands_area, false);
 }
 
 //BBS: an overload of the orignal brim generator that generates the brim by obj and by extruders
@@ -879,7 +891,9 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     std::map<ObjectID, ExtrusionEntityCollection>& brimMap,
     std::map<ObjectID, ExtrusionEntityCollection>& supportBrimMap,
     std::vector<std::pair<ObjectID, unsigned int>> &objPrintVec,
-    std::vector<unsigned int>& printExtruders)
+    std::vector<unsigned int>& printExtruders,
+    std::map<ObjectID, ExPolygons>* objectBrimAreasOut,
+    std::map<ObjectID, ExPolygons>* supportBrimAreasOut)
 {
     std::map<ObjectID, double> brim_width_map;
     std::map<ObjectID, ExPolygons> brimAreaMap;
@@ -928,12 +942,27 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
-    const bool combine_brims     = print.config().combine_brims.value;
-    const bool is_by_object      = (print.config().print_sequence == PrintSequence::ByObject);
-    const bool can_combine_brims = combine_brims && !is_by_object;
+    // Orca: keep translated brim footprints for skirt grouping.
+    auto translate_area_map = [plate_shift](const std::map<ObjectID, ExPolygons>& src) {
+        std::map<ObjectID, ExPolygons> dst = src;
+        for (auto& [_, areas] : dst)
+            for (ExPolygon& area : areas)
+                area.translate(plate_shift);
+        return dst;
+    };
+    if (objectBrimAreasOut != nullptr)
+        *objectBrimAreasOut = translate_area_map(brimAreaMap);
+    if (supportBrimAreasOut != nullptr)
+        *supportBrimAreasOut = translate_area_map(supportBrimAreaMap);
 
-    if (!can_combine_brims) {
-        // Orca: Generate brims separately for each object when multiple extruders are used
+    const bool has_per_object_skirt_or_shield = print.config().skirt_type == stPerObject &&
+                                                (print.has_skirt() || print.has_infinite_skirt());
+    const bool combine_brims = print.config().combine_brims.value &&
+                               !has_per_object_skirt_or_shield &&
+                               print.config().print_sequence != PrintSequence::ByObject;
+
+    if (!combine_brims) {
+        // Orca: Generate brims separately when brims cannot be combined.
         for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
             if (!iter->second.empty()) {
                 brimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
@@ -945,7 +974,7 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             };
         }
     } else {
-        // Orca: Unified brim mode (non-sequential printing)
+        // Orca: Unified brim mode.
         ExPolygons            all_brims_merged;
         std::vector<ObjectID> brim_object_ids;
 

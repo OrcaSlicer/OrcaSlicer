@@ -35,10 +35,10 @@ wxString get_fail_reason(int code)
         return _L("Failed to publish login request");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_PRINTER_TICKET_TIMEOUT)
-        return _L("Get ticket from device timeout");
+        return _L("Timeout getting ticket from device");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_CLOUD_TICKET_TIMEOUT)
-        return _L("Get ticket from server timeout");
+        return _L("Timeout getting ticket from server");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_POST_TICKET_TO_CLOUD_FAILED)
         return _L("Failed to post ticket to server");
@@ -151,6 +151,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer_request->Add(ping_code_input, 0, wxLEFT, FromDIP(10));
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_request->AddStretchSpacer();
     sizer_request->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
     request_bind_panel->SetSizer(sizer_request);
     request_bind_panel->Layout();

@@ -7,6 +7,7 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "cdt.h"
 #include "../../bounding_box.h"
+#include "../../PlainMatrix.h"
 #include "tetrahedralize.h"
 
 template <
@@ -16,8 +17,8 @@ template <
   typename DerivedTT, 
   typename DerivedTF>
 IGL_INLINE bool igl::copyleft::tetgen::cdt(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   const CDTParam & param,
   Eigen::PlainObjectBase<DerivedTV>& TV,
   Eigen::PlainObjectBase<DerivedTT>& TT,
@@ -26,13 +27,13 @@ IGL_INLINE bool igl::copyleft::tetgen::cdt(
   using namespace Eigen;
   using namespace std;
   // Effective input mesh
-  DerivedV U;
-  DerivedF G;
+  PlainMatrix<DerivedV,Eigen::Dynamic> U;
+  PlainMatrix<DerivedF,Eigen::Dynamic> G;
   if(param.use_bounding_box)
   {
     // Construct bounding box mesh
-    DerivedV BV;
-    DerivedF BF;
+    PlainMatrix<DerivedV,Eigen::Dynamic> BV;
+    PlainMatrix<DerivedF,Eigen::Dynamic> BF;
     bounding_box(V,BV,BF);
     // scale bounding box
     const RowVector3d mid = 
@@ -60,5 +61,5 @@ IGL_INLINE bool igl::copyleft::tetgen::cdt(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template bool igl::copyleft::tetgen::cdt<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, igl::copyleft::tetgen::CDTParam const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template bool igl::copyleft::tetgen::cdt<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, igl::copyleft::tetgen::CDTParam const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
 #endif

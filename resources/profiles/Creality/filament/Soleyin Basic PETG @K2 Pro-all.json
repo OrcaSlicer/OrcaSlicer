@@ -1,0 +1,132 @@
+{
+    "type": "filament",
+    "name": "Soleyin Basic PETG @K2 Pro-all",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "complete_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "cool_plate_temp": [
+        "70"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "70"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "filament_cost": [
+        "15.9"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_deretraction_speed": [
+        "40"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_retract_before_wipe": [
+        "90%"
+    ],
+    "filament_retraction_minimum_travel": [
+        "1"
+    ],
+    "filament_retraction_speed": [
+        "40"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_vendor": [
+        "Creality"
+    ],
+    "filament_wipe_distance": [
+        "2"
+    ],
+    "filament_z_hop_types": [
+        "Slope Lift"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "temperature_vitrification": [
+        "80"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "activate_chamber_temp_control": "1",
+    "chamber_temperature": "35",
+    "customized_plate_temp": "70",
+    "customized_plate_temp_initial_layer": "70",
+    "enable_pressure_advance": "0",
+    "epoxy_resin_plate_temp": "60",
+    "epoxy_resin_plate_temp_initial_layer": "60",
+    "filament_retract_lift_above": "nil",
+    "filament_retract_lift_below": "nil",
+    "filament_retract_lift_enforce": "nil",
+    "material_flow_temp_graph": "[[0.5,220],[1.2,220],[1.2,250]]",
+    "pressure_advance": "0.08",
+    "default_filament_colour": "\"\"",
+    "compatible_printers": [
+        "Creality K2 Pro 0.4 nozzle",
+        "Creality K2 Pro 0.6 nozzle",
+        "Creality K2 Pro 0.8 nozzle"
+    ],
+    "filament_id": "06005"
+}

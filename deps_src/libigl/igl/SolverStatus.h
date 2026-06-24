@@ -9,14 +9,16 @@
 #define IGL_SOLVER_STATUS_H
 namespace igl
 {
+  /// Solver status type used by min_quad_with_fixed
   enum SolverStatus
   {
-    // Good
+    // Good. Solver declared convergence 
     SOLVER_STATUS_CONVERGED = 0,
-    // OK
+    // OK. Solver reached max iterations
     SOLVER_STATUS_MAX_ITER = 1,
-    // Bad
+    // Bad. Solver reported failure
     SOLVER_STATUS_ERROR = 2,
+    // Total number of solver types
     NUM_SOLVER_STATUSES = 3,
   };
 };

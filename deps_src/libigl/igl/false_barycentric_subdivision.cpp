@@ -7,20 +7,20 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "false_barycentric_subdivision.h"
 
-#include "verbose.h"
+#include "PlainMatrix.h"
+#include "barycenter.h"
 #include <algorithm>
-#include <igl/barycenter.h>
 
-template <typename Scalar, typename Index>
+template <typename DerivedV, typename DerivedF, typename DerivedVD, typename DerivedFD>
 IGL_INLINE void igl::false_barycentric_subdivision(
-    const Eigen::PlainObjectBase<Scalar> & V,
-    const Eigen::PlainObjectBase<Index> & F,
-    Eigen::PlainObjectBase<Scalar> & VD,
-    Eigen::PlainObjectBase<Index> & FD)
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
+    Eigen::PlainObjectBase<DerivedVD> & VD,
+    Eigen::PlainObjectBase<DerivedFD> & FD)
 {
   using namespace Eigen;
   // Compute face barycenter
-  Eigen::MatrixXd BC;
+  PlainMatrix<DerivedV> BC;
   igl::barycenter(V,F,BC);
 
   // Add the barycenters to the vertices
@@ -38,7 +38,7 @@ IGL_INLINE void igl::false_barycentric_subdivision(
     int i2 = F(i,2);
     int i3 = V.rows() + i;
 
-    Vector3i F0,F1,F2;
+    Eigen::Matrix<typename DerivedFD::Scalar,1,3> F0,F1,F2;
     F0 << i0,i1,i3;
     F1 << i1,i2,i3;
     F2 << i2,i0,i3;
@@ -54,6 +54,5 @@ IGL_INLINE void igl::false_barycentric_subdivision(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::false_barycentric_subdivision<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> >&);
-template void igl::false_barycentric_subdivision<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template void igl::false_barycentric_subdivision<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&);
 #endif

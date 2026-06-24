@@ -340,9 +340,17 @@ bool NetworkAgent::is_server_connected(const std::string& provider)
     return false;
 }
 
-int NetworkAgent::refresh_connection()
+int NetworkAgent::refresh_connection(const std::string& provider)
 {
-    return invoke_on_all_cloud_agents(m_cloud_agents, [](ICloudServiceAgent& cloud_agent) { return cloud_agent.refresh_connection(); });
+    if(provider.empty())
+        return invoke_on_all_cloud_agents(m_cloud_agents, [](ICloudServiceAgent& cloud_agent) { return cloud_agent.refresh_connection(); });
+    else {
+        const auto cloud_agent = get_cloud_agent(provider);
+        if (cloud_agent)
+            return cloud_agent->refresh_connection();
+        return -1;
+    }
+     
 }
 
 void NetworkAgent::enable_multi_machine(bool enable, const std::string& provider)
@@ -375,11 +383,12 @@ int NetworkAgent::put_setting(std::string                         setting_id,
                               std::string                         name,
                               std::map<std::string, std::string>* values_map,
                               unsigned int*                       http_code,
-                              const std::string&                  provider)
+                              const std::string&                  provider,
+                              bool force)
 {
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
-        return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code);
+        return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code, force);
     return -1;
 }
 
@@ -574,21 +583,22 @@ int NetworkAgent::get_my_token(std::string ticket, unsigned int* http_code, std:
     return -1;
 }
 
-int NetworkAgent::track_enable(bool enable, const std::string& provider)
+int NetworkAgent::track_enable(bool enable)
 {
-    this->enable_track     = enable;
-    const auto cloud_agent = get_cloud_agent(provider);
+    // Orca cloud has no telemetry; the only cloud agent that tracks events is BBL.
+    this->enable_track = enable;
+    const auto cloud_agent = get_cloud_agent(BBL_CLOUD_PROVIDER);
     if (cloud_agent)
         return cloud_agent->track_enable(enable);
-    return -1;
+    return 0;
 }
 
-int NetworkAgent::track_remove_files(const std::string& provider)
+int NetworkAgent::track_remove_files()
 {
-    const auto cloud_agent = get_cloud_agent(provider);
+    const auto cloud_agent = get_cloud_agent(BBL_CLOUD_PROVIDER);
     if (cloud_agent)
         return cloud_agent->track_remove_files();
-    return -1;
+    return 0;
 }
 
 int NetworkAgent::track_event(std::string evt_key, std::string content, const std::string& provider)

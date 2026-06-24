@@ -13,6 +13,7 @@
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/format.hpp"
+#include "libslic3r/Thread.hpp"
 #include "../GUI/I18N.hpp"
 
 // Orca: This file provides utilities for repairing 3D model meshes using the CGAL library, handling mesh splitting, merging, and boolean operations.
@@ -66,7 +67,7 @@ public:
 
 // Orca: Main function to repair model objects using CGAL, with progress dialog and cancellation support.
 // Returns false if fixing was canceled. fix_result contains error message if failed.
-bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result)
+bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result, bool keep_painting)
 {
     // Orca: Synchronization primitives for progress updates between worker thread and GUI.
     std::mutex mtx;
@@ -84,7 +85,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     size_t ivolume = 0;
 
     // Orca: Lambda for updating progress from worker thread.
-    auto on_progress = [&mtx, &condition, &ivolume, &model_object, &progress](const char *msg, unsigned prcnt) {
+    auto on_progress = [&mtx, &condition, &ivolume, &model_object, &progress](const std::string &msg, unsigned prcnt) {
         std::unique_lock<std::mutex> lock(mtx);
         progress.message = msg;
         const size_t total = std::max<size_t>(1, model_object.volumes.size());
@@ -94,8 +95,10 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     };
 
     // Orca: Worker thread that performs the actual model repair operations.
-    auto worker_thread = std::thread([&model_object, volume_idx, &ivolume, on_progress, &success, &canceled, &finished, &fix_result]() {
+    auto worker_thread = std::thread([&model_object, volume_idx, &ivolume, on_progress, &success, &canceled, &finished, &fix_result, keep_painting]() {
         try {
+	        set_current_thread_name("cgal_fix_model");
+
             size_t start_volume = volume_idx == -1 ? 0 : size_t(volume_idx);
             size_t end_volume   = volume_idx == -1 ? std::numeric_limits<size_t>::max() : size_t(volume_idx);
 
@@ -105,17 +108,17 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                 if (canceled)
                     throw RepairCanceledException();
 
-                on_progress(L("Repairing model object"), 10);
+                on_progress(_u8L("Repairing model object"), 10);
 
                 ModelVolume *volume = model_object.volumes[ivolume];
 
                 // Orca: Split splittable volumes into parts for individual processing.
                 size_t parts_count = 1;
                 if (volume->is_splittable()) {
-                    parts_count = volume->split(1);
+                    parts_count = volume->split(1, keep_painting);
                     if (parts_count > 1) {
                         const std::string msg = Slic3r::format(L("Split into %1% parts"), parts_count);
-                        on_progress(msg.c_str(), 10);
+                        on_progress(msg, 10);
                     }
                 }
 
@@ -142,7 +145,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
 
                 if (removed_parts >= parts_count) {
                     ivolume = part_end;
-                    on_progress(L("Repair finished"), 100);
+                    on_progress(_u8L("Repair finished"), 100);
                     continue;
                 }
 
@@ -150,33 +153,42 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                     ModelVolume *part_volume = model_object.volumes[part_idx];
                     TriangleMesh mesh = part_volume->mesh();
                     if (its_num_open_edges(mesh.its) != 0) {
+
+                        // Save painting for later remap
+                        const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
+                                                                                            part_volume->save_painting() :
+                                                                                            std::optional<TriangleSelector::SavedPainting>{};
+
                         std::string error;
                         if (!MeshBoolean::cgal::repair(mesh, nullptr, &error))
-                            throw Slic3r::RuntimeError(error.empty() ? L("Repair failed") : error.c_str());
+                            throw Slic3r::RuntimeError(error.empty() ? _u8L("Repair failed") : error);
 
                         part_volume->set_mesh(std::move(mesh));
                         part_volume->calculate_convex_hull();
                         part_volume->invalidate_convex_hull_2d();
                         part_volume->set_new_unique_id();
+
+                        // Remap paint back
+                        part_volume->restore_painting(saved_painting);
                     }
                 }
 
                 ivolume = part_end;
 
-                on_progress(L("Repair finished"), 100);
+                on_progress(_u8L("Repair finished"), 100);
             }
 
             model_object.invalidate_bounding_box();
 
             if (ivolume > 0)
                 --ivolume;
-            on_progress(L("Repair finished"), 100);
+            on_progress(_u8L("Repair finished"), 100);
             success = true;
             finished = true;
         } catch (RepairCanceledException &) {
             canceled = true;
             finished = true;
-            on_progress(L("Repair canceled"), 100);
+            on_progress(_u8L("Repair canceled"), 100);
         } catch (std::exception &ex) {
             success = false;
             finished = true;
