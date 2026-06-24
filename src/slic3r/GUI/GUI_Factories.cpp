@@ -37,7 +37,11 @@ static PrinterTechnology printer_technology()
 
 static int filaments_count()
 {
-    return wxGetApp().filaments_cnt();
+    const int physical = std::max(wxGetApp().filaments_cnt(), 0);
+    if (wxGetApp().preset_bundle == nullptr)
+        return physical;
+    // ORCA: include mixed (virtual) filaments so change-filament menus list them.
+    return static_cast<int>(wxGetApp().preset_bundle->mixed_filaments.total_filaments(size_t(physical)));
 }
 
 static bool is_improper_category(const std::string& category, const int filaments_cnt, const bool is_object_settings = true)
@@ -1067,13 +1071,17 @@ void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
 
         wxString item_name = _L("Default");
 
-        if (i > 0) {
+        const int physical_cnt = std::max(wxGetApp().filaments_cnt(), 0);
+        if (i > 0 && i <= physical_cnt) {
             auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i - 1]);
             if (preset == nullptr) {
                 item_name = wxString::Format(_L("Filament %d"), i);
             } else {
                 item_name = from_u8(preset->label(false));
             }
+        } else if (i > physical_cnt) {
+            // ORCA: virtual id beyond the physical range — a mixed filament.
+            item_name = wxString::Format(_L("Mixed Filament %d"), i);
         }
 
         if (is_active_extruder) {
@@ -2265,13 +2273,17 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
 
         wxString item_name = _L("Default");
 
-        if (i > 0) {
+        const int physical_cnt = std::max(wxGetApp().filaments_cnt(), 0);
+        if (i > 0 && i <= physical_cnt) {
             auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i - 1]);
             if (preset == nullptr) {
                 item_name = wxString::Format(_L("Filament %d"), i);
             } else {
                 item_name = from_u8(preset->label(false));
             }
+        } else if (i > physical_cnt) {
+            // ORCA: virtual id beyond the physical range — a mixed filament.
+            item_name = wxString::Format(_L("Mixed Filament %d"), i);
         }
 
         if (is_active_extruder) {

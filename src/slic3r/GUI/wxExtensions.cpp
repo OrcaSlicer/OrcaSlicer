@@ -565,6 +565,14 @@ std::vector<wxBitmap*> get_extruder_color_icons(bool thin_icon/* = false*/)
                 bmps.push_back(get_extruder_color_icon(colors, is_gradient, label, icon_width, icon_height));
             }
         }
+        // ORCA: the render-info path above only covers physical filaments. Append icons for the
+        // mixed (virtual) filaments so per-feature/support/object filament selectors list them too.
+        const auto physical_only = Slic3r::GUI::wxGetApp().plater()->get_extruder_colors_from_plater_config(nullptr, false);
+        const auto all_colors    = Slic3r::GUI::wxGetApp().plater()->get_extruder_colors_from_plater_config(nullptr, true);
+        for (size_t k = physical_only.size(); k < all_colors.size(); ++k) {
+            auto label = std::to_string(++index);
+            bmps.push_back(get_extruder_color_icon(all_colors[k], label, icon_width, icon_height));
+        }
     } else {
         std::vector<std::string> colors = Slic3r::GUI::wxGetApp().plater()->get_extruder_colors_from_plater_config();
         if (colors.empty()) return bmps;

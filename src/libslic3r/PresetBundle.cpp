@@ -4303,11 +4303,15 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
         "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
     };
+    // ORCA: feature filament slots accept mixed (virtual) IDs, so validate against the TOTAL
+    // filament count (physical + mixed) instead of the physical count. Otherwise a mixed
+    // "Filament for features" value is reset to 0 (Default) here and the base extruder wins.
+    const size_t num_total_filaments = this->mixed_filaments.total_filaments(num_filaments);
     for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
         std::string key = std::string(keys_with_default[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
         assert(opt != nullptr);
-        if(opt->value < 0 || opt->value > int(num_filaments))
+        if(opt->value < 0 || opt->value > int(num_total_filaments))
             opt->value = 0;
     }
     out.option<ConfigOptionString >("print_settings_id",    true)->value  = this->prints.get_selected_preset_name();

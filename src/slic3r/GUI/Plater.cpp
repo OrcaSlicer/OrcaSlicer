@@ -1124,6 +1124,18 @@ struct DynamicFilamentList : DynamicList
             str << type;
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
         }
+        // ORCA: append mixed (virtual) filaments so the per-feature/support filament
+        // selectors list them too. Their icons follow the physical ones in `icons`.
+        const size_t physical_count = presets.size();
+        size_t mixed_offset = 0;
+        for (const MixedFilament &mf : wxGetApp().preset_bundle->mixed_filaments.mixed_filaments()) {
+            if (!mf.enabled || mf.deleted)
+                continue;
+            const size_t icon_idx = physical_count + mixed_offset;
+            items.push_back({wxString::Format(_L("Mixed F%u+F%u"), unsigned(mf.component_a), unsigned(mf.component_b)),
+                             icon_idx < icons.size() ? icons[icon_idx] : nullptr});
+            ++mixed_offset;
+        }
         DynamicList::update();
     }
 };
@@ -3839,6 +3851,10 @@ void Sidebar::init_color_mix_panel(wxWindow* parent, wxSizer* sizer)
 void Sidebar::update_color_mix_panel()
 {
     if (!p->m_panel_color_mix_content) return;
+
+    // ORCA: every mixed-filament mutation (add/delete/edit) routes through here, so refresh the
+    // per-feature/support filament combos as well to keep the selectable mixed entries in sync.
+    update_dynamic_filament_list();
 
     auto* co = wxGetApp().preset_bundle
                    ? wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")
