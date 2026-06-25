@@ -350,7 +350,7 @@ fi
 
 exec "\$@"
 EOF
-    chmod ug+x "$LIBEXEC_DIR/@SLIC3R_APP_CMD@-env"
+    chmod a+x "$LIBEXEC_DIR/@SLIC3R_APP_CMD@-env"
 
 cat << EOF >@SLIC3R_APP_CMD@
 #!/bin/bash
