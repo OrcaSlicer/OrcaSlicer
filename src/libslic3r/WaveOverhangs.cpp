@@ -401,13 +401,6 @@ static bool should_generate_waves_for_region(const Polygons &overhang_to_cover,
            unsupported_dist >= total_length(real_overhang) * 0.2;
 }
 
-void tag_wave_overhang_paths(std::vector<ExtrusionPaths> &wave_paths)
-{
-    for (ExtrusionPaths &region : wave_paths)
-        for (ExtrusionPath &path : region)
-            path.wave_overhang = true;
-}
-
 void append_shell_perimeters(ExtrusionPaths &overhang_region,
                              const Polygons &overhang_to_cover,
                              int             outer_perimeter_count,
@@ -916,7 +909,6 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
             wave_paths.pop_back();
     }
 
-    //tag_wave_overhang_paths(wave_paths);
     return { wave_paths, union_safety_offset(closing_ex(filled_area, float(filled_area_regularization), jtRound, 0.)) };
 }
 

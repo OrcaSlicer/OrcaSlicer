@@ -551,7 +551,6 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
-                extrusion_loop.inset_idx = extrusion->inset_idx;
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
@@ -579,14 +578,12 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 ExtrusionMultiPath multi_path;
-                multi_path.inset_idx = extrusion->inset_idx;
                 multi_path.paths.emplace_back(std::move(paths.front()));
 
                 for (auto it_path = std::next(paths.begin()); it_path != paths.end(); ++it_path) {
                     if (multi_path.paths.back().last_point() != it_path->first_point()) {
                         extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
                         multi_path = ExtrusionMultiPath();
-                        multi_path.inset_idx = extrusion->inset_idx;
                     }
                     multi_path.paths.emplace_back(std::move(*it_path));
                 }
@@ -1274,7 +1271,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
         if (this->config->wo_enabled) {
             const float inset = float(this->perimeter_flow.scaled_spacing()) * float(this->config->wall_loops);
             ExPolygons wo_infill = offset_ex(ExPolygons{island_region}, -inset);
-            std::tie(extra_perimeters, filled_area) = WaveOverhangs::generate(infill_area, this->lower_slices_polygons(), this->config->wall_loops,
+            std::tie(extra_perimeters, filled_area) = WaveOverhangs::generate(wo_infill, this->lower_slices_polygons(), this->config->wall_loops,
                                                                            0, this->config->wo_spacing/2, 0.7, this->config->wo_pattern, this->config->wo_spacing,
                                                                            overhang_flow.nozzle_diameter(), overhang_flow, overhang_flow.mm3_per_mm()*this->config->bridge_flow,
                                                                            m_scaled_resolution, 0, 0.05, false, false,
