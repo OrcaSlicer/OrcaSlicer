@@ -3666,50 +3666,6 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
             }
         }
 
-        // [BELT-ORG] diagnostic: dump the lowest support layers by type/area so we
-        // can see what is creating the dense flat slab at the Z=0 belt plane.
-        {
-            BeltFloorContext ctx;
-            ctx.init_local(print_object.slicing_parameters(), print_object.print()->config(),
-                           print_object.belt_global_z_offset());
-            auto a_mm2 = [](const Polygons &ps) { return unscale<double>(unscale<double>(area(ps))); };
-            auto tname = [](SupporLayerType t) -> const char * {
-                switch (t) {
-                    case SupporLayerType::RaftBase: return "RaftBase";
-                    case SupporLayerType::RaftInterface: return "RaftInterface";
-                    case SupporLayerType::BottomContact: return "BottomContact";
-                    case SupporLayerType::BottomInterface: return "BottomInterface";
-                    case SupporLayerType::TopContact: return "TopContact";
-                    case SupporLayerType::TopInterface: return "TopInterface";
-                    case SupporLayerType::Base: return "Base";
-                    case SupporLayerType::Intermediate: return "Intermediate";
-                    default: return "?";
-                }
-            };
-            std::vector<SupportGeneratorLayer *> sorted(layers_sorted.begin(), layers_sorted.end());
-            std::sort(sorted.begin(), sorted.end(), [](auto *a, auto *b) {
-                return (a ? a->print_z : 1e9) < (b ? b->print_z : 1e9); });
-            double obj_first_area = print_object.layer_count() > 0
-                ? unscale<double>(unscale<double>(area(to_polygons(print_object.get_layer(0)->lslices)))) : 0.;
-            BOOST_LOG_TRIVIAL(warning) << "[BELT-ORG] sf=" << ctx.shear_factor()
-                << " z_shift=" << ctx.z_shift() << " floor_off=" << ctx.floor_offset()
-                << " global_z_off=" << print_object.belt_global_z_offset()
-                << " obj_first_layer_area=" << obj_first_area
-                << " obj_first_z=" << (print_object.layer_count() > 0 ? print_object.get_layer(0)->print_z : 0.);
-            // Log every 4th layer across the whole stack + flag the running max area.
-            int idx = 0; double maxA = 0; double maxZ = 0;
-            for (auto *l : sorted) {
-                if (!l || l->polygons.empty()) continue;
-                double A = a_mm2(l->polygons);
-                if (A > maxA) { maxA = A; maxZ = l->print_z; }
-                if (idx++ % 4 == 0)
-                    BOOST_LOG_TRIVIAL(warning) << "[BELT-ORG] z=" << l->print_z
-                        << " type=" << tname(l->layer_type) << " area=" << A;
-            }
-            BOOST_LOG_TRIVIAL(warning) << "[BELT-ORG] MAX area=" << maxA << " at z=" << maxZ
-                << " (obj_first_layer_area=" << obj_first_area << ")";
-        }
-
         print.set_status(69, _L("Generating support"));
         generate_support_toolpaths(print_object.support_layers(), print_object.config(), support_params, print_object.slicing_parameters(),
             raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
