@@ -1297,19 +1297,33 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         // is the "g-code shifts vs mesh as soon as supports are enabled" bug. Filter them out.
         auto is_object_body = [](ExtrusionRole r) {
             return r != erSupportMaterial && r != erSupportMaterialInterface
+                && r != erSupportTransition
                 && r != erSkirt && r != erBrim && r != erWipeTower;
         };
-        for (const GCodeProcessorResult::MoveVertex& mv : gcode_result.moves)
-            if (mv.type == EMoveType::Extrude && mv.layer_id >= 1 // skip layer-0 prime/skirt
-                && is_object_body(mv.extrusion_role)) {
-                ++n_filtered;
-                const Vec3d p = belt_inv * mv.position.cast<double>();
-                tp_bb_full.merge(p);
-                if (p.y() >= y_lo && p.y() <= y_hi) {
-                    tp_bb_clip.merge(p);
-                    ++n_clip;
+        auto accumulate = [&](bool body_only) {
+            tp_bb_clip = BoundingBoxf3();
+            tp_bb_full = BoundingBoxf3();
+            n_filtered = 0;
+            n_clip     = 0;
+            for (const GCodeProcessorResult::MoveVertex& mv : gcode_result.moves)
+                if (mv.type == EMoveType::Extrude && mv.layer_id >= 1 // skip layer-0 prime/skirt
+                    && (!body_only || is_object_body(mv.extrusion_role))) {
+                    ++n_filtered;
+                    const Vec3d p = belt_inv * mv.position.cast<double>();
+                    tp_bb_full.merge(p);
+                    if (p.y() >= y_lo && p.y() <= y_hi) {
+                        tp_bb_clip.merge(p);
+                        ++n_clip;
+                    }
                 }
-            }
+        };
+        accumulate(/*body_only=*/true);
+        // Fallback: a plate with no object-body extrusions above layer 0 (e.g. a
+        // support-only object) would leave tp_bb undefined and silently skip the
+        // anchor. Re-accumulate over ALL extrude moves so the min-corner anchor is
+        // still computed rather than letting the preview float by the placement offset.
+        if (n_filtered == 0)
+            accumulate(/*body_only=*/false);
         // Use the clipped bbox when it still holds the bulk of the moves (outliers removed).
         // If the object sits far from the belt entry the toolpaths are grossly offset and the
         // clip drops most of them — fall back to the full bbox so the min-corner anchor still

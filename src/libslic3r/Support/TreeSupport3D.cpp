@@ -4041,20 +4041,27 @@ void organic_draw_branches(
                                 Polygons collision = volumes.getCollision(0, collision_layer, false);
                                 rest_support = diff_clipped(rest_support.empty() ? slice_front_contact : rest_support, collision, ApplySafetyOffset::Yes);
                                 // Belt floor: clip propagated support at belt surface.
-                                bool belt_present_here = belt_mode && layer_idx < LayerIndex(volumes.m_belt_floor.size())
-                                                         && !volumes.m_belt_floor[layer_idx].empty();
-                                if (layer_idx < LayerIndex(volumes.m_belt_floor.size()) && !volumes.m_belt_floor[layer_idx].empty())
+                                bool belt_cut = false;
+                                if (layer_idx < LayerIndex(volumes.m_belt_floor.size()) && !volumes.m_belt_floor[layer_idx].empty()) {
+                                    double area_before = area(rest_support);
                                     rest_support = diff(rest_support, volumes.m_belt_floor[layer_idx]);
+                                    // The belt counts as "reached" only when it actually removes part
+                                    // of this branch's footprint. The belt half-plane is non-empty at
+                                    // every near-belt layer, so testing non-emptiness alone would
+                                    // terminate a laterally-distant branch ~1 layer above true contact,
+                                    // leaving a gap. Require a real area reduction instead.
+                                    belt_cut = belt_mode && area(rest_support) < area_before - tiny_area;
+                                }
                                 remove_small(rest_support, tiny_area);
                                 double rest_support_area = area(rest_support);
                                 if (rest_support_area < support_area_stop)
                                     // Don't propagate a fraction of the tree contact surface.
                                     break;
                                 bottom_extra_slices.push_back({ rest_support, rest_support_area });
-                                // Belt mode: the moment the belt surface starts cutting this branch we
-                                // have reached the belt — keep this last (belt-clipped) slice as the
+                                // Belt mode: once the belt surface actually starts cutting this branch
+                                // it has reached the belt — keep this last (belt-clipped) slice as the
                                 // contact and stop, rather than stamping the footprint further down.
-                                if (belt_present_here)
+                                if (belt_cut)
                                     break;
                             }
                             // Now remove those bottom slices that are not supported at all.
