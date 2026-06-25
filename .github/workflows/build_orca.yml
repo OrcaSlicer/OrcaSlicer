@@ -50,10 +50,27 @@ jobs:
           fail-on-cache-miss: true
 
       - uses: lukka/get-cmake@latest
+        # The windows-11-arm runner needs CMake <= 3.31 (handled in the next step).
+        if: ${{ !(runner.os == 'Windows' && inputs.arch == 'arm64') }}
         with:
           cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
           useLocalCache: true         # <--= Use the local cache (default is 'false').
           useCloudCache: true
+
+      - name: Install CMake 3.31.x (Windows ARM64)
+        # windows-11-arm ships CMake 4.x, which removed pre-3.5 policy
+        # compatibility AND has incomplete ASM_ARMASM linker modules
+        # (breaks Boost.Context on ARM64). Pin to the last 3.x release.
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $ver = "3.31.6"
+          $url = "https://github.com/Kitware/CMake/releases/download/v$ver/cmake-$ver-windows-arm64.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\cmake.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\cmake.zip" -DestinationPath "$env:RUNNER_TEMP\cmake" -Force
+          $cmakeBin = "$env:RUNNER_TEMP\cmake\cmake-$ver-windows-arm64\bin"
+          if (-not (Test-Path "$cmakeBin\cmake.exe")) { throw "cmake.exe not found at $cmakeBin" }
+          Add-Content -Path $env:GITHUB_PATH -Value $cmakeBin
 
       - name: Get the version and date on Ubuntu and macOS
         if: runner.os != 'Windows'
@@ -289,6 +306,18 @@ jobs:
           max_releases: 1
 
 # Windows
+      - name: Set Windows build variables
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ("${{ inputs.arch }}" -eq "arm64") {
+            "BUILD_DIR=build-arm64"  | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+            "ARCH_SUFFIX=_arm64"     | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          } else {
+            "BUILD_DIR=build"        | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+            "ARCH_SUFFIX="           | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          }
+
       - name: setup MSVC
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v3
@@ -306,23 +335,28 @@ jobs:
         # env:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
-        run: .\build_release_vs.bat slicer
+        run: |
+          $arch = "${{ inputs.arch }}"
+          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 } else { .\build_release_vs.bat slicer }
+        shell: pwsh
 
+      # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
+      # x86 emulation, packaging the native arm64 payload from build-arm64.
       - name: Create installer Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
-        working-directory: ${{ github.workspace }}/build
+        working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
         run: |
           cpack -G NSIS
 
       - name: Pack app
         if: runner.os == 'Windows'
-        working-directory: ${{ github.workspace }}/build
+        working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
         shell: cmd
-        run: '"C:/Program Files/7-Zip/7z.exe" a -tzip OrcaSlicer_Windows_${{ env.ver }}_portable.zip ${{ github.workspace }}/build/OrcaSlicer'
+        run: '"C:/Program Files/7-Zip/7z.exe" a -tzip OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable.zip ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer'
 
       - name: Pack PDB
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
-        working-directory: ${{ github.workspace }}/build/src/Release
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}/src/Release
         shell: cmd
         run: '"C:/Program Files/7-Zip/7z.exe" a -m0=lzma2 -mx9 Debug_PDB_${{ env.ver }}_for_developers_only.7z  *.pdb'
 
@@ -330,25 +364,25 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v7
         with:
-          name: OrcaSlicer_Windows_${{ env.ver }}_portable
-          path: ${{ github.workspace }}/build/OrcaSlicer
+          name: OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer
 
       - name: Upload artifacts Win installer
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
-          name: OrcaSlicer_Windows_${{ env.ver }}
-          path: ${{ github.workspace }}/build/OrcaSlicer*.exe
+          name: OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer*.exe
 
       - name: Upload artifacts Win PDB
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
           name: PDB
           path: ${{ github.workspace }}/build/src/Release/Debug_PDB_${{ env.ver }}_for_developers_only.7z
 
       - name: Upload OrcaSlicer_profile_validator Win
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_profile_validator_Windows_${{ env.ver }}
@@ -360,8 +394,8 @@ jobs:
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
-          asset_path: ${{ github.workspace }}/build/OrcaSlicer_Windows_${{ env.ver }}_portable.zip
-          asset_name: OrcaSlicer_Windows_nightly${{ env.nightly_suffix }}_portable.zip
+          asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable.zip
+          asset_name: OrcaSlicer_Windows${{ env.ARCH_SUFFIX }}_nightly${{ env.nightly_suffix }}_portable.zip
           asset_content_type: application/x-zip-compressed
           max_releases: 1
 
@@ -371,13 +405,13 @@ jobs:
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
-          asset_path: ${{ github.workspace }}/build/OrcaSlicer_Windows_Installer_${{ env.ver }}.exe
-          asset_name: OrcaSlicer_Windows_Installer_nightly${{ env.nightly_suffix }}.exe
+          asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}.exe
+          asset_name: OrcaSlicer_Windows_Installer${{ env.ARCH_SUFFIX }}_nightly${{ env.nightly_suffix }}.exe
           asset_content_type: application/x-msdownload
           max_releases: 1
 
       - name: Deploy Windows OrcaSlicer_profile_validator release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
@@ -393,8 +427,9 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/msix/build_msix.ps1 `
-            -InstallDir "${{ github.workspace }}/build/OrcaSlicer" `
-            -OutputPath "${{ github.workspace }}/build/OrcaSlicer_Windows_MSIX_${{ env.ver }}.msix" `
+            -InstallDir "${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer" `
+            -OutputPath "${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}.msix" `
+            -Architecture "${{ inputs.arch }}" `
             -IdentityName "${{ vars.ORCA_MSIX_IDENTITY_NAME || 'OrcaSlicer.OrcaSlicer' }}" `
             -Publisher "${{ vars.ORCA_MSIX_PUBLISHER || 'CN=38F7EA55-C73B-4072-B3B2-C8E0EA15BB82' }}" `
             -PublisherDisplayName "${{ vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME || 'OrcaSlicer' }}"
@@ -403,8 +438,8 @@ jobs:
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
-          name: OrcaSlicer_Windows_MSIX_${{ env.ver }}
-          path: ${{ github.workspace }}/build/OrcaSlicer_Windows_MSIX_${{ env.ver }}.msix
+          name: OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}.msix
 
 # Ubuntu
       - name: Apt-Install Dependencies
