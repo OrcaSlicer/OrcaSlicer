@@ -2369,7 +2369,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("adaptive_pressure_advance_bridges", coFloats);
     def->label = L("Static pressure advance for bridges");
-    def->tooltip = L("Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as /n"
+    def->tooltip = L("Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
 					"equivalent walls (using adaptive settings if enabled).\n\n"
                     "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. "
                     "This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.");
