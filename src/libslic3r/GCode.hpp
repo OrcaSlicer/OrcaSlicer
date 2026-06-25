@@ -376,13 +376,23 @@ private:
     static std::vector<LayerToPrint> collect_layers_to_print(const PrintObject& object);
     static std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> collect_layers_to_print(const Print& print);
 
-    std::string generate_skirt(const Print& print,
-                               const ExtrusionEntityCollection& skirt,
-                               const Point& offset,
-                               const float skirt_start_angle,
-                               const LayerTools& layer_tools,
-                               const Layer& layer,
-                               unsigned int extruder_id);
+    std::string generate_skirt(const Print &print,
+        const ExtrusionEntityCollection &skirt,
+        const Point& offset,
+        const float skirt_start_angle,
+        const LayerTools &layer_tools,
+        const Layer& layer,
+        unsigned int extruder_id,
+        std::vector<coordf_t> &skirt_done);
+    std::string generate_object_skirt_group(const Print &print,
+        const PrintObject &object,
+        const LayerTools &layer_tools,
+        const Layer& layer,
+        unsigned int extruder_id);
+    std::string generate_object_brim(const Print &print,
+        const PrintObject &object,
+        bool first_layer);
+
 
     LayerResult process_layer(const Print& print,
                               // Set of object & print layers of the same PrintObject and with the same print_z.
@@ -765,8 +775,9 @@ private:
 
     std::unique_ptr<SmallAreaInfillFlowCompensator> m_small_area_infill_flow_compensator;
 
-    // Heights (print_z) at which the skirt has already been extruded.
-    std::vector<coordf_t> m_skirt_done;
+    // Heights (print_z) at which each grouped skirt has already been extruded.
+    std::vector<std::vector<coordf_t>>   m_skirt_group_done;
+
     // Has the brim been extruded already? Brim is being extruded only for the first object of a multi-object print.
     bool m_brim_done;
     // Flag indicating whether the nozzle temperature changes from 1st to 2nd layer were performed.
