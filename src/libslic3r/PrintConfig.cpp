@@ -8665,7 +8665,6 @@ std::set<std::string> print_options_with_variant = {
     "max_volumetric_extrusion_rate_slope_segment_length", // coFloat — per-variant
     "extrusion_rate_smoothing_external_perimeter_only",   // coBool — per-variant
     // --- Extruder identity ---
-    "top_solid_infill_flow_ratio",
     "print_extruder_id", //coInts
     "print_extruder_variant" //coStrings
 };

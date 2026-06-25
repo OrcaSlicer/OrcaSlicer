@@ -6601,7 +6601,18 @@ bool Tab::tree_sel_change_delayed(wxCommandEvent& event)
 
     m_active_page = page;
     if (m_extruder_switch) {
-        m_main_sizer->Show(m_extruder_switch, !m_active_page->m_opt_id_map.empty());
+        // H2C: Only show extruder switch on pages with variant-aware options.
+        // Keys in m_opt_id_map have #N suffix (e.g. "outer_wall_speed#0"),
+        // so strip it before matching against print_options_with_variant.
+        bool page_has_variant_opts = false;
+        for (const auto& [opt_key, _] : m_active_page->m_opt_id_map) {
+            auto base_key = opt_key.substr(0, opt_key.find('#'));
+            if (print_options_with_variant.count(base_key)) {
+                page_has_variant_opts = true;
+                break;
+            }
+        }
+        m_main_sizer->Show(m_extruder_switch, page_has_variant_opts);
         GetParent()->Layout();
     } else if (m_variant_combo) {
         m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && !m_active_page->m_opt_id_map.empty());
@@ -7497,8 +7508,20 @@ void Tab::update_extruder_variants(int extruder_id)
     }
     switch_excluder(extruder_id);
     if (m_extruder_switch) {
-        m_main_sizer->Show(m_extruder_switch, m_active_page && !m_active_page->m_opt_id_map.empty());
-        GetParent()->Layout();
+        // H2C: Only show extruder switch on pages that have variant-aware options.
+        // Keys in m_opt_id_map have #N suffix, strip before matching.
+        if (m_active_page) {
+            bool page_has_variant_opts = false;
+            for (const auto& [opt_key, _] : m_active_page->m_opt_id_map) {
+                auto base_key = opt_key.substr(0, opt_key.find('#'));
+                if (print_options_with_variant.count(base_key)) {
+                    page_has_variant_opts = true;
+                    break;
+                }
+            }
+            m_main_sizer->Show(m_extruder_switch, page_has_variant_opts);
+            GetParent()->Layout();
+        }
     } else if (m_variant_combo) {
         m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && m_active_page && !m_active_page->m_opt_id_map.empty());
         GetParent()->Layout();

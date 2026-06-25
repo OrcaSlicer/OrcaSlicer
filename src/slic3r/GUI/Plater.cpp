@@ -3320,9 +3320,12 @@ void Sidebar::update_presets(Preset::Type preset_type)
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
             MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
             bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
-            // Map physical Left/Right sidebar widgets to logical extruder IDs dynamically
-            int left_logical_idx = main_on_left ? 0 : 1;
-            int right_logical_idx = main_on_left ? 1 : 0;
+            // Map physical Left/Right sidebar widgets to logical extruder IDs dynamically.
+            // BBS preset: ext0=deputy(1 nozzle), ext1=main(carousel).
+            // When main is on left: Left UI = ext1(main), Right UI = ext0(deputy).
+            // When main NOT on left (default): Left UI = ext0(deputy), Right UI = ext1(main).
+            int left_logical_idx = main_on_left ? 1 : 0;
+            int right_logical_idx = main_on_left ? 0 : 1;
 
             p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, left_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, right_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
