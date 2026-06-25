@@ -1,6 +1,7 @@
 // #include "libslic3r/GCodeSender.hpp"
 //#include "slic3r/Utils/Serial.hpp"
 #include "Tab.hpp"
+#include <iostream>
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -1965,6 +1966,21 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // It means that not all values are rolled to the system/last saved values jet.
         // And call of the update() can causes a redundant check of the config values,
         return;
+    }
+
+    // H2C: On any value change of a variant-aware option, sync it immediately
+    // back to the variant_overrides map for the current active variant.
+    if (m_last_variant_index >= 0) {
+        std::string base_key = opt_key.substr(0, opt_key.find('#'));
+        const auto& keys = (m_type == Preset::TYPE_PRINT)
+            ? print_options_with_variant : filament_options_with_variant;
+        if (keys.count(base_key)) {
+            m_config->save_variant_overrides(m_last_variant_index, {base_key});
+            std::cerr << "[H2C-UI-EDIT] Tab " << m_name << " change value: " << base_key 
+                      << " = " << m_config->opt_serialize(base_key) 
+                      << " (saved to variant_index: " << m_last_variant_index << ")" << std::endl;
+            BOOST_LOG_TRIVIAL(info) << "H2C on_value_change: synced " << base_key << " to variant " << m_last_variant_index;
+        }
     }
 
     update();
@@ -6686,6 +6702,28 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 //BBS: add project embedded preset relate logic
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
+    // H2C: Before saving, ensure any edited values in the active GUI fields
+    // are flushed back into the variant_overrides map for the current variant.
+    if (m_last_variant_index >= 0) {
+        auto& edited_cfg = m_presets->get_edited_preset().config;
+        bool is_multi_variant = !edited_cfg.variant_overrides().empty();
+        if (!is_multi_variant) {
+            for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
+                const auto* opt = dynamic_cast<const ConfigOptionStrings*>(edited_cfg.option(vkey, false));
+                if (opt && (int)opt->size() > 1) {
+                    is_multi_variant = true;
+                    break;
+                }
+            }
+        }
+        if (is_multi_variant) {
+            const auto& keys = (m_type == Preset::TYPE_PRINT)
+                ? print_options_with_variant : filament_options_with_variant;
+            edited_cfg.save_variant_overrides(m_last_variant_index, keys);
+            BOOST_LOG_TRIVIAL(info) << "H2C save_preset: flushed active variant " << m_last_variant_index;
+        }
+    }
+
     // ORCA: Validate before opening any save-name UI for filament presets.
     if (!validate_filament_temperature_pairs())
         return;
@@ -7542,7 +7580,7 @@ void Tab::switch_excluder(int extruder_id)
     //
     // We save only to edited_cfg — selected_cfg always keeps the original
     // system values, so dirty detection correctly flags user modifications.
-    if (m_extruder_switch && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
+    if (m_extruder_switch && m_type == Preset::TYPE_PRINT && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
         auto& edited_cfg   = m_presets->get_edited_preset().config;
         auto& selected_cfg = m_presets->get_selected_preset().config;
 
@@ -7567,11 +7605,15 @@ void Tab::switch_excluder(int extruder_id)
             // Save current values to the PREVIOUS variant slot (edited only)
             if (m_last_variant_index >= 0) {
                 edited_cfg.save_variant_overrides(m_last_variant_index, keys);
+                std::cerr << "[H2C-UI-SWITCH] Saved variant " << m_last_variant_index 
+                          << " speed overrides before switching." << std::endl;
             }
 
             // Apply new variant's values
             edited_cfg.apply_variant_overrides(index, keys);
             selected_cfg.apply_variant_overrides(index, keys);
+
+            std::cerr << "[H2C-UI-SWITCH] Switched to variant " << index << "." << std::endl;
 
             m_last_variant_index = index;
         }

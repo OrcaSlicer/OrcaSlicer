@@ -2685,6 +2685,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 add_error("Error load config from json:"+reason);
                 return;
             }
+
+            // H2C: After loading, check if any variant-aware options came in as
+            // arrays (BBS-style multi-variant JSON). If so, compress them back
+            // into scalar + variant_overrides so the rest of Orca works with
+            // scalar configs as expected.
+            config.compress_vectors_to_variant_overrides(0);
+
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
         }
     }
@@ -2754,6 +2761,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 return;
             }
 
+            config.compress_vectors_to_variant_overrides(0);
             Preset *preset = new Preset(type, preset_name, false);
             preset->file = dest_file;
             preset->config = std::move(config);
@@ -7804,7 +7812,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
     {
         const std::string& temp_path = model.get_backup_path();
         std::string temp_file = temp_path + std::string("/") + "_temp_1.config";
-        config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
+
+        // H2C: If the config has variant overrides (multi-nozzle-variant data),
+        // expand them into BBS-compatible vector options before serialization.
+        // We work on a mutable copy so the original config is not modified.
+        if (!config.variant_overrides().empty()) {
+            DynamicPrintConfig config_copy(config);
+            config_copy.expand_variant_overrides_to_vectors();
+            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for project config save";
+            config_copy.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
+        } else {
+            config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
+        }
+
         return _add_file_to_archive(archive, BBS_PROJECT_CONFIG_FILE, temp_file);
     }
 
@@ -7825,7 +7845,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 preset->file = temp_path + std::string("/") + "_temp_1.config";
                 DynamicPrintConfig& config = preset->config;
                 //config.save(preset->file);
-                config.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
+
+                // H2C: If the preset has variant overrides (multi-nozzle-variant data),
+                // expand them into BBS-compatible vector options before serialization.
+                // We work on a mutable copy so the original preset config is not modified.
+                if (!config.variant_overrides().empty()) {
+                    DynamicPrintConfig config_copy(config);
+                    config_copy.expand_variant_overrides_to_vectors();
+                    BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for embedded preset: " << preset->name;
+                    config_copy.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
+                } else {
+                    config.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
+                }
 
                 std::string dest_file;
                 if (preset->type == Preset::TYPE_PRINT) {

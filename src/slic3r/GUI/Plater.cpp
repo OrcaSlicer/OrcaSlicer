@@ -6969,9 +6969,19 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         // Based on the printer technology field found in the loaded config, select the base for the config,
                         PrinterTechnology printer_technology = Preset::printer_technology(config_loaded);
 
+                        // H2C: save VO before move destroys config_loaded
+                        auto loaded_vo = config_loaded.variant_overrides();
+
                         config.apply(static_cast<const ConfigBase &>(FullPrintConfig::defaults()));
                         // and place the loaded config over the base.
                         config += std::move(config_loaded);
+
+                        // H2C: transfer VO from loaded project config (operator+= doesn't copy VO)
+                        if (!loaded_vo.empty()) {
+                            config.variant_overrides() = std::move(loaded_vo);
+                            BOOST_LOG_TRIVIAL(info) << "[H2C] Plater::load: transferred VO from 3MF project config, "
+                                                    << config.variant_overrides().floats.size() << " float keys";
+                        }
                         std::map<std::string, std::string> validity = config.validate();
                         if (!validity.empty()) {
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("Param values in 3mf error: ");

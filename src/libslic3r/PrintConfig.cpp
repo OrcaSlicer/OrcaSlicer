@@ -17,6 +17,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/thread.hpp>
 #include <float.h>
+#include <iostream>
 
 namespace {
 std::set<std::string> SplitStringAndRemoveDuplicateElement(const std::string &str, const std::string &separator)
@@ -9926,6 +9927,8 @@ DynamicPrintConfig::get_filament_type() const
 
 void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::set<std::string>& keys)
 {
+    BOOST_LOG_TRIVIAL(info) << "[H2C-VO] apply_variant_overrides: entering, variant_index=" << variant_index << " keys_count=" << keys.size();
+    std::cerr << "[H2C-VO] APPLY   variant=" << variant_index << "  keys=" << keys.size() << std::endl;
     const ConfigDef* config_def = this->def();
     if (!config_def)
         return;
@@ -9989,6 +9992,8 @@ void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::s
         case coFloat: {
             double val = m_variant_overrides.get_float(key, variant_index);
             static_cast<ConfigOptionFloat*>(opt)->value = val;
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] apply_variant_overrides: set key=" << key << " val=" << val;
+            std::cerr << "[H2C-VO] APPLY   key=" << key << "  val=" << val << std::endl;
             break;
         }
         case coFloatOrPercent: {
@@ -10002,17 +10007,23 @@ void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::s
                     fop->value = std::stod(raw);
                     fop->percent = false;
                 }
+                BOOST_LOG_TRIVIAL(info) << "[H2C-VO] apply_variant_overrides: set key=" << key << " val=" << raw;
+                std::cerr << "[H2C-VO] APPLY   key=" << key << "  val=" << raw << std::endl;
             }
             break;
         }
         case coBool: {
             double val = m_variant_overrides.get_float(key, variant_index);
             static_cast<ConfigOptionBool*>(opt)->value = (val != 0.0);
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] apply_variant_overrides: set key=" << key << " val=" << (val != 0.0);
+            std::cerr << "[H2C-VO] APPLY   key=" << key << "  val=" << (val != 0.0) << std::endl;
             break;
         }
         case coInt: {
             double val = m_variant_overrides.get_float(key, variant_index);
             static_cast<ConfigOptionInt*>(opt)->value = (int)val;
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] apply_variant_overrides: set key=" << key << " val=" << (int)val;
+            std::cerr << "[H2C-VO] APPLY   key=" << key << "  val=" << (int)val << std::endl;
             break;
         }
         default:
@@ -10023,6 +10034,8 @@ void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::s
 
 void DynamicPrintConfig::save_variant_overrides(int variant_index, const std::set<std::string>& keys)
 {
+    BOOST_LOG_TRIVIAL(info) << "[H2C-VO] save_variant_overrides: entering, variant_index=" << variant_index << " keys_count=" << keys.size();
+    std::cerr << "[H2C-VO] SAVE_VO variant=" << variant_index << "  keys=" << keys.size() << std::endl;
     const ConfigDef* config_def = this->def();
     if (!config_def)
         return;
@@ -10110,6 +10123,8 @@ void DynamicPrintConfig::save_variant_overrides(int variant_index, const std::se
         case coFloat: {
             double val = static_cast<const ConfigOptionFloat*>(opt)->value;
             m_variant_overrides.set_float(key, variant_index, val);
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] save_variant_overrides: saved key=" << key << " val=" << val;
+            std::cerr << "[H2C-VO] SAVE_VO key=" << key << "  val=" << val << "  (variant=" << variant_index << ")" << std::endl;
             break;
         }
         case coFloatOrPercent: {
@@ -10118,21 +10133,241 @@ void DynamicPrintConfig::save_variant_overrides(int variant_index, const std::se
             // Preserve percent notation in the string table
             std::string raw = fop->serialize();
             m_variant_overrides.set_string(key, variant_index, raw);
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] save_variant_overrides: saved key=" << key << " val=" << raw;
+            std::cerr << "[H2C-VO] SAVE_VO key=" << key << "  val=" << raw << "  (variant=" << variant_index << ")" << std::endl;
             break;
         }
         case coBool: {
             bool val = static_cast<const ConfigOptionBool*>(opt)->value;
             m_variant_overrides.set_float(key, variant_index, val ? 1.0 : 0.0);
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] save_variant_overrides: saved key=" << key << " val=" << val;
+            std::cerr << "[H2C-VO] SAVE_VO key=" << key << "  val=" << val << "  (variant=" << variant_index << ")" << std::endl;
             break;
         }
         case coInt: {
             int val = static_cast<const ConfigOptionInt*>(opt)->value;
             m_variant_overrides.set_float(key, variant_index, (double)val);
+            BOOST_LOG_TRIVIAL(info) << "[H2C-VO] save_variant_overrides: saved key=" << key << " val=" << val;
+            std::cerr << "[H2C-VO] SAVE_VO key=" << key << "  val=" << val << "  (variant=" << variant_index << ")" << std::endl;
             break;
         }
         default:
             break;
         }
+    }
+}
+
+void DynamicPrintConfig::expand_variant_overrides_to_vectors()
+{
+    // H2C: Convert scalar options + variant_overrides into vector options
+    // so that save_to_json() produces BBS-compatible arrays.
+    //
+    // For each key in print_options_with_variant that exists in both
+    // this config (as a scalar) and in m_variant_overrides, we:
+    //   1. Read the VO array (all variant values)
+    //   2. Replace the scalar ConfigOption with a vector ConfigOption
+    //   3. Clear the VO entry (now redundant)
+
+    if (m_variant_overrides.empty())
+        return;
+    std::cerr << "[H2C-VO] EXPAND (3MF SAVE): n_keys=" << m_variant_overrides.floats.size() << std::endl;
+    // H2C DIAG: show raw VO for outer_wall_speed to trace edit propagation
+    {
+        auto it = m_variant_overrides.floats.find("outer_wall_speed");
+        if (it != m_variant_overrides.floats.end()) {
+            std::cerr << "[H2C-VO] EXPAND DIAG: outer_wall_speed VO raw = [";
+            for (size_t i = 0; i < it->second.size(); ++i) {
+                if (i > 0) std::cerr << ",";
+                std::cerr << it->second[i];
+            }
+            std::cerr << "]" << std::endl;
+        } else {
+            std::cerr << "[H2C-VO] EXPAND DIAG: outer_wall_speed NOT in VO floats!" << std::endl;
+        }
+    }
+
+    // Collect keys to process (iterate copy since we modify the map)
+    std::vector<std::string> keys_to_expand;
+    for (const auto& [key, vals] : m_variant_overrides.floats) {
+        if (vals.empty())
+            continue;
+        if (!this->has(key))
+            continue;
+        if (print_options_with_variant.count(key) == 0)
+            continue;
+        keys_to_expand.push_back(key);
+    }
+
+    for (const auto& key : keys_to_expand) {
+        const auto& float_vals = m_variant_overrides.floats.at(key);
+        int variant_count = (int)float_vals.size();
+        if (variant_count <= 1)
+            continue;  // single variant = scalar is fine
+
+        const ConfigOptionDef* optdef = print_config_def.get(key);
+        if (!optdef)
+            continue;
+
+        // Check if we have string overrides (for coFloatOrPercent with %)
+        bool has_strings = m_variant_overrides.strings.count(key) > 0
+                          && m_variant_overrides.strings.at(key).size() == (size_t)variant_count;
+        // H2C: log the array being expanded to vector
+        // DEEP DIAG for outer_wall_speed
+        if (key == "outer_wall_speed") {
+            std::cerr << "[H2C-VO] EXPAND DEEP: key=outer_wall_speed type=" << (int)optdef->type
+                      << " has_strings=" << has_strings << " float_vals=[";
+            for (int _d = 0; _d < variant_count; ++_d) {
+                if (_d > 0) std::cerr << ",";
+                std::cerr << float_vals[_d];
+            }
+            std::cerr << "]" << std::endl;
+        }
+        // H2C: Only use string overrides for coFloatOrPercent (to preserve % notation).
+        // For coFloat/coBool/coInt, strings may contain stale data — always use float_vals.
+        bool use_strings = has_strings && optdef->type == coFloatOrPercent;
+        std::cerr << "[H2C-VO] EXPAND  key=" << key << "  n=" << variant_count << "  [";
+        for (int _dbg_i = 0; _dbg_i < variant_count; ++_dbg_i) {
+            if (use_strings) std::cerr << m_variant_overrides.strings.at(key)[_dbg_i];
+            else             std::cerr << float_vals[_dbg_i];
+            if (_dbg_i < variant_count - 1) std::cerr << ",";
+        }
+        std::cerr << "]" << std::endl;
+
+        switch (optdef->type) {
+        case coFloat: {
+            auto* vec_opt = new ConfigOptionFloats();
+            vec_opt->values.resize(variant_count);
+            for (int i = 0; i < variant_count; ++i)
+                vec_opt->values[i] = float_vals[i];
+            this->set_key_value(key, vec_opt);
+            break;
+        }
+        case coFloatOrPercent: {
+            if (has_strings) {
+                // Preserve percent notation via string serialization
+                auto* vec_opt = new ConfigOptionFloatsOrPercents();
+                vec_opt->values.resize(variant_count);
+                for (int i = 0; i < variant_count; ++i) {
+                    const std::string& s = m_variant_overrides.strings.at(key)[i];
+                    if (!s.empty() && s.back() == '%') {
+                        vec_opt->values[i] = FloatOrPercent{float_vals[i], true};
+                    } else {
+                        vec_opt->values[i] = FloatOrPercent{float_vals[i], false};
+                    }
+                }
+                this->set_key_value(key, vec_opt);
+            } else {
+                // Fall back to plain floats (lose percent info)
+                auto* vec_opt = new ConfigOptionFloats();
+                vec_opt->values.resize(variant_count);
+                for (int i = 0; i < variant_count; ++i)
+                    vec_opt->values[i] = float_vals[i];
+                this->set_key_value(key, vec_opt);
+            }
+            break;
+        }
+        case coBool: {
+            auto* vec_opt = new ConfigOptionBools();
+            vec_opt->values.resize(variant_count);
+            for (int i = 0; i < variant_count; ++i)
+                vec_opt->values[i] = (float_vals[i] != 0.0);
+            this->set_key_value(key, vec_opt);
+            break;
+        }
+        case coInt: {
+            auto* vec_opt = new ConfigOptionInts();
+            vec_opt->values.resize(variant_count);
+            for (int i = 0; i < variant_count; ++i)
+                vec_opt->values[i] = (int)float_vals[i];
+            this->set_key_value(key, vec_opt);
+            break;
+        }
+        default:
+            break;
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "H2C expand_vo: " << key
+            << " → vector[" << variant_count << "]";
+    }
+
+    // Clear the overrides since they are now embedded in the config
+    m_variant_overrides.clear();
+}
+
+void DynamicPrintConfig::compress_vectors_to_variant_overrides(int active_variant_index)
+{
+    // H2C: The inverse of expand — reads vector options that were loaded
+    // from a BBS-style JSON (arrays) and compresses them:
+    //   scalar = values[active_variant_index]
+    //   m_variant_overrides = full array
+
+    for (const auto& key : print_options_with_variant) {
+        ConfigOption* opt = this->option(key, false);
+        if (!opt || !opt->is_vector())
+            continue;
+
+        auto* vec_base = static_cast<ConfigOptionVectorBase*>(opt);
+        int vec_size = (int)vec_base->size();
+        if (vec_size <= 1)
+            continue;  // not multi-variant
+
+        const ConfigOptionDef* optdef = print_config_def.get(key);
+        if (!optdef)
+            continue;
+
+        // Clamp active index
+        int idx = std::min(active_variant_index, vec_size - 1);
+
+        switch (optdef->type) {
+        case coFloat: {
+            auto* vec_opt = static_cast<ConfigOptionFloats*>(opt);
+            // Save all values to VO
+            m_variant_overrides.floats[key] = vec_opt->values;
+            // Replace with scalar = active variant's value
+            this->set_key_value(key, new ConfigOptionFloat(vec_opt->values[idx]));
+            break;
+        }
+        case coFloatOrPercent: {
+            // Could be stored as ConfigOptionFloatsOrPercents or ConfigOptionFloats
+            if (auto* fop_vec = dynamic_cast<ConfigOptionFloatsOrPercents*>(opt)) {
+                m_variant_overrides.floats[key].resize(vec_size);
+                m_variant_overrides.strings[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    m_variant_overrides.floats[key][i] = fop_vec->values[i].value;
+                    m_variant_overrides.strings[key][i] = fop_vec->values[i].percent ? 
+                        (std::to_string((int)fop_vec->values[i].value) + "%") :
+                        std::to_string(fop_vec->values[i].value);
+                }
+                this->set_key_value(key, new ConfigOptionFloatOrPercent(
+                    fop_vec->values[idx].value, fop_vec->values[idx].percent));
+            } else if (auto* f_vec = dynamic_cast<ConfigOptionFloats*>(opt)) {
+                m_variant_overrides.floats[key] = f_vec->values;
+                this->set_key_value(key, new ConfigOptionFloatOrPercent(f_vec->values[idx], false));
+            }
+            break;
+        }
+        case coBool: {
+            auto* vec_opt = static_cast<ConfigOptionBools*>(opt);
+            m_variant_overrides.floats[key].resize(vec_size);
+            for (int i = 0; i < vec_size; ++i)
+                m_variant_overrides.floats[key][i] = vec_opt->values[i] ? 1.0 : 0.0;
+            this->set_key_value(key, new ConfigOptionBool(vec_opt->values[idx]));
+            break;
+        }
+        case coInt: {
+            auto* vec_opt = static_cast<ConfigOptionInts*>(opt);
+            m_variant_overrides.floats[key].resize(vec_size);
+            for (int i = 0; i < vec_size; ++i)
+                m_variant_overrides.floats[key][i] = (double)vec_opt->values[i];
+            this->set_key_value(key, new ConfigOptionInt(vec_opt->values[idx]));
+            break;
+        }
+        default:
+            break;
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "H2C compress_vo: " << key
+            << " vector[" << vec_size << "] → scalar[" << idx << "]";
     }
 }
 
