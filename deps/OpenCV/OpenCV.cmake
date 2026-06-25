@@ -1,4 +1,6 @@
-if (MSVC)
+# Intel IPP / IPP-ICV is x86/x64 only — there is no ARM64 build, so enabling it
+# leaves ~200 unresolved ippicv* externals at link time on Windows ARM64.
+if (MSVC AND NOT "${DEPS_ARCH}" STREQUAL "arm64")
     set(_use_IPP "-DWITH_IPP=ON")
 else ()
     set(_use_IPP "-DWITH_IPP=OFF")

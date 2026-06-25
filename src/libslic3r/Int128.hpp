@@ -188,8 +188,9 @@ public:
 
 	static inline Int128 multiply(int64_t lhs, int64_t rhs)
 	{
-#if defined(_MSC_VER) && defined(_WIN64)
-		// On Visual Studio 64bit, use the _mul128() intrinsic function.
+#if defined(_MSC_VER) && defined(_M_X64)
+		// On Visual Studio x64, use the _mul128() intrinsic function.
+		// (ARM64 MSVC has no _mul128; it falls through to the portable path.)
 		Int128 result;
 	    result.m_lo = (uint64_t)_mul128(lhs, rhs, &result.m_hi);
 	    return result;

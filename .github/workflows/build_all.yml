@@ -30,6 +30,7 @@ on:
      - 'version.inc'
      - ".github/workflows/build_*.yml"
      - 'build_linux.sh'
+     - 'build_release_vs.bat'
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
@@ -76,11 +77,22 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   build_windows:
+    name: Build Windows ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            os: windows-latest
+          - arch: arm64
+            os: windows-11-arm
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      # Self-hosted runner is x64-only; ARM64 always uses the GitHub-hosted runner.
+      os: ${{ (matrix.arch == 'x64' && vars.SELF_HOSTED) && 'orca-win-server' || matrix.os }}
+      arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit

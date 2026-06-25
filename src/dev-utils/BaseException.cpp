@@ -357,6 +357,12 @@ void CBaseException::ShowRegistorInformation(PCONTEXT pCtx)
     OutputString(_T("SS:RSP:%04X:%016llX  RBP:%016llX\r\n"), pCtx->SegSs, pCtx->Rsp, pCtx->Rbp);
     OutputString(_T("DS:%04X  ES:%04X  FS:%04X  GS:%04X\r\n"), pCtx->SegDs, pCtx->SegEs, pCtx->SegFs, pCtx->SegGs);
     OutputString(_T("Flags:%08X\r\n"), pCtx->EFlags);
+#elif defined(_M_ARM64)
+    OutputString(_T("\nRegisters:\r\n"));
+    OutputString(_T("PC:%016llX  SP:%016llX  FP:%016llX  LR:%016llX\r\n"),
+        (unsigned long long)pCtx->Pc, (unsigned long long)pCtx->Sp,
+        (unsigned long long)pCtx->Fp, (unsigned long long)pCtx->Lr);
+    OutputString(_T("Cpsr:%08X\r\n"), pCtx->Cpsr);
 #endif
 
 	OutputString( _T("\r\n") );
@@ -380,7 +386,11 @@ void CBaseException::ShowExceptionInformation()
 		OutputString(_T("Param %d :0x%x \n"), i, m_pEp->ExceptionRecord->ExceptionInformation[i]);
 	}
 	OutputString(_T("Context :%p \n"), m_pEp->ContextRecord);
+#if defined(_M_ARM64)
+    OutputString(_T("ContextFlag : 0x%x, Cpsr: 0x%x \n"), m_pEp->ContextRecord->ContextFlags, m_pEp->ContextRecord->Cpsr);
+#else
     OutputString(_T("ContextFlag : 0x%x, EFlags: 0x%x \n"), m_pEp->ContextRecord->ContextFlags, m_pEp->ContextRecord->EFlags);
+#endif
 
 	TCHAR szFaultingModule[MAX_PATH];
 	DWORD section, offset;
