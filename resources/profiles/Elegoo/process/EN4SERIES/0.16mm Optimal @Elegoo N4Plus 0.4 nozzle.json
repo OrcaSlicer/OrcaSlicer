@@ -1,4 +1,5 @@
 {
+	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N4Plus 0.4 nozzle",
 	"instantiation": "true",

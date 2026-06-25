@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Elegoo Centauri 2",
+	"model_id": "Elegoo-C2",
+	"nozzle_diameter": "0.4;0.2;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "Elegoo",
+	"bed_model": "elegoo_centuri_carbon_buildplate_model.stl",
+	"bed_texture": "elegoo_centuri_carbon_buildplate_texture.png",
+	"hotend_model": "",
+	"default_materials": "Elegoo ASA @EC2;Elegoo PETG @EC2;Elegoo PETG PRO @EC2;Elegoo PLA Matte @EC2;Elegoo PLA PRO @EC2;Elegoo PLA Silk @EC2;Elegoo PLA-CF @EC2;Elegoo PLA @EC2;Elegoo PLA+ @EC2;Elegoo Rapid PETG @EC2;Elegoo Rapid PLA+ @EC2;Elegoo TPU 95A @EC2;Elegoo PLA Basic @EC2;Elegoo PLA Galaxy @EC2;Elegoo PLA Marble @EC2;Elegoo PLA Sparkle @EC2;Elegoo PLA Wood @EC2;Elegoo Rapid TPU 95A @EC2;Elegoo ABS @EC2;Elegoo PAHT-CF @EC2;Elegoo PC @EC2;Elegoo PC-FR @EC2;Elegoo PETG-CF @EC2;Elegoo PETG-GF @EC2;Elegoo PETG Translucent @EC2;Elegoo ASA-CF @EC2;Elegoo PET-CF @EC2;Elegoo PETG HF @EC2;Elegoo PLA Glow @EC2;Elegoo PLA Translucent2 @EC2"
+}

@@ -1,4 +1,6 @@
 {
+	"type": "process",
+	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo Giga 0.4 nozzle",
 	"layer_height": "0.16",
 	"instantiation": "true",

@@ -1,4 +1,6 @@
 {
+	"type": "process",
+	"from": "system",
 	"inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
 	"name": "0.30mm Strength @Elegoo Giga 0.6 nozzle",
 	"wall_sequence": "inner-outer-inner wall",
