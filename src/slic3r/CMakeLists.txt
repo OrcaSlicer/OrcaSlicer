@@ -353,6 +353,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Notebook.hpp
     GUI/NotificationManager.cpp
     GUI/NotificationManager.hpp
+    GUI/NozzlePickerPanel.cpp
+    GUI/NozzlePickerPanel.hpp
     GUI/OAuthDialog.cpp
     GUI/OAuthDialog.hpp
     GUI/ObjColorDialog.cpp

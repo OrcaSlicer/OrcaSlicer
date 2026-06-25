@@ -472,6 +472,12 @@ public:
 	void		clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 
+	// Offer (Yes/No) to convert this process profile's absolute nozzle-scaled line widths to
+	// percentages for a mixed-nozzle printer. is_mixed/base are resolved by
+	// the caller via libslic3r; the conversion is applied in place to the edited process config.
+	void offer_nozzle_agnostic_conversion(bool is_mixed, std::optional<double> base)
+		{ m_config_manipulation.check_nozzle_agnostic(m_config, is_mixed, base); }
+
 private:
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;
 	ogStaticText*	m_top_bottom_shell_thickness_explanation = nullptr;

@@ -164,6 +164,9 @@ public:
     void update_all_preset_comboboxes();
     //void update_partplate(PartPlateList& list);
     void update_presets(Slic3r::Preset::Type preset_type);
+    // Apply per-extruder nozzle diameters from the multi-toolhead picker to the edited printer
+    // config, then offer the mixed-nozzle line-width conversion on the edited process profile.
+    void apply_per_extruder_nozzles(const std::vector<double>& diameters);
     //BBS
     const std::vector<BedType>& get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
     void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);

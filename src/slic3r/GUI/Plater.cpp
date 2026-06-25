@@ -95,6 +95,8 @@
 #include "Camera.hpp"
 #include "Mouse3DController.hpp"
 #include "Tab.hpp"
+#include "NozzlePickerPanel.hpp"
+#include "libslic3r/NozzleAgnostic.hpp"
 #include "Jobs/OrientJob.hpp"
 #include "Jobs/ArrangeJob.hpp"
 #include "Jobs/FillBedJob.hpp"
@@ -122,6 +124,7 @@
 #include "NotificationManager.hpp"
 #include "PresetComboBoxes.hpp"
 #include "MsgDialog.hpp"
+#include "ParamsPanel.hpp" // TipsDialog (note popup for uniform-Apply profile switch)
 #include "ProjectDirtyStateManager.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
 #include "Gizmos/GLGizmoSVG.hpp" // Drop SVG file
@@ -237,6 +240,60 @@ static string get_diameter_string(float diameter)
         if (s.back() == '.') s += '0';        // Ensure "1." → "1.0"
     }
     return s;
+}
+
+// Make each toolhead's nozzle-specific machine settings consistent with the diameter the user chose
+// for it, by copying them from the official single-nozzle profile for that diameter. This is what turns
+// a mixed-nozzle Apply into a *physically consistent* config -- e.g. a 0.6 toolhead picks up the 0.6
+// profile's max/min layer height instead of being left with the previous nozzle's values. NOTHING is
+// hardcoded: the values come from the looked-up profile, and the keys are the slicer's own per-extruder
+// key set (Preset::nozzle_options). "Nozzle-specific" is decided per key by COMPARING the looked-up
+// profile's value against what is currently in cfg for this slot: if they differ, that key depends on
+// the nozzle and is copied; if they are equal it is shared (e.g. retraction inherited from fdm_U1) and is
+// left untouched, so we never stomp a user value that the nozzle does not actually change. We deliberately
+// do NOT resolve the profile's parent (fdm_U1 ships with instantiation:false and is never loaded into the
+// printers collection, so get_preset_parent would return null). `cfg`'s per-extruder vectors MUST already
+// be sized to N (call after set_num_extruders). Diameters with no shipped single-nozzle profile are
+// left untouched.
+static void copy_per_nozzle_machine_settings(DynamicPrintConfig& cfg, const std::vector<double>& diameters)
+{
+    auto* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+    const std::string model = bundle->printers.get_selected_preset().config.opt_string("printer_model");
+
+    // Only the layer-height limits legitimately vary by nozzle diameter. Verified against the shipped
+    // Snapmaker U1 single-nozzle profiles (0.4 -> max/min 0.32/0.08, 0.6 -> 0.48/0.12); every other
+    // per-extruder key is inherited unchanged from the fdm_U1 parent. We copy ONLY these keys rather
+    // than scanning all of Preset::nozzle_options() and guessing per-key by value equality -- that
+    // guess clobbered user-tuned shared settings (e.g. retraction_length / extruder_colour, which the
+    // shipped 0.4 profile also overrides) whenever they differed from the profile. A future
+    // nozzle-dependent key must be added here deliberately.
+    static const std::vector<std::string> nozzle_dependent_keys = { "min_layer_height", "max_layer_height" };
+
+    for (size_t i = 0; i < diameters.size(); ++i) {
+        const std::string variant = get_diameter_string(diameters[i]);
+        Preset* src = bundle->get_similar_printer_preset(model, variant);
+        // Same guard as the uniform path: get_similar_printer_preset() falls back to an arbitrary
+        // same-model preset, so require an exact variant match -- otherwise this diameter has no shipped
+        // single-nozzle profile (e.g. 0.2 / 0.8 may be absent) and we leave its slot as-is.
+        if (src == nullptr || src->config.opt_string("printer_variant") != variant)
+            continue;
+        for (const std::string& key : nozzle_dependent_keys) {
+            const ConfigOption* src_opt = src->config.option(key);
+            ConfigOption*       dst_opt = cfg.option(key, false);
+            if (src_opt == nullptr || dst_opt == nullptr || !src_opt->is_vector() || !dst_opt->is_vector())
+                continue;
+            const auto* src_vec = static_cast<const ConfigOptionVectorBase*>(src_opt);
+            auto*       dst_vec = static_cast<ConfigOptionVectorBase*>(dst_opt);
+            const std::vector<std::string> src_vals = src_vec->vserialize();
+            const std::vector<std::string> dst_vals = dst_vec->vserialize();
+            if (src_vals.empty() || i >= dst_vals.size())
+                continue;
+            // Single-nozzle profiles carry uniform vectors -> copy this nozzle's value from source idx 0.
+            dst_vec->set_at(src_opt, i, 0);
+        }
+    }
 }
 
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
@@ -488,6 +545,12 @@ struct Sidebar::priv
     Label *         label_nozzle_title= nullptr;
     ComboBox *      combo_nozzle_dia  = nullptr;
     Label *         label_nozzle_type = nullptr;
+
+    // Per-extruder nozzle picker for mixed-nozzle (multi-toolhead) printers, e.g. the Snapmaker U1
+    // toolchanger. Shown only when the printer declares > 2 nozzles (mainline's single/dual nozzle
+    // UI cannot represent that case). Lets each toolhead take an independent diameter and offers the
+    // line-width-to-percentage conversion on Apply.
+    NozzlePickerPanel * panel_nozzle_picker = nullptr;
 
     // Printer - bed
     StaticBox *     panel_printer_bed = nullptr;
@@ -1294,6 +1357,101 @@ bool Sidebar::priv::switch_diameter(bool single)
     return wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(preset->name);
 }
 
+void Sidebar::apply_per_extruder_nozzles(const std::vector<double>& diameters)
+{
+    if (diameters.empty())
+        return;
+
+    const bool is_mixed = Slic3r::nozzle_agnostic::is_mixed_nozzle(diameters);
+
+    // A UNIFORM selection (every nozzle the same diameter) is really a request to run the machine as a
+    // single-nozzle setup of that size, so switch the whole printer PROFILE to the official
+    // single-nozzle Snapmaker U1 preset for that diameter (e.g. "Snapmaker U1 (0.6 nozzle)"). That
+    // updates *every* nozzle-tied machine setting (the whole preset), not just the diameter number --
+    // which is all that writing the raw vector would change. Only when no matching single-nozzle
+    // profile exists do we fall through to the raw-vector write below.
+    if (!is_mixed) {
+        const std::string variant = get_diameter_string(diameters.front());
+        Preset* preset = wxGetApp().preset_bundle->get_similar_printer_preset({}, variant);
+        // get_similar_printer_preset() falls back to an ARBITRARY same-model preset when no variant
+        // matches (for a known model it never returns null), so confirm the resolved preset really is
+        // the requested diameter before switching. Without this guard, a diameter with no local
+        // profile (e.g. 0.2 / 0.8 single-nozzle presets may be absent from a given checkout) would
+        // silently switch to the wrong profile.
+        if (preset != nullptr && preset->config.opt_string("printer_variant") == variant) {
+            // No-op guard: if the printer is ALREADY on this profile, Apply changed nothing -- don't
+            // re-select and don't pop the "Printer profile updated" dialog. (Previously the dialog fired
+            // on every Apply press, even with no change.)
+            if (wxGetApp().preset_bundle->printers.get_selected_preset_name() == preset->name)
+                return;
+
+            preset->is_visible = true; // force visible so it can be selected
+            wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(preset->name);
+
+            // Tell the user which official profile was selected. TipsDialog is the repo's standard note
+            // dialog (info text + a "Don't show again" checkbox gated on an app_config key, single OK),
+            // matching the fork's "Set Nozzle Diameter" note. Shown until the user opts out.
+            if (wxGetApp().app_config->get("do_not_show_nozzle_profile_switch").empty()) {
+                // Parent to the main frame (not `this`/the Sidebar): TipsDialog calls CenterOnParent(),
+                // and centering on the narrow sidebar pushed the dialog to the far left. The main frame
+                // centers it on the whole window, like Orca's other note dialogs.
+                TipsDialog dlg(static_cast<wxWindow*>(wxGetApp().mainframe), _L("Printer profile updated"),
+                    wxString::Format(_L("Switched to profile: %s"), from_u8(preset->name)),
+                    "do_not_show_nozzle_profile_switch");
+                dlg.ShowModal();
+            }
+            // Selecting the preset loads its full config (diameters + extruder count + everything tied
+            // to that nozzle), so the manual vector write / count reconcile below are unnecessary and
+            // the conversion offer (a mixed-only step) does not apply.
+            return;
+        }
+        // No matching single-nozzle profile: fall through and at least write the diameters (graceful,
+        // non-destructive -- updates the numbers without switching to an unrelated profile).
+    }
+
+    // 1) Resolve the conversion base nozzle BEFORE touching the printer config -- via the selected
+    //    PROCESS profile's compatible_printers link (libslic3r owns the logic). This MUST run before the
+    //    write below: step 2 overwrites the selected printer's nozzle_diameter with the per-toolhead
+    //    mixed vector, and the process is bound to that same printer, so resolving afterwards would read
+    //    the mixed vector and refuse (no single base). Resolving here reads the still-clean diameter.
+    std::optional<double> base;
+    {
+        const Preset& process = wxGetApp().preset_bundle->prints.get_edited_preset();
+        base = Slic3r::nozzle_agnostic::resolve_base_nozzle(process, *wxGetApp().preset_bundle);
+    }
+
+    // Read the count BEFORE the write below, so step 3 can tell whether it actually changed (the
+    // picker edits diameters, not toolhead count, so it usually hasn't).
+    const int prev_extruder_count = wxGetApp().preset_bundle->get_printer_extruder_count();
+
+    // 2) Write the per-extruder nozzle diameters onto the EDITED printer config. We deliberately do
+    //    NOT route through switch_diameter()/preset-swap: that path forbids mixed nozzles (single-head
+    //    only). Writing the vector directly is what makes a genuinely mixed-nozzle setup possible.
+    auto* printer_tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+    if (printer_tab && printer_tab->m_config) {
+        DynamicPrintConfig new_conf = *printer_tab->m_config;
+        new_conf.set_key_value("nozzle_diameter", new ConfigOptionFloats(diameters));
+        // Size every per-extruder vector to N so the per-slot writes below are in range, then make each
+        // toolhead's nozzle-specific machine settings (e.g. max/min layer height) consistent with its
+        // chosen diameter -- sourced by lookup from the official single-nozzle profile, never hardcoded.
+        // Without this, only the diameter NUMBER would change, leaving an inconsistent config.
+        new_conf.set_num_extruders((unsigned int) diameters.size());
+        copy_per_nozzle_machine_settings(new_conf, diameters);
+        printer_tab->load_config(new_conf);
+    }
+
+    // 3) Reconcile extruder-dependent config to the new count -- only on an actual count change,
+    //    mirroring TabPrinter::extruders_count_changed. (on_extruders_count_changed unconditionally
+    //    resets project nozzle_volume_type; calling it when only diameters changed would clobber it.)
+    if ((int) diameters.size() != prev_extruder_count)
+        wxGetApp().preset_bundle->on_extruders_count_changed((int) diameters.size());
+
+    // 4) Offer the mixed-nozzle line-width conversion on the edited PROCESS profile, using the base
+    //    resolved in step 1 (the print Tab applies it).
+    if (auto* print_tab = dynamic_cast<TabPrint*>(wxGetApp().get_tab(Preset::TYPE_PRINT)))
+        print_tab->offer_nozzle_agnostic_conversion(is_mixed, base);
+}
+
 bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
 {
     MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
@@ -2056,6 +2214,20 @@ Sidebar::Sidebar(Plater *parent)
 
         p->vsizer_printer = new wxBoxSizer(wxVERTICAL);
         p->layout_printer(true, true);
+
+        // Per-extruder nozzle picker for multi-toolhead (mixed-nozzle) printers. Hidden until a
+        // printer with > 2 extruders is selected (see the TYPE_PRINTER preset-change handler).
+        p->panel_nozzle_picker = new NozzlePickerPanel(p->m_panel_printer_content);
+        // Run the dark-mode theming pass (as the sibling sidebar panels get) so the panel's white
+        // background flips to the dark sidebar shade and matches the Filament/Printer sections.
+        wxGetApp().UpdateDarkUI(p->panel_nozzle_picker);
+        p->panel_nozzle_picker->set_on_apply([this](const std::vector<double>& diameters) {
+            this->apply_per_extruder_nozzles(diameters);
+        });
+        p->panel_nozzle_picker->Hide();
+        p->vsizer_printer->Add(p->panel_nozzle_picker, 0, wxEXPAND | wxLEFT | wxRIGHT,
+                               FromDIP(SidebarProps::ContentMargin()));
+
         p->m_panel_printer_content->SetSizer(p->vsizer_printer);
         p->m_panel_printer_content->Layout();
         scrolled_sizer->Add(p->m_panel_printer_content, 0, wxEXPAND, 0);
@@ -2712,6 +2884,31 @@ void Sidebar::update_presets(Preset::Type preset_type)
             p->label_nozzle_type->SetToolTip(nozzle_type == "-" ? "" : nozzle_type);
 
             p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+        }
+
+        // Multi-toolhead printers (> 1 nozzle, i.e. 2+, e.g. the Snapmaker U1) cannot be represented by
+        // single/dual nozzle UI above. Populate and show the per-nozzle picker for them; hide it
+        // otherwise. This also rebuilds the dropdowns whenever the nozzle count changes.
+        //
+        // Gate = "> 1 nozzle AND a genuine multi-extruder machine". The single_extruder_multi_material
+        // guard excludes single-nozzle multi-material (MMU/AMS) printers: those report many filaments but
+        // have ONE physical nozzle, so per-nozzle diameter selection is meaningless there. Read from the
+        // same edited printer_preset.config that nozzle_diameter came from. Not model-gated (no "U1"
+        // hard-code) so future toolchangers (e.g. an 8-nozzle machine) qualify automatically.
+        if (p->panel_nozzle_picker) {
+            const bool is_semm = printer_preset.config.opt_bool("single_extruder_multi_material");
+            const bool multi_toolhead = nozzle_diameter && nozzle_diameter->size() > 1 && !is_semm;
+            if (multi_toolhead) {
+                p->panel_nozzle_picker->rebuild(nozzle_diameter->values, diameters);
+                p->panel_nozzle_picker->Show();
+            } else {
+                p->panel_nozzle_picker->Hide();
+            }
+            // Re-flow the scrolled content: showing/hiding the picker or rebuilding it to a different
+            // nozzle count changes the height of the scrolled region, and the plain Layout() below only
+            // lays out Sidebar's direct children -- not m_scrolled_sizer. Without this the picker can
+            // render clipped or not appear until another event forces a relayout.
+            m_scrolled_sizer->Layout();
         }
 
         if (GUI::wxGetApp().plater())
