@@ -1775,14 +1775,14 @@ void generate_support_toolpaths(
                 bool  sheath  = support_params.with_sheath;
                 bool  no_sort = false;
                 bool  done    = false;
-                // Use std::abs() so this fires only for the actual first layer at z=0.
-                // On belt printers organic support extends to NEGATIVE z (below the
-                // belt plane), and a plain "< EPSILON" test would treat every one of
-                // those sub-zero layers as a first-layer flange — filling the whole
-                // under-belt branch region with the dense raft_first_layer_density +
-                // sheath instead of sparse support. Non-belt support z is never
-                // negative, so std::abs() is a no-op for every other printer type.
-                if (std::abs(base_layer.layer->bottom_z) < EPSILON) {
+                // Belt printers have no flat bed first layer — the belt is the tilted
+                // build surface — so the dense raft_first_layer_density flange must not
+                // fire anywhere, including the layer at z=0 (the belt-surface line).
+                // (belt_floor_shear_factor is non-zero only when belt_printer is on.)
+                // For every other printer type, support z is never negative, so this
+                // matches the original "first layer at z=0" behaviour unchanged.
+                const bool is_belt_printer = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
+                if (! is_belt_printer && base_layer.layer->bottom_z < EPSILON) {
                     // Base flange (the 1st layer).
                     filler = filler_first_layer;
                     filler->angle = Geometry::deg2rad(float(config.support_angle.value + 90.));
