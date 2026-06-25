@@ -438,14 +438,14 @@ void append_shell_perimeters(ExtrusionPaths &overhang_region,
 // Helper: construct an ExtrusionPath from a polyline + flow/role (Orca API).
 static ExtrusionPath make_wave_path(const Polyline &polyline, const Flow &flow, double mm3_per_mm)
 {
-    ExtrusionPath path(erOverhangPerimeter, mm3_per_mm, flow.width(), flow.height());
+    ExtrusionPath path(erInternalBridgeInfill, mm3_per_mm, flow.width(), flow.height());
     path.polyline = Slic3r::Polyline3(polyline, flow.height());
     return path;
 }
 
 static ExtrusionPath make_wave_path(Polyline &&polyline, const Flow &flow, double mm3_per_mm)
 {
-    ExtrusionPath path(erOverhangPerimeter, mm3_per_mm, flow.width(), flow.height());
+    ExtrusionPath path(erInternalBridgeInfill, mm3_per_mm, flow.width(), flow.height());
     path.polyline = std::move(Slic3r::Polyline3(polyline, flow.height()));
     return path;
 }
@@ -916,7 +916,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
             wave_paths.pop_back();
     }
 
-    tag_wave_overhang_paths(wave_paths);
+    //tag_wave_overhang_paths(wave_paths);
     return { wave_paths, union_safety_offset(closing_ex(filled_area, float(filled_area_regularization), jtRound, 0.)) };
 }
 
