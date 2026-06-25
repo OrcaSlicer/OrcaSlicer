@@ -1845,7 +1845,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::finalize(GCode &gcodegen)
     {
         std::string gcode;
-        if (gcodegen.wipe_tower_type() == WipeTowerType::Type2) {
+        if (gcodegen.wipe_tower_type() == WipeTowerType::Type2 && !m_final_purge.gcode.empty()) {
             if (std::abs(gcodegen.writer().get_position().z() - m_final_purge.print_z) > EPSILON)
                 gcode += gcodegen.change_layer(m_final_purge.print_z);
             gcode += append_tcr2(gcodegen, m_final_purge, -1);
