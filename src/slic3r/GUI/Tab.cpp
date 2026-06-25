@@ -33,6 +33,7 @@
 #include <wx/wupdlock.h>
 
 #include "GUI_App.hpp"
+#include "DeviceManager.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 #include "Plater.hpp"
@@ -7457,13 +7458,22 @@ void Tab::update_extruder_variants(int extruder_id)
         nozzle_volumes->values.resize(extruder_nums);
         if (extruder_nums == 2) {
             auto     nozzle_volumes_def = m_preset_bundle->project_config.def()->get("nozzle_volume_type");
+            // H2C: Determine Left/Right → logical extruder mapping dynamically.
+            // Main extruder (ext0) can be on left or right depending on printer.
+            bool main_on_left = false;
+            if (auto* dev = wxGetApp().getDeviceManager())
+                if (auto* obj = dev->get_selected_machine())
+                    main_on_left = obj->is_main_extruder_on_left();
+            int left_logical_idx  = main_on_left ? 0 : 1;  // H2C: Left UI → ext1
+            int right_logical_idx = main_on_left ? 1 : 0;  // H2C: Right UI → ext0
             wxString left, right;
             for (size_t i = 0; i < nozzle_volumes_def->enum_labels.size(); ++i) {
-                if (nozzle_volumes->values[0] == i) left = _L(nozzle_volumes_def->enum_labels[i]);
-                if (nozzle_volumes->values[1] == i) right = _L(nozzle_volumes_def->enum_labels[i]);
+                if (nozzle_volumes->values[left_logical_idx] == i) left = _L(nozzle_volumes_def->enum_labels[i]);
+                if (nozzle_volumes->values[right_logical_idx] == i) right = _L(nozzle_volumes_def->enum_labels[i]);
             }
             m_extruder_switch->SetLabels(wxString::Format(_L("Left: %s"), left), wxString::Format(_L("Right: %s"), right));
-            m_extruder_switch->SetValue(extruder_id == 1);
+            // SetValue(true) selects Right tab.
+            m_extruder_switch->SetValue(extruder_id == right_logical_idx);
             m_extruder_switch->Enable(true);
             assert(m_extruder_switch->IsEnabled());
         } else {
@@ -7508,7 +7518,17 @@ void Tab::switch_excluder(int extruder_id)
     if (!m_variant_combo && (extruder_id >= (int)nozzle_volumes->size() || extruder_id >= (int)extruders->size()))
         extruder_id = 0;
     if (m_extruder_switch && m_type != Preset::TYPE_PRINTER) {
-        int current_extruder = m_extruder_switch->GetValue() ? 1 : 0;
+        // H2C: Remap UI tab position to logical extruder index dynamically.
+        bool main_on_left = false;
+        if (auto* dev = wxGetApp().getDeviceManager())
+            if (auto* obj = dev->get_selected_machine())
+                main_on_left = obj->is_main_extruder_on_left();
+        // GetValue()==false: Left tab selected, GetValue()==true: Right tab selected
+        // Left UI → main_on_left ? ext0 : ext1
+        // Right UI → main_on_left ? ext1 : ext0
+        int current_extruder = m_extruder_switch->GetValue()
+                               ? (main_on_left ? 1 : 0)   // Right tab
+                               : (main_on_left ? 0 : 1);  // Left tab
         if (extruder_id == -1)
             extruder_id = current_extruder;
         else if (extruder_id != current_extruder) {

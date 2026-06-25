@@ -6175,7 +6175,34 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
     const auto* opt_ext_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("extruder_type"));
     const auto* opt_nvt      = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("nozzle_volume_type"));
 
-
+    std::cerr << "[H2C-PRECOMPUTE] num_extruders=" << num_extruders << std::endl;
+    if (opt_ext_type) {
+        std::cerr << "[H2C-PRECOMPUTE] extruder_type=[";
+        for (size_t i = 0; i < opt_ext_type->size(); ++i)
+            std::cerr << (i ? "," : "") << opt_ext_type->get_at(i);
+        std::cerr << "]" << std::endl;
+    } else {
+        std::cerr << "[H2C-PRECOMPUTE] extruder_type=NULL" << std::endl;
+    }
+    if (opt_nvt) {
+        std::cerr << "[H2C-PRECOMPUTE] nozzle_volume_type=[";
+        for (size_t i = 0; i < opt_nvt->size(); ++i)
+            std::cerr << (i ? "," : "") << opt_nvt->get_at(i);
+        std::cerr << "]" << std::endl;
+    } else {
+        std::cerr << "[H2C-PRECOMPUTE] nozzle_volume_type=NULL" << std::endl;
+    }
+    {
+        auto* evl_dbg = dynamic_cast<const ConfigOptionStrings*>(full_cfg.option("extruder_variant_list"));
+        if (evl_dbg) {
+            std::cerr << "[H2C-PRECOMPUTE] extruder_variant_list=[";
+            for (size_t i = 0; i < evl_dbg->size(); ++i)
+                std::cerr << (i ? "|" : "") << evl_dbg->get_at(i);
+            std::cerr << "]" << std::endl;
+        } else {
+            std::cerr << "[H2C-PRECOMPUTE] extruder_variant_list=NULL" << std::endl;
+        }
+    }
 
     for (unsigned int eid = 0; eid < num_extruders; ++eid) {
         // Determine the correct variant_index for this extruder.
@@ -6218,15 +6245,38 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
         }
 
         if (variant_index < 0) {
+            std::cerr << "[H2C-PRECOMPUTE] eid=" << eid << " search='" << search_variant << "' variant_index=-1 SKIP" << std::endl;
             BOOST_LOG_TRIVIAL(debug) << "H2C precompute: no variant_index for extruder " << eid << ", skipping";
             continue;
         }
 
+        std::cerr << "[H2C-PRECOMPUTE] eid=" << eid << " search='" << search_variant << "' variant_index=" << variant_index << std::endl;
 
 
 
         DynamicPrintConfig overlay;
         bool has_any = false;
+
+        // H2C diagnostic: show key matching
+        {
+            int found_count = 0, miss_count = 0;
+            std::string found_keys, miss_keys;
+            for (const auto& k : variant_keys) {
+                if (vo.has(k)) {
+                    found_count++;
+                    if (found_keys.size() < 200) found_keys += (found_keys.empty() ? "" : ",") + k;
+                } else {
+                    miss_count++;
+                    if (miss_keys.size() < 200) miss_keys += (miss_keys.empty() ? "" : ",") + k;
+                }
+            }
+            std::cerr << "[H2C-PRECOMPUTE] eid=" << eid << " variant_keys=" << variant_keys.size()
+                      << " found=" << found_count << " miss=" << miss_count << std::endl;
+            if (found_count > 0)
+                std::cerr << "[H2C-PRECOMPUTE]   found: " << found_keys << std::endl;
+            if (miss_count > 0 && miss_count < 10)
+                std::cerr << "[H2C-PRECOMPUTE]   miss: " << miss_keys << std::endl;
+        }
 
         for (const auto& key : variant_keys) {
             if (!vo.has(key))
