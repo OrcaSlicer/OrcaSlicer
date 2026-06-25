@@ -1006,7 +1006,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_line(el, has_zaa);
 
     bool wo_enabled = config->opt_bool("wo_enabled");
-    for (auto el : {"wo_spacing", "wo_pattern"})
+    for (auto el : {"wo_spacing", "wo_pattern", "wo_bridge_speed"})
         toggle_line(el, wo_enabled);
 
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);

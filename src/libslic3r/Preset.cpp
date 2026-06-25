@@ -1341,6 +1341,7 @@ static std::vector<std::string> s_Preset_print_options{
     "wo_enabled",
     "wo_spacing",
     "wo_pattern",
+    "wo_bridge_speed",
 };
 
 static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",

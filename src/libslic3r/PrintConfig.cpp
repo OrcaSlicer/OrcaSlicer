@@ -1848,6 +1848,17 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(150, true)});
 
+    def = this->add("wo_bridge_speed", coFloatsOrPercents);
+    def->label = L("Wave");
+    def->category = L("Speed");
+    def->tooltip = L("Speed of wave overhangs/bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 2 mm/s.");
+    def->sidetext = L("mm/s or %");
+    def->ratio_over = "bridge_speed";
+    def->min = 0.1;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(2, false)});
+
     def = this->add("brim_width", coFloat);
     def->label = L("Brim width");
     def->category = L("Support");
@@ -9318,6 +9329,7 @@ std::set<std::string> print_options_with_variant = {
     "slowdown_for_curled_perimeters",
     "bridge_speed",
     "internal_bridge_speed",
+    "wo_bridge_speed",
     "gap_infill_speed",
     "support_speed",
     "support_interface_speed",

@@ -20,7 +20,6 @@
 #include "CommonDefs.hpp"
 #include "Config.hpp"
 #include "Polygon.hpp"
-#include <boost/mp11/algorithm.hpp>
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -1457,6 +1456,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, wo_enabled))
     ((ConfigOptionFloatOrPercent, wo_spacing))
     ((ConfigOptionEnum<WaveOverhangPattern>, wo_pattern))
+    ((ConfigOptionFloatsOrPercentsNullable, wo_bridge_speed))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(

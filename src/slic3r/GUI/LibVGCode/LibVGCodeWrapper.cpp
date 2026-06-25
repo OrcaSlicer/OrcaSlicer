@@ -89,6 +89,7 @@ Slic3r::ExtrusionRole convert(EGCodeExtrusionRole role)
     // ORCA
     case EGCodeExtrusionRole::BottomSurface:            { return Slic3r::ExtrusionRole::erBottomSurface; }
     case EGCodeExtrusionRole::InternalBridgeInfill:     { return Slic3r::ExtrusionRole::erInternalBridgeInfill; }
+    case EGCodeExtrusionRole::WaveBridgeInfill:         { return Slic3r::ExtrusionRole::erWaveBridgeInfill; }
     case EGCodeExtrusionRole::Brim:                     { return Slic3r::ExtrusionRole::erBrim; }
     case EGCodeExtrusionRole::SupportTransition:        { return Slic3r::ExtrusionRole::erSupportTransition; }
     case EGCodeExtrusionRole::Mixed:                    { return Slic3r::ExtrusionRole::erMixed; }

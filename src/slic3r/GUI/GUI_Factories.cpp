@@ -167,7 +167,8 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"overhang_4_4_speed", "", 10},
        {"bridge_speed", "", 11},
        {"gap_infill_speed", "", 12},
-       {"internal_bridge_speed", "", 13}}}};
+       {"internal_bridge_speed", "", 13},
+       {"wo_bridge_speed", "", 14}}}};
 
 std::vector<std::string> SettingsFactory::get_options(const bool is_part)
 {
