@@ -1124,20 +1124,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
 
-    // H2C DIAG: check if VO arrives at Print::apply
-    {
-        const auto& vo = new_full_config.variant_overrides();
-        std::cerr << "[H2C-PRINT-APPLY] VO empty=" << vo.empty() << " floats=" << vo.floats.size() << std::endl;
-        auto it = vo.floats.find("outer_wall_speed");
-        if (it != vo.floats.end()) {
-            std::cerr << "[H2C-PRINT-APPLY] outer_wall_speed = [";
-            for (size_t i = 0; i < it->second.size(); ++i) {
-                if (i > 0) std::cerr << ",";
-                std::cerr << it->second[i];
-            }
-            std::cerr << "]" << std::endl;
-        }
-    }
+
+
 
     // H2C Vortek: Handle H2C preservation, validation, and auto-recalculation in our custom layer.
     Vortek::PlateMapping::handle_h2c_mapping_apply(this, new_full_config, m_full_print_config);
@@ -1246,7 +1234,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 {
                     auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-                    BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] (auto-mode-block) erasing nozzle_map diff & overwriting old=" << fmt(old_opt->values) << " <- new=" << fmt(new_opt->values);
                 }
                 old_opt->set(new_opt);
                 m_config.filament_nozzle_map = *new_opt;
@@ -1357,12 +1344,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	    // Handle changes to regions config defaults
 	    m_default_region_config.apply_only(new_full_config, region_diff, true);
         //m_full_print_config = std::move(new_full_config);
-        {
-            auto fmt_vec_opt = [](const ConfigOption* opt){ if(!opt) return std::string("(null)"); auto* v = dynamic_cast<const ConfigOptionInts*>(opt); if(!v) return std::string("(not_ints)"); std::string s="["; for(size_t i=0;i<v->values.size();++i){ if(i)s+=","; s+=std::to_string(v->values[i]); } return s+"]"; };
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] (line 1303) overwriting m_full_print_config: old.filament_nozzle_map=" << fmt_vec_opt(m_full_print_config.option("filament_nozzle_map"))
-                << " new.filament_nozzle_map=" << fmt_vec_opt(new_full_config.option("filament_nozzle_map"))
-                << " (m_config.filament_nozzle_map=" << fmt_vec_opt(m_config.option("filament_nozzle_map")) << ")";
-        }
+
+
         m_full_print_config = new_full_config;
         if (num_extruders  != m_config.filament_diameter.size()) {
             num_extruders  = m_config.filament_diameter.size();

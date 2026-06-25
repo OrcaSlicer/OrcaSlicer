@@ -4157,26 +4157,20 @@ void Sidebar::load_ams_list(MachineObject* obj)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1% items") % filament_ams_list.size();
     if (wxGetApp().preset_bundle->filament_ams_list == filament_ams_list && !device_change)
     {
-        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] load_ams_list: early return (no change)";
         return;
     }
     wxGetApp().preset_bundle->filament_ams_list = filament_ams_list;
 
-    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] load_ams_list: entering combos_filament loop, count=" << p->combos_filament.size();
     int __h2c_idx = 0;
     for (auto c : p->combos_filament){
-        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] load_ams_list: combos_filament[" << __h2c_idx << "]->update() pre";
         c->update();
-        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] load_ams_list: combos_filament[" << __h2c_idx << "]->update() post";
         if (device_change) {
             c->ShowBadge(false);//change printer,then clear badge
         }
         ++__h2c_idx;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] load_ams_list: combo_printer->update() pre";
     p->combo_printer->update();
-    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] load_ams_list: combo_printer->update() post -- exit";
 }
 
 void Sidebar::sync_ams_list(bool is_from_big_sync_btn)

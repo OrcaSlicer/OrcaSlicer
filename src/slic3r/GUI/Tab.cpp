@@ -1977,10 +1977,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             ? print_options_with_variant : filament_options_with_variant;
         if (keys.count(base_key)) {
             m_config->save_variant_overrides(m_last_variant_index, {base_key});
-            std::cerr << "[H2C-UI-EDIT] Tab " << m_name << " change value: " << base_key 
-                      << " = " << m_config->opt_serialize(base_key) 
-                      << " (saved to variant_index: " << m_last_variant_index << ")" << std::endl;
-            BOOST_LOG_TRIVIAL(info) << "H2C on_value_change: synced " << base_key << " to variant " << m_last_variant_index;
+
         }
     }
 
@@ -7648,15 +7645,14 @@ void Tab::switch_excluder(int extruder_id)
             // Save current values to the PREVIOUS variant slot (edited only)
             if (m_last_variant_index >= 0) {
                 edited_cfg.save_variant_overrides(m_last_variant_index, keys);
-                std::cerr << "[H2C-UI-SWITCH] Saved variant " << m_last_variant_index 
-                          << " speed overrides before switching." << std::endl;
+
             }
 
             // Apply new variant's values
             edited_cfg.apply_variant_overrides(index, keys);
             selected_cfg.apply_variant_overrides(index, keys);
 
-            std::cerr << "[H2C-UI-SWITCH] Switched to variant " << index << "." << std::endl;
+
 
             m_last_variant_index = index;
         }
