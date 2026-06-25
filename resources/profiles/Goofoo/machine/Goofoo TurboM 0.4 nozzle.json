@@ -1,0 +1,54 @@
+{
+  "type": "machine",
+  "name": "Goofoo TurboM 0.4 nozzle",
+  "inherits": "MyKlipper 0.4 nozzle",
+  "from": "system",
+  "setting_id": "GM007",
+  "instantiation": "true",
+  "nozzle_diameter": [
+    "0.4"
+  ],
+  "nozzle_type": "brass",
+  "printer_model": "Goofoo TurboM",
+  "printer_variant": "0.4",
+  "default_filament_profile": [
+    "Goofoo TurboM ABS"
+  ],
+  "default_print_profile": "0.20mm TurboM @Goofoo",
+  "printable_area": [
+    "0x0",
+    "230x0",
+    "230x200",
+    "0x200"
+  ],
+  "extruder_clearance_height_to_lid": "350",
+  "extruder_clearance_height_to_rod": "60",
+  "extruder_clearance_radius": "50",
+  "machine_end_gcode": "M104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nG92 E0.0 ; reset extruder distance position；\nG1 E-1 F2100 ; retract\nG28 X Y; home X Y axis\n;M84    ; disable motors\nM107 ; turn off fan\n;SET_VELOCITY_LIMIT ACCEL_TO_DECEL=4000",
+  "machine_max_jerk_z": [
+    "3",
+    "0.4"
+  ],
+  "machine_start_gcode": "M107 ; Turn off the fan\nG21  ; set units to millimeters\nG90  ; use absolute coordinates\nM83  ; use relative distances for extrusion\n\n\nM140 S[first_layer_bed_temperature]  ; set bed temp\nM190 S[first_layer_bed_temperature]  ; wait for bed temp\n\nG28   ;home\n\nG1 X2 Y10 F3000;\n\nM104 S[first_layer_temperature]      ; set extruder temp\nM140 S[first_layer_bed_temperature]  ; set bed temp\nM109 S[first_layer_temperature]      ; wait for extruder temp\nM190 S[first_layer_bed_temperature]  ; wait for bed temp\n\nG1 Z0.28 F240\n\nG92 E0\n\nG1 Y140 E10 F1500 ; prime the nozzle\n\nG1 X2.3 F5000\nG92 E0\n\nG1 Y10 E10 F1200 ; prime the nozzle\n;G0 Z2.0 F600;\nG92 E0.0 ; reset extruder distance position；\nM82\n;SET_PRESSURE_ADVANCE ADVANCE=0.05\n;SET_VELOCITY_LIMIT ACCEL_TO_DECEL=10000\n",
+  "printable_height": "200",
+  "z_hop": [
+    "0"
+  ],
+  "machine_max_speed_e": [
+    "25",
+    "25"
+  ],
+  "machine_max_speed_x": [
+    "500",
+    "200"
+  ],
+  "machine_max_speed_y": [
+    "500",
+    "200"
+  ],
+  "machine_max_speed_z": [
+    "12",
+    "12"
+  ],
+  "upward_compatible_machine": []
+}

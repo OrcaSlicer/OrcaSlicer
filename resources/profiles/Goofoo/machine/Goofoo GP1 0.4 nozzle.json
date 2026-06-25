@@ -1,0 +1,98 @@
+{
+  "type": "machine",
+  "name": "Goofoo GP1 0.4 nozzle",
+  "inherits": "MyKlipper 0.4 nozzle",
+  "from": "system",
+  "setting_id": "GM009",
+  "instantiation": "true",
+  "nozzle_diameter": [
+    "0.4"
+  ],
+  "default_filament_profile": [
+    "Goofoo GP1 ABS"
+  ],
+  "printer_model": "Goofoo GP1",
+  "default_print_profile": "0.20mm Standard @Goofoo",
+  "printer_variant": "0.4",
+  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n;G92 E0",
+  "change_filament_gcode": "G5",
+  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n;layer\n;{if layer_num == 2}\n;M106 P1 S255\n;{endif}\nSET_PRINT_STATS_INFO CURRENT_LAYER=[layer_num]\n",
+  "machine_end_gcode": "; End G-code\nEND_PRINT",
+  "machine_pause_gcode": "G5",
+  "machine_start_gcode": "M117 Printing...\nM107 ; Turn off the fan\nG21  ; set units to millimeters\nG90  ; use absolute coordinates\nM83  ; use relative distances for extrusion\nM104 S140\nM190 S[first_layer_bed_temperature]  ; wait for bed temp\n;G32  ;Load bed mesh\nG28   ;home\nG29   bed leveling\nM104 S[first_layer_temperature]      ; set extruder temp\nM140 S[first_layer_bed_temperature]  ; set bed temp\nM109 S[first_layer_temperature]      ; wait for extruder temp\nM190 S[first_layer_bed_temperature]  ; wait for bed temp\nG0 Z2.0 F600;\nG0 X50 Y10 F8000;\nG92 E0.0 ; reset extruder distance position\nG0 Z0.4 F600;\nG1 X100.0 E10 F3000.0 ; intro line\nG92 E0.0 ; reset extruder distance position\nG1 X200.0 E15 F3000.0 ; intro line\nG92 E0.0 ; reset extruder distance position\nG0 Z0.8 F600;\nG1 X100.0 E15 F3000.0 ; intro line\nG1 Z0.4 F600     ;Wipe\nG0 Y12 F6000    ;Wipe\nG1 X100 F6000    ;Wipe\nG0 Y8 F12000   ;Wipe\nG1 X200 F6000    ;Wipe\nG1 X190 Y12 F6000 ;Wipe\nG1 X180 Y8 F6000 ;Wipe\nG1 X170 Y12 F6000 ;Wipe\nG1 X160 Y8 F6000 ;Wipe\nG1 X150 Y12 F6000 ;Wipe\n;G0 Z2.0 F600;\nG92 E0.0 ; reset extruder distance position\n;START_PRINT",
+  "purge_in_prime_tower": "0",
+  "time_lapse_gcode": ";TIMELAPSE_TAKE_FRAME",
+  "printable_height": "250",
+  "printable_area": [
+    "0x0",
+    "250x0",
+    "250x250",
+    "0x250"
+  ],
+  "deretraction_speed": [
+    "0"
+  ],
+  "extruder_clearance_height_to_lid": "140",
+  "extruder_clearance_height_to_rod": "36",
+  "extruder_clearance_radius": "65",
+  "machine_max_acceleration_e": [
+    "20000",
+    "5000"
+  ],
+  "machine_max_acceleration_retracting": [
+    "15000",
+    "5000"
+  ],
+  "machine_max_acceleration_z": [
+    "100",
+    "200"
+  ],
+  "machine_max_jerk_e": [
+    "1",
+    "2.5"
+  ],
+  "machine_max_jerk_x": [
+    "5",
+    "9"
+  ],
+  "machine_max_jerk_y": [
+    "5",
+    "9"
+  ],
+  "machine_max_speed_e": [
+    "25",
+    "25"
+  ],
+  "machine_max_speed_x": [
+    "500",
+    "200"
+  ],
+  "machine_max_speed_y": [
+    "500",
+    "200"
+  ],
+  "machine_max_speed_z": [
+    "12",
+    "12"
+  ],
+  "retract_before_wipe": [
+    "100%"
+  ],
+  "retract_length_toolchange": [
+    "10"
+  ],
+  "retraction_length": [
+    "0.5"
+  ],
+  "retraction_minimum_travel": [
+    "2"
+  ],
+  "retraction_speed": [
+    "50"
+  ],
+  "thumbnails": "300x300/PNG",
+  "z_hop": [
+    "0"
+  ],
+  "upward_compatible_machine": []
+}
