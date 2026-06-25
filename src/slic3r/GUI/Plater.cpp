@@ -720,7 +720,11 @@ struct Sidebar::priv
     ScalableButton *  m_bpButton_ams_filament;
     ScalableButton *  m_bpButton_set_filament;
     int m_menu_filament_id = -1;
-    wxScrolledWindow* m_panel_filament_content;
+    // ORCA: plain container for the "Filament Management" group. The physical filament combos
+    // and the Color Mixing list each live in their own scrolled window below.
+    wxPanel*          m_panel_filament_content;
+    wxScrolledWindow* m_scrolled_filaments              = nullptr;
+    wxPanel*          m_panel_scrolled_filament_content = nullptr;
     wxScrolledWindow* m_scrolledWindow_filament_content;
     // ORCA: Color Mixing panel
     StaticBox*        m_panel_color_mix_title   = nullptr;
@@ -2857,13 +2861,20 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_filament_title->SetBackgroundColor(title_bg);
     p->m_panel_filament_title->SetBackgroundColor2(0xF1F1F1);
     p->m_panel_filament_title->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent &e) {
-        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer || !p->m_purge_mode_btn || !p->m_flushing_volume_btn)
+        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer)
             return;
-        // ORCA: the filament +/- /sync/settings buttons now live on the "Filaments" sub-header; only
-        // the purge-mode and flushing-volumes buttons remain on this group header. Exclude the
-        // right-aligned area beginning at the leftmost visible one so nearby clicks don't collapse.
-        if      (p->m_purge_mode_btn->IsShown()      && e.GetPosition().x > p->m_purge_mode_btn->GetPosition().x)      return;
-        else if (p->m_flushing_volume_btn->IsShown() && e.GetPosition().x > p->m_flushing_volume_btn->GetPosition().x) return;
+        // ORCA: the +/- /sync buttons live on the "Filaments" sub-header; the Purge-mode, Flushing-
+        // volumes and Set-filaments buttons remain on this group header — exclude their (right-side)
+        // area from the collapse/expand click so pressing them doesn't also toggle the group.
+        int exclude_x = INT_MAX;
+        if (p->m_purge_mode_btn && p->m_purge_mode_btn->IsShown())
+            exclude_x = std::min(exclude_x, p->m_purge_mode_btn->GetPosition().x);
+        if (p->m_flushing_volume_btn && p->m_flushing_volume_btn->IsShown())
+            exclude_x = std::min(exclude_x, p->m_flushing_volume_btn->GetPosition().x);
+        if (p->m_bpButton_set_filament && p->m_bpButton_set_filament->IsShown())
+            exclude_x = std::min(exclude_x, p->m_bpButton_set_filament->GetPosition().x);
+        if (e.GetPosition().x > exclude_x)
+            return;
         bool isShown = p->m_panel_filament_content->IsShown();
         p->m_panel_filament_content->Show(!isShown);
         p->m_panel_filament_separator->Show(isShown);
@@ -2931,19 +2942,25 @@ Sidebar::Sidebar(Plater *parent)
 
     bSizer39->Add(p->m_flushing_volume_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
     bSizer39->Hide(p->m_flushing_volume_btn); // ORCA Ensure button is hidden on launch while 1 filament exist
+
+    // ORCA: "Set filaments to use" stays on the Filament Management header line, next to flushing.
+    ScalableButton* set_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "settings");
+    set_btn->SetToolTip(_L("Set filaments to use"));
+    set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+        p->editing_filament = -1;
+        wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_FILAMENTS);
+    });
+    p->m_bpButton_set_filament = set_btn;
+    bSizer39->Add(set_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
     bSizer39->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
-    // ORCA: the filament add/remove/sync/settings buttons are created on the "Filaments"
+    // ORCA: the filament add/remove/sync buttons are created on the "Filaments"
     // sub-header inside m_panel_filament_content (see below), not on this group header.
 
     // add filament content
-    p->m_panel_filament_content = new wxScrolledWindow( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-    p->m_panel_filament_content->SetScrollbars(0, 100, 1, 2);
-    p->m_panel_filament_content->SetScrollRate(0, 5);
-    //p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(174)});
+    // ORCA: plain (non-scrolling) container; the physical filaments and Color Mixing lists each
+    // get their own scrolled window so they scroll independently and the group is taller.
+    p->m_panel_filament_content = new wxPanel( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     p->m_panel_filament_content->SetBackgroundColour(wxColour(255, 255, 255));
-
-    //wxBoxSizer* bSizer_filament_content;
-    //bSizer_filament_content = new wxBoxSizer( wxHORIZONTAL );
 
     // Orca: Sidebar - Filament content UI: setup filament selection combos panel layout
     // Creates a two-column grid layout for filament selection dropdowns within the scrollable panel
@@ -2951,12 +2968,23 @@ Sidebar::Sidebar(Plater *parent)
     p->sizer_filaments->Add(new wxBoxSizer(wxVERTICAL), 1, wxEXPAND);
     p->sizer_filaments->Add(new wxBoxSizer(wxVERTICAL), 1, wxEXPAND);
 
+    // ORCA: own scrolled window for the physical filament combos (capped height in
+    // update_filaments_area_height), independent of the Color Mixing scroll below.
+    p->m_scrolled_filaments = new wxScrolledWindow(p->m_panel_filament_content, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+    p->m_scrolled_filaments->SetScrollRate(0, 5);
+    p->m_scrolled_filaments->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    p->m_panel_scrolled_filament_content = new wxPanel(p->m_scrolled_filaments, wxID_ANY);
+    p->m_panel_scrolled_filament_content->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    p->m_panel_scrolled_filament_content->SetSizer(p->sizer_filaments);
+    auto* scrolled_fila_sizer = new wxBoxSizer(wxVERTICAL);
+    scrolled_fila_sizer->Add(p->m_panel_scrolled_filament_content, 0, wxEXPAND);
+    p->m_scrolled_filaments->SetSizer(scrolled_fila_sizer);
+
     p->combos_filament.push_back(nullptr);
 
     /* first filament item */
     init_filament_combo(&p->combos_filament[0], 0);
 
-    //bSizer_filament_content->Add(p->sizer_filaments, 1, wxALIGN_CENTER | wxALL);
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
 
     // ORCA: "Filaments" sub-section header (under the "Filament Management" group, above the
@@ -2979,15 +3007,6 @@ Sidebar::Sidebar(Plater *parent)
         ams_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { sync_ams_list(); });
         ams_btn->Bind(wxEVT_UPDATE_UI, &Sidebar::update_sync_ams_btn_enable, this);
         p->m_bpButton_ams_filament = ams_btn;
-
-        // Set filaments to use
-        auto* set_btn = new ScalableButton(filaments_title, wxID_ANY, "settings");
-        set_btn->SetToolTip(_L("Set filaments to use"));
-        set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
-            p->editing_filament = -1;
-            wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_FILAMENTS);
-        });
-        p->m_bpButton_set_filament = set_btn;
 
         // Remove last filament
         auto* del_btn = new ScalableButton(filaments_title, wxID_ANY, "delete_filament");
@@ -3016,7 +3035,6 @@ Sidebar::Sidebar(Plater *parent)
         h_filaments->Add(f_label, 0, wxALIGN_CENTER_VERTICAL);
         h_filaments->AddStretchSpacer();
         h_filaments->Add(ams_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
-        h_filaments->Add(set_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
         h_filaments->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
         h_filaments->Add(add_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
         auto* white_right_f = new wxPanel(filaments_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
@@ -3033,7 +3051,7 @@ Sidebar::Sidebar(Plater *parent)
         sizer_filaments2->Add(filaments_title, 0, wxEXPAND, 0);
     }
 
-    sizer_filaments2->Add(p->sizer_filaments, 0, wxEXPAND, 0);
+    sizer_filaments2->Add(p->m_scrolled_filaments, 0, wxEXPAND, 0);
     // ORCA: Color Mixing section (under Filament Management, below the filament list).
     this->init_color_mix_panel(p->m_panel_filament_content, sizer_filaments2);
     p->m_panel_filament_content->SetSizer(sizer_filaments2);
@@ -3057,6 +3075,17 @@ Sidebar::Sidebar(Plater *parent)
         auto spliter_2 = new ::StaticLine(p->scrolled);
         spliter_2->SetLineColour("#CECECE");
         scrolled_sizer->Add(spliter_2, 0, wxEXPAND);
+
+        // ORCA: make the Process section collapsible by clicking its header, like the Printer and
+        // Filament Management sections. The header's own controls (mode switch / compare / settings)
+        // consume their clicks, so only clicks on the header background/label toggle the panel.
+        params_panel->get_top_panel()->Bind(wxEVT_LEFT_UP, [this, params_panel](wxMouseEvent& e) {
+            if (params_panel && m_scrolled_sizer) {
+                params_panel->Show(!params_panel->IsShown());
+                m_scrolled_sizer->Layout();
+            }
+            e.Skip();
+        });
     }
 
     //add project content
@@ -3195,7 +3224,7 @@ void Sidebar::create_printer_preset()
 
 void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filament_idx)
 {
-    *combo = new PlaterPresetComboBox(p->m_panel_filament_content, Slic3r::Preset::TYPE_FILAMENT);
+    *combo = new PlaterPresetComboBox(p->m_panel_scrolled_filament_content, Slic3r::Preset::TYPE_FILAMENT);
     (*combo)->set_filament_idx(filament_idx);
 
     auto combo_and_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -3224,7 +3253,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     combo_and_btn_sizer->Add(32 * em / 10, 0, 0, 0, 0);
     combo_and_btn_sizer->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL, 5 * em / 10);
     */
-    ScalableButton* edit_btn = new ScalableButton(p->m_panel_filament_content, wxID_ANY, "menu_filament");
+    ScalableButton* edit_btn = new ScalableButton(p->m_panel_scrolled_filament_content, wxID_ANY, "menu_filament");
     edit_btn->SetToolTip(_L("Click to edit preset"));
 
     PlaterPresetComboBox* combobox = (*combo);
@@ -3750,13 +3779,17 @@ void Sidebar::update_filaments_area_height()
     auto combo_sizer         = left_sizer->GetItem((size_t) 0)->GetSizer();
     int  preferred_rows      = std::ceil(0.5 * std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count")));
     auto height_with_borders = combo_sizer->GetSize().GetHeight(); // gets height from sizer instead static numbers
-    p->m_panel_filament_content->SetMaxSize(wxSize{-1, preferred_rows * height_with_borders});
+    const int max_h          = preferred_rows * height_with_borders;
 
-    // fixes wxScrolledWindow not shrinks its height to content size
-    auto min_size = p->m_panel_filament_content->GetSizer()->GetMinSize();
-    if (min_size.y > p->m_panel_filament_content->GetMaxHeight())
-        min_size.y = p->m_panel_filament_content->GetMaxHeight();
-    p->m_panel_filament_content->SetMinSize({-1, min_size.y});
+    // ORCA: cap the physical-filaments scrolled window only (the Color Mixing list has its own
+    // independent scroll), so each section scrolls separately and the group grows taller.
+    if (p->m_scrolled_filaments && p->m_panel_scrolled_filament_content) {
+        p->m_panel_scrolled_filament_content->Layout();
+        const int content_h = p->m_panel_scrolled_filament_content->GetSizer()->GetMinSize().y;
+        const int desired_h = (max_h > 0) ? std::min(content_h, max_h) : content_h;
+        p->m_scrolled_filaments->SetMinSize({-1, desired_h});
+        p->m_scrolled_filaments->SetMaxSize({-1, desired_h});
+    }
 
     update_filaments_counter();
 }
@@ -3857,9 +3890,12 @@ void Sidebar::init_color_mix_panel(wxWindow* parent, wxSizer* sizer)
 
         auto& mgr = pb->mixed_filaments;
         auto& mfs = mgr.mixed_filaments();
+        // ORCA: remove the last still-present mixed filament regardless of how it was created
+        // (custom, auto-generated, or loaded from a project) — not just custom ones.
         for (int i = static_cast<int>(mfs.size()) - 1; i >= 0; --i) {
-            if (mfs[i].custom && !mfs[i].deleted) {
+            if (!mfs[i].deleted) {
                 mfs[i].deleted = true;
+                mfs[i].enabled = false;
                 break;
             }
         }
@@ -4577,7 +4613,8 @@ void Sidebar::add_filament() {
         filament_list->Show(); // ORCA show list if its folded
         m_scrolled_sizer->Layout();
     }
-    filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
+    if (p->m_scrolled_filaments)
+        p->m_scrolled_filaments->Scroll(-1, INT_MAX); // ORCA scroll to end of filament list on changes to inform user about filament count
 }
 
 void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
@@ -4617,7 +4654,8 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
         m_scrolled_sizer->Layout();
     }
 
-    filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
+    if (p->m_scrolled_filaments)
+        p->m_scrolled_filaments->Scroll(-1, INT_MAX); // ORCA scroll to end of filament list on changes to inform user about filament count
 }
 
 void Sidebar::change_filament(size_t from_id, size_t to_id)
