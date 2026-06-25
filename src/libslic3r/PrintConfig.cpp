@@ -3347,7 +3347,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_print_height", coFloat);
     def->label = L("First layer height");
     def->category = L("Quality");
-    def->tooltip = L("This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion.");
+    def->tooltip = L("Height of the first layer. Making the first layer height thicker can improve build plate adhesion.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.2));
@@ -3387,7 +3387,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
     def = this->add("slow_down_layers", coInt);
-    def->label = L("This is the number of top interface layers.");
+    def->label = L("Number of slow layers");
     def->tooltip = L("The first few layers are printed slower than normal. "
                      "The speed is gradually increased in a linear fashion over the specified number of layers.");
     def->category = L("Speed");

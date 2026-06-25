@@ -1,0 +1,30 @@
+{
+	"type": "machine",
+	"setting_id": "SM_U1_08",
+	"name": "Snapmaker U1 (0.8 nozzle)",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_U1",
+	"printer_model": "Snapmaker U1",
+	"printer_variant": "0.8",
+	"default_print_profile": "0.40 Standard @Snapmaker U1 (0.8 nozzle)",
+	"max_layer_height": [
+		"0.56",
+		"0.56",
+		"0.56",
+		"0.56"
+	],
+	"min_layer_height": [
+		"0.16",
+		"0.16",
+		"0.16",
+		"0.16"
+	],
+	"nozzle_diameter": [
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8"
+	],
+	"nozzle_type": "hardened_steel"
+}
