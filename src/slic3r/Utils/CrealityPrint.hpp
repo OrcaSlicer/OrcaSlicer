@@ -34,10 +34,6 @@ public:
     std::string query_boxes_info() const;
     std::string model_name() const;
 
-    // Mainsail on K-series printers listens on port 4408. Use that as the
-    // default Device-tab WebView URL when the user has not set print_host_webui.
-    static std::string get_print_host_webui(DynamicPrintConfig *config);
-
 protected:
     virtual void set_auth(Http& http) const;
 private:
