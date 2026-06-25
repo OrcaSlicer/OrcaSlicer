@@ -754,6 +754,9 @@ struct Sidebar::priv
     // Filament Track Switch status overlay: an icon floated over the left/single extruder AMS area,
     // shown only when the switch is installed (green when ready, red when not calibrated).
     wxStaticBitmap* extruder_separator_icon = nullptr;
+    // ORCA: sidebar-owned container wrapping the shared param panel, so the Process section can be
+    // collapsed like Printer/Filament (toggling this hides it regardless of the tab system).
+    wxPanel* m_panel_process_content = nullptr;
 
     ObjectList          *m_object_list{ nullptr };
     ObjectSettings      *object_settings{ nullptr };
@@ -3079,9 +3082,11 @@ Sidebar::Sidebar(Plater *parent)
         // ORCA: make the Process section collapsible by clicking its header, like the Printer and
         // Filament Management sections. The header's own controls (mode switch / compare / settings)
         // consume their clicks, so only clicks on the header background/label toggle the panel.
-        params_panel->get_top_panel()->Bind(wxEVT_LEFT_UP, [this, params_panel](wxMouseEvent& e) {
-            if (params_panel && m_scrolled_sizer) {
-                params_panel->Show(!params_panel->IsShown());
+        params_panel->get_top_panel()->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
+            // Toggle the sidebar-owned container (not the shared param panel directly), so the tab
+            // system's Show() calls on the param panel inside it don't un-collapse the section.
+            if (p->m_panel_process_content && m_scrolled_sizer) {
+                p->m_panel_process_content->Show(!p->m_panel_process_content->IsShown());
                 m_scrolled_sizer->Layout();
             }
             e.Skip();
@@ -3152,8 +3157,16 @@ Sidebar::Sidebar(Plater *parent)
     p->sizer_params->Add(p->object_settings->get_sizer(), 0, wxEXPAND | wxTOP, 5 * em / 10);
 #else
     if (params_panel) {
-        params_panel->Reparent(p->scrolled);
-        scrolled_sizer->Add(params_panel, 3, wxEXPAND);
+        // ORCA: wrap the shared param panel in a sidebar-owned container so the Process section
+        // collapses like Printer / Filament Management. Toggling the container (in the header
+        // click handler) hides it regardless of the tab system re-showing params_panel inside.
+        p->m_panel_process_content = new wxPanel(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+        p->m_panel_process_content->SetBackgroundColour(wxColour(255, 255, 255));
+        auto* process_content_sizer = new wxBoxSizer(wxVERTICAL);
+        params_panel->Reparent(p->m_panel_process_content);
+        process_content_sizer->Add(params_panel, 1, wxEXPAND);
+        p->m_panel_process_content->SetSizer(process_content_sizer);
+        scrolled_sizer->Add(p->m_panel_process_content, 3, wxEXPAND);
     }
 #endif
     }
@@ -4225,11 +4238,13 @@ void Sidebar::update_color_mix_panel()
     p->m_panel_color_mix_content->SetSizer(wrapper);
     p->m_panel_color_mix_content->Layout();
 
-    // Dynamic height: grow with rows up to 3, only cap when > 3 rows
+    // Dynamic height: grow with rows up to the same row cap as the physical Filaments list
+    // (filaments_area_preferred_count), so both scrolled sections use the same maximum height.
     const wxSize content_best = p->m_panel_color_mix_content->GetBestSize();
     const int row_count = (visible_idx + 1) / 2; // rows (2 columns)
-    const int desired_h = row_count > 3
-        ? (content_best.GetHeight() / row_count) * 3
+    const int preferred_rows = std::max(1, (int) std::ceil(0.5 * std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"))));
+    const int desired_h = row_count > preferred_rows
+        ? (content_best.GetHeight() / row_count) * preferred_rows
         : content_best.GetHeight();
     p->m_scrolled_color_mix->SetMinSize({-1, desired_h});
     p->m_scrolled_color_mix->SetMaxSize({-1, desired_h});
