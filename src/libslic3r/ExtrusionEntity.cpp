@@ -611,8 +611,9 @@ std::string ExtrusionEntity::role_to_string(ExtrusionRole role)
 
 ExtrusionRole ExtrusionEntity::string_to_role(const std::string_view role)
 {
-    if (role == L("Inner Wall"))              return erPerimeter;
-    if (role == L("Outer Wall"))              return erExternalPerimeter;
+    if (role == L("Inner wall"))              return erPerimeter;
+    if (role == L("Outer wall"))              return erExternalPerimeter;
+    if (role == L("Overhang wall"))           return erOverhangPerimeter;
     if (role == L("Sparse infill"))           return erInternalInfill;
     if (role == L("Internal solid infill"))   return erSolidInfill;
     if (role == L("Top surface"))             return erTopSolidInfill;
