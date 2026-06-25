@@ -100,7 +100,11 @@ enum class ConfigNozzleIdx : int
 };
 
 
-WX_DECLARE_HASH_MAP(int, Material *, wxIntegerHash, wxIntegerEqual, MaterialHash);
+// Orca: MaterialHash is keyed by material/extruder index and is iterated in key order in
+// several places (e.g. the AMS override preview), so it must be an ordered container.
+// std::unordered_map (what WX_DECLARE_HASH_MAP expands to under wxUSE_STD_CONTAINERS=1)
+// iterates in an unspecified, implementation-dependent order, which scrambled that preview.
+using MaterialHash = std::map<int, Material *>;
 
 #define SELECT_MACHINE_DIALOG_BUTTON_SIZE wxSize(FromDIP(57), FromDIP(32))
 #define SELECT_MACHINE_DIALOG_BUTTON_SIZE2 wxSize(FromDIP(80), FromDIP(32))
