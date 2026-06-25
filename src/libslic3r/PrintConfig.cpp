@@ -5557,7 +5557,7 @@ void PrintConfigDef::init_fff_params()
     def->max = 1000;
     def->max_literal = 10;
     def->mode = comExpert;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
+    def->set_default_value(new ConfigOptionFloatOrPercent(80, true));
 
     def = this->add("wo_pattern", coEnum);
     def->label = L("Wave pattern");
@@ -5569,7 +5569,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Monotonic"));
     def->enum_labels.push_back(L("Zigzag"));
     def->mode = comExpert;
-    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Monotonic));
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::ZigZag));
 
     def = this->add("outer_wall_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
