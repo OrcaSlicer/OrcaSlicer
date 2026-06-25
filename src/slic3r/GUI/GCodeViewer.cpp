@@ -1289,8 +1289,19 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         size_t n_filtered = 0, n_clip = 0;
         const double y_lo = model_bb.defined ? model_bb.min.y() - ANCHOR_CLIP_MARGIN_MM : -1e30;
         const double y_hi = model_bb.defined ? model_bb.max.y() + ANCHOR_CLIP_MARGIN_MM :  1e30;
+        // The anchor aligns the toolpath body onto the object-only model bbox, so it must be
+        // built from OBJECT-body toolpaths only. Support, skirt, brim and wipe-tower extrusions
+        // are not part of the model mesh and extend past it (support especially reaches well
+        // beyond the object on a belt), so including them drags tp_bb.min and shifts the whole
+        // back-transformed g-code off the mesh — but only when those features are present. That
+        // is the "g-code shifts vs mesh as soon as supports are enabled" bug. Filter them out.
+        auto is_object_body = [](ExtrusionRole r) {
+            return r != erSupportMaterial && r != erSupportMaterialInterface
+                && r != erSkirt && r != erBrim && r != erWipeTower;
+        };
         for (const GCodeProcessorResult::MoveVertex& mv : gcode_result.moves)
-            if (mv.type == EMoveType::Extrude && mv.layer_id >= 1) { // skip layer-0 prime/skirt
+            if (mv.type == EMoveType::Extrude && mv.layer_id >= 1 // skip layer-0 prime/skirt
+                && is_object_body(mv.extrusion_role)) {
                 ++n_filtered;
                 const Vec3d p = belt_inv * mv.position.cast<double>();
                 tp_bb_full.merge(p);
