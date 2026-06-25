@@ -237,18 +237,26 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     bool result = true;
     std::string uploaded_path;
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, filename=%5%, start_print=%6%)")
+    //ORCA: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode), so the upload names the
+    //      plate via a 1-based `plateindex` (set only in the .3mf path, see Plater::send_gcode_legacy);
+    //      servers that don't use it ignore the unknown form field.
+    const std::string plateindex = upload_data.extended("plateindex");
+
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, filename=%5%, plateindex=%6%, start_print=%7%)")
         % name
         % upload_data.source_path
         % url
         % root
         % upload_filename.string()
+        % (plateindex.empty() ? "-" : plateindex)
         % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false");
 
     auto http = Http::post(std::move(url));
     set_auth(http);
-    http.form_add("root", root)
-        .form_add_file("file", upload_data.source_path.string(), upload_filename.string())
+    http.form_add("root", root);
+    if (!plateindex.empty())
+        http.form_add("plateindex", plateindex);
+    http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: upload HTTP %2%: %3%") % name % status % body;
             try {
