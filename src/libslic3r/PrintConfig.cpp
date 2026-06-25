@@ -2361,17 +2361,18 @@ void PrintConfigDef::init_fff_params()
     // xgettext:no-c-format, no-boost-format
     def = this->add("adaptive_pressure_advance_overhangs", coBools);
     def->label = L("Enable adaptive pressure advance within features (beta)");
-    def->tooltip = L("Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or speed changes. \n" 
-					"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+    def->tooltip = L("Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n\n" 
+					"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n\n"
 					"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools{ false });
 
     def = this->add("adaptive_pressure_advance_bridges", coFloats);
-    def->label = L("Pressure advance for bridges");
-    def->tooltip = L("Pressure advance value for bridges. Set to 0 to disable.\n\n"
-                     "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. "
-                     "This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.");
+    def->label = L("Static pressure advance for bridges");
+    def->tooltip = L("Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as /n"
+					"equivalent walls (using adaptive settings if enabled).\n\n"
+                    "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. "
+                    "This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.");
     def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0.0 });
