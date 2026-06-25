@@ -714,13 +714,47 @@ void Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
+        // H2C: copy variant overrides from config into temp_config and expand to vectors before saving.
+        // CRITICAL: temp_config only contains dirty_options (keys that differ from parent).
+        // If a variant-aware key's ACTIVE SCALAR matches the parent, it won't be in temp_config,
+        // but the VO may contain user edits in OTHER variant slots (e.g. user changed outer_wall_speed
+        // on Right/Standard from 200→45, but Left/Standard is still 200 = parent value).
+        // We must ensure all VO keys exist in temp_config before expand, otherwise those edits are lost.
+        if (!config.variant_overrides().empty()) {
+            temp_config.variant_overrides() = config.variant_overrides();
+            // Materialize missing VO keys: copy scalars from config so expand can replace them with vectors
+            for (const auto& [key, vals] : temp_config.variant_overrides().floats) {
+                if (!vals.empty() && !temp_config.has(key) && config.has(key)) {
+                    const ConfigOption* src = config.option(key);
+                    if (src) {
+                        ConfigOption* dst = temp_config.option(key, true);
+                        dst->set(src);
+                    }
+                }
+            }
+            temp_config.expand_variant_overrides_to_vectors();
+            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for preset save (parent-diff branch): " << this->name;
+        }
         temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     } else if (!filament_id.empty() && inherits().empty()) {
         DynamicPrintConfig temp_config = config;
         temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
+        // H2C: expand variant overrides to vectors before saving
+        if (!temp_config.variant_overrides().empty()) {
+            temp_config.expand_variant_overrides_to_vectors();
+            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for preset save (filament_id branch): " << this->name;
+        }
         temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     } else {
-        this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        // H2C: expand variant overrides to vectors before saving (cannot modify this->config in place)
+        if (!this->config.variant_overrides().empty()) {
+            DynamicPrintConfig config_copy = this->config;
+            config_copy.expand_variant_overrides_to_vectors();
+            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for preset save (full-config branch): " << this->name;
+            config_copy.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        } else {
+            this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        }
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
 
@@ -742,13 +776,18 @@ void Preset::reload(Preset const &parent)
     ForwardCompatibilitySubstitutionRule substitution_rule    = ForwardCompatibilitySubstitutionRule::Disable;
     try {
         ConfigSubstitutions                config_substitutions = config.load_from_json(file, substitution_rule, key_values, reason);
-        // H2C: save variant overrides before std::move destroys source config
+        // H2C: compress vector options (from saved expanded form) into scalars + VO
+        // BEFORE apply, so scalar types match when merging onto parent config.
+        config.compress_vectors_to_variant_overrides(0);
+        // H2C: save variant overrides before apply (apply doesn't copy VO)
         auto saved_overrides = config.variant_overrides();
         this->config = parent.config;
         this->config.apply(std::move(config));
         // H2C: transfer variant overrides from loaded config
         if (!saved_overrides.empty())
             this->config.variant_overrides() = std::move(saved_overrides);
+        BOOST_LOG_TRIVIAL(info) << "[H2C] Preset::reload: loaded VO with " 
+                                << this->config.variant_overrides().floats.size() << " float keys for: " << this->name;
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << boost::format("Failed loading the user-config file: %1%. Reason: %2%") % file % err.what();
     }
@@ -1718,6 +1757,9 @@ void PresetCollection::load_presets(
                                 << " (" << parent_vo.floats.size() << " float keys from parent)";
                         }
                     }
+                    // H2C: reconstruct variant overrides from the saved vector arrays in JSON
+                    // This handles presets that were saved with expand_variant_overrides_to_vectors().
+                    preset.config.compress_vectors_to_variant_overrides(0);
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " load preset: " << name << " and filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
 
                     Preset::normalize(preset.config);
@@ -2553,12 +2595,19 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         // The preset exists and it matches the values stored inside config.
         if (select == LoadAndSelect::Always)
             this->select_preset(it - m_presets.begin());
+        // H2C: After select_preset, the m_edited_preset gets the system preset's VO.
+        // If the project config has its own VO (user edits), overlay them.
+        {
+            const auto* dpc = dynamic_cast<const DynamicPrintConfig*>(&combined_config);
+            if (dpc && !dpc->variant_overrides().empty()) {
+                m_edited_preset.config.variant_overrides() = dpc->variant_overrides();
+                BOOST_LOG_TRIVIAL(info) << "[H2C] load_external_preset: restored project VO for '"
+                                        << original_name << "', " << dpc->variant_overrides().floats.size() << " float keys";
+            }
+        }
         //BBS: set the preset to visible
         if ( !it->is_visible ) {
             it->is_visible = true;
-            //AppConfig* app_config = get_app_config();
-            //if (app_config)
-            //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
         }
         //BBS: add config related logs
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset exists and it matches the values stored inside config. using original_name %1%")%original_name;
@@ -2576,12 +2625,18 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             // The system preset exists and it matches the values stored inside config.
             if (select == LoadAndSelect::Always)
                 this->select_preset(it - m_presets.begin());
+            // H2C: overlay project VO after selecting the inherited system preset
+            {
+                const auto* dpc = dynamic_cast<const DynamicPrintConfig*>(&combined_config);
+                if (dpc && !dpc->variant_overrides().empty()) {
+                    m_edited_preset.config.variant_overrides() = dpc->variant_overrides();
+                    BOOST_LOG_TRIVIAL(info) << "[H2C] load_external_preset: restored project VO (inherits) for '"
+                                            << inherits << "', " << dpc->variant_overrides().floats.size() << " float keys";
+                }
+            }
             //BBS: set the preset to visible
             if ( !it->is_visible ) {
                 it->is_visible = true;
-                //AppConfig* app_config = get_app_config();
-                //if (app_config)
-                //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
             }
             //BBS: add config related logs
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset exists and it matches the values stored inside config. using inherits %1%")%inherits;
@@ -2598,6 +2653,15 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             // The source config may contain keys from many possible preset types. Just copy those that relate to this preset.
             //this->get_edited_preset().config.apply_only(combined_config, keys, true);
             this->get_edited_preset().config.apply_only(cfg, keys, true);
+            // H2C: overlay project VO after applying config diff
+            {
+                const auto* dpc = dynamic_cast<const DynamicPrintConfig*>(&combined_config);
+                if (dpc && !dpc->variant_overrides().empty()) {
+                    this->get_edited_preset().config.variant_overrides() = dpc->variant_overrides();
+                    BOOST_LOG_TRIVIAL(info) << "[H2C] load_external_preset: restored project VO (dirty) for '"
+                                            << original_name << "'";
+                }
+            }
             this->update_dirty();
             update_saved_preset_from_current_preset();
             assert(this->get_edited_preset().is_dirty);

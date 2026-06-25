@@ -1,4 +1,4 @@
-// Configuration store of Slic3r.
+    // Configuration store of Slic3r.
 //
 // The configuration store is either static or dynamic.
 // DynamicPrintConfig is used mainly at the user interface. while the StaticPrintConfig is used
@@ -733,13 +733,13 @@ class DynamicPrintConfig : public DynamicConfig
 {
 public:
     DynamicPrintConfig() {}
-    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs), m_variant_overrides(rhs.m_variant_overrides) {}
-    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)), m_variant_overrides(std::move(rhs.m_variant_overrides)) {}
+    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs), m_variant_overrides(rhs.m_variant_overrides), m_active_variant_index(rhs.m_active_variant_index) {}
+    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)), m_variant_overrides(std::move(rhs.m_variant_overrides)), m_active_variant_index(rhs.m_active_variant_index) {}
     explicit DynamicPrintConfig(const StaticPrintConfig &rhs);
     explicit DynamicPrintConfig(const ConfigBase &rhs) : DynamicConfig(rhs) {}
 
-    DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); m_variant_overrides = rhs.m_variant_overrides; return *this; }
-    DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); m_variant_overrides = std::move(rhs.m_variant_overrides); return *this; }
+    DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); m_variant_overrides = rhs.m_variant_overrides; m_active_variant_index = rhs.m_active_variant_index; return *this; }
+    DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); m_variant_overrides = std::move(rhs.m_variant_overrides); m_active_variant_index = rhs.m_active_variant_index; return *this; }
 
     static DynamicPrintConfig  full_print_config();
     static DynamicPrintConfig* new_from_defaults_keys(const std::vector<std::string> &keys);
@@ -812,6 +812,10 @@ public:
     const VariantOverrides& variant_overrides() const { return m_variant_overrides; }
     VariantOverrides& variant_overrides() { return m_variant_overrides; }
 
+    // H2C: Track which nozzle variant is currently applied to the scalar config.
+    // Set by apply_variant_overrides(); read by expand_variant_overrides_to_vectors().
+    int active_variant_index() const { return m_active_variant_index; }
+
     // Apply variant values from the overlay into the scalar config.
     // variant_index: index into the variant array (e.g. 0=Standard, 1=HighFlow for single-extruder)
     // keys: set of option keys to apply (typically print_options_with_variant)
@@ -823,8 +827,25 @@ public:
     // user edits before switching to a different nozzle variant.
     void save_variant_overrides(int variant_index, const std::set<std::string>& keys);
 
+    // H2C: Expand scalar config values + variant_overrides into vector options
+    // (e.g. ConfigOptionFloat → ConfigOptionFloats with one element per variant).
+    // This produces BBS-compatible arrays for JSON serialization.
+    // Call this on a COPY of the config before save_to_json().
+    void expand_variant_overrides_to_vectors();
+
+    // H2C: The inverse of expand — reads vector options from a loaded config
+    // and compresses them into scalar + variant_overrides.
+    // active_variant_index: which element becomes the active scalar value.
+    void compress_vectors_to_variant_overrides(int active_variant_index);
+
+    // H2C: Dump the current variant overrides (both floats and strings) to stderr for debugging loading/saving/switching
+    void dump_variant_overrides_to_stderr(const std::string& prefix) const;
+
 private:
     VariantOverrides m_variant_overrides;
+    // H2C: Index of the nozzle variant whose values are currently in the scalar config.
+    // -1 means unknown / not yet applied.
+    int m_active_variant_index = -1;
 };
 extern std::set<std::string> printer_extruder_options;
 extern std::set<std::string> print_options_with_variant;

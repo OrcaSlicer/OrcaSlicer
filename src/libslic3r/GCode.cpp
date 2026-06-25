@@ -3586,6 +3586,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         }
 
                         file.write(this->set_extruder(initial_extruder_id, initial_layer_print_height, true));
+                        // H2C: Switch active extruder overlay for sequential mode tool change.
+                        {
+                            unsigned int phys_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+                            m_config.set_active_extruder(phys_eid);
+                        }
                         prime_extruder = true;
                     } else {
                         file.write(this->retract());
@@ -6139,6 +6144,21 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
 
     const auto& vo = print.full_print_config().variant_overrides();
 
+    std::cerr << "[H2C-PRECOMPUTE] VO empty=" << vo.empty() << " floats_count=" << vo.floats.size() << std::endl;
+    {
+        auto it = vo.floats.find("outer_wall_speed");
+        if (it != vo.floats.end()) {
+            std::cerr << "[H2C-PRECOMPUTE] outer_wall_speed VO = [";
+            for (size_t i = 0; i < it->second.size(); ++i) {
+                if (i > 0) std::cerr << ",";
+                std::cerr << it->second[i];
+            }
+            std::cerr << "]" << std::endl;
+        } else {
+            std::cerr << "[H2C-PRECOMPUTE] outer_wall_speed NOT in VO!" << std::endl;
+        }
+    }
+
     if (vo.empty())
         return;
 
@@ -6155,7 +6175,34 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
     const auto* opt_ext_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("extruder_type"));
     const auto* opt_nvt      = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("nozzle_volume_type"));
 
-
+    std::cerr << "[H2C-PRECOMPUTE] num_extruders=" << num_extruders << std::endl;
+    if (opt_ext_type) {
+        std::cerr << "[H2C-PRECOMPUTE] extruder_type=[";
+        for (size_t i = 0; i < opt_ext_type->size(); ++i)
+            std::cerr << (i ? "," : "") << opt_ext_type->get_at(i);
+        std::cerr << "]" << std::endl;
+    } else {
+        std::cerr << "[H2C-PRECOMPUTE] extruder_type=NULL" << std::endl;
+    }
+    if (opt_nvt) {
+        std::cerr << "[H2C-PRECOMPUTE] nozzle_volume_type=[";
+        for (size_t i = 0; i < opt_nvt->size(); ++i)
+            std::cerr << (i ? "," : "") << opt_nvt->get_at(i);
+        std::cerr << "]" << std::endl;
+    } else {
+        std::cerr << "[H2C-PRECOMPUTE] nozzle_volume_type=NULL" << std::endl;
+    }
+    {
+        auto* evl_dbg = dynamic_cast<const ConfigOptionStrings*>(full_cfg.option("extruder_variant_list"));
+        if (evl_dbg) {
+            std::cerr << "[H2C-PRECOMPUTE] extruder_variant_list=[";
+            for (size_t i = 0; i < evl_dbg->size(); ++i)
+                std::cerr << (i ? "|" : "") << evl_dbg->get_at(i);
+            std::cerr << "]" << std::endl;
+        } else {
+            std::cerr << "[H2C-PRECOMPUTE] extruder_variant_list=NULL" << std::endl;
+        }
+    }
 
     for (unsigned int eid = 0; eid < num_extruders; ++eid) {
         // Determine the correct variant_index for this extruder.
@@ -6198,15 +6245,38 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
         }
 
         if (variant_index < 0) {
+            std::cerr << "[H2C-PRECOMPUTE] eid=" << eid << " search='" << search_variant << "' variant_index=-1 SKIP" << std::endl;
             BOOST_LOG_TRIVIAL(debug) << "H2C precompute: no variant_index for extruder " << eid << ", skipping";
             continue;
         }
 
+        std::cerr << "[H2C-PRECOMPUTE] eid=" << eid << " search='" << search_variant << "' variant_index=" << variant_index << std::endl;
 
 
 
         DynamicPrintConfig overlay;
         bool has_any = false;
+
+        // H2C diagnostic: show key matching
+        {
+            int found_count = 0, miss_count = 0;
+            std::string found_keys, miss_keys;
+            for (const auto& k : variant_keys) {
+                if (vo.has(k)) {
+                    found_count++;
+                    if (found_keys.size() < 200) found_keys += (found_keys.empty() ? "" : ",") + k;
+                } else {
+                    miss_count++;
+                    if (miss_keys.size() < 200) miss_keys += (miss_keys.empty() ? "" : ",") + k;
+                }
+            }
+            std::cerr << "[H2C-PRECOMPUTE] eid=" << eid << " variant_keys=" << variant_keys.size()
+                      << " found=" << found_count << " miss=" << miss_count << std::endl;
+            if (found_count > 0)
+                std::cerr << "[H2C-PRECOMPUTE]   found: " << found_keys << std::endl;
+            if (miss_count > 0 && miss_count < 10)
+                std::cerr << "[H2C-PRECOMPUTE]   miss: " << miss_keys << std::endl;
+        }
 
         for (const auto& key : variant_keys) {
             if (!vo.has(key))
@@ -6263,6 +6333,45 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
                                    << " (variant_index=" << variant_index
                                    << ") with " << m_config.extruder_overrides[eid].size() << " keys";
         }
+    }
+}
+
+void GCode::VariantAwareConfig::apply(const ConfigBase& other, bool ignore_nonexistent)
+{
+    double before_iws = this->inner_wall_speed.value;
+    double before_ows = this->outer_wall_speed.value;
+    FullPrintConfig::apply(other, ignore_nonexistent);
+    double reset_iws = this->inner_wall_speed.value;
+    double reset_ows = this->outer_wall_speed.value;
+    reapply_variant_overrides();
+    double after_iws = this->inner_wall_speed.value;
+    double after_ows = this->outer_wall_speed.value;
+
+    std::cerr << "[H2C-VA-DBG] apply() - active_extruder=" << active_extruder_id
+              << " | inner_wall_speed: " << before_iws << " -> " << reset_iws << " -> " << after_iws
+              << " | outer_wall_speed: " << before_ows << " -> " << reset_ows << " -> " << after_ows << "\n";
+}
+
+void GCode::VariantAwareConfig::set_active_extruder(unsigned int eid)
+{
+    double before_iws = this->inner_wall_speed.value;
+    double before_ows = this->outer_wall_speed.value;
+    active_extruder_id = eid;
+    reapply_variant_overrides();
+    double after_iws = this->inner_wall_speed.value;
+    double after_ows = this->outer_wall_speed.value;
+
+    std::cerr << "[H2C-VA-DBG] set_active_extruder(" << eid << ") | inner_wall_speed: " << before_iws << " -> " << after_iws
+              << " | outer_wall_speed: " << before_ows << " -> " << after_ows << "\n";
+}
+
+void GCode::VariantAwareConfig::reapply_variant_overrides()
+{
+    if (auto it = extruder_overrides.find(active_extruder_id); it != extruder_overrides.end()) {
+        FullPrintConfig::apply(it->second, true);
+    } else {
+        std::cerr << "[H2C-VA-DBG] reapply_variant_overrides() - no overrides for extruder " << active_extruder_id 
+                  << " (total override count: " << extruder_overrides.size() << ")\n";
     }
 }
 

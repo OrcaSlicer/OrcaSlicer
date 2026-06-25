@@ -1,6 +1,7 @@
 // #include "libslic3r/GCodeSender.hpp"
 //#include "slic3r/Utils/Serial.hpp"
 #include "Tab.hpp"
+#include <iostream>
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -32,6 +33,7 @@
 #include <wx/wupdlock.h>
 
 #include "GUI_App.hpp"
+#include "DeviceManager.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 #include "Plater.hpp"
@@ -1965,6 +1967,21 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // It means that not all values are rolled to the system/last saved values jet.
         // And call of the update() can causes a redundant check of the config values,
         return;
+    }
+
+    // H2C: On any value change of a variant-aware option, sync it immediately
+    // back to the variant_overrides map for the current active variant.
+    if (m_last_variant_index >= 0) {
+        std::string base_key = opt_key.substr(0, opt_key.find('#'));
+        const auto& keys = (m_type == Preset::TYPE_PRINT)
+            ? print_options_with_variant : filament_options_with_variant;
+        if (keys.count(base_key)) {
+            m_config->save_variant_overrides(m_last_variant_index, {base_key});
+            std::cerr << "[H2C-UI-EDIT] Tab " << m_name << " change value: " << base_key 
+                      << " = " << m_config->opt_serialize(base_key) 
+                      << " (saved to variant_index: " << m_last_variant_index << ")" << std::endl;
+            BOOST_LOG_TRIVIAL(info) << "H2C on_value_change: synced " << base_key << " to variant " << m_last_variant_index;
+        }
     }
 
     update();
@@ -6584,7 +6601,18 @@ bool Tab::tree_sel_change_delayed(wxCommandEvent& event)
 
     m_active_page = page;
     if (m_extruder_switch) {
-        m_main_sizer->Show(m_extruder_switch, !m_active_page->m_opt_id_map.empty());
+        // H2C: Only show extruder switch on pages with variant-aware options.
+        // Keys in m_opt_id_map have #N suffix (e.g. "outer_wall_speed#0"),
+        // so strip it before matching against print_options_with_variant.
+        bool page_has_variant_opts = false;
+        for (const auto& [opt_key, _] : m_active_page->m_opt_id_map) {
+            auto base_key = opt_key.substr(0, opt_key.find('#'));
+            if (print_options_with_variant.count(base_key)) {
+                page_has_variant_opts = true;
+                break;
+            }
+        }
+        m_main_sizer->Show(m_extruder_switch, page_has_variant_opts);
         GetParent()->Layout();
     } else if (m_variant_combo) {
         m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && !m_active_page->m_opt_id_map.empty());
@@ -6686,6 +6714,28 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 //BBS: add project embedded preset relate logic
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
+    // H2C: Before saving, ensure any edited values in the active GUI fields
+    // are flushed back into the variant_overrides map for the current variant.
+    if (m_last_variant_index >= 0) {
+        auto& edited_cfg = m_presets->get_edited_preset().config;
+        bool is_multi_variant = !edited_cfg.variant_overrides().empty();
+        if (!is_multi_variant) {
+            for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
+                const auto* opt = dynamic_cast<const ConfigOptionStrings*>(edited_cfg.option(vkey, false));
+                if (opt && (int)opt->size() > 1) {
+                    is_multi_variant = true;
+                    break;
+                }
+            }
+        }
+        if (is_multi_variant) {
+            const auto& keys = (m_type == Preset::TYPE_PRINT)
+                ? print_options_with_variant : filament_options_with_variant;
+            edited_cfg.save_variant_overrides(m_last_variant_index, keys);
+            BOOST_LOG_TRIVIAL(info) << "H2C save_preset: flushed active variant " << m_last_variant_index;
+        }
+    }
+
     // ORCA: Validate before opening any save-name UI for filament presets.
     if (!validate_filament_temperature_pairs())
         return;
@@ -7419,13 +7469,22 @@ void Tab::update_extruder_variants(int extruder_id)
         nozzle_volumes->values.resize(extruder_nums);
         if (extruder_nums == 2) {
             auto     nozzle_volumes_def = m_preset_bundle->project_config.def()->get("nozzle_volume_type");
+            // H2C: Determine Left/Right → logical extruder mapping dynamically.
+            // Main extruder (ext0) can be on left or right depending on printer.
+            bool main_on_left = false;
+            if (auto* dev = wxGetApp().getDeviceManager())
+                if (auto* obj = dev->get_selected_machine())
+                    main_on_left = obj->is_main_extruder_on_left();
+            int left_logical_idx  = main_on_left ? 0 : 1;  // H2C: Left UI → ext1
+            int right_logical_idx = main_on_left ? 1 : 0;  // H2C: Right UI → ext0
             wxString left, right;
             for (size_t i = 0; i < nozzle_volumes_def->enum_labels.size(); ++i) {
-                if (nozzle_volumes->values[0] == i) left = _L(nozzle_volumes_def->enum_labels[i]);
-                if (nozzle_volumes->values[1] == i) right = _L(nozzle_volumes_def->enum_labels[i]);
+                if (nozzle_volumes->values[left_logical_idx] == i) left = _L(nozzle_volumes_def->enum_labels[i]);
+                if (nozzle_volumes->values[right_logical_idx] == i) right = _L(nozzle_volumes_def->enum_labels[i]);
             }
             m_extruder_switch->SetLabels(wxString::Format(_L("Left: %s"), left), wxString::Format(_L("Right: %s"), right));
-            m_extruder_switch->SetValue(extruder_id == 1);
+            // SetValue(true) selects Right tab.
+            m_extruder_switch->SetValue(extruder_id == right_logical_idx);
             m_extruder_switch->Enable(true);
             assert(m_extruder_switch->IsEnabled());
         } else {
@@ -7449,8 +7508,20 @@ void Tab::update_extruder_variants(int extruder_id)
     }
     switch_excluder(extruder_id);
     if (m_extruder_switch) {
-        m_main_sizer->Show(m_extruder_switch, m_active_page && !m_active_page->m_opt_id_map.empty());
-        GetParent()->Layout();
+        // H2C: Only show extruder switch on pages that have variant-aware options.
+        // Keys in m_opt_id_map have #N suffix, strip before matching.
+        if (m_active_page) {
+            bool page_has_variant_opts = false;
+            for (const auto& [opt_key, _] : m_active_page->m_opt_id_map) {
+                auto base_key = opt_key.substr(0, opt_key.find('#'));
+                if (print_options_with_variant.count(base_key)) {
+                    page_has_variant_opts = true;
+                    break;
+                }
+            }
+            m_main_sizer->Show(m_extruder_switch, page_has_variant_opts);
+            GetParent()->Layout();
+        }
     } else if (m_variant_combo) {
         m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && m_active_page && !m_active_page->m_opt_id_map.empty());
         GetParent()->Layout();
@@ -7470,7 +7541,17 @@ void Tab::switch_excluder(int extruder_id)
     if (!m_variant_combo && (extruder_id >= (int)nozzle_volumes->size() || extruder_id >= (int)extruders->size()))
         extruder_id = 0;
     if (m_extruder_switch && m_type != Preset::TYPE_PRINTER) {
-        int current_extruder = m_extruder_switch->GetValue() ? 1 : 0;
+        // H2C: Remap UI tab position to logical extruder index dynamically.
+        bool main_on_left = false;
+        if (auto* dev = wxGetApp().getDeviceManager())
+            if (auto* obj = dev->get_selected_machine())
+                main_on_left = obj->is_main_extruder_on_left();
+        // GetValue()==false: Left tab selected, GetValue()==true: Right tab selected
+        // Left UI → main_on_left ? ext0 : ext1
+        // Right UI → main_on_left ? ext1 : ext0
+        int current_extruder = m_extruder_switch->GetValue()
+                               ? (main_on_left ? 1 : 0)   // Right tab
+                               : (main_on_left ? 0 : 1);  // Left tab
         if (extruder_id == -1)
             extruder_id = current_extruder;
         else if (extruder_id != current_extruder) {
@@ -7542,7 +7623,7 @@ void Tab::switch_excluder(int extruder_id)
     //
     // We save only to edited_cfg — selected_cfg always keeps the original
     // system values, so dirty detection correctly flags user modifications.
-    if (m_extruder_switch && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
+    if (m_extruder_switch && m_type == Preset::TYPE_PRINT && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
         auto& edited_cfg   = m_presets->get_edited_preset().config;
         auto& selected_cfg = m_presets->get_selected_preset().config;
 
@@ -7567,11 +7648,15 @@ void Tab::switch_excluder(int extruder_id)
             // Save current values to the PREVIOUS variant slot (edited only)
             if (m_last_variant_index >= 0) {
                 edited_cfg.save_variant_overrides(m_last_variant_index, keys);
+                std::cerr << "[H2C-UI-SWITCH] Saved variant " << m_last_variant_index 
+                          << " speed overrides before switching." << std::endl;
             }
 
             // Apply new variant's values
             edited_cfg.apply_variant_overrides(index, keys);
             selected_cfg.apply_variant_overrides(index, keys);
+
+            std::cerr << "[H2C-UI-SWITCH] Switched to variant " << index << "." << std::endl;
 
             m_last_variant_index = index;
         }

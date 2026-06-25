@@ -1124,6 +1124,21 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
 
+    // H2C DIAG: check if VO arrives at Print::apply
+    {
+        const auto& vo = new_full_config.variant_overrides();
+        std::cerr << "[H2C-PRINT-APPLY] VO empty=" << vo.empty() << " floats=" << vo.floats.size() << std::endl;
+        auto it = vo.floats.find("outer_wall_speed");
+        if (it != vo.floats.end()) {
+            std::cerr << "[H2C-PRINT-APPLY] outer_wall_speed = [";
+            for (size_t i = 0; i < it->second.size(); ++i) {
+                if (i > 0) std::cerr << ",";
+                std::cerr << it->second[i];
+            }
+            std::cerr << "]" << std::endl;
+        }
+    }
+
     // H2C Vortek: Handle H2C preservation, validation, and auto-recalculation in our custom layer.
     Vortek::PlateMapping::handle_h2c_mapping_apply(this, new_full_config, m_full_print_config);
     // Normalize the config.

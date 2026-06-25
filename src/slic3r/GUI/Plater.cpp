@@ -3320,9 +3320,12 @@ void Sidebar::update_presets(Preset::Type preset_type)
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
             MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
             bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
-            // Map physical Left/Right sidebar widgets to logical extruder IDs dynamically
-            int left_logical_idx = main_on_left ? 0 : 1;
-            int right_logical_idx = main_on_left ? 1 : 0;
+            // Map physical Left/Right sidebar widgets to logical extruder IDs dynamically.
+            // BBS preset: ext0=deputy(1 nozzle), ext1=main(carousel).
+            // When main is on left: Left UI = ext1(main), Right UI = ext0(deputy).
+            // When main NOT on left (default): Left UI = ext0(deputy), Right UI = ext1(main).
+            int left_logical_idx = main_on_left ? 1 : 0;
+            int right_logical_idx = main_on_left ? 0 : 1;
 
             p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, left_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, right_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
@@ -6969,9 +6972,19 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         // Based on the printer technology field found in the loaded config, select the base for the config,
                         PrinterTechnology printer_technology = Preset::printer_technology(config_loaded);
 
+                        // H2C: save VO before move destroys config_loaded
+                        auto loaded_vo = config_loaded.variant_overrides();
+
                         config.apply(static_cast<const ConfigBase &>(FullPrintConfig::defaults()));
                         // and place the loaded config over the base.
                         config += std::move(config_loaded);
+
+                        // H2C: transfer VO from loaded project config (operator+= doesn't copy VO)
+                        if (!loaded_vo.empty()) {
+                            config.variant_overrides() = std::move(loaded_vo);
+                            BOOST_LOG_TRIVIAL(info) << "[H2C] Plater::load: transferred VO from 3MF project config, "
+                                                    << config.variant_overrides().floats.size() << " float keys";
+                        }
                         std::map<std::string, std::string> validity = config.validate();
                         if (!validity.empty()) {
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("Param values in 3mf error: ");
