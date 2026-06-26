@@ -14,6 +14,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/TriangleSelector.hpp" // ORCA: EnforcerBlockerType::ExtruderMax (paint state limit)
 #include "libslic3r/AppConfig.hpp"
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
@@ -9581,7 +9582,10 @@ void GLCanvas3D::_render_paint_toolbar() const
     int em_unit = wxGetApp().em_unit() / 10;
 
     std::vector<std::string> colors = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-    int extruder_num = colors.size();
+    // ORCA mixed filament: colors includes mixed (virtual) filaments. The paint toolbar can only
+    // address filaments that fit in the paint-state range (EnforcerBlockerType::ExtruderMax), so
+    // cap the button count there — higher mixed IDs cannot be stored in the painted triangles.
+    int extruder_num = std::min<int>(int(colors.size()), int(EnforcerBlockerType::ExtruderMax));
     std::vector<std::string> filament_text_first_line;
     std::vector<std::string> filament_text_second_line;
     {
@@ -9603,6 +9607,16 @@ void GLCanvas3D::_render_paint_toolbar() const
                 }
             }
         }
+    }
+
+    // ORCA mixed filament: `colors` (and thus extruder_num) now includes mixed (virtual) filaments,
+    // but the labels above are built only from physical filament presets. Pad the label arrays so
+    // the render loop below (which iterates extruder_num) never indexes past them — reading a
+    // garbage std::string here crashed in ImGui::CalcTextSize (strlen). Mixed buttons are still
+    // identified by their colour and number.
+    while (int(filament_text_first_line.size()) < extruder_num) {
+        filament_text_first_line.emplace_back();
+        filament_text_second_line.emplace_back();
     }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
