@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-22 20:13-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -249,7 +249,7 @@ msgid "Reset"
 msgstr "重置"
 
 msgid "Enter"
-msgstr ""
+msgstr "回车"
 
 msgid "Shortcut Key "
 msgstr "快捷键 "
@@ -1454,7 +1454,7 @@ msgid "Restart selection"
 msgstr "重新选择"
 
 msgid "Esc"
-msgstr ""
+msgstr "Esc"
 
 msgid "Cancel a feature until exit"
 msgstr "取消一个特征直到退出"
@@ -1710,6 +1710,20 @@ msgstr "OrcaSlicer 捕捉到一个未处理的异常：%1%"
 msgid "Untitled"
 msgstr "未命名"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "自 2.4.0 版本起，OrcaSlicer 通过 Orca Cloud（而非 Bambu Cloud）同步用户配置文件。\n\n要迁移您现有的配置文件，请登录 Orca Cloud，配置文件将被自动转移。若要进一步了解 OrcaSlicer 如何存储和同步您的配置文件，或手动迁移您的预设，请查看我们的 Wiki。\n\n如果您此前未使用 Bambu Cloud 同步配置文件，则此变更不会影响您，您可以放心忽略此消息。"
+
+msgid "Profile syncing change"
+msgstr "配置文件同步方式变更"
+
+msgid "Learn more"
+msgstr "了解更多"
+
 msgid "Reloading network plug-in..."
 msgstr "正在重新加载网络插件..."
 
@@ -1738,6 +1752,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "WebView2 运行库"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr "无法安装 Microsoft WebView2 运行库。\n在安装之前，包括设置向导在内的部分功能可能显示为空白。\n请从 https://developer.microsoft.com/microsoft-edge/webview2/ 手动安装，然后重启 Orca Slicer。"
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1811,7 +1831,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "选择一个文件（GCODE/3MF）："
 
 msgid "Ext"
-msgstr ""
+msgstr "外置"
 
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
@@ -2820,7 +2840,7 @@ msgid "Plate"
 msgstr "盘"
 
 msgid "Brim"
-msgstr ""
+msgstr "Brim"
 
 msgid "Object/Part Settings"
 msgstr "对象/零件设置"
@@ -4033,11 +4053,11 @@ msgstr "热床形状"
 
 #, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
-msgstr ""
+msgstr "建议最低温度高于 %d℃（适用于 %s）。\n"
 
 #, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
-msgstr ""
+msgstr "建议最高温度低于 %d℃（适用于 %s）。\n"
 
 msgid "The recommended minimum temperature cannot be higher than the recommended maximum temperature.\n"
 msgstr "推荐最低温度不能大于推荐最高温度。\n"
@@ -4060,7 +4080,7 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "该耗材的推荐喷嘴温度是[%d, %d]摄氏度"
 
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr ""
+msgstr "自适应压力提前模型验证失败：\n"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -4644,7 +4664,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "无效格式，应该是\"%1%\"这种数组格式"
 
 msgid "N/A"
-msgstr ""
+msgstr "不适用"
 
 msgid "Pick"
 msgstr "选择"
@@ -5192,6 +5212,12 @@ msgstr "所有打印板"
 msgid "Stats"
 msgstr "统计"
 
+msgid "Slice"
+msgstr "切片"
+
+msgid "Review"
+msgstr "查看"
+
 msgid "Assembly Return"
 msgstr "退出装配体视图"
 
@@ -5259,7 +5285,7 @@ msgstr "体积："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "发现G-code路径在层%d，高度为%.2lf mm处有冲突。请将有冲突的对象分离得更远(%s <-> %s)。"
 
@@ -8131,13 +8157,13 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr "在写实渲染中渲染投射到打印板上的阴影。"
 
 msgid "Smooth normals"
-msgstr ""
+msgstr "平滑法线"
 
 msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
-msgstr ""
+msgstr "在写实渲染中应用平滑法线。\n\n需要手动重新加载场景才能生效（在 3D 视图中右键单击 →“重新加载全部”）。"
 
 msgid "Anti-aliasing"
 msgstr "抗锯齿"
@@ -8268,10 +8294,10 @@ msgid "Color only"
 msgstr "仅颜色"
 
 msgid "Bambu network plug-in"
-msgstr ""
+msgstr "Bambu网络插件"
 
 msgid "Enable Bambu network plug-in"
-msgstr ""
+msgstr "启用Bambu网络插件"
 
 msgid "Network plug-in version"
 msgstr "网络插件版本"
@@ -11174,13 +11200,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "当壁序列为外内或内外内时，精确墙壁选项将被忽略。"
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr ""
+msgstr "一个或多个挤出机的自适应压力提前模型可能包含无效值。"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "不会使用耗材收缩率，因为所用耗材的耗材收缩率不匹配。"
 
 msgid "Generating skirt & brim"
 msgstr "正在生成裙边和brim"
+
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr "在“逐件”打印顺序下，物体之间无法容纳逐物体裙边。\n\n请增大物体之间的距离、减小 brim/裙边尺寸、将裙边类型切换为“组合”，或将打印顺序切换为“逐层”。"
 
 msgid "Exporting G-code"
 msgstr "正在导出G-code"
@@ -12520,7 +12552,7 @@ msgstr "为悬垂启用自适应压力提前（试验）"
 msgid ""
 "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
 "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
-msgstr ""
+msgstr "针对悬垂以及同一特征内的流量变化启用自适应 PA。这是一个实验性选项，因为如果未准确设置 PA 配置文件，将导致悬垂前后外表面出现均匀性问题。\n与 Prusa 打印机不兼容，因为它们会暂停以处理 PA 变化，从而导致延迟和瑕疵。"
 
 msgid "Pressure advance for bridges"
 msgstr "为搭桥启用压力提前"
@@ -12913,7 +12945,7 @@ msgid "Filament price, for statistical purposes only."
 msgstr "耗材丝的价格。只用于统计信息。"
 
 msgid "money/kg"
-msgstr ""
+msgstr "金额/kg"
 
 msgid "Vendor"
 msgstr "供应商"
@@ -12969,8 +13001,6 @@ msgstr "如果填充图案支持，使用多线进行填充。"
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 轴屈曲偏置优化（实验性）"
 
-# TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度下沿 Z（垂直）轴收紧螺旋（Gyroid）波形，以缩短有效的垂直柱长，提升 Z 轴抗压屈曲能力。耗材用量保持不变。在约 30% 及以上的稀疏填充密度下无效果。仅当稀疏填充图案设置为 Gyroid 时适用。"
 
@@ -13219,7 +13249,7 @@ msgid "Travel speed of the first layer."
 msgstr "首层空驶速度"
 
 msgid "Number of slow layers"
-msgstr ""
+msgstr "慢速层数量"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr ""
@@ -15940,9 +15970,6 @@ msgstr "导出多个STL"
 msgid "Export the objects as multiple STLs to directory."
 msgstr "将对象导出为多个STL到目录。"
 
-msgid "Slice"
-msgstr "切片"
-
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "对打印板切片：0-所有板，i-第i个板，其他-无效"
 
@@ -18091,7 +18118,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr ""
+msgstr "使用 %1s 材料搭配 %2s 喷嘴打印可能会损坏喷嘴。"
 
 msgid "Need select printer"
 msgstr "需要选择打印机"

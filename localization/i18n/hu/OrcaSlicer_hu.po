@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-22 20:13-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1708,6 +1708,20 @@ msgstr "Az OrcaSlicer kezeletlen kivételt kapott: %1%"
 msgid "Untitled"
 msgstr "Névtelen"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "A 2.4.0-s verziótól kezdve az OrcaSlicer a felhasználói profilokat a Bambu Cloud helyett az Orca Cloudon keresztül szinkronizálja.\n\nMeglévő profiljai átviteléhez jelentkezzen be az Orca Cloudba, és azok automatikusan átkerülnek. Ha többet szeretne megtudni arról, hogyan tárolja és szinkronizálja az OrcaSlicer a profiljait, vagy ha kézzel szeretné átvinni a beállításait, tekintse meg a wikinket.\n\nHa nem használta a Bambu Cloudot a profilok szinkronizálásához, ez a változás nem érinti Önt, és nyugodtan figyelmen kívül hagyhatja ezt az üzenetet."
+
+msgid "Profile syncing change"
+msgstr ""
+
+msgid "Learn more"
+msgstr ""
+
 msgid "Reloading network plug-in..."
 msgstr "Hálózati bővítmény újratöltése..."
 
@@ -1736,6 +1750,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "WebView2 Runtime"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -5198,6 +5218,12 @@ msgstr "Összes tálca"
 msgid "Stats"
 msgstr "Statisztika"
 
+msgid "Slice"
+msgstr "Szeletelés"
+
+msgid "Review"
+msgstr ""
+
 msgid "Assembly Return"
 msgstr "Vissza az összeszereléshez"
 
@@ -5265,7 +5291,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-kód útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -11208,6 +11234,12 @@ msgstr "A filament zsugorodása nem lesz figyelembe véve, mert a használt fila
 msgid "Generating skirt & brim"
 msgstr "Szoknya & perem generálása"
 
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr ""
+
 msgid "Exporting G-code"
 msgstr "G-kód exportálása"
 
@@ -12959,7 +12991,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-kihajlási torzítás optimalizálása (kísérleti)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy, c-format, boost-format
+#, fuzzy
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Alacsony feltöltési sűrűség mellett megfeszíti a gyroid hullámot a Z (függőleges) tengely mentén, hogy lerövidítse a tényleges függőleges oszlophosszt és javítsa a Z-tengely összenyomódási kihajlási ellenállását. A filamenthasználat megmarad. Nincs hatása ~30%-os és afeletti ritka kitöltési sűrűségnél. Csak akkor érvényes, ha a Ritka kitöltési minta Gyroid-ra van állítva."
 
@@ -15927,9 +15959,6 @@ msgstr "Több STL exportálása"
 
 msgid "Export the objects as multiple STLs to directory."
 msgstr "Az objektumok exportálása több STL fájlként egy könyvtárba."
-
-msgid "Slice"
-msgstr "Szeletelés"
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Tálcák szeletelése: 0 - összes tálca, i - i tálca, egyéb - érvénytelen"
