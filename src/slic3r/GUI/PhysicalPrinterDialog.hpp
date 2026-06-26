@@ -31,6 +31,7 @@ class PhysicalPrinterDialog : public DPIDialog
 
     Button*     m_printhost_browse_btn              {nullptr};
     Button*     m_printhost_test_btn                {nullptr};
+    Button*     m_printhost_generate_creds_btn      {nullptr};
     Button*     m_printhost_logout_btn              {nullptr};
     Button*     m_printhost_cafile_browse_btn       {nullptr};
     Button*     m_printhost_client_cert_browse_btn  {nullptr};

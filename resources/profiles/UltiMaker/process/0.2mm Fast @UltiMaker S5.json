@@ -1,0 +1,43 @@
+{
+    "default_acceleration": "3500",
+    "default_jerk": "20",
+    "enable_support": "1",
+    "from": "system",
+    "gap_infill_speed": "25",
+    "infill_combination": "1",
+    "infill_combination_max_layer_height": "80%",
+    "infill_jerk": "20",
+    "inherits": "0.18mm Standard @UltiMaker S5",
+    "initial_layer_acceleration": "1500",
+    "initial_layer_infill_speed": "40",
+    "initial_layer_jerk": "10",
+    "initial_layer_speed": "30",
+    "initial_layer_travel_speed": "150",
+    "inner_wall_acceleration": "3500",
+    "inner_wall_jerk": "20",
+    "inner_wall_speed": "100",
+    "layer_height": "0.2",
+    "name": "0.2mm UM Fast",
+    "outer_wall_acceleration": "1500",
+    "outer_wall_jerk": "10",
+    "print_extruder_id": [
+        "1"
+    ],
+    "print_extruder_variant": [
+        "Direct Drive Standard"
+    ],
+    "print_settings_id": "0.2mm UM Fast",
+    "sparse_infill_pattern": "adaptivecubic",
+    "sparse_infill_speed": "100",
+    "support_style": "default",
+    "support_type": "tree(auto)",
+    "top_shell_layers": "1",
+    "top_surface_acceleration": "1500",
+    "top_surface_jerk": "10",
+    "top_surface_speed": "45",
+    "travel_acceleration": "3500",
+    "travel_jerk": "20",
+    "travel_speed": "150",
+    "version": "2.3.1.10",
+    "wall_loops": "2"
+}
