@@ -1,0 +1,44 @@
+{
+	"type": "filament",
+	"name": "Elegoo PC-FR @EC2",
+	"inherits": "Elegoo PC @base",
+	"from": "system",
+	"setting_id": "EPCFREC2",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.05"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"filament_density": [
+		"1.1"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"compatible_printers": [
+		"Elegoo Centauri 2 0.2 nozzle",
+		"Elegoo Centauri 2 0.4 nozzle",
+		"Elegoo Centauri 2 0.6 nozzle",
+		"Elegoo Centauri 2 0.8 nozzle"
+	]
+}

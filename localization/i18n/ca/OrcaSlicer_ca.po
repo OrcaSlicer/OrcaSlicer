@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-22 20:13-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1720,6 +1720,20 @@ msgstr "OrcaSlicer ha tingut una excepció no gestionada: %1%"
 msgid "Untitled"
 msgstr "Sense títol"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "Des de la versió 2.4.0, OrcaSlicer sincronitza els perfils d'usuari a través d'Orca Cloud en lloc de Bambu Cloud.\n\nPer migrar els teus perfils existents, inicia la sessió a Orca Cloud i es transferiran automàticament. Per obtenir més informació sobre com OrcaSlicer emmagatzema i sincronitza els teus perfils, o per migrar els teus perfils manualment, consulta la nostra wiki.\n\nSi no feies servir Bambu Cloud per sincronitzar perfils, aquest canvi no t'afecta i pots ignorar aquest missatge amb tranquil·litat."
+
+msgid "Profile syncing change"
+msgstr ""
+
+msgid "Learn more"
+msgstr ""
+
 msgid "Reloading network plug-in..."
 msgstr "Recarregant el connector de xarxa..."
 
@@ -1748,6 +1762,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "WebView2 Runtime"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -5207,6 +5227,12 @@ msgstr "Totes les plaques"
 msgid "Stats"
 msgstr "Estadístiques"
 
+msgid "Slice"
+msgstr "Llesca"
+
+msgid "Review"
+msgstr ""
+
 msgid "Assembly Return"
 msgstr "Tornar a Agrupar"
 
@@ -5275,7 +5301,7 @@ msgid "Size:"
 msgstr "Mida:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -11193,6 +11219,12 @@ msgstr "La contracció del filament no s'utilitzarà perquè la contracció del 
 msgid "Generating skirt & brim"
 msgstr "Generant Faldilla i Vora d'Adherència"
 
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr ""
+
 msgid "Exporting G-code"
 msgstr "Exportant el Codi-G"
 
@@ -12937,7 +12969,6 @@ msgstr "Ús de múltiples línies per al patró de farciment, si el patró de fa
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
-#, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -15848,9 +15879,6 @@ msgstr "Exportar diversos STL"
 
 msgid "Export the objects as multiple STLs to directory."
 msgstr "Exportar els objectes com a diversos STL al directori"
-
-msgid "Slice"
-msgstr "Llesca"
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Laminar les plaques: 0-totes les plaques, i-placa i, altres-no vàlides"
