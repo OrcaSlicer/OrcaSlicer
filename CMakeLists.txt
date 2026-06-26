@@ -934,6 +934,16 @@ set (CPACK_PACKAGE_VERSION_MAJOR "${ORCA_VERSION_MAJOR}")
 set (CPACK_PACKAGE_VERSION_MINOR "${ORCA_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${ORCA_VERSION_PATCH}")
 set (CPACK_PACKAGE_FILE_NAME "OrcaSlicer_Windows_Installer_V${SoftFever_VERSION}")
+# Suffix the Windows installer with its target arch so the x64 and arm64 builds
+# produce distinct filenames (matches ARCH_SUFFIX in build_orca.yml). Same
+# CMAKE_SYSTEM_PROCESSOR mapping used by orcaslicer_copy_dlls() above.
+if (WIN32)
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+        string (APPEND CPACK_PACKAGE_FILE_NAME "_arm64")
+    else ()
+        string (APPEND CPACK_PACKAGE_FILE_NAME "_x64")
+    endif ()
+endif ()
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Orca Slicer is an open source slicer for FDM printers")
 set (CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/OrcaSlicer/OrcaSlicer")
 set (CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})

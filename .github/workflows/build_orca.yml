@@ -315,7 +315,7 @@ jobs:
             "ARCH_SUFFIX=_arm64"     | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           } else {
             "BUILD_DIR=build"        | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-            "ARCH_SUFFIX="           | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+            "ARCH_SUFFIX=_x64"       | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           }
 
       - name: setup MSVC
@@ -405,7 +405,7 @@ jobs:
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
           release_id: 137995723
-          asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}.exe
+          asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe
           asset_name: OrcaSlicer_Windows_Installer${{ env.ARCH_SUFFIX }}_nightly${{ env.nightly_suffix }}.exe
           asset_content_type: application/x-msdownload
           max_releases: 1
