@@ -2923,16 +2923,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
         } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
-            //PA_line only has one object, always 80mm
-            // Constrain X to actual model width (~80mm), keep Y at full bed extent
-            pts->values.reserve(print.first_layer_convex_hull().size());
-            for (const Point &pt : print.first_layer_convex_hull().points)
-                pts->values.emplace_back(print.translate_to_print_space(pt));
-            BoundingBoxf hull_bbox(pts->values);
+            // PA_Line pattern centred on bed, ~100mm wide (2*20 + 40 + 20).
+            // Lock X to bed centre; keep Y unchanged (full bed)
             bbox = bbox_bed;
             bbox.offset(-25.0);
-            bbox.min.x() = hull_bbox.min.x();
-            bbox.max.x() = hull_bbox.max.x();
+            double bed_cx = bbox_bed.center().x();
+            double half_x = 55.0; // 100mm pattern + 5mm margin
+            bbox.min.x() = bed_cx - half_x;
+            bbox.max.x() = bed_cx + half_x;
+            pts->values.reserve(4);
+            pts->values.emplace_back(bbox.min.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.max.y());
+            pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
         } else {
             // Convex hull of the 1st layer extrusions, for bed leveling and placing the initial purge line.
