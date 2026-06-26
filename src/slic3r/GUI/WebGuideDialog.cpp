@@ -1037,100 +1037,94 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     //GetStardardFilePath(filepath);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " GetFilamentInfo:VendorDirectory - " << VendorDirectory << ", Filepath - "<<filepath;
 
+    // Resolve this file's own vendor/type into LOCAL variables, independent of
+    // whatever the caller already accumulated. The cache entry for `filepath`
+    // must reflect only this file's own inherits chain — passing the caller's
+    // in/out sVendor/sType down would poison a shared base file's cache with the
+    // type of whichever descendant happened to traverse it first (e.g. an ABS
+    // preset reaching fdm_filament_common before a PLA one, making every PLA that
+    // later reuses the cached base resolve to "ABS"). Merge into the caller's
+    // out-params only at the end, filling empties.
+    std::string vendor;
+    std::string type;
+    int         status = 0;
+
     const auto cache_it = filament_info_cache.find(filepath);
     if (cache_it != filament_info_cache.end()) {
-        if (sVendor.empty()) {
-            sVendor = cache_it->second.vendor;
-        }
-        if (sType.empty()) {
-            sType = cache_it->second.type;
-        }
-        return cache_it->second.status;
-    }
+        vendor = cache_it->second.vendor;
+        type   = cache_it->second.type;
+        status = cache_it->second.status;
+    } else {
+        try {
+            std::string contents;
+            LoadFile(filepath, contents);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Json Contents: " << contents;
+            json jLocal = json::parse(contents);
 
-    try {
-        std::string contents;
-        LoadFile(filepath, contents);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Json Contents: " << contents;
-        json jLocal = json::parse(contents);
-
-        if (sVendor == "") {
             if (jLocal.contains("filament_vendor"))
-                sVendor = jLocal["filament_vendor"][0];
-            else {
+                vendor = jLocal["filament_vendor"][0];
+            else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_vendor";
-            }
-        }
 
-        if (sType == "") {
             if (jLocal.contains("filament_type"))
-                sType = jLocal["filament_type"][0];
-            else {
+                type = jLocal["filament_type"][0];
+            else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_type";
-            }
-        }
 
-        if (sVendor == "" || sType == "")
-        {
-            if (jLocal.contains("inherits")) {
-                std::string FName = jLocal["inherits"];
+            if (vendor == "" || type == "") {
+                if (jLocal.contains("inherits")) {
+                    std::string FName = jLocal["inherits"];
 
-                if (!pFilaList.contains(FName)) {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
-                    filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
-                    return -1;
-                }
+                    if (!pFilaList.contains(FName)) {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
+                        status = -1;
+                    } else {
+                        std::string FPath = pFilaList[FName]["sub_path"];
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
+                        wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
+                        boost::filesystem::path inherits_path(w2s(strNewFile));
+                        if (!boost::filesystem::exists(inherits_path))
+                            inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
 
-                std::string FPath = pFilaList[FName]["sub_path"];
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
-                wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
-                boost::filesystem::path inherits_path(w2s(strNewFile));
-                if (!boost::filesystem::exists(inherits_path))
-                    inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
-
-                //boost::filesystem::path nf(strNewFile.c_str());
-                if (boost::filesystem::exists(inherits_path)) {
-                    const int ret = GetFilamentInfo(VendorDirectory,pFilaList, inherits_path.string(), sVendor, sType);
-                    filament_info_cache[filepath] = CachedFilamentInfo{ret, sVendor, sType};
-                    return ret;
+                        if (boost::filesystem::exists(inherits_path)) {
+                            // Recurse with this file's own (vendor, type) as the chain accumulator.
+                            status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type);
+                        } else {
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
+                            status = -1;
+                        }
+                    }
                 } else {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
-                    filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
-                    return -1;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
+                    if (type == "") {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
+                        status = -1;
+                    } else {
+                        if (vendor == "")
+                            vendor = "Generic";
+                        status = 0;
+                    }
                 }
             } else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
-                if (sType == "") {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
-                    filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
-                    return -1;
-                }
-                else
-                    sVendor = "Generic";
-                    filament_info_cache[filepath] = CachedFilamentInfo{0, sVendor, sType};
-                    return 0;
+                status = 0;
             }
         }
-        else {
-            filament_info_cache[filepath] = CachedFilamentInfo{0, sVendor, sType};
-            return 0;
+        catch (nlohmann::detail::parse_error &err) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << filepath << " got a nlohmann::detail::parse_error, reason = " << err.what();
+            status = -1;
         }
-    }
-    catch(nlohmann::detail::parse_error &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<filepath <<" got a nlohmann::detail::parse_error, reason = " << err.what();
-        filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
-        return -1;
-    }
-    catch (std::exception &e)
-    {
-        // wxLogMessage("GUIDE: load_profile_error  %s ", e.what());
-        // wxMessageBox(e.what(), "", MB_OK);
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse " << filepath <<" got exception: "<<e.what();
-        filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
-        return -1;
+        catch (std::exception &e) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << filepath << " got exception: " << e.what();
+            status = -1;
+        }
+
+        filament_info_cache[filepath] = CachedFilamentInfo{status, vendor, type};
     }
 
-    return 0;
+    // Merge this file's resolved values into the caller's out-params (fill empties only).
+    if (sVendor.empty()) sVendor = vendor;
+    if (sType.empty())   sType   = type;
+    return status;
 }
 
 int GuideFrame::LoadProfileData()
