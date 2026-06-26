@@ -1331,9 +1331,25 @@ static inline void apply_mm_segmentation(PrintObject &print_object, std::vector<
     // ORCA mixed: segmentation is now computed by the caller (slice_volumes) so mixed
     // transforms (indentation / component offsets) can mutate it before it is applied.
     assert(segmentation.size() == print_object.layer_count());
+
+    // ORCA mixed: same-color mixed region collapse. An ordinary (non-gradient,
+    // non-pointillism) mixed filament resolves to a single physical filament on each
+    // layer. When enabled, the painted area of such a channel is redirected into that
+    // physical filament's bucket below, so layers that resolve to the model's base
+    // color merge back into the base region instead of forming a separate painted
+    // section. These reads are no-ops (collapse stays disabled) when no mixed rows
+    // are enabled, keeping ordinary multi-material prints byte-identical.
+    const PrintConfig          &print_cfg            = print_object.print()->config();
+    const DynamicPrintConfig   &full_cfg             = print_object.print()->full_print_config();
+    const MixedFilamentManager &mixed_mgr            = print_object.print()->mixed_filament_manager();
+    const bool     collapse_mixed_regions = bool_from_full_config(full_cfg, "mixed_filament_region_collapse", print_cfg.mixed_filament_region_collapse.value);
+    const coordf_t preferred_a            = float_from_full_config(full_cfg, "mixed_color_layer_height_a", coordf_t(print_cfg.mixed_color_layer_height_a.value));
+    const coordf_t preferred_b            = float_from_full_config(full_cfg, "mixed_color_layer_height_b", coordf_t(print_cfg.mixed_color_layer_height_b.value));
+    const coordf_t base_height            = std::max<coordf_t>(0.01, coordf_t(print_object.config().layer_height.value));
+
     tbb::parallel_for(
         tbb::blocked_range<size_t>(0, segmentation.size(), std::max(segmentation.size() / 128, size_t(1))),
-        [&print_object, &segmentation, throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+        [&print_object, &segmentation, &mixed_mgr, collapse_mixed_regions, preferred_a, preferred_b, base_height, throw_on_cancel](const tbb::blocked_range<size_t> &range) {
             const auto  &layer_ranges   = print_object.shared_regions()->layer_ranges;
             double       z              = print_object.get_layer(int(range.begin()))->slice_z;
             auto         it_layer_range = layer_range_first(layer_ranges, z);
@@ -1365,9 +1381,36 @@ static inline void apply_mm_segmentation(PrintObject &print_object, std::vector<
                 by_extruder.assign(num_extruders, ByExtruder());
                 by_region.assign(layer.region_count(), ByRegion());
                 bool layer_split = false;
-                for (size_t extruder_id = 0; extruder_id < num_extruders; ++ extruder_id) {
-                    ByExtruder &region = by_extruder[extruder_id];
-                    append(region.expolygons, std::move(segmentation[layer_id][extruder_id]));
+                for (size_t channel_idx = 0; channel_idx < num_extruders; ++ channel_idx) {
+                    ExPolygons &masks = segmentation[layer_id][channel_idx];
+                    if (masks.empty())
+                        continue;
+
+                    // ORCA mixed: collapse same-color mixed regions onto the physical
+                    // filament this mixed row resolves to for the current layer. Gradient
+                    // rows (component_a != component_b) keep their virtual identity so the
+                    // per-layer tool-ordering cadence still drives the blend; pointillism /
+                    // manual-pattern rows already resolve to their own virtual ID, so this
+                    // is a no-op for them.
+                    const unsigned int channel_id = unsigned(channel_idx + 1); // 1-based filament ID
+                    size_t             target_idx = channel_idx;
+                    if (collapse_mixed_regions && mixed_mgr.is_mixed(channel_id, num_physical)) {
+                        bool collapse_this = true;
+                        if (const MixedFilament *mixed_row = mixed_mgr.mixed_filament_from_id(channel_id, num_physical);
+                            mixed_row != nullptr && mixed_row->gradient_enabled && mixed_row->component_a != mixed_row->component_b)
+                            collapse_this = false;
+                        if (collapse_this) {
+                            const unsigned int eff = mixed_mgr.effective_painted_region_filament_id(
+                                channel_id, num_physical, int(layer_id),
+                                float(layer.print_z), float(layer.height),
+                                float(preferred_a), float(preferred_b), float(base_height));
+                            if (eff >= 1 && eff <= unsigned(num_extruders))
+                                target_idx = size_t(eff - 1);
+                        }
+                    }
+
+                    ByExtruder &region = by_extruder[target_idx];
+                    append(region.expolygons, std::move(masks));
                     if (! region.expolygons.empty()) {
                         region.bbox = get_extents(region.expolygons);
                         layer_split = true;
