@@ -1540,7 +1540,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 			if (object_config_changed)
 				model_object.config.assign_config(model_object_new.config);
             if (! object_diff.empty() || object_config_changed || num_extruders_changed ) {
-                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders );
+                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, new_full_config.active_variant_index());
                 for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
                     t_config_option_keys diff = print_object_status.print_object->config().diff(new_config);
                     if (! diff.empty()) {
@@ -1606,10 +1606,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             // Generate a list of trafos and XY offsets for instances of a ModelObject
             // Producing the config for PrintObject on demand, caching it at print_object_last.
             const PrintObject *print_object_last = nullptr;
-            auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders ](PrintObject *print_object) {
+            auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders, &new_full_config](PrintObject *print_object) {
                 print_object->config_apply(print_object_last ?
                     print_object_last->config() :
-                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders ));
+                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, new_full_config.active_variant_index()));
                 print_object_last = print_object;
             };
             if (old.empty()) {

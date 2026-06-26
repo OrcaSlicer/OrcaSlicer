@@ -2164,6 +2164,26 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                         model_object->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
                 }
 
+                // H2C: 3MF set_deserialize truncates "85,500,45,500" to 85 for coFloat.
+                // For variant-aware keys with commas, parse VO manually (second pass).
+                {
+                    auto& dpc = const_cast<DynamicPrintConfig&>(model_object->config.get());
+                    for (const Metadata& md : obj_metadata->second.metadata) {
+                        if (!print_options_with_variant.count(md.key) ||
+                            md.value.find(',') == std::string::npos)
+                            continue;
+                        std::vector<double> vals;
+                        std::istringstream ss(md.value);
+                        std::string token;
+                        while (std::getline(ss, token, ','))
+                            vals.push_back(std::stod(token));
+                        if (vals.size() > 1) {
+                            dpc.variant_overrides().floats[md.key] = vals;
+                            dpc.set_key_value(md.key, new ConfigOptionFloat(vals[0]));
+                        }
+                    }
+                }
+
                 // select object's detected volumes
                 volumes_ptr = &obj_metadata->second.volumes;
             }
@@ -7819,7 +7839,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
         if (!config.variant_overrides().empty()) {
             DynamicPrintConfig config_copy(config);
             config_copy.expand_variant_overrides_to_vectors();
-            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for project config save";
             config_copy.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
         } else {
             config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
@@ -7852,7 +7871,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 if (!config.variant_overrides().empty()) {
                     DynamicPrintConfig config_copy(config);
                     config_copy.expand_variant_overrides_to_vectors();
-                    BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for embedded preset: " << preset->name;
                     config_copy.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
                 } else {
                     config.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
@@ -7920,8 +7938,16 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"module\" " << VALUE_ATTR << "=\"" << xml_escape(obj->module_name) << "\"/>\n";
 
                 // stores object's config data
+                // H2C: For variant-aware keys with VO, expand to arrays
+                // before serialization (e.g., scalar=65 + VO → "65;500;90;500").
+                DynamicPrintConfig obj_config_for_save(obj->config.get());
+                if (!obj_config_for_save.variant_overrides().empty())
+                    obj_config_for_save.expand_variant_overrides_to_vectors();
                 for (const std::string& key : obj->config.keys()) {
-                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << key << "\" " << VALUE_ATTR << "=\"" << obj->config.opt_serialize(key) << "\"/>\n";
+                    // Use expanded config for variant-aware keys, original for others
+                    const ConfigOption* opt = obj_config_for_save.option(key);
+                    std::string value = opt ? opt->serialize() : obj->config.opt_serialize(key);
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << key << "\" " << VALUE_ATTR << "=\"" << xml_escape(value) << "\"/>\n";
                 }
 
                 for (const ModelVolume* volume : obj_metadata.second.object->volumes) {

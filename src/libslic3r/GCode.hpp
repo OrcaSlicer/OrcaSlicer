@@ -651,8 +651,15 @@ private:
         // containing the scalar speed overrides for that extruder's variant.
         std::map<unsigned int, DynamicPrintConfig> extruder_overrides;
 
+        // Per-object per-extruder overlay: object_id → extruder_id → overlay.
+        // Built in precompute, overrides global extruder_overrides when object is active.
+        std::map<size_t, std::map<unsigned int, DynamicPrintConfig>> object_extruder_overrides;
+
         // Currently active physical extruder (0=left, 1=right on H2C).
         unsigned int active_extruder_id = 0;
+
+        // Currently active object (0 = no per-object override).
+        size_t active_object_id = 0;
 
         // Shadow ConfigBase::apply() — apply incoming config first, then
         // re-apply the active extruder's speed overlay on top. This ensures
@@ -662,6 +669,9 @@ private:
         // Switch the active extruder and immediately apply its overlay.
         // Called during toolchanges: filament_id → physical extruder_id.
         void set_active_extruder(unsigned int eid);
+
+        // Set active object for per-object VO overlay.
+        void set_active_object(size_t object_id);
 
     private:
         // Re-apply the current extruder's overlay (if any) on top of the

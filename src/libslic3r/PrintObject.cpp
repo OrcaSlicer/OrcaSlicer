@@ -3565,11 +3565,18 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders)
+PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, int variant_idx)
 {
     PrintObjectConfig config = default_object_config;
     {
         DynamicPrintConfig src_normalized(object.config.get());
+        // H2C: Resolve per-object variant overrides before applying.
+        // ModelConfig stores scalar + VO (same mechanism as global config).
+        // apply_variant_overrides sets scalar = VO[variant_idx] for the
+        // object's active variant so config.apply gets the correct value.
+        if (variant_idx >= 0 && !src_normalized.variant_overrides().empty()) {
+            src_normalized.apply_variant_overrides(variant_idx, print_options_with_variant);
+        }
         src_normalized.normalize_fdm();
         config.apply(src_normalized, true);
     }
