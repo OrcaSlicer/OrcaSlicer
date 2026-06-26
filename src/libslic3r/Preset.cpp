@@ -3389,6 +3389,52 @@ std::string PresetCollection::filament_id_by_type(const std::string& filament_ty
     return preset(first_visible_idx_by_type(filament_type)).filament_id;
 }
 
+std::string PresetCollection::filament_id_by_id_or_name(const std::string& id_or_name) const
+{
+    if (id_or_name.empty())
+        return {};
+    size_t start = m_default_suppressed ? m_num_default_presets : 0;
+    // First pass: match by filament_id (e.g. "GFL00")
+    for (size_t i = start; i < m_presets.size(); ++i) {
+        const auto& p = m_presets[i];
+        if (p.is_visible && p.is_compatible && p.filament_id == id_or_name)
+            return p.filament_id;
+    }
+    // Second pass: match by setting_id (e.g. "OGFSA04") — most presets have this even without filament_id
+    for (size_t i = start; i < m_presets.size(); ++i) {
+        const auto& p = m_presets[i];
+        if (p.is_visible && p.is_compatible && p.setting_id == id_or_name)
+            return p.filament_id.empty() ? p.setting_id : p.filament_id;
+    }
+    // Third pass: match by preset name — user presets may have neither filament_id nor setting_id,
+    // so return the name itself as the identifier for downstream name-based lookup.
+    for (size_t i = start; i < m_presets.size(); ++i) {
+        const auto& p = m_presets[i];
+        if (p.is_visible && p.is_compatible && p.name == id_or_name) {
+            if (!p.filament_id.empty()) return p.filament_id;
+            if (!p.setting_id.empty()) return p.setting_id;
+            return p.name;
+        }
+    }
+    // Fourth pass: case-insensitive match against full name or base name before '@'
+    // (e.g. "Esun pla+" matches "eSUN PLA+ @System").
+    std::string id_lower = boost::algorithm::to_lower_copy(id_or_name);
+    for (size_t i = start; i < m_presets.size(); ++i) {
+        const auto& p = m_presets[i];
+        if (!p.is_visible || !p.is_compatible) continue;
+        std::string name_lower = boost::algorithm::to_lower_copy(p.name);
+        // Strip trailing " @..." suffix to get the base name.
+        auto at_pos = name_lower.find(" @");
+        std::string base_lower = (at_pos != std::string::npos) ? name_lower.substr(0, at_pos) : name_lower;
+        if (name_lower == id_lower || base_lower == id_lower) {
+            if (!p.filament_id.empty()) return p.filament_id;
+            if (!p.setting_id.empty()) return p.setting_id;
+            return p.name;
+        }
+    }
+    return {};
+}
+
 std::vector<std::string> PresetCollection::diameters_of_selected_printer()
 {
     std::set<std::string> diameters;
