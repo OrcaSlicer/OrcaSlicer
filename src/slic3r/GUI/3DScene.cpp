@@ -636,13 +636,23 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
             if (shader) {
                 if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
-                    //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
-                    if (ban_light) {
-                        new_color[3] = (255 - (extruder_id - 1))/255.0f;
+                    // ORCA: extruder_id can be a mixed (virtual) filament id beyond the colour
+                    // list (or otherwise out of range) — clamp the index so a painted volume
+                    // assigned a mixed filament doesn't read out of bounds and crash.
+                    int color_idx = extruder_id - 1;
+                    if (color_idx < 0)
+                        color_idx = 0;
+                    if (color_idx >= int(extruder_colors.size()))
+                        color_idx = int(extruder_colors.size()) - 1;
+                    if (color_idx >= 0) {
+                        //to make black not too hard too see
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (ban_light) {
+                            new_color[3] = (255 - color_idx)/255.0f;
+                        }
+                        m.set_color(new_color);
+                        // shader->set_uniform("uniform_color", new_color);
                     }
-                    m.set_color(new_color);
-                    // shader->set_uniform("uniform_color", new_color);
                 }
                 else {
                     if (idx <= extruder_colors.size()) {
