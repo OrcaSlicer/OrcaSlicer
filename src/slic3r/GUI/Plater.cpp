@@ -6729,7 +6729,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                     if (!boost::iends_with(path.string(), ".obj")) { return; }
                     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-                    ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours);
+                    ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
                     if (color_dlg.ShowModal() != wxID_OK) {
                         in_out.filament_ids.clear();
                     }
@@ -8991,7 +8991,7 @@ void Plater::priv::reload_from_disk()
         auto        obj_color_fun = [this, &path](ObjDialogInOut &in_out) {
             if (!boost::iends_with(path, ".obj")) { return; }
             const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-            ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours);
+            ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
             if (color_dlg.ShowModal() != wxID_OK) {
                 in_out.filament_ids.clear();
             }
@@ -10494,7 +10494,8 @@ void Plater::priv::on_action_select_sliced_plate(wxCommandEvent &evt)
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received select sliced plate event\n" ;
     }
-    q->select_sliced_plate(evt.GetInt());
+    bool skip_zoom = evt.GetExtraLong() == 1;
+    q->select_sliced_plate(evt.GetInt(), skip_zoom);
 }
 
 void Plater::priv::on_action_print_all(SimpleEvent&)
@@ -16292,6 +16293,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
     const bool  use_3mf     = use_3mf_opt != nullptr && use_3mf_opt->value;
 
     upload_job.upload_data.use_3mf = use_3mf;
+    // Orca: the concrete plate to export/send (PLATE_CURRENT_IDX resolves to the current plate).
+    const int resolved_plate_idx = plate_idx == PLATE_CURRENT_IDX ? get_partplate_list().get_curr_plate_index() : plate_idx;
 
     // Obtain default output path
     fs::path default_output_file;
@@ -16381,7 +16384,6 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             DynamicPrintConfig          cfg                 = wxGetApp().preset_bundle->full_config();
             const auto*                 filament_color      = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_colour"));
             const auto*                 filament_id_opt     = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_ids"));
-            const int                   resolved_plate_idx  = plate_idx == PLATE_CURRENT_IDX ? get_partplate_list().get_curr_plate_index() : plate_idx;
             auto enrich_project_filaments = [&](std::vector<FilamentInfo>& filaments) {
                 for (auto& filament : filaments) {
                     if (filament.id < 0)
@@ -16447,6 +16449,15 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         upload_job.upload_data.group       = pDlg->group();
         upload_job.upload_data.storage     = pDlg->storage();
         upload_job.upload_data.extended_info = pDlg->extendedInfo();
+        // Orca: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode) and a bundle may
+        // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
+        // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload
+        // forwards the field and servers that don't use it ignore it. "All plates" points at the
+        // current plate — the bundle still carries every plate's gcode.
+        if (use_3mf) {
+            const int plateindex = (plate_idx == PLATE_ALL_IDX ? get_partplate_list().get_curr_plate_index() : resolved_plate_idx) + 1;
+            upload_job.upload_data.extended_info["plateindex"] = std::to_string(plateindex);
+        }
     }
 
     // Show "Is printer clean" dialog for PrusaConnect - Upload and print.
@@ -16458,8 +16469,7 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
 
     if (use_3mf) {
         // Process gcode
-        const int export_plate_idx = plate_idx == PLATE_CURRENT_IDX ? get_partplate_list().get_curr_plate_index() : plate_idx;
-        const int result = send_gcode(export_plate_idx, nullptr);
+        const int result = send_gcode(resolved_plate_idx, nullptr);
 
         if (result < 0) {
             wxString msg = _L("Abnormal print file data. Please slice again");
@@ -17824,7 +17834,7 @@ int Plater::select_plate(int plate_index, bool need_slice)
     return ret;
 }
 
-int Plater::select_sliced_plate(int plate_index)
+int Plater::select_sliced_plate(int plate_index, bool skip_zoom)
 {
     int ret = 0;
     BOOST_LOG_TRIVIAL(info) << "select_sliced_plate plate_idx=" << plate_index;
@@ -17837,7 +17847,8 @@ int Plater::select_sliced_plate(int plate_index)
         Thaw();
         return -1;
     }
-    p->partplate_list.select_plate_view();
+    if(skip_zoom)
+        p->partplate_list.select_plate_view();
     Thaw();
 
     return ret;

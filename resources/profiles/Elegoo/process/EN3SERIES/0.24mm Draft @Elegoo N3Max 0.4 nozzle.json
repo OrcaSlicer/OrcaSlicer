@@ -1,4 +1,5 @@
 {
+	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N3Max 0.4 nozzle",
 	"name": "0.24mm Draft @Elegoo N3Max 0.4 nozzle",

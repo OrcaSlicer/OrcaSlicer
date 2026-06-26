@@ -19,11 +19,14 @@
 
 #include "libslic3r/Arachne/WallToolPaths.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategyFactory.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Point.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 using namespace Slic3r;
@@ -206,4 +209,59 @@ TEST_CASE("Arachne wall generation - 50% min_bead_width", "[Arachne]") {
 TEST_CASE("Arachne wall generation - 60% min_bead_width", "[Arachne]") {
     size_t duplicates = run_arachne_test(60);
     REQUIRE(duplicates == 0);
+}
+
+// Regression test for #14376 ("Fuzzy skin artifacting" — a surface bulge at a fixed height).
+//
+// PR #14031 changed WideningBeadingStrategy::compute() to take the thin-wall single-bead
+// branch whenever thickness < getTransitionThickness(1). That branch emits a single bead at
+// the full wall thickness and ignores the requested bead_count. When the skeletal graph asks
+// for 2 beads at a thickness inside the 1<->2 transition band (between the inner wall width and
+// getTransitionThickness(1)), the request was collapsed into one over-wide bead — an
+// over-extruded line that shows up as a bulge on curved surfaces at a deterministic height.
+//
+// Profile mirrors the reporter's project ("0.20mm Standard @BBL X1C", 0.4mm nozzle):
+//   outer 0.42mm / inner 0.45mm, min_bead_width 85% (0.34mm), 2 walls (max_bead_count 4).
+// For these numbers wall_split_middle_threshold = 2*0.34/0.42 - 1 = 0.619, so
+// getTransitionThickness(1) = (1 + 0.619) * 0.42 = 0.68mm. A 0.5mm-thick wall therefore sits
+// in the transition band: alpha produced 2 beads here, beta collapses it to 1 fat bead.
+TEST_CASE("Arachne widening keeps two beads in transition band (#14376)", "[Arachne]") {
+    using namespace Slic3r::Arachne;
+
+    // Widths in mm; the scaled coord_t values and the thresholds below are both derived from
+    // these so a width change cannot silently desync the transition-band math.
+    const double outer_mm = 0.42, inner_mm = 0.45, min_bead_mm = 0.34; // min_bead = 85% of 0.4mm nozzle
+
+    const coord_t outer_width = scaled<coord_t>(outer_mm);
+    const coord_t inner_width = scaled<coord_t>(inner_mm);
+    const coord_t min_bead_width = scaled<coord_t>(min_bead_mm);
+    const coord_t min_feature_size = scaled<coord_t>(0.10); // 25% of 0.4mm nozzle
+    const coord_t transition_length = scaled<coord_t>(0.40);
+    const coord_t max_bead_count = 4; // 2 * wall_loops
+
+    // Same derivation as WallToolPaths.cpp.
+    const double split_middle_threshold = std::clamp(2.0 * min_bead_mm / outer_mm - 1.0, 0.01, 0.99);
+    const double add_middle_threshold = std::clamp(min_bead_mm / inner_mm, 0.01, 0.99);
+
+    auto strategy = BeadingStrategyFactory::makeStrategy(
+        outer_width, inner_width, transition_length,
+        /*transitioning_angle*/ float(M_PI / 4.0), /*print_thin_walls*/ true,
+        min_bead_width, min_feature_size,
+        split_middle_threshold, add_middle_threshold,
+        max_bead_count, /*outer_wall_offset*/ 0, /*inward_distributed_center_wall_count*/ 1);
+
+    // A wall thickness inside the 1<->2 bead transition band (inner_width < t < transition).
+    const coord_t thickness = scaled<coord_t>(0.50);
+    REQUIRE(thickness > inner_width);
+    REQUIRE(thickness < strategy->getTransitionThickness(1));
+
+    // When the graph requests 2 beads, the strategy must produce 2 beads — not collapse them
+    // into a single full-thickness (bulge) bead.
+    const BeadingStrategy::Beading beading = strategy->compute(thickness, 2);
+    REQUIRE(beading.bead_widths.size() == 2);
+
+    // And neither bead may be over-wide: a single collapsed bead would be ~0.5mm (the full
+    // thickness), well above the configured wall widths.
+    for (const coord_t w : beading.bead_widths)
+        CHECK(w <= inner_width);
 }
