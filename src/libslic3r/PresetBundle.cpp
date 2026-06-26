@@ -4958,6 +4958,14 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 reason = std::string("can not find printer_model");
                 return reason;
             }
+            auto printer_variant = config.opt_string("printer_variant");
+            if (printer_variant.empty()) {
+                ++m_errors;
+                BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
+                    preset_name << "\" defines no printer variant, it will be ignored.";
+                reason = std::string("can not find printer_variant");
+                return reason;
+            }
             auto it_model = std::find_if(current_vendor_profile->models.cbegin(), current_vendor_profile->models.cend(),
                 [&](const VendorProfile::PrinterModel &m) { return m.id == printer_model; }
             );
@@ -4967,43 +4975,6 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                     preset_name << "\" defines invalid printer model \"" << printer_model << "\", it will be ignored.";
                 reason = std::string("can not find printer model in vendor profile");
                 return reason;
-            }
-            auto printer_variant = config.opt_string("printer_variant");
-            if (printer_variant.empty()) {
-                // No printer_variant: infer it from nozzle_diameter by matching the model's
-                // declared variants (a variant name encodes its nozzle diameters, e.g. "0.4"
-                // or, for multi-nozzle printers, "0.4+0.6"). Keeps an otherwise-valid preset
-                // loadable instead of dropping it.
-                const auto *nd = config.option<ConfigOptionFloats>("nozzle_diameter");
-                if (nd != nullptr && !nd->values.empty()) {
-                    std::set<double> nozzles(nd->values.begin(), nd->values.end());
-                    for (const auto &v : it_model->variants) {
-                        std::vector<std::string> tokens;
-                        boost::algorithm::split(tokens, v.name, boost::algorithm::is_any_of("+"));
-                        std::set<double> variant_nozzles;
-                        bool ok = true;
-                        for (const std::string &tok : tokens) {
-                            size_t consumed = 0;
-                            double d = string_to_double_decimal_point(tok, &consumed);
-                            if (consumed == 0) { ok = false; break; }
-                            variant_nozzles.insert(d);
-                        }
-                        if (ok && variant_nozzles == nozzles) {
-                            printer_variant = v.name;
-                            break;
-                        }
-                    }
-                }
-                if (printer_variant.empty()) {
-                    ++m_errors;
-                    BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
-                        preset_name << "\" defines no printer variant and it could not be inferred from nozzle_diameter, it will be ignored.";
-                    reason = std::string("can not find printer_variant");
-                    return reason;
-                }
-                BOOST_LOG_TRIVIAL(warning) << "Preset \"" << preset_name << "\" has no printer_variant; "
-                    "inferred \"" << printer_variant << "\" from nozzle_diameter. Add printer_variant to the profile.";
-                config.set_key_value("printer_variant", new ConfigOptionString(printer_variant));
             }
             auto it_variant = it_model->variant(printer_variant);
             if (it_variant == nullptr) {
