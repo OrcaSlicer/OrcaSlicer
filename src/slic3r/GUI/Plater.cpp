@@ -4543,11 +4543,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
 
-    // ORCA mixed filament: ask the user (as in the fork) whether to (re)generate the pairwise
-    // auto gradients for the new physical filament count, then regenerate when accepted.
-    // confirm_auto_generated_gradients() honors the "auto_generate_gradients" preference and
-    // updates the engine's static flag.
-    if (wxGetApp().plater()->confirm_auto_generated_gradients(num_filaments)) {
+    // ORCA mixed filament: (re)generate the pairwise auto gradients for the new physical filament
+    // count when enabled. The prompt/preference is resolved by the add/remove action via
+    // confirm_auto_generated_gradients() (which sets this static flag); here we only act on it so
+    // no modal is shown from inside this (update-locked, multi-context) handler.
+    if (MixedFilamentManager::auto_generate_enabled()) {
         if (PresetBundle* pb = wxGetApp().preset_bundle) {
             std::vector<std::string> physical_colors;
             if (auto* co = pb->project_config.option<ConfigOptionStrings>("filament_colour"))
@@ -4694,6 +4694,10 @@ void Sidebar::add_custom_filament(wxColour new_col) {
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     wxGetApp().preset_bundle->set_num_filaments(filament_count, new_color);
     wxGetApp().plater()->get_partplate_list().on_filament_added(filament_count);
+    // ORCA mixed filament: resolve the auto-generate decision (preference + >4 prompt) here in the
+    // add action, before the count change. This sets the engine's static enable flag, which
+    // on_filament_count_change() then acts on to actually create the gradients.
+    wxGetApp().plater()->confirm_auto_generated_gradients(filament_count);
     wxGetApp().plater()->on_filament_count_change(filament_count);
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
