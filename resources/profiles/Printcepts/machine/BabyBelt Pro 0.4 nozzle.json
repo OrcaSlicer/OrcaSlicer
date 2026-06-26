@@ -83,5 +83,5 @@
 		"Top and Bottom"
 	],
 	"support_chamber_temp_control": "0",
-	"machine_start_gcode": ";Start GCode\nPRINT_START ANGLE=[belt_slice_rotation_angle] EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single] MATERIAL=[filament_type]\n"
+	"machine_start_gcode": ";Start GCode\nPRINT_START ANGLE=[belt_slice_rotation_angle] EXTRUDER=[nozzle_temperature_initial_layer] BED=[hot_plate_temp_initial_layer] MATERIAL=[filament_type]\n"
 }
