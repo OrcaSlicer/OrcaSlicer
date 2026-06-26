@@ -450,6 +450,105 @@ def check_conflict_keys(profiles_dir, vendor_name):
     return error_count, warn_count
 
 
+# Vendors whose setting_id space is authoritative / user-owned and exempt from the
+# global per-vendor-namespacing rule (Bambu owns "G*", OrcaFilamentLibrary owns "O*").
+SETTING_ID_RESERVED_VENDORS = {"BBL", "OrcaFilamentLibrary", "user", "Custom"}
+PROFILE_SUBDIRS = ("filament", "process", "machine")
+
+
+def check_setting_id_uniqueness(profiles_dir):
+    """
+    Enforce that setting_id is globally unique and stays inside each vendor's prefix.
+
+    See scripts/assign_vendor_setting_ids.py for the assignment policy. Four rules:
+      1. A setting_id used by any non-reserved vendor must be unique across the whole
+         profile tree (no other file - reserved or not - may share it).
+      2. Every vendor listed in resources/profiles/vendor_prefixes.json must keep all
+         its setting_ids inside its registered prefix.
+      3. Base profiles (instantiation != "true") must not carry a setting_id at all.
+      4. In a managed (registered) vendor, every instantiated preset must HAVE a
+         setting_id (no gaps).
+      5. No profile may use the misspelled key "settings_id".
+    Reserved vendors (Bambu / OrcaFilamentLibrary) may share ids internally.
+    """
+    errors = 0
+    registry_path = profiles_dir / "vendor_prefixes.json"
+    registry = json.loads(registry_path.read_bytes()) if registry_path.exists() else {}
+
+    owners = {}  # setting_id -> list of (vendor, relative_path)
+    for vendor_dir in sorted(profiles_dir.iterdir()):
+        if not vendor_dir.is_dir():
+            continue
+        for sub in PROFILE_SUBDIRS:
+            base = vendor_dir / sub
+            if not base.is_dir():
+                continue
+            for file_path in base.rglob("*.json"):
+                try:
+                    data = json.loads(file_path.read_bytes())
+                except (ValueError, OSError):
+                    continue
+                if not isinstance(data, dict):
+                    continue
+                # Rule 5: catch the misspelled "settings_id" key.
+                if "settings_id" in data:
+                    errors += 1
+                    print_error(
+                        f"profile {file_path.relative_to(profiles_dir)} uses the "
+                        f'misspelled key "settings_id" (should be "setting_id"); '
+                        f"run assign_vendor_setting_ids.py"
+                    )
+                sid = data.get("setting_id")
+                instantiated = data.get("instantiation") == "true"
+                if not sid:
+                    # Rule 4: managed vendors must not have instantiated presets
+                    # that lack a setting_id.
+                    if instantiated and vendor_dir.name in registry:
+                        errors += 1
+                        print_error(
+                            f"instantiated preset {file_path.relative_to(profiles_dir)} "
+                            f"is missing a setting_id; run assign_vendor_setting_ids.py"
+                        )
+                    continue
+                # Rule 3: only instantiated presets may carry a setting_id;
+                # base/template profiles must not (matches Bambu's convention).
+                if not instantiated:
+                    errors += 1
+                    print_error(
+                        f"base profile {file_path.relative_to(profiles_dir)} "
+                        f'(instantiation != "true") must not have a setting_id '
+                        f'("{sid}"); run assign_vendor_setting_ids.py'
+                    )
+                    continue
+                owners.setdefault(sid, []).append(
+                    (vendor_dir.name, file_path.relative_to(profiles_dir))
+                )
+
+    # Rule 1: collisions that involve a non-reserved vendor.
+    for sid, locs in sorted(owners.items()):
+        if len(locs) < 2:
+            continue
+        if any(v not in SETTING_ID_RESERVED_VENDORS for v, _ in locs):
+            errors += 1
+            vendors = sorted({v for v, _ in locs})
+            print_error(
+                f"setting_id \"{sid}\" is shared by {len(locs)} files across {vendors}; "
+                f"setting_id must be globally unique (run assign_vendor_setting_ids.py)"
+            )
+
+    # Rule 2: registered vendors must stay inside their prefix.
+    for sid, locs in sorted(owners.items()):
+        for vendor, rel in locs:
+            prefix = registry.get(vendor)
+            if prefix and not sid.startswith(prefix):
+                errors += 1
+                print_error(
+                    f"setting_id \"{sid}\" in {rel} does not start with vendor "
+                    f"prefix \"{prefix}\" (run assign_vendor_setting_ids.py)"
+                )
+    return errors
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Check 3D printer profiles for common issues",
@@ -504,6 +603,10 @@ def main():
             if not vendor_dir.is_dir() or vendor_dir.name == "OrcaFilamentLibrary":
                 continue
             run_checks(vendor_dir.name)
+
+    # Global (cross-vendor) check: setting_id must be unique and stay in-namespace.
+    # Runs once over the whole tree regardless of the --vendor filter.
+    errors_found += check_setting_id_uniqueness(profiles_dir)
 
     # ✨ Output finale in stile "compilatore"
     print("\n==================== SUMMARY ====================")

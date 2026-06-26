@@ -1,6 +1,6 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
+	"setting_id": "VC0119",
 	"name": "EXO65 Performance (0.6 nozzle)",
 	"from": "system",
 	"instantiation": "true",

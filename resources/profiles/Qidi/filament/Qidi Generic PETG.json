@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "QI0496",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_type": [

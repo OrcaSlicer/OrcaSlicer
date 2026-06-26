@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "SeeMeCNC RostockMAX v4 1.0 nozzle",
 	"from": "System",
+	"setting_id": "SC0182",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",

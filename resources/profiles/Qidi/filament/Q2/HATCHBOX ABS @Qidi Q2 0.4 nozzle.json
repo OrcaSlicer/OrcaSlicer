@@ -3,7 +3,7 @@
 	"name": "HATCHBOX ABS @Qidi Q2 0.4 nozzle",
 	"inherits": "HATCHBOX ABS@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "QI0821",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"

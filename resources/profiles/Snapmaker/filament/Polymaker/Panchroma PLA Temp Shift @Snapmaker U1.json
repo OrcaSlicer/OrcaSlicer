@@ -4,7 +4,7 @@
 	"renamed_from": "Panchroma PLA Temp Shift @U1",
 	"inherits": "Panchroma PLA Temp Shift @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSPM015_00",
+	"setting_id": "SR0124",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

@@ -1,6 +1,6 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
+	"setting_id": "VC0124",
 	"name": "SH65 IDRE COPY MODE (0.4 nozzle)",
 	"from": "system",
 	"instantiation": "true",

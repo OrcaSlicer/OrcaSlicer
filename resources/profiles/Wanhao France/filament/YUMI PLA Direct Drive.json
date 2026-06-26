@@ -3,7 +3,7 @@
 	"name": "YUMI PLA Direct Drive",
 	"inherits": "Yumi Generic PLA",
 	"from": "system",
-	"setting_id": "GFSR99",
+	"setting_id": "WE0003",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_vendor": [

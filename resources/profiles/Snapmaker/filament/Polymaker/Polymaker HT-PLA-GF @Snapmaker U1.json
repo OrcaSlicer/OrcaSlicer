@@ -4,7 +4,7 @@
 	"renamed_from": "Polymaker HT-PLA-GF @U1",
 	"inherits": "Polymaker HT-PLA-GF @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSPM018_00",
+	"setting_id": "SR0151",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

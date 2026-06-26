@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "fgf_08_06",
+	"setting_id": "RR0021",
 	"name": "0.6 Standard",
 	"from": "system",
 	"inherits": "fgf_process_re3D_common",

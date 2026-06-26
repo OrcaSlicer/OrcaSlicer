@@ -3,7 +3,7 @@
 	"name": "Geeetech Thunder 0.4 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_001",
+	"setting_id": "GH0092",
 	"instantiation": "true",
 	"printer_model": "Geeetech Thunder",
 	"default_filament_profile": [

@@ -3,7 +3,7 @@
 	"name": "FLSun T1 ABS",
 	"inherits": "FLSun Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FN0018",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

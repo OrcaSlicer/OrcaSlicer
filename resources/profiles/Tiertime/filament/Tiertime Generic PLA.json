@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"setting_id": "TE0039",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

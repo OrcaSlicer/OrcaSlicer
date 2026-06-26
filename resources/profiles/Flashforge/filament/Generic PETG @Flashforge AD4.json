@@ -3,7 +3,7 @@
 	"name": "Generic PETG @Flashforge AD4",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FE0489",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

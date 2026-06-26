@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Pro",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FE0372",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Pro"

@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG PRO @EN2 Series",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGPROEN2",
+	"setting_id": "EO0003",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"8"

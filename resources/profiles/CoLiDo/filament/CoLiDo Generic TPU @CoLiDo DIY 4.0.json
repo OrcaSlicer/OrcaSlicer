@@ -3,7 +3,7 @@
 	"name": "CoLiDo Generic TPU @CoLiDo DIY 4.0",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSU99",
+	"setting_id": "CI0008",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_density": [

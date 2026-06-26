@@ -3,7 +3,7 @@
 	"name": "Creality Generic ABS @Hi-all",
 	"inherits": "Creality Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
+	"setting_id": "CY0099",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"9"

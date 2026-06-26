@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "SeeMeCNC PLA",
 	"from": "System",
+	"setting_id": "SC0021",
 	"filament_id": "SMCFL001",
 	"instantiation": "true",
 	"filament_settings_id": [

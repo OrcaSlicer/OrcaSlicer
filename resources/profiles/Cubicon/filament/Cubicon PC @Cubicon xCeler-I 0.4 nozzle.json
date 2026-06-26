@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
 	"inherits": "Cubicon PC @base",
+	"setting_id": "CN0017",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle"

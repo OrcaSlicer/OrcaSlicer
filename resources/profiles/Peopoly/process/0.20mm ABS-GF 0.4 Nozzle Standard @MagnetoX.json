@@ -3,7 +3,7 @@
 	"name": "0.20mm ABS-GF 0.4 Nozzle Standard @MagnetoX",
 	"inherits": "fdm_process_pply_0.20",
 	"from": "system",
-	"setting_id": "GP015",
+	"setting_id": "PY0009",
 	"instantiation": "true",
 	"top_shell_thickness": "0.6",
 	"bridge_flow": "1",

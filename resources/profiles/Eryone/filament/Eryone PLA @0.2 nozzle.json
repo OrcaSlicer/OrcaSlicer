@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone PLA @0.2 nozzle",
 	"from": "system",
+	"setting_id": "EE0019",
 	"instantiation": "true",
 	"inherits": "Eryone PLA",
 	"compatible_printers": [

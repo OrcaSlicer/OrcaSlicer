@@ -3,7 +3,7 @@
 	"name": "Generic PA @Elegoo",
 	"inherits": "Generic PA @base",
 	"from": "system",
-	"setting_id": "GPA00",
+	"setting_id": "EO0153",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"

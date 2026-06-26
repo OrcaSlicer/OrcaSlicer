@@ -3,6 +3,7 @@
 	"name": "Flashforge HIPS @FF G4P HF",
 	"inherits": "Flashforge Generic ABS @G3U",
 	"from": "system",
+	"setting_id": "FE0111",
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"50"

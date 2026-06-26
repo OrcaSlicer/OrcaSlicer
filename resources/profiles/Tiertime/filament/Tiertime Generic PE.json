@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PE",
 	"inherits": "fdm_filament_pe",
 	"from": "system",
+	"setting_id": "TE0025",
 	"filament_id": "GFP99",
 	"instantiation": "true",
 	"filament_cost": [

@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_1_1_46",
-	"setting_id": "GFSN99",
 	"name": "QIDI PPS-GF@Q2-Series",
 	"from": "system",
 	"instantiation": "false",

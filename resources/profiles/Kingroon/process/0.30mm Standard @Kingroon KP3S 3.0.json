@@ -3,6 +3,7 @@
 	"name": "0.30mm Standard @Kingroon KP3S 3.0",
 	"inherits": "fdm_process_common",
 	"from": "User",
+	"setting_id": "KN0008",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Kingroon KP3S 3.0 0.4 nozzle"

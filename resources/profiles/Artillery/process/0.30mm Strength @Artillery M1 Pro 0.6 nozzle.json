@@ -3,6 +3,7 @@
 	"name": "0.30mm Strength @Artillery M1 Pro 0.6 nozzle",
 	"inherits": "0.24mm Draft @Artillery M1 Pro 0.6 nozzle",
 	"from": "system",
+	"setting_id": "AY0121",
 	"instantiation": "true",
 	"initial_layer_infill_speed": "55",
 	"initial_layer_speed": "35",

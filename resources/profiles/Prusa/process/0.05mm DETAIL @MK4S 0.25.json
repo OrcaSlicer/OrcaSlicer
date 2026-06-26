@@ -3,6 +3,7 @@
 	"name": "0.05mm DETAIL @MK4S 0.25",
 	"inherits": "0.07mm DETAIL @MK4S 0.25",
 	"from": "system",
+	"setting_id": "PA0262",
 	"instantiation": "true",
 	"bottom_shell_layers": "10",
 	"bridge_speed": "25",

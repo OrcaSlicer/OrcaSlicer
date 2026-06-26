@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone ASA-CF @0.2 nozzle",
 	"from": "system",
+	"setting_id": "EE0006",
 	"instantiation": "true",
 	"inherits": "Eryone ASA-CF",
 	"compatible_printers": [

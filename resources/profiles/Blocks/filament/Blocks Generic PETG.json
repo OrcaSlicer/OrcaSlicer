@@ -3,7 +3,7 @@
 	"name": "Blocks Generic PETG",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"setting_id": "BSSI002",
+	"setting_id": "BS0007",
 	"filament_id": "BSFI002",
 	"instantiation": "true",
 	"filament_flow_ratio": [

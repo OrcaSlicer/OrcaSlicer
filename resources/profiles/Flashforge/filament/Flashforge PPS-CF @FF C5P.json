@@ -3,6 +3,7 @@
 	"name": "Flashforge PPS-CF @FF C5P",
 	"inherits": "Generic PPA-GF @System",
 	"from": "system",
+	"setting_id": "FE0426",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

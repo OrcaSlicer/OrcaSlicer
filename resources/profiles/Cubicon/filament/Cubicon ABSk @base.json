@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon ABSk @base",
 	"inherits": "Cubicon ABS @base",
+	"setting_id": "CN0012",
 	"filament_id": "P510cfb2",
 	"instantiation": "true",
 	"compatible_printers": [

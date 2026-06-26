@@ -3,7 +3,7 @@
 	"name": "Other PLA Hyper",
 	"inherits": "fdm_filament_pla_Hyper_other",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IH0012",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

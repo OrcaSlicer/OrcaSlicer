@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Silk @EN3 Series",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLASEN3",
+	"setting_id": "EO0054",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"9"

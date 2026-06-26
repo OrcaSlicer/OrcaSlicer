@@ -3,6 +3,7 @@
 	"name": "Cubicon PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"setting_id": "CN0028",
 	"filament_id": "P510cfa0",
 	"instantiation": "true",
 	"compatible_printers": [

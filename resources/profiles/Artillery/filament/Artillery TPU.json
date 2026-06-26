@@ -3,6 +3,7 @@
 	"name": "Artillery TPU",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "AY0061",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Artillery Sidewinder X3 Pro 0.4 nozzle",

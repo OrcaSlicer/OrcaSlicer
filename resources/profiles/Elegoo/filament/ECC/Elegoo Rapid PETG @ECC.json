@@ -4,7 +4,7 @@
 	"renamed_from": "Elegoo RAPID PETG @ECC",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "ERPETGECC",
+	"setting_id": "EO0186",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

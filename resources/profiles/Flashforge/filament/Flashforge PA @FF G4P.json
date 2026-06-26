@@ -3,6 +3,7 @@
 	"name": "Flashforge PA @FF G4P",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
+	"setting_id": "FE0166",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

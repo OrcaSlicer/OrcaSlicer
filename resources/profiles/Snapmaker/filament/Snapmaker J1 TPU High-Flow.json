@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 TPU High-Flow",
 	"inherits": "Snapmaker J1 TPU @base",
 	"from": "system",
-	"setting_id": "4255325782",
+	"setting_id": "SR0071",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

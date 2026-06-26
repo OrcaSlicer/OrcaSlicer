@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
+	"setting_id": "TE0029",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"cool_plate_temp": [

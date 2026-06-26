@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"filament_id": "GFB00",
-	"setting_id": "GFSB00",
+	"setting_id": "TE0001",
 	"name": "Tiertime ABS",
 	"from": "system",
 	"instantiation": "true",

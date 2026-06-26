@@ -3,7 +3,7 @@
 	"name": "RatRig V-Cast 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM006",
+	"setting_id": "RG0062",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Cast",
 	"nozzle_diameter": [

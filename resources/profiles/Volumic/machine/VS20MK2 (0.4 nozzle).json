@@ -1,6 +1,6 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
+	"setting_id": "VC0128",
 	"name": "VS20MK2 (0.4 nozzle)",
 	"from": "system",
 	"instantiation": "true",

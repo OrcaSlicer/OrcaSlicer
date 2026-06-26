@@ -3,7 +3,7 @@
 	"name": "Lulzbot 2.85mm PLA",
 	"inherits": "Generic PLA @System",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "LT0003",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_diameter": [

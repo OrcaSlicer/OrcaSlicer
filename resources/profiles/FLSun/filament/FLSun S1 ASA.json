@@ -3,7 +3,7 @@
 	"name": "FLSun S1 ASA",
 	"inherits": "FLSun Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FN0012",
 	"filament_id": "GFB98",
 	"instantiation": "true",
 	"fan_max_speed": [

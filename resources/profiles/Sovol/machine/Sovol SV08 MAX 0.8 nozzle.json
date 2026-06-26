@@ -1,6 +1,6 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
+	"setting_id": "SL0086",
 	"name": "Sovol SV08 MAX 0.8 nozzle",
 	"from": "system",
 	"instantiation": "true",

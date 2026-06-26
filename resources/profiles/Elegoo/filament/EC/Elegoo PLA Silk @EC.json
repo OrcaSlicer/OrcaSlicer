@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Silk @EC",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLASEC",
+	"setting_id": "EO0109",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

@@ -1,6 +1,6 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
+	"setting_id": "TE0120",
 	"name": "Tiertime UP310 Pro 0.4 nozzle",
 	"from": "system",
 	"instantiation": "true",

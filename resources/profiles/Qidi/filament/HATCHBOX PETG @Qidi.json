@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PETG @Qidi",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "QI0060",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_type": [

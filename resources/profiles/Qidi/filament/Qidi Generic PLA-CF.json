@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PLA-CF",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "QI0539",
 	"filament_id": "GFL98",
 	"instantiation": "true",
 	"required_nozzle_HRC": [

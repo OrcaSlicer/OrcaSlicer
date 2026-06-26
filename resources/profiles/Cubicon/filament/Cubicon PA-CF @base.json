@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PA-CF @base",
 	"inherits": "fdm_filament_pa",
+	"setting_id": "CN0016",
 	"filament_id": "P510cfd0",
 	"instantiation": "true",
 	"compatible_printers": [

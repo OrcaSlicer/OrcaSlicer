@@ -3,7 +3,7 @@
 	"name": "QIDI ASA @Qidi Q2 0.2 nozzle",
 	"inherits": "QIDI ASA@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "QI0906",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"0"

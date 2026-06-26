@@ -3,7 +3,7 @@
 	"name": "Prusa Generic TPU HF @MK3.5",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "PA0202",
 	"filament_id": "GFU99_3",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

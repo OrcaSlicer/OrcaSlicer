@@ -3,6 +3,7 @@
 	"name": "Flashforge PETG-CF @FF G4",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
+	"setting_id": "FE0229",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

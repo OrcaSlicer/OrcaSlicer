@@ -3,7 +3,7 @@
 	"name": "Sovol Zero PETG HS Nozzle",
 	"inherits": "Generic PETG @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "SL0025",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

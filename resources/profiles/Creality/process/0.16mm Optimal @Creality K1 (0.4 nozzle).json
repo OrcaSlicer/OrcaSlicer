@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "CY0680",
 	"name": "0.16mm Optimal @Creality K1 (0.4 nozzle)",
 	"from": "system",
 	"instantiation": "true",

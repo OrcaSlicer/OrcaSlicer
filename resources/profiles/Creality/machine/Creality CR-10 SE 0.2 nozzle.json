@@ -3,7 +3,7 @@
 	"name": "Creality CR-10 SE 0.2 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "CY0911",
 	"instantiation": "true",
 	"printer_model": "Creality CR-10 SE",
 	"printer_variant": "0.2",

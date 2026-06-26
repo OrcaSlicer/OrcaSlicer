@@ -3,7 +3,7 @@
 	"from": "system",
 	"instantiation": "true",
 	"name": "PolyTerra J1 PLA",
-	"setting_id": "3958200796",
+	"setting_id": "SR0145",
 	"inherits": "PolyTerra PLA @base",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

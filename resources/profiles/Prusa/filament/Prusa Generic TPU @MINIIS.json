@@ -3,7 +3,7 @@
 	"name": "Prusa Generic TPU @MINIIS",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "PA0195",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1.35"

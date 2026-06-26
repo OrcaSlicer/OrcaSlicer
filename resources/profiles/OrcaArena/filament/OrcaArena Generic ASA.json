@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic ASA",
 	"inherits": "OrcaArena Generic ASA @base",
 	"from": "system",
-	"setting_id": "GFSB98",
+	"setting_id": "OA0039",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",
