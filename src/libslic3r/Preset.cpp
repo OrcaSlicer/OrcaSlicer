@@ -2096,7 +2096,7 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
         }
 
         if (preset->base_id.empty())
-            preset->base_id = parent_preset->setting_id; // we need to continue resolving up the inheritance tree for base_id
+            preset->base_id = parent_preset->setting_id;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << preset->name << " filament_id: " << preset->filament_id << " base_id: " << preset->base_id;
         preset->save(&(parent_preset->config));
     }
