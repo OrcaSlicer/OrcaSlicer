@@ -15985,7 +15985,7 @@ msgid "Purging after filament change will be done inside objects' infills. This 
 msgstr "Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n\nПримечание: не рекомендуется при печати стенок прозрачным материалом."
 
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
-msgstr "Прочистка сопла после смены материала будет производиться в поддержку модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n"
+msgstr "Прочистка сопла после смены материала будет производиться в поддержку модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."
 
 msgid "This object will be used to purge the nozzle after a filament change to save filament and decrease the print time. Colors of the objects will be mixed as a result. It will not take effect unless the prime tower is enabled."
 msgstr "Использовать эту модель для очистки сопла после смены материала для его экономии и сокращения времени печати. В результате цвета будут смешиваться. Требуется включить черновую башню."
