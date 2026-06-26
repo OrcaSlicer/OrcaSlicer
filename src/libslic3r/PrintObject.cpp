@@ -3574,14 +3574,8 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         // ModelConfig stores scalar + VO (same mechanism as global config).
         // apply_variant_overrides sets scalar = VO[variant_idx] for the
         // object's active variant so config.apply gets the correct value.
-        BOOST_LOG_TRIVIAL(warning) << "H2C object_config_from_model_object: object '"
-            << object.name << "' variant_idx=" << variant_idx
-            << " vo_empty=" << src_normalized.variant_overrides().empty()
-            << " keys=" << object.config.keys().size();
         if (variant_idx >= 0 && !src_normalized.variant_overrides().empty()) {
             src_normalized.apply_variant_overrides(variant_idx, print_options_with_variant);
-            BOOST_LOG_TRIVIAL(warning) << "H2C object_config_from_model_object: resolved VO for object '"
-                << object.name << "' variant_idx=" << variant_idx;
         }
         src_normalized.normalize_fdm();
         config.apply(src_normalized, true);

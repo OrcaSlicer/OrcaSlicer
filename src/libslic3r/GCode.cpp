@@ -6241,9 +6241,6 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
 
         if (has_any) {
             m_config.extruder_overrides[eid] = std::move(overlay);
-            BOOST_LOG_TRIVIAL(info) << "H2C precompute: built overlay for extruder " << eid
-                                   << " (variant_index=" << variant_index
-                                   << ") with " << m_config.extruder_overrides[eid].size() << " keys";
         }
     }
 
@@ -6328,8 +6325,6 @@ void GCode::precompute_extruder_speed_overrides(const Print& print)
             }
             if (has_obj_override) {
                 m_config.object_extruder_overrides[obj_id][eid] = std::move(obj_overlay);
-                BOOST_LOG_TRIVIAL(warning) << "H2C precompute: built per-object overlay for '" << mo->name
-                    << "' extruder " << eid << " (variant_index=" << variant_index << ")";
             }
         }
     }

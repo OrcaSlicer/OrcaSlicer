@@ -2180,9 +2180,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                         if (vals.size() > 1) {
                             dpc.variant_overrides().floats[md.key] = vals;
                             dpc.set_key_value(md.key, new ConfigOptionFloat(vals[0]));
-                            BOOST_LOG_TRIVIAL(warning) << "H2C 3MF Load: object '"
-                                << model_object->name << "' VO " << md.key
-                                << "=" << md.value;
                         }
                     }
                 }
@@ -7842,7 +7839,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
         if (!config.variant_overrides().empty()) {
             DynamicPrintConfig config_copy(config);
             config_copy.expand_variant_overrides_to_vectors();
-            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for project config save";
             config_copy.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
         } else {
             config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
@@ -7875,7 +7871,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 if (!config.variant_overrides().empty()) {
                     DynamicPrintConfig config_copy(config);
                     config_copy.expand_variant_overrides_to_vectors();
-                    BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for embedded preset: " << preset->name;
                     config_copy.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
                 } else {
                     config.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
@@ -7952,8 +7947,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     // Use expanded config for variant-aware keys, original for others
                     const ConfigOption* opt = obj_config_for_save.option(key);
                     std::string value = opt ? opt->serialize() : obj->config.opt_serialize(key);
-                    BOOST_LOG_TRIVIAL(warning) << "H2C 3MF Save: object '" << obj->name
-                        << "' key=" << key << " value=" << value;
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << key << "\" " << VALUE_ATTR << "=\"" << xml_escape(value) << "\"/>\n";
                 }
 

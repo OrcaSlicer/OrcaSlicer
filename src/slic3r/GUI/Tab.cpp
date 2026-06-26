@@ -3020,7 +3020,6 @@ void TabPrintModel::build()
             // but those dispatch to TabPrint::on_value_change which doesn't update
             // per-object ModelConfig.
             g->m_on_change = [this](const t_config_option_key& opt_key, const boost::any& value) {
-                BOOST_LOG_TRIVIAL(warning) << "H2C m_on_change FIRED: opt_key=" << opt_key;
                 update_dirty();
                 on_value_change(opt_key, value);
             };
@@ -3039,9 +3038,6 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
     auto& selected_cfg = m_prints.get_selected_preset().config;
     auto& edited_cfg   = m_prints.get_edited_preset().config;
 
-    BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: new objects=" << object_configs.size()
-        << " old objects=" << m_object_configs.size()
-        << " last_variant_idx=" << m_last_variant_index;
 
     // H2C: Save current VO to per-object cache AND ModelConfig before switching away.
     if (m_extruder_switch && m_last_variant_index >= 0 && !m_object_configs.empty()) {
@@ -3051,8 +3047,6 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
             // Also write VO back to ModelObject::config for slicing
             const_cast<DynamicPrintConfig&>(mc->get()).variant_overrides() = edited_cfg.variant_overrides();
         }
-        BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: saved VO for old object, vo_empty="
-            << edited_cfg.variant_overrides().empty();
     }
 
     bool same_object = (m_object_configs == object_configs);
@@ -3067,16 +3061,13 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
         if (it != m_per_object_vo.end()) {
             // Returning to a previously edited object
             edited_cfg.variant_overrides() = it->second;
-            BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: restored VO from per-object cache";
         } else {
             // First time on this object — check ModelConfig for VO (from 3MF load)
             auto& mc = object_configs.begin()->second->get();
             if (!mc.variant_overrides().empty()) {
                 edited_cfg.variant_overrides() = mc.variant_overrides();
-                BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: init VO from ModelConfig (3MF)";
             } else if (m_parent_tab && m_parent_tab->get_presets()) {
                 edited_cfg.variant_overrides() = m_parent_tab->get_presets()->get_edited_preset().config.variant_overrides();
-                BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: init VO from parent";
             }
         }
         if (m_parent_tab && m_parent_tab->get_presets())
@@ -3091,9 +3082,6 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
     // H2C: Log ModelConfig VO state for new object
     if (!object_configs.empty()) {
         auto& mc = object_configs.begin()->second->get();
-        BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: ModelConfig VO empty="
-            << mc.variant_overrides().empty()
-            << " ModelConfig keys=" << object_configs.begin()->second->keys().size();
     }
 
     update_model_config();
@@ -3109,10 +3097,6 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
         m_last_variant_index = -1;  // Skip SAVE in switch_excluder
         update_extruder_variants(-1);
         // m_last_variant_index is now set by switch_excluder to the active variant
-        BOOST_LOG_TRIVIAL(warning) << "H2C set_model_config: after update_extruder_variants"
-            << " last_variant_idx=" << m_last_variant_index
-            << " outer_wall_speed=" << (edited_cfg.option("outer_wall_speed")
-                ? edited_cfg.option("outer_wall_speed")->serialize() : "N/A");
         TabPrint::reload_config();
     }
 }
@@ -3303,11 +3287,8 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
         opt_index = std::atoi(opt_id2.c_str() + n + 1);
     }
     if (!has_key(opt_key)) {
-        BOOST_LOG_TRIVIAL(warning) << "H2C on_value_change SKIP: opt_id=" << opt_id << " opt_key=" << opt_key << " has_key=false";
         return;
     }
-    BOOST_LOG_TRIVIAL(warning) << "H2C on_value_change: opt_id=" << opt_id << " opt_key=" << opt_key << " opt_index=" << opt_index
-        << " back_to_sys=" << m_back_to_sys << " obj_configs=" << m_object_configs.size();
     if (!m_object_configs.empty())
         wxGetApp().plater()->take_snapshot((boost::format("Change Option %s") % opt_id2).str());
     auto inull = std::find(m_null_keys.begin(), m_null_keys.end(), opt_id2);
@@ -3373,8 +3354,6 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
                 // Update per-object VO cache
                 m_per_object_vo[config.first] = model_vo;
             }
-            BOOST_LOG_TRIVIAL(warning) << "H2C on_value_change: synced VO for " << opt_key
-                << " variant_idx=" << vi << " to " << m_object_configs.size() << " object(s)";
         }
         m_all_keys = concat(m_all_keys, {opt_id2});
     }
@@ -6901,7 +6880,6 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
             const auto& keys = (m_type == Preset::TYPE_PRINT)
                 ? print_options_with_variant : filament_options_with_variant;
             edited_cfg.save_variant_overrides(m_last_variant_index, keys);
-            BOOST_LOG_TRIVIAL(info) << "H2C save_preset: flushed active variant " << m_last_variant_index;
         }
     }
 
@@ -7732,11 +7710,6 @@ void Tab::switch_excluder(int extruder_id)
             ExtruderType(extruders->values[extruder_id]), NozzleVolumeType(nozzle_volumes->values[extruder_id]), variant_keys.second, stride);
     };
     auto index = m_variant_combo ? extruder_id : get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
-    BOOST_LOG_TRIVIAL(warning) << "H2C switch_excluder: ext=" << extruder_id
-        << " idx=" << index << " type=" << m_type
-        << " model=" << (dynamic_cast<TabPrintModel*>(this) != nullptr)
-        << " vo=" << !m_presets->get_edited_preset().config.variant_overrides().empty()
-        << " last=" << m_last_variant_index;
     if (index < 0)
         return;
     if (m_variant_combo)
@@ -7813,8 +7786,6 @@ void Tab::switch_excluder(int extruder_id)
             // Save current values to the PREVIOUS variant slot (edited only)
             if (m_last_variant_index >= 0) {
                 auto* ows_before = edited_cfg.option("outer_wall_speed");
-                BOOST_LOG_TRIVIAL(warning) << "H2C switch_excluder SAVE: last_idx=" << m_last_variant_index
-                    << " outer_wall_speed=" << (ows_before ? ows_before->serialize() : "N/A");
                 edited_cfg.save_variant_overrides(m_last_variant_index, keys);
 
             }
@@ -7823,9 +7794,6 @@ void Tab::switch_excluder(int extruder_id)
             edited_cfg.apply_variant_overrides(index, keys);
             selected_cfg.apply_variant_overrides(index, keys);
             auto* ows_after = edited_cfg.option("outer_wall_speed");
-            BOOST_LOG_TRIVIAL(warning) << "H2C switch_excluder APPLY: new_idx=" << index
-                << " outer_wall_speed=" << (ows_after ? ows_after->serialize() : "N/A")
-                << " vo_empty=" << edited_cfg.variant_overrides().empty();
 
 
 
