@@ -311,6 +311,8 @@ set(lisbslic3r_sources
     MutablePriorityQueue.hpp
     NormalUtils.cpp
     NormalUtils.hpp
+    NozzleAgnostic.cpp
+    NozzleAgnostic.hpp
     NSVGUtils.cpp
     NSVGUtils.hpp
     ObjColorUtils.cpp

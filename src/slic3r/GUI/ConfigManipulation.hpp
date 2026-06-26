@@ -8,6 +8,7 @@
  *	 and local config (overrides options on sidebar)
  * */
 
+#include <optional>
 #include "libslic3r/PrintConfig.hpp"
 #include "Field.hpp"
 
@@ -80,6 +81,10 @@ public:
     void    check_adaptive_pressure_advance_model(DynamicPrintConfig* config);
     void    check_filament_max_volumetric_speed(DynamicPrintConfig *config);
     void    check_chamber_temperature(DynamicPrintConfig* config);
+    // Mixed-nozzle line-width conversion: when the printer has mixed nozzles, a base nozzle resolves,
+    // and the process still has absolute nozzle-scaled fields, offer (Yes/No) to convert them to
+    // percentages of nozzle diameter in place. is_mixed/base are computed by the caller via libslic3r.
+    void    check_nozzle_agnostic(DynamicPrintConfig* config, bool is_mixed, std::optional<double> base);
     void    set_is_BBL_Printer(bool is_bbl_printer) { is_BBL_Printer = is_bbl_printer; };
     bool    get_is_BBL_Printer() { return is_BBL_Printer; };
     // SLA print

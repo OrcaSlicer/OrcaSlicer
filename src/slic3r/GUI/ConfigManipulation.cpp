@@ -7,10 +7,12 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MaterialType.hpp"
+#include "libslic3r/NozzleAgnostic.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
+#include "MainFrame.hpp"
 
 #include <sstream>
 #include <wx/msgdlg.h>
@@ -218,6 +220,41 @@ void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
             }
         }
     }
+}
+
+void ConfigManipulation::check_nozzle_agnostic(DynamicPrintConfig* config, bool is_mixed, std::optional<double> base)
+{
+    if (is_msg_dlg_already_exist)
+        return;
+    // Inert unless the printer is mixed, a single base nozzle resolved, and there are still
+    // absolute nozzle-scaled fields to convert. Never guess a base.
+    if (!is_mixed || !base.has_value())
+        return;
+    if (!nozzle_agnostic::has_absolute_scoped_fields(*config))
+        return;
+
+    wxString msg_text = _(L("Convert line widths for different nozzle diameters? This allows the slicer "
+                            "to adjust them automatically for each toolhead."));
+    msg_text += "\n\n" + _(L("Yes - Convert line widths.\n"
+                             "No - Do not convert."));
+    // Parent to the main frame (not the narrow Tab strip) so MessageDialog's CenterOnParent() centers
+    // the dialog on the whole window -- matching the other nozzle dialogs (the uniform-switch note).
+    MessageDialog dialog(static_cast<wxWindow*>(wxGetApp().mainframe), msg_text,
+                         _L("Mixed Nozzle Sizes"), wxICON_WARNING | wxYES | wxNO);
+    DynamicPrintConfig new_conf = *config;
+    is_msg_dlg_already_exist = true;
+    auto answer = dialog.ShowModal();
+    if (answer == wxID_YES) {
+        for (const std::string& key : nozzle_agnostic::scoped_keys(*config->def())) {
+            if (!config->has(key))
+                continue;
+            const auto* opt = dynamic_cast<const ConfigOptionFloatOrPercent*>(config->option(key));
+            if (opt)
+                new_conf.set_key_value(key, nozzle_agnostic::convert_field(*opt, *base).clone());
+        }
+        apply(config, &new_conf);
+    }
+    is_msg_dlg_already_exist = false;
 }
 
 void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config, const bool is_plate_config)
