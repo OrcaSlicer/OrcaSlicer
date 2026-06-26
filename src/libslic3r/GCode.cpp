@@ -6105,229 +6105,25 @@ void GCode::update_layer_related_config(int layer_id)
     m_writer.config.filament_nozzle_map.values = nozzle_map;
 }
 
-// H2C: Precompute per-extruder speed overlays from variant overrides.
-// Scalar speed options (coFloat, coFloatOrPercent, coBool) in print_options_with_variant
-// are NOT handled by update_values_to_printer_extruders (which only processes array types).
-// This method reads the per-variant values from VariantOverrides and builds a lightweight
-// DynamicPrintConfig overlay per extruder, applied at each toolchange in process_layer.
+// H2C: Delegates to VariantOverrides::precompute_overlays().
 void GCode::precompute_extruder_speed_overrides(const Print& print)
 {
-    m_config.extruder_overrides.clear();
+    const auto& global_vo = print.full_print_config().variant_overrides();
+    unsigned int num_ext  = (unsigned int)print.config().nozzle_diameter.size();
 
-    const auto& vo = print.full_print_config().variant_overrides();
-
-
-
-    if (vo.empty())
-        return;
-
-    // Use the canonical list from PrintConfig.cpp — no duplication.
-    // Array-type keys (coInts, coFloats, coBools, coStrings, etc.) are already
-    // handled by update_values_to_printer_extruders in PrintApply.cpp;
-    // we filter them out in the loop below by checking optdef->type.
-    const auto& variant_keys = print_options_with_variant;
-
-    unsigned int num_extruders = (unsigned int)print.config().nozzle_diameter.size();
-
-    // Get extruder_type and nozzle_volume_type arrays from config
-    const auto& full_cfg = print.full_print_config();
-    const auto* opt_ext_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("extruder_type"));
-    const auto* opt_nvt      = dynamic_cast<const ConfigOptionEnumsGeneric*>(full_cfg.option("nozzle_volume_type"));
-
-
-
-    for (unsigned int eid = 0; eid < num_extruders; ++eid) {
-        // Determine the correct variant_index for this extruder.
-        // variant_index is NOT just eid — it's a matrix (extruder × nozzle_type).
-        // E.g., Left/Standard=0, Left/HighFlow=1, Right/Standard=2, Right/HighFlow=3
-        ExtruderType et = opt_ext_type ? (ExtruderType)opt_ext_type->get_at(eid) : etDirectDrive;
-        NozzleVolumeType nvt = opt_nvt ? (NozzleVolumeType)opt_nvt->get_at(eid) : nvtStandard;
-
-        std::string search_variant = get_extruder_variant_string(et, nvt);
-
-        // Compute the correct VO (Variant-Overridden) array index.
-        // VO arrays are ordered by extruder_variant_list:
-        //   ext0_var0, ext0_var1, ext1_var0, ext1_var1, ...
-        // where var0,var1,... follow the comma-separated order in extruder_variant_list[extruder].
-        // We CANNOT use get_index_for_extruder here because it returns the position
-        // in print_extruder_variant, which has a DIFFERENT ordering than the VO arrays.
-        int variant_index = -1;
-        {
-            auto* evl = dynamic_cast<const ConfigOptionStrings*>(full_cfg.option("extruder_variant_list"));
-            if (evl) {
-                int vo_offset = 0;
-                for (unsigned int e = 0; e < evl->values.size(); ++e) {
-                    std::vector<std::string> variants_list;
-                    boost::split(variants_list, evl->get_at(e), boost::is_any_of(","), boost::token_compress_on);
-                    if (e == eid) {
-                        // Find the position of our variant within this extruder's variant list
-                        for (int v = 0; v < (int)variants_list.size(); ++v) {
-                            std::string trimmed = variants_list[v];
-                            boost::trim(trimmed);
-                            if (trimmed == search_variant) {
-                                variant_index = vo_offset + v;
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    vo_offset += (int)variants_list.size();
-                }
-            }
-        }
-
-        if (variant_index < 0) {
-
-            continue;
-        }
-
-
-
-
-
-        DynamicPrintConfig overlay;
-        bool has_any = false;
-
-
-
-        for (const auto& key : variant_keys) {
-            if (!vo.has(key))
-                continue;
-
-            const ConfigOptionDef* optdef = print_config_def.get(key);
-            if (!optdef)
-                continue;
-
-            switch (optdef->type) {
-            case coFloat: {
-                double val = vo.get_float(key, variant_index);
-                overlay.set_key_value(key, new ConfigOptionFloat(val));
-                has_any = true;
-                break;
-            }
-            case coFloatOrPercent: {
-                // Use raw string to preserve percent values like "50%"
-                std::string raw = vo.get_string(key, variant_index);
-                if (!raw.empty()) {
-                    auto* fop = new ConfigOptionFloatOrPercent();
-                    if (raw.back() == '%') {
-                        fop->value   = std::stod(raw.substr(0, raw.size() - 1));
-                        fop->percent = true;
-                    } else {
-                        fop->value   = std::stod(raw);
-                        fop->percent = false;
-                    }
-                    overlay.set_key_value(key, fop);
-                    has_any = true;
-                }
-                break;
-            }
-            case coBool: {
-                double val = vo.get_float(key, variant_index);
-                overlay.set_key_value(key, new ConfigOptionBool(val != 0.0));
-                has_any = true;
-                break;
-            }
-            case coInt: {
-                double val = vo.get_float(key, variant_index);
-                overlay.set_key_value(key, new ConfigOptionInt((int)val));
-                has_any = true;
-                break;
-            }
-            default:
-                break;
-            }
-        }
-
-        if (has_any) {
-            m_config.extruder_overrides[eid] = std::move(overlay);
-        }
-    }
-
-    // H2C: Build per-object overlays from ModelObject::config VO.
-    // Same variant_index computation, but reads VO from per-object ModelConfig.
-    m_config.object_extruder_overrides.clear();
+    // Collect per-object VOs
+    std::vector<std::pair<size_t, const VariantOverrides*>> obj_vos;
     for (const PrintObject* po : print.objects()) {
         const ModelObject* mo = po->model_object();
-        if (!mo) continue;
-        const auto& obj_vo = mo->config.get().variant_overrides();
-        if (obj_vo.empty()) continue;
-
-        size_t obj_id = mo->id().id;
-        for (unsigned int eid = 0; eid < num_extruders; ++eid) {
-            int variant_index = -1;
-            {
-                auto* evl = dynamic_cast<const ConfigOptionStrings*>(full_cfg.option("extruder_variant_list"));
-                if (evl) {
-                    ExtruderType et = opt_ext_type ? (ExtruderType)opt_ext_type->get_at(eid) : etDirectDrive;
-                    NozzleVolumeType nvt = opt_nvt ? (NozzleVolumeType)opt_nvt->get_at(eid) : nvtStandard;
-                    std::string search_variant = get_extruder_variant_string(et, nvt);
-                    int vo_offset = 0;
-                    for (unsigned int e = 0; e < evl->values.size(); ++e) {
-                        std::vector<std::string> vl;
-                        boost::split(vl, evl->get_at(e), boost::is_any_of(","), boost::token_compress_on);
-                        if (e == eid) {
-                            for (int v = 0; v < (int)vl.size(); ++v) {
-                                std::string trimmed = vl[v];
-                                boost::trim(trimmed);
-                                if (trimmed == search_variant) { variant_index = vo_offset + v; break; }
-                            }
-                            break;
-                        }
-                        vo_offset += (int)vl.size();
-                    }
-                }
-            }
-            if (variant_index < 0) continue;
-
-            // Start from global overlay, then override with per-object VO
-            DynamicPrintConfig obj_overlay;
-            if (auto git = m_config.extruder_overrides.find(eid); git != m_config.extruder_overrides.end())
-                obj_overlay = git->second;
-
-            bool has_obj_override = false;
-            for (const auto& key : variant_keys) {
-                if (!obj_vo.has(key)) continue;
-                const ConfigOptionDef* optdef = print_config_def.get(key);
-                if (!optdef) continue;
-                switch (optdef->type) {
-                case coFloat: {
-                    double val = obj_vo.get_float(key, variant_index);
-                    obj_overlay.set_key_value(key, new ConfigOptionFloat(val));
-                    has_obj_override = true;
-                    break;
-                }
-                case coFloatOrPercent: {
-                    std::string raw = obj_vo.get_string(key, variant_index);
-                    if (!raw.empty()) {
-                        auto* fop = new ConfigOptionFloatOrPercent();
-                        if (raw.back() == '%') { fop->value = std::stod(raw.substr(0, raw.size()-1)); fop->percent = true; }
-                        else { fop->value = std::stod(raw); fop->percent = false; }
-                        obj_overlay.set_key_value(key, fop);
-                        has_obj_override = true;
-                    }
-                    break;
-                }
-                case coBool: {
-                    double val = obj_vo.get_float(key, variant_index);
-                    obj_overlay.set_key_value(key, new ConfigOptionBool(val != 0.0));
-                    has_obj_override = true;
-                    break;
-                }
-                case coInt: {
-                    double val = obj_vo.get_float(key, variant_index);
-                    obj_overlay.set_key_value(key, new ConfigOptionInt((int)val));
-                    has_obj_override = true;
-                    break;
-                }
-                default: break;
-                }
-            }
-            if (has_obj_override) {
-                m_config.object_extruder_overrides[obj_id][eid] = std::move(obj_overlay);
-            }
-        }
+        if (mo && !mo->config.get().variant_overrides().empty())
+            obj_vos.emplace_back(mo->id().id, &mo->config.get().variant_overrides());
     }
+
+    auto result = VariantOverrides::precompute_overlays(
+        global_vo, print.full_print_config(), num_ext, obj_vos);
+
+    m_config.extruder_overrides        = std::move(result.extruder_overrides);
+    m_config.object_extruder_overrides = std::move(result.object_extruder_overrides);
 }
 
 void GCode::VariantAwareConfig::apply(const ConfigBase& other, bool ignore_nonexistent)

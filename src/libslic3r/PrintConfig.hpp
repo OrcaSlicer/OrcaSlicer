@@ -19,6 +19,7 @@
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
 #include "Config.hpp"
+#include "VariantOverrides.hpp"
 #include "Polygon.hpp"
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
@@ -616,113 +617,10 @@ double min_object_distance(const ConfigBase &cfg);
 // H2C VariantOverrides — Per-Variant Parameter Storage
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// BACKGROUND
-// ----------
-// BambuLab multi-extruder printers (H2C) support different nozzle variants per
-// physical extruder (e.g. Left=HighFlow, Right=Standard). Each variant can have
-// its own speed/acceleration profile. The Bambu preset system stores these as
-// JSON arrays in `print_options_with_variant`:
-//
-//   "inner_wall_speed": [300, 600, 300, 600]
-//                        ^^^  ^^^  ^^^  ^^^
-//                        L/S  L/HF R/S  R/HF
-//
-// OrcaSlicer's `update_values_to_printer_extruders()` correctly handles
-// ARRAY-typed options (ConfigOptionFloats, ConfigOptionInts, etc.) by
-// distributing values across variant indices. However, SCALAR-typed options
-// (ConfigOptionFloat: inner_wall_speed, outer_wall_speed, etc.) can only hold
-// ONE value at a time — the last-applied variant's value.
-//
-// SOLUTION ARCHITECTURE
-// ---------------------
-// VariantOverrides acts as a READ-ONLY LOOKUP TABLE that preserves the FULL
-// per-variant arrays from the JSON profile, separate from the scalar config.
-//
-// Data Flow:
-//
-//   Profile JSON
-//       │
-//       ▼
-//   PrintApply.cpp: DynamicPrintConfig::apply_variant_overrides()
-//       │
-//       ├─► Scalar config ← gets DEFAULT variant value (index 0)
-//       │
-//       └─► VariantOverrides ← stores ALL variant values as arrays
-//               │
-//               ▼
-//   GCode.cpp: precompute_extruder_speed_overrides()
-//       │
-//       ├─► Reads variant arrays from VariantOverrides
-//       ├─► Maps each physical extruder to its variant_index
-//       │   (via extruder_type + nozzle_volume_type → extruder_variant_list)
-//       └─► Builds per-extruder DynamicPrintConfig overlays
-//               │
-//               ▼
-//   GCode.hpp: VariantAwareConfig (wraps FullPrintConfig)
-//       │
-//       ├─► extruder_overrides[eid] = overlay for each physical extruder
-//       ├─► set_active_extruder(eid) — switches overlay at toolchange
-//       └─► apply() — re-applies overlay after EVERY config update
-//
-// WHY NOT JUST USE update_values_to_printer_extruders()?
-// ──────────────────────────────────────────────────────
-// That function only handles array-typed options. Scalar options (coFloat,
-// coFloatOrPercent, coBool) like inner_wall_speed, outer_wall_speed,
-// default_acceleration, etc. cannot be expanded into arrays — they are
-// fundamental scalar types in PrintRegionConfig. The two-layer approach
-// (VariantOverrides + VariantAwareConfig) solves this without modifying
-// the core config type system.
-//
-// STORAGE FORMAT
-// --------------
-// - floats: map<key, vector<double>> — numeric values indexed by variant
-// - strings: map<key, vector<string>> — raw string values (preserves "50%")
-//
-// ═══════════════════════════════════════════════════════════════════════════════
-struct VariantOverrides {
-    // Numeric values: key → [variant0_val, variant1_val, variant2_val, ...]
-    std::map<std::string, std::vector<double>>          floats;
-    // Raw string values (preserves percent notation like "50%")
-    std::map<std::string, std::vector<std::string>>     strings;
+// H2C: Variant-aware scalar overrides for multi-extruder printers.
+// VariantOverrides.hpp is included at the top of this file (before namespace Slic3r)
+// to avoid double-namespace issues. See VariantOverrides.hpp for full documentation.
 
-    bool has(const std::string& key) const { return floats.count(key) > 0; }
-    bool empty() const { return floats.empty(); }
-    void clear() { floats.clear(); strings.clear(); }
-
-    double get_float(const std::string& key, int index) const {
-        auto it = floats.find(key);
-        if (it == floats.end() || it->second.empty()) return 0.0;
-        int idx = (index >= 0 && index < (int)it->second.size()) ? index : 0;
-        return it->second[idx];
-    }
-
-    // Get the raw string value (preserves "50%" style percent notation)
-    std::string get_string(const std::string& key, int index) const {
-        auto it = strings.find(key);
-        if (it == strings.end() || it->second.empty()) return {};
-        int idx = (index >= 0 && index < (int)it->second.size()) ? index : 0;
-        return it->second[idx];
-    }
-
-    int variant_count(const std::string& key) const {
-        auto it = floats.find(key);
-        return it != floats.end() ? (int)it->second.size() : 0;
-    }
-
-    // H2C: Write a value back into the variant array (preserves user edits
-    // when switching between Left/Right nozzle tabs).
-    void set_float(const std::string& key, int index, double value) {
-        auto it = floats.find(key);
-        if (it != floats.end() && index >= 0 && index < (int)it->second.size())
-            it->second[index] = value;
-    }
-
-    void set_string(const std::string& key, int index, const std::string& value) {
-        auto it = strings.find(key);
-        if (it != strings.end() && index >= 0 && index < (int)it->second.size())
-            it->second[index] = value;
-    }
-};
 
 // Slic3r dynamic configuration, used to override the configuration
 // per object, per modification volume or per printing material.
@@ -848,7 +746,7 @@ private:
     int m_active_variant_index = -1;
 };
 extern std::set<std::string> printer_extruder_options;
-extern std::set<std::string> print_options_with_variant;
+// print_options_with_variant is now in VariantOverrides.hpp
 extern std::set<std::string> filament_options_with_variant;
 extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;

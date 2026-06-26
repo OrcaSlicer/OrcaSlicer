@@ -3347,10 +3347,7 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
             const auto& src_vo = m_config->variant_overrides();
             for (auto& config : m_object_configs) {
                 auto& model_vo = const_cast<DynamicPrintConfig&>(config.second->get()).variant_overrides();
-                if (auto it = src_vo.floats.find(opt_key); it != src_vo.floats.end())
-                    model_vo.floats[opt_key] = it->second;
-                if (auto it = src_vo.strings.find(opt_key); it != src_vo.strings.end())
-                    model_vo.strings[opt_key] = it->second;
+                model_vo.copy_key_from(opt_key, src_vo);
                 // Update per-object VO cache
                 m_per_object_vo[config.first] = model_vo;
             }
@@ -3365,19 +3362,8 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
     if (m_back_to_sys && m_extruder_switch && print_options_with_variant.count(opt_key)
         && m_parent_tab && m_parent_tab->get_presets()) {
         auto& edited_vo  = m_prints.get_edited_preset().config.variant_overrides();
-        auto& parent_vo  = m_parent_tab->get_presets()->get_edited_preset().config.variant_overrides();
-        // Restore floats
-        auto itf = parent_vo.floats.find(opt_key);
-        if (itf != parent_vo.floats.end())
-            edited_vo.floats[opt_key] = itf->second;
-        else
-            edited_vo.floats.erase(opt_key);
-        // Restore strings
-        auto its = parent_vo.strings.find(opt_key);
-        if (its != parent_vo.strings.end())
-            edited_vo.strings[opt_key] = its->second;
-        else
-            edited_vo.strings.erase(opt_key);
+        const auto& parent_vo  = m_parent_tab->get_presets()->get_edited_preset().config.variant_overrides();
+        edited_vo.copy_key_from(opt_key, parent_vo);
     }
     m_back_to_sys = false;
     TabPrint::on_value_change(opt_id, value);
@@ -6862,21 +6848,10 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 //BBS: add project embedded preset relate logic
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
-    // H2C: Before saving, ensure any edited values in the active GUI fields
-    // are flushed back into the variant_overrides map for the current variant.
+    // H2C: Before saving, flush active GUI values to VO for the current variant.
     if (m_last_variant_index >= 0) {
         auto& edited_cfg = m_presets->get_edited_preset().config;
-        bool is_multi_variant = !edited_cfg.variant_overrides().empty();
-        if (!is_multi_variant) {
-            for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
-                const auto* opt = dynamic_cast<const ConfigOptionStrings*>(edited_cfg.option(vkey, false));
-                if (opt && (int)opt->size() > 1) {
-                    is_multi_variant = true;
-                    break;
-                }
-            }
-        }
-        if (is_multi_variant) {
+        if (VariantOverrides::is_multi_variant(edited_cfg)) {
             const auto& keys = (m_type == Preset::TYPE_PRINT)
                 ? print_options_with_variant : filament_options_with_variant;
             edited_cfg.save_variant_overrides(m_last_variant_index, keys);
@@ -7765,21 +7740,7 @@ void Tab::switch_excluder(int extruder_id)
         auto& edited_cfg   = m_presets->get_edited_preset().config;
         auto& selected_cfg = m_presets->get_selected_preset().config;
 
-        // H2C: Determine if this is a multi-variant config.
-        // Check existing overrides first, then fallback to variant list options
-        // (handles edge case where ALL variant-aware fields are scalar).
-        bool is_multi_variant = !edited_cfg.variant_overrides().empty();
-        if (!is_multi_variant) {
-            for (const char* vkey : {"print_extruder_variant", "filament_extruder_variant", "printer_extruder_variant"}) {
-                const auto* opt = dynamic_cast<const ConfigOptionStrings*>(edited_cfg.option(vkey, false));
-                if (opt && (int)opt->size() > 1) {
-                    is_multi_variant = true;
-                    break;
-                }
-            }
-        }
-
-        if (is_multi_variant) {
+        if (VariantOverrides::is_multi_variant(edited_cfg)) {
             const auto& keys = dynamic_cast<TabPrint*>(this)
                 ? print_options_with_variant : filament_options_with_variant;
 
