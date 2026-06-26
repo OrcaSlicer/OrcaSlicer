@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "eSUN PLA @BabyBelt Pro",
+	"inherits": "Generic PLA @BabyBelt Pro",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [
+		"BabyBelt Pro 0.4 nozzle"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_vendor": [
+		"eSUN"
+	],
+	"filament_settings_id": [
+		"eSUN PLA @BabyBelt Pro"
+	],
+	"nozzle_temperature_initial_layer": [
+		"200"
+	],
+	"nozzle_temperature": [
+		"200"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.12"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	]
+}
