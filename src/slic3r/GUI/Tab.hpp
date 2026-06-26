@@ -313,6 +313,9 @@ public:
     // Used by save_variant_overrides() to write user edits back to the correct
     // slot before switching to a different nozzle variant.
     int m_last_variant_index = -1;
+    // H2C: Set during Left/Right toggle to prevent TabPrintModel::reload_config()
+    // from calling update_model_config() which would overwrite variant-swapped values.
+    bool m_variant_switching = false;
 
 public:
 	// BBS
@@ -519,6 +522,10 @@ protected:
 	std::vector<std::string> m_all_keys;
 	std::vector<std::string> m_null_keys;
 	bool m_back_to_sys = false;
+	// H2C: Per-object VO cache — preserves variant edits across object switches.
+	// One TabPrintObject serves all objects; VO lives on the tab's preset config.
+	// This map saves VO when leaving an object, restores when returning.
+	std::map<ObjectBase*, VariantOverrides> m_per_object_vo;
 };
 
 
