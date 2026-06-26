@@ -2096,7 +2096,7 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
         }
 
         if (preset->base_id.empty())
-            preset->base_id = parent_preset->setting_id;
+            preset->base_id = parent_preset->setting_id; // we need to continue resolving up the inheritance tree for base_id
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << preset->name << " filament_id: " << preset->filament_id << " base_id: " << preset->base_id;
         preset->save(&(parent_preset->config));
     }
@@ -3012,14 +3012,8 @@ const Preset* PresetCollection::get_selected_preset_parent() const
             return nullptr;
         preset = &this->default_preset(m_type == Preset::Type::TYPE_PRINTER && edited_preset.printer_technology() == ptSLA ? 1 : 0);
     } else
+        // find_preset() already resolves "renamed_from" internally.
         preset = this->find_preset(inherits, false);
-    if (preset == nullptr) {
-	    // Resolve the "renamed_from" field.
-    	assert(! inherits.empty());
-    	auto it = this->find_preset_renamed(inherits);
-		if (it != m_presets.end())
-			preset = &(*it);
-    }
     //BBS: add project embedded preset logic and refine is_external
     return (preset == nullptr/* || preset->is_default || preset->is_external*/) ? nullptr : preset;
     //return (preset == nullptr/* || preset->is_default*/ || preset->is_external) ? nullptr : preset;
@@ -3031,12 +3025,8 @@ const Preset* PresetCollection::get_preset_parent(const Preset& child) const
     if (inherits.empty())
 // 		return this->get_selected_preset().is_system ? &this->get_selected_preset() : nullptr;
         return nullptr;
+    // find_preset() already resolves "renamed_from" internally.
     const Preset* preset = this->find_preset(inherits, false);
-    if (preset == nullptr) {
-    	auto it = this->find_preset_renamed(inherits);
-		if (it != m_presets.end())
-			preset = &(*it);
-    }
     return
          // not found
         (preset == nullptr/* || preset->is_default */||
@@ -3135,6 +3125,14 @@ Preset* PresetCollection::find_preset(const std::string &name, bool first_visibl
     auto it = this->find_preset_internal(canonical, only_from_library);
     if (it != m_presets.end() && it->name == canonical)
         return &this->preset(it - m_presets.begin(), real);
+    // Resolve the "renamed_from" field: a system preset may have been renamed (e.g. by a
+    // vendor profile sync), which records its old name in "renamed_from". Try the rename
+    // map before the first-visible fallback so every caller - including those passing
+    // real/only_from_library or first_visible_if_not_found - resolves to the renamed preset
+    // rather than a mismatched one. Recursion follows multi-step renames (A->B->C) and
+    // terminates as soon as a name resolves or has no further rename entry.
+    if (const std::string* renamed = get_preset_name_renamed(name))
+        return find_preset(*renamed, first_visible_if_not_found, real, only_from_library);
     return first_visible_if_not_found ? &this->first_visible() : nullptr;
 }
 
@@ -3142,10 +3140,7 @@ Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/
 {
     auto preset = find_preset(name, false, true);
     if (preset == nullptr) {
-        auto _name = get_preset_name_renamed(name);
-        if (_name != nullptr)
-            preset = find_preset(*_name, false, true);
-        if (auto_match && preset == nullptr) {
+        if (auto_match) {
             //Orca: one more try, find the most likely preset in OrcaFilamentLibrary
             if (name.find("Generic") != std::string::npos) {
                 // The regex pattern matches an optional prefix ending in '_' then "Generic" followed by the material name.
