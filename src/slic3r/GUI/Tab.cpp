@@ -1961,6 +1961,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if(m_active_page)
         m_active_page->update_visibility(m_mode, true);
     m_page_view->GetParent()->Layout();
+
+    // ORCA also update states of plates for plates toolbar. same method exist on Plater::priv::on_select_preset()
+    auto& plate_list = wxGetApp().plater()->get_partplate_list();
+    for (auto plate : plate_list.get_plate_list())
+        plate->update_slice_result_valid_state(false);
 }
 
 void Tab::show_timelapse_warning_dialog() {
@@ -2148,6 +2153,11 @@ void Tab::on_presets_changed()
     m_dependent_tabs.clear();
 
     wxGetApp().plater()->update_project_dirty_from_presets();
+
+    // ORCA also update states of plates for plates toolbar. same method exist on Plater::priv::on_select_preset()
+    auto& plate_list = wxGetApp().plater()->get_partplate_list();
+    for (auto plate : plate_list.get_plate_list())
+        plate->update_slice_result_valid_state(false);
 }
 
 void Tab::build_preset_description_line(ConfigOptionsGroup* optgroup)

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -1770,6 +1770,20 @@ msgstr "Неизвестная ошибка OrcaSlicer : %1%"
 msgid "Untitled"
 msgstr "Без названия"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "Начиная с версии 2.4.0, OrcaSlicer синхронизирует пользовательские профили через Orca Cloud вместо Bambu Cloud.\n\nЧтобы перенести существующие профили, войдите в Orca Cloud, и они будут перенесены автоматически. Чтобы узнать больше о том, как OrcaSlicer хранит и синхронизирует ваши профили, или перенести профили вручную, посетите нашу вики.\n\nЕсли вы не использовали Bambu Cloud для синхронизации профилей, это изменение вас не затрагивает, и вы можете спокойно проигнорировать это сообщение."
+
+msgid "Profile syncing change"
+msgstr ""
+
+msgid "Learn more"
+msgstr ""
+
 msgid "Reloading network plug-in..."
 msgstr "Перезагрузка сетевого плагина..."
 
@@ -1798,6 +1812,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "WebView2 Runtime"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -4176,6 +4196,9 @@ msgstr ""
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "Диапазон рекомендуемых температур печати данным типом материала составляет [%d, %d] градусов Цельсия."
 
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
@@ -5362,6 +5385,12 @@ msgstr "Все столы"
 msgid "Stats"
 msgstr "Статистика"
 
+msgid "Slice"
+msgstr "Нарезать"
+
+msgid "Review"
+msgstr ""
+
 msgid "Assembly Return"
 msgstr "Выйти из сборки"
 
@@ -5433,7 +5462,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "В G-коде на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
@@ -11506,11 +11535,20 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Параметр точной стенки будет проигнорирован для последовательностей стен «внешняя-внутренняя» или «внутренняя-внешняя-внутренняя»."
 
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr ""
+
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Компенсация усадки материала не будет использоваться, поскольку усадка у используемых материалов не совпадает."
 
 msgid "Generating skirt & brim"
 msgstr "Генерация юбки и каймы"
+
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr ""
 
 msgid "Exporting G-code"
 msgstr "Экспорт в G-код"
@@ -13388,7 +13426,6 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
-#, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -16638,9 +16675,6 @@ msgstr "Экспорт в отдельные STL"
 
 msgid "Export the objects as multiple STLs to directory."
 msgstr "Экспорт моделей в папку в отдельные STL-файлы."
-
-msgid "Slice"
-msgstr "Нарезать"
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Нарезать столы: 0 - все, i - стол i, другие - недопустимо"

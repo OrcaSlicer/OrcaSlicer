@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-19 10:33-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -252,7 +252,7 @@ msgid "Reset"
 msgstr "重設"
 
 msgid "Enter"
-msgstr ""
+msgstr "Enter"
 
 msgid "Shortcut Key "
 msgstr "快捷鍵 "
@@ -874,13 +874,13 @@ msgid "ITALIC"
 msgstr "斜體"
 
 msgid "SWISS"
-msgstr ""
+msgstr "瑞士體"
 
 msgid "MODERN"
-msgstr ""
+msgstr "現代"
 
 msgid "First font"
-msgstr ""
+msgstr "第一個字型"
 
 msgid "Default font"
 msgstr "預設字型"
@@ -1458,7 +1458,7 @@ msgid "Restart selection"
 msgstr "重新開始選取"
 
 msgid "Esc"
-msgstr ""
+msgstr "Esc"
 
 msgid "Cancel a feature until exit"
 msgstr "在退出前取消功能"
@@ -1712,6 +1712,20 @@ msgstr "Orca Slicer 遭遇到一個未處理的例外：%1%"
 msgid "Untitled"
 msgstr "未命名"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "自 2.4.0 版本起，OrcaSlicer 透過 Orca Cloud（而非 Bambu Cloud）同步使用者設定檔。\n\n若要移轉您現有的設定檔，請登入 Orca Cloud，設定檔將會自動轉移。若要進一步了解 OrcaSlicer 如何儲存與同步您的設定檔，或手動移轉您的預設，請參閱我們的 wiki。\n\n若您先前並未使用 Bambu Cloud 同步設定檔，則此變更不會影響您，您可以放心忽略此訊息。"
+
+msgid "Profile syncing change"
+msgstr "設定檔同步方式變更"
+
+msgid "Learn more"
+msgstr "了解更多"
+
 msgid "Reloading network plug-in..."
 msgstr "正在重新載入網路外掛程式..."
 
@@ -1738,6 +1752,12 @@ msgstr "Orca Slicer 需要 Microsoft WebView2 Runtime 才能操作某些功能�
 
 msgid "WebView2 Runtime"
 msgstr "WebView2 Runtime"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr "無法安裝 Microsoft WebView2 Runtime。\n在安裝完成前，包括設定精靈在內的部分功能可能顯示為空白。\n請從 https://developer.microsoft.com/microsoft-edge/webview2/ 手動安裝，然後重新啟動 Orca Slicer。"
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -2153,7 +2173,7 @@ msgid "Delete the selected object"
 msgstr "刪除所選物件"
 
 msgid "Backspace"
-msgstr ""
+msgstr "Backspace"
 
 msgid "Load..."
 msgstr "載入..."
@@ -2537,7 +2557,7 @@ msgid "Center"
 msgstr "居中"
 
 msgid "Drop"
-msgstr ""
+msgstr "下降"
 
 msgid "Edit Process Settings"
 msgstr "編輯列印參數"
@@ -2946,7 +2966,7 @@ msgid "Check the status of current system services"
 msgstr "請檢查目前系統服務狀態"
 
 msgid "code"
-msgstr ""
+msgstr "代碼"
 
 msgid "Failed to connect to cloud service"
 msgstr "無法連接到雲端服務"
@@ -3471,7 +3491,7 @@ msgid "Orca Slicer is based on PrusaSlicer and BambuStudio"
 msgstr "Orca Slicer 基於 PrusaSlicer 與 BambuStudio"
 
 msgid "Libraries"
-msgstr ""
+msgstr "函式庫"
 
 msgid "This software uses open source components whose copyright and other proprietary rights belong to their respective owners"
 msgstr "本軟體採用了開源組件，其版權及相關專有權歸屬於各自的所有者"
@@ -4076,6 +4096,9 @@ msgstr ""
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
 msgstr "該線材的推薦噴嘴溫度是攝氏 [%d, %d] 度"
+
+msgid "Adaptive Pressure Advance model validation failed:\n"
+msgstr "自適應壓力補償模型驗證失敗：\n"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -4683,7 +4706,7 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無效格式，應該是「%1%」這種格式"
 
 msgid "N/A"
-msgstr ""
+msgstr "不適用"
 
 msgid "Pick"
 msgstr "選取"
@@ -4782,7 +4805,7 @@ msgid "Gap infill"
 msgstr "填縫"
 
 msgid "Skirt"
-msgstr ""
+msgstr "Skirt"
 
 msgid "Support interface"
 msgstr "支撐面"
@@ -5231,6 +5254,12 @@ msgstr "所有列印板"
 msgid "Stats"
 msgstr "統計"
 
+msgid "Slice"
+msgstr "切片"
+
+msgid "Review"
+msgstr "檢視"
+
 msgid "Assembly Return"
 msgstr "退出組裝視角"
 
@@ -5298,7 +5327,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -8185,13 +8214,13 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr "在擬真檢視中於列印板上算繪投射陰影。"
 
 msgid "Smooth normals"
-msgstr ""
+msgstr "平滑法線"
 
 msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
-msgstr ""
+msgstr "將平滑法線套用至擬真檢視。\n\n需要手動重新載入場景才能生效（在 3D 檢視中按一下滑鼠右鍵 →「重新載入所有物件」）。"
 
 msgid "Anti-aliasing"
 msgstr "抗鋸齒"
@@ -8322,10 +8351,10 @@ msgid "Color only"
 msgstr "僅顏色"
 
 msgid "Bambu network plug-in"
-msgstr ""
+msgstr "Bambu 網路外掛程式"
 
 msgid "Enable Bambu network plug-in"
-msgstr ""
+msgstr "啟用 Bambu 網路外掛程式"
 
 msgid "Network plug-in version"
 msgstr "網路外掛程式版本"
@@ -11231,11 +11260,20 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "當壁序列為外內或內外內時，精確牆壁選項將被忽略。"
 
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr "一個或多個擠出機的自適應壓力補償模型可能包含無效值。"
+
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "線材收縮補償將被停用，因為所使用的線材之間的收縮率差異過大。"
 
 msgid "Generating skirt & brim"
 msgstr "正在產生 Skirt 和 Brim"
+
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr "在「逐件」列印順序下，物件之間無法容納各別物件的 Skirt。\n\n請加大物件之間的距離、縮小 Brim/Skirt 尺寸、將 Skirt 類型切換為「合併」，或將列印順序切換為「逐層」。"
 
 msgid "Exporting G-code"
 msgstr "正在匯出 G-code"
@@ -12586,7 +12624,7 @@ msgstr "啟用懸挑自適應壓力補償 (beta)"
 msgid ""
 "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
 "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
-msgstr ""
+msgstr "針對懸空以及同一特徵內的流量變化啟用自適應壓力補償 (PA)。這是一個實驗性選項，因為若 PA 設定檔設定不準確，將會導致懸空前後的外表面出現均勻性問題。\n與 Prusa 印表機不相容，因為它們會暫停以處理 PA 變更，進而導致延遲與瑕疵。"
 
 msgid "Pressure advance for bridges"
 msgstr "橋接的壓力補償"
@@ -13022,7 +13060,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 軸挫曲偏置最佳化（實驗性）"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy, c-format, boost-format
+#, fuzzy
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度時，沿 Z（垂直）軸收緊螺旋體波形，以縮短有效垂直柱長度並提升 Z 軸抗壓挫曲能力。線材用量維持不變。在約 30% 稀疏填充密度及以上時無效果。僅在稀疏填充圖案設為螺旋體時適用。"
 
@@ -13271,7 +13309,7 @@ msgid "Travel speed of the first layer."
 msgstr "首層空駛速度"
 
 msgid "Number of slow layers"
-msgstr ""
+msgstr "慢速層數量"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "減慢前幾層的列印速度。列印速度會逐漸加速到滿速。"
@@ -15977,9 +16015,6 @@ msgstr "匯出為多個 STL 檔案"
 msgid "Export the objects as multiple STLs to directory."
 msgstr "將物件匯出為多個 STL 檔案至指定資料夾"
 
-msgid "Slice"
-msgstr "切片"
-
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "切片板選項：0 代表所有板，i 代表第 i 塊板，其餘則為無效輸入"
 
@@ -18132,7 +18167,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr ""
+msgstr "使用 %1s 材料搭配 %2s 噴嘴列印可能會損壞噴嘴。"
 
 msgid "Need select printer"
 msgstr "需要選擇列印設備"
