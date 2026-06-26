@@ -1,0 +1,26 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PETG@base",
+  "inherits": "Generic PETG @System",
+  "from": "system",
+  "instantiation": "false",
+  "hot_plate_temp": [
+    "80"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "80"
+  ],
+  "nozzle_temperature": [
+    "240"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "240"
+  ],
+  "filament_id": "GFG_V010",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PETG"
+  ]
+}

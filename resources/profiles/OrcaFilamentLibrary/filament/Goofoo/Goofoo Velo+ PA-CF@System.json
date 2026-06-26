@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo Velo+ PA-CF@System",
+	"from": "system",
+	"setting_id": "SYS013",
+	"instantiation": "true",
+	"inherits": "Goofoo Velo+ PA-CF@base",
+	"compatible_printers": []
+}

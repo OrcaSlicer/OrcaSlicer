@@ -1,0 +1,100 @@
+{
+  "type": "machine",
+  "name": "Goofoo Velo+ 0.6 nozzle",
+  "inherits": "MyKlipper 0.6 nozzle",
+  "from": "system",
+  "setting_id": "GM005",
+  "instantiation": "true",
+  "nozzle_diameter": [
+    "0.6"
+  ],
+  "nozzle_type": "hardened_steel",
+  "printer_model": "Goofoo Velo+",
+  "printer_variant": "0.6",
+  "default_filament_profile": [
+    "Goofoo Velo+ ABS"
+  ],
+  "default_print_profile": "0.20mm Standard @Goofoo",
+  "printable_area": [
+    "0x0",
+    "600x0",
+    "600x500",
+    "0x500"
+  ],
+  "machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < max_print_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors",
+  "printable_height": "600",
+  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+  "change_filament_gcode": "PAUSE",
+  "deretraction_speed": [
+    "0"
+  ],
+  "extruder_clearance_height_to_lid": "350",
+  "extruder_clearance_height_to_rod": "60",
+  "extruder_clearance_radius": "50",
+  "machine_max_acceleration_e": [
+    "20000",
+    "5000"
+  ],
+  "machine_max_acceleration_retracting": [
+    "15000",
+    "5000"
+  ],
+  "machine_max_acceleration_z": [
+    "100",
+    "200"
+  ],
+  "machine_max_jerk_e": [
+    "1",
+    "2.5"
+  ],
+  "machine_max_jerk_x": [
+    "5",
+    "9"
+  ],
+  "machine_max_jerk_y": [
+    "5",
+    "9"
+  ],
+  "machine_max_speed_e": [
+    "50",
+    "25"
+  ],
+  "machine_max_speed_x": [
+    "730",
+    "200"
+  ],
+  "machine_max_speed_y": [
+    "730",
+    "200"
+  ],
+  "machine_max_speed_z": [
+    "15",
+    "12"
+  ],
+  "machine_start_gcode": "G90 ; 绝对坐标模式\nM83 ; 挤出机相对模式\nM140 S[first_layer_bed_temperature] ; 设置热床温度\nM104 S140 ; 临时喷嘴温度=切片首层设定（防止归零渗料）\nG4 S10 ; 预热等待10秒\nG28 ; 归零所有轴\nG1 Z50 F240 ; Z轴抬升\nG1 X2 Y10 F3000 ; 移动至起始位置\nM104 S[nozzle_temperature_initial_layer] ; 正式设置喷嘴温度（与切片设置一致）\nM190 S[bed_temperature_initial_layer_single] ; 等待热床温度稳定\nM109 S[nozzle_temperature_initial_layer] ; 等待喷嘴温度稳定\nG1 Z0.28 F240 ; 喷嘴下降至打印高度\nG92 E0 ; 挤出机归零\nG1 Y140 E10 F1500 ; 画第一条 priming 线\nG1 X2.3 F5000 ; X轴微调\nG92 E0 ; 挤出机归零\nG1 Y10 E10 F1200 ; 画第二条 priming 线\nG92 E0 ; 最终挤出机归零",
+
+  "retract_before_wipe": [
+    "100%"
+  ],
+  "retract_length_toolchange": [
+    "10"
+  ],
+  "retraction_length": [
+    "0.5"
+  ],
+  "retraction_minimum_travel": [
+    "2"
+  ],
+  "retraction_speed": [
+    "50"
+  ],
+  "thumbnails": "300x300/PNG",
+  "z_hop": [
+    "0"
+  ],
+  "machine_max_acceleration_travel": "10000",
+  "max_layer_height": [
+    "0.4"
+  ],
+  "upward_compatible_machine": []
+}

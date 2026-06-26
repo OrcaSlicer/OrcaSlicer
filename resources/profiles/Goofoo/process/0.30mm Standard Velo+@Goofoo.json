@@ -1,0 +1,13 @@
+{
+  "type": "process",
+  "name": "0.30mm Standard Velo+@Goofoo",
+  "inherits": "0.20mm Standard @MyKlipper",
+  "setting_id": "GPGF004",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "Goofoo Velo+ 0.6 nozzle"
+  ],
+  "initial_layer_print_height": "0.3",
+  "layer_height": "0.3"
+}
