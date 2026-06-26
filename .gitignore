@@ -50,3 +50,4 @@ tui.json
 opencode.json
 nanocode.json
 nul
+deps/OpenSSL/OpenSSL.cmake

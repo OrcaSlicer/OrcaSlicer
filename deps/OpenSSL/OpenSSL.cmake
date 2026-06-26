@@ -17,7 +17,7 @@ else()
 endif()
 
 if(WIN32)
-    set(_conf_cmd perl Configure )
+    set(_conf_cmd "C:/Strawberry/perl/bin/perl.exe" Configure )
     set(_cross_comp_prefix_line "")
     set(_make_cmd nmake)
     set(_install_cmd nmake install_sw )
