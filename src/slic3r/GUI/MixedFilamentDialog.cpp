@@ -3391,10 +3391,6 @@ void MixedFilamentDialog::collect_result()
         m_result.mix_b_percent = 50;
         m_result.ratio_a = 1;
         m_result.ratio_b = 1;
-        // Force at least 2 sublayers per layer so the LocalZ planner emits the
-        // two sub-layers needed to realize the per-layer gradient ratio.
-        if (m_result.local_z_max_sublayers < 2)
-            m_result.local_z_max_sublayers = 2;
         break;
     }
     m_result.custom = true;

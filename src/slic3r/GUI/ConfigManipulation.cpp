@@ -1054,13 +1054,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("interlocking_depth", use_beam_interlocking);
     toggle_line("interlocking_boundary_avoidance", use_beam_interlocking);
 
-    const bool local_z_dithering_enabled =
-        config->has("dithering_local_z_mode") && config->option("dithering_local_z_mode") != nullptr &&
-        config->opt_bool("dithering_local_z_mode");
-    toggle_line("dithering_local_z_whole_objects", local_z_dithering_enabled);
-    toggle_line("dithering_local_z_infill", local_z_dithering_enabled);
-    toggle_line("dithering_local_z_direct_multicolor", local_z_dithering_enabled);
-
     bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options);

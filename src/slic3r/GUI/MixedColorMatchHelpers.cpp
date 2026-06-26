@@ -628,10 +628,6 @@ MixedFilamentDisplayContext build_mixed_filament_display_context(const std::vect
         context.preview_settings.nominal_layer_height = std::max(0.01, print_cfg->opt_float("layer_height"));
     if (print_cfg != nullptr && print_cfg->has("wall_loops"))
         context.preview_settings.wall_loops = std::max<size_t>(1, size_t(std::max(1, print_cfg->opt_int("wall_loops"))));
-    context.preview_settings.local_z_mode              = get_mixed_bool("dithering_local_z_mode", false);
-    context.preview_settings.local_z_direct_multicolor = get_mixed_bool("dithering_local_z_direct_multicolor", false) &&
-                                                         context.preview_settings.preferred_a_height <= EPSILON &&
-                                                         context.preview_settings.preferred_b_height <= EPSILON;
     context.component_bias_enabled = get_mixed_bool("mixed_filament_component_bias_enabled", false);
 
     return context;

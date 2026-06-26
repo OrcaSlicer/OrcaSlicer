@@ -3880,7 +3880,6 @@ void Sidebar::init_color_mix_panel(wxWindow* parent, wxSizer* sizer)
             mfs.back().gradient_component_weights  = r.gradient_component_weights;
             mfs.back().ratio_a                     = r.ratio_a;
             mfs.back().ratio_b                     = r.ratio_b;
-            mfs.back().local_z_max_sublayers       = r.local_z_max_sublayers;
             mfs.back().gradient_enabled            = r.gradient_enabled;
             mfs.back().gradient_start              = r.gradient_start;
             mfs.back().gradient_end                = r.gradient_end;
@@ -3966,16 +3965,12 @@ void Sidebar::update_color_mix_panel()
     if (preset_bundle->project_config.has("mixed_filament_height_upper_bound"))
         upper_bound = std::max(lower_bound, float(preset_bundle->project_config.opt_float("mixed_filament_height_upper_bound")));
 
-    bool local_z_mode = false;
-    if (const ConfigOptionBool* opt = preset_bundle->project_config.option<ConfigOptionBool>("dithering_local_z_mode"))
-        local_z_mode = opt->value;
-
     bool component_bias_enabled = false;
     if (const ConfigOptionBool* opt = preset_bundle->project_config.option<ConfigOptionBool>("mixed_filament_component_bias_enabled"))
         component_bias_enabled = opt->value;
 
     const MixedFilamentPreviewSettings preview_settings {
-        0.2f, lower_bound, upper_bound, 0.f, 0.f, local_z_mode, false, 1
+        0.2f, lower_bound, upper_bound, 0.f, 0.f, 1
     };
     const MixedFilamentDisplayContext display_context {
         num_physical, physical_colors, nozzle_diameters, preview_settings, component_bias_enabled
@@ -4146,7 +4141,6 @@ void Sidebar::update_color_mix_panel()
             mfs2[i].gradient_component_weights = r.gradient_component_weights;
             mfs2[i].ratio_a                    = r.ratio_a;
             mfs2[i].ratio_b                    = r.ratio_b;
-            mfs2[i].local_z_max_sublayers      = r.local_z_max_sublayers;
             mfs2[i].gradient_enabled           = r.gradient_enabled;
             mfs2[i].gradient_start             = r.gradient_start;
             mfs2[i].gradient_end               = r.gradient_end;

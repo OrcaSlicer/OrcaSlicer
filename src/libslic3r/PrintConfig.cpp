@@ -5645,57 +5645,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString(""));
 
-    def = this->add("dithering_z_step_size", coFloat);
-    def->label = L("Dithering Z step size");
-    def->category = L("Others");
-    def->tooltip = L("Layer height used in Z zones painted with dithering (mixed virtual filaments). "
-                     "Set to 0 to keep normal layer height in those zones.\n\n"
-                     "Detailed mixed filament setting explanations will be published once the project wiki is available.");
-    def->sidetext = "mm";
-    def->min = 0.;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.0));
-
-    def = this->add("dithering_local_z_mode", coBool);
-    def->label = L("Subdivide Mix Layer");
-    def->category = L("Material");
-    def->tooltip  = L("Enable \"Subdivide Mix Layer\" for mixing areas. Layer height will be subdivided for better color mixing results.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
-    def = this->add("dithering_local_z_whole_objects", coBool);
-    def->label = L("Full domain");
-    def->category = L("Others");
-    def->tooltip = L("Experimental. Apply Local-Z thinning across whole mixed-color regions instead of limiting the effect strictly to painted mixed masks.\n\n"
-                     "Only available when Subdivide Mix Layer is enabled.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
-    def = this->add("dithering_local_z_infill", coBool);
-    def->label = L("Apply subdivision to infill");
-    def->category = L("Material");
-    def->tooltip = L("Experimental. When Subdivide Mix Layer is enabled, also apply the same subdivision to infill inside mixed-color areas.\n\n"
-                     "This is enabled automatically with Subdivide Mix Layer. Turn it off to keep infill on the normal layer height.\n\n"
-                     "It can improve internal color mixing, but may add toolchanges and affect infill behavior.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
-    def = this->add("dithering_local_z_direct_multicolor", coBool);
-    def->label = L("Use direct multicolor Local-Z solver");
-    def->category = L("Others");
-    def->tooltip = L("Experimental. For mixed rows with 3 or more physical filaments, allocate Local-Z sublayers directly across all components with carry-over error between layers instead of collapsing them into pair cadence.\n\n"
-                     "This can reduce visible banding in multicolor Local-Z blends at the cost of more toolchanges. It is ignored when explicit Local-Z A/B heights are set.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
-    def = this->add("dithering_step_painted_zones_only", coBool);
-    def->label = L("Use step size in painted zones only");
-    def->category = L("Others");
-    def->tooltip = L("When enabled, dithering Z step size is applied only where mixed filament is painted. "
-                     "Unpainted zones keep their original layer height.\n\n"
-                     "Detailed mixed filament setting explanations will be published once the project wiki is available.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("process_change_extrusion_role_gcode", coString);
     def->label = L("Change extrusion role G-code (process)");

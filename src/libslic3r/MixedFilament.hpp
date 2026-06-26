@@ -68,9 +68,6 @@ struct MixedFilament
     // - SameLayerPointillisme: split painted masks in XY on each layer.
     int distribution_mode = int(Simple);
 
-    // Optional Local-Z cap for this mixed row. 0 disables the cap.
-    int local_z_max_sublayers = 0;
-
     static constexpr float k_default_gradient_dominant = 0.8f;  // Dominant component ratio
     static constexpr float k_default_gradient_minority = 0.2f;  // Minority component ratio
     static constexpr float k_min_gradient_difference   = 0.05f; // Minimum difference for valid gradient
@@ -120,7 +117,6 @@ struct MixedFilament
                gradient_component_weights == rhs.gradient_component_weights &&
                pointillism_all_filaments == rhs.pointillism_all_filaments &&
                distribution_mode == rhs.distribution_mode &&
-               local_z_max_sublayers == rhs.local_z_max_sublayers &&
                gradient_enabled == rhs.gradient_enabled &&
                std::abs(gradient_start - rhs.gradient_start) <= k_gradient_epsilon &&
                std::abs(gradient_end   - rhs.gradient_end)   <= k_gradient_epsilon &&
@@ -142,8 +138,6 @@ struct MixedFilamentPreviewSettings
     double mixed_upper_bound { 0.16 };
     double preferred_a_height { 0.0 };
     double preferred_b_height { 0.0 };
-    bool   local_z_mode { false };
-    bool   local_z_direct_multicolor { false };
     size_t wall_loops { 1 };
 };
 
@@ -156,8 +150,6 @@ struct MixedFilamentDisplayContext
     bool                         component_bias_enabled { false };
 };
 
-int mixed_filament_effective_local_z_preview_mix_b_percent(const MixedFilament               &mf,
-                                                           const MixedFilamentPreviewSettings &preview_settings);
 bool mixed_filament_supports_bias_apparent_color(const MixedFilament               &mf,
                                                  const MixedFilamentPreviewSettings &preview_settings,
                                                  bool                                bias_mode_enabled);
