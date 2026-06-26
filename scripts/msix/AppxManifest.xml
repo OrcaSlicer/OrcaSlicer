@@ -11,7 +11,7 @@
   <Identity Name="@MSIX_IDENTITY_NAME@"
             Publisher="@MSIX_PUBLISHER@"
             Version="@MSIX_VERSION@"
-            ProcessorArchitecture="x64" />
+            ProcessorArchitecture="@MSIX_ARCH@" />
 
   <Properties>
     <DisplayName>OrcaSlicer</DisplayName>
