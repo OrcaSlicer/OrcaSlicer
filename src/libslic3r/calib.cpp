@@ -491,9 +491,10 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     const double      slow = CalibPressureAdvance::speed_adjust(m_slow_speed);
     std::stringstream gcode;
     gcode << mp_gcodegen->writer().travel_to_z(m_height_layer + z_offset);
+    gcode << ";HEIGHT: " << (m_height_layer + z_offset) << "\n";
     double y_pos = start_y;
-
-    // prime line
+    // Purge/first perimeter - acts as an anchor to the rest of the model
+    gcode << ";TYPE:Custom\n";
     gcode << writer.set_pressure_advance(0.0);
     auto prime_x = start_x;
     gcode << move_to(Vec2d(prime_x, y_pos + (num) * m_space_y), writer);
@@ -503,10 +504,13 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     for (int i = 0; i < num; ++i) {
         gcode << writer.set_pressure_advance(start_pa + i * step_pa);
         gcode << move_to(Vec2d(start_x, y_pos + i * m_space_y), writer);
+        gcode << ";TYPE:Custom\n";
         gcode << writer.set_speed(slow);
         gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short, y_pos + i * m_space_y), e_per_mm * m_length_short);
+        gcode << ";TYPE:Outer wall\n";//Outer wall speed is used, so label appropriately
         gcode << writer.set_speed(fast);
         gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long, y_pos + i * m_space_y), e_per_mm * m_length_long);
+        gcode << ";TYPE:Custom\n";
         gcode << writer.set_speed(slow);
         gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long + m_length_short, y_pos + i * m_space_y),
                                       e_per_mm * m_length_short);
@@ -529,10 +533,16 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
         // gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long, y_pos + (num - 1) * m_space_y + 2), thin_e_per_mm * 7);
 
         const auto     box_start_x = start_x + m_length_short + m_length_long + m_length_short + m_line_width;
-        DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, fast);
+        DrawBoxOptArgs default_box_opt_args(2, (m_height_layer*2 + z_offset), m_line_width, fast);
+        //Draw box
         default_box_opt_args.is_filled = true;
+        gcode << ";TYPE:Bottom surface\n";
         gcode << draw_box(writer, box_start_x, start_y - m_space_y,
                           number_spacing() * 8, (num + 1) * m_space_y, default_box_opt_args);
+        //Ensure numbers are shown on the next layer in gcode processor, as in reality
+        gcode << ";LAYER_CHANGE\n";
+        gcode << ";HEIGHT: " << (m_height_layer*2 + z_offset) << "\n";
+        gcode << ";TYPE:Top surface\n";//Numbers labelled as Top surface
         gcode << writer.travel_to_z(m_height_layer*2 + z_offset);
         for (int i = 0; i < num; i += 2) {
             gcode << draw_number(box_start_x + 3 + m_line_width, y_pos + i * m_space_y + m_space_y / 2, start_pa + i * step_pa, m_draw_digit_mode,
@@ -595,12 +605,14 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                                               speed_adjust(speed_first_layer()));
 
     // create anchoring frame
+    gcode << ";TYPE:Outer wall\n";//pattern uses outer wall speed/width
     gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y(), print_size_x(), frame_size_y(), default_box_opt_args);
 
     // create tab for numbers
     DrawBoxOptArgs draw_box_opt_args = default_box_opt_args;
     draw_box_opt_args.is_filled      = true;
     draw_box_opt_args.num_perimeters = wall_count();
+    gcode << ";TYPE:Bottom surface\n"; //draw box as bottom surface, so numbers are clearly visible on top
     gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
                       print_size_x(),
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);
@@ -611,7 +623,9 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     const double zhop_config_value = m_config.option<ConfigOptionFloats>("z_hop")->get_at(0);
     const auto accel = accel_perimeter();
 
-    // draw pressure advance pattern
+    // Draw pressure advance pattern
+    // pattern uses outer wall speed, label it as such
+    gcode << ";TYPE:Outer wall\n"; //Stop pattern inheriting type from previous feature (the small cube drawn as an anchor)
     for (int i = 0; i < m_num_layers; ++i) {
         const double layer_height = height_first_layer() + height_z_offset() + (i * height_layer());
         const double zhop_height = layer_height + zhop_config_value;
@@ -692,7 +706,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
         for (int j = 0; j < num_patterns; ++j) {
             // increment pressure advance
             gcode << m_writer.set_pressure_advance(m_params.start + (j * m_params.step));
-
+            gcode << ";TYPE:Outer wall\n"; // pattern uses outer wall speed, label it as such
             for (int k = 0; k < wall_count(); ++k) {
                 to_x += std::cos(to_radians(m_corner_angle) / 2) * side_length;
                 to_y += std::sin(to_radians(m_corner_angle) / 2) * side_length;
