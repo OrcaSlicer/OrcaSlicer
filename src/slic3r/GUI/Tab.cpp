@@ -492,14 +492,17 @@ void Tab::create_preset_tab()
 
     m_main_sizer->Add(m_tabctrl, 0, wxEXPAND | wxALL, 0 );
 
-    // H2C: re-enable extruder switch for Process tab (dual-extruder BBL printers)
-    if (dynamic_cast<TabPrint *>(this)) {
+    // H2C: re-enable extruder switch for Global Process tab only.
+    // TabPrintModel subclasses (TabPrintPlate, TabPrintObject, TabPrintPart) use
+    // per-object/per-plate ModelConfig which has no variant overrides
+    // (no print_extruder_variant key → get_index_for_extruder returns -1).
+    if (dynamic_cast<TabPrint *>(this) && !dynamic_cast<TabPrintModel *>(this)) {
         m_extruder_switch = new SwitchButton(panel);
         m_extruder_switch->SetMaxSize({em_unit(this) * 24, -1});
         m_extruder_switch->SetLabels(_L("Left"), _L("Right"));
         m_extruder_switch->Bind(wxEVT_TOGGLEBUTTON, [this] (auto & evt) {
             evt.Skip();
-            switch_excluder(evt.GetInt());
+            switch_excluder(-1);
             reload_config();
             update_changed_ui();
         });
