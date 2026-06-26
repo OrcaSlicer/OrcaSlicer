@@ -11985,7 +11985,6 @@ msgstr "Скорость печати внутреннего моста. Мож�
 msgid "Brim width"
 msgstr "Ширина каймы"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Расстояние от модели до внешней линии каймы."
 
@@ -11998,7 +11997,6 @@ msgstr "Этот параметр управляет формированием 
 msgid "Brim-object gap"
 msgstr "Смещение каймы"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr ""
 "Смещение каймы от печатаемой модели. Может облегчить её отделение от наклонных поверхностей (например, прилегающих к столу скруглений).\n"
@@ -12016,11 +12014,9 @@ msgid ""
 "Note: The resulting value will not be affected by the first-layer flow ratio."
 msgstr ""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Учитывать сдвиг контура"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -12075,7 +12071,6 @@ msgstr "условия для совместимых принтеров"
 msgid "Condition"
 msgstr "Условия совместимости"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr ""
 "Логическое выражение, с помощью которого можно настраивать условия совместимости профилей принтеров с текущим профилем материала. Если условие выполняется, материал считается совместимым с текущим профилем принтера.\n"
@@ -12085,14 +12080,12 @@ msgstr ""
 msgid "Select profiles"
 msgstr "Профили настроек"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr ""
 "Логическое выражение, с помощью которого можно настраивать условия совместимости этого профиля материала с профилями настроек печати. Если условие выполняется, материал считается совместимым с текущими настройками.\n"
 "\n"
 "Например, для совместимости материала только с профилями настроек с высотой слоя более 0.2 мм используйте 'layer_height>0.2'."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr ""
 "Выбор последовательности печати моделей - параллельно или по очереди.\n"
@@ -12117,14 +12110,12 @@ msgstr "По списку"
 msgid "Slow printing down for better layer cooling"
 msgstr "Замедлять печать для охлаждения слоёв"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
-msgstr "Включите эту опцию для разрешения замедления скорости печати в зависимости от времени печати слоя, чтобы слой мог охлаждаться дольше. Это позволяет улучшить качество охлаждения острых концов и мелких деталей."
+msgstr "Включите эту опцию для замедления скорости печати в зависимости от времени печати слоя, чтобы слой мог охлаждаться дольше. Это позволяет улучшить качество охлаждения острых концов и мелких деталей."
 
 msgid "Normal printing"
 msgstr "По умолчанию"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Ускорение по умолчанию для обычной печати и перемещений (кроме первого слоя)."
 
@@ -12172,9 +12163,8 @@ msgstr "Количество слоёв, начиная с первого, на 
 msgid "Don't support bridges"
 msgstr "Не печатать поддержки под мостами"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
-msgstr "Опция, препятствующая печати поддержки под мостами. Мост обычно можно печатать без поддержки, если он не очень длинный."
+msgstr "Отключить создание поддержек под мостами. Относительно небольшие мосты обычно можно печатать без них."
 
 msgid "Thick external bridges"
 msgstr "Толстые внешние мосты"
@@ -12267,26 +12257,23 @@ msgstr "Без фильтрации"
 msgid "Max bridge length"
 msgstr "Максимальный интервал опор"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Максимальный интервал между опорами для поддержки мостов. Установите 0 для поддержки всего моста или очень большое значение для отключения поддержки мостов."
 
 msgid "End G-code"
 msgstr "Завершающий G-код"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
-msgstr "Команды в G-коде, которые выполняются в самом конце печати."
+msgstr "Команды, которые выполняются в самом конце печати."
 
 msgid "Between Object G-code"
 msgstr "G-код между моделями"
 
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
-msgstr "Команды в G-коде, которые выполняются каждый раз перед сменой модели. Действует только при печати моделей «По очереди»."
+msgstr "Команды, которые выполняются каждый раз перед сменой модели. Действует только при печати моделей «По очереди»."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
-msgstr "Команды в G-коде, которые выполняются при окончании печати этим материалом."
+msgstr "Команды, которые выполняются при окончании печати этим материалом."
 
 msgid "Ensure vertical shell thickness"
 msgstr "Сохранение толщины вертикальной оболочки"
@@ -12317,7 +12304,6 @@ msgstr "Умеренное"
 msgid "Top surface pattern"
 msgstr "Шаблон заполнения верхней поверхности"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr ""
 "Шаблон заполнения верхней поверхности.\n"
@@ -12363,7 +12349,6 @@ msgstr "Спиральная октаграмма"
 msgid "Bottom surface pattern"
 msgstr "Шаблон заполнения нижней поверхности"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr ""
 "Шаблон заполнения нижней поверхности, кроме мостов.\n"
@@ -12408,9 +12393,8 @@ msgstr ""
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линии для внешнего периметра. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
-msgstr "Ограничение скорости движения головы (относительно стола) при печати внешнего периметра (видимого). Можно занизить относительно скорости внутренних периметров для улучшения качества."
+msgstr "Ограничение скорости движения головы (относительно стола) при печати внешнего периметра. Можно занизить относительно скорости внутренних периметров для улучшения качества."
 
 msgid "Small perimeters"
 msgstr "Короткие периметры"
@@ -12485,18 +12469,15 @@ msgstr "По часовой стрелке"
 msgid "Height to rod"
 msgstr "Высота до вала"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
-msgstr "Расстояние от кончика сопла до нижнего вала. Значение важно для предотвращения столкновений при печати объектов по очереди."
+msgstr "Расстояние от кончика сопла до нижнего вала. Используется для предотвращения столкновений при печати объектов по очереди."
 
 msgid "Height to lid"
 msgstr "Высота до крышки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
-msgstr "Расстояние от кончика сопла до крышки. Значение важно для предотвращения столкновений при печати объектов по очереди."
+msgstr "Расстояние от кончика сопла до крышки. Используется для предотвращения столкновений при печати объектов по очереди."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Безопасное расстояние вокруг экструдера. Используется для предотвращения столкновений при печати отдельно стоящих моделей."
 
@@ -12664,7 +12645,6 @@ msgstr "Стандартная ширина линии для отключённ
 msgid "Keep fan always on"
 msgstr "Постоянный обдув"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Если включено, вместо отключения вентилятор охлаждения модели будет поддерживать минимальную скорость (указанную выше), чтобы сократить частоту его запуска и остановки."
 
@@ -12685,9 +12665,8 @@ msgstr ""
 msgid "Layer time"
 msgstr "Время слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
-msgstr "Вентилятор охлаждения моделей будет включён для слоёв, расчётное время которых меньше этого значения. Скорость вентилятора интерполируется между минимальной и максимальной скоростями вентилятора зависимости от времени печати слоя."
+msgstr "Вентилятор охлаждения моделей будет включён для слоёв, расчётное время которых меньше этого значения. Скорость вентилятора интерполируется между минимальной и максимальной скоростями зависимости от времени печати слоя."
 
 msgid "s"
 msgstr "с"
@@ -12711,9 +12690,8 @@ msgstr "Здесь вы можете оставить свои заметки д
 msgid "Required nozzle HRC"
 msgstr "Необходимая твёрдость сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
-msgstr "Минимальная твёрдость материала сопла (HRC), необходимая для печати материалом. 0 - отключение контроля сопел на твёрдость."
+msgstr "Минимальная твёрдость материала сопла (HRC), необходимая для печати материалом. 0 – отключение проверки твёрдости сопел."
 
 msgid "Filament map to extruder"
 msgstr "Назначение филамента на экструдер"
@@ -12751,7 +12729,6 @@ msgstr "Расход при прочистке"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Объёмный расход при прочистке материала. 0 – использовать максимальный расход из настроек материала."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr ""
 "Ограничение объёма материала, проходящего через экструдер за секунду. Скорость движения головы при печати будет снижаться для соблюдения этого ограничения. Значение не может быть нулевым.\n"
@@ -12787,7 +12764,6 @@ msgstr "По первому материалу"
 msgid "By Highest Temp"
 msgstr "Наибольшая температура"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Диаметр материала используется для расчёта подачи пластика, поэтому он важен и должен быть точным."
 
@@ -12861,9 +12837,8 @@ msgstr "Скорость в начальной фазе загрузки пру�
 msgid "Unloading speed"
 msgstr "Скорость выгрузки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
-msgstr "Скорость выгрузки прутка на черновую башню. (не влияет на начальную фазу выгрузки сразу после рэмминга)."
+msgstr "Скорость выгрузки прутка на черновой башне (не влияет на начальную фазу выгрузки сразу после рэмминга)."
 
 msgid "Unloading speed at the start"
 msgstr "Начальная скорость выгрузки"
@@ -12990,16 +12965,14 @@ msgstr "Объёмный расход для рэмминга перед сме�
 msgid "Density"
 msgstr "Плотность"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Плотность материала. Используется при подсчёте статистики."
 
 msgid "g/cm³"
 msgstr "г/см³"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
-msgstr "Обозначение состава материала."
+msgstr "Обозначение состава материала"
 
 msgid "Soluble material"
 msgstr "Растворимый материал"
@@ -13030,14 +13003,12 @@ msgstr "Материалом можно печатать через экстру
 msgid "Softening temperature"
 msgstr "Температура размягчения"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "При этой температуре материал размягчается, поэтому, когда температура стола равна или превышает её, настоятельно рекомендуется открыть переднюю дверцу и/или верхнюю крышку принтера, чтобы избежать засорения сопла."
 
 msgid "Price"
 msgstr "Стоимость"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Стоимость материала. Используется при подсчёте статистики."
 
@@ -13056,7 +13027,6 @@ msgstr "(Не указано)"
 msgid "Sparse infill direction"
 msgstr "Угол шаблона заполнения"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Угол ориентации шаблона разреженного заполнения, который определяет начало или основное направление линий."
 
@@ -13105,7 +13075,6 @@ msgstr ""
 msgid "Sparse infill pattern"
 msgstr "Шаблон заполнения"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr ""
 "Шаблон разреженного заполнения внутри модели.\n"
@@ -13283,11 +13252,9 @@ msgstr "Ускорение на внутренних периметрах."
 msgid "Acceleration of travel moves."
 msgstr "Ускорение холостого перемещения."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Ускорение на верхней поверхности. Использование меньшего значения может улучшить качество верхней поверхности."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Ускорение на внешнем периметре. Использование меньшего значения может улучшить качество."
 
@@ -13303,7 +13270,6 @@ msgstr "Ускорение на разреженном заполнении. М�
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Ускорение на сплошном заполнении. Можно указать процент от ускорения по умолчанию."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Ускорение на первом слое. Использование меньшего значения может улучшить адгезию к столу."
 
@@ -13366,23 +13332,18 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линий первого слоя. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Высота первого слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Высота первого слоя. Небольшое увеличение высоты снижает вероятность отрыва детали от неровной поверхности стола."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Общее ограничение скорости движения головы (относительно стола) при печати элементов первого слоя (кроме сплошного заполнения)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Заполнение"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Ограничение скорости движения головы (относительно стола) при печати сплошного заполнения на первом слое."
 
@@ -13393,16 +13354,14 @@ msgid "Travel speed of the first layer."
 msgstr "Ограничение скорости холостых перемещений печатающей головы на первом слое (относительно стола). Можно указать процент от основной скорости холостых перемещений."
 
 msgid "Number of slow layers"
-msgstr ""
+msgstr "Количество медленных слоёв"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Первые несколько слоёв печатаются медленнее, чем обычно. Скорость линейно увеличивается в заданном диапазоне слоёв."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Температура экструдера на первом слое"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Температура экструдера для печати первого слоя этим материалом."
 
@@ -13485,7 +13444,6 @@ msgstr "Ограничение скорости"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "Замещение общего ограничения скорости разглаживания. Позволяет ограничить скорость движения при разглаживании отдельно для каждого материала."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Нечёткая оболочка используется для придания поверхностям шершавой фактуры. Доступны несколько вариантов применения."
 
@@ -13507,7 +13465,6 @@ msgstr "Все периметры"
 msgid "Fuzzy skin thickness"
 msgstr "Максимальное отклонение"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr ""
 "Максимальная величина отклонения сегментов оболочки. \n"
@@ -13651,7 +13608,6 @@ msgstr "Слои и периметры"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Пропускать щели короче указанного порога (в мм). Применяется к верхнему, нижнему и сплошному заполнению, а при использовании классического генератора периметров – к заполнению щелей внутри стенок."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Скорость заполнения щелей. Для надёжного заполнения рекомендуется печатать медленнее, поскольку ширина таких мест зачастую непостоянна и требует быстрого изменения потока."
 
@@ -13682,7 +13638,6 @@ msgstr "Добавлять в начало каждой строки G-кода 
 msgid "Scan first layer"
 msgstr "Проверка первого слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Проверять качество печати первого слоя при помощи камеры принтера."
 
@@ -13700,7 +13655,6 @@ msgstr "По умолчанию"
 msgid "Nozzle type"
 msgstr "Материал сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Материал сопла. Определяет абразивную стойкость сопла, а также то, каким материалом можно печатать."
 
@@ -13716,7 +13670,6 @@ msgstr "Карбид вольфрама"
 msgid "Nozzle HRC"
 msgstr "Твёрдость сопла (HRC)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "Твёрдость сопел. 0 - отключение контроля сопел на твёрдость при нарезке."
 
@@ -13801,7 +13754,6 @@ msgstr "Стоимость часа работы принтера."
 msgid "money/h"
 msgstr "цена/ч"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "Контроль температуры в термокамере"
 
@@ -13867,7 +13819,6 @@ msgstr "Включите эту опцию, чтобы в каждой стро�
 msgid "Infill combination"
 msgstr "Объединение слоёв заполнения"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr ""
 "Для сокращения времени печати есть возможность печатать заполнение не на каждом слое, а на нескольких слоях сразу.\n"
@@ -13993,11 +13944,9 @@ msgid "Line width of internal sparse infill. If expressed as a %, it will be com
 msgstr "Ширина линий заполнения. Можно указать процент от диаметра сопла."
 
 # Придется сократить «Перекрытие линий заполнения с линиями периметра»
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Перекрытие заполнения с периметром"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Параметр указывает на сколько процентов заполнение будет перекрываться с периметром для лучшего соединения друг с другом. Установите значение равным ≈10-15%, чтобы свести к минимуму вероятность чрезмерной экструзии и накопления материала приводящее к шероховатости поверхности."
@@ -14009,7 +13958,6 @@ msgstr "Перекрытие заполнения поверхности с пе
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "Площадь верхнего сплошного заполнения немного увеличивается, чтобы перекрыть периметр для лучшего сцепления и минимизировать появление мелких отверстий в местах соединения верхнего заполнения с периметрами. Значение 25-30% является хорошей отправной точкой, минимизирующей появление таких отверстий."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "Ограничение скорости движения головы при печати разреженного заполнения (относительно стола)."
 
@@ -14034,7 +13982,6 @@ msgid "Maximum width of a segmented region"
 msgstr "Глубина проникновения окрашенной области"
 
 # Переведено с фактическими ошибками, переписать с нуля
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Толщина той части модели, которая была окрашена инструментом мультиматериальная покраска. Фактически это глубина проникновения окрашенной области в модель. Установите 0 для отключения работы этой функции."
 
@@ -14083,26 +14030,21 @@ msgstr "Избегание границ взаимосвязанной стру�
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "Расстояние от внешней стороны модели, где взаимосвязанные структуры не будут создаваться, измеряемое в ячейках."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Тип разглаживания"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "Включение разглаживания верхних слоёв с помощью горячего сопла для получения гладкой поверхности. После печати верхнего слоя сопло пройдётся по нему ещё раз, но с значительно меньшей скоростью и потоком. Это нужно чтобы разгладить поверхность, скрыв шаблон заполнения и другие дефекты поверхности. Эта функция увеличивает время печати."
 
 msgid "No ironing"
 msgstr "Отключено"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "Поверхности"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "Верхний слой"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All solid layers"
 msgstr "Сплошные слои"
 
@@ -14112,11 +14054,9 @@ msgstr "Шаблон разглаживания"
 msgid "The pattern that will be used when ironing."
 msgstr "Шаблон по которому будет производиться разглаживание."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Количество материала, которое необходимо выдавить во время разглаживания относительно потока при нормальной высоте слоя."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "Интервал линий разглаживания."
 
@@ -14125,7 +14065,6 @@ msgstr ""
 "Сужение области разглаживания (в мм).\n"
 "0 – смещать на радиус сопла (∅/2)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "Скорость разглаживания."
 
@@ -14183,13 +14122,11 @@ msgstr "Команды в G-коде, которые выполняются ка
 msgid "Clumping detection G-code"
 msgstr "G-код при обнаружении налипшего пластика"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Silent Mode"
 msgstr "Поддержка тихого режима"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
-msgstr "Поддерживает ли принтер тихий режим, в котором используются сниженные ускорения печати."
+msgstr "Поддерживает ли принтер тихий режим, для подавления шума в котором используются сниженные ускорения печати."
 
 msgid "Emit limits to G-code"
 msgstr "Отправлять в G-код"
@@ -14443,7 +14380,6 @@ msgid ""
 "To disable input shaping, use the Disable type."
 msgstr ""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "Скорость вентилятора охлаждения моделей может быть увеличена, если включено автоматическое охлаждение. Это максимальное ограничение скорости вентилятора для охлаждения моделей."
 
@@ -14566,7 +14502,6 @@ msgstr "Orca Slicer может загружать файл G-кода на хо�
 msgid "Nozzle volume"
 msgstr "Объём сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Объём остатка материала между ножом и кончиком сопла."
 
@@ -14605,9 +14540,8 @@ msgstr "При значении 0 расстояние загрузки равн
 msgid "Start end points"
 msgstr "Начальные и конечные точки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
-msgstr "Начальная и конечная точки от зоны обрезки до мусорного лотка."
+msgstr "Начальная и конечная точки траектории перемещения от зоны обрезки до области прочистки сопла."
 
 # Отключить откаты при печати заполнения – вариант проще и понятнее, хотя не
 # совсем корректный. Отключение избыточных откатов затрагивает только шаблон
@@ -14620,7 +14554,6 @@ msgstr "Начальная и конечная точки от зоны обре
 msgid "Reduce infill retraction"
 msgstr "Откат только при пересечении периметров"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 "Отключает откат (и подъём по Z), когда перемещения совершаются полностью над заполнением (где любые подтёки, вероятно, будут скрыты). Это поможет снизить количество откатов при печати сложных моделей и немного сэкономить время, но увеличит время нарезки и генерации G-кода.\n"
@@ -14633,9 +14566,8 @@ msgstr "Эта опция снижает температуру неактивн
 msgid "Filename format"
 msgstr "Формат имени файла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
-msgstr "Пользователь может сам задать имя файла проекта при экспорте."
+msgstr "Имя файла проекта можно задать при экспорте."
 
 msgid "Make overhangs printable"
 msgstr "Делать нависания пригодными для печати"
@@ -14655,25 +14587,25 @@ msgstr "Делать нависания отверстий пригодными 
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
 msgstr "Максимальная площадь отверстия в основании модели до его заполнения материалом конической геометрии. При 0 все отверстия в основании модели будут заполнены."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect overhang walls"
 msgstr "Обнаруживать нависающие периметры"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Определяет процент нависания относительно ширины линии и использует разную скорость печати. Для 100%%-го нависания используется скорость печати мостов."
 
+# В секции "Материал для линий"
 msgid "Outer walls"
-msgstr ""
+msgstr "Внешние периметры"
 
 msgid ""
 "Filament to print outer walls.\n"
 "\"Default\" uses the active object/part filament."
 msgstr ""
 
+# В секции "Материал для линий"
 msgid "Inner walls"
-msgstr ""
+msgstr "Внутренние периметры"
 
 msgid ""
 "Filament to print inner walls.\n"
@@ -14683,11 +14615,9 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линий внутренних периметров. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "Ограничение скорости движения головы при печати внутренних периметров (относительно стола)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Количество периметров на каждом слое модели."
 
@@ -14734,32 +14664,26 @@ msgstr "Модификация принтера"
 msgid "Raft contact Z distance"
 msgstr "Зазор под моделью"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Вертикальное расстояние между подложкой и моделью. Если зазор поддержки сверху равен 0, это значение игнорируется, и модель печатается в прямом контакте с подложкой (без зазора)."
 
 msgid "Raft expansion"
 msgstr "Расширение подложки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Расширение всех слоёв подложки в плоскости XY."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Плотность первого слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Плотность первого слоя поддержки или первого слоя подложки, если она включена."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Расширение первого слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
-msgstr "Расширение первого слоя подложки или поддержки в плоскости XY для улучшения адгезии при печати материалами, склонными к отлипанию и закручиванию."
+msgstr "Расширение первого слоя подложки или поддержки в плоскости XY для улучшения адгезии к столу."
 
 msgid "Raft layers"
 msgstr "Слоёв в подложке"
@@ -14767,9 +14691,9 @@ msgstr "Слоёв в подложке"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Параметр устанавливает высоту подложки в слоях, тем самым поднимая модель на заданное количество слоёв от стола. Используйте эту функцию, чтобы избежать деформации при печати ABS пластиком."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# Расширение контекста от Andy. Хотя тут мы имеем дело с очередной логической ошибкой в исходнике: разрешение повышает нагрузку при увеличении, а здесь увеличение значения, наоборот, ведёт к её уменьшению вместе со снижением качества. То есть, это именно "допуск", "Допустимое отклонение", "Gcode tolerance". Не уверен, стоит ли ломать то, что работает – народ уже давно запомнил эту настройку именно как "разрешение". Хороший компромисс – оставить название, но убрать путающее "разрешение" из описания. + перефразировал и изменил порядок изложения информации, чтобы обеспечить линейные логические связи.
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "Разрешение G-кода. Максимальное отклонение экспортируемых в G-код путей до и после упрощения. Для нарезки и предпросмотра G-кода с очень высоким разрешением требуется большой объём оперативной памяти. Также при печати принтер может подвисать, не имея возможности своевременно обрабатывать такой G-код. Увеличение значения разрешения G-кода снижает нагрузку на электронику принтера. Но слишком высокие значения приводят к видимым артефактам, типа эффекта низкополигональной модели."
+msgstr "Максимальное отклонение планируемой траектории движения экструдера от среза модели. Повышение отклонения снижает время нарезки и нагрузку на электронику принтера, а понижение – позволяет устранить артефакты упрощения геометрии модели.\n\nВнимание: для нарезки и визуализации G-кода с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
 
 msgid "Travel distance threshold"
 msgstr "Порог перемещения"
@@ -14780,36 +14704,33 @@ msgstr "Отключить откат при холостых перемещен
 msgid "Retract amount before wipe"
 msgstr "Первичный откат"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr ""
 "Быстрый откат перед очисткой, выраженный в процентах от общей длины отката. Меньшие значения снижают заметность шва, так как это уменьшает время задержки над ним разогретого сопла. Бóльшие значения в паре со сниженной скоростью очистки снижают количество «паутины».\n"
 "\n"
 "Примечание: значение не может быть меньше 25% или больше 100% и будет скорректировано автоматически при нарезке."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Откат при смене слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
-msgstr "Эта опция включает принудительный откат при переходе со слоя на слой."
+msgstr "Совершать откат при переходе на следующий слой независимо от условий и надобности."
 
 msgid "Retraction Length"
 msgstr "Длина отката"
 
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
-msgstr "Некоторое количество материала в экструдере отводится назад, чтобы избежать подтёков при длительном перемещении. 0 - отключение отката."
+msgstr "Некоторое количество материала в экструдере отводится назад, чтобы избежать подтёков при длительном перемещении. 0 – отключение отката."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# Техника, к сущности привычных откатов не относящаяся. Изменил, чтобы лучше разделять назначение действия. Настройка применима к принтерам с MMU, а аналогичная настройка для двух-головых/экструдерных принтеров не подразумевает обрезки и служит другой цели – выводу прутка из горячей зоны.
 msgid "Long retraction when cut (beta)"
-msgstr "Длинный откат перед обрезкой прутка (beta)"
+msgstr "Обрезать пруток ближе к кончику (beta)"
 
 msgid "Experimental feature: Retracting and cutting off the filament at a longer distance during changes to minimize purge. While this reduces flush significantly, it may also raise the risk of nozzle clogs or other printing problems."
-msgstr "[Экспериментальная функция] Втягивание и обрезка прутка на большем расстоянии во время смены материала для минимизации отходов. Хотя это значительно уменьшает величину прочистки, повышается риск засорения сопла или других проблем при печати."
+msgstr "[Экспериментальная функция] Втягивание и обрезка прутка на меньшем расстоянии к кончику во время смены материала для минимизации отходов. Хотя это значительно уменьшает величину прочистки, повышается риск возникновения затора или других проблем при печати."
 
 msgid "Retraction distance when cut"
-msgstr "Длина отката перед обрезкой прутка"
+msgstr "Длина втягивания перед обрезкой"
 
 msgid "Experimental feature: Retraction length before cutting off during filament change."
 msgstr "[Экспериментальная функция] Длина втягивания перед отрезанием прутка при смене материала."
@@ -14823,7 +14744,6 @@ msgstr "Длина отката перед сменой экструдера"
 msgid "Z-hop height"
 msgstr "Высота подъёма"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "При каждом откате печатная голова немного приподнимается, создавая зазор между соплом и моделью. Это предотвращает столкновение сопла с моделью при перемещении. Использование спирального подъёма может помочь сократить образование \"паутины\"."
 
@@ -14924,14 +14844,12 @@ msgstr "Дополнительная длина подачи при возвра
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Дополнительная длина подачи после смены насадки."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Скорость отката"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "Скорость выгрузки материала при откате."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Скорость возврата"
 
@@ -14964,7 +14882,6 @@ msgstr "Отключить вставку в G-код команд для выв
 msgid "Seam position"
 msgstr "Позиция шва"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr ""
 "Расположение точек начала печати внешних периметров.\n"
@@ -15151,7 +15068,6 @@ msgstr "Скорость возвратного движения при очис
 msgid "Skirt distance"
 msgstr "Смещение юбки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Расстояние между юбкой и каймой/моделью."
 
@@ -15164,9 +15080,8 @@ msgstr "Угол между центром модели и начальной т
 msgid "Skirt height"
 msgstr "Слоёв юбки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
-msgstr "Количество слоёв юбки. Обычно нужен только один слой."
+msgstr "Количество слоёв юбки. Для прочистки экструдера достаточно одного, однако иногда может быть полезно несколько (например, в целях использования юбки в качестве многослойной каймы)."
 
 msgid "Single loop after first layer"
 msgstr "Один контур после первого слоя"
@@ -15205,9 +15120,8 @@ msgstr "Для каждой модели"
 msgid "Skirt loops"
 msgstr "Контуров юбки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
-msgstr "Количество контуров юбки вокруг модели. 0 - отключение юбки."
+msgstr "Количество контуров юбки вокруг модели. 0 – отключение юбки."
 
 msgid "Skirt speed"
 msgstr "Скорость юбки"
@@ -15234,7 +15148,6 @@ msgstr "Скорость печати в экспортированном G-ко
 msgid "Minimum sparse infill threshold"
 msgstr "Заполнять области менее"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Заполнять целиком области внутри слоя с площадью меньше указанного значения."
 
@@ -15256,11 +15169,9 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линий внутреннего сплошного заполнения. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Ограничение скорости движения головы при печати внутреннего сплошного заполнения (относительно стола), за исключением верхних и нижних поверхностей."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Режим печати модели непрерывным контуром с постепенным набором высоты. Итоговая модель состоит только из дна и тонкой стенки, зато не имеет шва, характерного для печати по слоям."
 
@@ -15301,7 +15212,6 @@ msgstr ""
 "Поток для конца печати контура вазы. По умолчанию поток последнего сегмента равномерно снижается к концу до нуля, что может вызвать недоэкструзию.\n"
 "Можно указать своё конечное значение потока, чтобы избежать подобных проблем."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "На протяжении всей печати встроенная камера делает снимки, которые затем объединяются в ускоренное видео. Избыточные резкие движения в кадре можно сгладить при помощи соответствующего режима; после печати каждого слоя для создания снимка экструдер будет отводиться к лотку для удаления излишков. В этом режиме необходима черновая башня для устранения возможных подтёков во время создания снимка."
 
@@ -15336,11 +15246,9 @@ msgstr "Код для вставки в первые строки файла (п
 msgid "Start G-code"
 msgstr "Стартовый G-код"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "Команды в G-коде, которые выполняются в самом начале печати."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "Команды в G-коде, которые выполняются при запуске печати этим материалом."
 
@@ -15429,9 +15337,8 @@ msgstr "Это значение будет прибавлено ко всем к
 msgid "Enable support"
 msgstr "Включить поддержку"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
-msgstr "Включить генерацию поддержки."
+msgstr "Включить генерацию поддержек."
 
 # Метки [А] и [Р] обозначают автоматическое и ручное размещение поддержек.
 # Вручную поддержки можно указать при помощи инструмента рисования поддержек,
@@ -15454,7 +15361,6 @@ msgstr "[Р] древовидная"
 msgid "Support/object XY distance"
 msgstr "Отступ от модели"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "Расстояние между поддержкой и моделью по горизонтали."
 
@@ -15473,9 +15379,8 @@ msgstr "Используйте эту настройку для поворота
 msgid "On build plate only"
 msgstr "Поддержка только от стола"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
-msgstr "Создавать поддержку только от стола."
+msgstr "Создавать поддержки только от стола."
 
 msgid "Support critical regions only"
 msgstr "Поддержка только критических областей"
@@ -15494,21 +15399,18 @@ msgstr "Не печатать поддержки для небольших на�
 msgid "Top Z distance"
 msgstr "Зазор поддержки сверху"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
-msgstr "Вертикальное расстояние между связующим слоем поддержки сверху и моделью."
+msgstr "Вертикальное расстояние между опорным связующим слоем поддержки и моделью."
 
 msgid "Bottom Z distance"
 msgstr "Зазор поддержки снизу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
-msgstr "Вертикальное расстояние между связующим слоем поддержки снизу и моделью. Если зазор поддержки сверху равен 0 и снизу есть интерфейсные слои, это значение игнорируется, и поддержка печатается в прямом контакте с моделью (без зазора)."
+msgstr "Вертикальное расстояние между связующим слоем начала поддержки и опорной поверхностью модели. Если зазор поддержки сверху равен 0 и снизу есть интерфейсные слои, это значение игнорируется, и поддержка печатается в прямом контакте с моделью (без зазора)."
 
 msgid "Support/raft base"
 msgstr "Поддержка/подложка"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
@@ -15523,19 +15425,16 @@ msgstr "Избегать использования материала связ�
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линий поддержки. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Связующий слой петлями"
 
 # ??? Печатать контактный слой связующего слоя поддержки петлями
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Печатать по периметру последнего связующего слоя поддержки непрерывную полилинию. По умолчанию отключено. Устаревшая функция, которая не всегда работает корректно."
 
 msgid "Support/raft interface"
 msgstr "Связующий слой поддержки/подложки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
@@ -15544,9 +15443,8 @@ msgstr "Материал для печати связующего слоя по�
 msgid "Top interface layers"
 msgstr "Связующие слои сверху"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of top interface layers."
-msgstr "Количество медленных слоёв"
+msgstr "Количество связующих слоёв сверху"
 
 msgid "Bottom interface layers"
 msgstr "Связующие слои снизу"
@@ -15570,11 +15468,9 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Отступ между линиями связующего слоя снизу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "Расстояние между линиями связующего слоя снизу. Установите 0, чтобы получить сплошной слой."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "Ограничение скорости при печати связующего слоя поддержки."
 
@@ -15614,7 +15510,6 @@ msgstr "Полость"
 msgid "Interface pattern"
 msgstr "Шаблон связующего слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr ""
 "Шаблон печати связующего слоя поддержек.\n"
@@ -15637,18 +15532,15 @@ msgstr "Чередующийся зигзаг"
 msgid "Base pattern spacing"
 msgstr "Отступ между линиями поддержки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "Расстояние между отдельными линиями поддержки."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Горизонтальное расширение поддержки"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Горизонтальное расширение (+) или сужение (-) поддержки в плоскости XY."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Ограничение линейной скорости при печати поддержки."
 
@@ -15696,7 +15588,6 @@ msgstr "Максимальный угол"
 # в режим обнаружения нависаний по проценту выноса линии. Древовидные
 # поддержки при этом будут использовать угол по умолчанию (30°)" ВНИМАНИЕ:
 # последнее предложение – особенность PR
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -15843,18 +15734,15 @@ msgstr ""
 "PRINT_START <...> CHAMBER_TEMP=[chamber_temperature].\n"
 "Это особенно полезно, если принтер не поддерживает команды M141/M191, или если управление температурой термокамеры реализовано через макросы (например, при отсутствии активного нагревателя камеры)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Температура при печати последующих слоёв."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect thin walls"
 msgstr "Обнаруживать тонкие стенки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr ""
-"Обнаруживать стенки, которые можно напечатать только в одну линию. Возможно, будет напечатано не очень хорошо, так как это разомкнутый контур.\n"
+"Обнаруживать стенки, которые невозможно напечатать замкнутым периметром. Возможны проблемы с качеством, так как это создаёт разрыв в линии периметра.\n"
 "\n"
 "Внимание: эта настройка не влияет на поведение генератора Arachne."
 
@@ -15873,23 +15761,20 @@ msgstr ""
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линий заполнения верхней поверхности. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "Скорость печати верхних сплошных поверхностей."
 
 msgid "Top shell layers"
 msgstr "Сплошных слоёв сверху"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Количество сплошных слоёв при печати верхней поверхности модели. Если толщина, рассчитанная с помощью этого значения, меньше толщины оболочки сверху, количество сплошных слоёв сверху будет увеличено."
 
 msgid "Top shell thickness"
 msgstr "Толщина оболочки сверху"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
-msgstr "Минимальная толщина оболочки сверху в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв сверху, меньше этого значения, количество сплошных слоёв сверху будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки сверху полностью задаётся количеством сплошных слоёв сверху."
+msgstr "Минимальная толщина оболочки сверху в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв сверху, меньше этого значения, количество сплошных слоёв сверху будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки сверху задаётся количеством сплошных слоёв сверху."
 
 # ??? Плотность верхней оболочки
 msgid "Top surface density"
@@ -15909,15 +15794,13 @@ msgstr ""
 "Плотность нижней поверхности. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, а не для решения проблем, таких как чрезмерная экструзия.\n"
 "Внимание: уменьшение этого значения может негативно повлиять на адгезию к печатной платформе."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
-msgstr "Ограничение скорости холостых перемещений печатающей головы без подачи материала."
+msgstr "Ограничение скорости холостых перемещений печатающей головы."
 
 msgid "Wipe while retracting"
 msgstr "Очистка сопла при откате"
 
 # ... чтобы вытереть об неё подтёки материала с кончика сопла.
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr ""
 "Выполнять откат совместно с небольшим движением вдоль напечатанной линии, чтобы очистить сопло от подтёков материала. Это может уменьшить «паутину» и дефекты переэкструзии при печати новой линии после холостого перемещения.\n"
@@ -15927,7 +15810,6 @@ msgstr ""
 # Как выяснилось в чате K3D, "Расстояние очистки" вводит людей в заблуждение,
 # т.к. из-за путаницы в старой терминологии люди думали, что очистка здесь –
 # это откат (его часть).
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Длина движения очистки"
 
@@ -15950,7 +15832,6 @@ msgstr ""
 "\n"
 "Внимание: процент первичного отката будет увеличен, если длины очистки окажется недостаточно при текущей скорости отката (или из-за иных ограничений)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Черновая башня – специальная структура, которая используется для прочистки сопла от остатков материала и стабилизации давления внутри сопла при смене экструдера, чтобы избежать дефектов на поверхности печатаемой модели."
 
@@ -15971,18 +15852,15 @@ msgstr "Объём прочистки"
 msgid "Flush multiplier"
 msgstr "Множитель прочистки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Реальные объёмы прочистки равны произведению множителя и значений, указанных в таблице."
 
 msgid "Prime volume"
 msgstr "Объём сброса материала на черновой башне"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Объём материала, который необходимо выдавить для подготовки экструдера на черновой башне."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Размер черновой башни по оси X. Размер по оси Y будет автоматически вычислен исходя из необходимого объёма очистки и ширины башни. Таким образом, увеличивая ширину башни вы уменьшаете её длину и наоборот."
 
@@ -16103,13 +15981,11 @@ msgstr "Интервал между линиями"
 msgid "Infill gap."
 msgstr "Управление отступом между линиями сброса материала."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
-msgstr "Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."
+msgstr "Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n\nПримечание: не рекомендуется при печати стенок прозрачным материалом."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
-msgstr "Прочистка сопла после смены материала будет производиться в поддержку модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."
+msgstr "Прочистка сопла после смены материала будет производиться в поддержку модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n"
 
 msgid "This object will be used to purge the nozzle after a filament change to save filament and decrease the print time. Colors of the objects will be mixed as a result. It will not take effect unless the prime tower is enabled."
 msgstr "Использовать эту модель для очистки сопла после смены материала для его экономии и сокращения времени печати. В результате цвета будут смешиваться. Требуется включить черновую башню."
@@ -16143,7 +16019,6 @@ msgstr "Температура во время печати другим экс�
 msgid "X-Y hole compensation"
 msgstr "Расширение пустот в слое"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr ""
 "Корректирует размеры внутренних контуров на горизонтальном срезе модели на заданное значение. Положительные значения расширяют вертикальные отверстия и полости, отрицательные - сужают. Функция предназначена для корректировки точности размеров моделей во избежание проблем со сборкой.\n"
@@ -16153,7 +16028,6 @@ msgstr ""
 msgid "X-Y contour compensation"
 msgstr "Расширение контура слоя"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Корректирует размеры внешних контуров на горизонтальном срезе модели на заданное значение. Положительные значения увеличивают модель, отрицательные - уменьшают. Функция предназначена для корректировки точности размеров моделей во избежание проблем со сборкой."
 
@@ -16208,7 +16082,6 @@ msgstr "Относительные координаты экструдера"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "Относительная экструзия рекомендуется при использовании опции «Помечать объекты». Некоторые экструдеры работают лучше при отключении этой опции (абсолютный режим экструзии). Черновая башня совместима только с относительной экструзии. Рекомендуется включить для большинства принтеров (по умолчанию включено)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr ""
 "Классический генератор создаёт периметры с постоянной шириной линии, а для очень тонких участков используется заполнение щелей.\n"
@@ -16223,7 +16096,6 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "Длина перехода между периметрами"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Задаёт длину перехода между периметрами при изменении их количества (с чётного на нечётное, и обратно). Чем больше значение, тем плавнее переход, и наоборот: чем меньше, тем резче. Указывается в процентах от диаметра сопла."
 
@@ -16294,7 +16166,6 @@ msgstr "Минимальная ширина периметра"
 msgid "Width of the wall that will replace thin features (according to the Minimum feature size) of the model. If the Minimum wall width is thinner than the thickness of the feature, the wall will become as thick as the feature itself. It's expressed as a percentage over nozzle diameter."
 msgstr "Минимальная ширина периметра для печати тонких элементов модели (в соответствии с «минимальным размером элемента»). Ширина периметра будет подогнана под размер элемента, если значение этого параметра меньше его ширины. Можно указать процент от диаметра сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
 msgstr "Оптимизация заполнения узких мест"
 
@@ -16319,14 +16190,12 @@ msgstr " вне диапазона "
 msgid "Export 3MF"
 msgstr "Экспорт в 3MF"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Экспорт проекта в 3MF."
 
 msgid "Export slicing data"
 msgstr "Экспорт данных о нарезке"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Экспорт данных нарезки в папку."
 
@@ -16355,7 +16224,6 @@ msgstr "Нарезать"
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Нарезать столы: 0 - все, i - стол i, другие - недопустимо"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Показать справку по команде."
 
@@ -16383,17 +16251,15 @@ msgstr "Экспорт 3MF файла с минимальным размером
 msgid "mtcpp"
 msgstr "mtcpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
-msgstr "максимальное количество треугольников на столе при нарезке."
+msgstr "максимальное количество треугольников на столе при нарезке"
 
 # мвнс , Макс. время нарезки стола
 msgid "mstpp"
 msgstr "mstpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
-msgstr "максимальное время нарезки одного стола в секундах."
+msgstr "максимальное время нарезки одного стола в секундах"
 
 msgid "No check"
 msgstr "Без проверки"
@@ -16412,7 +16278,6 @@ msgstr "Проверка нормативных пунктов."
 msgid "Output Model Info"
 msgstr "Информация о модели"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Вывод информации о модели."
 
@@ -16420,7 +16285,6 @@ msgstr "Вывод информации о модели."
 msgid "Export Settings"
 msgstr "Экспорт настроек"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Экспорт настроек в файл."
 
@@ -16518,7 +16382,6 @@ msgstr "Клонировать объекты в списке загрузки."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Загрузить настройки печати/принтера при использовании обновления"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Загрузить настройки печати/принтера при использовании обновления из указанного файла."
 
@@ -16562,7 +16425,6 @@ msgstr "Загрузка и сохранение настроек будет п�
 msgid "Output directory"
 msgstr "Папку сохранения"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Выходной каталог для экспортированных файлов."
 
@@ -16623,25 +16485,21 @@ msgstr "Избегать зону калибровки экструзии при
 msgid "If enabled, Arrange will avoid extrusion calibrate region when placing objects."
 msgstr "Если включено, то при расстановки моделей будет избегаться зона калибровки экструзии."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Skip modified G-code in 3MF"
-msgstr "Пропуск модифицированного G-кода в 3mf-файле"
+msgstr "Пропуск модифицированного G-кода в 3MF-файле"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr "Пропуск модифицированного G-кода в 3MF-файле в профиле принтера или материала."
 
 msgid "MakerLab name"
 msgstr "Имя MakerLab"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "MakerLab name to generate this 3MF."
 msgstr "Имя MakerLab, использованное для создания этого 3MF-файла."
 
 msgid "MakerLab version"
 msgstr "Версия MakerLab"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "MakerLab version to generate this 3MF."
 msgstr "Версия MakerLab, использованная для создания этого 3MF-файла."
 
@@ -16856,11 +16714,9 @@ msgstr "Имя входного файла без расширения"
 msgid "Source filename of the first object, without extension."
 msgstr "Имя исходного файла первой модели без расширения."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr "Вектор состоит из двух элементов: координаты точки x и y. Значения заданы в мм."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y dimension of the bounding box. Values in mm."
 msgstr "Вектор состоит из двух элементов: ширина (x-размер) и высота (y-размер) ограничивающего прямоугольника. Значения заданы в мм."
 
@@ -17029,17 +16885,14 @@ msgstr "Не удалось загрузить файл модели."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Не удалось обнаружить форму или создать по ней полигональную сетку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
-msgstr "Невозможно прочитать файл, так как он пуст"
+msgstr "Невозможно прочитать файл, так как он пуст."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
-msgstr "Неизвестный формат файла. Входной файл должен иметь расширение *.stl, *.obj, *.amf(.xml)."
+msgstr "Неизвестный формат файла: входной файл должен иметь расширение *.stl, *.obj или *.amf(.xml)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
-msgstr "Неизвестный формат файла. Входной файл должен иметь расширение *.3mf или *.zip.amf."
+msgstr "Неизвестный формат файла: входной файл должен иметь расширение *.3mf или *.zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: ошибка обработки"
@@ -17089,7 +16942,6 @@ msgstr "Калибровка"
 msgid "Finish"
 msgstr "Завершить"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Как использовать результаты калибровки?"
 
@@ -17167,7 +17019,6 @@ msgstr "Пожалуйста, выберите пруток для калибр�
 msgid "The input value size must be 3."
 msgstr "Размер входного значения должен быть равен 3."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -17179,10 +17030,9 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Будет сохранён только один из одноимённых результатов (%s). Вы действительно хотите перезаписать остальные?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
-msgstr "Результат калибровки с таким именем уже с существует: %s. Вы уверены, что хотите перезаписать прошлый результат?"
+msgstr "Результат калибровки с таким именем уже с существует: %s. Перезаписать прошлый результат?"
 
 #, c-format, boost-format
 msgid ""
@@ -17192,7 +17042,6 @@ msgstr ""
 "Для одного экструдера имя (%s) должно быть уникальным при одинаковых типе филамента, диаметре и потоке сопла.\n"
 "Вы уверены, что хотите перезаписать предыдущий результат?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Данный принтер может хранить максимум %d результатов для каждого сопла. Этот результат не будет сохранён."
@@ -17276,7 +17125,6 @@ msgstr "Кроме того, калибровка скорости потока 
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Калибровка скорости потока измеряет соотношение ожидаемого и фактического объёмов экструзии. На принтерах Bambu Lab с официальными материалами, стандартные настройки работают хорошо, так как они были предварительно откалиброваны и тщательно настроены. Для обычного материала обычно не требуется выполнять калибровку скорости потока, если только после выполнения других калибровок вы всё ещё видите перечисленные дефекты. Более подробную информацию можно найти на нашем вики-сайте."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17284,7 +17132,7 @@ msgid ""
 "\n"
 "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgstr ""
-"Автоматическая калибровка скорости потока использует технологию микролидара Bambu Lab, непосредственно измеряя калибровочные шаблоны. Однако имейте ввиду, что эффективность и точность этого метода может быть снижена при использовании определённых типов материалов. В частности, прозрачные или полупрозрачные материалы, материалы с блестящими частицами или с светоотражающим покрытием могут не подойти для данной калибровки и привести к нежелательным результатам.\n"
+"Автоматическая калибровка скорости потока использует технологию микролидара Bambu Lab, непосредственно измеряя калибровочные шаблоны. Однако имейте ввиду, что эффективность и точность этого метода может быть снижена при использовании определённых типов материалов. В частности, прозрачные или полупрозрачные материалы, материалы с блестящими или светоотражающими частицами могут не подойти для данной калибровки и привести к нежелательным результатам.\n"
 "\n"
 "\n"
 "Результаты калибровки могут различаться от калибровки к калибровке или от материала к материалу. Мы продолжаем улучшать точность и совместимость этой калибровки путём обновления прошивки принтера.\n"
@@ -17325,7 +17173,6 @@ msgstr "Максимальная длина имени 40 символов."
 msgid "Please find the best line on your plate"
 msgstr "Пожалуйста, найдите лучшую линию на столе"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Пожалуйста, найдите угол с идеальной экструзией"
 
@@ -17488,14 +17335,12 @@ msgstr "Журнал результатов пуст"
 msgid "Success to get history result"
 msgstr "История успешных результатов калибровки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
-msgstr "Обновление записей истории калибровки динамики потока"
+msgstr "Обновление записей прошлых калибровок динамики потока"
 
 msgid "Action"
 msgstr "Действие"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Данный принтер может хранить максимум %d результатов для каждого сопла."
@@ -18135,13 +17980,11 @@ msgstr "Профиль материала"
 msgid "Create"
 msgstr "Создать"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
-msgstr "Не выбран производитель, пожалуйста, выберите его заново."
+msgstr "Производитель не выбран; пожалуйста, выберите его заново."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
-msgstr "Не задан производитель, пожалуйста, введите производителя."
+msgstr "Производитель не задан; пожалуйста, введите производителя."
 
 msgid "\"Bambu\" or \"Generic\" cannot be used as a Vendor for custom filaments."
 msgstr "\"Bambu\" или \"Generic\" нельзя использовать в качестве производителей для пользовательских материалов."
@@ -18149,25 +17992,21 @@ msgstr "\"Bambu\" или \"Generic\" нельзя использовать в к
 msgid "Filament type is not selected, please reselect type."
 msgstr "Не выбран тип материала, пожалуйста, выберите его заново."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "Введите серийный номер материала."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "В данных о производителе или серийном номере материала присутствуют экранирующие символы. Удалите их и введите корректные данные."
+msgstr "В данных о производителе или серийном номере материала присутствуют недопустимые символы. Удалите их и введите корректные данные."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "В поле ввода производителя/серии материала введены пробелы. Пожалуйста, введите корректные данные."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
-msgstr "Имя производителя не может начинаться с числа. Пожалуйста, введите корректное имя."
+msgstr "Имя производителя не может начинаться с числа; введите корректное имя."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Выберите хотя бы один принтер или профиль."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
@@ -18216,9 +18055,8 @@ msgstr "Импорт профиля"
 msgid "Create Type"
 msgstr "Создать:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
-msgstr "Модель не найдена, выберите производителя."
+msgstr "Модель не найдена; выберите производителя."
 
 msgid "Select Printer"
 msgstr "Выбор принтера"
@@ -18257,20 +18095,17 @@ msgstr "Размер файла превышает %d МБ, попробуйте
 msgid "Exception in obtaining file size, please import again."
 msgstr "Ошибка при получении размера файла, попробуйте ещё раз."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
-msgstr "Путь к профилю не найден, пожалуйста, выберите другого производителя."
+msgstr "Путь к профилю не найден; выберите другого производителя."
 
 msgid "The printer model was not found, please reselect."
 msgstr "Модель принтера не найдена, пожалуйста, выберите заново."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
-msgstr "Диаметр сопла не задан, пожалуйста, выберите заново."
+msgstr "Диаметр сопла не задан; выберите заново."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
-msgstr "Профиль принтера не найдена, выберите заново."
+msgstr "Профиль принтера не найдена; выберите заново."
 
 msgid "Printer Preset"
 msgstr "Профиль принтера"
@@ -18284,11 +18119,9 @@ msgstr "Шаблон профиля настроек"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Не выбран родительский профиль в качестве основы для создания нового. Выберите производителя и модель принтера."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "В разделе «Область печати» на первой странице введено недопустимое значение. Проверьте указанные значения перед созданием."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -18311,14 +18144,12 @@ msgstr "Не удалось создать профиль материала. П
 msgid "Create process presets failed. As follows:\n"
 msgstr "Не удалось создать профиль настроек печати. Причины: \n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
-msgstr "Производитель не найден, пожалуйста, выберите другого."
+msgstr "Производитель не найден; выберите заново."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "У текущего производителя отсутствуют модели принтеров, пожалуйста, выберите заново."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Не указан производитель и модель принтера."
 
@@ -18333,7 +18164,6 @@ msgstr ""
 msgid "Please check bed printable shape and origin input."
 msgstr "Пожалуйста, проверьте правильность введённых значений области печати."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Для добавления сопла сначала выберите принтер."
 
@@ -18376,7 +18206,6 @@ msgstr "Для изменения настроек профиля перейди
 msgid "Filament Created"
 msgstr "Профиль материала создан"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -18432,7 +18261,6 @@ msgstr "ошибка открытия zip-файла для записи"
 msgid "Export successful"
 msgstr "Успешно экспортировано"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
@@ -18466,7 +18294,6 @@ msgstr ""
 "Экспортируется набор пользовательских профилей материалов.\n"
 "Этими файлами можно поделиться с другими пользователями."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Будут отображаться только изменённые профили принтеров, материалов и настроек печати."
 
@@ -18493,11 +18320,10 @@ msgstr ""
 "Все изменённые профили настроек будут экспортированы в единый zip-файл."
 
 msgid "Please select at least one printer or filament."
-msgstr "Пожалуйста, выберите хотя бы один принтер или материал."
+msgstr "Выберите хотя бы один принтер или материал."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
-msgstr "Пожалуйста, выберите тип, который вы хотите экспортировать"
+msgstr "Выберите тип профилей, который вы хотите экспортировать"
 
 msgid "Failed to create temporary folder, please try Export Configs again."
 msgstr "Не удалось создать временную папку, пожалуйста, попробуйте экспортировать конфигурацию ещё раз."
@@ -18562,7 +18388,6 @@ msgstr "[Необходимо удалить]"
 msgid "Edit Preset"
 msgstr "Изменить профиль"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "Подробности читайте на сайте"
 
@@ -19062,7 +18887,6 @@ msgstr "принтера(-ов) одновременно (зависит от т
 msgid "Wait"
 msgstr "Ждать"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "минут для отправки каждого пакета заданий (зависит от того, сколько времени требуется для завершения нагрева перед началом печати.)"
 
@@ -19365,7 +19189,6 @@ msgstr "Предупреждение: ручная расстановка кай
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Переключить тип каймы для этого объекта на «Вручную»."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "invalid brim ears"
 msgstr " недействительные «мышиные уши»"
 
@@ -19470,7 +19293,6 @@ msgstr "Напомнить позже"
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Доступна новая версия сетевого плагина Bambu."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Current version: %s"
 msgstr "Текущая версия: %s"
@@ -19749,7 +19571,6 @@ msgstr ""
 "Таймлапсы (ускоренная видеосъёмка)\n"
 "Знаете ли вы, что во время печати можно создавать таймлапсы?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
@@ -19758,7 +19579,6 @@ msgstr ""
 "Авторасстановка\n"
 "Знаете ли вы, что можно автоматически расставить все модели в вашем проекте?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
@@ -19857,7 +19677,6 @@ msgstr ""
 "Распределение печатаемого на другие столы\n"
 "Знаете ли вы, что модель, состоящую из большого количества частей, можно распределить на несколько столов? Это упрощает процесс отслеживания всех деталей при печати."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
 msgid ""
@@ -19875,7 +19694,6 @@ msgstr ""
 "Рисование поддержек\n"
 "Знаете ли вы, что можно прямо на модели рисовать где будет размещаться принудительная поддержка, а где поддержка будет заблокирована? Используйте для этого функцию «Рисование поддержек»."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
@@ -19884,7 +19702,6 @@ msgstr ""
 "Различные типы поддержек\n"
 "Знаете ли вы, что можно выбрать один из нескольких типов поддержек? Древовидная поддержка отлично подходит для органических моделей, экономя при этом материал и уменьшая время печати. Попробуйте их!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
@@ -19901,7 +19718,6 @@ msgstr ""
 "Кайма для лучшей адгезии\n"
 "Знаете ли вы, что при печати модели имеющей небольшой контакт с поверхностью стола, рекомендуется использовать кайму?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
@@ -19918,7 +19734,6 @@ msgstr ""
 "Объединение моделей\n"
 "Знаете ли вы, что можно объединить несколько моделей в единую? Используйте для этого команду «Объединить в сборку», выбрав несколько моделей."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
@@ -19935,7 +19750,6 @@ msgstr ""
 "Увеличение прочности\n"
 "Знаете ли вы, что для повышения прочности модели можно увеличить количество периметров и плотность заполнения?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
 msgid ""
@@ -19945,7 +19759,6 @@ msgstr ""
 "Когда необходимо печатать с открытой дверцей принтера?\n"
 "Знаете ли вы, что при печати низкотемпературным материалом при более высокой температуре внутри термокамеры открытие дверцы принтера снижает вероятность засорения экструдера/хотэнда? Более подробную информацию читайте на Wiki."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
