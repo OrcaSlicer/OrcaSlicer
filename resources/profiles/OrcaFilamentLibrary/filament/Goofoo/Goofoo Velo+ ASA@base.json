@@ -1,0 +1,20 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ ASA@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic ASA @System",
+  "filament_flow_ratio": [
+    "0.93"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "100"
+  ],
+  "filament_id": "GFG_V002",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "ASA"
+  ]
+}

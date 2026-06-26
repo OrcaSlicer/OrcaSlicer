@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PLA-CF @base",
+	"from": "system",
+	"filament_id": "TBM022",
+	"filament_type": [
+		"PLA-CF"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PLA-CF @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"hot_plate_temp": [
+		"40"
+	],
+	"hot_plate_temp_initial_layer": [
+		"40"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	]
+}

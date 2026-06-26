@@ -1,0 +1,38 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ 95A TPU@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic TPU @System",
+  "fan_cooling_layer_time": [
+    "60"
+  ],
+  "fan_min_speed": [
+    "35"
+  ],
+  "hot_plate_temp": [
+    "40"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "40"
+  ],
+  "nozzle_temperature": [
+    "220"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "220"
+  ],
+  "reduce_fan_stop_start_freq": [
+    "0"
+  ],
+  "slow_down_layer_time": [
+    "5"
+  ],
+  "filament_id": "GFG_V020",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "TPU"
+  ]
+}
