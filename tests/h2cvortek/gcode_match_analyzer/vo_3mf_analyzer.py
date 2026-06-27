@@ -173,10 +173,11 @@ class ThreeMFAnalyzer:
                             except ValueError:
                                 parsed.append(p)
                         if len(parsed) > 1:
-                            # Footer overrides JSON only if it has >= elements
-                            # (footer may truncate arrays, e.g. print_extruder_id=1,2 vs [1,1,2,2])
-                            existing = self.vo_arrays.get(key, [])
-                            if len(parsed) >= len(existing):
+                            # Footer is in INTERNAL Orca order (Right,Left).
+                            # project_settings.config JSON is in BBS file order (Left,Right).
+                            # Since labels come from BBS metadata, prefer JSON.
+                            # Only use footer if JSON had NO data for this key.
+                            if key not in self.vo_arrays:
                                 self.vo_arrays[key] = parsed
                             self.variant_count = max(self.variant_count, len(parsed))
                     self.config_params[key] = val
