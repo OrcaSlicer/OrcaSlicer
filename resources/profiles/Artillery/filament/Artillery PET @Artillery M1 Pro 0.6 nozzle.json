@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery PET @Artillery M1 Pro 0.6 nozzle",
 	"from": "system",
+	"setting_id": "VGu7C3uk8d6ibIg4",
 	"filament_id": "P11851ba",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -3,7 +3,7 @@
 	"name": "QIDI ASA @Qidi X-Max 3 0.2 nozzle",
 	"inherits": "QIDI ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "hhkWOEdIbQrB4IR0",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

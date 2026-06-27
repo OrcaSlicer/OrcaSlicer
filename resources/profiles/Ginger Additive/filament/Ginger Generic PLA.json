@@ -3,6 +3,7 @@
 	"name": "Ginger Generic PLA",
 	"inherits": "fdm_filament_common",
 	"from": "system",
+	"setting_id": "Z1scjKDBFoDaTa2C",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Generic"

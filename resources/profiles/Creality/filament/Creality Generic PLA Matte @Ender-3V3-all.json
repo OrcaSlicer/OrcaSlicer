@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA Matte @Ender-3V3-all",
 	"inherits": "Creality Generic PLA @Ender-3V3-all",
 	"from": "system",
-	"setting_id": "GFSL05_00",
+	"setting_id": "xF1B593frol5PWVw",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

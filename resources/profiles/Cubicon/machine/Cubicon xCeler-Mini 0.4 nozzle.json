@@ -3,6 +3,7 @@
 	"name": "Cubicon xCeler-Mini 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
+	"setting_id": "rr7eQd0tw3utAK9f",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",

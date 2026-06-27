@@ -3,7 +3,7 @@
 	"name": "Anker M5 0.6 nozzle",
 	"inherits": "fdm_marlin_common",
 	"from": "system",
-	"setting_id": "GM010",
+	"setting_id": "Oc59gC5v0WBApuk0",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.6"

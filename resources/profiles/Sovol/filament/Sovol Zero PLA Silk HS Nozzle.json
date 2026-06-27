@@ -3,7 +3,7 @@
 	"name": "Sovol Zero PLA Silk HS Nozzle",
 	"inherits": "Generic PLA @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "XxEJBNFLRltR2Xwn",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

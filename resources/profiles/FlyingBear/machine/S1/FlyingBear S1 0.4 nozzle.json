@@ -3,7 +3,7 @@
 	"name": "FlyingBear S1 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "sV41gmKNaHHKexKv",
 	"instantiation": "true",
 	"printer_model": "FlyingBear S1",
 	"auxiliary_fan": "1",

@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Negro",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "Jwrm1uuCo7UjvgWn",
     "filament_id": "FILAR0040",
     "instantiation": "true",
     "filament_vendor": [

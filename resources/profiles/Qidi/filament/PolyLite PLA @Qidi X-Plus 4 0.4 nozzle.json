@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "PolyLite PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "87QXnh5kCuQoPwjr",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

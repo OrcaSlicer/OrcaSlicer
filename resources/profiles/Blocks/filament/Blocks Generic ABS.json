@@ -3,7 +3,7 @@
 	"name": "Blocks Generic ABS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "BSSI004",
+	"setting_id": "QhLaLEkxhvIMa3Ik",
 	"filament_id": "BSFI004",
 	"instantiation": "true",
 	"filament_flow_ratio": [

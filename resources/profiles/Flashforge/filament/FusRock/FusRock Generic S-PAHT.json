@@ -3,7 +3,7 @@
 	"name": "FusRock Generic S-PAHT",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "kMYDFSwivzTjFo2L",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

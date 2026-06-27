@@ -3,7 +3,7 @@
 	"name": "Generic HIPS @System",
 	"inherits": "fdm_filament_hips",
 	"from": "system",
-	"setting_id": "OGFSS98_00",
+	"setting_id": "A7gedcxip65DXKuf",
 	"instantiation": "true",
 	"compatible_printers": []
 }

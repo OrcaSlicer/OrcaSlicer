@@ -3,7 +3,7 @@
 	"name": "FusRock Generic PAHT-GF",
 	"inherits": "FusRock Generic PAHT-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gLG1R5gtdliSlnZJ",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic ABS@300HS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
+	"setting_id": "tCw1f7MxFjxPr7Ci",
 	"filament_id": "GFB99_01",
 	"instantiation": "true",
 	"filament_flow_ratio": [

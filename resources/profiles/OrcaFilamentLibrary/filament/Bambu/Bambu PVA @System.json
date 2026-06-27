@@ -3,7 +3,7 @@
 	"name": "Bambu PVA @System",
 	"inherits": "Bambu PVA @base",
 	"from": "system",
-	"setting_id": "OGFSS04_00",
+	"setting_id": "Eb9Y2xbVDpjuptrv",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"240"

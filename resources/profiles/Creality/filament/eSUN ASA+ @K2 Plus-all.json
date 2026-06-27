@@ -3,7 +3,7 @@
     "name": "eSUN ASA+ @K2 Plus-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "WjM4WIPAamvbee7G",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

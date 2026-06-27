@@ -3,6 +3,7 @@
 	"name": "FusRock PAHT-CF @FF G4",
 	"inherits": "Flashforge Generic PLA-CF10",
 	"from": "system",
+	"setting_id": "nH6pwFYsPyBzL1EB",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

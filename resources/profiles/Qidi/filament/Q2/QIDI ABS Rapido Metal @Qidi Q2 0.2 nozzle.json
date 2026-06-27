@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido Metal @Qidi Q2 0.2 nozzle",
 	"inherits": "QIDI ABS Rapido Metal@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "DvpAhpb3Pes6cum2",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"0"

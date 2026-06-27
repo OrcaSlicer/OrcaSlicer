@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI PETG Rapido",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "kEUCaWmAo3xZC09A",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_settings_id": [

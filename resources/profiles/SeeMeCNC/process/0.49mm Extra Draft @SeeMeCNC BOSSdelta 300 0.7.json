@@ -3,6 +3,7 @@
 	"name": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
+	"setting_id": "KgSjm5pHk9pt5PB3",
 	"instantiation": "true",
 	"print_settings_id": "0.49mm Extra Draft @SeeMeCNC BOSSdelta 300 0.7",
 	"compatible_printers": [

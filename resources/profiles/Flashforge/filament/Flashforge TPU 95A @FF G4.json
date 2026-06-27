@@ -3,6 +3,7 @@
 	"name": "Flashforge TPU 95A @FF G4",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
+	"setting_id": "4FIGiheSGvSJPw3s",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

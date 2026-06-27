@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Elegoo PLA @0.2 nozzle",
 	"from": "system",
-	"setting_id": "EPLA00020",
+	"setting_id": "g5M60iK3oBpmDv68",
 	"instantiation": "true",
 	"inherits": "Elegoo PLA @base",
 	"filament_max_volumetric_speed": [

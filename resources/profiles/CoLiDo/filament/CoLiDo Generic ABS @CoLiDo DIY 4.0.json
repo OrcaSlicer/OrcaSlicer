@@ -3,7 +3,7 @@
 	"name": "CoLiDo Generic ABS @CoLiDo DIY 4.0",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSB99",
+	"setting_id": "acWqrAFyi2SIkNwa",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

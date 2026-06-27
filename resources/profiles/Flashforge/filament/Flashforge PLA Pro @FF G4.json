@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Pro @FF G4",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "QYgsCCHP3Khqrzh3",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

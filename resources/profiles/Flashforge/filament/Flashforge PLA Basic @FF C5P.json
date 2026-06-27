@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Basic @FF C5P",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "Q0RsVOPLuMByur9c",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

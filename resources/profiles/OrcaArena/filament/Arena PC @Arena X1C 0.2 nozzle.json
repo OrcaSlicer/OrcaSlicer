@@ -3,7 +3,7 @@
 	"name": "Arena PC @Arena X1C 0.2 nozzle",
 	"inherits": "Arena PC @base",
 	"from": "system",
-	"setting_id": "GFSC00_02",
+	"setting_id": "avNV1IruWQnbpEm8",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Anycubic KobraPlus",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "ZnZf41QpEAXorp2U",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",

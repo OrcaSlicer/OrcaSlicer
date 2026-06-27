@@ -3,7 +3,7 @@
 	"name": "0.14mm Optimal @Creality K2 0.2 nozzle",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "NE7Agdi1j6hrK7rw",
 	"instantiation": "true",
 	"max_travel_detour_distance": "0",
 	"bottom_surface_pattern": "monotonic",

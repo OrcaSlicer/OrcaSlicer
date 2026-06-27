@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PC HF @MINIIS",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "onMXXnQNjbSimzbW",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"24"

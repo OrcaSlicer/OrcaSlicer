@@ -3,7 +3,7 @@
 	"name": "Snapmaker TPU @U1",
 	"inherits": "Snapmaker TPU @U1 base",
 	"from": "system",
-	"setting_id": "31642856830",
+	"setting_id": "QLO4hkw6Agd3gSyR",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)",

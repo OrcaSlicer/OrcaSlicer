@@ -3,7 +3,7 @@
 	"name": "Dremel Generic PLA @3D40 all",
 	"inherits": "Dremel Generic PLA",
 	"from": "system",
-	"setting_id": "GFSL99_00",
+	"setting_id": "kZAEjhLS29WQeyf1",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"9"

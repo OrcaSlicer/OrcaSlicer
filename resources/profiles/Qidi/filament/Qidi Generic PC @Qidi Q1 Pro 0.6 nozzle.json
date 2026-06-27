@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PC @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "Qidi Generic PC",
 	"from": "system",
-	"setting_id": "GFSC99",
+	"setting_id": "1BjBpSDoLs6nTHeo",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

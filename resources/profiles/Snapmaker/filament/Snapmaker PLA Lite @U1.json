@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Lite @U1",
 	"inherits": "Snapmaker PLA Lite @U1 base",
 	"from": "system",
-	"setting_id": "1195313935011",
+	"setting_id": "ZZyxuKUboYttCqgM",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

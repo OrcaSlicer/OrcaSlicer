@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @BIQU Hurakan (0.4 nozzle)",
 	"inherits": "fdm_process_hurakan_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "WlgKtMxt18527nqV",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"bottom_shell_layers": "3",

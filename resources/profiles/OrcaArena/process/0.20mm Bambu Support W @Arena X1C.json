@@ -3,7 +3,7 @@
 	"name": "0.20mm Arena Support W @Arena X1C",
 	"inherits": "fdm_process_arena_0.20",
 	"from": "system",
-	"setting_id": "GP008",
+	"setting_id": "GbnCSaKZmIxFJiQU",
 	"instantiation": "true",
 	"enable_support": "1",
 	"support_interface_top_layers": "3",

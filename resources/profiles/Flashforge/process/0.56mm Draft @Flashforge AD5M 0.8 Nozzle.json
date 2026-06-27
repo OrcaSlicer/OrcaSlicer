@@ -3,6 +3,7 @@
 	"name": "0.56mm Draft @Flashforge AD5M 0.8 Nozzle",
 	"inherits": "0.40mm Standard @Flashforge AD5M 0.8 Nozzle",
 	"from": "system",
+	"setting_id": "LfQRk0JFbNDrzGzk",
 	"instantiation": "true",
 	"layer_height": "0.56",
 	"compatible_printers": [

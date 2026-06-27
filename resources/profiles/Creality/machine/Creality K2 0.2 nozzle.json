@@ -1,7 +1,7 @@
 {
 	"type": "machine",
 	"from": "system",
-	"settings_id": "GM001",
+	"setting_id": "8aX66GbijkwrT7DY",
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality K2",

@@ -3,7 +3,7 @@
 	"name": "Geeetech A30 T 0.4 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_038",
+	"setting_id": "wZylOEjg5oFnqdRk",
 	"instantiation": "true",
 	"printer_model": "Geeetech A30 T",
 	"default_filament_profile": [

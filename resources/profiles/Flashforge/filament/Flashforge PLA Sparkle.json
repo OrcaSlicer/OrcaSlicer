@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Sparkle",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "LYtdPgec1hBLhoQA",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Sparkle"

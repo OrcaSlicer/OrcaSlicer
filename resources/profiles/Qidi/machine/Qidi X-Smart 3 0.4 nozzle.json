@@ -3,7 +3,7 @@
 	"name": "Qidi X-Smart 3 0.4 nozzle",
 	"inherits": "fdm_qidi_x3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "mS7RmjSwsNzkV6LT",
 	"instantiation": "true",
 	"printer_model": "Qidi X-Smart 3",
 	"gcode_flavor": "klipper",

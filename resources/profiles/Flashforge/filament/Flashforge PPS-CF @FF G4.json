@@ -3,6 +3,7 @@
 	"name": "Flashforge PPS-CF @FF G4",
 	"inherits": "Flashforge Generic PLA-CF10",
 	"from": "system",
+	"setting_id": "oSGlx5mtGh07BnOz",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

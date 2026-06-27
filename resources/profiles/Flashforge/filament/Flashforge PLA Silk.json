@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Silk",
 	"inherits": "Flashforge Generic PLA-Silk",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "vZb7BvbyVWkZv3rR",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Silk"

@@ -3,7 +3,7 @@
 	"name": "Overture PLA @Qidi 0.8 nozzle",
 	"inherits": "Overture PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "dHlHvcm2BjzlfUSk",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"enable_pressure_advance": [

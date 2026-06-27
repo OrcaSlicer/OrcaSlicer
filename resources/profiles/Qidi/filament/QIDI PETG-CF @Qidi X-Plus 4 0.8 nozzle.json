@@ -3,7 +3,7 @@
 	"name": "QIDI PETG-CF @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "QIDI PETG-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "yyB4FvX6mflpfiZd",
 	"filament_id": "QD_0_1_42",
 	"instantiation": "true",
 	"filament_settings_id": [

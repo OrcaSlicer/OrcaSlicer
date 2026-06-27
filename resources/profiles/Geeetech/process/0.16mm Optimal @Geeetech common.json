@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @Geeetech common",
 	"inherits": "fdm_process_geeetech_0.16",
 	"from": "system",
-	"setting_id": "GP_Geeetech_014",
+	"setting_id": "MD7y5RFFIpuz2J5T",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Geeetech A10 Pro 0.4 nozzle",

@@ -4,7 +4,7 @@
 	"inherits": "Generic ABS HT @Z-Bolt Base",
 	"renamed_from": "Z-Bolt ABS HT;Generic ABS HT @Z-Bolt;Z-Bolt ABS HT @0.4 nozzle",
 	"from": "system",
-	"setting_id": "GFSL504",
+	"setting_id": "TDGj84iuRAL9R1d4",
 	"filament_id": "GFL504",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

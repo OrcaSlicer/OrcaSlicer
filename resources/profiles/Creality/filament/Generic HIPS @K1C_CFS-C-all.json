@@ -3,7 +3,7 @@
     "name": "Generic HIPS @K1C_CFS-C-all",
     "inherits": "fdm_filament_hips",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "5ZZon4W5GRf2ilKk",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 4 IDEX 500 0.5 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "cnn3LX6k2Zwc1BPb",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 IDEX 500",
 	"printer_variant": "0.5",

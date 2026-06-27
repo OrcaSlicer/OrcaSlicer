@@ -3,6 +3,7 @@
 	"name": ".20mm Standard @Dremel 3D40 0.4",
 	"inherits": "fdm_process_dremel_common",
 	"from": "system",
+	"setting_id": "iraCyWuqWZ9D0Zw1",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"bridge_flow": "1",

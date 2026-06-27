@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_1_5",
-	"setting_id": "GFSL98",
 	"name": "QIDI PLA-CF@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

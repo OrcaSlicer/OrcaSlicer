@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PA",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "lWO6oNoV0wjzRVja",
 	"instantiation": "true",
 	"nozzle_temperature_initial_layer": [
 		"280"

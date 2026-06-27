@@ -4,7 +4,6 @@
 	"inherits": "fdm_filament_pa",
 	"renamed_from": "Z-Bolt PA;Generic PA @Z-Bolt",
 	"from": "system",
-	"setting_id": "GFSL400",
 	"filament_id": "GFL400",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [

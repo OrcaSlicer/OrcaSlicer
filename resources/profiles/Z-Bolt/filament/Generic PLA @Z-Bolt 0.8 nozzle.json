@@ -4,7 +4,7 @@
 	"inherits": "Generic PLA @Z-Bolt Base",
 	"renamed_from": "Z-Bolt PLA @0.8 nozzle",
 	"from": "system",
-	"setting_id": "GFSL108",
+	"setting_id": "GKtc9mJusUZJD6kx",
 	"filament_id": "GFL108",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

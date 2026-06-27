@@ -3,7 +3,7 @@
 	"name": "Anycubic ASA @Anycubic Kobra S1 0.4 nozzle",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "rf792xZNR7tRGKNg",
 	"filament_id": "GFA99",
 	"instantiation": "true",
 	"filament_settings_id": [

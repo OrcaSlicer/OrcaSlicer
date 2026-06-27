@@ -3,6 +3,7 @@
 	"name": "Flashforge PETG-CF @FF G4P 0.6 nozzle",
 	"inherits": "Flashforge Generic PETG-CF @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "9jCp0gTjB3Mt95Mj",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

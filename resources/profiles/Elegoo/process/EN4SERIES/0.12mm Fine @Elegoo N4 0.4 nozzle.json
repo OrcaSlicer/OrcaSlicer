@@ -2,6 +2,7 @@
 	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N4 0.4 nozzle",
+	"setting_id": "RQ9dC2A0MkeEXleJ",
 	"instantiation": "true",
 	"name": "0.12mm Fine @Elegoo N4 0.4 nozzle",
 	"layer_height": "0.12",

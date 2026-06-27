@@ -3,6 +3,7 @@
 	"name": "0.20mm STRUCTURAL @MK4S 0.6",
 	"inherits": "0.20mm SPEED @MK4S 0.6",
 	"from": "system",
+	"setting_id": "jZOKkGNHWE3u1lv5",
 	"instantiation": "true",
 	"bridge_speed": "30",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6",

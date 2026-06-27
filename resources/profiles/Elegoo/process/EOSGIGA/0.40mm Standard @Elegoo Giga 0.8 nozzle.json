@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Elegoo Giga 0.8 nozzle",
 	"inherits": "fdm_process_elegoo_08040",
 	"from": "system",
-	"setting_id": "PEOSG08040",
+	"setting_id": "oiMWJMGC2aW2v4wg",
 	"instantiation": "true",
 	"renamed_from": "0.40mm Standard @EOS Giga 0.8 nozzle",
 	"default_acceleration": "3000",

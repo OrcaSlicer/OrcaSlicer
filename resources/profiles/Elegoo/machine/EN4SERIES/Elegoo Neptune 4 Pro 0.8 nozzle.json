@@ -3,7 +3,7 @@
 	"name": "Elegoo Neptune 4 Pro 0.8 nozzle",
 	"inherits": "Elegoo Neptune 4 Pro 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EN4PRO08",
+	"setting_id": "nd5TLZa3xnDu1s4W",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8"

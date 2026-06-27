@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "GFG99",
-	"setting_id": "GFSG99",
 	"name": "HATCHBOX PETG@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

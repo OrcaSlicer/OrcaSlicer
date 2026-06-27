@@ -3,7 +3,7 @@
 	"name": "FLSun S1 TPU",
 	"inherits": "FLSun Generic TPU",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "yzPvNqIo7mfWAwNS",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"fan_max_speed": [

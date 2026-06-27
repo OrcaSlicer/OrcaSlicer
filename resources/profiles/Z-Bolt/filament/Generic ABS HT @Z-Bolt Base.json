@@ -4,7 +4,6 @@
 	"inherits": "Generic ABS @Z-Bolt Base",
 	"renamed_from": "Z-Bolt ABS HT;Generic ABS HT @Z-Bolt",
 	"from": "system",
-	"setting_id": "GFSL500",
 	"filament_id": "GFL500",
 	"instantiation": "false",
 	"description": "Use this filament profile to print big ABS models with chamber heating",

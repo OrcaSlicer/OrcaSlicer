@@ -3,7 +3,7 @@
 	"name": "Overture PLA @Qidi Q2 0.2 nozzle",
 	"inherits": "Overture PLA@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "mmuvOV5LzBTz1IK0",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

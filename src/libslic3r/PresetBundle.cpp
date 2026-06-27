@@ -5039,6 +5039,13 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             loaded.version = current_vendor_profile->config_version;
             loaded.description = description;
             loaded.setting_id = setting_id;
+            // Derive the preset setting_id on the fly when a profile ships without one,
+            // matching scripts/assign_vendor_setting_ids.py. Only instantiated presets
+            // carry an id; non-instantiated base profiles return earlier above. This never
+            // touches the per-user cloud-sync setting_id written into user .info files.
+            if (loaded.setting_id.empty() && instantiation == "true")
+                loaded.setting_id = generate_preset_setting_id(
+                    vendor_name, Preset::get_type_string(presets_collection->type()), preset_name);
             loaded.filament_id = filament_id;
             loaded.m_from_orca_filament_lib = is_from_lib;
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << __LINE__ << ", " << loaded.name << " load filament_id: " << filament_id;

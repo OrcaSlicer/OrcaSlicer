@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @Elegoo N4Pro 0.6 nozzle",
 	"inherits": "fdm_process_elegoo_06030",
 	"from": "system",
-	"setting_id": "PEN4Pro06030",
+	"setting_id": "rNfnCbVknDzyGq7a",
 	"instantiation": "true",
 	"filename_format": "EN4Pro_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"compatible_printers": [

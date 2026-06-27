@@ -3,7 +3,7 @@
 	"name": "Bambu TPU 95A @System",
 	"inherits": "Bambu TPU 95A @base",
 	"from": "system",
-	"setting_id": "OGFSU00",
+	"setting_id": "LVi6dblW9n9rnSNJ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.6"

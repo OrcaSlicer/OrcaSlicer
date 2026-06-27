@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG @EN3 Series",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGEN3",
+	"setting_id": "ij2hYApjrIsKHJyr",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

@@ -3,7 +3,7 @@
 	"name": "Qidi Generic ABS @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "Qidi Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "UkNcVB3bJZqLN3fu",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

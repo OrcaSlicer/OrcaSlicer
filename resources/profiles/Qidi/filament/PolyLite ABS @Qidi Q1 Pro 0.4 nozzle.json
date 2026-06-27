@@ -3,7 +3,7 @@
 	"name": "PolyLite ABS @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "PolyLite ABS @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "iWq2EddKO6QAUJuG",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

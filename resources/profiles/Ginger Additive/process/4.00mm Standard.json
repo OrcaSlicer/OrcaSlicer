@@ -3,6 +3,7 @@
 	"name": "4.00mm Standard",
 	"inherits": "fdm_process_common",
 	"from": "User",
+	"setting_id": "iDovRylIX6ufYedC",
 	"instantiation": "true",
 	"accel_to_decel_enable": "0",
 	"brim_type": "outer_only",

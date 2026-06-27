@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Silk @FF AD5X",
 	"inherits": "Flashforge Generic PLA-Silk",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "N6J7QqQ7TIgM3MyW",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"50"

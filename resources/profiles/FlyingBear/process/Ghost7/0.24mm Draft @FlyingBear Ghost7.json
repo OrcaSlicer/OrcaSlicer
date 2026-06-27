@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @FlyingBear Ghost7",
 	"inherits": "fdm_process_common_Ghost7",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "inALsOZiG6df6cKY",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"overhang_1_4_speed": "50",

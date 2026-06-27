@@ -3,7 +3,7 @@
 	"name": "Generic PLA+ @Qidi Q2 0.2 nozzle",
 	"inherits": "Generic PLA+@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "0CGp5pTYUipUZH9t",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

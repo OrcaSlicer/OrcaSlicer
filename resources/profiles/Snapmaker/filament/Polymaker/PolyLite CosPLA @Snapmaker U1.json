@@ -3,7 +3,7 @@
 	"name": "PolyLite CosPLA @Snapmaker U1",
 	"inherits": "PolyLite CosPLA @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL62_00",
+	"setting_id": "KwD7WDyJNa4hWfZ8",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

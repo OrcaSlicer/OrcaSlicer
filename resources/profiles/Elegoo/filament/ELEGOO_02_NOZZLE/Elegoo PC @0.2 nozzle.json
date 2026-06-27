@@ -3,7 +3,7 @@
 	"name": "Elegoo PC @0.2 nozzle",
 	"inherits": "Elegoo PC @base",
 	"from": "system",
-	"setting_id": "EPC00020",
+	"setting_id": "1XvweoHPvLXiTYMe",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

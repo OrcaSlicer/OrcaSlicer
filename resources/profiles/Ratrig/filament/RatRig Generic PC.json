@@ -3,7 +3,7 @@
 	"name": "RatRig Generic PC",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "XQ5VEJXu5X0L3Lbn",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

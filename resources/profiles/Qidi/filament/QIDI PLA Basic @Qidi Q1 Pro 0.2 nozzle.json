@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Basic @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "QIDI PLA Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "g7OVjk2xNWWNQo9D",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

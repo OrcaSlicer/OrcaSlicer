@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Tough @System",
 	"inherits": "Bambu PLA Tough @base",
 	"from": "system",
-	"setting_id": "OGFSA09_02",
+	"setting_id": "ZxjDjF5XAaoeOobw",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"21"

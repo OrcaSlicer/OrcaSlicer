@@ -3,7 +3,7 @@
 	"name": "Generic ASA @E3NG v1.2S",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "",
+	"setting_id": "LK5M8q58HY86k9aX",
 	"filament_id": "Generic ASA @E3NG v1.2S",
 	"instantiation": "true",
 	"compatible_printers": [

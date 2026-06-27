@@ -3,7 +3,7 @@
 	"name": "Qidi PC-ABS-FR @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Qidi PC-ABS-FR",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "WZuAmHHfdACv1F6k",
 	"filament_id": "QD_0_1_34",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [

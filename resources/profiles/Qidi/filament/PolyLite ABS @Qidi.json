@@ -3,7 +3,7 @@
 	"name": "PolyLite ABS @Qidi",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Q9QYOF2UmsrK7Wof",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_type": [

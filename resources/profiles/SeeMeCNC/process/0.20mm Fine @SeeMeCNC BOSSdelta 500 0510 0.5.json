@@ -3,6 +3,7 @@
 	"name": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5",
 	"inherits": "SeeMeCNC process base 0.5mm",
 	"from": "System",
+	"setting_id": "2mSgDRrq6sDUArv5",
 	"instantiation": "true",
 	"print_settings_id": "0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5",
 	"compatible_printers": [

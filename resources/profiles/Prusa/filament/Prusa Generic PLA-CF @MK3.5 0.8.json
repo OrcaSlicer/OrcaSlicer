@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA-CF @MK3.5 0.8",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9gYj4jTP6y4UmR9s",
 	"filament_id": "GFL98_4",
 	"instantiation": "true",
 	"filament_flow_ratio": [

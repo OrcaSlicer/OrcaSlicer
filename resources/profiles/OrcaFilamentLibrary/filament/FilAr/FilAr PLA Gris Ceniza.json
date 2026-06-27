@@ -3,6 +3,7 @@
     "name": "FilAr PLA Gris Ceniza",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "LBpWNtHWPyZi96wr",
     "filament_id": "FILAR0025",
     "instantiation": "true",
     "filament_vendor": [

@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Arena X1C",
 	"inherits": "fdm_process_arena_0.24",
 	"from": "system",
-	"setting_id": "GP005",
+	"setting_id": "A3tBfYESL5BUa6az",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

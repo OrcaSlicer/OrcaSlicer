@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA @XL",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "tGG7egsphB0I1i6Z",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "215",
 	"nozzle_temperature": "210",

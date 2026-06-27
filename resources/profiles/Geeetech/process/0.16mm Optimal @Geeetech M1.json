@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @Geeetech M1",
 	"inherits": "fdm_process_Geeetech_HS_0.16",
 	"from": "system",
-	"setting_id": "GP_Geeetech_044",
+	"setting_id": "rqtgNFnnBYkPcc0e",
 	"instantiation": "true",
 	"initial_layer_speed": "30",
 	"initial_layer_infill_speed": "50",

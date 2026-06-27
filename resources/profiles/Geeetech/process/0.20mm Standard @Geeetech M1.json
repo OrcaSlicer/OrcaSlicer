@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Geeetech M1",
 	"inherits": "fdm_process_Geeetech_HS_0.20",
 	"from": "system",
-	"setting_id": "GP_Geeetech_046",
+	"setting_id": "hc7QEhbu0dKGXxO4",
 	"instantiation": "true",
 	"line_width": "0.40",
 	"outer_wall_line_width": "0.40",

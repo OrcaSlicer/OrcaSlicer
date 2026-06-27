@@ -3,7 +3,7 @@
 	"name": "Creality Ender-6 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "bpLN0RYSFgUZIEDV",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-6",
 	"default_print_profile": "0.20mm Standard @Creality Ender6",

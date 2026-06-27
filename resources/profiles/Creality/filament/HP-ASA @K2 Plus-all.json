@@ -3,7 +3,7 @@
     "name": "HP-ASA @K2 Plus-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "cH8oKyQX9jde7Bf8",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

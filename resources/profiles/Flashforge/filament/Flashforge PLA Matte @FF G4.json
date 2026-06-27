@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Matte @FF G4",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "OgqVyIHfy3U8Dc6d",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

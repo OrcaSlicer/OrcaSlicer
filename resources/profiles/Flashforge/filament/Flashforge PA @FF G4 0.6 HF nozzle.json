@@ -3,6 +3,7 @@
 	"name": "Flashforge PA @FF G4 0.6 HF nozzle",
 	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "u7rolQaTQz9U6veH",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

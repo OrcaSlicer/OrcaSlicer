@@ -3,7 +3,7 @@
 	"name": "0.56mm Standard @MyToolChanger",
 	"inherits": "fdm_process_mytoolchanger_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "Pky5GvEuSlaG1Lvm",
 	"instantiation": "true",
 	"support_top_z_distance": "0.24",
 	"support_bottom_z_distance": "0.24",

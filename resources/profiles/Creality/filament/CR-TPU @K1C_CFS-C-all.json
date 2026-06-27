@@ -3,7 +3,7 @@
     "name": "CR-TPU @K1C_CFS-C-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "m33d4hGzs5ZC1faF",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

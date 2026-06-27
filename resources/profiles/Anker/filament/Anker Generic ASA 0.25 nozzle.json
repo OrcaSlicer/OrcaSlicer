@@ -3,7 +3,7 @@
 	"name": "Anker Generic ASA 0.25 nozzle",
 	"inherits": "Anker Generic ASA @base",
 	"from": "system",
-	"setting_id": "GFSB98_25",
+	"setting_id": "ErUUDTQ7h1wNHAKT",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3"

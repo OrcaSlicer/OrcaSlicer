@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Matte @FF G4P 0.6 HF nozzle",
 	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "feXpVbDM5ON5mwg0",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

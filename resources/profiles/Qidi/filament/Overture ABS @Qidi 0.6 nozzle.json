@@ -3,7 +3,7 @@
 	"name": "Overture ABS @Qidi 0.6 nozzle",
 	"inherits": "Overture ABS @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "6dP4f482dvR9Ihhu",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"enable_pressure_advance": [

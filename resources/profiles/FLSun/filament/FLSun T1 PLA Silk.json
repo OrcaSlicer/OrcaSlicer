@@ -3,7 +3,7 @@
 	"name": "FLSun T1 PLA Silk",
 	"inherits": "FLSun Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gElUb4GnCoEfVlEd",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"activate_air_filtration": [

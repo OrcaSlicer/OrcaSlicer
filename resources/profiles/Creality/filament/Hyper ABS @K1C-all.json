@@ -3,7 +3,7 @@
     "name": "Hyper ABS @K1C-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "DlsL5Ex7MQ54Yje6",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

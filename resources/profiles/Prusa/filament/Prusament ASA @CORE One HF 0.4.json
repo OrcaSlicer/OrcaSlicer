@@ -3,7 +3,7 @@
 	"name": "Prusament ASA @CORE One HF 0.4",
 	"inherits": "Prusament ASA @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "tXktQXr79am1s5UL",
 	"filament_id": "Prusament ASA @CORE One HF 0.4",
 	"instantiation": "true",
 	"compatible_printers": [

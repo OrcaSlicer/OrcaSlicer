@@ -3,7 +3,7 @@
 	"name": "Chuanying PETG @Chuanying X1 0.25 Nozzle",
 	"inherits": "Chuanying Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04_12",
+	"setting_id": "9xxP8YWj4hnWQoVZ",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"compatible_printers": [

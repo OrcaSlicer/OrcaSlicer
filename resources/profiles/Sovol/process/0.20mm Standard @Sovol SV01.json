@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "CFwXlxanOmqsdA48",
 	"name": "0.20mm Standard @Sovol SV01",
 	"from": "system",
 	"inherits": "fdm_process_common",

@@ -3,7 +3,7 @@
 	"name": "QIDI PC-ABS-FR @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI PC-ABS-FR@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "oEKRPaYiY0f2ovtG",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.042"

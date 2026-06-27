@@ -3,7 +3,7 @@
 	"name": "Creality Silk PLA @Ender-5Max-all",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
+	"setting_id": "S4nzxbjE4DmkoS7p",
 	"filament_id": "05001",
 	"instantiation": "true",
 	"activate_air_filtration": "0",

@@ -3,7 +3,7 @@
 	"name": "Generic PETG @Flashforge Artemis",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "FFFP02",
+	"setting_id": "YflkaS7NfBE5XiSH",
 	"filament_id": "FFF03",
 	"instantiation": "true",
 	"filament_flow_ratio": [

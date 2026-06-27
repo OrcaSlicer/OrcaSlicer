@@ -3,7 +3,7 @@
 	"name": "Generic PLA @LONGER LK10 Plus",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFLLKPPL",
+	"setting_id": "N4pabxIYPI8KHgVp",
 	"filament_id": "GFLLK10PPLA",
 	"instantiation": "true",
 	"filament_flow_ratio": [

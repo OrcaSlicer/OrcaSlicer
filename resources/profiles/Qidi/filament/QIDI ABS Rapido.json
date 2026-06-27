@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "sru9yX08jyTVNmOz",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_type": [

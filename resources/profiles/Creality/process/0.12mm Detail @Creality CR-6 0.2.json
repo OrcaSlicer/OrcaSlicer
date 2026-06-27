@@ -3,7 +3,7 @@
 	"name": "0.12mm Detail @Creality CR-6 0.2",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "QyCbRvjV5jfaacYs",
 	"instantiation": "true",
 	"bottom_shell_layers": "5",
 	"initial_layer_line_width": "0.2",

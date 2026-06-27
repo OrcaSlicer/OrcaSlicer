@@ -3,7 +3,6 @@
 	"name": "Flashforge PLA @FF AD5M 0.25 Nozzle",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04_19",
 	"instantiation": "false",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.25 Nozzle",

@@ -3,7 +3,7 @@
 	"name": "0.54mm Extra Draft 0.8 nozzle @Blocks_RF50",
 	"inherits": "fdm_process_common 0.8 nozzle",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "8uJVEmWMNB1BzrhR",
 	"instantiation": "true",
 	"layer_height": "0.54",
 	"initial_layer_print_height": "0.4",

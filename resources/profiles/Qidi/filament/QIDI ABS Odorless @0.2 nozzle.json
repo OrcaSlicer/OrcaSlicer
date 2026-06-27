@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Odorless @0.2 nozzle",
 	"inherits": "QIDI ABS Odorless",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Z0J9YPS8382vLms4",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

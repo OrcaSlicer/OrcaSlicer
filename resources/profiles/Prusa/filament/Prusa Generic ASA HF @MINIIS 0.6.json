@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ASA HF @MINIIS 0.6",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "uf2mhiPodkiOu8Ui",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"

@@ -3,7 +3,7 @@
 	"name": "Chuanying ASA @Chuanying X1 0.25 Nozzle",
 	"inherits": "Chuanying Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04_05",
+	"setting_id": "px1EPCDgOG8eE81V",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"compatible_printers": [

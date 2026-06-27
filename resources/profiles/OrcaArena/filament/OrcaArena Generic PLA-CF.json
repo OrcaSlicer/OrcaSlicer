@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PLA-CF",
 	"inherits": "OrcaArena Generic PLA-CF @base",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "qHV6B5JvmdtAQeNs",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

@@ -3,7 +3,7 @@
 	"name": "Bambu ABS @0.6 nozzle",
 	"inherits": "Bambu ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "LUEO7LVrgko3oXzg",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"enable_pressure_advance": [

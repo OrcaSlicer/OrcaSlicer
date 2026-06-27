@@ -3,7 +3,7 @@
     "name": "Generic PVA @K1C_CFS-C-all",
     "inherits": "fdm_filament_common",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "16V0liTfFopXs9hz",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

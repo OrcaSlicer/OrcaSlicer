@@ -4,7 +4,6 @@
 	"inherits": "fdm_filament_pla",
 	"renamed_from": "Z-Bolt PLA;Generic PLA @Z-Bolt",
 	"from": "system",
-	"setting_id": "GFSL100",
 	"filament_id": "GFL100",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [

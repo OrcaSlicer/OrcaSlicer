@@ -16,7 +16,7 @@
     "top_surface_speed": "150",
     "support_top_z_distance": "0.12",
     "support_bottom_z_distance": "0.12",
-    "setting_id": "GP026",
+    "setting_id": "KHC1zpxpuvaUEzvf",
     "description": "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height, and results in almost negligible layer lines, and slightly shorter printing time.",
     "elefant_foot_compensation": "0.15",
     "smooth_coefficient": "150",

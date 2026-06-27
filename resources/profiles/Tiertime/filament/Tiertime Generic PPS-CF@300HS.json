@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PPS-CF@300HS",
 	"inherits": "fdm_filament_pps",
 	"from": "system",
+	"setting_id": "6UHEejfZvhQGA4vB",
 	"filament_id": "GFT98_01",
 	"instantiation": "true",
 	"fan_max_speed": [

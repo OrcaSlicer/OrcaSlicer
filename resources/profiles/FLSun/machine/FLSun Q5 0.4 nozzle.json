@@ -3,7 +3,7 @@
 	"name": "FLSun Q5 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "LKmuanzzJdFhP8fy",
 	"instantiation": "true",
 	"printer_model": "FLSun Q5",
 	"default_print_profile": "0.20mm Standard @FLSun Q5",

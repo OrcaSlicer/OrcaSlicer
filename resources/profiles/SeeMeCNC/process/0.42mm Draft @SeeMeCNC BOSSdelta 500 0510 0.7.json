@@ -3,6 +3,7 @@
 	"name": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
+	"setting_id": "cXLAvi5mQLtAG8mg",
 	"instantiation": "true",
 	"print_settings_id": "0.42mm Draft @SeeMeCNC BOSSdelta 500 0510 0.7",
 	"compatible_printers": [

@@ -3,7 +3,7 @@
 	"name": "Sovol SV08 ABS",
 	"inherits": "Generic ABS @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "nq4vvrWqKjWKELEz",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

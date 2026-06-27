@@ -3,7 +3,7 @@
 	"name": "Flashforge PPA-GF",
 	"inherits": "FusRock Generic PAHT-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "KITjZXcyM4N8cVyu",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

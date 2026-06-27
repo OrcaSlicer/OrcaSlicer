@@ -3,6 +3,7 @@
 	"name": "Generic PLA Silk @FF C5P",
 	"inherits": "Generic PLA Silk @System",
 	"from": "system",
+	"setting_id": "RnoS9bqY1TvNPtg2",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

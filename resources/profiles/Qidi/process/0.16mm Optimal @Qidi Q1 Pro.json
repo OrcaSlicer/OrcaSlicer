@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @Qidi Q1 Pro",
 	"inherits": "0.16mm Optimal @Qidi X3",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "tjUELNlfeeNj2m4o",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q1 Pro 0.4 nozzle"

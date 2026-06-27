@@ -3,6 +3,7 @@
 	"name": "Flashforge HS PETG @FF G4P 0.25 nozzle",
 	"inherits": "Flashforge PETG @FF AD5M 0.25 Nozzle",
 	"from": "system",
+	"setting_id": "bFVYSPkynBBapFjq",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

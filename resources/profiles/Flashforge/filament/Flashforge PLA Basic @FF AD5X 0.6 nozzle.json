@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Basic @FF AD5X 0.6 nozzle",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gMmhMDqjmJfAYcbV",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

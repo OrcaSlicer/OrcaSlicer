@@ -3,7 +3,7 @@
 	"name": "Anker Generic PA-CF",
 	"inherits": "Anker Generic PA-CF @base",
 	"from": "system",
-	"setting_id": "GFSN98",
+	"setting_id": "qdsEps11ugFHJkn7",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 All-Metal 0.4 nozzle",

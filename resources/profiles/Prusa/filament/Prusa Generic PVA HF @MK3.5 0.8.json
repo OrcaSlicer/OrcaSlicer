@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PVA HF @MK3.5 0.8",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "J5PBEm3LvfpztfXU",
 	"filament_id": "GFS99_6",
 	"instantiation": "true",
 	"filament_flow_ratio": [

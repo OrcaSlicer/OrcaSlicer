@@ -3,7 +3,7 @@
     "name": "Generic PVA @Hi-all",
     "inherits": "fdm_filament_common",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "M3oK19GPHF4pXnE1",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

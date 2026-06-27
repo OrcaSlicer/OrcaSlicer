@@ -3,7 +3,7 @@
 	"name": "Geeetech A30 Pro 0.4 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_034",
+	"setting_id": "dlV49278pWNWopID",
 	"instantiation": "true",
 	"printer_model": "Geeetech A30 Pro",
 	"default_filament_profile": [

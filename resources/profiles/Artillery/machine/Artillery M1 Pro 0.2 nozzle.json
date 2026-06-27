@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "Artillery M1 Pro 0.2 nozzle",
 	"from": "system",
+	"setting_id": "o6k3pZtOPuDdgiBX",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",

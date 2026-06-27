@@ -3,7 +3,7 @@
 	"name": "Other PETG @HSN",
 	"inherits": "fdm_filament_pet_other @HSN",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "lWYq9XssEyY3uWEe",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

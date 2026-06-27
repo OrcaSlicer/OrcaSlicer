@@ -3,7 +3,7 @@
 	"name": "Valment PLA-CF @System",
 	"inherits": "Valment PLA-CF @base",
 	"from": "system",
-	"setting_id": "VLMNT_03",
+	"setting_id": "TQPYW4C5DdUjR0fi",
 	"instantiation": "true",
 	"compatible_printers": []
 }

@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA-CF @U1",
 	"inherits": "Snapmaker PLA-CF @U1 base",
 	"from": "system",
-	"setting_id": "35893594380",
+	"setting_id": "eyNYjz24xQYyAQcv",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

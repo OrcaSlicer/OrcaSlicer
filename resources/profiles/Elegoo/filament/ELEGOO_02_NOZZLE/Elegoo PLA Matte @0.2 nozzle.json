@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Matte @0.2 nozzle",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLAM00020",
+	"setting_id": "TyHg4K4ZNiYKgaso",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

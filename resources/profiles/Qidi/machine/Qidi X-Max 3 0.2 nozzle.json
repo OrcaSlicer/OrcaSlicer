@@ -3,7 +3,7 @@
 	"name": "Qidi X-Max 3 0.2 nozzle",
 	"inherits": "Qidi X-Max 3 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "w9xj6SBvIfjutls6",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.2"

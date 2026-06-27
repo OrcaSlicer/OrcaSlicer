@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG PRO @0.2 nozzle",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGPRO00020",
+	"setting_id": "TBkoABUqBy51TLtW",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

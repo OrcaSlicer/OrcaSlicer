@@ -3,7 +3,7 @@
 	"name": "0.10mm HighDetail @Creality 0.4 CR-6 0.4",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "gCDf5r3S40HdDGIg",
 	"instantiation": "true",
 	"initial_layer_line_width": "0.3",
 	"inner_wall_line_width": "0.3",

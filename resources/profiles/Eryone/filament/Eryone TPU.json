@@ -3,7 +3,7 @@
 	"name": "Eryone TPU",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA05",
+	"setting_id": "ci6MWQPZNf09qrOJ",
 	"filament_id": "EFL95",
 	"instantiation": "true",
 	"compatible_printers": [

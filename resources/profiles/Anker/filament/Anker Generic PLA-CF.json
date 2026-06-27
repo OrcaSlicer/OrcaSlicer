@@ -3,7 +3,7 @@
 	"name": "Anker Generic PLA-CF",
 	"inherits": "Anker Generic PLA-CF @base",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "diNUVM7UcHLnOr9J",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

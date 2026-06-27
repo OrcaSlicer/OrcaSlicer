@@ -3,7 +3,7 @@
     "name": "HP-TPU @K1 SE-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "3YN3jfV75qyfUZWm",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

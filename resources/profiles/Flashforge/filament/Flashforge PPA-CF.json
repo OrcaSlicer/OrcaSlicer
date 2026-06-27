@@ -3,7 +3,7 @@
 	"name": "Flashforge PPA-CF",
 	"inherits": "FusRock Generic PAHT-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "MFItX51zZO0KYjdk",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.99"

@@ -3,7 +3,7 @@
 	"name": "QIDI ABS-GF10 @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI ABS-GF10",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "3tblNpw8VgOlt8VU",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [

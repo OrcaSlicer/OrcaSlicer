@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra S1 Max 0.8 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "Anycubic Kobra S1 Max 0.8 nozzle",
+	"setting_id": "eD3ZKZ62sl6JMvUr",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Anycubic Kobra S1 Max 0.8 nozzle",

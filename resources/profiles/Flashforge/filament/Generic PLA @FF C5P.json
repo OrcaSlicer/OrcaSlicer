@@ -3,6 +3,7 @@
 	"name": "Generic PLA @FF C5P",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "ALRfG5zUa6ytbtho",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

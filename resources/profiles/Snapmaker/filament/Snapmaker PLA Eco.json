@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Eco",
 	"inherits": "Snapmaker PLA Eco @base",
 	"from": "system",
-	"setting_id": "978926393",
+	"setting_id": "mU6t2gc3SmStj2sN",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.2 nozzle)",

@@ -3,7 +3,7 @@
 	"name": "Flashforge Adventurer 5M Pro 0.8 Nozzle",
 	"inherits": "fdm_adventurer5m_common",
 	"from": "system",
-	"setting_id": "GM009",
+	"setting_id": "ayutlcoenZcr7Hny",
 	"instantiation": "true",
 	"printer_model": "Flashforge Adventurer 5M Pro",
 	"default_print_profile": "0.40mm Standard @Flashforge AD5M Pro 0.8 Nozzle",

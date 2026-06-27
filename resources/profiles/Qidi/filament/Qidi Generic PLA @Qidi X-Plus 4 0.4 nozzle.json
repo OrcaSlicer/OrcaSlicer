@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PLA @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Qidi Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "tRztgu06hBi9IxSE",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

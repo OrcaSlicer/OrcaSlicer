@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PLA High Speed",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"setting_id": "Ms3c6DePE0cjBeQ4",
 	"filament_id": "GFL95",
 	"instantiation": "true",
 	"filament_flow_ratio": [

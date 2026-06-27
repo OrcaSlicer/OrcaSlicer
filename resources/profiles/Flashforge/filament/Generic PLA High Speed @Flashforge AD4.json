@@ -3,7 +3,7 @@
 	"name": "Generic PLA High Speed @Flashforge AD4",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "B4EWBUa9G36lZUd7",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"bed_temperature_difference": [

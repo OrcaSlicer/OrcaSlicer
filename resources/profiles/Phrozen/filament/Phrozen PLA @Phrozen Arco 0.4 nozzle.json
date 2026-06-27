@@ -3,7 +3,7 @@
 	"name": "Phrozen PLA @Phrozen Arco 0.4 nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Cc3ULDFzvoHwh8bV",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_settings_id": [

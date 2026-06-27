@@ -3,7 +3,7 @@
 	"name": "FlyingBear PLA @S1",
 	"inherits": "fdm_filament_pla @S1",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "k58jL17n8cOla3Gd",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

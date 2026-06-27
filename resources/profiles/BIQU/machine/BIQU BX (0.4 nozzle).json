@@ -3,7 +3,7 @@
 	"name": "BIQU BX (0.4 nozzle)",
 	"inherits": "fdm_biqu_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "SPFU6hzjCMM2wcSN",
 	"instantiation": "true",
 	"printer_model": "BIQU BX",
 	"default_print_profile": "0.20mm Standard @BIQU BX (0.4 nozzle)",

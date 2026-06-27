@@ -3,7 +3,7 @@
 	"name": "0.14mm Standard @FF AD5X 0.25 nozzle",
 	"inherits": "0.12mm Standard @Flashforge AD5M 0.25 Nozzle",
 	"from": "system",
-	"setting_id": "GP012",
+	"setting_id": "GArq2baSPUHlZvAU",
 	"instantiation": "true",
 	"enable_prime_tower": "1",
 	"exclude_object": "1",

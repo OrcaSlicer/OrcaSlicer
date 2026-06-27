@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA @MINIIS 0.25",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "GOomDjqbF1CGAy8O",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"

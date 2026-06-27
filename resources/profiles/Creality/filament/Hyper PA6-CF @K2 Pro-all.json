@@ -3,7 +3,7 @@
     "name": "Hyper PA6-CF @K2 Pro-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "FNuPosBKWyq79bjR",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

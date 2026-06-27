@@ -3,7 +3,7 @@
 	"name": "Anycubic PETG @Anycubic Kobra 3 0.4 nozzle",
 	"inherits": "Anycubic Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qe2wYLf7CEMjmfxj",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_vendor": [

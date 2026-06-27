@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PC @MK3.5",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "2h9EbPiUgE3BIHVb",
 	"filament_id": "GFC99_1",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

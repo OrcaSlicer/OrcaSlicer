@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA @CORE One 0.6",
 	"inherits": "Prusa Generic PLA @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "8kSIJx0dpaelcAos",
 	"filament_id": "Prusa Generic PLA @CORE One 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

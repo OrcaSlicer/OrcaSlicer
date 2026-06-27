@@ -3,7 +3,7 @@
 	"name": "Creality Hyper PLA @Ender-5Max-all",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
+	"setting_id": "YUtnpJsC9o1D3NUR",
 	"filament_id": "01001",
 	"instantiation": "true",
 	"activate_air_filtration": "0",

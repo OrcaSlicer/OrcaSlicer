@@ -3,6 +3,7 @@
 	"name": "0.16mm STRUCTURAL @MK4S 0.3",
 	"inherits": "0.12mm STRUCTURAL @MK4S 0.3",
 	"from": "system",
+	"setting_id": "MT56BMLA6reWI2sF",
 	"instantiation": "true",
 	"bottom_shell_layers": "5",
 	"default_acceleration": "2000",

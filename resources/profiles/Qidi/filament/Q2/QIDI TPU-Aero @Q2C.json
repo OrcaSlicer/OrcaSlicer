@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_1_49",
-	"setting_id": "GFSR98",
 	"name": "QIDI TPU-Aero@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

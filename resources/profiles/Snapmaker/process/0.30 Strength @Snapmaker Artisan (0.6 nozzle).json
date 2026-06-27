@@ -3,7 +3,7 @@
 	"name": "0.30 Strength @Snapmaker Artisan (0.6 nozzle)",
 	"inherits": "fdm_process_a400",
 	"from": "system",
-	"setting_id": "87417016",
+	"setting_id": "3lZfTFO6s03AUH8m",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.6 nozzle)"

@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Metal @FF G4P",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "UFWWrhfgS7N36Y8W",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

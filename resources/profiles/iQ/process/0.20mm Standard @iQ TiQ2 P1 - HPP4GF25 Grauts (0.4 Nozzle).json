@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @iQ TiQ2 P1 - HPP4GF25 Grauts (0.4 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "BH3aGItMozgr9VXA",
 	"instantiation": "true",
 	"default_acceleration": "1500",
 	"enable_extra_bridge_layer": "apply_to_all",

@@ -3,7 +3,7 @@
 	"name": "Bambu PET-CF @System",
 	"inherits": "Bambu PET-CF @base",
 	"from": "system",
-	"setting_id": "OGFST01",
+	"setting_id": "n97P7KBaImDlK41v",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"0"

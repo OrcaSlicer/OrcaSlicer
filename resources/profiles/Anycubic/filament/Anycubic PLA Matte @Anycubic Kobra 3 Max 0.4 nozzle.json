@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA Matte @Anycubic Kobra 3 Max 0.4 nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qSpZJ4cRcg3xb2b2",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_settings_id": [

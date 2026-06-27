@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ABS @MINIIS 0.25",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NdGEi7BdP59bqz53",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"

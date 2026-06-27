@@ -3,7 +3,7 @@
     "name": "Generic PC @K1 Max_CFS-C-all",
     "inherits": "fdm_filament_pc",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Dh2hSCE4xEmmv601",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

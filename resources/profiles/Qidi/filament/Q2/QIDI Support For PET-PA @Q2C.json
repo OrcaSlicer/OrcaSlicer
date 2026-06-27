@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_1_33",
-	"setting_id": "GFSN96",
 	"name": "QIDI Support For PET/PA@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

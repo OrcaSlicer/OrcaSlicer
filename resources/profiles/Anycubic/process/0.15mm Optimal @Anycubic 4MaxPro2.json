@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Anycubic 4MaxPro2",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "2Qq27PfeoCqMAZKw",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",

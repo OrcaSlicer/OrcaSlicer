@@ -3,7 +3,7 @@
 	"name": "Blocks Generic ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "BSSI005",
+	"setting_id": "DcgqA071S6MRVbKI",
 	"filament_id": "BSFI005",
 	"instantiation": "true",
 	"filament_flow_ratio": [

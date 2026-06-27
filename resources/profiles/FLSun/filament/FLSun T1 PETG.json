@@ -3,7 +3,7 @@
 	"name": "FLSun T1 PETG",
 	"inherits": "FLSun Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "A2aA7xcmqgz8ERyY",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"fan_max_speed": [

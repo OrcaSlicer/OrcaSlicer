@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @InfiMech EX+APS",
 	"inherits": "fdm_process_common_EX+APS",
 	"from": "system",
-	"setting_id": "GP005",
+	"setting_id": "2d4xi9oMyBdvUQ7x",
 	"instantiation": "true",
 	"inner_wall_acceleration": "3000",
 	"overhang_2_4_speed": "50",

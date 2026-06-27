@@ -3,7 +3,7 @@
 	"name": "Eryone Silk PLA",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA041",
+	"setting_id": "S3s3NQAoScvfyHh3",
 	"filament_id": "EFL941",
 	"instantiation": "true",
 	"compatible_printers": [

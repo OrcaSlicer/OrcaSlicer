@@ -3,7 +3,7 @@
 	"name": "Blocks Generic TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "BSSI003",
+	"setting_id": "xFRwN8ZEwEGlLFwo",
 	"filament_id": "BSFI003",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

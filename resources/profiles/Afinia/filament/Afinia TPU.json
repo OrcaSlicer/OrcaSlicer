@@ -3,6 +3,7 @@
 	"name": "Afinia TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
+	"setting_id": "E7WBTARZ971LaDMj",
 	"filament_id": "GFU01",
 	"instantiation": "true",
 	"filament_vendor": [

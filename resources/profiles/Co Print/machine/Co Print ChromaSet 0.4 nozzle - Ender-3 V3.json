@@ -3,7 +3,7 @@
 	"name": "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "1SK0VAxn4wsqiNk7",
 	"instantiation": "true",
 	"printer_model": "Co Print ChromaSet",
 	"default_print_profile": "0.2mm Standard @Co Print ChromaSet 0.4",

@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @FlyingBear S1",
 	"inherits": "fdm_process_common_S1",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "OgaLwywBqDMCcshT",
 	"instantiation": "true",
 	"inner_wall_acceleration": "3000",
 	"bottom_shell_layers": "7",

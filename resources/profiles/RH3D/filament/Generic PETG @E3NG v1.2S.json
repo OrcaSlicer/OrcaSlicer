@@ -3,7 +3,7 @@
 	"name": "Generic PETG @E3NG v1.2S",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"setting_id": "",
+	"setting_id": "IS3z7f5wnjsvv8vC",
 	"filament_id": "Generic PETG @E3NG v1.2S",
 	"instantiation": "true",
 	"compatible_printers": [

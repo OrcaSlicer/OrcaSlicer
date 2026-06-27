@@ -3,7 +3,7 @@
 	"name": "SecKit Generic ABS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gUrHIkj9GExYWVjh",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

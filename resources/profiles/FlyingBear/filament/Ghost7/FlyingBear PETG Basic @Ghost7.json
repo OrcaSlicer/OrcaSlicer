@@ -3,7 +3,7 @@
 	"name": "FlyingBear PETG Basic @Ghost7",
 	"inherits": "fdm_filament_pet @Ghost7",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "k2os2FPNl8K7vTZN",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

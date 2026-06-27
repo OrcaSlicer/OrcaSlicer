@@ -3,7 +3,7 @@
 	"name": "Anker Generic ABS",
 	"inherits": "Anker Generic ABS @base",
 	"from": "system",
-	"setting_id": "GFSB99",
+	"setting_id": "axEspGzFJnrnidm4",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

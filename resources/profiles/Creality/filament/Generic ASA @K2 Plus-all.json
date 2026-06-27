@@ -3,7 +3,7 @@
     "name": "Generic ASA @K2 Plus-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "bPiPJ2MrgMOq01jX",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

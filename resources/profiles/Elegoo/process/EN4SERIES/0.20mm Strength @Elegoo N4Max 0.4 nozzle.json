@@ -4,6 +4,7 @@
 	"inherits": "0.20mm Standard @Elegoo N4Max 0.4 nozzle",
 	"name": "0.20mm Strength @Elegoo N4Max 0.4 nozzle",
 	"wall_sequence": "inner-outer-inner wall",
+	"setting_id": "HaK3rpieMESKs6PY",
 	"instantiation": "true",
 	"reduce_crossing_wall": "1",
 	"wall_loops": "6"

@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Creality K1C",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "caYmVSsFmtESzLNF",
 	"instantiation": "true",
 	"reduce_crossing_wall": "0",
 	"max_travel_detour_distance": "0",

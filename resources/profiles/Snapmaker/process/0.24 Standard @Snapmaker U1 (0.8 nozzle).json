@@ -15,7 +15,7 @@
     "bridge_speed": "30",
     "overhang_3_4_speed": "25",
     "overhang_4_4_speed": "5",
-    "setting_id": "GP029_08_024",
+    "setting_id": "QcJ5p9h0eYUb91ak",
     "description": "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height, and results in less apparent layer lines and slight higher printing quality, but longer printing time.",
     "elefant_foot_compensation": "0.15",
     "smooth_coefficient": "150",

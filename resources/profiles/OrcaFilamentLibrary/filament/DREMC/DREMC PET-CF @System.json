@@ -3,7 +3,6 @@
 	"name": "DREMC PET-CF @System",
 	"inherits": "DREMC PET-CF @base",
 	"from": "system",
-	"setting_id": "DREMC008",
 	"instantiation": "false",
 	"compatible_printers": []
 }

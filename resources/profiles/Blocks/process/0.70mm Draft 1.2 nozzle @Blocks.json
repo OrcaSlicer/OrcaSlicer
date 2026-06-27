@@ -3,7 +3,7 @@
 	"name": "0.70mm Draft 1.2 nozzle @Blocks",
 	"inherits": "fdm_process_common 1.2 nozzle",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "0ZQ0USGX9SwAKr29",
 	"instantiation": "true",
 	"bottom_shell_layers": "2",
 	"top_shell_layers": "3",

@@ -3,7 +3,7 @@
 	"name": "Peopoly Generic PETG",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"setting_id": "GSPETG-1",
+	"setting_id": "7LVGx2lNqhBDdYiJ",
 	"filament_id": "GFPETG-1",
 	"instantiation": "true",
 	"filament_flow_ratio": [

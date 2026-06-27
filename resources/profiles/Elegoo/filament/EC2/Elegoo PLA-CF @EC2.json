@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA-CF @EC2",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLACFEC2",
+	"setting_id": "UpGOamlqBkqj71bx",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

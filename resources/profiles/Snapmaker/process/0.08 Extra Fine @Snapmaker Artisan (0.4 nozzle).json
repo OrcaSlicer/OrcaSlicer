@@ -3,7 +3,7 @@
 	"name": "0.08 Extra Fine @Snapmaker Artisan (0.4 nozzle)",
 	"inherits": "fdm_process_a400",
 	"from": "system",
-	"setting_id": "723238605",
+	"setting_id": "pBTnfw8bL4m3gmwZ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.4 nozzle)"

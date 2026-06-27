@@ -3,7 +3,7 @@
 	"name": "Bambu PETG @0.6 nozzle",
 	"inherits": "Bambu PETG",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "PfIdpsKf0Xw5admE",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @OpenEYE Peacock V2 0.6 nozzle",
 	"inherits": "fdm_process_openeye_0.30_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP125",
+	"setting_id": "o3HerJQnqHZDinoN",
 	"instantiation": "true",
 	"description": "Standard profile for 0.6mm nozzle, prioritizing speed.",
 	"bridge_speed": "50",

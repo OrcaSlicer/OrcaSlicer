@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Matte Basic @0.2 nozzle",
 	"inherits": "QIDI PLA Matte Basic",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "vzT3dsogzkZSegM0",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

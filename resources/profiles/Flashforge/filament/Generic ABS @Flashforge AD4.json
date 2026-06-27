@@ -3,7 +3,7 @@
 	"name": "Generic ABS @Flashforge AD4",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "lS237JRDRMQgJFzd",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

@@ -3,7 +3,7 @@
 	"name": "0.12mm Fine @InfiMech TX",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "uxrcoAGs9bVdipGp",
 	"instantiation": "true",
 	"inner_wall_acceleration": "3000",
 	"bottom_shell_layers": "5",

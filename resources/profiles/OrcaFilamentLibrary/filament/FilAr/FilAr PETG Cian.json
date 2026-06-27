@@ -3,6 +3,7 @@
     "name": "FilAr PETG Cian",
     "inherits": "FilAr PETG @base",
     "from": "system",
+    "setting_id": "kQFbBS3nxU7M2yPa",
     "filament_id": "FILAR0053",
     "instantiation": "true",
     "filament_vendor": [

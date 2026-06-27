@@ -3,7 +3,7 @@
 	"name": "RatRig BigNozzle ABS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "oE39mwr3PCpeBxZN",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

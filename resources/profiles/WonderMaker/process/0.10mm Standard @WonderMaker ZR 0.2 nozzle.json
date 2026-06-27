@@ -3,7 +3,7 @@
 	"name": "0.10mm Standard @WonderMaker ZR 0.2 nozzle",
 	"inherits": "fdm_process_wm_0.10_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP007",
+	"setting_id": "9fkqViiWCOVJQB6M",
 	"instantiation": "true",
 	"description": "It has a small layer height, and results in almost negligible layer lines and high printing quality. It is suitable for most general printing cases.",
 	"elefant_foot_compensation": "0.15",

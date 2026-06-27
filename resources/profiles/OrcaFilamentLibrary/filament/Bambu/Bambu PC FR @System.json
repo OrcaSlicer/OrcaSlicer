@@ -3,7 +3,7 @@
 	"name": "Bambu PC FR @System",
 	"inherits": "Bambu PC FR @base",
 	"from": "system",
-	"setting_id": "OGFSC01_00",
+	"setting_id": "m7TaVFWJZUqzf0rP",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

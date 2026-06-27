@@ -3,6 +3,7 @@
 	"name": "Flashforge Creator 5 Pro 0.8 nozzle",
 	"inherits": "Flashforge Adventurer 5M Pro 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "kdQuVclmnVWz2Vfu",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",

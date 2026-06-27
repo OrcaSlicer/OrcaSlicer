@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "Thinker X400 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "iOmDPImz2E66SIpL",
 	"instantiation": "true",
 	"printer_model": "Thinker X400",
 	"default_print_profile": "0.20mm Standard @Thinker X400",

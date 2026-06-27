@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_1_26",
-	"setting_id": "GFSN99",
 	"name": "QIDI UltraPA-CF25@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

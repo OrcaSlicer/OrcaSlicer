@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "cubicon default @Cubicon xCeler-I 0.4 nozzle",
 	"inherits": "cubicon common @base",
+	"setting_id": "atkrxehaOoWETk2P",
 	"instantiation": "true",
 	"print_settings_id": "cubicon default @Cubicon xCeler-I 0.4 nozzle",
 	"compatible_printers": [

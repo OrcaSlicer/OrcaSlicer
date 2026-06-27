@@ -3,7 +3,7 @@
 	"name": "Generic PPA-CF @System",
 	"inherits": "fdm_filament_ppa",
 	"from": "system",
-	"setting_id": "OGFSN97_00",
+	"setting_id": "rZpVQIyltFNiQyW3",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"35"

@@ -3,6 +3,7 @@
 	"name": "Flashforge TPU-95A @FF C5",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "AHu6wNV3zcPBusOF",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PLA Silk@300HS",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"setting_id": "yV358AeiALOn6xVr",
 	"filament_id": "GFL96_01",
 	"instantiation": "true",
 	"filament_flow_ratio": [

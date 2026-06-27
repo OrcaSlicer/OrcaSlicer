@@ -3,7 +3,7 @@
 	"name": "Flashforge PETG Pro",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IQfUoy7gTmVmBDL5",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"60"

@@ -3,7 +3,7 @@
     "name": "CR-PLA Fluo @K1C_CFS-C-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "5vTZFUcLv6DL06Nr",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

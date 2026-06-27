@@ -3,7 +3,7 @@
 	"name": "0.24mm Fine @Tiertime UP600 HS 0.8 nozzle",
 	"inherits": "fdm_process_tiertime_0.24_nozzle_0.8_HS",
 	"from": "system",
-	"setting_id": "GP032",
+	"setting_id": "elPtw7ApN0MhXk3e",
 	"instantiation": "true",
 	"description": "It has a smaller layer height and results in smoother surface and higher printing quality.",
 	"elefant_foot_compensation": "0.15",

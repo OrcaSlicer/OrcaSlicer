@@ -3,7 +3,7 @@
 	"name": "Elegoo PAHT-CF @System",
 	"inherits": "Elegoo PAHT @base",
 	"from": "system",
-	"setting_id": "OEPAHTCFS00",
+	"setting_id": "S073oXCeOlTEqh6L",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PAHT-CF",
 	"close_fan_the_first_x_layers": [

@@ -3,7 +3,7 @@
 	"name": "Prusa MK3S 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "T3EZ1NtmQTNkmDkk",
 	"instantiation": "true",
 	"printer_model": "Prusa MK3S",
 	"printer_variant": "0.4",

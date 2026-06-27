@@ -4,7 +4,7 @@
 	"renamed_from": "Elegoo RAPID PLA+ @ECC2",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "ERPLAPLUSECC2",
+	"setting_id": "qXybozVO1oL7MEud",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

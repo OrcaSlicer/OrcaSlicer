@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA @K2-all",
 	"inherits": "Creality Generic PLA",
 	"from": "system",
-	"setting_id": "GFSL99_00",
+	"setting_id": "bnqvzgmJYbLraBWC",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

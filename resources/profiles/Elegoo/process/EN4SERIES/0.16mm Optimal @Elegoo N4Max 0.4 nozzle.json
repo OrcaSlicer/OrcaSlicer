@@ -2,6 +2,7 @@
 	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N4Max 0.4 nozzle",
+	"setting_id": "StpHJelrwAxTFcwx",
 	"instantiation": "true",
 	"name": "0.16mm Optimal @Elegoo N4Max 0.4 nozzle",
 	"layer_height": "0.16",

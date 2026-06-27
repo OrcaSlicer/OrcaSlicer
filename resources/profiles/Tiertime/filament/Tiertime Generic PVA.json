@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PVA",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
+	"setting_id": "bTkxwDd1TU8TUqVC",
 	"filament_id": "GFS99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

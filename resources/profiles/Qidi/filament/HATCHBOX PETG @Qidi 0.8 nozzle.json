@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PETG @0.8 nozzle",
 	"inherits": "HATCHBOX PETG @Qidi",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "mndT3gxOniftGEEZ",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

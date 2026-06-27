@@ -3,7 +3,7 @@
 	"from": "system",
 	"instantiation": "true",
 	"name": "PolyLite J1 PLA",
-	"setting_id": "116125055",
+	"setting_id": "wcpOTTMyZNPFKyXr",
 	"inherits": "PolyLite PLA @base",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

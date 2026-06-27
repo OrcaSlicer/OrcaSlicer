@@ -3,7 +3,7 @@
 	"name": "Flashforge PETG Transparent @FF AD5X",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "UaObrRNSTwitC6jr",
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"2"

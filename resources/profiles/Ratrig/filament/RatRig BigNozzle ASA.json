@@ -3,7 +3,7 @@
 	"name": "RatRig BigNozzle ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "GGkbwdd79jAXnwuf",
 	"filament_id": "GFB98",
 	"instantiation": "true",
 	"filament_flow_ratio": [

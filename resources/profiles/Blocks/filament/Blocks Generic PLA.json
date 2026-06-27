@@ -3,7 +3,7 @@
 	"name": "Blocks Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "BSSI001",
+	"setting_id": "N3wDUqmBETfelOoG",
 	"filament_id": "BSFI001",
 	"instantiation": "true",
 	"filament_flow_ratio": [

@@ -3,7 +3,7 @@
     "name": "Hyper ABS @Ender-5 Max-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "jPfMyNBquP31h2Eb",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

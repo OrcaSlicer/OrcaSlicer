@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI ABS Rapido",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ZKLPQIUecFL5GG2P",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

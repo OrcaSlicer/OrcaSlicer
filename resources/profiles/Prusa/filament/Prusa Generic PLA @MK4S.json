@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA @MK4S",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CqlMmArE8Llbji7t",
 	"filament_id": "Generic PLA @MK4S",
 	"instantiation": "true",
 	"compatible_printers": [

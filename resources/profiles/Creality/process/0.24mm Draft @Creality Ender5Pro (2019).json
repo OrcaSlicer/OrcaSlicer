@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Creality Ender5Pro (2019)",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "k1Qi7hPIAi1qp7cA",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "0",

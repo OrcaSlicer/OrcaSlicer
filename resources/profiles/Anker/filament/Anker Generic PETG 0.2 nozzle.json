@@ -3,7 +3,7 @@
 	"name": "Anker Generic PETG 0.2 nozzle",
 	"inherits": "Anker Generic PETG @base",
 	"from": "system",
-	"setting_id": "GFSG99_20",
+	"setting_id": "VItvDP6zmenWXwPO",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

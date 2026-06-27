@@ -3,6 +3,7 @@
 	"name": "Flashforge HIPS @FF G4 0.6 HF nozzle",
 	"inherits": "Flashforge Generic ABS @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "jUNUZhE0BJyB64fC",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

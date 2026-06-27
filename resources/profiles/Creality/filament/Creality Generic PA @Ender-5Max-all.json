@@ -3,7 +3,7 @@
 	"name": "Creality Generic PA @Ender-5Max-all",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
+	"setting_id": "8caHexyoeQW9p1NF",
 	"filament_id": "11001",
 	"instantiation": "true",
 	"activate_air_filtration": "0",

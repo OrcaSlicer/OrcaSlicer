@@ -3,7 +3,7 @@
 	"name": "Generic PETG-CF @Elegoo Centauri",
 	"inherits": "Generic PETG @base",
 	"from": "system",
-	"setting_id": "GPETGCF00",
+	"setting_id": "bWUrg1tIttzhMYlr",
 	"instantiation": "true",
 	"filament_type": [
 		"PETG-CF"

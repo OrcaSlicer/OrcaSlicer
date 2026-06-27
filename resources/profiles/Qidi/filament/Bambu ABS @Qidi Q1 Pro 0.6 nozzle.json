@@ -3,7 +3,7 @@
 	"name": "Bambu ABS @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "Bambu ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qvYl7pfvtgF2y25O",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

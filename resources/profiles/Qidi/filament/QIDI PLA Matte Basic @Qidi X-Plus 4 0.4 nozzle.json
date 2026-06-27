@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Matte Basic @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI PLA Matte Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "6Z2ery99xHlP2ciV",
 	"filament_id": "QD_0_1_8",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -3,7 +3,7 @@
 	"name": "Generic ABS @E3NG v1.2S",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "",
+	"setting_id": "VNx6rdTN7OIIXVpC",
 	"filament_id": "Generic ABS @E3NG v1.2S",
 	"instantiation": "true",
 	"compatible_printers": [

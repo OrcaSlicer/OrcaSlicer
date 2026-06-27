@@ -3,7 +3,7 @@
 	"name": "Flashforge Guider 2s 0.4 nozzle",
 	"inherits": "fdm_flashforge_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "M9iFVHOKivxm3W4B",
 	"instantiation": "true",
 	"printer_model": "Flashforge Guider 2s",
 	"gcode_flavor": "marlin",

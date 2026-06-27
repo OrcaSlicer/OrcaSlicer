@@ -2,7 +2,7 @@
 	"type": "process",
 	"name": "0.06 Standard @Snapmaker Artisan (0.2 nozzle)",
 	"from": "system",
-	"setting_id": "3200425436",
+	"setting_id": "Fqyv4se6T1PKBpXJ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.2 nozzle)"

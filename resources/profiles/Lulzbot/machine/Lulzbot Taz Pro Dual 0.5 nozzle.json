@@ -3,7 +3,7 @@
 	"name": "Lulzbot Taz Pro Dual 0.5 nozzle",
 	"inherits": "Lulzbot Taz Pro Common",
 	"from": "system",
-	"setting_id": "LZPD001",
+	"setting_id": "sRWzLKWRYOU1YBQX",
 	"instantiation": "true",
 	"single_extruder_multi_material": "0",
 	"extruders_count": "2",

@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Sparkle @System",
 	"inherits": "Bambu PLA Sparkle @base",
 	"from": "system",
-	"setting_id": "OGFSA08_00",
+	"setting_id": "nSp6ub9WA5JHbtWd",
 	"instantiation": "true",
 	"compatible_printers": []
 }

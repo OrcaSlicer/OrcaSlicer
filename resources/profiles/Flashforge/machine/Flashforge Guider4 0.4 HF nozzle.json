@@ -3,6 +3,7 @@
 	"name": "Flashforge Guider4 0.4 HF nozzle",
 	"inherits": "Flashforge Guider 3 Ultra 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "52GYZAaGoTy0CgMf",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",

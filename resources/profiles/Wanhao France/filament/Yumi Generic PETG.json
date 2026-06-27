@@ -3,7 +3,6 @@
 	"name": "Yumi Generic PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
 	"filament_id": "GFG99",
 	"instantiation": "false",
 	"reduce_fan_stop_start_freq": [

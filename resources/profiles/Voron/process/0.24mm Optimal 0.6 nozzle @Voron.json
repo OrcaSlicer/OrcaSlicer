@@ -3,7 +3,7 @@
 	"name": "0.24mm Optimal 0.6 nozzle @Voron",
 	"inherits": "fdm_process_voron_common_0_6",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "9zDra43Gi9Uf58Bz",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

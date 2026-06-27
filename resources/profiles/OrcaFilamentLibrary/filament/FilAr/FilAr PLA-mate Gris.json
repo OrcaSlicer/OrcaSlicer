@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Gris",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "6OtKg1UxWuNCqsZy",
     "filament_id": "FILAR0037",
     "instantiation": "true",
     "filament_vendor": [

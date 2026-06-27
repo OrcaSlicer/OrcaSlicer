@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual ABS Benchy",
 	"inherits": "Snapmaker Dual ABS @base",
 	"from": "system",
-	"setting_id": "3540754477",
+	"setting_id": "YMUFsOzEISsMqCLe",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.4 nozzle)"

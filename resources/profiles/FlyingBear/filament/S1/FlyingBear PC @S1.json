@@ -3,7 +3,7 @@
 	"name": "FlyingBear PC @S1",
 	"inherits": "fdm_filament_pc @S1",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "bPeSARy9AGqM8Y32",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

@@ -3,6 +3,7 @@
 	"name": "0.35mm TPU Vase @SeeMeCNC Artemis 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
+	"setting_id": "N7o0ht4DUa8YxoS6",
 	"instantiation": "true",
 	"print_settings_id": "0.35mm TPU Vase @SeeMeCNC Artemis 0.7",
 	"compatible_printers": [

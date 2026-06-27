@@ -3,7 +3,7 @@
 	"name": "Flashforge Creator 5 0.4 nozzle",
 	"inherits": "Flashforge Adventurer 5M Pro 0.4 Nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "8rfkwQO5Zv1CyFxA",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",

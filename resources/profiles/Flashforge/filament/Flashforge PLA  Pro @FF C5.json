@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA  Pro @FF C5",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "47Q7YXoJ7rD7Vu21",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

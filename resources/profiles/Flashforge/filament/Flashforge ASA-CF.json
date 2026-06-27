@@ -3,7 +3,7 @@
 	"name": "Flashforge ASA-CF",
 	"inherits": "FusRock Generic PAHT-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CI5dvVrCNk2XTU82",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.99"

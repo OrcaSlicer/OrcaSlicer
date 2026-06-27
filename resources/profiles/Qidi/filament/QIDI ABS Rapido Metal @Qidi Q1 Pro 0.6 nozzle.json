@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido Metal @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI ABS Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "igcuTXhdFT9QEkki",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

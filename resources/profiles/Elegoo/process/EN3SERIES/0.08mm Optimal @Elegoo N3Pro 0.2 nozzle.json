@@ -4,6 +4,6 @@
 	"from": "system",
 	"inherits": "0.10mm Standard @Elegoo N3Pro 0.2 nozzle",
 	"layer_height": "0.08",
-	"settings_id": "PEN3Pro02008",
+	"setting_id": "4d4rm5pkuVEpvKUA",
 	"instantiation": "true"
 }

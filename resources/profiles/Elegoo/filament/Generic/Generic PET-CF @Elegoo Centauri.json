@@ -3,7 +3,7 @@
 	"name": "Generic PET-CF @Elegoo Centauri",
 	"inherits": "Generic PET @base",
 	"from": "system",
-	"setting_id": "GPETCF00",
+	"setting_id": "Q6wiKjigmzkcMxFz",
 	"instantiation": "true",
 	"filament_type": [
 		"PET-CF"

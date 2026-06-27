@@ -3,7 +3,7 @@
 	"name": "0.80mm Extra Draft 1.0 nozzle @Voron",
 	"inherits": "fdm_process_voron_common_1_0",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "6VRaJ7Ns2zncUUfz",
 	"instantiation": "true",
 	"bottom_shell_layers": "2",
 	"top_shell_layers": "3",

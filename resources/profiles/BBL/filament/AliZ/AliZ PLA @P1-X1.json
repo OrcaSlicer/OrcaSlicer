@@ -3,7 +3,7 @@
 	"name": "AliZ PLA @P1-X1",
 	"inherits": "AliZ PLA @base",
 	"from": "system",
-	"setting_id": "AliZPX1FSA04",
+	"setting_id": "AliZ002_00",
 	"instantiation": "true",
 	"enable_pressure_advance": [
 		"1"

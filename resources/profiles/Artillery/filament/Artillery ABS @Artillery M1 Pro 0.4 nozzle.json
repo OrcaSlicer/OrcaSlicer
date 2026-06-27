@@ -3,6 +3,7 @@
 	"name": "Artillery ABS @Artillery M1 Pro 0.4 nozzle",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "QGbNWGw8rqvq025W",
 	"instantiation": "true",
 	"chamber_temperature": [
 		"50"

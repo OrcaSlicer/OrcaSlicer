@@ -3,7 +3,7 @@
 	"name": "Arena PLA-CF @Arena X1C",
 	"inherits": "Arena PLA-CF @base",
 	"from": "system",
-	"setting_id": "GFSA50_01",
+	"setting_id": "imDeceOg0WvrRwKo",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"15"

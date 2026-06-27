@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Basic @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "QIDI PETG Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "wYE4aUeszHw1HJrZ",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

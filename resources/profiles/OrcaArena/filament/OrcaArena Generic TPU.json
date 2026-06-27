@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSR99",
+	"setting_id": "uPHnZUr5Sb16uKZm",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

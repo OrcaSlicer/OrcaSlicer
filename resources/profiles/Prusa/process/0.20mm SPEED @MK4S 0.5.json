@@ -3,6 +3,7 @@
 	"name": "0.20mm SPEED @MK4S 0.5",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "2JePowdcfvIARvSH",
 	"instantiation": "true",
 	"bridge_acceleration": "1000",
 	"bridge_speed": "40",

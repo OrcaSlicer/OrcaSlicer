@@ -3,6 +3,7 @@
 	"name": "Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle",
 	"inherits": "Artillery PLA @Artillery M1 Pro 0.8 nozzle",
 	"from": "system",
+	"setting_id": "c9BAMzt2w30nB2rC",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle"

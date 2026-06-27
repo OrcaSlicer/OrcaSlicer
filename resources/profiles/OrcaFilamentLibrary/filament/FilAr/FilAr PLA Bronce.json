@@ -3,6 +3,7 @@
     "name": "FilAr PLA Bronce",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "bJuNDmVGIF0TXvkk",
     "filament_id": "FILAR0001",
     "instantiation": "true",
     "filament_vendor": [

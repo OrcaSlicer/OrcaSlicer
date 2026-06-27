@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PETG @MINIIS 0.6",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "QJQIAwmRSZW3hNI4",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"

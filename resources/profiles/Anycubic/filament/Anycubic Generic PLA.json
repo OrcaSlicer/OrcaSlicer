@@ -3,7 +3,7 @@
 	"name": "Anycubic Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "2MiX54GMiZjFzwBI",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

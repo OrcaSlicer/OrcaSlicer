@@ -3,7 +3,7 @@
 	"name": "Flashforge ASA Basic @FF AD5M 0.25 nozzle",
 	"inherits": "Flashforge ASA @FF AD5M 0.25 Nozzle",
 	"from": "system",
-	"setting_id": "GFSA04_05",
+	"setting_id": "kjS4k8nrIdNNNoWw",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge ASA Basic @FF AD5M 0.25 nozzle"

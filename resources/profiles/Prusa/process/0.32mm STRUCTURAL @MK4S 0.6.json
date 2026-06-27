@@ -3,6 +3,7 @@
 	"name": "0.32mm STRUCTURAL @MK4S 0.6",
 	"inherits": "0.32mm SPEED @MK4S 0.6",
 	"from": "system",
+	"setting_id": "c7Lno3eNSKr6FJX6",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"bridge_speed": "30",

@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @InfiMech TX",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP005",
+	"setting_id": "vI2nEncZzKIGjENk",
 	"instantiation": "true",
 	"inner_wall_acceleration": "3000",
 	"overhang_2_4_speed": "50",

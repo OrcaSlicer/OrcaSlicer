@@ -3,7 +3,7 @@
 	"name": "0.10mm Standard @Elegoo N4Pro 0.2 nozzle",
 	"inherits": "fdm_process_elegoo_02010",
 	"from": "system",
-	"setting_id": "PEN4Pro02010",
+	"setting_id": "EH1TvdVsdTCuvv2c",
 	"instantiation": "true",
 	"filename_format": "EN4Pro_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"elefant_foot_compensation": "0.15",

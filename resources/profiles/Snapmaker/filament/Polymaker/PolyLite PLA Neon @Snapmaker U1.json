@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Neon @Snapmaker U1",
 	"inherits": "PolyLite PLA Neon @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL66_00",
+	"setting_id": "WMoh0mKVmVsdP5rc",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

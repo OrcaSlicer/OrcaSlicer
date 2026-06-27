@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Sparkle @FF G4P HF",
 	"inherits": "Flashforge Generic ABS @G3U",
 	"from": "system",
+	"setting_id": "Oapl8InwbkwNSIDl",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

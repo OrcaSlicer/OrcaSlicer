@@ -3,7 +3,7 @@
 	"name": "RatRig Generic PA",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "fVGEV9t4w06LODgD",
 	"filament_id": "GFN99",
 	"instantiation": "true",
 	"nozzle_temperature_initial_layer": [

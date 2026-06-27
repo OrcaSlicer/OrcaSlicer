@@ -3,6 +3,7 @@
 	"name": "0.08mm High Quality @Artillery M1 Pro 0.4 nozzle",
 	"inherits": "fdm_process_common",
 	"from": "system",
+	"setting_id": "HNsKMUSaLsnb56Mf",
 	"instantiation": "true",
 	"default_acceleration": "4000",
 	"filename_format": "{input_filename_base}_{filament_type[initial_tool]}_M1Pro.gcode",

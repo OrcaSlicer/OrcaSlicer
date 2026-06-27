@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Silk @0.2 nozzle",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLAS00020",
+	"setting_id": "9cy4zu57LxlFIrLB",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

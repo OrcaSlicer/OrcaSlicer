@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Silk @0.6 nozzle",
 	"inherits": "QIDI PLA Rapido Silk",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "AaBBTIJSMkxxTPDt",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

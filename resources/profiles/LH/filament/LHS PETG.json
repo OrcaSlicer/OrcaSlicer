@@ -2,7 +2,7 @@
 	"name": "LHS PETG",
 	"type": "filament",
 	"filament_id": "LHF_petg",
-	"setting_id": "LHF_S_petg",
+	"setting_id": "aZdY1M44ui7Rtj8r",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",

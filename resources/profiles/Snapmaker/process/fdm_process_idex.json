@@ -3,7 +3,6 @@
 	"name": "fdm_process_idex",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "2703811679",
 	"instantiation": "false",
 	"initial_layer_print_height": "0.2",
 	"enable_arc_fitting": "1",

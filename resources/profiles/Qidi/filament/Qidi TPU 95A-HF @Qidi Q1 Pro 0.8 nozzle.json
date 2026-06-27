@@ -3,7 +3,7 @@
 	"name": "Qidi TPU 95A-HF @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "Qidi TPU 95A-HF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "fZISb4jbF8jv60dL",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

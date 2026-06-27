@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual TPE",
 	"inherits": "Snapmaker Dual TPU @base",
 	"from": "system",
-	"setting_id": "2704030359",
+	"setting_id": "KoZqZ4l1tYZ99JYz",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.4 nozzle)",

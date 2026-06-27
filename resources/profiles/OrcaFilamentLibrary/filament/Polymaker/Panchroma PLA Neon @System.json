@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Neon @System",
 	"inherits": "Panchroma PLA Neon @base",
 	"from": "system",
-	"setting_id": "OGFSPM013",
+	"setting_id": "LkSJj98giA5JGLbw",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

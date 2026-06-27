@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Basic @System",
 	"inherits": "Bambu PLA Basic @base",
 	"from": "system",
-	"setting_id": "OGFSA00",
+	"setting_id": "zkc85XTKi4cb6cOw",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"21"

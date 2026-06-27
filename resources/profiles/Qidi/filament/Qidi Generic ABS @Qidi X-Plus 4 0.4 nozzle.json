@@ -3,7 +3,7 @@
 	"name": "Qidi Generic ABS @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Qidi Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "N3Ca9PN8nDnvhmak",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

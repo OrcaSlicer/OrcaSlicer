@@ -3,6 +3,7 @@
 	"name": "0.30mm DETAIL @MK4S 0.8",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "jllXUdTLgXXBFvmv",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"bottom_shell_thickness": "0.8",

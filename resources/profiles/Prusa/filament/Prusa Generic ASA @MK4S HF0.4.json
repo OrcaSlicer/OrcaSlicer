@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ASA @MK4S HF0.4",
 	"inherits": "Prusa Generic ASA @MK4S",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "na3FnleO5uhDF7Yr",
 	"filament_id": "Prusament ASA @MK4S HF0.4",
 	"instantiation": "true",
 	"compatible_printers": [

@@ -3,7 +3,7 @@
 	"name": "Creality Generic ASA @K2-all",
 	"inherits": "Creality Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04_00",
+	"setting_id": "OAYGhucg52H8nPIF",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

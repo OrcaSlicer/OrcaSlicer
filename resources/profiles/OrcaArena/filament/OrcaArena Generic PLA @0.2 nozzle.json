@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PLA @0.2 nozzle",
 	"inherits": "OrcaArena Generic PLA @base",
 	"from": "system",
-	"setting_id": "GFSL99_00",
+	"setting_id": "V1TMYgbxBLgciFa2",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

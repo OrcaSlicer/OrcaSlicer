@@ -3,7 +3,7 @@
 	"name": "Creality Sermoon V1 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "OnKwNzhsh33llBNP",
 	"instantiation": "true",
 	"printer_model": "Creality Sermoon V1",
 	"default_filament_profile": [

@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PETG @base",
 	"inherits": "fdm_filament_pet",
+	"setting_id": "bGfz4phwIdqSz0Hx",
 	"filament_id": "P510cfc0",
 	"instantiation": "true",
 	"compatible_printers": [

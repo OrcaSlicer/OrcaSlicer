@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery ABS @Artillery M1 Pro 0.6 nozzle",
 	"from": "system",
+	"setting_id": "PxGFsoMcfFrTDqzL",
 	"filament_id": "P39db358",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -4,7 +4,7 @@
 	"renamed_from": "0.42mm Standard @Z-Bolt S300 0.6 nozzle;0.42mm Standard @Z-Bolt S400 0.6 nozzle;0.42mm Standard @Z-Bolt S600 0.6 nozzle;0.42mm Standard @Z-Bolt S800 0.6 nozzle",
 	"inherits": "fdm_process_zbolt_0.42_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP022",
+	"setting_id": "3Y2p4ilbdJWtoet7",
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height, and results in much more apparent layer lines and much lower printing quality, but shorter printing time in some printing cases.",
 	"elefant_foot_compensation": "0.15",

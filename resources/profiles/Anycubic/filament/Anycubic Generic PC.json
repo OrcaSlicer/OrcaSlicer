@@ -3,7 +3,7 @@
 	"name": "Anycubic Generic PC",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "3zgBtEkj1fQpDkxO",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

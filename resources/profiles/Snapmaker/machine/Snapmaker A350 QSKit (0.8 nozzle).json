@@ -3,7 +3,7 @@
 	"name": "Snapmaker A350 QSKit (0.8 nozzle)",
 	"inherits": "fdm_a350_qs",
 	"from": "system",
-	"setting_id": "458527552",
+	"setting_id": "oB7dYfgdRYiJd6u4",
 	"instantiation": "true",
 	"printer_model": "Snapmaker A350 QSKit",
 	"default_print_profile": "0.24 Standard @Snapmaker (0.8 nozzle)",

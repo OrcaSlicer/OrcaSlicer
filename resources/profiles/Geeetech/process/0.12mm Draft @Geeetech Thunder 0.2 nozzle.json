@@ -3,7 +3,7 @@
 	"name": "0.12mm Draft @Geeetech Thunder 0.2 nozzle",
 	"inherits": "fdm_process_Geeetech_HS_0.12_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP_Geeetech_010",
+	"setting_id": "wxH4KvLM4AgLY55K",
 	"instantiation": "true",
 	"default_acceleration": "5000",
 	"top_surface_acceleration": "3000",

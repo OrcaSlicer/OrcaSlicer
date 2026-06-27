@@ -3,7 +3,7 @@
 	"name": "Folgertech i3 0.4 nozzle",
 	"inherits": "fdm_folgertech_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "Pr3Xa7tsNBETM1Xy",
 	"instantiation": "true",
 	"printer_model": "Folgertech i3",
 	"nozzle_diameter": [

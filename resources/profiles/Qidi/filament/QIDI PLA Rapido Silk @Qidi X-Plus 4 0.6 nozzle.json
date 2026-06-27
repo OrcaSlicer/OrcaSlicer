@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Silk @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "QIDI PLA Rapido Silk",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "McXMhVyp029M56kU",
 	"filament_id": "QD_0_1_4",
 	"instantiation": "true",
 	"activate_air_filtration": [

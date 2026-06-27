@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "2TsaNedKJlTmULOi",
 	"name": "0.20mm Standard @X-Max 4",
 	"from": "system",
 	"inherits": "fdm_process_n_common",

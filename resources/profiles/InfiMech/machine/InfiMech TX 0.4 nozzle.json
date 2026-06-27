@@ -3,7 +3,7 @@
 	"name": "InfiMech TX 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "1WqMGhjlF5v3sjBZ",
 	"instantiation": "true",
 	"printer_model": "InfiMech TX",
 	"nozzle_diameter": [

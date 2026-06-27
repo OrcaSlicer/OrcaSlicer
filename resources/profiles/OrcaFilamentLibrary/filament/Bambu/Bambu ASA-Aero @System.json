@@ -3,7 +3,7 @@
 	"name": "Bambu ASA-Aero @System",
 	"inherits": "Bambu ASA-Aero @base",
 	"from": "system",
-	"setting_id": "OGFSB02_00",
+	"setting_id": "Z1SeI4Lll9gz2USx",
 	"instantiation": "true",
 	"compatible_printers": []
 }

@@ -3,7 +3,7 @@
     "name": "Generic PLA @K2 SE-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "03mMqzkFvH7rS8wz",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

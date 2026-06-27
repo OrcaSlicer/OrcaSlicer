@@ -3,6 +3,7 @@
 	"name": "0.42mm Draft @FF AD5X 0.6 nozzle",
 	"inherits": "0.42mm Draft @Flashforge AD5M Pro 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "ePqStrkF9PBgXen1",
 	"instantiation": "true",
 	"brim_type": "auto_brim",
 	"enable_prime_tower": "1",

@@ -3,7 +3,6 @@
 	"name": "DREMC PETG @System",
 	"inherits": "DREMC PETG @base",
 	"from": "system",
-	"setting_id": "DREMC002",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"20"

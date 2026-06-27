@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle",
 	"from": "User",
+	"setting_id": "dQBp2T4ap90uAOYs",
 	"filament_id": "P284941e",
 	"instantiation": "true",
 	"activate_air_filtration": [

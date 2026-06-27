@@ -3,7 +3,7 @@
 	"name": "Other PETG",
 	"inherits": "fdm_filament_pet_other",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "onLEWi8GYK0avard",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

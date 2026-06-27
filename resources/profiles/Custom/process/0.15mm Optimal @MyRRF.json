@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @MyRRF",
 	"inherits": "fdm_process_rrf_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "TcZOJuBSFK5kB1H8",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

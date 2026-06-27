@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_3_0_41",
-	"setting_id": "GFSG99",
 	"name": "Generic PETG@X-Max 4-Series",
 	"from": "system",
 	"instantiation": "false",

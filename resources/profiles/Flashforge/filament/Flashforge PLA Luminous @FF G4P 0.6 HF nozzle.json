@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Luminous @FF G4P 0.6 HF nozzle",
 	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "vXPXOKD8vNJlujM1",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

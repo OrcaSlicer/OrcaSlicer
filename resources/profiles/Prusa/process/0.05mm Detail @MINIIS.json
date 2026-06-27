@@ -3,7 +3,7 @@
 	"name": "0.05mm Detail @MINIIS",
 	"inherits": "process_detail_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "efECy0NOZGfzFBFP",
 	"instantiation": "true",
 	"line_width": "0.27",
 	"inner_wall_line_width": "0.25",

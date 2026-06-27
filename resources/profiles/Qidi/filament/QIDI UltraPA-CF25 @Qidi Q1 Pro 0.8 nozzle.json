@@ -3,7 +3,7 @@
 	"name": "QIDI UltraPA-CF25 @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "QIDI UltraPA-CF25",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "G0qM351aUv23WFmP",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

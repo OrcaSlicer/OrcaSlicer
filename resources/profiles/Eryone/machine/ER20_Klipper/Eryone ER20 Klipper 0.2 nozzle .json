@@ -3,6 +3,7 @@
 	"default_print_profile": "0.10mm Standard @Eryone ER20 Klipper 0.2 nozzle",
 	"from": "system",
 	"inherits": "fdm_machine_eryone_ER20_Klipper_common",
+	"setting_id": "dUHn8STOXHOXD63f",
 	"instantiation": "true",
 	"max_layer_height": [
 		"0.14"

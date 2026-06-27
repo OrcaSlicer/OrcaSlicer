@@ -3,7 +3,7 @@
 	"name": "D12 500 PRO M2 DIRECT 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "T1TovgQ0zwad2e0j",
 	"instantiation": "true",
 	"printer_model": "D12 500 PRO SMARTPAD DIRECT",
 	"gcode_flavor": "marlin2",

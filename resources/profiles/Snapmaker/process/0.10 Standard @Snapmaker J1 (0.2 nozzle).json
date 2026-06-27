@@ -3,7 +3,7 @@
 	"name": "0.10 Standard @Snapmaker J1 (0.2 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "3458191734",
+	"setting_id": "IbypFju9QyDwlZTZ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.2 nozzle)"

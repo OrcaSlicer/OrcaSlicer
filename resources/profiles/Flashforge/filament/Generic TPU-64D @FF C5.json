@@ -3,6 +3,7 @@
 	"name": "Generic TPU-64D @FF C5",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "i59KgPtnplOJ8ZBh",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

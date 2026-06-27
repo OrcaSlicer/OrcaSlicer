@@ -3,7 +3,7 @@
 	"name": "0.24mm Fine 0.8 nozzle @Voron",
 	"inherits": "fdm_process_voron_common_0_8",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "mEpo3myfJtsFdBpf",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

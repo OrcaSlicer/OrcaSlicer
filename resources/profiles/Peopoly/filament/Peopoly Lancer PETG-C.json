@@ -3,7 +3,7 @@
 	"name": "Peopoly Lancer PETG-C",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "aUX6OHQrKPghlPBb",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

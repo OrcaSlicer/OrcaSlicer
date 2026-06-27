@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA @EC2",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "EASAEC2",
+	"setting_id": "OYEKFuyeKgCsHlYz",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"

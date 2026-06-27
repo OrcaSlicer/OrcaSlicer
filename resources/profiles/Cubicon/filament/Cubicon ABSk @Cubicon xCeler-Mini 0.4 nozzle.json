@@ -3,6 +3,7 @@
 	"name": "Cubicon ABSk @Cubicon xCeler-Mini 0.4 nozzle",
 	"inherits": "Cubicon ABSk @base",
 	"from": "system",
+	"setting_id": "CsthNnKn8WlBbkP4",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Mini 0.4 nozzle"

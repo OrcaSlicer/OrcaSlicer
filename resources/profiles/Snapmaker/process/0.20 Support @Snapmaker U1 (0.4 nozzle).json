@@ -3,7 +3,7 @@
 	"name": "0.20 Support @Snapmaker U1 (0.4 nozzle)",
 	"inherits": "fdm_process_U1_0.20",
 	"from": "system",
-	"setting_id": "GP0040",
+	"setting_id": "4whjHJVCN44w8SPE",
 	"instantiation": "true",
 	"description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
 	"smooth_coefficient": "150",

@@ -3,7 +3,7 @@
 	"name": "Bambu Support For PLA @System",
 	"inherits": "Bambu Support For PLA @base",
 	"from": "system",
-	"setting_id": "OGFSS02_02",
+	"setting_id": "EwkurYYKRtkXvAVY",
 	"instantiation": "true",
 	"compatible_printers": []
 }

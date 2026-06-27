@@ -3,7 +3,7 @@
 	"name": "Elegoo ABS @0.2 nozzle",
 	"inherits": "Elegoo ABS @base",
 	"from": "system",
-	"setting_id": "EABS00020",
+	"setting_id": "stkzx3iRb8i4yDWL",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

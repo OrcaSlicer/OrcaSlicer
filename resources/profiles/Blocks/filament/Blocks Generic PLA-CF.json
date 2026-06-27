@@ -3,7 +3,7 @@
 	"name": "Blocks Generic PLA-CF",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "BSSI010",
+	"setting_id": "RHKPeXZiv4E2p4lP",
 	"filament_id": "BSFI010",
 	"instantiation": "true",
 	"filament_flow_ratio": [

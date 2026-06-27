@@ -3,7 +3,7 @@
 	"name": "Snapmaker A250 Dual QSKit (0.4 nozzle)",
 	"inherits": "fdm_a250_dual_qs",
 	"from": "system",
-	"setting_id": "3839345938",
+	"setting_id": "CuYdmbMAxfR2brMw",
 	"instantiation": "true",
 	"printer_model": "Snapmaker A250 Dual QSKit",
 	"default_print_profile": "0.16 Optimal @Snapmaker (0.4 nozzle)",

@@ -3,7 +3,7 @@
     "name": "CR-ABS @Ender-3 V4-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "3MchJTc47Au6MkZ0",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

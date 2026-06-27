@@ -3,7 +3,7 @@
 	"name": "Creality Ender-3 V3 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "FUmSsB1Xk6FJC0tl",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-3 V3",
 	"gcode_flavor": "klipper",

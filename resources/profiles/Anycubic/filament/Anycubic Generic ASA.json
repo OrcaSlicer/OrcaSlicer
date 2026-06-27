@@ -3,7 +3,7 @@
 	"name": "Anycubic Generic ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qKcef8t7nj8nBjPu",
 	"filament_id": "GFB98",
 	"instantiation": "true",
 	"filament_flow_ratio": [

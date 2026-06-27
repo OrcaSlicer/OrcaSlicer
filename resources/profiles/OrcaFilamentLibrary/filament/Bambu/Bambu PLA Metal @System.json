@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Metal @System",
 	"inherits": "Bambu PLA Metal @base",
 	"from": "system",
-	"setting_id": "OGFSA02",
+	"setting_id": "7w5T6uXXrwLzQb5D",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"21"

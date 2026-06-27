@@ -3,6 +3,7 @@
 	"name": "WonderMaker PLA Metal",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"setting_id": "4B7gD5YwPbUCvLAh",
 	"filament_id": "GFA02",
 	"instantiation": "true",
 	"description": "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing.",

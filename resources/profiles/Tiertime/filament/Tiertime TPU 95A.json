@@ -3,6 +3,7 @@
 	"name": "Tiertime TPU 95A",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
+	"setting_id": "aeeRALQ6vydj2vbR",
 	"filament_id": "GFU01",
 	"instantiation": "true",
 	"filament_vendor": [

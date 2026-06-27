@@ -3,7 +3,7 @@
 	"name": "Flashforge HS PETG",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "H9uwlPw6m6Nf7qH5",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge HS PETG"

@@ -3,7 +3,7 @@
 	"name": "SUNLU Wood PLA @FF AD3",
 	"inherits": "SUNLU Wood PLA @base",
 	"from": "system",
-	"setting_id": "GFSNLS07_03",
+	"setting_id": "Kvn22UmFqoNUMOg0",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"210"

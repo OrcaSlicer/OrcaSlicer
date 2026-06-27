@@ -3,7 +3,7 @@
 	"name": "Dremel 3D45 0.4 nozzle",
 	"inherits": "fdm_dremel_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "75f7dk1mwCHV6473",
 	"instantiation": "true",
 	"printer_model": "Dremel 3D45",
 	"printer_variant": "0.4",

@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Galaxy @System",
 	"inherits": "Bambu PLA Galaxy @base",
 	"from": "system",
-	"setting_id": "OGFSA15_00",
+	"setting_id": "O21mHwtRSSE6HEfS",
 	"instantiation": "true",
 	"filament_long_retractions_when_cut": [
 		"1"

@@ -3,7 +3,7 @@
 	"name": "0.60mm Draft @Elegoo N4Plus 1.0 nozzle",
 	"from": "system",
 	"inherits": "0.50mm Standard @Elegoo N4Plus 1.0 nozzle",
+	"setting_id": "f5rYjm5HnjXGeRv9",
 	"instantiation": "true",
-	"layer_height": "0.6",
-	"settings_id": "PEN4Plus10060"
+	"layer_height": "0.6"
 }

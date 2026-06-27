@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Flashforge G3U 0.4 Nozzle",
 	"inherits": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "YeElEtVLb55pdAgy",
 	"instantiation": "true",
 	"bridge_flow": "0.96",
 	"bridge_speed": "15",

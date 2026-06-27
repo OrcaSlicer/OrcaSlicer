@@ -4,7 +4,7 @@
 	"renamed_from": "Generic Silk PLA @System",
 	"inherits": "fdm_filament_pla_silk",
 	"from": "system",
-	"setting_id": "OGFSL99_01",
+	"setting_id": "oPkXDCBrTQB3SRm4",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"7.5"

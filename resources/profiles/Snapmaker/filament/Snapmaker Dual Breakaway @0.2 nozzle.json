@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual Breakaway @0.2 nozzle",
 	"inherits": "Snapmaker Dual Breakaway @base",
 	"from": "system",
-	"setting_id": "98433967",
+	"setting_id": "AnOsn06GmBxyP7WO",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.2 nozzle)",

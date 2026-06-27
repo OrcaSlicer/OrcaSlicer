@@ -3,7 +3,7 @@
 	"name": "PolyLite PETG @System",
 	"inherits": "PolyLite PETG @base",
 	"from": "system",
-	"setting_id": "OGFSG60_00",
+	"setting_id": "iN91PHxwd4XuYhjd",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"11.5"

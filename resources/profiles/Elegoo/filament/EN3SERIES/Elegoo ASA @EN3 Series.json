@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA @EN3 Series",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "EASAEN3",
+	"setting_id": "SDHq0vtdwuAPJtjN",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"8"

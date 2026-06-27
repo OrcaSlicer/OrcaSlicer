@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery PLA @Artillery M1 Pro 0.2 nozzle",
 	"from": "system",
+	"setting_id": "sqlU8YRYqavJBap3",
 	"filament_id": "Pfcf9c4c",
 	"instantiation": "true",
 	"activate_air_filtration": [

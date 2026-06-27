@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Flashforge AD4 0.4 Nozzle",
 	"inherits": "fdm_process_flashforge_common",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "wL1NzGxmHbZkysh4",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"initial_layer_print_height": "0.3",

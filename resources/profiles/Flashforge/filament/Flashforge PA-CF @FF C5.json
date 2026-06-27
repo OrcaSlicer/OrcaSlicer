@@ -3,6 +3,7 @@
 	"name": "Flashforge PA-CF @FF C5",
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
+	"setting_id": "e58C9MdOWikIbbVR",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",

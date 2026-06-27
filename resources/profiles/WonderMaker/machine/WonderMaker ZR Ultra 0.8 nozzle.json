@@ -3,7 +3,7 @@
 	"name": "WonderMaker ZR Ultra 0.8 nozzle",
 	"inherits": "WonderMaker ZR Ultra 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM012",
+	"setting_id": "SY9snlsMkurhEYWP",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8",

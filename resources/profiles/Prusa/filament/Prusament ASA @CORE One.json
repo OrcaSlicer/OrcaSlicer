@@ -3,7 +3,7 @@
 	"name": "Prusament ASA @CORE One",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "UUTjJ4Y8St3c87jD",
 	"filament_id": "Prusament ASA @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

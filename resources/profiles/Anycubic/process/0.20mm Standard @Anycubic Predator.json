@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Anycubic Predator",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "ivQ4JSJ86wwdkFb0",
 	"instantiation": "true",
 	"default_acceleration": "1500",
 	"default_jerk": "9",

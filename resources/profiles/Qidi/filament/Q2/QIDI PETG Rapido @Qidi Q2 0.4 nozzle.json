@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI PETG Rapido@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "4bwNKB1GVQeIMcVK",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.4 nozzle"

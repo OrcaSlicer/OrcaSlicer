@@ -3,7 +3,6 @@
 	"name": "Flashforge ABS @FF AD5M 0.25 Nozzle",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04_02",
 	"filament_id": "GFB99",
 	"instantiation": "false",
 	"compatible_printers": [

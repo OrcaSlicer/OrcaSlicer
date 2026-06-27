@@ -3,7 +3,7 @@
 	"name": "0.20 Standard @Snapmaker U1 (0.6 nozzle)",
 	"inherits": "fdm_process_U1_0.6_common",
 	"from": "system",
-	"setting_id": "GP004_06_020",
+	"setting_id": "6VM4QhgvHUmyf2um",
 	"instantiation": "true",
 	"description": "Standard 0.2 mm layer height profile for the Snapmaker U1 with 0.6 mm nozzles. Balances print speed and surface quality for everyday prints.",
 	"layer_height": "0.20",

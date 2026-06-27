@@ -3,7 +3,7 @@
 	"name": "0.28mm Extra Draft @Qidi Q1 Pro",
 	"inherits": "0.28mm Extra Draft @Qidi X3",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "SW988y6xTwSW831g",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q1 Pro 0.4 nozzle"

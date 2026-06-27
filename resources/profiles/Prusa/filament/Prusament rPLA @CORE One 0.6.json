@@ -3,7 +3,7 @@
 	"name": "Prusament rPLA @CORE One 0.6",
 	"inherits": "Prusament rPLA @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "BY8gwU1VY0hFBPSc",
 	"filament_id": "Prusament rPLA @CORE One 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

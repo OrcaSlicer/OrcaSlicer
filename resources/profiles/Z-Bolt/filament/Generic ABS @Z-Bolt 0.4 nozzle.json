@@ -4,7 +4,7 @@
 	"inherits": "Generic ABS @Z-Bolt Base",
 	"renamed_from": "Z-Bolt ABS;Generic ABS @Z-Bolt;Z-Bolt ABS @0.4 nozzle",
 	"from": "system",
-	"setting_id": "GFSL204",
+	"setting_id": "p97bQCnVyGgwMn2y",
 	"filament_id": "GFL204",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

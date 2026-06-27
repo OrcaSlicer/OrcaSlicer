@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PC",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSC99",
+	"setting_id": "wd4PrqXE2um46ueW",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_type": [

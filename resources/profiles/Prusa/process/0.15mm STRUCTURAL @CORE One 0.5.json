@@ -3,6 +3,7 @@
 	"name": "0.15mm STRUCTURAL @CORE One 0.5",
 	"inherits": "0.15mm STRUCTURAL @MK4S 0.5",
 	"from": "system",
+	"setting_id": "Ri9JPCMN8YgbT9pp",
 	"instantiation": "true",
 	"overhang_3_4_speed": "45",
 	"travel_speed": "350",

@@ -3,7 +3,7 @@
 	"name": "Prusament PETG @XL 5T",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFG99_PRUSA_1",
+	"setting_id": "USigpRWuzpdkT6ZW",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "240",
 	"nozzle_temperature": "250",

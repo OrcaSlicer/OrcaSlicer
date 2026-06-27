@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Tough 0.2 nozzle",
 	"inherits": "QIDI PETG Tough",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "wl53hiPD7EGYabrt",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

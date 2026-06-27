@@ -3,6 +3,7 @@
 	"default_print_profile": "0.30mm Standard @Eryone ER20 0.6 nozzle",
 	"from": "system",
 	"inherits": "fdm_machine_eryone_ER20_common",
+	"setting_id": "8USSZMCTCDoHK55n",
 	"instantiation": "true",
 	"max_layer_height": [
 		"0.42"

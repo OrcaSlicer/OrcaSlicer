@@ -3,7 +3,7 @@
 	"name": "D12 230 PRO SMARTPAD MONO DUAL 0.4 nozzle PoopTool",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "PubqaINvB4L3UeWp",
 	"instantiation": "true",
 	"printer_model": "D12 230 PRO SMARTPAD MONO DUAL PoopTool",
 	"default_print_profile": "0.20mm Standard @Wanhao-D12-230 PoopTool",

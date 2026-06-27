@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Translucent2 @EC2",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLATRA2EC2",
+	"setting_id": "RKBHiiO580ou2vr1",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"

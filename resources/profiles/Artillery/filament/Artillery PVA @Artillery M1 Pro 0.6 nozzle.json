@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery PVA @Artillery M1 Pro 0.6 nozzle",
 	"from": "system",
+	"setting_id": "h5xquKMT9l0rwcTU",
 	"filament_id": "P8163162",
 	"instantiation": "true",
 	"activate_air_filtration": [

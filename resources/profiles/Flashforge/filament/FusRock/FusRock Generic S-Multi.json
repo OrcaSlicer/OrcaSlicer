@@ -3,7 +3,7 @@
 	"name": "FusRock Generic S-Multi",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gQLoSJ7xGEdOd8kr",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

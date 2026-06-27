@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA+ 2.0 @FF AD3",
 	"inherits": "SUNLU PLA+ 2.0 @base",
 	"from": "system",
-	"setting_id": "GFSNLS04_03",
+	"setting_id": "Zen9mJ6TV3zmKH3J",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"210"

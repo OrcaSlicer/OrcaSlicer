@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "2tme6z6FUnpCpm4H",
 	"instantiation": "true",
 	"bridge_flow": "1.4",
 	"bridge_speed": "100",

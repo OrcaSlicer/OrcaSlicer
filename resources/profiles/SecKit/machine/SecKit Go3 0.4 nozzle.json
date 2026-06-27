@@ -3,7 +3,7 @@
 	"name": "SecKit Go3 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "hViFP3EQalfD5Y5t",
 	"instantiation": "true",
 	"printer_model": "Seckit Go3",
 	"nozzle_diameter": [

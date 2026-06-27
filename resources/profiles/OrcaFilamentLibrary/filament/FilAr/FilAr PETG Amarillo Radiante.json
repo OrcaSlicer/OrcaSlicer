@@ -3,6 +3,7 @@
     "name": "FilAr PETG Amarillo Radiante",
     "inherits": "FilAr PETG @base",
     "from": "system",
+    "setting_id": "aFO2PDBIQqvNlH9p",
     "filament_id": "FILAR0048",
     "instantiation": "true",
     "filament_vendor": [

@@ -3,7 +3,7 @@
 	"name": "Anker Generic PLA 0.25 nozzle",
 	"inherits": "Anker Generic PLA @base",
 	"from": "system",
-	"setting_id": "GFSL99_25",
+	"setting_id": "uKfcnPWdXxAGB5Ls",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3"

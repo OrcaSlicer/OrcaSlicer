@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_3_0_50",
-	"setting_id": "GFSR99",
 	"name": "Generic TPU 95A@X-Max 4-Series",
 	"from": "system",
 	"instantiation": "false",

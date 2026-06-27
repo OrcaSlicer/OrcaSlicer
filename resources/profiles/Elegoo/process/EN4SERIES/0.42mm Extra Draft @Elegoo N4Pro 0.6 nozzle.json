@@ -3,8 +3,8 @@
 	"name": "0.42mm Extra Draft @Elegoo N4Pro 0.6 nozzle",
 	"from": "system",
 	"inherits": "0.30mm Standard @Elegoo N4Pro 0.6 nozzle",
+	"setting_id": "o1GuCAN5AF2cjFRZ",
 	"instantiation": "true",
 	"layer_height": "0.42",
-	"settings_id": "PEN4Pro06042",
 	"renamed_from": "0.28mm Extra Draft @Elegoo Neptune4Pro (0.6 nozzle)"
 }

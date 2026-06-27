@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "9k0mROwMyk1hxZm1",
 	"name": "High speed (Stage 2) - 0.15mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

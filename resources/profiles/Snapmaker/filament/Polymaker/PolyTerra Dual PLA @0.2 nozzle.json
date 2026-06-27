@@ -3,7 +3,7 @@
 	"from": "system",
 	"instantiation": "true",
 	"name": "PolyTerra Dual PLA @0.2 nozzle",
-	"setting_id": "1258531391",
+	"setting_id": "UQYgjH1uVxf3d2Nv",
 	"inherits": "PolyTerra PLA @0.2 nozzle",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.2 nozzle)",

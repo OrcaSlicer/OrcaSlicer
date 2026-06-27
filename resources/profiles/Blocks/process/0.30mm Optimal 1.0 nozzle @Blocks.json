@@ -3,7 +3,7 @@
 	"name": "0.30mm Optimal 1.0 nozzle @Blocks",
 	"inherits": "fdm_process_common 1.0 nozzle",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "8pBawPScHkyQu0SW",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "4",

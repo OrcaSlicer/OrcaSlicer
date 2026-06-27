@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra Plus 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "6P8w81ez1853W0NK",
 	"instantiation": "true",
 	"printer_model": "Anycubic Kobra Plus",
 	"default_print_profile": "0.20mm Standard @Anycubic KobraPlus",

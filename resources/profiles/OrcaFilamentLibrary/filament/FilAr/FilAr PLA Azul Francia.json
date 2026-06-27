@@ -3,6 +3,7 @@
     "name": "FilAr PLA Azul Francia",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "kOF3UfqKVqWKFwiH",
     "filament_id": "FILAR0026",
     "instantiation": "true",
     "filament_vendor": [

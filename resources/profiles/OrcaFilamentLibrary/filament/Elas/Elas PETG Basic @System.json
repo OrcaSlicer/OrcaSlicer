@@ -3,7 +3,7 @@
 	"name": "Elas PETG Basic @System",
 	"inherits": "Elas PETG Basic @base",
 	"from": "system",
-	"setting_id": "OGFSG00_01",
+	"setting_id": "zS9x67Qf9TSYFmu2",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"13"
