@@ -657,6 +657,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                                               m_config.option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0));
 
             // glyph on every other line
+            gcode << ";TYPE:Outer wall\n"; 
             for (int j = 0; j < num_patterns; j += 2) {
                 gcode << draw_number(glyph_start_x(j), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                      m_params.start + (j * m_params.step), m_draw_digit_mode, line_width(), number_e_per_mm,
