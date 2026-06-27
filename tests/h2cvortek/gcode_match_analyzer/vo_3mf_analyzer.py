@@ -2,21 +2,23 @@
 """
 3MF Project Analyzer for H2C Variant Overrides
 
-Analyzes a .3mf project file and extracts:
-1. All objects with their names and extruder assignments
-2. Variant Overrides (VO) per object — per-variant speed/accel/jerk values
-3. Global project settings (preset-level VO)
-4. Summary table with per-object, per-extruder variant parameters
+Analyzes a .3mf sliced project (contains G-code) and extracts:
+1. All objects from G-code comments (OBJECT: / OBJECT_ID:)
+2. Per-object tool (extruder) usage + feedrates per feature
+3. Variant Override arrays from G-code footer config (key = v0,v1,v2,v3)
+4. Maps each object's active tool → variant index → effective VO values
+5. Summary tables per-object with all variant parameters
 
-BBL H2C extruder mapping:
-  - Left extruder  = extruder_id 0 (BBL convention: T0)
-  - Right extruder = extruder_id 1 (BBL convention: T1)
+BBL H2C extruder/variant mapping:
+  print_extruder_id = 1,2  → Left=1 (T0), Right=2 (T3 in firmware)
   
-  Variant indices within each extruder:
-    Left  variants: index 0, 1  (e.g., 0.4mm standard, 0.4mm high-flow)
-    Right variants: index 2, 3  (if applicable)
-    
-  In VO arrays: [val_variant0, val_variant1, val_variant2, val_variant3]
+  Variant indices in VO arrays (4-variant):
+    idx 0 = Left-Standard   (T0)
+    idx 1 = Left-HighFlow    (T0, different nozzle volume)
+    idx 2 = Right-Standard   (T3)
+    idx 3 = Right-HighFlow   (T3, different nozzle volume)
+  
+  Tool → variant index mapping uses extruder_nozzle_stats.
 """
 
 import os
@@ -25,12 +27,11 @@ import re
 import json
 import argparse
 import zipfile
-import xml.etree.ElementTree as ET
-from collections import defaultdict, OrderedDict
+import io
+from collections import defaultdict, OrderedDict, Counter
 
 # Keys that support variant overrides (from VariantOverrides.cpp)
 VARIANT_KEYS = {
-    # Speeds
     "initial_layer_speed", "initial_layer_infill_speed", "initial_layer_travel_speed",
     "slow_down_layers",
     "outer_wall_speed", "inner_wall_speed", "small_perimeter_speed", "small_perimeter_threshold",
@@ -40,565 +41,534 @@ VARIANT_KEYS = {
     "bridge_speed", "internal_bridge_speed", "gap_infill_speed",
     "support_speed", "support_interface_speed",
     "travel_speed", "travel_speed_z",
-    # Acceleration
     "default_acceleration", "initial_layer_acceleration", "initial_layer_travel_acceleration",
     "outer_wall_acceleration", "inner_wall_acceleration",
     "sparse_infill_acceleration", "internal_solid_infill_acceleration",
     "bridge_acceleration", "top_surface_acceleration", "travel_acceleration",
-    # Jerk
     "default_jerk", "outer_wall_jerk", "inner_wall_jerk", "top_surface_jerk",
     "infill_jerk", "initial_layer_jerk", "travel_jerk", "initial_layer_travel_jerk",
-    # Advanced
     "max_volumetric_extrusion_rate_slope", "max_volumetric_extrusion_rate_slope_segment_length",
     "extrusion_rate_smoothing_external_perimeter_only",
-    # Extruder identity
     "print_extruder_id", "print_extruder_variant",
 }
 
-# Categories for display grouping
-CATEGORY_MAP = OrderedDict([
-    ("Speeds", [
-        "outer_wall_speed", "inner_wall_speed", "small_perimeter_speed",
-        "sparse_infill_speed", "internal_solid_infill_speed", "top_surface_speed",
-        "bridge_speed", "internal_bridge_speed", "gap_infill_speed",
-        "support_speed", "support_interface_speed",
-        "travel_speed", "travel_speed_z",
-        "initial_layer_speed", "initial_layer_infill_speed", "initial_layer_travel_speed",
-        "overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed",
-    ]),
-    ("Acceleration", [
-        "default_acceleration", "outer_wall_acceleration", "inner_wall_acceleration",
-        "sparse_infill_acceleration", "internal_solid_infill_acceleration",
-        "bridge_acceleration", "top_surface_acceleration", "travel_acceleration",
-        "initial_layer_acceleration", "initial_layer_travel_acceleration",
-    ]),
-    ("Jerk", [
-        "default_jerk", "outer_wall_jerk", "inner_wall_jerk", "top_surface_jerk",
-        "infill_jerk", "initial_layer_jerk", "travel_jerk", "initial_layer_travel_jerk",
-    ]),
-    ("Advanced", [
-        "max_volumetric_extrusion_rate_slope",
-        "max_volumetric_extrusion_rate_slope_segment_length",
-        "extrusion_rate_smoothing_external_perimeter_only",
-    ]),
-    ("Extruder", [
-        "print_extruder_id", "print_extruder_variant",
-        "slow_down_layers", "small_perimeter_threshold",
-        "enable_overhang_speed", "slowdown_for_curled_perimeters",
-    ]),
-])
+# Display categories
+SPEED_KEYS = [
+    "outer_wall_speed", "inner_wall_speed", "small_perimeter_speed",
+    "sparse_infill_speed", "internal_solid_infill_speed", "top_surface_speed",
+    "bridge_speed", "internal_bridge_speed", "gap_infill_speed",
+    "support_speed", "support_interface_speed",
+    "travel_speed",
+    "initial_layer_speed", "initial_layer_infill_speed",
+]
+ACCEL_KEYS = [
+    "default_acceleration", "outer_wall_acceleration", "inner_wall_acceleration",
+    "sparse_infill_acceleration", "internal_solid_infill_acceleration",
+    "bridge_acceleration", "top_surface_acceleration", "travel_acceleration",
+    "initial_layer_acceleration",
+]
+JERK_KEYS = [
+    "default_jerk", "outer_wall_jerk", "inner_wall_jerk", "top_surface_jerk",
+    "infill_jerk", "initial_layer_jerk", "travel_jerk",
+]
 
 
-def parse_value(value_str):
-    """Parse a config value string. Returns list of floats if multi-value, else single value."""
-    value_str = value_str.strip()
-    # Check for array-like values (comma or semicolon separated)
-    if ',' in value_str:
-        parts = [p.strip() for p in value_str.split(',')]
-    elif ';' in value_str:
-        parts = [p.strip() for p in value_str.split(';')]
-    else:
-        parts = [value_str]
-    
-    result = []
-    for p in parts:
-        try:
-            # Handle percent values
-            if p.endswith('%'):
-                result.append(p)  # keep as string with %
-            else:
-                result.append(float(p))
-        except ValueError:
-            result.append(p)
-    
-    return result if len(result) > 1 else result[0] if result else value_str
-
-
-def parse_model_settings_xml(content):
-    """Parse model_settings.config XML to extract per-object configs.
-    
-    Format:
-      <config>
-        <object id="N">
-          <metadata key="name" value="ObjectName"/>
-          <metadata key="outer_wall_speed" value="65"/>  (scalar — no VO)
-          <metadata key="outer_wall_speed" value="65,500,45,500"/>  (multi — VO array)
-          <metadata key="extruder" value="1"/>
-          ...
-          <part id="N" subtype="normal_part">
-            <metadata key="..." value="..."/>
-          </part>
-        </object>
-      </config>
-    """
-    objects = {}
-    
-    try:
-        root = ET.fromstring(content)
-    except ET.ParseError:
-        # Try fixing common issues
-        content = content.strip()
-        if not content.startswith('<?xml'):
-            content = '<?xml version="1.0" encoding="UTF-8"?>\n' + content
-        try:
-            root = ET.fromstring(content)
-        except ET.ParseError as e:
-            print(f"  ⚠ Failed to parse model_settings.config XML: {e}", file=sys.stderr)
-            return objects
-
-    for obj_elem in root.iter('object'):
-        obj_id = obj_elem.get('id', 'unknown')
-        obj_data = {
-            'id': obj_id,
-            'name': '',
-            'extruder': None,
-            'config': {},
-            'variant_keys': {},  # keys that have multi-value (VO arrays)
-            'volumes': [],
-        }
+class ThreeMFAnalyzer:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.filename = os.path.basename(filepath)
         
-        for meta in obj_elem.findall('metadata'):
-            key = meta.get('key', '')
-            value = meta.get('value', '')
+        # From G-code parsing
+        self.objects = {}          # obj_id -> {name, tools, features, feedrates, extrusion, layers}
+        self.object_names = {}     # obj_id -> name string
+        self.total_layers = 0
+        self.total_lines = 0
+        self.toolchanges = 0
+        
+        # From config footer / project_settings
+        self.config_params = {}    # key -> raw string value
+        self.vo_arrays = {}        # key -> [v0, v1, v2, v3]
+        self.variant_count = 0
+        
+        # Nozzle/extruder info
+        self.nozzle_diameter = []
+        self.extruder_count = 0
+        self.printer_model = ""
+        self.nozzle_stats = []
+        self.tool_to_variant = {}  # firmware tool idx -> list of variant indices
+        
+        # Feedrate tracking per object per feature
+        self.obj_feedrates = defaultdict(lambda: defaultdict(list))  # obj_id -> feature -> [F values]
+        
+    def parse(self):
+        if not zipfile.is_zipfile(self.filepath):
+            print(f"Error: Not a valid ZIP/3MF: {self.filepath}", file=sys.stderr)
+            sys.exit(1)
+        
+        with zipfile.ZipFile(self.filepath, 'r') as z:
+            # 1. Parse project_settings.config (JSON) — global preset with VO
+            for name in z.namelist():
+                if name.endswith("project_settings.config"):
+                    content = z.read(name).decode('utf-8', errors='ignore')
+                    self._parse_project_settings(content)
             
-            if key == 'name':
-                obj_data['name'] = value
-            elif key == 'extruder':
-                obj_data['extruder'] = value
-            else:
-                parsed = parse_value(value)
-                obj_data['config'][key] = parsed
-                # Detect multi-value variant overrides
-                if key in VARIANT_KEYS and isinstance(parsed, list) and len(parsed) > 1:
-                    obj_data['variant_keys'][key] = parsed
+            # 2. Parse G-code for objects, tools, feedrates, config footer
+            gcode_files = [n for n in z.namelist() if n.endswith(".gcode")]
+            if gcode_files:
+                with z.open(gcode_files[0], 'r') as f_zip:
+                    f = io.TextIOWrapper(f_zip, encoding='utf-8', errors='ignore')
+                    self._parse_gcode(f)
         
-        # Parse volumes (parts)
-        for part in obj_elem.findall('part'):
-            vol_data = {
-                'id': part.get('id', ''),
-                'subtype': part.get('subtype', ''),
-                'config': {},
-            }
-            for meta in part.findall('metadata'):
-                key = meta.get('key', '')
-                value = meta.get('value', '')
-                vol_data['config'][key] = parse_value(value)
-            obj_data['volumes'].append(vol_data)
+        # Build tool → variant mapping
+        self._build_tool_variant_map()
+    
+    def _parse_project_settings(self, content):
+        """Parse project_settings.config JSON for global VO arrays."""
+        try:
+            settings = json.loads(content)
+        except json.JSONDecodeError:
+            return
         
-        objects[obj_id] = obj_data
-    
-    return objects
-
-
-def parse_project_settings_json(content):
-    """Parse project_settings.config (JSON) for global preset VO."""
-    try:
-        settings = json.loads(content)
-    except json.JSONDecodeError as e:
-        print(f"  ⚠ Failed to parse project_settings.config JSON: {e}", file=sys.stderr)
-        return {}, {}
-    
-    global_config = {}
-    global_vo = {}
-    
-    for key, value in settings.items():
-        if key in VARIANT_KEYS:
-            if isinstance(value, list) and len(value) > 1:
-                global_vo[key] = value
-                global_config[key] = value[0]  # scalar = first variant
-            elif isinstance(value, list) and len(value) == 1:
-                global_config[key] = value[0]
-            else:
-                global_config[key] = value
-        elif key in ('extruder', 'printer_extruder_id'):
-            global_config[key] = value
-    
-    return global_config, global_vo
-
-
-def parse_slice_info(content):
-    """Parse slice_info.config for object metadata."""
-    objects_info = {}
-    for match in re.finditer(r'<object\s+identify_id="(\d+)"\s+name="([^"]+)"', content):
-        objects_info[match.group(1)] = match.group(2)
-    return objects_info
-
-
-def get_variant_label(idx, total_variants):
-    """Map variant index to human-readable label.
-    
-    BBL H2C convention:
-      idx 0 = Left Standard (0.4mm)
-      idx 1 = Left High-Flow (0.6mm)  
-      idx 2 = Right Standard (0.4mm)
-      idx 3 = Right High-Flow (0.6mm)
-    """
-    labels_4 = ["L-Std(0.4)", "L-HF(0.6)", "R-Std(0.4)", "R-HF(0.6)"]
-    labels_2 = ["Left", "Right"]
-    
-    if total_variants == 4:
-        return labels_4[idx] if idx < 4 else f"V{idx}"
-    elif total_variants == 2:
-        return labels_2[idx] if idx < 2 else f"V{idx}"
-    else:
-        return f"V{idx}"
-
-
-def get_extruder_for_variant(idx, total_variants):
-    """Return which extruder a variant index belongs to."""
-    if total_variants <= 2:
-        return idx  # 0=Left, 1=Right
-    else:
-        return idx // 2  # 0,1=Left  2,3=Right
-
-
-def format_table(headers, rows, title=None):
-    """Format a table with aligned columns."""
-    # Calculate column widths
-    col_widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            if i < len(col_widths):
-                col_widths[i] = max(col_widths[i], len(str(cell)))
-    
-    lines = []
-    if title:
-        lines.append(f"\n{'='*60}")
-        lines.append(f"  {title}")
-        lines.append(f"{'='*60}")
-    
-    # Header
-    header_line = " │ ".join(str(h).ljust(col_widths[i]) for i, h in enumerate(headers))
-    lines.append(header_line)
-    lines.append("─┼─".join("─" * w for w in col_widths))
-    
-    # Rows
-    for row in rows:
-        cells = []
-        for i, cell in enumerate(row):
-            w = col_widths[i] if i < len(col_widths) else 20
-            cells.append(str(cell).ljust(w))
-        lines.append(" │ ".join(cells))
-    
-    return "\n".join(lines)
-
-
-def analyze_3mf(filepath, show_all=False):
-    """Main analysis function."""
-    if not os.path.exists(filepath):
-        print(f"Error: File not found: {filepath}", file=sys.stderr)
-        sys.exit(1)
-    
-    if not zipfile.is_zipfile(filepath):
-        print(f"Error: Not a valid ZIP/3MF file: {filepath}", file=sys.stderr)
-        sys.exit(1)
-    
-    print(f"\n📦 Analyzing: {os.path.basename(filepath)}")
-    print(f"   Path: {filepath}")
-    
-    objects = {}
-    global_config = {}
-    global_vo = {}
-    slice_objects = {}
-    nozzle_info = {}
-    
-    with zipfile.ZipFile(filepath, 'r') as z:
-        filelist = z.namelist()
-        print(f"   Files in archive: {len(filelist)}")
+        self.printer_model = settings.get("printer_model", "")
+        self.nozzle_diameter = settings.get("nozzle_diameter", [])
+        self.extruder_count = len(self.nozzle_diameter) if self.nozzle_diameter else 1
+        self.nozzle_stats = settings.get("extruder_nozzle_stats", [])
         
-        # 1. Parse model_settings.config (per-object configs)
-        model_settings_files = [f for f in filelist if f.endswith('model_settings.config')]
-        for msf in model_settings_files:
-            content = z.read(msf).decode('utf-8', errors='ignore')
-            objects.update(parse_model_settings_xml(content))
-            print(f"   ✓ Parsed {msf}: {len(objects)} objects")
+        for key, value in settings.items():
+            if key in VARIANT_KEYS:
+                if isinstance(value, list) and len(value) > 1:
+                    self.vo_arrays[key] = value
+                    self.variant_count = max(self.variant_count, len(value))
+                self.config_params[key] = value
+    
+    def _parse_gcode(self, f):
+        """Parse G-code stream for objects, tools, feedrates, footer config."""
+        current_layer = 0
+        current_tool = -1
+        current_feature = "Unknown"
+        current_object_id = -1
+        last_object_name = None
         
-        # 2. Parse project_settings.config (global preset)
-        proj_files = [f for f in filelist if f.endswith('project_settings.config')]
-        for pf in proj_files:
-            content = z.read(pf).decode('utf-8', errors='ignore')
-            global_config, global_vo = parse_project_settings_json(content)
-            print(f"   ✓ Parsed {pf}: {len(global_config)} keys, {len(global_vo)} VO keys")
+        t_re = re.compile(r'^T(\d+)(?:\s|$)')
+        f_re = re.compile(r'F(\d+)')
+        e_re = re.compile(r'E(-?\d*\.?\d+)')
         
-        # 3. Parse slice_info.config (object names)
-        slice_files = [f for f in filelist if f.endswith('slice_info.config')]
-        for sf in slice_files:
-            content = z.read(sf).decode('utf-8', errors='ignore')
-            slice_objects = parse_slice_info(content)
-            if slice_objects:
-                print(f"   ✓ Parsed {sf}: {len(slice_objects)} objects")
+        for line in f:
+            self.total_lines += 1
+            s = line.strip()
+            
+            # Config comments: "; key = value"
+            if s.startswith(";"):
+                config_m = re.match(r'^;\s*([a-zA-Z0-9_]+)\s*=\s*(.*)', s)
+                if config_m:
+                    key, val = config_m.group(1).strip(), config_m.group(2).strip()
+                    # Parse comma-separated variant arrays from footer
+                    if key in VARIANT_KEYS and ',' in val:
+                        parts = val.split(',')
+                        parsed = []
+                        for p in parts:
+                            p = p.strip().strip('"')
+                            try:
+                                parsed.append(float(p) if '.' in p or p.lstrip('-').isdigit() else p)
+                            except ValueError:
+                                parsed.append(p)
+                        if len(parsed) > 1:
+                            # Footer overrides JSON only if it has >= elements
+                            # (footer may truncate arrays, e.g. print_extruder_id=1,2 vs [1,1,2,2])
+                            existing = self.vo_arrays.get(key, [])
+                            if len(parsed) >= len(existing):
+                                self.vo_arrays[key] = parsed
+                            self.variant_count = max(self.variant_count, len(parsed))
+                    self.config_params[key] = val
+                
+                # Object name comment
+                if s.startswith("; OBJECT:"):
+                    m = re.match(r'^;\s*OBJECT:\s*(.*)', s)
+                    if m:
+                        last_object_name = m.group(1).strip()
+                
+                # Object ID comment
+                if "; OBJECT_ID:" in s:
+                    m = re.search(r';\s*OBJECT_ID:\s*(\d+)', s)
+                    if m:
+                        current_object_id = int(m.group(1))
+                        if last_object_name and current_object_id not in self.object_names:
+                            self.object_names[current_object_id] = last_object_name
+                        if current_object_id not in self.objects:
+                            self.objects[current_object_id] = {
+                                'name': last_object_name or f'Object #{current_object_id}',
+                                'tools': set(),
+                                'features': defaultdict(float),
+                                'extrusion': 0.0,
+                                'layers': set(),
+                                'tool_per_layer': defaultdict(set),
+                            }
+                
+                if "; FEATURE:" in s:
+                    current_feature = s.split(":", 1)[1].strip()
+                
+                if "; CHANGE_LAYER" in s:
+                    current_layer += 1
+                    current_feature = "Unknown"
+                continue
+            
+            # Tool change
+            t_m = t_re.match(s)
+            if t_m:
+                t_val = int(t_m.group(1))
+                if t_val < 20:  # filter T100, T65 etc.
+                    current_tool = t_val
+                    self.toolchanges += 1
+            
+            # G1/G0 moves with extrusion
+            if current_tool >= 0 and (s.startswith("G1") or s.startswith("G0")):
+                if current_object_id >= 0 and current_object_id in self.objects:
+                    obj = self.objects[current_object_id]
+                    obj['tools'].add(current_tool)
+                    obj['layers'].add(current_layer)
+                    obj['tool_per_layer'][current_layer].add(current_tool)
+                    
+                    e_m = e_re.search(s)
+                    if e_m:
+                        e_val = float(e_m.group(1))
+                        if e_val > 0:
+                            obj['extrusion'] += e_val
+                            obj['features'][current_feature] += e_val
+                    
+                    f_m = f_re.search(s)
+                    if f_m and current_feature not in ("Unknown", "Prime tower"):
+                        feedrate = int(f_m.group(1))
+                        self.obj_feedrates[current_object_id][current_feature].append(feedrate)
         
-        # 4. Try to get nozzle/extruder info from project settings
-        if proj_files:
-            content = z.read(proj_files[0]).decode('utf-8', errors='ignore')
-            try:
-                settings = json.loads(content)
-                nozzle_info = {
-                    'nozzle_diameter': settings.get('nozzle_diameter', []),
-                    'extruder_count': len(settings.get('nozzle_diameter', [1])),
-                    'printer_model': settings.get('printer_model', 'unknown'),
-                    'nozzle_volume_type': settings.get('nozzle_volume_type', []),
-                    'extruder_nozzle_stats': settings.get('extruder_nozzle_stats', []),
-                }
-            except json.JSONDecodeError:
-                pass
+        self.total_layers = current_layer
     
-    # Determine total variant count from global VO
-    total_variants = 0
-    if global_vo:
-        for vals in global_vo.values():
-            if isinstance(vals, list):
-                total_variants = max(total_variants, len(vals))
+    def _build_tool_variant_map(self):
+        """Map G-code T commands (filament slot indices) to variant array indices.
+        
+        CRITICAL: T in G-code is the FILAMENT SLOT index (0-based), NOT the
+        firmware extruder/tool index.
+        
+        Mapping chain:
+          T0 (filament slot 0) → filament_map[0] = 2 → extruder 2 (Right)
+          T3 (filament slot 3) → filament_map[3] = 1 → extruder 1 (Left)
+        
+        Then extruder → variant indices via print_extruder_id VO array:
+          print_extruder_id = [1, 1, 2, 2]
+          → variants 0,1 belong to extruder 1 (Left)
+          → variants 2,3 belong to extruder 2 (Right)
+        
+        BBL convention: extruder IDs are 1-based (1=Left, 2=Right).
+        Left ≠ 0!
+        """
+        # 1. Parse filament_map: filament_slot → extruder_id (1-based)
+        fm = self.config_params.get("filament_map", "")
+        if isinstance(fm, list):
+            self.filament_map = [int(x) for x in fm]
+        elif isinstance(fm, str) and ',' in fm:
+            self.filament_map = [int(x.strip()) for x in fm.split(',')]
+        else:
+            self.filament_map = []
+        
+        # 2. Parse print_extruder_id VO array: variant_idx → extruder_id (1-based)
+        ext_ids = self.vo_arrays.get("print_extruder_id", [])
+        if not ext_ids:
+            raw = self.config_params.get("print_extruder_id", "")
+            if isinstance(raw, str) and ',' in raw:
+                ext_ids = [int(x.strip()) for x in raw.split(',')]
+            elif isinstance(raw, list):
+                ext_ids = [int(x) for x in raw]
+        self._ext_ids = [int(x) for x in ext_ids] if ext_ids else []
+        
+        # 3. Build extruder_id → [variant_indices]
+        self.extruder_to_variants = defaultdict(list)
+        for vi, eid in enumerate(self._ext_ids):
+            self.extruder_to_variants[eid].append(vi)
+        
+        # 4. Build filament_slot (T command) → extruder_id
+        self.filament_to_extruder = {}
+        for slot, eid in enumerate(self.filament_map):
+            self.filament_to_extruder[slot] = eid
+        
+        # 5. Parse print_extruder_variant for labels
+        self.variant_labels = self.vo_arrays.get("print_extruder_variant", [])
+        if not self.variant_labels:
+            raw = self.config_params.get("print_extruder_variant", "")
+            if isinstance(raw, str) and ';' in raw:
+                self.variant_labels = [v.strip().strip('"') for v in raw.split(';')]
+        
+        # Debug info
+        if self.filament_map:
+            print(f"  Filament map:  {self.filament_map}  (slot → extruder_id, 1-based)")
+        if self._ext_ids:
+            print(f"  VO extruder:   {self._ext_ids}  (variant_idx → extruder_id)")
+        for eid, vis in sorted(self.extruder_to_variants.items()):
+            ext_name = "Left" if eid == 1 else "Right" if eid == 2 else f"Ext{eid}"
+            labels = [self.get_variant_label(vi) for vi in vis]
+            print(f"  Extruder {eid} ({ext_name}): variants {vis} = {labels}")
     
-    # Also check per-object VO
-    for obj in objects.values():
-        for vals in obj.get('variant_keys', {}).values():
-            if isinstance(vals, list):
-                total_variants = max(total_variants, len(vals))
+    def get_variant_label(self, idx):
+        """Human label for variant index using print_extruder_variant + extruder."""
+        eid = self._ext_ids[idx] if idx < len(self._ext_ids) else 0
+        ext_name = "L" if eid == 1 else "R" if eid == 2 else f"E{eid}"
+        
+        if self.variant_labels and idx < len(self.variant_labels):
+            vname = str(self.variant_labels[idx])
+            short = vname.replace("Direct Drive ", "").replace("Standard", "Std").replace("High Flow", "HF")
+            return f"{ext_name}-{short}"
+        return f"{ext_name}-V{idx}"
     
-    if total_variants == 0:
-        total_variants = 2  # default assumption for H2C
+    def get_tool_label(self, filament_slot):
+        """Human label for a G-code T command (filament slot index)."""
+        eid = self.filament_to_extruder.get(filament_slot, 0)
+        ext_name = "Left" if eid == 1 else "Right" if eid == 2 else f"Ext{eid}"
+        return f"T{filament_slot}→Ext{eid}({ext_name})"
     
-    # ── Print Report ──
+    def get_active_variants_for_tool(self, filament_slot):
+        """Given a G-code T command (filament slot), return variant indices."""
+        eid = self.filament_to_extruder.get(filament_slot, 0)
+        return self.extruder_to_variants.get(eid, [0])
+
     
-    print(f"\n{'='*60}")
-    print(f"  PRINTER & NOZZLE INFO")
-    print(f"{'='*60}")
-    if nozzle_info:
-        print(f"  Printer model:     {nozzle_info.get('printer_model', '?')}")
-        print(f"  Nozzle diameters:  {nozzle_info.get('nozzle_diameter', '?')}")
-        print(f"  Extruder count:    {nozzle_info.get('extruder_count', '?')}")
-        print(f"  Nozzle stats:      {nozzle_info.get('extruder_nozzle_stats', '?')}")
-        print(f"  Total variants:    {total_variants}")
+    def format_table(self, headers, rows, title=None):
+        """Format aligned table."""
+        col_widths = [len(str(h)) for h in headers]
+        for row in rows:
+            for i, cell in enumerate(row):
+                if i < len(col_widths):
+                    col_widths[i] = max(col_widths[i], len(str(cell)))
+        
+        lines = []
+        if title:
+            lines.append(f"\n{'='*70}")
+            lines.append(f"  {title}")
+            lines.append(f"{'='*70}")
+        
+        header_line = " │ ".join(str(h).ljust(col_widths[i]) for i, h in enumerate(headers))
+        lines.append(header_line)
+        lines.append("─┼─".join("─" * w for w in col_widths))
+        
+        for row in rows:
+            cells = []
+            for i, cell in enumerate(row):
+                w = col_widths[i] if i < len(col_widths) else 20
+                cells.append(str(cell).ljust(w))
+            lines.append(" │ ".join(cells))
+        
+        return "\n".join(lines)
     
-    # ── Global VO Table ──
-    if global_vo:
-        variant_headers = ["Parameter"] + [get_variant_label(i, total_variants) for i in range(total_variants)]
+    def report(self):
+        """Print full analysis report."""
+        vc = self.variant_count or 1
+        
+        # ── Header ──
+        print(f"\n{'═'*70}")
+        print(f"  H2C VARIANT OVERRIDE ANALYSIS: {self.filename}")
+        print(f"{'═'*70}")
+        print(f"  Printer:       {self.printer_model}")
+        print(f"  Nozzles:       {self.nozzle_diameter}")
+        print(f"  Nozzle stats:  {self.nozzle_stats}")
+        print(f"  Variants:      {vc}")
+        print(f"  Layers:        {self.total_layers}")
+        print(f"  G-code lines:  {self.total_lines}")
+        print(f"  Toolchanges:   {self.toolchanges}")
+        print(f"  Objects:       {len(self.objects)}")
+        
+        # ── Objects Summary ──
         rows = []
+        for obj_id, obj in sorted(self.objects.items()):
+            tools = sorted(obj['tools'])
+            tool_str = ", ".join(self.get_tool_label(t) for t in tools)
+            # Determine active variant indices for this object's tools
+            var_indices = set()
+            for t in tools:
+                var_indices.update(self.get_active_variants_for_tool(t))
+            var_str = ", ".join(self.get_variant_label(i) for i in sorted(var_indices))
+            
+            rows.append([
+                obj_id,
+                obj['name'],
+                tool_str,
+                var_str,
+                f"{obj['extrusion']:.1f}mm",
+                len(obj['layers']),
+            ])
         
-        for category, keys in CATEGORY_MAP.items():
-            category_has_data = False
-            for key in keys:
-                if key in global_vo:
-                    if not category_has_data:
-                        rows.append([f"── {category} ──"] + [""] * total_variants)
-                        category_has_data = True
-                    vals = global_vo[key]
-                    row = [key]
-                    for i in range(total_variants):
-                        if i < len(vals):
-                            v = vals[i]
-                            row.append(str(v) if not isinstance(v, float) or v != int(v) else str(int(v)))
-                        else:
-                            row.append("—")
-                    rows.append(row)
-        
-        if rows:
-            print(format_table(variant_headers, rows, "GLOBAL PRESET — Variant Overrides"))
-    else:
-        print(f"\n  ℹ No global Variant Overrides found (single-variant preset)")
-    
-    # ── Per-Object Tables ──
-    if objects:
-        print(format_table(
-            ["ID", "Name", "Extruder", "VO Keys", "Config Keys"],
-            [
-                [
-                    obj['id'],
-                    obj['name'] or slice_objects.get(obj['id'], '(unnamed)'),
-                    obj.get('extruder', '—'),
-                    len(obj.get('variant_keys', {})),
-                    len(obj.get('config', {})),
-                ]
-                for obj in objects.values()
-            ],
-            "OBJECTS SUMMARY"
+        print(self.format_table(
+            ["ID", "Name", "Tools", "Active Variants", "Extrusion", "Layers"],
+            rows,
+            "OBJECTS"
         ))
         
-        for obj_id, obj in objects.items():
-            obj_name = obj['name'] or slice_objects.get(obj_id, f'Object #{obj_id}')
-            extruder = obj.get('extruder', '?')
-            
-            # Determine effective extruder (BBL: 1-based in config, 0-based internally)
-            ext_display = f"Extruder {extruder}"
-            try:
-                ext_idx = int(extruder) - 1 if extruder else 0
-                ext_display = f"{'Left' if ext_idx == 0 else 'Right'} (T{ext_idx})"
-            except (ValueError, TypeError):
-                ext_idx = 0
-            
-            vo_keys = obj.get('variant_keys', {})
-            config = obj.get('config', {})
-            
-            if vo_keys or show_all:
-                print(f"\n{'─'*60}")
-                print(f"  OBJECT: {obj_name} (id={obj_id}, {ext_display})")
-                print(f"{'─'*60}")
-                
-                if vo_keys:
-                    variant_headers = ["Parameter"] + [get_variant_label(i, total_variants) for i in range(total_variants)] + ["Diff?"]
-                    rows = []
-                    
-                    for category, keys in CATEGORY_MAP.items():
-                        category_has_data = False
-                        for key in keys:
-                            if key in vo_keys:
-                                if not category_has_data:
-                                    rows.append([f"── {category} ──"] + [""] * (total_variants + 1))
-                                    category_has_data = True
-                                vals = vo_keys[key]
-                                row = [key]
-                                unique_vals = set()
-                                for i in range(total_variants):
-                                    if i < len(vals):
-                                        v = vals[i]
-                                        v_str = str(v) if not isinstance(v, float) or v != int(v) else str(int(v))
-                                        row.append(v_str)
-                                        unique_vals.add(v_str)
-                                    else:
-                                        row.append("—")
-                                # Mark if values differ across variants
-                                row.append("✦" if len(unique_vals) > 1 else "=")
-                                rows.append(row)
-                    
-                    if rows:
-                        print(format_table(variant_headers, rows))
-                    
-                    # Also show comparison with global
-                    if global_vo:
-                        diff_rows = []
-                        for key, obj_vals in vo_keys.items():
-                            if key in global_vo:
-                                glob_vals = global_vo[key]
-                                differs = False
-                                for i in range(min(len(obj_vals), len(glob_vals))):
-                                    try:
-                                        if abs(float(obj_vals[i]) - float(glob_vals[i])) > 0.01:
-                                            differs = True
-                                            break
-                                    except (ValueError, TypeError):
-                                        if str(obj_vals[i]) != str(glob_vals[i]):
-                                            differs = True
-                                            break
-                                if differs:
-                                    diff_rows.append([
-                                        key,
-                                        str(glob_vals),
-                                        str(obj_vals),
-                                    ])
-                        if diff_rows:
-                            print(format_table(
-                                ["Parameter", "Global VO", "Object VO"],
-                                diff_rows,
-                                f"  DIFF: {obj_name} vs Global"
-                            ))
-                
-                # Show non-VO per-object overrides
-                non_vo_overrides = {k: v for k, v in config.items() 
-                                     if k not in vo_keys and k not in ('name', 'module')
-                                     and k in VARIANT_KEYS}
-                if non_vo_overrides and show_all:
-                    rows = [[k, str(v)] for k, v in sorted(non_vo_overrides.items())]
-                    print(format_table(
-                        ["Parameter", "Scalar Value"],
-                        rows,
-                        f"  {obj_name}: Scalar Overrides (no VO)"
-                    ))
-    else:
-        print(f"\n  ℹ No per-object configs found in model_settings.config")
-    
-    # ── Effective Values per Object ──
-    # Build a combined view: for each object, show what the slicer would use
-    if objects and (global_vo or any(o.get('variant_keys') for o in objects.values())):
-        print(f"\n{'='*60}")
-        print(f"  EFFECTIVE VALUES (what slicer uses per object)")
-        print(f"{'='*60}")
-        
-        # Key subset for compact view
-        key_subset = [
-            "outer_wall_speed", "inner_wall_speed", "sparse_infill_speed",
-            "top_surface_speed", "bridge_speed", "travel_speed",
-            "outer_wall_acceleration", "inner_wall_acceleration",
-            "default_jerk", "outer_wall_jerk",
-        ]
-        
-        for obj_id, obj in objects.items():
-            obj_name = obj['name'] or f'Object #{obj_id}'
-            extruder = obj.get('extruder', '1')
-            try:
-                ext_idx = int(extruder) - 1
-            except (ValueError, TypeError):
-                ext_idx = 0
-            
-            # For this object's extruder, which variant indices apply?
-            # BBL: Left=extruder 0 → variants 0,1; Right=extruder 1 → variants 2,3
-            if total_variants == 4:
-                active_variants = [ext_idx * 2, ext_idx * 2 + 1]
-            elif total_variants == 2:
-                active_variants = [ext_idx]
-            else:
-                active_variants = list(range(total_variants))
-            
-            active_labels = [get_variant_label(i, total_variants) for i in active_variants]
-            headers = ["Parameter"] + active_labels
+        # ── Global VO Table ──
+        if self.vo_arrays:
+            headers = ["Parameter"] + [self.get_variant_label(i) for i in range(vc)]
             rows = []
             
-            for key in key_subset:
-                # Object VO takes priority, then global VO, then global scalar
-                obj_vo = obj.get('variant_keys', {})
-                if key in obj_vo:
-                    source_vals = obj_vo[key]
-                    source = "obj"
-                elif key in global_vo:
-                    source_vals = global_vo[key]
-                    source = "glob"
-                elif key in obj.get('config', {}):
-                    v = obj['config'][key]
-                    source_vals = [v] * total_variants
-                    source = "obj-scalar"
-                elif key in global_config:
-                    source_vals = [global_config[key]] * total_variants
-                    source = "glob-scalar"
-                else:
-                    continue
-                
-                row = [f"{key} ({source})"]
-                for vi in active_variants:
-                    if vi < len(source_vals):
-                        v = source_vals[vi]
-                        v_str = str(int(v)) if isinstance(v, float) and v == int(v) else str(v)
-                    else:
-                        v_str = "—"
-                    row.append(v_str)
-                rows.append(row)
+            def add_section(title, keys):
+                has_data = False
+                for key in keys:
+                    if key in self.vo_arrays:
+                        if not has_data:
+                            rows.append([f"── {title} ──"] + [""] * vc)
+                            has_data = True
+                        vals = self.vo_arrays[key]
+                        row = [key]
+                        for i in range(vc):
+                            if i < len(vals):
+                                v = vals[i]
+                                row.append(str(int(v)) if isinstance(v, float) and v == int(v) else str(v))
+                            else:
+                                row.append("—")
+                        rows.append(row)
             
-            if rows:
-                ext_label = "Left" if ext_idx == 0 else "Right"
-                print(f"\n  {obj_name} — {ext_label} extruder (T{ext_idx})")
-                print(format_table(headers, rows))
-    
-    print(f"\n{'='*60}")
-    print(f"  Analysis complete.")
-    print(f"{'='*60}\n")
+            add_section("Speeds", SPEED_KEYS)
+            add_section("Acceleration", ACCEL_KEYS)
+            add_section("Jerk", JERK_KEYS)
+            
+            print(self.format_table(headers, rows, "GLOBAL VARIANT OVERRIDES"))
+        
+        # ── Per-Object Effective Values ──
+        for obj_id, obj in sorted(self.objects.items()):
+            tools = sorted(obj['tools'])
+            var_indices = set()
+            for t in tools:
+                var_indices.update(self.get_active_variants_for_tool(t))
+            var_indices = sorted(var_indices)
+            
+            if not var_indices:
+                continue
+            
+            headers = ["Parameter"] + [self.get_variant_label(i) for i in var_indices]
+            rows = []
+            
+            def add_obj_section(title, keys):
+                has_data = False
+                for key in keys:
+                    if key in self.vo_arrays:
+                        if not has_data:
+                            rows.append([f"── {title} ──"] + [""] * len(var_indices))
+                            has_data = True
+                        vals = self.vo_arrays[key]
+                        row = [key]
+                        for vi in var_indices:
+                            if vi < len(vals):
+                                v = vals[vi]
+                                row.append(str(int(v)) if isinstance(v, float) and v == int(v) else str(v))
+                            else:
+                                row.append("—")
+                        rows.append(row)
+            
+            add_obj_section("Speeds", SPEED_KEYS)
+            add_obj_section("Acceleration", ACCEL_KEYS)
+            add_obj_section("Jerk", JERK_KEYS)
+            
+            ext_label = ", ".join(self.get_tool_label(t) for t in tools)
+            print(self.format_table(
+                headers, rows,
+                f"OBJECT: {obj['name']} (id={obj_id}) — {ext_label}"
+            ))
+            
+            # ── Actual feedrates from G-code vs VO expected ──
+            if obj_id in self.obj_feedrates:
+                feedrate_rows = []
+                feature_to_key = {
+                    "Outer wall": "outer_wall_speed",
+                    "Inner wall": "inner_wall_speed",
+                    "Sparse infill": "sparse_infill_speed",
+                    "Internal solid infill": "internal_solid_infill_speed",
+                    "Top surface": "top_surface_speed",
+                    "Bottom surface": "internal_solid_infill_speed",
+                    "Bridge": "bridge_speed",
+                    "Internal Bridge": "internal_bridge_speed",
+                    "Gap infill": "gap_infill_speed",
+                    "Support": "support_speed",
+                    "Support interface": "support_interface_speed",
+                }
+                
+                for feature, feedrates in sorted(self.obj_feedrates[obj_id].items()):
+                    if not feedrates:
+                        continue
+                    actual_min = min(feedrates)
+                    actual_max = max(feedrates)
+                    actual_med = sorted(feedrates)[len(feedrates)//2]
+                    
+                    # Expected from VO
+                    vo_key = feature_to_key.get(feature, "")
+                    expected_str = ""
+                    if vo_key and vo_key in self.vo_arrays:
+                        expected_vals = []
+                        for vi in var_indices:
+                            if vi < len(self.vo_arrays[vo_key]):
+                                v = self.vo_arrays[vo_key][vi]
+                                if isinstance(v, (int, float)):
+                                    expected_vals.append(f"{int(v * 60)}")  # mm/s → mm/min
+                        expected_str = "/".join(expected_vals)
+                    
+                    # Convert actual to mm/s for display
+                    feedrate_rows.append([
+                        feature,
+                        f"{actual_min/60:.0f}",
+                        f"{actual_med/60:.0f}",
+                        f"{actual_max/60:.0f}",
+                        expected_str or "—",
+                    ])
+                
+                if feedrate_rows:
+                    print(self.format_table(
+                        ["Feature", "Min mm/s", "Med mm/s", "Max mm/s", "VO Expected (F)"],
+                        feedrate_rows,
+                        f"  ACTUAL FEEDRATES: {obj['name']}"
+                    ))
+        
+        # ── Multi-tool objects: layer-by-layer tool usage ──
+        multi_tool_objs = {oid: obj for oid, obj in self.objects.items() if len(obj['tools']) > 1}
+        if multi_tool_objs:
+            print(f"\n{'='*70}")
+            print(f"  MULTI-TOOL OBJECTS — Tool per Layer")
+            print(f"{'='*70}")
+            for obj_id, obj in sorted(multi_tool_objs.items()):
+                tool_layers = defaultdict(list)
+                for layer, tools in sorted(obj['tool_per_layer'].items()):
+                    for t in tools:
+                        tool_layers[t].append(layer)
+                
+                print(f"\n  {obj['name']} (id={obj_id}):")
+                for tool in sorted(tool_layers):
+                    layers = tool_layers[tool]
+                    # Compact range display
+                    ranges = []
+                    start = layers[0]
+                    prev = layers[0]
+                    for l in layers[1:]:
+                        if l == prev + 1:
+                            prev = l
+                        else:
+                            ranges.append(f"{start}-{prev}" if start != prev else str(start))
+                            start = prev = l
+                    ranges.append(f"{start}-{prev}" if start != prev else str(start))
+                    print(f"    {self.get_tool_label(tool)}: layers {', '.join(ranges)} ({len(layers)} layers)")
+        
+        print(f"\n{'═'*70}")
+        print(f"  Analysis complete.")
+        print(f"{'═'*70}\n")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Analyze H2C Variant Overrides in OrcaSlicer 3MF project files",
+        description="Analyze H2C Variant Overrides in sliced 3MF project files",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   %(prog)s project.3mf
-  %(prog)s --all project.3mf          # Show all keys including non-VO
-  %(prog)s /path/to/saved_project.3mf
+  %(prog)s ~/Desktop/3cubes.gcode.3mf
         """
     )
-    parser.add_argument("file", help="Path to .3mf project file")
-    parser.add_argument("--all", "-a", action="store_true", default=False,
-                        help="Show all variant keys, including scalar-only (no VO)")
-    
+    parser.add_argument("file", help="Path to sliced .3mf project file")
     args = parser.parse_args()
-    analyze_3mf(args.file, show_all=args.all)
+    
+    analyzer = ThreeMFAnalyzer(args.file)
+    analyzer.parse()
+    analyzer.report()
 
 
 if __name__ == "__main__":
