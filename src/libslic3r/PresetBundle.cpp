@@ -1498,6 +1498,9 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             ConfigOptionString *option_str = dynamic_cast<ConfigOptionString *>(inherits_config);
             inherits_value                 = option_str->value;
             inherit_preset                 = collection->find_preset2(inherits_value, true);
+            Preset::normalize_inherits(config, inherit_preset);
+            if (inherit_preset)
+                inherits_value = inherit_preset->name;  // keep the base_id redo below in sync
         }
         if (inherit_preset) {
             new_config = inherit_preset->config;
@@ -1869,6 +1872,8 @@ bool PresetBundle::save_preset_to_bundle_dir(Preset& preset, PresetCollection* c
             if (!parent_preset) {
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " cannot find parent preset for " << preset.name << ", inherits " << inherits;
             } else {
+                // Orca: take the saved diff against the resolved parent (renamed / library-matched).
+                Preset::normalize_inherits(preset.config, parent_preset);
                 if (preset.base_id.empty())
                     preset.base_id = parent_preset->setting_id;
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " saved preset " << preset.name

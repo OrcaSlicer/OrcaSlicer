@@ -1672,6 +1672,7 @@ void PresetCollection::load_presets(
                         std::string inherits_value = option_str->value;
                         // Orca: try to find if the parent preset has been renamed
                         inherit_preset = this->find_preset2(inherits_value);
+                        Preset::normalize_inherits(config, inherit_preset);
                     } else {
                         ;
                     }
@@ -1924,6 +1925,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
                     option_str->value = inherits_value;
                 }*/
                 inherit_preset = this->find_preset2(inherits_value, true);
+                Preset::normalize_inherits(config, inherit_preset);
             }
             const Preset& default_preset = this->default_preset_for(config);
             if (inherit_preset) {
@@ -2260,6 +2262,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             ConfigOptionString * option_str = dynamic_cast<ConfigOptionString *> (inherits_config);
             std::string inherits_value = option_str->value;
             inherit_preset = this->find_preset2(inherits_value, true);
+            Preset::normalize_inherits(cloud_config, inherit_preset);
         }
         const Preset& default_preset = this->default_preset_for(cloud_config);
         if (inherit_preset) {
@@ -2674,7 +2677,10 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         preset.filament_id = filament_id;
     else {
         if (!inherits.empty()) {
-            Preset *parent = this->find_preset(inherits, false, true);
+            // Orca: resolve via find_preset2 so a renamed/removed-and-matched parent still
+            // yields its filament_id (external presets store a full config, so the dangling
+            // "inherits" itself is normalized on the next load_presets pass).
+            Preset *parent = this->find_preset2(inherits, true);
             if (parent)
                 preset.filament_id = parent->filament_id;
         }
@@ -2938,10 +2944,14 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
     //BBS: only save difference for user preset
     Preset* parent_preset = nullptr;
     if (!final_inherits.empty()) {
-        parent_preset = this->find_preset(final_inherits, false, true);
-        if (parent_preset && this->get_selected_preset().base_id.empty()) {
-            this->get_selected_preset().base_id = parent_preset->setting_id;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base_id: " << parent_preset->setting_id;
+        parent_preset = this->find_preset2(final_inherits, true);
+        if (parent_preset) {
+            // Orca: take the saved diff against the resolved parent (renamed / library-matched).
+            Preset::normalize_inherits(this->get_selected_preset().config, parent_preset);
+            if (this->get_selected_preset().base_id.empty()) {
+                this->get_selected_preset().base_id = parent_preset->setting_id;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base_id: " << parent_preset->setting_id;
+            }
         }
     }
     if (parent_preset)
