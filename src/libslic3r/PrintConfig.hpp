@@ -1647,7 +1647,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
 
     ((ConfigOptionBools,               activate_chamber_temp_control))
     ((ConfigOptionInts ,               chamber_temperature))
-    
+    ((ConfigOptionInts ,               chamber_minimal_temperature))
+
     // Orca: support adaptive bed mesh
     ((ConfigOptionFloat,               preferred_orientation))
     ((ConfigOptionPoint,               bed_mesh_min))
