@@ -140,6 +140,30 @@ static bool is_path_within_root(const std::string& file_path, const boost::files
     return true;
 }
 
+// H2C: BBS-compatible extruder order swap for 3MF project save/load.
+// OrcaSlicer internal VO order: [Right/v0, Right/v1, Left/v0, Left/v1]
+// BBS 3MF file order:           [Left/v0,  Left/v1,  Right/v0, Right/v1]
+// Swaps extruder halves in-place: std::rotate by n/2.
+template<typename T>
+static void swap_extruder_halves(std::vector<T>& v) {
+    size_t n = v.size();
+    if (n < 2) return;
+    std::rotate(v.begin(), v.begin() + (n / 2), v.end());
+}
+
+// Swap all VO float/string arrays for BBS compatibility.
+// Call before expand_to_vectors (save) or after CSV parse (load).
+static void swap_vo_extruder_order(Slic3r::VariantOverrides& vo) {
+    for (auto& [key, vals] : vo.floats) {
+        if (vals.size() > 1 && Slic3r::print_options_with_variant.count(key))
+            swap_extruder_halves(vals);
+    }
+    for (auto& [key, vals] : vo.strings) {
+        if (vals.size() > 1 && Slic3r::print_options_with_variant.count(key))
+            swap_extruder_halves(vals);
+    }
+}
+
 // VERSION NUMBERS
 // 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
 // 1 : Introduction of 3mf versioning. No other change in data saved into 3mf files.
@@ -2187,6 +2211,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                                 vals.push_back(std::stod(token));
                         }
                         if (vals.size() > 1) {
+                            swap_extruder_halves(vals); // H2C: BBS [Left,Right] → internal [Right,Left]
                             dpc.variant_overrides().floats[md.key] = vals;
                             // Use first non-NaN value for scalar, or 0 if all NaN
                             double scalar = 0.0;
@@ -2723,6 +2748,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
             // into scalar + variant_overrides so the rest of Orca works with
             // scalar configs as expected.
             config.compress_vectors_to_variant_overrides(0);
+            swap_vo_extruder_order(config.variant_overrides()); // H2C: BBS [Left,Right] → internal [Right,Left]
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
         }
@@ -2794,6 +2820,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
             }
 
             config.compress_vectors_to_variant_overrides(0);
+            swap_vo_extruder_order(config.variant_overrides()); // H2C: BBS [Left,Right] → internal [Right,Left]
             Preset *preset = new Preset(type, preset_name, false);
             preset->file = dest_file;
             preset->config = std::move(config);
@@ -7850,6 +7877,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
         // We work on a mutable copy so the original config is not modified.
         if (!config.variant_overrides().empty()) {
             DynamicPrintConfig config_copy(config);
+            swap_vo_extruder_order(config_copy.variant_overrides()); // H2C: [Right,Left] → [Left,Right]
             config_copy.expand_variant_overrides_to_vectors();
             config_copy.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
         } else {
@@ -7882,6 +7910,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 // We work on a mutable copy so the original preset config is not modified.
                 if (!config.variant_overrides().empty()) {
                     DynamicPrintConfig config_copy(config);
+                    swap_vo_extruder_order(config_copy.variant_overrides()); // H2C: [Right,Left] → [Left,Right]
                     config_copy.expand_variant_overrides_to_vectors();
                     config_copy.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
                 } else {
@@ -7953,8 +7982,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 // H2C: For variant-aware keys with VO, expand to arrays
                 // before serialization (e.g., scalar=65 + VO → "65;500;90;500").
                 DynamicPrintConfig obj_config_for_save(obj->config.get());
-                if (!obj_config_for_save.variant_overrides().empty())
+                if (!obj_config_for_save.variant_overrides().empty()) {
+                    swap_vo_extruder_order(obj_config_for_save.variant_overrides()); // H2C: [Right,Left] → [Left,Right]
                     obj_config_for_save.expand_variant_overrides_to_vectors();
+                }
                 for (const std::string& key : obj->config.keys()) {
                     // Use expanded config for variant-aware keys, original for others
                     const ConfigOption* opt = obj_config_for_save.option(key);
