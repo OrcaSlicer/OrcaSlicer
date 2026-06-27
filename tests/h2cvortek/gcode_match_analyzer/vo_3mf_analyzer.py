@@ -4,21 +4,26 @@
 
 Analyzes a .3mf sliced project (contains G-code) and extracts:
 1. All objects from G-code comments (OBJECT: / OBJECT_ID:)
-2. Per-object tool (extruder) usage + feedrates per feature
-3. Variant Override arrays from G-code footer config (key = v0,v1,v2,v3)
+2. Per-object tool (extruder) usage + feedrates per feature PER TOOL
+3. Variant Override arrays from project_settings.config JSON (BBS file order)
 4. Maps each object's active tool → variant index → effective VO values
-5. Summary tables per-object with all variant parameters
+5. Per-object tables: derives ACTUAL VO from G-code feedrates per tool,
+   compares with global VO, marks differences.
 
 BBL H2C extruder/variant mapping:
   print_extruder_id = 1,2  → Left=1 (T0), Right=2 (T3 in firmware)
   
-  Variant indices in VO arrays (4-variant):
-    idx 0 = Left-Standard   (T0)
-    idx 1 = Left-HighFlow    (T0, different nozzle volume)
-    idx 2 = Right-Standard   (T3)
-    idx 3 = Right-HighFlow   (T3, different nozzle volume)
+  Variant indices in VO arrays (4-variant, BBS file order):
+    idx 0 = Left-Standard   (extruder 1)
+    idx 1 = Left-HighFlow    (extruder 1, different nozzle volume)
+    idx 2 = Right-Standard   (extruder 2)
+    idx 3 = Right-HighFlow   (extruder 2, different nozzle volume)
   
   Tool → variant index mapping uses extruder_nozzle_stats.
+  
+  G-code footer config is in INTERNAL Orca order (Right, Left).
+  project_settings.config JSON is in BBS file order (Left, Right).
+  We prefer JSON as the source of truth for VO arrays.
 """
 
 import os
@@ -52,6 +57,21 @@ VARIANT_KEYS = {
     "print_extruder_id", "print_extruder_variant",
 }
 
+# G-code feature name → VO speed key
+FEATURE_TO_VO_KEY = {
+    "Outer wall":            "outer_wall_speed",
+    "Inner wall":            "inner_wall_speed",
+    "Sparse infill":         "sparse_infill_speed",
+    "Internal solid infill": "internal_solid_infill_speed",
+    "Top surface":           "top_surface_speed",
+    "Bottom surface":        "internal_solid_infill_speed",
+    "Bridge":                "bridge_speed",
+    "Internal Bridge":       "internal_bridge_speed",
+    "Gap infill":            "gap_infill_speed",
+    "Support":               "support_speed",
+    "Support interface":     "support_interface_speed",
+}
+
 # Display categories
 SPEED_KEYS = [
     "outer_wall_speed", "inner_wall_speed", "small_perimeter_speed",
@@ -79,7 +99,7 @@ class ThreeMFAnalyzer:
         self.filename = os.path.basename(filepath)
         
         # From G-code parsing
-        self.objects = {}          # obj_id -> {name, tools, features, feedrates, extrusion, layers}
+        self.objects = {}          # obj_id -> {name, tools, features, extrusion, layers, tool_per_layer}
         self.object_names = {}     # obj_id -> name string
         self.total_layers = 0
         self.total_lines = 0
@@ -87,7 +107,7 @@ class ThreeMFAnalyzer:
         
         # From config footer / project_settings
         self.config_params = {}    # key -> raw string value
-        self.vo_arrays = {}        # key -> [v0, v1, v2, v3]
+        self.vo_arrays = {}        # key -> [v0, v1, v2, v3]  (BBS file order)
         self.variant_count = 0
         
         # Nozzle/extruder info
@@ -97,8 +117,9 @@ class ThreeMFAnalyzer:
         self.nozzle_stats = []
         self.tool_to_variant = {}  # firmware tool idx -> list of variant indices
         
-        # Feedrate tracking per object per feature
-        self.obj_feedrates = defaultdict(lambda: defaultdict(list))  # obj_id -> feature -> [F values]
+        # Feedrate tracking: per object, per feature, per tool (filament slot)
+        # obj_feedrates[obj_id][(feature, tool)] = [F_values_in_mm_per_min]
+        self.obj_feedrates = defaultdict(lambda: defaultdict(list))
         
     def parse(self):
         if not zipfile.is_zipfile(self.filepath):
@@ -112,7 +133,13 @@ class ThreeMFAnalyzer:
                     content = z.read(name).decode('utf-8', errors='ignore')
                     self._parse_project_settings(content)
             
-            # 2. Parse G-code for objects, tools, feedrates, config footer
+            # 2. Parse slice_info.config for object names
+            for name in z.namelist():
+                if name.endswith("slice_info.config") and not name.endswith(".rels"):
+                    content = z.read(name).decode('utf-8', errors='ignore')
+                    self._parse_slice_info(content)
+            
+            # 3. Parse G-code for objects, tools, feedrates, config footer
             gcode_files = [n for n in z.namelist() if n.endswith(".gcode")]
             if gcode_files:
                 with z.open(gcode_files[0], 'r') as f_zip:
@@ -140,6 +167,13 @@ class ThreeMFAnalyzer:
                     self.vo_arrays[key] = value
                     self.variant_count = max(self.variant_count, len(value))
                 self.config_params[key] = value
+    
+    def _parse_slice_info(self, content):
+        """Parse slice_info.config XML for object names."""
+        for match in re.finditer(r'<object\s+identify_id="(\d+)"\s+name="([^"]+)"', content):
+            obj_id = int(match.group(1))
+            obj_name = match.group(2)
+            self.object_names[obj_id] = obj_name
     
     def _parse_gcode(self, f):
         """Parse G-code stream for objects, tools, feedrates, footer config."""
@@ -197,7 +231,8 @@ class ThreeMFAnalyzer:
                             self.object_names[current_object_id] = last_object_name
                         if current_object_id not in self.objects:
                             self.objects[current_object_id] = {
-                                'name': last_object_name or f'Object #{current_object_id}',
+                                'name': self.object_names.get(current_object_id, 
+                                        last_object_name or f'Object #{current_object_id}'),
                                 'tools': set(),
                                 'features': defaultdict(float),
                                 'extrusion': 0.0,
@@ -239,7 +274,8 @@ class ThreeMFAnalyzer:
                     f_m = f_re.search(s)
                     if f_m and current_feature not in ("Unknown", "Prime tower"):
                         feedrate = int(f_m.group(1))
-                        self.obj_feedrates[current_object_id][current_feature].append(feedrate)
+                        # Track per (feature, tool) — key for per-object VO reconstruction
+                        self.obj_feedrates[current_object_id][(current_feature, current_tool)].append(feedrate)
         
         self.total_layers = current_layer
     
@@ -329,7 +365,49 @@ class ThreeMFAnalyzer:
         eid = self.filament_to_extruder.get(filament_slot, 0)
         return self.extruder_to_variants.get(eid, [0])
 
+    def _get_std_variant_for_tool(self, filament_slot):
+        """Get the Standard variant index for a tool's extruder (first variant)."""
+        eid = self.filament_to_extruder.get(filament_slot, 0)
+        variants = self.extruder_to_variants.get(eid, [])
+        return variants[0] if variants else 0
     
+    def _derive_actual_speed_per_object(self, obj_id, vo_key):
+        """Derive actual speed (mm/s) for a VO speed key from G-code feedrates.
+        
+        Returns dict: {filament_slot: median_speed_mm_s} for this object.
+        """
+        # Reverse lookup: VO key → G-code feature names
+        key_to_features = defaultdict(list)
+        for feat, vk in FEATURE_TO_VO_KEY.items():
+            key_to_features[vk].append(feat)
+        
+        features = key_to_features.get(vo_key, [])
+        if not features:
+            return {}
+        
+        result = {}
+        obj_data = self.obj_feedrates.get(obj_id, {})
+        
+        # Collect feedrates per tool for matching features
+        tool_feedrates = defaultdict(list)
+        for (feat, tool), f_vals in obj_data.items():
+            if feat in features:
+                tool_feedrates[tool].extend(f_vals)
+        
+        for tool, frates in tool_feedrates.items():
+            if frates:
+                sorted_f = sorted(frates)
+                median_f = sorted_f[len(sorted_f) // 2]
+                result[tool] = median_f / 60.0  # F mm/min → mm/s
+        
+        return result
+    
+    def _fmt_val(self, v):
+        """Format a VO value for display."""
+        if isinstance(v, float) and v == int(v):
+            return str(int(v))
+        return str(v)
+
     def format_table(self, headers, rows, title=None):
         """Format aligned table."""
         col_widths = [len(str(h)) for h in headers]
@@ -416,8 +494,7 @@ class ThreeMFAnalyzer:
                         row = [key]
                         for i in range(vc):
                             if i < len(vals):
-                                v = vals[i]
-                                row.append(str(int(v)) if isinstance(v, float) and v == int(v) else str(v))
+                                row.append(self._fmt_val(vals[i]))
                             else:
                                 row.append("—")
                         rows.append(row)
@@ -428,7 +505,7 @@ class ThreeMFAnalyzer:
             
             print(self.format_table(headers, rows, "GLOBAL VARIANT OVERRIDES"))
         
-        # ── Per-Object Effective Values ──
+        # ── Per-Object: VO + Actual Feedrates ──
         for obj_id, obj in sorted(self.objects.items()):
             tools = sorted(obj['tools'])
             var_indices = set()
@@ -439,84 +516,110 @@ class ThreeMFAnalyzer:
             if not var_indices:
                 continue
             
+            ext_label = ", ".join(self.get_tool_label(t) for t in tools)
+            
+            # Build per-object table: Global VO + Actual (detected from G-code)
+            # For speed keys: show global value and actual median from G-code
+            # Mark ≠ where actual differs from expected
             headers = ["Parameter"] + [self.get_variant_label(i) for i in var_indices]
             rows = []
             
-            def add_obj_section(title, keys):
+            def add_obj_section(title, keys, is_speed=False):
                 has_data = False
                 for key in keys:
-                    if key in self.vo_arrays:
-                        if not has_data:
-                            rows.append([f"── {title} ──"] + [""] * len(var_indices))
-                            has_data = True
-                        vals = self.vo_arrays[key]
-                        row = [key]
-                        for vi in var_indices:
-                            if vi < len(vals):
-                                v = vals[vi]
-                                row.append(str(int(v)) if isinstance(v, float) and v == int(v) else str(v))
-                            else:
-                                row.append("—")
-                        rows.append(row)
+                    if key not in self.vo_arrays:
+                        continue
+                    if not has_data:
+                        rows.append([f"── {title} ──"] + [""] * len(var_indices))
+                        has_data = True
+                    
+                    vals = self.vo_arrays[key]
+                    
+                    # Try to get actual speed from G-code feedrates
+                    actual_speeds = {}
+                    if is_speed and key in FEATURE_TO_VO_KEY.values():
+                        actual_speeds = self._derive_actual_speed_per_object(obj_id, key)
+                    
+                    row = [key]
+                    for vi in var_indices:
+                        global_val = self._fmt_val(vals[vi]) if vi < len(vals) else "—"
+                        
+                        # Check if we have actual data for this variant's extruder
+                        actual_str = ""
+                        if is_speed and actual_speeds:
+                            # Find which tool corresponds to this variant
+                            eid = self._ext_ids[vi] if vi < len(self._ext_ids) else 0
+                            for tool, speed in actual_speeds.items():
+                                tool_eid = self.filament_to_extruder.get(tool, 0)
+                                if tool_eid == eid:
+                                    expected_num = vals[vi] if vi < len(vals) else None
+                                    if isinstance(expected_num, (int, float)):
+                                        actual_int = int(round(speed))
+                                        expected_int = int(expected_num)
+                                        if actual_int != expected_int:
+                                            actual_str = f"{global_val} (actual≈{actual_int}≠)"
+                                        else:
+                                            actual_str = global_val
+                                    break
+                        
+                        row.append(actual_str if actual_str else global_val)
+                    rows.append(row)
             
-            add_obj_section("Speeds", SPEED_KEYS)
+            add_obj_section("Speeds", SPEED_KEYS, is_speed=True)
             add_obj_section("Acceleration", ACCEL_KEYS)
             add_obj_section("Jerk", JERK_KEYS)
             
-            ext_label = ", ".join(self.get_tool_label(t) for t in tools)
             print(self.format_table(
                 headers, rows,
                 f"OBJECT: {obj['name']} (id={obj_id}) — {ext_label}"
             ))
             
-            # ── Actual feedrates from G-code vs VO expected ──
-            if obj_id in self.obj_feedrates:
-                feedrate_rows = []
-                feature_to_key = {
-                    "Outer wall": "outer_wall_speed",
-                    "Inner wall": "inner_wall_speed",
-                    "Sparse infill": "sparse_infill_speed",
-                    "Internal solid infill": "internal_solid_infill_speed",
-                    "Top surface": "top_surface_speed",
-                    "Bottom surface": "internal_solid_infill_speed",
-                    "Bridge": "bridge_speed",
-                    "Internal Bridge": "internal_bridge_speed",
-                    "Gap infill": "gap_infill_speed",
-                    "Support": "support_speed",
-                    "Support interface": "support_interface_speed",
-                }
+            # ── Actual feedrates from G-code per tool ──
+            obj_data = self.obj_feedrates.get(obj_id, {})
+            if obj_data:
+                # Group by feature, show per-tool breakdown
+                feature_tool_data = defaultdict(dict)
+                for (feat, tool), f_vals in obj_data.items():
+                    if f_vals:
+                        sorted_f = sorted(f_vals)
+                        feature_tool_data[feat][tool] = {
+                            'min': sorted_f[0],
+                            'med': sorted_f[len(sorted_f)//2],
+                            'max': sorted_f[-1],
+                            'count': len(sorted_f),
+                        }
                 
-                for feature, feedrates in sorted(self.obj_feedrates[obj_id].items()):
-                    if not feedrates:
-                        continue
-                    actual_min = min(feedrates)
-                    actual_max = max(feedrates)
-                    actual_med = sorted(feedrates)[len(feedrates)//2]
+                feedrate_rows = []
+                for feature in sorted(feature_tool_data.keys()):
+                    tool_data = feature_tool_data[feature]
+                    vo_key = FEATURE_TO_VO_KEY.get(feature, "")
                     
-                    # Expected from VO
-                    vo_key = feature_to_key.get(feature, "")
-                    expected_str = ""
-                    if vo_key and vo_key in self.vo_arrays:
-                        expected_vals = []
-                        for vi in var_indices:
-                            if vi < len(self.vo_arrays[vo_key]):
-                                v = self.vo_arrays[vo_key][vi]
+                    for tool in sorted(tool_data.keys()):
+                        d = tool_data[tool]
+                        tool_label = self.get_tool_label(tool)
+                        
+                        # Expected from VO for this tool's standard variant
+                        expected_str = ""
+                        if vo_key and vo_key in self.vo_arrays:
+                            std_vi = self._get_std_variant_for_tool(tool)
+                            if std_vi < len(self.vo_arrays[vo_key]):
+                                v = self.vo_arrays[vo_key][std_vi]
                                 if isinstance(v, (int, float)):
-                                    expected_vals.append(f"{int(v * 60)}")  # mm/s → mm/min
-                        expected_str = "/".join(expected_vals)
-                    
-                    # Convert actual to mm/s for display
-                    feedrate_rows.append([
-                        feature,
-                        f"{actual_min/60:.0f}",
-                        f"{actual_med/60:.0f}",
-                        f"{actual_max/60:.0f}",
-                        expected_str or "—",
-                    ])
+                                    expected_str = f"{int(v)}"
+                        
+                        feedrate_rows.append([
+                            feature,
+                            tool_label,
+                            f"{d['min']/60:.0f}",
+                            f"{d['med']/60:.0f}",
+                            f"{d['max']/60:.0f}",
+                            expected_str or "—",
+                            str(d['count']),
+                        ])
                 
                 if feedrate_rows:
                     print(self.format_table(
-                        ["Feature", "Min mm/s", "Med mm/s", "Max mm/s", "VO Expected (F)"],
+                        ["Feature", "Tool", "Min mm/s", "Med mm/s", "Max mm/s", "VO Std", "Moves"],
                         feedrate_rows,
                         f"  ACTUAL FEEDRATES: {obj['name']}"
                     ))

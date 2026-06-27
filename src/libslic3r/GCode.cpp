@@ -3007,9 +3007,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // H2C: Set the active extruder for VariantAwareConfig so that every
     // subsequent m_config.apply() automatically re-applies variant overrides.
+    // get_extruder_id() returns sidebar position (0-based); we need physical
+    // extruder ID for the overlay map. Translate via physical_extruder_map.
     {
-        unsigned int init_eid = get_extruder_id(initial_extruder_id);
-        m_config.set_active_extruder(init_eid);
+        unsigned int sidebar_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+        unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
+        m_config.set_active_extruder(phys_eid);
     }
 
     print.throw_if_canceled();
@@ -3593,8 +3596,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
                         file.write(this->set_extruder(initial_extruder_id, initial_layer_print_height, true));
                         // H2C: Switch active extruder overlay for sequential mode tool change.
+                        // Translate sidebar position → physical via physical_extruder_map.
                         {
-                            unsigned int phys_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+                            unsigned int sidebar_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+                            unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
                             m_config.set_active_extruder(phys_eid);
                         }
                         prime_extruder = true;
@@ -5696,11 +5701,13 @@ LayerResult GCode::process_layer(
         gcode += std::move(gcode_toolchange);
 
         // H2C: Switch active extruder in VariantAwareConfig.
-        // extruder_id here is a filament slot, NOT a physical extruder.
-        // Map through get_extruder_id() to get the physical extruder (0=left, 1=right).
-        // The overlay map is keyed by physical extruder ID.
+        // get_extruder_id() returns sidebar position (0-based), NOT physical extruder ID.
+        // Translate via physical_extruder_map for the overlay lookup.
         {
-            unsigned int phys_eid = (unsigned int)get_extruder_id(extruder_id);
+            unsigned int sidebar_eid = (unsigned int)get_extruder_id(extruder_id);
+            unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] toolchange: filament_slot=" << extruder_id
+                << " sidebar_eid=" << sidebar_eid << " -> phys_eid=" << phys_eid;
             m_config.set_active_extruder(phys_eid);
         }
 
@@ -6161,6 +6168,9 @@ void GCode::VariantAwareConfig::reapply_variant_overrides()
                     << " obj=" << active_object_id << " ext=" << active_extruder_id
                     << " overlay_keys=" << ext_it->second.keys().size();
                 FullPrintConfig::apply(ext_it->second, true);
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply RESULT: ext=" << active_extruder_id
+                    << " outer_wall_speed=" << this->outer_wall_speed.value
+                    << " inner_wall_speed=" << this->inner_wall_speed.value;
                 return;
             }
         }
@@ -6170,6 +6180,13 @@ void GCode::VariantAwareConfig::reapply_variant_overrides()
     // Fallback to global overlay
     if (auto it = extruder_overrides.find(active_extruder_id); it != extruder_overrides.end()) {
         FullPrintConfig::apply(it->second, true);
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply GLOBAL RESULT: ext=" << active_extruder_id
+            << " outer_wall_speed=" << this->outer_wall_speed.value
+            << " inner_wall_speed=" << this->inner_wall_speed.value;
+    } else {
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply: NO global overlay for ext=" << active_extruder_id
+            << " outer_wall_speed=" << this->outer_wall_speed.value
+            << " inner_wall_speed=" << this->inner_wall_speed.value;
     }
 }
 

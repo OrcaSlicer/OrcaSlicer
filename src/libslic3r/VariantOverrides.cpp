@@ -154,6 +154,29 @@ bool VariantOverrides::has_variant(const std::string& key, int variant_idx) cons
     return !std::isnan(fit->second[variant_idx]);
 }
 
+// ────────────────────────────────────────────────────────────────
+// Left/Right → physical extruder ID  (data-driven from preset)
+// ────────────────────────────────────────────────────────────────
+// Reads physical_extruder_map from printer preset config.
+// H2C preset: physical_extruder_map = [1, 0]
+//   → left  = map[0] = 1 (DEPUTY)
+//   → right = map[1] = 0 (MAIN)
+int VariantOverrides::left_extruder_idx(const ConfigBase& config)
+{
+    auto* map = config.option<ConfigOptionInts>("physical_extruder_map");
+    if (map && map->values.size() >= 2)
+        return map->values[0];
+    return 0;  // single-extruder fallback
+}
+
+int VariantOverrides::right_extruder_idx(const ConfigBase& config)
+{
+    auto* map = config.option<ConfigOptionInts>("physical_extruder_map");
+    if (map && map->values.size() >= 2)
+        return map->values[1];
+    return 0;  // single-extruder fallback
+}
+
 bool VariantOverrides::is_multi_variant(const DynamicPrintConfig& config) {
     // Fast path: VO is already populated
     if (!config.variant_overrides().empty())
@@ -739,12 +762,13 @@ std::optional<std::vector<double>> VariantOverrides::parse_variant_csv(
 }
 
 // ────────────────────────────────────────────────────────────────
-// VariantOverrides::swap_extruder_order
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::swap_extruder_order  [DEPRECATED — no longer called]
 // ────────────────────────────────────────────────────────────────
 // Rotates all VO arrays by n/2 to swap extruder halves.
-// OrcaSlicer internal: [Right/v0, Right/v1, Left/v0, Left/v1]
-// BBS file format:     [Left/v0,  Left/v1,  Right/v0, Right/v1]
-// This is a symmetric operation (applying twice = identity).
+// Previously needed when internal order differed from BBS file order.
+// After Tab.cpp L/R fix, internal order == BBS order, so no swap needed.
+// Kept for reference; can be removed in a future cleanup.
 void VariantOverrides::swap_extruder_order()
 {
     for (auto& [key, vals] : floats) {
@@ -761,14 +785,15 @@ void VariantOverrides::swap_extruder_order()
 // VariantOverrides::prepare_for_3mf_save
 // ────────────────────────────────────────────────────────────────
 // Prepare a DynamicPrintConfig for 3MF serialization:
-//   1. Swap VO from internal order to BBS file order
-//   2. Expand VO into vector ConfigOptions for serialization
+//   Expand VO into vector ConfigOptions for serialization.
+//   Internal order now matches BBS file order (Left first)
+//   so no extruder swap is needed.
 // Caller should pass a COPY of the config (this modifies in-place).
 void VariantOverrides::prepare_for_3mf_save(DynamicPrintConfig& config)
 {
     if (config.variant_overrides().empty())
         return;
-    config.variant_overrides().swap_extruder_order();
+    // No swap needed: after Tab.cpp fix, internal order == BBS file order.
     config.expand_variant_overrides_to_vectors();
 }
 
@@ -776,12 +801,12 @@ void VariantOverrides::prepare_for_3mf_save(DynamicPrintConfig& config)
 // VariantOverrides::load_from_3mf_compress
 // ────────────────────────────────────────────────────────────────
 // After loading a BBS-style JSON from 3MF:
-//   1. Compress vector ConfigOptions into VO
-//   2. Swap from BBS file order to internal order
+//   Compress vector ConfigOptions into VO.
+//   No swap needed: BBS file order == internal order (Left first).
 void VariantOverrides::load_from_3mf_compress(DynamicPrintConfig& config, int active_variant_index)
 {
     config.compress_vectors_to_variant_overrides(active_variant_index);
-    config.variant_overrides().swap_extruder_order();
+    // No swap needed: internal order matches BBS file order.
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -812,8 +837,7 @@ void VariantOverrides::try_load_per_object_3mf_metadata(
         return;
 
     auto& vals = *parsed;
-    // Swap from BBS file order [Left, Right] to internal [Right, Left]
-    std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
+    // No swap needed: BBS file order matches internal order (Left first).
 
     config.variant_overrides().floats[key] = vals;
 
@@ -855,8 +879,13 @@ PrecomputedOverlays VariantOverrides::precompute_overlays(
             int vi = compute_variant_index(eid, full_config);
             if (vi < 0) continue;
             auto overlay = global_vo.build_overlay(vi);
-            if (!overlay.empty())
+            if (!overlay.empty()) {
+                // Diagnostic: log outer_wall_speed in the overlay for this extruder
+                if (auto* ows = dynamic_cast<const ConfigOptionFloat*>(overlay.option("outer_wall_speed")))
+                    BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] precompute: eid=" << eid
+                        << " vi=" << vi << " outer_wall_speed=" << ows->value;
                 result.extruder_overrides[eid] = std::move(overlay);
+            }
         }
     }
 
