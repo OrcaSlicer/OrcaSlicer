@@ -49,8 +49,8 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
           exit ${PIPESTATUS[0]}
-      # For now run filament subtype check only for BBL profiles untill we fixed other vendors profiles.
-      - name: validate filiament subtype check for BBL profiles
+      # For now run filament subtype check only for BBL profiles until we fix other vendors' profiles.
+      - name: validate filament subtype check for BBL profiles
         id: validate_filament_subtypes
         continue-on-error: true
         run: |
