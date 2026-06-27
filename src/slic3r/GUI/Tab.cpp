@@ -938,6 +938,24 @@ void Tab::update_changed_ui()
                                m_type == Preset::TYPE_SLA_MATERIAL || m_type == Preset::TYPE_MODEL);
     auto dirty_options      = m_presets->current_dirty_options(deep_compare);
     auto nonsys_options     = m_presets->current_different_from_parent_options(deep_compare);
+
+    // H2C: The preset dirty comparison (deep_diff edited vs selected) can produce
+    // false positives for variant-aware keys because selected_cfg scalar gets
+    // contaminated by switch_variant VO application in load_incoming.
+    // Filter out variant keys where the current variant has no override (NaN).
+    if (m_extruder_switch && m_last_variant_index >= 0) {
+        const auto& vo = m_config->variant_overrides();
+        auto filter_vo = [&](std::vector<std::string>& opts) {
+            opts.erase(std::remove_if(opts.begin(), opts.end(), [&](const std::string& key) {
+                auto hash = key.find('#');
+                const std::string base = (hash != std::string::npos) ? key.substr(0, hash) : key;
+                return vo.has(base) && !vo.has_variant(base, m_last_variant_index);
+            }), opts.end());
+        };
+        filter_vo(dirty_options);
+        filter_vo(nonsys_options);
+    }
+
     if (m_type == Preset::TYPE_PRINTER && static_cast<TabPrinter*>(this)->m_printer_technology == ptFFF) {
         TabPrinter* tab = static_cast<TabPrinter*>(this);
         if (tab->m_initial_extruders_count != tab->m_extruders_count)
@@ -3408,28 +3426,47 @@ void TabPrintModel::reload_config()
 
 void TabPrintModel::update_custom_dirty(std::vector<std::string>& dirty_options, std::vector<std::string>& nonsys_options)
 {
-    dirty_options  = concat(dirty_options, m_null_keys);
-    nonsys_options = concat(nonsys_options, m_null_keys);
-
-    // H2C: For variant-aware keys, only mark as nonsys (per-object override)
+    // H2C: For variant-aware keys, only mark as dirty/nonsys
     // if the CURRENT variant slot has a value (not NaN/reset).
     // This prevents showing override markers for extruders where the user
     // hasn't made a per-object change, even if the other extruder has one.
     if (m_extruder_switch && m_last_variant_index >= 0) {
         const auto& vo = m_config->variant_overrides();
-        std::vector<std::string> filtered_keys;
-        for (const auto& key : m_all_keys) {
-            // Strip #index suffix if present for VO lookup
+
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-Dirty] update_custom_dirty: vi=" << m_last_variant_index
+            << " m_null_keys=" << m_null_keys.size() << " m_all_keys=" << m_all_keys.size()
+            << " vo.has(outer_wall_speed)=" << vo.has("outer_wall_speed")
+            << " vo.has_variant(outer_wall_speed," << m_last_variant_index << ")="
+            << vo.has_variant("outer_wall_speed", m_last_variant_index);
+
+        // Filter m_null_keys — exclude variant-aware keys where current variant is NaN
+        std::vector<std::string> filtered_null;
+        for (const auto& key : m_null_keys) {
             auto hash              = key.find('#');
             const std::string base = (hash != std::string::npos) ? key.substr(0, hash) : key;
-            if (vo.has(base) && !vo.has_variant(base, m_last_variant_index)) {
-                // This key's current variant is NaN — no per-object override
+            if (vo.has(base) && !vo.has_variant(base, m_last_variant_index))
                 continue;
-            }
+            filtered_null.push_back(key);
+        }
+        dirty_options  = concat(dirty_options, filtered_null);
+        nonsys_options = concat(nonsys_options, filtered_null);
+
+        // Filter m_all_keys the same way
+        std::vector<std::string> filtered_keys;
+        for (const auto& key : m_all_keys) {
+            auto hash              = key.find('#');
+            const std::string base = (hash != std::string::npos) ? key.substr(0, hash) : key;
+            if (vo.has(base) && !vo.has_variant(base, m_last_variant_index))
+                continue;
             filtered_keys.push_back(key);
         }
         nonsys_options = concat(nonsys_options, filtered_keys);
     } else {
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-Dirty] update_custom_dirty: ELSE branch, vi="
+            << m_last_variant_index << " extruder_switch=" << (m_extruder_switch ? "yes" : "no")
+            << " m_null_keys=" << m_null_keys.size() << " m_all_keys=" << m_all_keys.size();
+        dirty_options  = concat(dirty_options, m_null_keys);
+        nonsys_options = concat(nonsys_options, m_null_keys);
         nonsys_options = concat(nonsys_options, m_all_keys);
     }
 }

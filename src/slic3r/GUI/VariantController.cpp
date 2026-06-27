@@ -131,6 +131,19 @@ void VariantController::on_value_changed(
         << " vi=" << variant_idx
         << " per_object=" << (object_config ? "yes" : "no");
 
+    // Per-object: if the new value equals the global (parent) value,
+    // treat it as a reset — remove the override instead of storing it.
+    // Storing a value == parent creates a phantom dirty state.
+    if (object_config && m_global) {
+        const ConfigOption* edited_opt = edited_cfg.option(key);
+        const ConfigOption* global_opt = m_global->option(key);
+        if (edited_opt && global_opt && *edited_opt == *global_opt) {
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-VC] on_value_changed: value == global parent → reset_key";
+            reset_key(edited_cfg, key, variant_idx, object_config);
+            return;
+        }
+    }
+
     edited_cfg.save_variant_overrides(variant_idx, {key}, /*force=*/true);
 
     if (object_config) {
@@ -158,11 +171,23 @@ void VariantController::reset_key(
     edited_cfg.variant_overrides().erase_variant(key, variant_idx);
 
     if (object_config) {
-        const_cast<DynamicPrintConfig&>(object_config->get()).variant_overrides().erase_variant(key, variant_idx);
+        auto& model_cfg = const_cast<DynamicPrintConfig&>(object_config->get());
+        model_cfg.variant_overrides().erase_variant(key, variant_idx);
+
+        // If ALL VO variants for this key are gone, remove the option from
+        // ModelConfig entirely. Otherwise a phantom option (value == parent)
+        // stays in ModelConfig and marks the field as a per-object override.
+        if (!model_cfg.variant_overrides().has(key)) {
+            model_cfg.erase(key);
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-VC] reset_key: removed option '"
+                << key << "' from ModelConfig (no VO variants left)";
+        }
+
         BOOST_LOG_TRIVIAL(warning) << "[H2C-VC] reset_key: after erase, edited has_key="
             << edited_cfg.variant_overrides().has(key)
             << " model has_key="
-            << object_config->get().variant_overrides().has(key);
+            << object_config->get().variant_overrides().has(key)
+            << " model has_option=" << object_config->get().has(key);
     }
 }
 
