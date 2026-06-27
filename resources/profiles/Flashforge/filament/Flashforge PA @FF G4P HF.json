@@ -3,7 +3,7 @@
 	"name": "Flashforge PA @FF G4P HF",
 	"inherits": "Flashforge Generic ABS @G3U",
 	"from": "system",
-	"setting_id": "FE0165",
+	"setting_id": "XGNPvS2ps7Xn2fpx",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

@@ -3,7 +3,7 @@
 	"name": "Flashforge PET-CF @FF C5P",
 	"inherits": "Generic PETG-CF @System",
 	"from": "system",
-	"setting_id": "FE0179",
+	"setting_id": "W6i9E22BVo11TeCm",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

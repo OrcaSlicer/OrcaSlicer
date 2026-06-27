@@ -3,6 +3,7 @@
     "name": "FilAr PLA Rosa Amaranto",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "wgxgJfhOa2ZPikRH",
     "filament_id": "FILAR0010",
     "instantiation": "true",
     "filament_vendor": [

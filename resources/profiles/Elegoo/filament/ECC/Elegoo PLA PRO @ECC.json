@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA PRO @ECC",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EO0180",
+	"setting_id": "JfYUDBI0wNnLpEsL",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"20"

@@ -3,7 +3,7 @@
 	"name": "Peopoly Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "PY0003",
+	"setting_id": "KNsVV4dvEWAAkzDE",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "VC0036",
+	"setting_id": "q3EqyOZ87HZpBzvO",
 	"name": "Full performance - 0.25mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

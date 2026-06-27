@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA Matte @FF AD3",
 	"inherits": "SUNLU PLA Matte @base",
 	"from": "system",
-	"setting_id": "FE0532",
+	"setting_id": "5gelEcX6iOtqnbsh",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"210"

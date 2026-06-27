@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "VC0051",
+	"setting_id": "x0Q3hHsXoY33V4Df",
 	"name": "High performance - 0.25mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

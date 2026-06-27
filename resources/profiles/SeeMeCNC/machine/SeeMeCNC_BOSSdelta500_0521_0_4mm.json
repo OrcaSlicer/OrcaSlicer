@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "SeeMeCNC BOSSdelta 500 0521 0.4 nozzle",
 	"from": "System",
-	"setting_id": "SC0167",
+	"setting_id": "5yqhnwvAafqWtWsv",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",

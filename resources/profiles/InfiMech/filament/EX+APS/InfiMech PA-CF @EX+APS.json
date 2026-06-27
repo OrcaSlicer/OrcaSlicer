@@ -3,7 +3,7 @@
 	"name": "InfiMech PA-CF @EX+APS",
 	"inherits": "fdm_filament_pa @EX+APS",
 	"from": "system",
-	"setting_id": "IH0023",
+	"setting_id": "6YMXdKicP2hGUUJn",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

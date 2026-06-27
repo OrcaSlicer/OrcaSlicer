@@ -3,7 +3,7 @@
 	"name": "Eryone PP-CF",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EE0025",
+	"setting_id": "GuuXzP9ILCWG5cxt",
 	"filament_id": "EFL33",
 	"instantiation": "true",
 	"compatible_printers": [

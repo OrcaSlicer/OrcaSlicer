@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @System",
 	"inherits": "PolyLite PLA @base",
 	"from": "system",
-	"setting_id": "OGFSL19",
+	"setting_id": "MKxTIucBtfpUvIhZ",
 	"filament_id": "OGFL00",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

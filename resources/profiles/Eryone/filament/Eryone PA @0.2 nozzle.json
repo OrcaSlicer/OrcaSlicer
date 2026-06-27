@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Eryone PA @0.2 nozzle",
 	"from": "system",
-	"setting_id": "EE0009",
+	"setting_id": "zavqdFwS2fsajkps",
 	"instantiation": "true",
 	"inherits": "Eryone PA",
 	"compatible_printers": [

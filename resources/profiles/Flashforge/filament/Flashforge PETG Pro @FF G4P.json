@@ -3,7 +3,7 @@
 	"name": "Flashforge PETG Pro @FF G4P",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "FE0201",
+	"setting_id": "ozD2wU5UiORTtJsa",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

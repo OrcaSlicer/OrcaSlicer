@@ -3,7 +3,7 @@
     "name": "HP-TPU @K2-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "CY0403",
+    "setting_id": "l9E5f6JLwfKo4aG9",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

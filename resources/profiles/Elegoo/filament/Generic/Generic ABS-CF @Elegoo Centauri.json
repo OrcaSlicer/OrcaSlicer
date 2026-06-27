@@ -3,7 +3,7 @@
 	"name": "Generic ABS-CF @Elegoo Centauri",
 	"inherits": "Generic ABS @base",
 	"from": "system",
-	"setting_id": "EO0150",
+	"setting_id": "fRiriEvlcxDDO5tc",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"260"

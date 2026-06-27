@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @Qidi Q2 0.8 nozzle",
 	"inherits": "PolyLite PLA@Q2-Series",
 	"from": "system",
-	"setting_id": "QI0871",
+	"setting_id": "SnWXdbMVS60fzPyZ",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.012"

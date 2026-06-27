@@ -2,7 +2,7 @@
 	"type": "process",
 	"name": "0.24mm Fine @Elegoo N4Max 0.8 nozzle",
 	"from": "system",
-	"setting_id": "EO0266",
+	"setting_id": "8eKtU9RlWvWk8MfS",
 	"instantiation": "true",
 	"inherits": "0.40mm Standard @Elegoo N4Max 0.8 nozzle",
 	"layer_height": "0.24",

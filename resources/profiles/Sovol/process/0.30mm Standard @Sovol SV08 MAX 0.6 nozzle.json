@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "SL0062",
+	"setting_id": "EhJl99Rdzr3bYnjW",
 	"name": "0.30mm Standard @Sovol SV08 MAX 0.6 nozzle",
 	"from": "system",
 	"inherits": "fdm_process_common",

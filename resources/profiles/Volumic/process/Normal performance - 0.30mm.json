@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "VC0077",
+	"setting_id": "TikIASel3dJuzlIC",
 	"name": "Normal performance - 0.30mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

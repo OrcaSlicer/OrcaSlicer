@@ -3,7 +3,7 @@
     "name": "CR-PLA Matte @K1 Max_CFS-C-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "CY0062",
+    "setting_id": "ZFXelUe4vcYytBIg",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "VC0080",
+	"setting_id": "GNPkW4cAsenc06Qj",
 	"name": "Normal performance DUAL - 0.20mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

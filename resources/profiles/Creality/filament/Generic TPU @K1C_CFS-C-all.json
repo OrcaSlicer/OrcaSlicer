@@ -3,7 +3,7 @@
     "name": "Generic TPU @K1C_CFS-C-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "CY0370",
+    "setting_id": "XyaRiGJD4khUkwUe",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

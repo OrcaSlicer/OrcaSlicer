@@ -3,7 +3,7 @@
 	"name": "Anker Generic PLA",
 	"inherits": "Anker Generic PLA @base",
 	"from": "system",
-	"setting_id": "AR0027",
+	"setting_id": "qfKC91VAAFZSExhm",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

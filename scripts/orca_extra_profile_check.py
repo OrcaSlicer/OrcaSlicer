@@ -3,6 +3,8 @@ import json
 import argparse
 from pathlib import Path
 
+from assign_vendor_setting_ids import generate_preset_setting_id
+
 OBSOLETE_KEYS = {
     "acceleration", "scale", "rotate", "duplicate", "duplicate_grid",
     "bed_size", "print_center", "g0", "wipe_tower_per_color_wipe",
@@ -450,35 +452,35 @@ def check_conflict_keys(profiles_dir, vendor_name):
     return error_count, warn_count
 
 
-# Vendors whose setting_id space is authoritative / user-owned and exempt from the
-# global per-vendor-namespacing rule (Bambu owns "G*", OrcaFilamentLibrary owns "O*").
-SETTING_ID_RESERVED_VENDORS = {"BBL", "OrcaFilamentLibrary", "user", "Custom"}
+# Bambu (BBL) keeps its authoritative "G*" cloud ids, which are NOT produced by the
+# deterministic formula, so BBL is exempt from the formula match (Rule 2) only. It is
+# still checked for presence, uniqueness, base-no-id and the typo key like every other
+# vendor. Every other vendor (incl. OrcaFilamentLibrary and Custom) must also match the
+# formula.
+SETTING_ID_FORMULA_EXEMPT_VENDORS = {"BBL"}
 PROFILE_SUBDIRS = ("filament", "process", "machine")
 
 
 def check_setting_id_uniqueness(profiles_dir):
     """
-    Enforce that setting_id is globally unique and stays inside each vendor's prefix.
-
-    See scripts/assign_vendor_setting_ids.py for the assignment policy. Four rules:
-      1. A setting_id used by any non-reserved vendor must be unique across the whole
-         profile tree (no other file - reserved or not - may share it).
-      2. Every vendor listed in resources/profiles/vendor_prefixes.json must keep all
-         its setting_ids inside its registered prefix.
-      3. Base profiles (instantiation != "true") must not carry a setting_id at all.
-      4. In a managed (registered) vendor, every instantiated preset must HAVE a
-         setting_id (no gaps).
-      5. No profile may use the misspelled key "settings_id".
-    Reserved vendors (Bambu / OrcaFilamentLibrary) may share ids internally.
+    Validate setting_id across every vendor (see scripts/assign_vendor_setting_ids.py):
+      1. Every instantiated preset must HAVE a setting_id.            (all vendors)
+      2. A stored setting_id must equal generate_preset_setting_id(vendor, type, name); a stale
+         value means the JSON was edited without rerunning assign_vendor_setting_ids.py.
+         (all vendors EXCEPT the formula-exempt ones, e.g. BBL)
+      3. Base profiles (instantiation != "true") must not carry a setting_id.  (all vendors)
+      4. setting_id must be globally unique - no two files may share one.       (all vendors)
+      5. No profile may use the misspelled key "settings_id".                    (all vendors)
+    Formula-exempt vendors (BBL) keep their authoritative ids, so only Rule 2 is skipped
+    for them; they are still held to presence, uniqueness, base-no-id and the typo check.
     """
     errors = 0
-    registry_path = profiles_dir / "vendor_prefixes.json"
-    registry = json.loads(registry_path.read_bytes()) if registry_path.exists() else {}
-
-    owners = {}  # setting_id -> list of (vendor, relative_path)
+    owners = {}  # setting_id -> list of relative_path (every vendor)
     for vendor_dir in sorted(profiles_dir.iterdir()):
         if not vendor_dir.is_dir():
             continue
+        vendor = vendor_dir.name
+        formula_exempt = vendor in SETTING_ID_FORMULA_EXEMPT_VENDORS
         for sub in PROFILE_SUBDIRS:
             base = vendor_dir / sub
             if not base.is_dir():
@@ -490,62 +492,58 @@ def check_setting_id_uniqueness(profiles_dir):
                     continue
                 if not isinstance(data, dict):
                     continue
+                rel = file_path.relative_to(profiles_dir)
                 # Rule 5: catch the misspelled "settings_id" key.
                 if "settings_id" in data:
                     errors += 1
                     print_error(
-                        f"profile {file_path.relative_to(profiles_dir)} uses the "
-                        f'misspelled key "settings_id" (should be "setting_id"); '
-                        f"run assign_vendor_setting_ids.py"
+                        f'profile {rel} uses the misspelled key "settings_id" '
+                        f'(should be "setting_id"); run assign_vendor_setting_ids.py'
                     )
                 sid = data.get("setting_id")
                 instantiated = data.get("instantiation") == "true"
-                if not sid:
-                    # Rule 4: managed vendors must not have instantiated presets
-                    # that lack a setting_id.
-                    if instantiated and vendor_dir.name in registry:
+                if not instantiated:
+                    # Rule 3: base/template profiles must not carry a setting_id.
+                    if sid:
                         errors += 1
                         print_error(
-                            f"instantiated preset {file_path.relative_to(profiles_dir)} "
-                            f"is missing a setting_id; run assign_vendor_setting_ids.py"
+                            f'base profile {rel} (instantiation != "true") must not have a '
+                            f'setting_id ("{sid}"); run assign_vendor_setting_ids.py'
                         )
                     continue
-                # Rule 3: only instantiated presets may carry a setting_id;
-                # base/template profiles must not (matches Bambu's convention).
-                if not instantiated:
+                # Rule 1: every instantiated preset must have a setting_id.
+                if not sid:
                     errors += 1
                     print_error(
-                        f"base profile {file_path.relative_to(profiles_dir)} "
-                        f'(instantiation != "true") must not have a setting_id '
-                        f'("{sid}"); run assign_vendor_setting_ids.py'
+                        f"instantiated preset {rel} is missing a setting_id; "
+                        f"run assign_vendor_setting_ids.py"
                     )
                     continue
-                owners.setdefault(sid, []).append(
-                    (vendor_dir.name, file_path.relative_to(profiles_dir))
-                )
+                # Rule 2: the stored id must match the deterministic rule. BBL keeps its
+                # authoritative G* ids and is exempt from this check only.
+                if not formula_exempt:
+                    expected = generate_preset_setting_id(vendor, sub, data.get("name", ""))
+                    if sid != expected:
+                        errors += 1
+                        print_error(
+                            f'setting_id "{sid}" in {rel} does not match the expected '
+                            f'"{expected}" for {vendor}/{sub}/{data.get("name", "")}; '
+                            f"run assign_vendor_setting_ids.py"
+                        )
+                        continue
+                # Rule 4: collect for the global-uniqueness check below.
+                owners.setdefault(sid, []).append(rel)
 
-    # Rule 1: collisions that involve a non-reserved vendor.
+    # Rule 4: a setting_id shared by two files is an error. For managed vendors this means
+    # a duplicate vendor/type/name; for formula-exempt vendors (BBL) a copy-pasted id.
     for sid, locs in sorted(owners.items()):
         if len(locs) < 2:
             continue
-        if any(v not in SETTING_ID_RESERVED_VENDORS for v, _ in locs):
-            errors += 1
-            vendors = sorted({v for v, _ in locs})
-            print_error(
-                f"setting_id \"{sid}\" is shared by {len(locs)} files across {vendors}; "
-                f"setting_id must be globally unique (run assign_vendor_setting_ids.py)"
-            )
-
-    # Rule 2: registered vendors must stay inside their prefix.
-    for sid, locs in sorted(owners.items()):
-        for vendor, rel in locs:
-            prefix = registry.get(vendor)
-            if prefix and not sid.startswith(prefix):
-                errors += 1
-                print_error(
-                    f"setting_id \"{sid}\" in {rel} does not start with vendor "
-                    f"prefix \"{prefix}\" (run assign_vendor_setting_ids.py)"
-                )
+        errors += 1
+        print_error(
+            f'setting_id "{sid}" is shared by {len(locs)} files ({sorted(map(str, locs))}); '
+            f"setting_id must be globally unique"
+        )
     return errors
 
 

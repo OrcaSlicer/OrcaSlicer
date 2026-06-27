@@ -3,7 +3,7 @@
 	"name": "BLOCKS Pro S100 1.2 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "BS0058",
+	"setting_id": "xtsGSJ4JkbHTPi44",
 	"instantiation": "true",
 	"printer_model": "BLOCKS Pro S100",
 	"default_print_profile": "0.60mm Standard 1.2 nozzle @Blocks",

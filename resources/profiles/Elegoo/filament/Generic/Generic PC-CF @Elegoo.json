@@ -3,7 +3,7 @@
 	"name": "Generic PC-CF @Elegoo",
 	"inherits": "Generic PC @base",
 	"from": "system",
-	"setting_id": "EO0156",
+	"setting_id": "KMhdBJbiUeXxKgPS",
 	"instantiation": "true",
 	"filament_type": [
 		"PC-CF"

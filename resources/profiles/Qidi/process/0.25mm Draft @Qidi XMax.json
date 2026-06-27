@@ -3,7 +3,7 @@
 	"name": "0.25mm Draft @Qidi XMax",
 	"inherits": "fdm_process_qidi_common",
 	"from": "system",
-	"setting_id": "QI1224",
+	"setting_id": "YomLQtTbuHeQfrip",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",

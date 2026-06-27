@@ -39,6 +39,8 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include <boost/locale.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -518,6 +520,39 @@ std::string  Preset::get_type_string(Preset::Type type)
         default:
             return "invalid";
     }
+}
+
+std::string generate_preset_setting_id(const std::string& vendor, const std::string& type, const std::string& name)
+{
+    if (vendor.empty() || name.empty())
+        return "";
+
+    // Dedicated namespace for preset setting_ids, distinct from the cloud per-user
+    // namespace (OrcaCloudServiceAgent). Keep in sync with scripts/assign_vendor_setting_ids.py;
+    // never change this constant.
+    static const boost::uuids::uuid vendor_namespace =
+        boost::uuids::string_generator()("c1f4d9e2-7a3b-5c8d-9e0f-1a2b3c4d5e6f");
+
+    boost::uuids::name_generator_sha1 gen(vendor_namespace);
+    boost::uuids::uuid id = gen(vendor + "/" + type + "/" + name);
+
+    // Render the low 16 base62 digits of the 128-bit id, most-significant first.
+    // Implemented as long-division over the 16 raw (big-endian) bytes so it stays
+    // portable (no __int128, which MSVC lacks) and matches the Python reference.
+    static const char ALPHABET[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    unsigned char bytes[16];
+    std::copy(id.begin(), id.end(), bytes);
+    char out[16];
+    for (int pos = 15; pos >= 0; --pos) {
+        unsigned int rem = 0;
+        for (int i = 0; i < 16; ++i) {
+            unsigned int cur = (rem << 8) | bytes[i];
+            bytes[i] = static_cast<unsigned char>(cur / 62);
+            rem      = cur % 62;
+        }
+        out[pos] = ALPHABET[rem];
+    }
+    return std::string(out, 16);
 }
 
 std::string  Preset::get_iot_type_string(Preset::Type type)
@@ -2196,11 +2231,12 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         const auto inherits_iter               = preset_values.find(BBL_JSON_KEY_INHERITS);
         const bool preset_inherits_from_parent = inherits_iter != preset_values.end() && !inherits_iter->second.empty();
         if (preset_inherits_from_parent) {
-            // This indicates that there is inherits exists but there is no base_id
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
-                                       << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
-            unlock();
-            return false;
+            // No base_id stored although the preset inherits from a parent. Rather than
+            // dropping the preset, derive base_id on the fly from the resolved parent's
+            // setting_id below (the parent is found by its "inherits" name). Only the
+            // genuinely unresolvable-parent case is skipped, further down.
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+                                    << boost::format("no base_id for user preset %1%, will derive it from the parent") % canonical_name;
         }
     }
 
@@ -2228,6 +2264,11 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         const Preset& default_preset = this->default_preset_for(cloud_config);
         if (inherit_preset) {
             new_config = inherit_preset->config;
+            // Derive base_id from the resolved parent when it was not supplied. The
+            // parent's setting_id is itself computed deterministically at load time, so
+            // this stays stable. Does not affect the preset's own (cloud) setting_id.
+            if (based_id.empty())
+                based_id = inherit_preset->setting_id;
             if (cloud_filament_id == "null") {
                 cloud_filament_id = inherit_preset->filament_id;
             }

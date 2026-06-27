@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "SeeMeCNC Artemis 0.5 nozzle",
 	"from": "System",
-	"setting_id": "SC0156",
+	"setting_id": "T7UbsCeU4Spvljh1",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",

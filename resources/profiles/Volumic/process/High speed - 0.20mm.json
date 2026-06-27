@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "VC0070",
+	"setting_id": "72tWDDDqVKtRwBFH",
 	"name": "High speed - 0.20mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

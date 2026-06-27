@@ -3,7 +3,7 @@
     "name": "Hyper PC @K2 Plus-all",
     "inherits": "fdm_filament_pc",
     "from": "system",
-    "setting_id": "CY0455",
+    "setting_id": "zhN9dkzeJWtsAKj8",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
