@@ -205,7 +205,38 @@ struct VariantOverrides {
     // extruder_variant_list from the config automatically.
     static int compute_variant_index(unsigned int extruder_id, const ConfigBase& config);
 
-    // ── 3MF parsing ──
+    // ── 3MF I/O layer ──
+    // All BBS extruder-order conversion lives here.
+    // OrcaSlicer internal: [Right/v0, Right/v1, Left/v0, Left/v1]
+    // BBS 3MF file format: [Left/v0,  Left/v1,  Right/v0, Right/v1]
+
+    // Swap extruder halves in VO arrays (rotate by n/2).
+    // Converts between internal and BBS file order (symmetric operation).
+    void swap_extruder_order();
+
+    // Prepare a DynamicPrintConfig for 3MF save:
+    //   1. Copies VO, swaps to BBS order
+    //   2. Expands VO into vector ConfigOptions
+    // Config is modified in-place (caller should pass a copy).
+    static void prepare_for_3mf_save(DynamicPrintConfig& config);
+
+    // Load global/embedded preset from 3MF JSON:
+    //   1. Compresses vector ConfigOptions into VO
+    //   2. Swaps from BBS order to internal order
+    // Called after load_from_json().
+    static void load_from_3mf_compress(DynamicPrintConfig& config, int active_variant_index);
+
+    // Check if a 3MF metadata key/value is a variant-aware CSV.
+    // Returns true if the key should be SKIPPED by the first-pass set_deserialize
+    // (it will be handled by try_load_per_object_3mf_metadata instead).
+    static bool is_variant_csv(const std::string& key, const std::string& value);
+
+    // Parse and load a per-object variant-aware CSV from 3MF metadata.
+    // Parses CSV, swaps from BBS to internal order, stores in VO, sets scalar.
+    // Call in second pass for all metadata where is_variant_csv() returned true.
+    static void try_load_per_object_3mf_metadata(
+        const std::string& key, const std::string& value,
+        DynamicPrintConfig& config);
 
     // Parse a comma-separated value string for a variant-aware key.
     // BBS 3MF files store per-variant values as "300,600,300,600".

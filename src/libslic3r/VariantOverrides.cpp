@@ -739,6 +739,93 @@ std::optional<std::vector<double>> VariantOverrides::parse_variant_csv(
 }
 
 // ────────────────────────────────────────────────────────────────
+// VariantOverrides::swap_extruder_order
+// ────────────────────────────────────────────────────────────────
+// Rotates all VO arrays by n/2 to swap extruder halves.
+// OrcaSlicer internal: [Right/v0, Right/v1, Left/v0, Left/v1]
+// BBS file format:     [Left/v0,  Left/v1,  Right/v0, Right/v1]
+// This is a symmetric operation (applying twice = identity).
+void VariantOverrides::swap_extruder_order()
+{
+    for (auto& [key, vals] : floats) {
+        if (vals.size() > 1 && print_options_with_variant.count(key))
+            std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
+    }
+    for (auto& [key, vals] : strings) {
+        if (vals.size() > 1 && print_options_with_variant.count(key))
+            std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
+    }
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::prepare_for_3mf_save
+// ────────────────────────────────────────────────────────────────
+// Prepare a DynamicPrintConfig for 3MF serialization:
+//   1. Swap VO from internal order to BBS file order
+//   2. Expand VO into vector ConfigOptions for serialization
+// Caller should pass a COPY of the config (this modifies in-place).
+void VariantOverrides::prepare_for_3mf_save(DynamicPrintConfig& config)
+{
+    if (config.variant_overrides().empty())
+        return;
+    config.variant_overrides().swap_extruder_order();
+    config.expand_variant_overrides_to_vectors();
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::load_from_3mf_compress
+// ────────────────────────────────────────────────────────────────
+// After loading a BBS-style JSON from 3MF:
+//   1. Compress vector ConfigOptions into VO
+//   2. Swap from BBS file order to internal order
+void VariantOverrides::load_from_3mf_compress(DynamicPrintConfig& config, int active_variant_index)
+{
+    config.compress_vectors_to_variant_overrides(active_variant_index);
+    config.variant_overrides().swap_extruder_order();
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::is_variant_csv
+// ────────────────────────────────────────────────────────────────
+// Returns true if a 3MF metadata key/value pair is a variant-aware CSV
+// that should be SKIPPED in the first-pass set_deserialize().
+bool VariantOverrides::is_variant_csv(const std::string& key, const std::string& value)
+{
+    return print_options_with_variant.count(key) > 0 &&
+           value.find(',') != std::string::npos;
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::try_load_per_object_3mf_metadata
+// ────────────────────────────────────────────────────────────────
+// Parse a per-object variant-aware CSV from 3MF metadata and store
+// in config's VO. Handles:
+//   1. CSV parsing (with "nil" → NaN)
+//   2. BBS→internal extruder order swap
+//   3. Store in VO floats + set scalar config value
+void VariantOverrides::try_load_per_object_3mf_metadata(
+    const std::string& key, const std::string& value,
+    DynamicPrintConfig& config)
+{
+    auto parsed = parse_variant_csv(key, value);
+    if (!parsed || parsed->size() <= 1)
+        return;
+
+    auto& vals = *parsed;
+    // Swap from BBS file order [Left, Right] to internal [Right, Left]
+    std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
+
+    config.variant_overrides().floats[key] = vals;
+
+    // Set scalar to first non-NaN value, or 0 if all NaN
+    double scalar = 0.0;
+    for (double v : vals) {
+        if (!std::isnan(v)) { scalar = v; break; }
+    }
+    config.set_key_value(key, new ConfigOptionFloat(scalar));
+}
+
+// ────────────────────────────────────────────────────────────────
 // VariantOverrides::precompute_overlays
 // ────────────────────────────────────────────────────────────────
 // Called once at print start by GCode::precompute_extruder_speed_overrides().
