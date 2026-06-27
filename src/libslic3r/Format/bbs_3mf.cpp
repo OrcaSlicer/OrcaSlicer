@@ -2160,6 +2160,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     //BBS: add module name
                     else if (metadata.key == "module")
                         model_object->module_name = metadata.value;
+                    // H2C: skip variant-aware CSV values (e.g. "nil,500,46,500")
+                    // — they are handled in the second pass below.
+                    else if (print_options_with_variant.count(metadata.key) &&
+                             metadata.value.find(',') != std::string::npos)
+                        continue;
                     else
                         model_object->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
                 }
@@ -2175,11 +2180,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                         std::vector<double> vals;
                         std::istringstream ss(md.value);
                         std::string token;
-                        while (std::getline(ss, token, ','))
-                            vals.push_back(std::stod(token));
+                        while (std::getline(ss, token, ',')) {
+                            if (token == "nil")
+                                vals.push_back(std::numeric_limits<double>::quiet_NaN());
+                            else
+                                vals.push_back(std::stod(token));
+                        }
                         if (vals.size() > 1) {
                             dpc.variant_overrides().floats[md.key] = vals;
-                            dpc.set_key_value(md.key, new ConfigOptionFloat(vals[0]));
+                            // Use first non-NaN value for scalar, or 0 if all NaN
+                            double scalar = 0.0;
+                            for (double v : vals) { if (!std::isnan(v)) { scalar = v; break; } }
+                            dpc.set_key_value(md.key, new ConfigOptionFloat(scalar));
                         }
                     }
                 }

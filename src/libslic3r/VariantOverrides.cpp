@@ -527,14 +527,16 @@ void VariantOverrides::expand_to_vectors(DynamicPrintConfig& config)
 
         switch (optdef->type) {
         case coFloat: {
-            auto* v = new ConfigOptionFloats();
+            // Use Nullable variant so NaN slots serialize as "nil"
+            auto* v = new ConfigOptionFloatsNullable();
             v->values.assign(float_vals.begin(), float_vals.end());
             config.set_key_value(key, v);
             break;
         }
         case coFloatOrPercent: {
             if (has_str) {
-                auto* v = new ConfigOptionFloatsOrPercents();
+                // Use Nullable variant so NaN slots serialize as "nil"
+                auto* v = new ConfigOptionFloatsOrPercentsNullable();
                 v->values.resize(vc);
                 for (int i = 0; i < vc; ++i) {
                     const std::string& s = strings.at(key)[i];
@@ -542,23 +544,35 @@ void VariantOverrides::expand_to_vectors(DynamicPrintConfig& config)
                 }
                 config.set_key_value(key, v);
             } else {
-                auto* v = new ConfigOptionFloats();
+                auto* v = new ConfigOptionFloatsNullable();
                 v->values.assign(float_vals.begin(), float_vals.end());
                 config.set_key_value(key, v);
             }
             break;
         }
         case coBool: {
-            auto* v = new ConfigOptionBools();
+            // Use Nullable variant so NaN slots serialize as "nil"
+            auto* v = new ConfigOptionBoolsNullable();
             v->values.resize(vc);
-            for (int i = 0; i < vc; ++i) v->values[i] = (float_vals[i] != 0.0);
+            for (int i = 0; i < vc; ++i) {
+                if (std::isnan(float_vals[i]))
+                    v->values[i] = (unsigned char)2; // nil sentinel for bools
+                else
+                    v->values[i] = (float_vals[i] != 0.0) ? 1 : 0;
+            }
             config.set_key_value(key, v);
             break;
         }
         case coInt: {
-            auto* v = new ConfigOptionInts();
+            // Use Nullable variant so NaN slots serialize as "nil"
+            auto* v = new ConfigOptionIntsNullable();
             v->values.resize(vc);
-            for (int i = 0; i < vc; ++i) v->values[i] = (int)float_vals[i];
+            for (int i = 0; i < vc; ++i) {
+                if (std::isnan(float_vals[i]))
+                    v->values[i] = std::numeric_limits<int>::max(); // nil sentinel for ints
+                else
+                    v->values[i] = (int)float_vals[i];
+            }
             config.set_key_value(key, v);
             break;
         }
@@ -601,13 +615,34 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
 
         switch (optdef->type) {
         case coFloat: {
-            const auto* v = static_cast<ConfigOptionFloats*>(opt);
-            floats[key] = v->values;
-            config.set_key_value(key, new ConfigOptionFloat(v->values[idx]));
+            // Handle both Nullable and non-Nullable (from legacy saves)
+            if (const auto* vn = dynamic_cast<ConfigOptionFloatsNullable*>(opt)) {
+                floats[key] = vn->values;  // NaN values preserved
+                double scalar = vn->is_nil(idx) ? 0.0 : vn->values[idx];
+                config.set_key_value(key, new ConfigOptionFloat(scalar));
+            } else if (const auto* v = dynamic_cast<ConfigOptionFloats*>(opt)) {
+                floats[key] = v->values;
+                config.set_key_value(key, new ConfigOptionFloat(v->values[idx]));
+            }
             break;
         }
         case coFloatOrPercent: {
-            if (const auto* fv = dynamic_cast<ConfigOptionFloatsOrPercents*>(opt)) {
+            if (const auto* fvn = dynamic_cast<ConfigOptionFloatsOrPercentsNullable*>(opt)) {
+                floats[key].resize(vec_size);
+                strings[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    floats[key][i] = fvn->values[i].value;  // NaN preserved
+                    if (std::isnan(fvn->values[i].value))
+                        strings[key][i].clear();
+                    else
+                        strings[key][i] = fvn->values[i].percent ?
+                            (std::to_string((int)fvn->values[i].value) + "%") :
+                            std::to_string(fvn->values[i].value);
+                }
+                double val = fvn->is_nil(idx) ? 0.0 : fvn->values[idx].value;
+                bool pct = fvn->is_nil(idx) ? false : fvn->values[idx].percent;
+                config.set_key_value(key, new ConfigOptionFloatOrPercent(val, pct));
+            } else if (const auto* fv = dynamic_cast<ConfigOptionFloatsOrPercents*>(opt)) {
                 floats[key].resize(vec_size);
                 strings[key].resize(vec_size);
                 for (int i = 0; i < vec_size; ++i) {
@@ -618,6 +653,10 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
                 }
                 config.set_key_value(key, new ConfigOptionFloatOrPercent(
                     fv->values[idx].value, fv->values[idx].percent));
+            } else if (const auto* f = dynamic_cast<ConfigOptionFloatsNullable*>(opt)) {
+                floats[key] = f->values;
+                double val = f->is_nil(idx) ? 0.0 : f->values[idx];
+                config.set_key_value(key, new ConfigOptionFloatOrPercent(val, false));
             } else if (const auto* f = dynamic_cast<ConfigOptionFloats*>(opt)) {
                 floats[key] = f->values;
                 config.set_key_value(key, new ConfigOptionFloatOrPercent(f->values[idx], false));
@@ -625,17 +664,39 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
             break;
         }
         case coBool: {
-            const auto* v = static_cast<ConfigOptionBools*>(opt);
-            floats[key].resize(vec_size);
-            for (int i = 0; i < vec_size; ++i) floats[key][i] = v->values[i] ? 1.0 : 0.0;
-            config.set_key_value(key, new ConfigOptionBool(v->values[idx]));
+            // Handle both Nullable and non-Nullable
+            if (const auto* vn = dynamic_cast<ConfigOptionBoolsNullable*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    floats[key][i] = vn->is_nil(i) ?
+                        std::numeric_limits<double>::quiet_NaN() :
+                        (vn->values[i] ? 1.0 : 0.0);
+                }
+                bool scalar = vn->is_nil(idx) ? false : (bool)vn->values[idx];
+                config.set_key_value(key, new ConfigOptionBool(scalar));
+            } else if (const auto* v = dynamic_cast<ConfigOptionBools*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) floats[key][i] = v->values[i] ? 1.0 : 0.0;
+                config.set_key_value(key, new ConfigOptionBool(v->values[idx]));
+            }
             break;
         }
         case coInt: {
-            const auto* v = static_cast<ConfigOptionInts*>(opt);
-            floats[key].resize(vec_size);
-            for (int i = 0; i < vec_size; ++i) floats[key][i] = (double)v->values[i];
-            config.set_key_value(key, new ConfigOptionInt(v->values[idx]));
+            // Handle both Nullable and non-Nullable
+            if (const auto* vn = dynamic_cast<ConfigOptionIntsNullable*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    floats[key][i] = vn->is_nil(i) ?
+                        std::numeric_limits<double>::quiet_NaN() :
+                        (double)vn->values[i];
+                }
+                int scalar = vn->is_nil(idx) ? 0 : vn->values[idx];
+                config.set_key_value(key, new ConfigOptionInt(scalar));
+            } else if (const auto* v = dynamic_cast<ConfigOptionInts*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) floats[key][i] = (double)v->values[i];
+                config.set_key_value(key, new ConfigOptionInt(v->values[idx]));
+            }
             break;
         }
         default: break;
@@ -666,8 +727,12 @@ std::optional<std::vector<double>> VariantOverrides::parse_variant_csv(
     while (std::getline(iss, token, ',')) {
         boost::trim(token);
         if (!token.empty()) {
-            try { vals.push_back(std::stod(token)); }
-            catch (...) { return std::nullopt; }
+            if (token == "nil") {
+                vals.push_back(std::numeric_limits<double>::quiet_NaN());
+            } else {
+                try { vals.push_back(std::stod(token)); }
+                catch (...) { return std::nullopt; }
+            }
         }
     }
     return vals.size() > 1 ? std::optional(vals) : std::nullopt;
