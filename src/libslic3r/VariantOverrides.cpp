@@ -127,8 +127,6 @@ void VariantOverrides::erase_variant(const std::string& key, int variant_idx) {
     if (variant_idx < 0) return;
     auto fit = floats.find(key);
     if (fit != floats.end() && (size_t)variant_idx < fit->second.size()) {
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] erase_variant: key=" << key
-            << " vi=" << variant_idx << " old_val=" << fit->second[variant_idx] << " -> NaN";
         fit->second[variant_idx] = std::numeric_limits<double>::quiet_NaN();
         auto sit = strings.find(key);
         if (sit != strings.end() && (size_t)variant_idx < sit->second.size())
@@ -138,11 +136,9 @@ void VariantOverrides::erase_variant(const std::string& key, int variant_idx) {
             if (!std::isnan(v)) { all_nan = false; break; }
         }
         if (all_nan) {
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] erase_variant: ALL slots NaN for " << key << ", removing key entirely";
             erase_key(key);
         }
     } else {
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] erase_variant: key=" << key << " vi=" << variant_idx << " NOT FOUND in VO";
     }
 }
 
@@ -297,15 +293,10 @@ DynamicPrintConfig VariantOverrides::build_overlay(
 
     for (const auto& key : print_options_with_variant) {
         if (!has_variant(key, variant_index)) {
-            if (has(key))
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] build_overlay: SKIP " << key
-                    << " vi=" << variant_index << " (NaN/reset slot)";
             continue;
         }
         const ConfigOptionDef* optdef = print_config_def.get(key);
         if (!optdef) continue;
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] build_overlay: INCLUDE " << key
-            << " vi=" << variant_index << " val=" << get_float(key, variant_index);
 
         switch (optdef->type) {
         case coFloat:
@@ -390,13 +381,8 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
 
         // Apply VO[variant_index] → config scalar.
         if (!has_variant(key, variant_index)) {
-            if (has(key))
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] apply_to_config: SKIP " << key
-                    << " vi=" << variant_index << " (NaN/reset slot, keeping parent value)";
             continue;
         }
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] apply_to_config: APPLY " << key
-            << " vi=" << variant_index << " val=" << get_float(key, variant_index);
         // For coFloatOrPercent, uses the raw string to preserve "50%" notation.
         switch (optdef->type) {
         case coFloat:
@@ -485,8 +471,6 @@ void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int va
         // Skip saving to reset (NaN) slots — preserves the "reset" state.
         // But when force=true (explicit user edit), overwrite the NaN slot.
         if (!force && !has_variant(key, variant_index)) {
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] save_from_config: SKIP save " << key
-                << " vi=" << variant_index << " (NaN/reset slot, preserving reset state)";
             continue;
         }
 
@@ -880,10 +864,6 @@ PrecomputedOverlays VariantOverrides::precompute_overlays(
             if (vi < 0) continue;
             auto overlay = global_vo.build_overlay(vi);
             if (!overlay.empty()) {
-                // Diagnostic: log outer_wall_speed in the overlay for this extruder
-                if (auto* ows = dynamic_cast<const ConfigOptionFloat*>(overlay.option("outer_wall_speed")))
-                    BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] precompute: eid=" << eid
-                        << " vi=" << vi << " outer_wall_speed=" << ows->value;
                 result.extruder_overrides[eid] = std::move(overlay);
             }
         }
@@ -891,8 +871,6 @@ PrecomputedOverlays VariantOverrides::precompute_overlays(
 
     for (const auto& [obj_id, obj_vo_ptr] : object_vos) {
         if (!obj_vo_ptr || obj_vo_ptr->empty()) continue;
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] precompute_overlays: per-object obj_id=" << obj_id
-            << " vo_keys=" << obj_vo_ptr->floats.size();
         for (unsigned int eid = 0; eid < num_extruders; ++eid) {
             int vi = compute_variant_index(eid, full_config);
             if (vi < 0) continue;

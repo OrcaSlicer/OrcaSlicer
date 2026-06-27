@@ -5706,8 +5706,6 @@ LayerResult GCode::process_layer(
         {
             unsigned int sidebar_eid = (unsigned int)get_extruder_id(extruder_id);
             unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] toolchange: filament_slot=" << extruder_id
-                << " sidebar_eid=" << sidebar_eid << " -> phys_eid=" << phys_eid;
             m_config.set_active_extruder(phys_eid);
         }
 
@@ -5738,10 +5736,6 @@ LayerResult GCode::process_layer(
                 m_config.apply(print.default_region_config());
                 // H2C: Set active object so reapply uses per-object VO overlay
                 if (auto* mo = instance_to_print.print_object.model_object()) {
-                    BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] set_active_object: obj_id=" << mo->id().id
-                        << " name=" << mo->name
-                        << " has_obj_overlay=" << (m_config.object_extruder_overrides.count(mo->id().id) > 0)
-                        << " ext_id=" << m_config.active_extruder_id;
                     m_config.set_active_object(mo->id().id);
                 } else {
                     m_config.set_active_object(0);
@@ -6164,29 +6158,14 @@ void GCode::VariantAwareConfig::reapply_variant_overrides()
         if (obj_it != object_extruder_overrides.end()) {
             auto ext_it = obj_it->second.find(active_extruder_id);
             if (ext_it != obj_it->second.end()) {
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply: USING per-object overlay"
-                    << " obj=" << active_object_id << " ext=" << active_extruder_id
-                    << " overlay_keys=" << ext_it->second.keys().size();
                 FullPrintConfig::apply(ext_it->second, true);
-                BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply RESULT: ext=" << active_extruder_id
-                    << " outer_wall_speed=" << this->outer_wall_speed.value
-                    << " inner_wall_speed=" << this->inner_wall_speed.value;
                 return;
             }
         }
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply: NO per-object overlay for obj="
-            << active_object_id << " ext=" << active_extruder_id << ", falling back to global";
     }
     // Fallback to global overlay
     if (auto it = extruder_overrides.find(active_extruder_id); it != extruder_overrides.end()) {
         FullPrintConfig::apply(it->second, true);
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply GLOBAL RESULT: ext=" << active_extruder_id
-            << " outer_wall_speed=" << this->outer_wall_speed.value
-            << " inner_wall_speed=" << this->inner_wall_speed.value;
-    } else {
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply: NO global overlay for ext=" << active_extruder_id
-            << " outer_wall_speed=" << this->outer_wall_speed.value
-            << " inner_wall_speed=" << this->inner_wall_speed.value;
     }
 }
 
