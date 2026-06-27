@@ -298,36 +298,6 @@ std::string CrealityPrint::query_boxes_info() const
     }
 }
 
-std::string CrealityPrint::get_print_host_webui(DynamicPrintConfig* config)
-{
-    // K-series printers (K2 / K2 Plus / K2 Pro) ship with Mainsail on port 4408.
-    // Port 80 hosts only the Creality control / upload API, which returns 404
-    // for unknown paths and therefore renders as a blank/404 page in Orca's
-    // Device WebView. Default to the Mainsail URL when the user hasn't
-    // explicitly set print_host_webui.
-    if (config == nullptr)
-        return {};
-
-    std::string explicit_url = config->opt_string("print_host_webui");
-    if (!explicit_url.empty())
-        return explicit_url;
-
-    std::string host = config->opt_string("print_host");
-    if (host.empty())
-        return {};
-
-    if (boost::algorithm::istarts_with(host, "http://"))
-        host = host.substr(7);
-    else if (boost::algorithm::istarts_with(host, "https://"))
-        host = host.substr(8);
-    if (auto slash = host.find('/'); slash != std::string::npos)
-        host = host.substr(0, slash);
-    if (auto colon = host.find(':'); colon != std::string::npos)
-        host = host.substr(0, colon);
-
-    return "http://" + host + ":4408/";
-}
-
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
 {
     try {

@@ -1,0 +1,20 @@
+{
+	"type": "process",
+	"name": "0.40mm Standard @Elegoo C2 0.8 nozzle",
+	"inherits": "fdm_process_elegoo_08040",
+	"from": "system",
+	"setting_id": "PEC208040",
+	"instantiation": "true",
+	"filename_format": "EC2_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+	"min_width_top_surface": "50%",
+	"enable_prime_tower": "1",
+	"compatible_printers": [
+		"Elegoo Centauri 2 0.8 nozzle"
+	],
+	"reduce_infill_retraction": "0",
+	"initial_layer_acceleration": "500",
+	"outer_wall_speed": "160",
+	"sparse_infill_pattern": "rectilinear",
+	"top_surface_acceleration": "2000",
+	"support_base_pattern": "rectilinear"
+}

@@ -2039,21 +2039,23 @@ Flow Print::brim_flow() const
 
 Flow Print::skirt_flow() const
 {
+
+    // Orca: fall back to m_config if no objects are present
     ConfigOptionFloatOrPercent width = m_config.initial_layer_line_width;
     if (width.value <= 0)
-        width = m_objects.front()->config().line_width;
+        width = m_objects.empty() ? m_config.initial_layer_line_width : m_objects.front()->config().line_width;
 
     /* We currently use a random object's support material extruder.
        While this works for most cases, we should probably consider all of the support material
        extruders and take the one with, say, the smallest index;
        The same logic should be applied to the code that selects the extruder during G-code
        generation as well. */
-    return Flow::new_from_config_width(
-        frPerimeter,
-        // Flow::new_from_config_width takes care of the percent to value substitution
-		width,
-		(float)m_config.nozzle_diameter.get_at(m_objects.front()->config().support_filament-1),
-		(float)this->skirt_first_layer_height());
+    return Flow::new_from_config_width(frPerimeter,
+                                       // Flow::new_from_config_width takes care of the percent to value substitution
+                                       width,
+                                       (float) m_config.nozzle_diameter.get_at(
+                                           m_objects.empty() ? 0 : m_objects.front()->config().support_filament - 1),
+                                       (float) this->skirt_first_layer_height());
 }
 
 bool Print::has_support_material() const
@@ -3786,7 +3788,7 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 
 std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
 {
-    if (config().skirt_loops == 0 || config().skirt_type != stPerObject)
+    if (config().skirt_loops == 0 || config().skirt_type != stPerObject || m_objects.empty())
         return std::make_tuple(0, 0);
     
     float max_nozzle_diameter = *std::max_element(m_config.nozzle_diameter.values.begin(), m_config.nozzle_diameter.values.end());

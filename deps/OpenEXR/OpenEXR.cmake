@@ -42,6 +42,7 @@ orcaslicer_add_cmake_project(OpenEXR
         -DPYILMBASE_ENABLE:BOOL=OFF
         -DOPENEXR_VIEWERS_ENABLE:BOOL=OFF
         -DOPENEXR_BUILD_UTILS:BOOL=OFF
+        ${_openexr_arm64_args}
 )
 endif()
 
