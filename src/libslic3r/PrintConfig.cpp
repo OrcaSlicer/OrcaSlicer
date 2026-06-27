@@ -1848,16 +1848,15 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(150, true)});
 
-    def = this->add("wo_bridge_speed", coFloatsOrPercents);
-    def->label = L("Wave");
+    def = this->add("wo_bridge_speed", coFloats);
+    def->label = L("Wave speed");
     def->category = L("Speed");
-    def->tooltip = L("Speed of wave overhangs/bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 2 mm/s.");
-    def->sidetext = L("mm/s or %");
-    def->ratio_over = "bridge_speed";
+    def->tooltip = L("Speed of wave overhangs/bridges. Default value is 2 mm/s.");
+    def->sidetext = L("mm/s");
     def->min = 0.1;
     def->mode = comExpert;
     def->nullable = true;
-    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(2, false)});
+    def->set_default_value(new ConfigOptionFloatsNullable{2.});
 
     def = this->add("brim_width", coFloat);
     def->label = L("Brim width");

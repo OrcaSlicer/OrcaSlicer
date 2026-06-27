@@ -1987,7 +1987,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 // Orca: disable the speed check for now as we don't cap the speed
                 // if (warning_key.empty()) {
                 //    auto       speed_to_check = {"inner_wall_speed",  "outer_wall_speed", "sparse_infill_speed",   "internal_solid_infill_speed",
-                //                                 "top_surface_speed", "bridge_speed",     "internal_bridge_speed", "gap_infill_speed"};
+                //                                 "top_surface_speed", "bridge_speed",     "internal_bridge_speed", "wo_bridge_speed", "gap_infill_speed"};
                 //    const auto max_speed      = std::min(m_config.machine_max_speed_x.values[0], m_config.machine_max_speed_y.values[0]);
                 //    warning_key.clear();
                 //    warning_key = check_motion_ability_region_setting(speed_to_check, max_speed);

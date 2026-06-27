@@ -1008,6 +1008,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool wo_enabled = config->opt_bool("wo_enabled");
     for (auto el : {"wo_spacing", "wo_pattern"})
         toggle_line(el, wo_enabled);
+    toggle_line("wo_bridge_speed", wo_enabled, variant_index);
 
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })

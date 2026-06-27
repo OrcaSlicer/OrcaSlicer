@@ -1456,7 +1456,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, wo_enabled))
     ((ConfigOptionFloatOrPercent, wo_spacing))
     ((ConfigOptionEnum<WaveOverhangPattern>, wo_pattern))
-    ((ConfigOptionFloatsOrPercentsNullable, wo_bridge_speed))
+    ((ConfigOptionFloatsNullable, wo_bridge_speed))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(
