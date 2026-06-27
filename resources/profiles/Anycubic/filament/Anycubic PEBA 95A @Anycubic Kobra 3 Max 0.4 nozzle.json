@@ -3,7 +3,7 @@
 	"name": "Anycubic PEBA 95A @Anycubic Kobra 3 Max 0.4 nozzle",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gmni9H2Du5nxBqQu",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_settings_id": [

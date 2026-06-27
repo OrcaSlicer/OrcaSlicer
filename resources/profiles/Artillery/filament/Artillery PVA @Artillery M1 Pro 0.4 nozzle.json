@@ -3,6 +3,7 @@
 	"name": "Artillery PVA @Artillery M1 Pro 0.4 nozzle",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "r2q4QIlfTUCIz43f",
 	"instantiation": "true",
 	"chamber_temperature": [
 		"50"

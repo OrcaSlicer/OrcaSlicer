@@ -3,6 +3,7 @@
 	"name": "0.30mm Quality @MK3S 0.6",
 	"inherits": "process_common_mk3",
 	"from": "system",
+	"setting_id": "NG2KbUeHRUSPXrk1",
 	"instantiation": "true",
 	"print_settings_id": "0.30mm Quality @MK3S 0.6",
 	"bridge_acceleration": "1000",

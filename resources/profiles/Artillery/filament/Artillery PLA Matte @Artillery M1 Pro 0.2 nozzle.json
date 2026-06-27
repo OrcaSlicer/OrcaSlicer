@@ -3,6 +3,7 @@
 	"name": "Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle",
 	"inherits": "Artillery PLA @Artillery M1 Pro 0.2 nozzle",
 	"from": "system",
+	"setting_id": "tgmFMdyhSX05kuxw",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle"

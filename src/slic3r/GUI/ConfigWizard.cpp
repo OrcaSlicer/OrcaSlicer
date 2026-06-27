@@ -1876,12 +1876,6 @@ void ConfigWizard::priv::load_vendors()
 				    for (auto &bundle : bundles) {
 				    	const PresetCollection &materials = bundle.second.preset_bundle->materials(technology);
 				    	const Preset           *preset    = materials.find_preset(material_name);
-				    	if (preset == nullptr) {
-				    		// Not found. Maybe the material preset is there, bu it was was renamed?
-							const std::string *new_name = materials.get_preset_name_renamed(material_name);
-							if (new_name != nullptr)
-								preset = materials.find_preset(*new_name);
-				    	}
                         if (preset != nullptr) {
                             // Materal preset was found, mark it as installed.
                             section_new[preset->name] = "true";

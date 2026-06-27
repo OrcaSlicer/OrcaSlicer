@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Metal @FF G4 0.6 nozzle",
 	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "R79SbWA9i2OAu2ee",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

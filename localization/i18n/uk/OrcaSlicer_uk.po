@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-22 20:13-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -1721,6 +1721,20 @@ msgstr "Невідома помилка OrcaSlicer : %1%"
 msgid "Untitled"
 msgstr "Без назви"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "Починаючи з версії 2.4.0, OrcaSlicer синхронізує профілі користувача через Orca Cloud замість Bambu Cloud.\n\nЩоб перенести наявні профілі, увійдіть до Orca Cloud, і вони будуть перенесені автоматично. Щоб дізнатися більше про те, як OrcaSlicer зберігає та синхронізує ваші профілі, або щоб перенести свої шаблони вручну, перегляньте нашу вікі.\n\nЯкщо ви не використовували Bambu Cloud для синхронізації профілів, ця зміна вас не стосується, і ви можете сміливо проігнорувати це повідомлення."
+
+msgid "Profile syncing change"
+msgstr ""
+
+msgid "Learn more"
+msgstr ""
+
 msgid "Reloading network plug-in..."
 msgstr ""
 
@@ -1749,6 +1763,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "Виконання WebView2"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -5200,6 +5220,12 @@ msgstr ""
 msgid "Stats"
 msgstr ""
 
+msgid "Slice"
+msgstr "Нарізка"
+
+msgid "Review"
+msgstr ""
+
 msgid "Assembly Return"
 msgstr "Повернення збірки"
 
@@ -5268,7 +5294,7 @@ msgid "Size:"
 msgstr "Розмір:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 "Виявлено конфлікти шляхів gcode на рівні %d, Z = %.2lf мм. Будь ласка \n"
@@ -11177,6 +11203,12 @@ msgstr ""
 msgid "Generating skirt & brim"
 msgstr "Генерація спідниці та кайми"
 
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr ""
+
 msgid "Exporting G-code"
 msgstr "Експорт G-code"
 
@@ -12891,7 +12923,6 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
-#, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -15786,9 +15817,6 @@ msgstr "Експортувати декілька STL"
 
 msgid "Export the objects as multiple STLs to directory."
 msgstr "Експортувати об'єкти як декілька STL у папку"
-
-msgid "Slice"
-msgstr "Нарізка"
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Нарізати пластини: 0-всі пластини, i-пластина i, інші-неприпустимі"

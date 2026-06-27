@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "0.08mm High Quality @Artillery M1 Pro 0.2 nozzle",
 	"from": "system",
+	"setting_id": "YmxzYTHsl0LXG2bA",
 	"instantiation": "true",
 	"accel_to_decel_enable": "1",
 	"accel_to_decel_factor": "50%",

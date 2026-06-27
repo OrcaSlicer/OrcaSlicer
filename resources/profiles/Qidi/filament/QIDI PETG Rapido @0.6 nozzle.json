@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido @0.6 nozzle",
 	"inherits": "QIDI PETG Rapido",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "TJja29CvUqlXnhWM",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"pressure_advance": [

@@ -3,7 +3,7 @@
 	"name": "0.20mm Balanced Strength @OpenEYE Peacock V2",
 	"inherits": "fdm_process_openeye_0.20_nozzle_0.4",
 	"from": "system",
-	"setting_id": "GP173",
+	"setting_id": "G98ptq5O00Dv04YG",
 	"instantiation": "true",
 	"description": "High quality profile for 0.2mm layer height, prioritizing strength and print quality.",
 	"bottom_shell_layers": "4",

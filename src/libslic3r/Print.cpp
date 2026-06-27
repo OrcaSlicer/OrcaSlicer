@@ -205,6 +205,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "is_infill_first",
         // Orca
         "chamber_temperature",
+        "chamber_minimal_temperature",
         "thumbnails",
         "thumbnails_format",
         "seam_gap",

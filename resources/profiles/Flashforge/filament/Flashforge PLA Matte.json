@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Matte",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ipMevDMORKqZYdvD",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"22"

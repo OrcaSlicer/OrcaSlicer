@@ -3,7 +3,7 @@
 	"name": "Creality HF Generic Speed PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Jp93uqYennsWVAKe",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

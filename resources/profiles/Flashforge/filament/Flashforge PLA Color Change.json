@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Color Change",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "pCQ2qmeXUyJzP7kS",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Color Change"

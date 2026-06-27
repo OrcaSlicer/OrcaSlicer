@@ -16,7 +16,7 @@
     "top_surface_speed": "150",
     "support_top_z_distance": "0.06",
     "support_bottom_z_distance": "0.06",
-    "setting_id": "GP115",
+    "setting_id": "3SCofR6VrVyo3vJp",
     "description": "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. So, it results in minimal layer lines and much higher printing quality, but much longer printing time.",
     "default_acceleration": "4000",
     "elefant_foot_compensation": "0.15",

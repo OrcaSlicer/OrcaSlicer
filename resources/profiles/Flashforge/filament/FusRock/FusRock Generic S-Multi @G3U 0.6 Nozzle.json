@@ -3,7 +3,7 @@
 	"name": "FusRock Generic S-Multi @G3U 0.6 Nozzle",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "foH2sa61cDy12TzH",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"compatible_printers": [

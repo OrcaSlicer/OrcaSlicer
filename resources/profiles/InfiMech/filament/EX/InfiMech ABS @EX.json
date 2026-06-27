@@ -3,7 +3,7 @@
 	"name": "InfiMech ABS @EX",
 	"inherits": "fdm_filament_abs @EX",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "e6st01mMFr98LVEH",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

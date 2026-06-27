@@ -3,7 +3,7 @@
 	"name": "Arena PETG Basic @Arena X1C 0.8 nozzle",
 	"inherits": "Arena PETG Basic @base",
 	"from": "system",
-	"setting_id": "GFSG00_02",
+	"setting_id": "vBx9KPtRfLbcUlTQ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

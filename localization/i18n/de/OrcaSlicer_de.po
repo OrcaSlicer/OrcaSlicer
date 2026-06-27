@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-22 20:13-0300\n"
+"POT-Creation-Date: 2026-06-26 10:26+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -1716,6 +1716,20 @@ msgstr "OrcaSlicer hat eine unbehandelte Ausnahme erzeugt: %1%"
 msgid "Untitled"
 msgstr "Unbenannt"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr "Seit Version 2.4.0 synchronisiert OrcaSlicer Benutzerprofile über Orca Cloud anstelle der Bambu Cloud.\n\nUm Ihre vorhandenen Profile zu migrieren, melden Sie sich bei Orca Cloud an, dann werden sie automatisch übertragen. Weitere Informationen darüber, wie OrcaSlicer Ihre Profile speichert und synchronisiert, oder wie Sie Ihre Profile manuell migrieren, finden Sie in unserem Wiki.\n\nWenn Sie die Bambu Cloud nicht zum Synchronisieren von Profilen verwendet haben, betrifft Sie diese Änderung nicht und Sie können diese Meldung ignorieren."
+
+msgid "Profile syncing change"
+msgstr ""
+
+msgid "Learn more"
+msgstr "Mehr erfahren"
+
 msgid "Reloading network plug-in..."
 msgstr "Netzwerk-Plugin wird neu geladen..."
 
@@ -1744,6 +1758,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "WebView2-Runtime"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -5216,6 +5236,12 @@ msgstr "alle Druckplatten"
 msgid "Stats"
 msgstr "Statistiken"
 
+msgid "Slice"
+msgstr "Slice"
+
+msgid "Review"
+msgstr ""
+
 msgid "Assembly Return"
 msgstr "Zurücksetzen der Montage"
 
@@ -5283,7 +5309,7 @@ msgstr "Volumen:"
 msgid "Size:"
 msgstr "Größe:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Konflikte von G-Code-Pfaden wurden bei Layer %d, Z = %.2lf mm gefunden.Bitte trennen Sie die konfliktbehafteten Objekte weiter voneinander (%s <-> %s)."
 
@@ -11236,6 +11262,12 @@ msgstr "Filament-Schrumpfung wird nicht verwendet, da sich die Filament-Schrumpf
 msgid "Generating skirt & brim"
 msgstr "Generieren von Schürze und Rand (skirt & brim)"
 
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr ""
+
 msgid "Exporting G-code"
 msgstr "Exportiere G-Code"
 
@@ -13055,7 +13087,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-Buckling-Bias-Optimierung (experimentell)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy, c-format, boost-format
+#, fuzzy
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Strafft die Gyroid-Welle entlang der Z-Achse (vertikal) bei geringer Fülldichte, um die effektive vertikale Säulenlänge zu verkürzen und die Z-Achsen-Kompressions-Knickfestigkeit zu verbessern. Der Filamentverbrauch bleibt erhalten. Keine Auswirkung bei ~30% einfacher Fülldichte und darüber. Gilt nur, wenn das einfache Füllmuster auf Gyroid eingestellt ist."
 
@@ -16023,9 +16055,6 @@ msgstr "Mehrere STLs exportieren"
 
 msgid "Export the objects as multiple STLs to directory."
 msgstr "Exportieren Sie die Objekte als mehrere STLs in ein Verzeichnis"
-
-msgid "Slice"
-msgstr "Slice"
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Slicen sie die Druckplatten: 0-alle Druckplatten; i-Druckplatte i; andere ungültig"
@@ -20321,9 +20350,6 @@ msgstr ""
 
 #~ msgid "Automatic calibration only supports cases where the left and right nozzle diameters are identical."
 #~ msgstr "Die automatische Kalibrierung unterstützt nur Fälle, in denen die linken und rechten Düsendurchmesser identisch sind."
-
-#~ msgid "Learn more"
-#~ msgstr "Mehr erfahren"
 
 #~ msgid "✖ Skipped %1%: %2%, same file\n"
 #~ msgstr "✖ %1% übersprungen: %2%, gleiche Datei\n"

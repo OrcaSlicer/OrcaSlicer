@@ -3,7 +3,7 @@
 	"name": "Chuanying PLA @Chuanying X1 0.25 Nozzle",
 	"inherits": "Chuanying Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04_19",
+	"setting_id": "3WDFe1uKTOTiRtPE",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Chuanying X1 0.25 Nozzle"

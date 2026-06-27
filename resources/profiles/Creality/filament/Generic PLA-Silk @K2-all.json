@@ -3,7 +3,7 @@
     "name": "Generic PLA-Silk @K2-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "VhDF33Mt4h0SUIZH",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

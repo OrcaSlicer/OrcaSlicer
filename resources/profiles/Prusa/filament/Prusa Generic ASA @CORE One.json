@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ASA @CORE One",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Pg9KDqFB63PFJo3Q",
 	"filament_id": "Prusa Generic ASA @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

@@ -3,7 +3,7 @@
     "name": "Generic PA @K2 Pro-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "0139pzgdlOAScB7g",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

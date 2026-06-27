@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "Anycubic Generic PLA",
 	"from": "system",
-	"setting_id": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.4 nozzle",
+	"setting_id": "NVrxrFGYkHRyzrFq",
 	"filament_id": "GFPLA Glow",
 	"instantiation": "true",
 	"filament_settings_id": [

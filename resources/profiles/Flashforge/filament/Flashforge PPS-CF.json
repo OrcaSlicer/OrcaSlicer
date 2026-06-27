@@ -3,7 +3,7 @@
 	"name": "Flashforge PPS-CF",
 	"inherits": "FusRock Generic PAHT-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "l3dYtVM52X0UMRix",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.99"
