@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_0_41",
-	"setting_id": "GFSG99",
 	"name": "Generic PETG@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

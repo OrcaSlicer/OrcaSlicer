@@ -3,7 +3,7 @@
 	"name": "Anker Generic PA 0.2 nozzle",
 	"inherits": "Anker Generic PA @base",
 	"from": "system",
-	"setting_id": "GFSN99_20",
+	"setting_id": "NZB26MSD9WbOeY2S",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA Matte @Hi-all",
 	"inherits": "Creality Generic PLA @Hi-all",
 	"from": "system",
-	"setting_id": "GFSL05_00",
+	"setting_id": "R7Jo7NhjsR1iU2Fd",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

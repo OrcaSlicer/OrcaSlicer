@@ -3,6 +3,7 @@
 	"from": "system",
 	"inherits": "0.50mm Standard @Elegoo Giga 1.0 nozzle",
 	"layer_height": "0.4",
+	"setting_id": "fGSfqfyNqMhuqZ8X",
 	"instantiation": "true",
 	"renamed_from": "0.40mm Optimal @EOS Giga 1.0 nozzle",
 	"name": "0.40mm Optimal @Elegoo Giga 1.0 nozzle"

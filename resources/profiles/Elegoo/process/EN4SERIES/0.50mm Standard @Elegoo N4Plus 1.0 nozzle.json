@@ -3,7 +3,7 @@
 	"name": "0.50mm Standard @Elegoo N4Plus 1.0 nozzle",
 	"inherits": "fdm_process_elegoo_10050",
 	"from": "system",
-	"setting_id": "PEN4Plus10050",
+	"setting_id": "c3e2AbM7fabaQdjJ",
 	"instantiation": "true",
 	"filename_format": "EN4Plus_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"compatible_printers": [

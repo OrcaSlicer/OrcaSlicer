@@ -3,7 +3,7 @@
 	"name": "Generic PCCF @E3NG v1.2S",
 	"inherits": "fdm_filament_pccf",
 	"from": "system",
-	"setting_id": "",
+	"setting_id": "fnnja8VlKHWpuOjG",
 	"filament_id": "Generic PCCF @E3NG v1.2S",
 	"instantiation": "true",
 	"compatible_printers": [

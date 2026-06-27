@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Basic @0.2 nozzle",
 	"inherits": "QIDI PETG Basic",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "U8Tz8l63gQMoW1TR",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"pressure_advance": [

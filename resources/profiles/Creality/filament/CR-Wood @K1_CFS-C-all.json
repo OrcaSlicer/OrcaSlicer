@@ -3,7 +3,7 @@
     "name": "CR-Wood @K1_CFS-C-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "kBGvS0Npk3V5eY8j",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

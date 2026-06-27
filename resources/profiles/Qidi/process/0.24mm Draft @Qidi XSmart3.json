@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Qidi XSmart3",
 	"inherits": "0.24mm Draft @Qidi X3",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "AV4bqi6Ker7yn25c",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Smart 3 0.4 nozzle"

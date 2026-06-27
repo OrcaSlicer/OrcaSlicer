@@ -3,7 +3,6 @@
 	"name": "QIDI Support For PET/PA@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSN96",
 	"filament_id": "QD_1_1_33",
 	"instantiation": "false",
 	"box_temperature_range_high": [

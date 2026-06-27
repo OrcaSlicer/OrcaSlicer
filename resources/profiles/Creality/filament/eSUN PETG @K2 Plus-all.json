@@ -3,7 +3,7 @@
     "name": "eSUN PETG @K2 Plus-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "BHCutIIr9w5Lg1DM",
     "instantiation": "true",
     "cool_plate_temp": [
         "70"

@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic SBS",
 	"inherits": "fdm_filament_sbs",
 	"from": "system",
+	"setting_id": "tHfCQJdD7qiIF4uT",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

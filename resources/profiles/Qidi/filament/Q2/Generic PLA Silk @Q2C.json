@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_0_4",
-	"setting_id": "GFSL99_01",
 	"name": "Generic PLA Silk@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

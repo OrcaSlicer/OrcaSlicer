@@ -3,7 +3,7 @@
 	"name": "Prusament PC-CF @XL 5T",
 	"inherits": "fdm_filament_pccf",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "m1YND6uz3GWeVIBG",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "285",
 	"nozzle_temperature": "285",

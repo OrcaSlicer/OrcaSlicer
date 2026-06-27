@@ -3,7 +3,7 @@
 	"name": "OpenEYE Peacock V2 0.6 nozzle",
 	"inherits": "OpenEYE Peacock V2 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "Ol08fxiiKMYXYxPp",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.6"

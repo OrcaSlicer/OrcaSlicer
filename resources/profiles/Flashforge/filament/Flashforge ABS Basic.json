@@ -3,7 +3,7 @@
 	"name": "Flashforge ABS Basic",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04_02",
+	"setting_id": "m6QLC2UaS3fW298i",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge ABS Basic"

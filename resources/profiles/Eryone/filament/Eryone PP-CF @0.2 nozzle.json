@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone PP-CF @0.2 nozzle",
 	"from": "system",
+	"setting_id": "os5ZrNT1utAczy2F",
 	"instantiation": "true",
 	"inherits": "Eryone PP-CF",
 	"compatible_printers": [

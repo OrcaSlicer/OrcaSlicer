@@ -5,6 +5,7 @@
 	"elefant_foot_compensation": "0",
 	"from": "system",
 	"inherits": "fdm_process_ER20_0.15_nozzle_0.5",
+	"setting_id": "oapNf4dk0MGlHc1t",
 	"instantiation": "true",
 	"name": "0.15mm Optimal @Eryone ER20 0.5 nozzle",
 	"type": "process"

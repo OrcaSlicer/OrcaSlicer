@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PC@300HS",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
+	"setting_id": "i2ShskYbiq61UJ1B",
 	"filament_id": "GFC99_01",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

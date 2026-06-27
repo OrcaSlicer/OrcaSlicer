@@ -3,7 +3,7 @@
 	"name": "Generic TPU @E3NG v1.2S",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "",
+	"setting_id": "kaTatels2H01rgeJ",
 	"filament_id": "Generic TPU @E3NG v1.2S",
 	"instantiation": "true",
 	"compatible_printers": [

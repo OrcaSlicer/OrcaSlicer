@@ -3,7 +3,7 @@
 	"name": "0.12mm Fine @Creality Ender-3 V3 Plus",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "qPcJyOUL611jQfcb",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "0",
