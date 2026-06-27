@@ -533,7 +533,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
         // gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long, y_pos + (num - 1) * m_space_y + 2), thin_e_per_mm * 7);
 
         const auto     box_start_x = start_x + m_length_short + m_length_long + m_length_short + m_line_width;
-        DrawBoxOptArgs default_box_opt_args(2, (m_height_layer*2 + z_offset), m_line_width, fast);
+        DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, fast);
         //Draw box
         default_box_opt_args.is_filled = true;
         gcode << ";TYPE:Bottom surface\n";
