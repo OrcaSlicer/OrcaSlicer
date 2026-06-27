@@ -3042,6 +3042,25 @@ void PresetCollection::check_and_fix_syncinfo(Preset& preset, const std::string&
         preset.updated_time = 0;
         preset.sync_info    = "create";
         preset.save_info();
+        return;
+    }
+
+    const auto inherits = Preset::inherits(preset.config);
+    Preset* parent      = find_preset2(inherits, true);
+    if (!inherits.empty() && parent) {
+        const std::string expected = parent->setting_id;
+        if (expected.empty()) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Direct parent of " << preset.name << " does not have a setting_id";
+            return;
+        }
+        // Reconcile a missing or stale base_id against the direct parent's setting_id.
+        if (preset.base_id != expected) {
+            preset.base_id = expected;
+            // Already-synced preset whose base changed -> re-push it.
+            if (!preset.setting_id.empty() && preset.sync_info.empty())
+                preset.sync_info = "update";
+            preset.save_info();
+        }
     }
 }
 
