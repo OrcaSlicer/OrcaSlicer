@@ -805,10 +805,7 @@ void PressureAdvanceWizard::on_cali_start()
             curr_obj->manual_pa_cali_method = pa_cali_method;
 
             if (curr_obj->get_printer_series() != PrinterSeries::SERIES_X1 && curr_obj->pa_calib_tab.size() >= MAX_PA_HISTORY_RESULTS_NUMS) {
-                MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold 16 history results per nozzle. "
-                    "You can delete the existing historical results and then start calibration. "
-                    "Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-                    "Do you still want to continue the calibration?"), MAX_PA_HISTORY_RESULTS_NUMS), wxEmptyString, wxICON_WARNING | wxYES | wxCANCEL);
+                MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\nDo you still want to continue the calibration\?"), MAX_PA_HISTORY_RESULTS_NUMS), wxEmptyString, wxICON_WARNING | wxYES | wxCANCEL);
                 if (msg_dlg.ShowModal() != wxID_YES) {
                     return;
                 }
@@ -930,8 +927,7 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
 
     if (!same_pa_names.empty()) {
         same_pa_names.erase(same_pa_names.size() - 2);
-        wxString duplicate_name_info = wxString::Format(_L("There is already a historical calibration result with the same name: %s. Only one of the results with the same name "
-                                                  "is saved. Are you sure you want to override the historical result?"), same_pa_names);
+        wxString duplicate_name_info = wxString::Format(_L("There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result\?"), same_pa_names);
 
         if (curr_obj->is_multi_extruders())
             duplicate_name_info = wxString::Format(_L("Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
@@ -943,7 +939,7 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
     }
 
     if (curr_obj->get_printer_series() != PrinterSeries::SERIES_X1 && curr_obj->pa_calib_tab.size() >= MAX_PA_HISTORY_RESULTS_NUMS) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d history results per nozzle. This result will not be saved."), MAX_PA_HISTORY_RESULTS_NUMS),
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle. This result will not be saved."), MAX_PA_HISTORY_RESULTS_NUMS),
                               wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return false;

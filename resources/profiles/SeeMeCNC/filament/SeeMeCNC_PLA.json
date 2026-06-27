@@ -443,5 +443,17 @@
 	"volumetric_speed_coefficients": [
 		""
 	],
-	"description": "SeeMeCNC configurations"
+	"description": "SeeMeCNC configurations",
+	"filament_retraction_length": [
+		"5"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"45"
+	],
+	"filament_deretraction_speed": [
+		"35"
+	]
 }

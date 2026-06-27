@@ -79,7 +79,7 @@ bool ObjColorDialog::Show(bool show) {
     }
 };
 
-ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours)
+ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours, const bool semm)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 _(L("OBJ file import color")),
@@ -109,7 +109,7 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
     }
     bool ok        = in_out.lost_material_name.empty() && !some_face_no_color;
     if (ok) {
-        m_panel_ObjColor = new ObjColorPanel(this, in_out, extruder_colours);
+        m_panel_ObjColor = new ObjColorPanel(this, in_out, extruder_colours, semm);
         m_panel_ObjColor->set_layout_callback([this]() { update_layout(); });
         m_main_sizer->Add(m_panel_ObjColor, 1, wxEXPAND | wxALL, 0);
     }
@@ -178,12 +178,13 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
 }
 
 // This panel contains all control widgets for both simple and advanced mode (these reside in separate sizers)
-ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours)
+ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours, const bool semm)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize /*,wxBORDER_RAISED*/)
     , m_obj_in_out(in_out)
     , m_input_colors(in_out.input_colors)
     , m_filament_ids(in_out.filament_ids)
     , m_first_extruder_id(in_out.first_extruder_id)
+    , m_semm(semm)
 {
     if (in_out.input_colors.size() == 0) { return; }
     for (const std::string& color : extruder_colours) {
@@ -504,6 +505,7 @@ wxBoxSizer *ObjColorPanel::create_add_btn_sizer(wxWindow *parent)
         deal_add_btn();
         deal_thumbnail();
     });
+    m_quick_add_btn->Enable(m_semm); // only SEMM printer can add more colors
     return btn_sizer;
 }
 
@@ -859,6 +861,7 @@ bool ObjColorPanel::do_show(bool show) {
 
 bool ObjColorPanel::deal_add_btn()
 {
+    if (!m_semm) { return false; }// only SEMM printer can add more colors
     if (m_colours.size() > g_max_color) { return false; }
     deal_reset_btn();
     std::vector<wxBitmap *> new_icons;

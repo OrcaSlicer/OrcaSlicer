@@ -102,7 +102,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["shortcut_key"]     = _L("Choose filament");
     m_desc["edge_detection"]   = _L("Edge detection");
     m_desc["gap_area"]         = _L("Gap area");
-    m_desc["perform"]          = _L("Perform");
+    m_desc["perform"]          = _L("Apply");
     m_desc["remove_all"]       = _L("Erase all");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");

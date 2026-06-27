@@ -1,4 +1,5 @@
 {
+	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N3Pro 0.4 nozzle",
 	"name": "0.20mm Strength @Elegoo N3Pro 0.4 nozzle",

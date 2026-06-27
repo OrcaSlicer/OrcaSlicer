@@ -807,6 +807,8 @@ wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
 }
 
 #ifdef __WXMSW__
+#include <windowsx.h>
+
 WXLRESULT CenteredTitle::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 {
     switch (nMsg) {
@@ -823,6 +825,8 @@ WXLRESULT BBLTopbar::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
 {
     switch (nMsg) {
     case WM_NCHITTEST: {
+        m_last_mouse_position = ScreenToClient({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+
         wxAuiToolBarItem* item = this->FindToolByCurrentPosition();
         if (item != NULL && item->GetWindow() != m_title_ctrl) {
             break;
