@@ -4,6 +4,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 #include <sstream>
+#include <cmath>
+#include <limits>
 
 namespace Slic3r {
 
@@ -119,6 +121,56 @@ void VariantOverrides::copy_key_from(const std::string& key, const VariantOverri
 void VariantOverrides::erase_key(const std::string& key) {
     floats.erase(key);
     strings.erase(key);
+}
+
+void VariantOverrides::erase_variant(const std::string& key, int variant_idx) {
+    if (variant_idx < 0) return;
+    auto fit = floats.find(key);
+    if (fit != floats.end() && (size_t)variant_idx < fit->second.size()) {
+        fit->second[variant_idx] = std::numeric_limits<double>::quiet_NaN();
+        auto sit = strings.find(key);
+        if (sit != strings.end() && (size_t)variant_idx < sit->second.size())
+            sit->second[variant_idx].clear();
+        bool all_nan = true;
+        for (double v : fit->second) {
+            if (!std::isnan(v)) { all_nan = false; break; }
+        }
+        if (all_nan) {
+            erase_key(key);
+        }
+    } else {
+    }
+}
+
+bool VariantOverrides::has_variant(const std::string& key, int variant_idx) const {
+    if (variant_idx < 0) return false;
+    auto fit = floats.find(key);
+    if (fit == floats.end() || (size_t)variant_idx >= fit->second.size())
+        return false;
+    return !std::isnan(fit->second[variant_idx]);
+}
+
+// ────────────────────────────────────────────────────────────────
+// Left/Right → physical extruder ID  (data-driven from preset)
+// ────────────────────────────────────────────────────────────────
+// Reads physical_extruder_map from printer preset config.
+// H2C preset: physical_extruder_map = [1, 0]
+//   → left  = map[0] = 1 (DEPUTY)
+//   → right = map[1] = 0 (MAIN)
+int VariantOverrides::left_extruder_idx(const ConfigBase& config)
+{
+    auto* map = config.option<ConfigOptionInts>("physical_extruder_map");
+    if (map && map->values.size() >= 2)
+        return map->values[0];
+    return 0;  // single-extruder fallback
+}
+
+int VariantOverrides::right_extruder_idx(const ConfigBase& config)
+{
+    auto* map = config.option<ConfigOptionInts>("physical_extruder_map");
+    if (map && map->values.size() >= 2)
+        return map->values[1];
+    return 0;  // single-extruder fallback
 }
 
 bool VariantOverrides::is_multi_variant(const DynamicPrintConfig& config) {
@@ -240,7 +292,9 @@ DynamicPrintConfig VariantOverrides::build_overlay(
         return overlay;
 
     for (const auto& key : print_options_with_variant) {
-        if (!has(key)) continue;
+        if (!has_variant(key, variant_index)) {
+            continue;
+        }
         const ConfigOptionDef* optdef = print_config_def.get(key);
         if (!optdef) continue;
 
@@ -301,30 +355,34 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
         const ConfigOptionDef* optdef = config_def->get(key);
         if (!optdef) continue;
 
-        // Auto-init: if this scalar key is missing from VO, fill all variant
-        // slots with the current config value so each slot can be edited independently.
+        // Auto-init: if this scalar key is missing from VO, create entry
+        // with all slots = NaN (no override). This ensures we don't
+        // accidentally clobber reset/parent state for other extruders.
         if (!has(key)) {
+            double nan = std::numeric_limits<double>::quiet_NaN();
             switch (optdef->type) {
             case coFloat:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionFloat*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             case coFloatOrPercent: {
-                const auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
-                floats[key].assign(variant_count, fop->value);
-                strings[key].assign(variant_count, fop->serialize());
+                floats[key].assign(variant_count, nan);
+                strings[key].assign(variant_count, std::string());
                 break;
             }
             case coBool:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionBool*>(opt)->value ? 1.0 : 0.0);
+                floats[key].assign(variant_count, nan);
                 break;
             case coInt:
-                floats[key].assign(variant_count, (double)static_cast<const ConfigOptionInt*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             default: continue;
             }
         }
 
         // Apply VO[variant_index] → config scalar.
+        if (!has_variant(key, variant_index)) {
+            continue;
+        }
         // For coFloatOrPercent, uses the raw string to preserve "50%" notation.
         switch (optdef->type) {
         case coFloat:
@@ -368,7 +426,7 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
 // Same auto-init logic as apply_to_config for keys with no VO entry.
 // Called by DynamicPrintConfig::save_variant_overrides() on tab switch.
 void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int variant_index,
-                                         const std::set<std::string>& keys)
+                                         const std::set<std::string>& keys, bool force)
 {
     const ConfigDef* config_def = config.def();
     if (!config_def) return;
@@ -382,30 +440,39 @@ void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int va
         const ConfigOptionDef* optdef = config_def->get(key);
         if (!optdef) continue;
 
-        // Auto-init: replicate current scalar across all variant slots.
-        // Handles the edge case where preset JSON had scalar (not array) values.
+        // Auto-init: create VO entry for this key.
+        // ONLY set the active variant_index slot; all other slots = NaN
+        // (meaning "no override, use parent value").
+        // This prevents a per-object edit on one extruder from clobbering
+        // the reset/parent state of the other extruder's slot.
         if (!has(key) && variant_count > 0) {
+            double nan = std::numeric_limits<double>::quiet_NaN();
             switch (optdef->type) {
             case coFloat:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionFloat*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             case coFloatOrPercent: {
-                const auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
-                floats[key].assign(variant_count, fop->value);
-                strings[key].assign(variant_count, fop->serialize());
+                floats[key].assign(variant_count, nan);
+                strings[key].assign(variant_count, std::string());
                 break;
             }
             case coBool:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionBool*>(opt)->value ? 1.0 : 0.0);
+                floats[key].assign(variant_count, nan);
                 break;
             case coInt:
-                floats[key].assign(variant_count, (double)static_cast<const ConfigOptionInt*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             default: continue;
             }
         }
 
         if (!has(key)) continue;
+
+        // Skip saving to reset (NaN) slots — preserves the "reset" state.
+        // But when force=true (explicit user edit), overwrite the NaN slot.
+        if (!force && !has_variant(key, variant_index)) {
+            continue;
+        }
 
         // Config scalar → VO[variant_index].
         // For coFloatOrPercent, also saves the serialized string to preserve % notation.
@@ -467,14 +534,16 @@ void VariantOverrides::expand_to_vectors(DynamicPrintConfig& config)
 
         switch (optdef->type) {
         case coFloat: {
-            auto* v = new ConfigOptionFloats();
+            // Use Nullable variant so NaN slots serialize as "nil"
+            auto* v = new ConfigOptionFloatsNullable();
             v->values.assign(float_vals.begin(), float_vals.end());
             config.set_key_value(key, v);
             break;
         }
         case coFloatOrPercent: {
             if (has_str) {
-                auto* v = new ConfigOptionFloatsOrPercents();
+                // Use Nullable variant so NaN slots serialize as "nil"
+                auto* v = new ConfigOptionFloatsOrPercentsNullable();
                 v->values.resize(vc);
                 for (int i = 0; i < vc; ++i) {
                     const std::string& s = strings.at(key)[i];
@@ -482,23 +551,35 @@ void VariantOverrides::expand_to_vectors(DynamicPrintConfig& config)
                 }
                 config.set_key_value(key, v);
             } else {
-                auto* v = new ConfigOptionFloats();
+                auto* v = new ConfigOptionFloatsNullable();
                 v->values.assign(float_vals.begin(), float_vals.end());
                 config.set_key_value(key, v);
             }
             break;
         }
         case coBool: {
-            auto* v = new ConfigOptionBools();
+            // Use Nullable variant so NaN slots serialize as "nil"
+            auto* v = new ConfigOptionBoolsNullable();
             v->values.resize(vc);
-            for (int i = 0; i < vc; ++i) v->values[i] = (float_vals[i] != 0.0);
+            for (int i = 0; i < vc; ++i) {
+                if (std::isnan(float_vals[i]))
+                    v->values[i] = (unsigned char)2; // nil sentinel for bools
+                else
+                    v->values[i] = (float_vals[i] != 0.0) ? 1 : 0;
+            }
             config.set_key_value(key, v);
             break;
         }
         case coInt: {
-            auto* v = new ConfigOptionInts();
+            // Use Nullable variant so NaN slots serialize as "nil"
+            auto* v = new ConfigOptionIntsNullable();
             v->values.resize(vc);
-            for (int i = 0; i < vc; ++i) v->values[i] = (int)float_vals[i];
+            for (int i = 0; i < vc; ++i) {
+                if (std::isnan(float_vals[i]))
+                    v->values[i] = std::numeric_limits<int>::max(); // nil sentinel for ints
+                else
+                    v->values[i] = (int)float_vals[i];
+            }
             config.set_key_value(key, v);
             break;
         }
@@ -541,13 +622,34 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
 
         switch (optdef->type) {
         case coFloat: {
-            const auto* v = static_cast<ConfigOptionFloats*>(opt);
-            floats[key] = v->values;
-            config.set_key_value(key, new ConfigOptionFloat(v->values[idx]));
+            // Handle both Nullable and non-Nullable (from legacy saves)
+            if (const auto* vn = dynamic_cast<ConfigOptionFloatsNullable*>(opt)) {
+                floats[key] = vn->values;  // NaN values preserved
+                double scalar = vn->is_nil(idx) ? 0.0 : vn->values[idx];
+                config.set_key_value(key, new ConfigOptionFloat(scalar));
+            } else if (const auto* v = dynamic_cast<ConfigOptionFloats*>(opt)) {
+                floats[key] = v->values;
+                config.set_key_value(key, new ConfigOptionFloat(v->values[idx]));
+            }
             break;
         }
         case coFloatOrPercent: {
-            if (const auto* fv = dynamic_cast<ConfigOptionFloatsOrPercents*>(opt)) {
+            if (const auto* fvn = dynamic_cast<ConfigOptionFloatsOrPercentsNullable*>(opt)) {
+                floats[key].resize(vec_size);
+                strings[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    floats[key][i] = fvn->values[i].value;  // NaN preserved
+                    if (std::isnan(fvn->values[i].value))
+                        strings[key][i].clear();
+                    else
+                        strings[key][i] = fvn->values[i].percent ?
+                            (std::to_string((int)fvn->values[i].value) + "%") :
+                            std::to_string(fvn->values[i].value);
+                }
+                double val = fvn->is_nil(idx) ? 0.0 : fvn->values[idx].value;
+                bool pct = fvn->is_nil(idx) ? false : fvn->values[idx].percent;
+                config.set_key_value(key, new ConfigOptionFloatOrPercent(val, pct));
+            } else if (const auto* fv = dynamic_cast<ConfigOptionFloatsOrPercents*>(opt)) {
                 floats[key].resize(vec_size);
                 strings[key].resize(vec_size);
                 for (int i = 0; i < vec_size; ++i) {
@@ -558,6 +660,10 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
                 }
                 config.set_key_value(key, new ConfigOptionFloatOrPercent(
                     fv->values[idx].value, fv->values[idx].percent));
+            } else if (const auto* f = dynamic_cast<ConfigOptionFloatsNullable*>(opt)) {
+                floats[key] = f->values;
+                double val = f->is_nil(idx) ? 0.0 : f->values[idx];
+                config.set_key_value(key, new ConfigOptionFloatOrPercent(val, false));
             } else if (const auto* f = dynamic_cast<ConfigOptionFloats*>(opt)) {
                 floats[key] = f->values;
                 config.set_key_value(key, new ConfigOptionFloatOrPercent(f->values[idx], false));
@@ -565,17 +671,39 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
             break;
         }
         case coBool: {
-            const auto* v = static_cast<ConfigOptionBools*>(opt);
-            floats[key].resize(vec_size);
-            for (int i = 0; i < vec_size; ++i) floats[key][i] = v->values[i] ? 1.0 : 0.0;
-            config.set_key_value(key, new ConfigOptionBool(v->values[idx]));
+            // Handle both Nullable and non-Nullable
+            if (const auto* vn = dynamic_cast<ConfigOptionBoolsNullable*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    floats[key][i] = vn->is_nil(i) ?
+                        std::numeric_limits<double>::quiet_NaN() :
+                        (vn->values[i] ? 1.0 : 0.0);
+                }
+                bool scalar = vn->is_nil(idx) ? false : (bool)vn->values[idx];
+                config.set_key_value(key, new ConfigOptionBool(scalar));
+            } else if (const auto* v = dynamic_cast<ConfigOptionBools*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) floats[key][i] = v->values[i] ? 1.0 : 0.0;
+                config.set_key_value(key, new ConfigOptionBool(v->values[idx]));
+            }
             break;
         }
         case coInt: {
-            const auto* v = static_cast<ConfigOptionInts*>(opt);
-            floats[key].resize(vec_size);
-            for (int i = 0; i < vec_size; ++i) floats[key][i] = (double)v->values[i];
-            config.set_key_value(key, new ConfigOptionInt(v->values[idx]));
+            // Handle both Nullable and non-Nullable
+            if (const auto* vn = dynamic_cast<ConfigOptionIntsNullable*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) {
+                    floats[key][i] = vn->is_nil(i) ?
+                        std::numeric_limits<double>::quiet_NaN() :
+                        (double)vn->values[i];
+                }
+                int scalar = vn->is_nil(idx) ? 0 : vn->values[idx];
+                config.set_key_value(key, new ConfigOptionInt(scalar));
+            } else if (const auto* v = dynamic_cast<ConfigOptionInts*>(opt)) {
+                floats[key].resize(vec_size);
+                for (int i = 0; i < vec_size; ++i) floats[key][i] = (double)v->values[i];
+                config.set_key_value(key, new ConfigOptionInt(v->values[idx]));
+            }
             break;
         }
         default: break;
@@ -606,11 +734,103 @@ std::optional<std::vector<double>> VariantOverrides::parse_variant_csv(
     while (std::getline(iss, token, ',')) {
         boost::trim(token);
         if (!token.empty()) {
-            try { vals.push_back(std::stod(token)); }
-            catch (...) { return std::nullopt; }
+            if (token == "nil") {
+                vals.push_back(std::numeric_limits<double>::quiet_NaN());
+            } else {
+                try { vals.push_back(std::stod(token)); }
+                catch (...) { return std::nullopt; }
+            }
         }
     }
     return vals.size() > 1 ? std::optional(vals) : std::nullopt;
+}
+
+// ────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::swap_extruder_order  [DEPRECATED — no longer called]
+// ────────────────────────────────────────────────────────────────
+// Rotates all VO arrays by n/2 to swap extruder halves.
+// Previously needed when internal order differed from BBS file order.
+// After Tab.cpp L/R fix, internal order == BBS order, so no swap needed.
+// Kept for reference; can be removed in a future cleanup.
+void VariantOverrides::swap_extruder_order()
+{
+    for (auto& [key, vals] : floats) {
+        if (vals.size() > 1 && print_options_with_variant.count(key))
+            std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
+    }
+    for (auto& [key, vals] : strings) {
+        if (vals.size() > 1 && print_options_with_variant.count(key))
+            std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
+    }
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::prepare_for_3mf_save
+// ────────────────────────────────────────────────────────────────
+// Prepare a DynamicPrintConfig for 3MF serialization:
+//   Expand VO into vector ConfigOptions for serialization.
+//   Internal order now matches BBS file order (Left first)
+//   so no extruder swap is needed.
+// Caller should pass a COPY of the config (this modifies in-place).
+void VariantOverrides::prepare_for_3mf_save(DynamicPrintConfig& config)
+{
+    if (config.variant_overrides().empty())
+        return;
+    // No swap needed: after Tab.cpp fix, internal order == BBS file order.
+    config.expand_variant_overrides_to_vectors();
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::load_from_3mf_compress
+// ────────────────────────────────────────────────────────────────
+// After loading a BBS-style JSON from 3MF:
+//   Compress vector ConfigOptions into VO.
+//   No swap needed: BBS file order == internal order (Left first).
+void VariantOverrides::load_from_3mf_compress(DynamicPrintConfig& config, int active_variant_index)
+{
+    config.compress_vectors_to_variant_overrides(active_variant_index);
+    // No swap needed: internal order matches BBS file order.
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::is_variant_csv
+// ────────────────────────────────────────────────────────────────
+// Returns true if a 3MF metadata key/value pair is a variant-aware CSV
+// that should be SKIPPED in the first-pass set_deserialize().
+bool VariantOverrides::is_variant_csv(const std::string& key, const std::string& value)
+{
+    return print_options_with_variant.count(key) > 0 &&
+           value.find(',') != std::string::npos;
+}
+
+// ────────────────────────────────────────────────────────────────
+// VariantOverrides::try_load_per_object_3mf_metadata
+// ────────────────────────────────────────────────────────────────
+// Parse a per-object variant-aware CSV from 3MF metadata and store
+// in config's VO. Handles:
+//   1. CSV parsing (with "nil" → NaN)
+//   2. BBS→internal extruder order swap
+//   3. Store in VO floats + set scalar config value
+void VariantOverrides::try_load_per_object_3mf_metadata(
+    const std::string& key, const std::string& value,
+    DynamicPrintConfig& config)
+{
+    auto parsed = parse_variant_csv(key, value);
+    if (!parsed || parsed->size() <= 1)
+        return;
+
+    auto& vals = *parsed;
+    // No swap needed: BBS file order matches internal order (Left first).
+
+    config.variant_overrides().floats[key] = vals;
+
+    // Set scalar to first non-NaN value, or 0 if all NaN
+    double scalar = 0.0;
+    for (double v : vals) {
+        if (!std::isnan(v)) { scalar = v; break; }
+    }
+    config.set_key_value(key, new ConfigOptionFloat(scalar));
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -643,8 +863,9 @@ PrecomputedOverlays VariantOverrides::precompute_overlays(
             int vi = compute_variant_index(eid, full_config);
             if (vi < 0) continue;
             auto overlay = global_vo.build_overlay(vi);
-            if (!overlay.empty())
+            if (!overlay.empty()) {
                 result.extruder_overrides[eid] = std::move(overlay);
+            }
         }
     }
 

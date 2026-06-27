@@ -1009,8 +1009,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                             // Deserialize only the first element into the scalar config
                             std::string first_val = it.value()[0].get<std::string>();
                             this->set_deserialize(opt_key, first_val, substitution_context);
-                            BOOST_LOG_TRIVIAL(debug) << "H2C VariantOverrides: stored " << opt_key
-                                << " array[" << it.value().size() << "], scalar=" << first_val;
+
                             continue;
                         }
                     }

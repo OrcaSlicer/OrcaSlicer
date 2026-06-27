@@ -3007,9 +3007,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // H2C: Set the active extruder for VariantAwareConfig so that every
     // subsequent m_config.apply() automatically re-applies variant overrides.
+    // get_extruder_id() returns sidebar position (0-based); we need physical
+    // extruder ID for the overlay map. Translate via physical_extruder_map.
     {
-        unsigned int init_eid = get_extruder_id(initial_extruder_id);
-        m_config.set_active_extruder(init_eid);
+        unsigned int sidebar_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+        unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
+        m_config.set_active_extruder(phys_eid);
     }
 
     print.throw_if_canceled();
@@ -3593,8 +3596,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
                         file.write(this->set_extruder(initial_extruder_id, initial_layer_print_height, true));
                         // H2C: Switch active extruder overlay for sequential mode tool change.
+                        // Translate sidebar position → physical via physical_extruder_map.
                         {
-                            unsigned int phys_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+                            unsigned int sidebar_eid = (unsigned int)get_extruder_id(initial_extruder_id);
+                            unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
                             m_config.set_active_extruder(phys_eid);
                         }
                         prime_extruder = true;
@@ -5696,11 +5701,11 @@ LayerResult GCode::process_layer(
         gcode += std::move(gcode_toolchange);
 
         // H2C: Switch active extruder in VariantAwareConfig.
-        // extruder_id here is a filament slot, NOT a physical extruder.
-        // Map through get_extruder_id() to get the physical extruder (0=left, 1=right).
-        // The overlay map is keyed by physical extruder ID.
+        // get_extruder_id() returns sidebar position (0-based), NOT physical extruder ID.
+        // Translate via physical_extruder_map for the overlay lookup.
         {
-            unsigned int phys_eid = (unsigned int)get_extruder_id(extruder_id);
+            unsigned int sidebar_eid = (unsigned int)get_extruder_id(extruder_id);
+            unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
             m_config.set_active_extruder(phys_eid);
         }
 
@@ -5730,10 +5735,11 @@ LayerResult GCode::process_layer(
                     instance_to_print.print_object.slicing_parameters().raft_layers() == layer_to_print.object_layer->id();
                 m_config.apply(print.default_region_config());
                 // H2C: Set active object so reapply uses per-object VO overlay
-                if (auto* mo = instance_to_print.print_object.model_object())
+                if (auto* mo = instance_to_print.print_object.model_object()) {
                     m_config.set_active_object(mo->id().id);
-                else
+                } else {
                     m_config.set_active_object(0);
+                }
                 m_config.apply(instance_to_print.print_object.config(), true);
                 m_layer = layer_to_print.layer();
                 m_object_layer_over_raft = object_layer_over_raft;

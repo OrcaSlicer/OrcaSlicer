@@ -5194,12 +5194,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                         merged_vo.floats[key] = vals;
                     for (auto& [key, vals] : child_vo.strings)
                         merged_vo.strings[key] = vals;
-                    BOOST_LOG_TRIVIAL(info) << "H2C parse_subfile: merged VariantOverrides for " << preset_name
-                        << " (child: " << child_vo.floats.size() << " float keys"
-                        << ", total: " << merged_vo.floats.size() << " float keys)";
                 } else if (!config.variant_overrides().empty()) {
-                    BOOST_LOG_TRIVIAL(info) << "H2C parse_subfile: inherited VariantOverrides for " << preset_name
-                        << " (" << config.variant_overrides().floats.size() << " float keys from parent)";
                 }
             }
             extend_default_config_length(config, {}, true, *default_config);

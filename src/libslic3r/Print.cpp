@@ -1360,24 +1360,18 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             }
         }
 
-        BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: enable_prime_tower=" << m_config.enable_prime_tower
-                                << " nozzles=" << nozzles
-                                << " wall_type=" << (int)m_config.wipe_tower_wall_type.value
-                                << " extruders_size=" << extruders.size();
 
         if (this->has_wipe_tower() && nozzles > 1 && m_config.prime_volume_mode.value == PrimeVolumeMode::pvmSaving) {
             int min_temp = std::numeric_limits<int>::max();
             int max_temp = 0;
-            BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: printing " << extruders.size() << " extruders details:";
             for (unsigned int extruder_id : extruders) {
                 int temp = m_config.nozzle_temperature.get_at(extruder_id);
-                BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: extruder_id=" << extruder_id << " temp=" << temp;
                 if (temp > 0) {
                     min_temp = std::min(min_temp, temp);
                     max_temp = std::max(max_temp, temp);
                 }
             }
-            BOOST_LOG_TRIVIAL(warning) << "H2C_VAL: min_temp=" << min_temp << " max_temp=" << max_temp << " delta=" << (max_temp - min_temp);
+
 
             if (max_temp > min_temp && (max_temp - min_temp) >= 20) {
                 StringObjectException warningtemp;
@@ -3727,16 +3721,6 @@ void Print::_make_wipe_tower()
                 // wipe_volume_ec/nc must NOT be zeroed — the tower still needs the infill
                 // depth for structural validity. volume_to_purge is zero when same filament.
 
-                BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] plan_toolchange:"
-                    << " old=" << old_filament_id
-                    << " new=" << filament_id
-                    << " prev_nozzle_filament=" << prev_nozzle_filament
-                    << " nozzle_already_loaded=" << nozzle_already_loaded
-                    << " wipe_ec=" << wipe_volume_ec
-                    << " wipe_nc=" << wipe_volume_nc
-                    << " purge=" << volume_to_purge
-                    << " nozzle_id=" << nozzle_id
-                    << " extruder_id=" << extruder_id;
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, old_filament_id, filament_id,
                                            wipe_volume_ec, wipe_volume_nc, volume_to_purge, nozzle_already_loaded);
 

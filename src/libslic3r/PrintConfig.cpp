@@ -9875,9 +9875,9 @@ void DynamicPrintConfig::apply_variant_overrides(int variant_index, const std::s
     m_active_variant_index = variant_index;
 }
 
-void DynamicPrintConfig::save_variant_overrides(int variant_index, const std::set<std::string>& keys)
+void DynamicPrintConfig::save_variant_overrides(int variant_index, const std::set<std::string>& keys, bool force)
 {
-    m_variant_overrides.save_from_config(*this, variant_index, keys);
+    m_variant_overrides.save_from_config(*this, variant_index, keys, force);
 }
 
 void DynamicPrintConfig::expand_variant_overrides_to_vectors()

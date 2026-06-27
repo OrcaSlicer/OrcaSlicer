@@ -2,6 +2,7 @@
 #include "libslic3r/VortekPlateMapping.hpp"
 #include "libslic3r/VortekNozzleState.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/VariantOverrides.hpp"
 #include "libslic3r_version.h"
 
 #include <cstddef>
@@ -1257,13 +1258,9 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     combo_flow->GetDropDown().SetUseContentWidth(true);
     combo_flow->Bind(wxEVT_COMBOBOX, [this, index, combo_flow](wxCommandEvent &evt) {
         auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
-        MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
-        bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
-        // Map physical UI widget index to logical extruder index (e.g. T0 on Right / T1 on Left for H2C)
-        int logical_index = index;
-        if (index >= 0 && !main_on_left) {
-            logical_index = 1 - index;
-        }
+        const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        int logical_index = (index == 0) ? VariantOverrides::left_extruder_idx(printer_config)
+                                         : VariantOverrides::right_extruder_idx(printer_config);
         printer_tab->set_extruder_volume_type(logical_index, NozzleVolumeType(intptr_t(combo_flow->GetClientData(evt.GetInt()))));
         if (GUI::wxGetApp().plater())
             GUI::wxGetApp().plater()->update_machine_sync_status();
@@ -1284,12 +1281,9 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
 #endif
         btn_edit->Hide();
         btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index](auto &evt) {
-            MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
-            bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
-            int logical_index = index;
-            if (index >= 0 && !main_on_left) {
-                logical_index = 1 - index;
-            }
+            const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+            int logical_index = (index == 0) ? VariantOverrides::left_extruder_idx(printer_config)
+                                             : VariantOverrides::right_extruder_idx(printer_config);
             PopupWindow *window = new AMSCountPopupWindow(this, logical_index);
             auto         size   = GetSize();
             auto         pos    = ClientToScreen({0, size.y + 12});
@@ -1825,8 +1819,9 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         }
     }
     only_external_material = !obj->GetFilaSystem()->HasAms();
-    int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
-    int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
+    const auto& printer_config = preset_bundle->printers.get_edited_preset().config;
+    int left_logical_idx  = VariantOverrides::left_extruder_idx(printer_config);
+    int right_logical_idx = VariantOverrides::right_extruder_idx(printer_config);
 
     if (extruder_nums > 1) {
         int left_index  = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[left_logical_idx]));
@@ -2065,9 +2060,10 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         extruder_infos[0].diameter = float(value);
     }
     else if(extruder_nums == 2){
-        // Resolve logical index for Left and Right UI widgets depending on printer layout (Main on Left vs Right)
-        int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
-        int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
+        // Resolve logical index for Left and Right UI widgets from physical_extruder_map preset
+        const auto& printer_config = preset_bundle->printers.get_edited_preset().config;
+        int left_logical_idx  = VariantOverrides::left_extruder_idx(printer_config);
+        int right_logical_idx = VariantOverrides::right_extruder_idx(printer_config);
         // Read nozzle diameter from preset config directly
         // (UI wxStrings may be locale-dependent or uninitialized)
         auto *nozzle_diam_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
@@ -2121,8 +2117,9 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         }
     }
     else if (extruder_nums == 2) {
-        int left_logical_idx  = obj->is_main_extruder_on_left() ? 0 : 1;
-        int right_logical_idx = obj->is_main_extruder_on_left() ? 1 : 0;
+        const auto& printer_config = preset_bundle->printers.get_edited_preset().config;
+        int left_logical_idx  = VariantOverrides::left_extruder_idx(printer_config);
+        int right_logical_idx = VariantOverrides::right_extruder_idx(printer_config);
 
         auto is_same_ams = [](const ExtruderInfo &a, const ExtruderInfo &b) {
             return abs(a.diameter - b.diameter) < EPSILON
@@ -3318,14 +3315,9 @@ void Sidebar::update_presets(Preset::Type preset_type)
             };
 
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
-            MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
-            bool main_on_left = obj ? obj->is_main_extruder_on_left() : false;
-            // Map physical Left/Right sidebar widgets to logical extruder IDs dynamically.
-            // BBS preset: ext0=deputy(1 nozzle), ext1=main(carousel).
-            // When main is on left: Left UI = ext1(main), Right UI = ext0(deputy).
-            // When main NOT on left (default): Left UI = ext0(deputy), Right UI = ext1(main).
-            int left_logical_idx = main_on_left ? 1 : 0;
-            int right_logical_idx = main_on_left ? 0 : 1;
+            const auto& printer_config = printer_preset.config;
+            int left_logical_idx  = VariantOverrides::left_extruder_idx(printer_config);
+            int right_logical_idx = VariantOverrides::right_extruder_idx(printer_config);
 
             p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, left_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, right_logical_idx, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
@@ -6976,8 +6968,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         // H2C: transfer VO from loaded project config (operator+= doesn't copy VO)
                         if (!loaded_vo.empty()) {
                             config.variant_overrides() = std::move(loaded_vo);
-                            BOOST_LOG_TRIVIAL(info) << "[H2C] Plater::load: transferred VO from 3MF project config, "
-                                                    << config.variant_overrides().floats.size() << " float keys";
                         }
                         std::map<std::string, std::string> validity = config.validate();
                         if (!validity.empty()) {

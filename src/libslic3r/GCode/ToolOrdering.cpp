@@ -74,9 +74,6 @@ bool check_filament_printable_after_group(const std::vector<unsigned int>& used_
     const int extruder_count = print_config ? static_cast<int>(print_config->nozzle_diameter.size()) : 0;
     for (unsigned int filament_id : used_filaments) {
         if (filament_id >= filament_maps.size()) {
-            BOOST_LOG_TRIVIAL(warning) << "[H2C] check_filament_printable_after_group: filament_id=" << filament_id
-                                       << " out of range (filament_maps.size=" << filament_maps.size()
-                                       << "); model-filament count mismatch (likely misconfigured CLI invocation)";
             // Can't safely check printability without a valid extruder assignment.
             // Treat as ungroupable rather than crashing.
             throw Slic3r::RuntimeError(_L("Grouping error: filament count mismatch. Please reload the file."));
@@ -85,9 +82,6 @@ bool check_filament_printable_after_group(const std::vector<unsigned int>& used_
         int printable_status      = print_config->filament_printable.get_at(filament_id);
         int extruder_idx          = filament_maps[filament_id];
         if (extruder_idx < 0 || extruder_idx >= extruder_count) {
-            BOOST_LOG_TRIVIAL(warning) << "[H2C] check_filament_printable_after_group: filament_id=" << filament_id
-                                       << " has extruder_idx=" << extruder_idx << " outside [0," << extruder_count
-                                       << "); skipping printability check";
             continue;
         }
         if (!(printable_status >> extruder_idx & 1)) {

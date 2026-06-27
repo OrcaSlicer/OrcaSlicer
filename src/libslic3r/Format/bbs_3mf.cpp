@@ -140,6 +140,7 @@ static bool is_path_within_root(const std::string& file_path, const boost::files
     return true;
 }
 
+
 // VERSION NUMBERS
 // 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
 // 1 : Introduction of 3mf versioning. No other change in data saved into 3mf files.
@@ -2160,28 +2161,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     //BBS: add module name
                     else if (metadata.key == "module")
                         model_object->module_name = metadata.value;
+                    // H2C: skip variant-aware CSV values — handled in second pass.
+                    else if (VariantOverrides::is_variant_csv(metadata.key, metadata.value))
+                        continue;
                     else
                         model_object->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
                 }
 
-                // H2C: 3MF set_deserialize truncates "85,500,45,500" to 85 for coFloat.
-                // For variant-aware keys with commas, parse VO manually (second pass).
+                // H2C: Second pass — parse variant CSV and store in VO.
                 {
                     auto& dpc = const_cast<DynamicPrintConfig&>(model_object->config.get());
-                    for (const Metadata& md : obj_metadata->second.metadata) {
-                        if (!print_options_with_variant.count(md.key) ||
-                            md.value.find(',') == std::string::npos)
-                            continue;
-                        std::vector<double> vals;
-                        std::istringstream ss(md.value);
-                        std::string token;
-                        while (std::getline(ss, token, ','))
-                            vals.push_back(std::stod(token));
-                        if (vals.size() > 1) {
-                            dpc.variant_overrides().floats[md.key] = vals;
-                            dpc.set_key_value(md.key, new ConfigOptionFloat(vals[0]));
-                        }
-                    }
+                    for (const Metadata& md : obj_metadata->second.metadata)
+                        VariantOverrides::try_load_per_object_3mf_metadata(md.key, md.value, dpc);
                 }
 
                 // select object's detected volumes
@@ -2706,11 +2697,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 return;
             }
 
-            // H2C: After loading, check if any variant-aware options came in as
-            // arrays (BBS-style multi-variant JSON). If so, compress them back
-            // into scalar + variant_overrides so the rest of Orca works with
-            // scalar configs as expected.
-            config.compress_vectors_to_variant_overrides(0);
+            // H2C: Compress BBS vector options into VO with extruder order swap.
+            VariantOverrides::load_from_3mf_compress(config, 0);
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
         }
@@ -2781,7 +2769,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 return;
             }
 
-            config.compress_vectors_to_variant_overrides(0);
+            // H2C: Compress BBS vector options into VO with extruder order swap.
+            VariantOverrides::load_from_3mf_compress(config, 0);
             Preset *preset = new Preset(type, preset_name, false);
             preset->file = dest_file;
             preset->config = std::move(config);
@@ -7833,12 +7822,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
         const std::string& temp_path = model.get_backup_path();
         std::string temp_file = temp_path + std::string("/") + "_temp_1.config";
 
-        // H2C: If the config has variant overrides (multi-nozzle-variant data),
-        // expand them into BBS-compatible vector options before serialization.
-        // We work on a mutable copy so the original config is not modified.
+        // H2C: Expand VO into BBS-compatible vectors with extruder order swap.
         if (!config.variant_overrides().empty()) {
             DynamicPrintConfig config_copy(config);
-            config_copy.expand_variant_overrides_to_vectors();
+            VariantOverrides::prepare_for_3mf_save(config_copy);
             config_copy.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
         } else {
             config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
@@ -7865,12 +7852,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                 DynamicPrintConfig& config = preset->config;
                 //config.save(preset->file);
 
-                // H2C: If the preset has variant overrides (multi-nozzle-variant data),
-                // expand them into BBS-compatible vector options before serialization.
-                // We work on a mutable copy so the original preset config is not modified.
+                // H2C: Expand VO into BBS-compatible vectors with extruder order swap.
                 if (!config.variant_overrides().empty()) {
                     DynamicPrintConfig config_copy(config);
-                    config_copy.expand_variant_overrides_to_vectors();
+                    VariantOverrides::prepare_for_3mf_save(config_copy);
                     config_copy.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
                 } else {
                     config.save_to_json(preset->file, preset->name, std::string("project"), preset->version.to_string());
@@ -7938,11 +7923,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"module\" " << VALUE_ATTR << "=\"" << xml_escape(obj->module_name) << "\"/>\n";
 
                 // stores object's config data
-                // H2C: For variant-aware keys with VO, expand to arrays
-                // before serialization (e.g., scalar=65 + VO → "65;500;90;500").
+                // H2C: Expand VO into BBS-compatible vectors with extruder order swap.
                 DynamicPrintConfig obj_config_for_save(obj->config.get());
-                if (!obj_config_for_save.variant_overrides().empty())
-                    obj_config_for_save.expand_variant_overrides_to_vectors();
+                VariantOverrides::prepare_for_3mf_save(obj_config_for_save);
                 for (const std::string& key : obj->config.keys()) {
                     // Use expanded config for variant-aware keys, original for others
                     const ConfigOption* opt = obj_config_for_save.option(key);

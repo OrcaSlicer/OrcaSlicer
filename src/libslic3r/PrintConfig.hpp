@@ -723,7 +723,8 @@ public:
     // This is the inverse of apply_variant_overrides() — reads scalars from the
     // live config and writes them to variant_overrides[variant_index], preserving
     // user edits before switching to a different nozzle variant.
-    void save_variant_overrides(int variant_index, const std::set<std::string>& keys);
+    // force=true overwrites NaN/reset slots (for explicit user edits).
+    void save_variant_overrides(int variant_index, const std::set<std::string>& keys, bool force = false);
 
     // H2C: Expand scalar config values + variant_overrides into vector options
     // (e.g. ConfigOptionFloat → ConfigOptionFloats with one element per variant).

@@ -733,7 +733,6 @@ void Preset::save(DynamicPrintConfig* parent_config)
                 }
             }
             temp_config.expand_variant_overrides_to_vectors();
-            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for preset save (parent-diff branch): " << this->name;
         }
         temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     } else if (!filament_id.empty() && inherits().empty()) {
@@ -742,7 +741,6 @@ void Preset::save(DynamicPrintConfig* parent_config)
         // H2C: expand variant overrides to vectors before saving
         if (!temp_config.variant_overrides().empty()) {
             temp_config.expand_variant_overrides_to_vectors();
-            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for preset save (filament_id branch): " << this->name;
         }
         temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     } else {
@@ -750,7 +748,6 @@ void Preset::save(DynamicPrintConfig* parent_config)
         if (!this->config.variant_overrides().empty()) {
             DynamicPrintConfig config_copy = this->config;
             config_copy.expand_variant_overrides_to_vectors();
-            BOOST_LOG_TRIVIAL(info) << "H2C: expanded variant overrides for preset save (full-config branch): " << this->name;
             config_copy.save_to_json(this->file, bare_name, from_str, this->version.to_string());
         } else {
             this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
@@ -786,8 +783,6 @@ void Preset::reload(Preset const &parent)
         // H2C: transfer variant overrides from loaded config
         if (!saved_overrides.empty())
             this->config.variant_overrides() = std::move(saved_overrides);
-        BOOST_LOG_TRIVIAL(info) << "[H2C] Preset::reload: loaded VO with " 
-                                << this->config.variant_overrides().floats.size() << " float keys for: " << this->name;
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << boost::format("Failed loading the user-config file: %1%. Reason: %2%") % file % err.what();
     }
@@ -1749,12 +1744,7 @@ void PresetCollection::load_presets(
                                 parent_vo.floats[key] = std::move(vals);
                             for (auto& [key, vals] : saved_overrides.strings)
                                 parent_vo.strings[key] = std::move(vals);
-                            BOOST_LOG_TRIVIAL(info) << "H2C: merged VariantOverrides for preset " << preset.name
-                                << " (child: " << saved_overrides.floats.size()
-                                << " keys, total: " << parent_vo.floats.size() << " keys)";
                         } else if (!parent_vo.empty()) {
-                            BOOST_LOG_TRIVIAL(info) << "H2C: inherited VariantOverrides for preset " << preset.name
-                                << " (" << parent_vo.floats.size() << " float keys from parent)";
                         }
                     }
                     // H2C: reconstruct variant overrides from the saved vector arrays in JSON
@@ -2601,8 +2591,6 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             const auto* dpc = dynamic_cast<const DynamicPrintConfig*>(&combined_config);
             if (dpc && !dpc->variant_overrides().empty()) {
                 m_edited_preset.config.variant_overrides() = dpc->variant_overrides();
-                BOOST_LOG_TRIVIAL(info) << "[H2C] load_external_preset: restored project VO for '"
-                                        << original_name << "', " << dpc->variant_overrides().floats.size() << " float keys";
             }
         }
         //BBS: set the preset to visible
@@ -2630,8 +2618,6 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 const auto* dpc = dynamic_cast<const DynamicPrintConfig*>(&combined_config);
                 if (dpc && !dpc->variant_overrides().empty()) {
                     m_edited_preset.config.variant_overrides() = dpc->variant_overrides();
-                    BOOST_LOG_TRIVIAL(info) << "[H2C] load_external_preset: restored project VO (inherits) for '"
-                                            << inherits << "', " << dpc->variant_overrides().floats.size() << " float keys";
                 }
             }
             //BBS: set the preset to visible
@@ -2658,8 +2644,6 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 const auto* dpc = dynamic_cast<const DynamicPrintConfig*>(&combined_config);
                 if (dpc && !dpc->variant_overrides().empty()) {
                     this->get_edited_preset().config.variant_overrides() = dpc->variant_overrides();
-                    BOOST_LOG_TRIVIAL(info) << "[H2C] load_external_preset: restored project VO (dirty) for '"
-                                            << original_name << "'";
                 }
             }
             this->update_dirty();
