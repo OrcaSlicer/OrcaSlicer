@@ -6626,6 +6626,21 @@ void PrintConfigDef::init_fff_params()
     def->max = max_temp;
     def->set_default_value(new ConfigOptionInts{0});
 
+    def = this->add("chamber_minimal_temperature", coInts);
+    def->label = L("Minimal");
+    def->tooltip = L("This is the chamber temperature at which printing should start, while the chamber continues heating "
+                     "toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to "
+                     "begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n\n"
+                     "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro "
+                     "or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n\n"
+                     "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes "
+                     "the value to your custom G-code. It should not exceed the \"Target\" chamber temperature.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->full_label = L("Chamber minimal temperature");
+    def->min = 0;
+    def->max = max_temp;
+    def->set_default_value(new ConfigOptionInts{0});
+
     def = this->add("nozzle_temperature", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Nozzle temperature for layers after the initial one.");
@@ -11301,6 +11316,7 @@ TemperaturesConfigDef::TemperaturesConfigDef()
     new_def("bed_temperature_initial_layer", coInts, "First layer bed temperature", "Vector of first layer bed temperatures for each extruder/filament. Provides the same value as first_layer_bed_temperature.")
     new_def("bed_temperature_initial_layer_single", coInt, "First layer bed temperature (initial extruder)", "First layer bed temperature for the initial extruder. Same as bed_temperature_initial_layer[initial_extruder]")
     new_def("chamber_temperature", coInts, "Chamber temperature", "Vector of chamber temperatures for each extruder/filament.")
+    new_def("chamber_minimal_temperature", coInts, "Chamber minimal temperature", "Vector of minimal chamber temperatures for each extruder/filament.")
     new_def("overall_chamber_temperature", coInt, "Overall chamber temperature", "Overall chamber temperature. This value is the maximum chamber temperature of any extruder/filament used.")
     new_def("first_layer_bed_temperature", coInts, "First layer bed temperature", "Vector of first layer bed temperatures for each extruder/filament. Provides the same value as bed_temperature_initial_layer.")
     new_def("first_layer_temperature", coInts, "First layer temperature", "Vector of first layer temperatures for each extruder/filament.")

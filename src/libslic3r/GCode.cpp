@@ -3034,6 +3034,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("bed_temperature_initial_layer_vector", new ConfigOptionString());
         this->placeholder_parser().set("chamber_temperature", new ConfigOptionInts(m_config.chamber_temperature));
         this->placeholder_parser().set("overall_chamber_temperature", new ConfigOptionInt(max_chamber_temp));
+        this->placeholder_parser().set("chamber_minimal_temperature", new ConfigOptionInts(m_config.chamber_minimal_temperature));
         this->placeholder_parser().set("enable_high_low_temp_mix", new ConfigOptionBool(!print.need_check_multi_filaments_compatibility()));
         this->placeholder_parser().set("min_vitrification_temperature", new ConfigOptionInt(min_temperature_vitrification));
 

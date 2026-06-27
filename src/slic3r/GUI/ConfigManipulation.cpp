@@ -183,6 +183,30 @@ void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
     }
 }
 
+void ConfigManipulation::check_chamber_minimal_temperature(DynamicPrintConfig* config)
+{
+    // Orca: the minimal chamber temperature is a "start printing" threshold that is passed to the
+    // print start macro. It must not exceed the target chamber temperature, otherwise the macro
+    // could wait forever for a temperature the heater is never asked to reach.
+    if (config->has("chamber_minimal_temperature") && config->has("chamber_temperature")) {
+        const int chamber_min_temp    = config->option<ConfigOptionInts>("chamber_minimal_temperature")->get_at(0);
+        const int chamber_target_temp = config->option<ConfigOptionInts>("chamber_temperature")->get_at(0);
+        if (chamber_min_temp > chamber_target_temp) {
+            wxString msg_text = wxString::Format(_L("The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). "
+                                                    "The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, "
+                                                    "so it should not exceed it. It will be clamped to the target."),
+                                                 chamber_min_temp, chamber_target_temp);
+            MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+            DynamicPrintConfig new_conf = *config;
+            is_msg_dlg_already_exist    = true;
+            dialog.ShowModal();
+            new_conf.set_key_value("chamber_minimal_temperature", new ConfigOptionInts({chamber_target_temp}));
+            apply(config, &new_conf);
+            is_msg_dlg_already_exist = false;
+        }
+    }
+}
+
 void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config, const bool is_plate_config)
 {
     // #ys_FIXME_to_delete

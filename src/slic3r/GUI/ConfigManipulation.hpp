@@ -79,6 +79,7 @@ public:
     void    check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config);
     void    check_filament_max_volumetric_speed(DynamicPrintConfig *config);
     void    check_chamber_temperature(DynamicPrintConfig* config);
+    void    check_chamber_minimal_temperature(DynamicPrintConfig* config);
     void    set_is_BBL_Printer(bool is_bbl_printer) { is_BBL_Printer = is_bbl_printer; };
     bool    get_is_BBL_Printer() { return is_BBL_Printer; };
     // SLA print
