@@ -3081,9 +3081,6 @@ void TabPrintModel::set_model_config(std::map<ObjectBase*, ModelConfig*> const& 
     auto& selected_cfg = m_prints.get_selected_preset().config;
     auto& edited_cfg   = m_prints.get_edited_preset().config;
 
-    BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] set_model_config: old_objs=" << m_object_configs.size()
-                               << " new_objs=" << object_configs.size() << " m_extruder_switch=" << m_extruder_switch
-                               << " vi=" << m_last_variant_index;
 
     bool same_object = (m_object_configs == object_configs);
 
@@ -3259,7 +3256,6 @@ void TabPrintModel::reset_model_config()
     update_model_config();
     // H2C: Clear per-object VO entirely — all keys fall back to Global.
     if (m_extruder_switch) {
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] reset_model_config: clearing all per-object VO";
         auto& edited_cfg   = m_prints.get_edited_preset().config;
         auto& selected_cfg = m_prints.get_selected_preset().config;
         for (auto& [obj, mc] : m_object_configs)
@@ -3360,8 +3356,6 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
         if (m_extruder_switch && m_last_variant_index >= 0 && print_options_with_variant.count(opt_key)) {
             auto& edited_cfg = m_prints.get_edited_preset().config;
             auto* mc         = m_object_configs.empty() ? nullptr : m_object_configs.begin()->second;
-            BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] on_value_change: variant key=" << opt_key << " vi=" << m_last_variant_index
-                                       << " back_to_sys=" << m_back_to_sys;
             m_variant_ctrl.on_value_changed(edited_cfg, opt_key, m_last_variant_index, mc);
         }
         m_all_keys = concat(m_all_keys, {opt_id2});
@@ -3375,7 +3369,6 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
     if (m_back_to_sys && m_extruder_switch && print_options_with_variant.count(opt_key)) {
         auto& edited_cfg = m_prints.get_edited_preset().config;
         auto* mc         = m_object_configs.empty() ? nullptr : m_object_configs.begin()->second;
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] on_value_change: RESET key=" << opt_key << " vi=" << m_last_variant_index;
         m_variant_ctrl.reset_key(edited_cfg, opt_key, m_last_variant_index, mc);
     }
     m_back_to_sys = false;
@@ -3433,11 +3426,6 @@ void TabPrintModel::update_custom_dirty(std::vector<std::string>& dirty_options,
     if (m_extruder_switch && m_last_variant_index >= 0) {
         const auto& vo = m_config->variant_overrides();
 
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-Dirty] update_custom_dirty: vi=" << m_last_variant_index
-            << " m_null_keys=" << m_null_keys.size() << " m_all_keys=" << m_all_keys.size()
-            << " vo.has(outer_wall_speed)=" << vo.has("outer_wall_speed")
-            << " vo.has_variant(outer_wall_speed," << m_last_variant_index << ")="
-            << vo.has_variant("outer_wall_speed", m_last_variant_index);
 
         // Filter m_null_keys — exclude variant-aware keys where current variant is NaN
         std::vector<std::string> filtered_null;
@@ -3462,9 +3450,6 @@ void TabPrintModel::update_custom_dirty(std::vector<std::string>& dirty_options,
         }
         nonsys_options = concat(nonsys_options, filtered_keys);
     } else {
-        BOOST_LOG_TRIVIAL(warning) << "[H2C-Dirty] update_custom_dirty: ELSE branch, vi="
-            << m_last_variant_index << " extruder_switch=" << (m_extruder_switch ? "yes" : "no")
-            << " m_null_keys=" << m_null_keys.size() << " m_all_keys=" << m_all_keys.size();
         dirty_options  = concat(dirty_options, m_null_keys);
         nonsys_options = concat(nonsys_options, m_null_keys);
         nonsys_options = concat(nonsys_options, m_all_keys);
