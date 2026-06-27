@@ -501,6 +501,18 @@ void Tab::create_preset_tab()
         m_extruder_switch = new SwitchButton(panel);
         m_extruder_switch->SetMaxSize({em_unit(this) * 24, -1});
         m_extruder_switch->SetLabels(_L("Left"), _L("Right"));
+        // Hit-test: block click on already-active side (tab behavior, not toggle).
+        // wxBitmapToggleButton always flips state on click — we intercept LEFT_DOWN
+        // to consume the event when clicking the same side that's already selected.
+        m_extruder_switch->Bind(wxEVT_LEFT_DOWN, [this] (wxMouseEvent & evt) {
+            bool clicked_right_half = evt.GetX() > m_extruder_switch->GetSize().GetWidth() / 2;
+            bool right_is_active    = m_extruder_switch->GetValue();
+            if (clicked_right_half == right_is_active) {
+                // Clicked the already-active side — eat the event, don't toggle.
+                return;
+            }
+            evt.Skip(); // Let wxBitmapToggleButton handle the toggle.
+        });
         m_extruder_switch->Bind(wxEVT_TOGGLEBUTTON, [this] (auto & evt) {
             evt.Skip();
             switch_excluder(-1);
@@ -3001,6 +3013,11 @@ void TabPrintModel::build()
     TabPrint::build();
     init_options_list();
 
+    // H2C: Initialize VariantController with global config and variant keys
+    if (m_parent_tab && m_parent_tab->m_config)
+        m_variant_ctrl.set_global_config(m_parent_tab->m_config);
+    m_variant_ctrl.set_variant_keys(print_options_with_variant);
+
     auto page = add_options_page(L("Frequent"), "empty");
         auto optgroup = page->new_optgroup("");
             optgroup->append_single_option_line("layer_height", "quality_settings_layer_height");
@@ -3038,56 +3055,33 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
     auto& selected_cfg = m_prints.get_selected_preset().config;
     auto& edited_cfg   = m_prints.get_edited_preset().config;
 
-
-    // H2C: Save current VO to per-object cache AND ModelConfig before switching away.
-    // Skip if object_configs is empty — project reset makes old m_object_configs pointers dangling.
-    if (m_extruder_switch && m_last_variant_index >= 0 && !m_object_configs.empty()
-        && !object_configs.empty()) {
-        edited_cfg.save_variant_overrides(m_last_variant_index, print_options_with_variant);
-        for (auto& [obj, mc] : m_object_configs) {
-            m_per_object_vo[obj] = edited_cfg.variant_overrides();
-            // Also write VO back to ModelObject::config for slicing
-            const_cast<DynamicPrintConfig&>(mc->get()).variant_overrides() = edited_cfg.variant_overrides();
-        }
-    }
-
-    // Clear VO cache on project reset to avoid dangling pointers
-    if (object_configs.empty())
-        m_per_object_vo.clear();
+    BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] set_model_config: old_objs=" << m_object_configs.size()
+        << " new_objs=" << object_configs.size()
+        << " m_extruder_switch=" << m_extruder_switch
+        << " vi=" << m_last_variant_index;
 
     bool same_object = (m_object_configs == object_configs);
+
+    // H2C Phase 1: Save outgoing per-object VO BEFORE apply() wipes scalars
+    if (m_extruder_switch && !same_object && !m_object_configs.empty()) {
+        m_variant_ctrl.save_outgoing(edited_cfg, m_object_configs.begin()->second, m_last_variant_index);
+    }
+
     m_object_configs = object_configs;
 
     selected_cfg.apply(*m_parent_tab->m_config);
     edited_cfg.apply(*m_parent_tab->m_config);
 
-    // H2C: Restore VO — from per-object cache if available, otherwise from parent.
-    if (m_extruder_switch && !object_configs.empty()) {
-        auto it = m_per_object_vo.find(object_configs.begin()->first);
-        if (it != m_per_object_vo.end()) {
-            // Returning to a previously edited object
-            edited_cfg.variant_overrides() = it->second;
-        } else {
-            // First time on this object — check ModelConfig for VO (from 3MF load)
-            auto& mc = object_configs.begin()->second->get();
-            if (!mc.variant_overrides().empty()) {
-                edited_cfg.variant_overrides() = mc.variant_overrides();
-            } else if (m_parent_tab && m_parent_tab->get_presets()) {
-                edited_cfg.variant_overrides() = m_parent_tab->get_presets()->get_edited_preset().config.variant_overrides();
-            }
-        }
-        if (m_parent_tab && m_parent_tab->get_presets())
-            selected_cfg.variant_overrides() = m_parent_tab->get_presets()->get_selected_preset().config.variant_overrides();
-    } else if (m_parent_tab && m_parent_tab->get_presets()) {
-        auto& parent_edited = m_parent_tab->get_presets()->get_edited_preset().config;
-        auto& parent_selected = m_parent_tab->get_presets()->get_selected_preset().config;
-        edited_cfg.variant_overrides() = parent_edited.variant_overrides();
-        selected_cfg.variant_overrides() = parent_selected.variant_overrides();
+    // Restore Global VO base (apply() resets VO)
+    if (m_parent_tab && m_parent_tab->m_config) {
+        edited_cfg.variant_overrides() = m_parent_tab->m_config->variant_overrides();
+        selected_cfg.variant_overrides() = m_parent_tab->m_config->variant_overrides();
     }
 
-    // H2C: Log ModelConfig VO state for new object
-    if (!object_configs.empty()) {
-        auto& mc = object_configs.begin()->second->get();
+    // H2C Phase 2: Merge per-object VO on top of restored Global base
+    if (m_extruder_switch && !object_configs.empty()) {
+        m_variant_ctrl.load_incoming(edited_cfg, selected_cfg, 
+            object_configs.begin()->second, m_last_variant_index);
     }
 
     update_model_config();
@@ -3098,7 +3092,6 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
         // 1. Reset m_last_variant_index to -1 so switch_excluder skips SAVE
         //    (preventing it from corrupting VO with the wrong scalar)
         // 2. Let switch_excluder APPLY the correct variant's value from VO
-        auto& edited_cfg = m_prints.get_edited_preset().config;
         int saved_vi = m_last_variant_index;
         m_last_variant_index = -1;  // Skip SAVE in switch_excluder
         update_extruder_variants(-1);
@@ -3240,15 +3233,13 @@ void TabPrintModel::reset_model_config()
         notify_changed(config.first);
     }
     update_model_config();
-    // H2C: Reset VO to parent values since per-object edits are cleared.
-    if (m_extruder_switch && m_parent_tab && m_parent_tab->get_presets()) {
+    // H2C: Clear per-object VO entirely — all keys fall back to Global.
+    if (m_extruder_switch) {
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] reset_model_config: clearing all per-object VO";
         auto& edited_cfg   = m_prints.get_edited_preset().config;
         auto& selected_cfg = m_prints.get_selected_preset().config;
-        edited_cfg.variant_overrides() = m_parent_tab->get_presets()->get_edited_preset().config.variant_overrides();
-        selected_cfg.variant_overrides() = m_parent_tab->get_presets()->get_selected_preset().config.variant_overrides();
-        // Clear per-object VO cache for reset objects
-        for (auto& [obj, _] : m_object_configs)
-            m_per_object_vo.erase(obj);
+        for (auto& [obj, mc] : m_object_configs)
+            m_variant_ctrl.reset_all(edited_cfg, selected_cfg, mc);
         m_last_variant_index = -1;
         update_extruder_variants(-1);
         TabPrint::reload_config();
@@ -3345,31 +3336,27 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
         // H2C: For variant-aware keys, sync per-variant VO to ModelConfig.
         // Same mechanism as global: scalar holds active variant value,
         // VO holds all variant values for save/load and slicing resolution.
+        // H2C: Delegate VO sync to VariantController
         if (m_extruder_switch && m_last_variant_index >= 0 && print_options_with_variant.count(opt_key)) {
-            int vi = m_last_variant_index;
-            // Capture current edit into m_config's VO at active variant slot
-            m_config->save_variant_overrides(vi, {opt_key});
-            // Copy this key's VO data to each selected object's ModelConfig
-            const auto& src_vo = m_config->variant_overrides();
-            for (auto& config : m_object_configs) {
-                auto& model_vo = const_cast<DynamicPrintConfig&>(config.second->get()).variant_overrides();
-                model_vo.copy_key_from(opt_key, src_vo);
-                // Update per-object VO cache
-                m_per_object_vo[config.first] = model_vo;
-            }
+            auto& edited_cfg = m_prints.get_edited_preset().config;
+            auto* mc = m_object_configs.empty() ? nullptr : m_object_configs.begin()->second;
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] on_value_change: variant key=" << opt_key
+                << " vi=" << m_last_variant_index << " back_to_sys=" << m_back_to_sys;
+            m_variant_ctrl.on_value_changed(edited_cfg, opt_key, m_last_variant_index, mc);
         }
         m_all_keys = concat(m_all_keys, {opt_id2});
     }
     if (inull != m_null_keys.end())
         m_null_keys.erase(inull);
     if (m_back_to_sys || set) update_changed_ui();
-    // H2C: When a single variant-aware parameter is reset to default,
-    // restore its VO values from parent so Left/Right show parent values.
-    if (m_back_to_sys && m_extruder_switch && print_options_with_variant.count(opt_key)
-        && m_parent_tab && m_parent_tab->get_presets()) {
-        auto& edited_vo  = m_prints.get_edited_preset().config.variant_overrides();
-        const auto& parent_vo  = m_parent_tab->get_presets()->get_edited_preset().config.variant_overrides();
-        edited_vo.copy_key_from(opt_key, parent_vo);
+    // H2C: When a variant-aware parameter is reset, erase only this extruder's
+    // slot from per-object VO. Other extruder's override is preserved.
+    if (m_back_to_sys && m_extruder_switch && print_options_with_variant.count(opt_key)) {
+        auto& edited_cfg = m_prints.get_edited_preset().config;
+        auto* mc = m_object_configs.empty() ? nullptr : m_object_configs.begin()->second;
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-Tab] on_value_change: RESET key=" << opt_key
+            << " vi=" << m_last_variant_index;
+        m_variant_ctrl.reset_key(edited_cfg, opt_key, m_last_variant_index, mc);
     }
     m_back_to_sys = false;
     TabPrint::on_value_change(opt_id, value);
@@ -3419,7 +3406,28 @@ void TabPrintModel::update_custom_dirty(std::vector<std::string> &dirty_options,
 {
     dirty_options = concat(dirty_options, m_null_keys);
     nonsys_options = concat(nonsys_options, m_null_keys);
-    nonsys_options = concat(nonsys_options, m_all_keys);
+
+    // H2C: For variant-aware keys, only mark as nonsys (per-object override)
+    // if the CURRENT variant slot has a value (not NaN/reset).
+    // This prevents showing override markers for extruders where the user
+    // hasn't made a per-object change, even if the other extruder has one.
+    if (m_extruder_switch && m_last_variant_index >= 0) {
+        const auto& vo = m_config->variant_overrides();
+        std::vector<std::string> filtered_keys;
+        for (const auto& key : m_all_keys) {
+            // Strip #index suffix if present for VO lookup
+            auto hash = key.find('#');
+            const std::string base = (hash != std::string::npos) ? key.substr(0, hash) : key;
+            if (vo.has(base) && !vo.has_variant(base, m_last_variant_index)) {
+                // This key's current variant is NaN — no per-object override
+                continue;
+            }
+            filtered_keys.push_back(key);
+        }
+        nonsys_options = concat(nonsys_options, filtered_keys);
+    } else {
+        nonsys_options = concat(nonsys_options, m_all_keys);
+    }
 }
 
 //BBS: GUI refactor
@@ -7733,37 +7741,25 @@ void Tab::switch_excluder(int extruder_id)
         }
     }
 
-    // H2C: When switching between Left/Right nozzle tabs, apply the correct
-    // variant overrides so scalar values reflect this extruder's nozzle type.
-    //
-    // CRITICAL: Before applying the new variant, SAVE current scalar values
-    // back into edited_cfg's VariantOverrides for the PREVIOUS variant index.
-    // This preserves user edits across Left↔Right tab switches.
-    //
-    // We save only to edited_cfg — selected_cfg always keeps the original
-    // system values, so dirty detection correctly flags user modifications.
+    // H2C: Delegate variant switching to VariantController.
+    // Saves current scalars → VO[old], applies VO[new] → scalars.
     if (m_extruder_switch && dynamic_cast<TabPrint*>(this) && extruder_id >= 0 && extruder_id < (int)nozzle_volumes->size()) {
         auto& edited_cfg   = m_presets->get_edited_preset().config;
         auto& selected_cfg = m_presets->get_selected_preset().config;
 
         if (VariantOverrides::is_multi_variant(edited_cfg)) {
-            const auto& keys = dynamic_cast<TabPrint*>(this)
-                ? print_options_with_variant : filament_options_with_variant;
-
-            // Save current values to the PREVIOUS variant slot (edited only)
-            if (m_last_variant_index >= 0) {
-                auto* ows_before = edited_cfg.option("outer_wall_speed");
-                edited_cfg.save_variant_overrides(m_last_variant_index, keys);
-
+            auto* tab_print_model = dynamic_cast<TabPrintModel*>(this);
+            if (tab_print_model) {
+                tab_print_model->variant_ctrl().switch_variant(
+                    edited_cfg, selected_cfg, m_last_variant_index, index);
+            } else {
+                // Global TabPrint — keep existing logic for now
+                const auto& keys = print_options_with_variant;
+                if (m_last_variant_index >= 0)
+                    edited_cfg.save_variant_overrides(m_last_variant_index, keys);
+                edited_cfg.apply_variant_overrides(index, keys);
+                selected_cfg.apply_variant_overrides(index, keys);
             }
-
-            // Apply new variant's values
-            edited_cfg.apply_variant_overrides(index, keys);
-            selected_cfg.apply_variant_overrides(index, keys);
-            auto* ows_after = edited_cfg.option("outer_wall_speed");
-
-
-
             m_last_variant_index = index;
         }
     }

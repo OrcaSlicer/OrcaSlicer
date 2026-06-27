@@ -41,6 +41,7 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
+#include "VariantController.hpp"
 
 class TabCtrl;
 class ModeSwitchButton;
@@ -503,6 +504,9 @@ public:
 
 	bool has_key(std::string const &key);
 
+	// H2C: Public accessor for VariantController (used by base Tab::switch_excluder)
+	VariantController& variant_ctrl() { return m_variant_ctrl; }
+
 protected:
 	virtual void    activate_selected_page(std::function<void()> throw_if_canceled);
 
@@ -522,10 +526,9 @@ protected:
 	std::vector<std::string> m_all_keys;
 	std::vector<std::string> m_null_keys;
 	bool m_back_to_sys = false;
-	// H2C: Per-object VO cache — preserves variant edits across object switches.
-	// One TabPrintObject serves all objects; VO lives on the tab's preset config.
-	// This map saves VO when leaving an object, restores when returning.
-	std::map<ObjectBase*, VariantOverrides> m_per_object_vo;
+	// H2C: Isolation layer — owns all VO orchestration logic.
+	// Tab only calls hooks, no inline VO management.
+	VariantController m_variant_ctrl;
 };
 
 

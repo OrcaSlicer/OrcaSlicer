@@ -5730,10 +5730,15 @@ LayerResult GCode::process_layer(
                     instance_to_print.print_object.slicing_parameters().raft_layers() == layer_to_print.object_layer->id();
                 m_config.apply(print.default_region_config());
                 // H2C: Set active object so reapply uses per-object VO overlay
-                if (auto* mo = instance_to_print.print_object.model_object())
+                if (auto* mo = instance_to_print.print_object.model_object()) {
+                    BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] set_active_object: obj_id=" << mo->id().id
+                        << " name=" << mo->name
+                        << " has_obj_overlay=" << (m_config.object_extruder_overrides.count(mo->id().id) > 0)
+                        << " ext_id=" << m_config.active_extruder_id;
                     m_config.set_active_object(mo->id().id);
-                else
+                } else {
                     m_config.set_active_object(0);
+                }
                 m_config.apply(instance_to_print.print_object.config(), true);
                 m_layer = layer_to_print.layer();
                 m_object_layer_over_raft = object_layer_over_raft;
@@ -6152,10 +6157,15 @@ void GCode::VariantAwareConfig::reapply_variant_overrides()
         if (obj_it != object_extruder_overrides.end()) {
             auto ext_it = obj_it->second.find(active_extruder_id);
             if (ext_it != obj_it->second.end()) {
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply: USING per-object overlay"
+                    << " obj=" << active_object_id << " ext=" << active_extruder_id
+                    << " overlay_keys=" << ext_it->second.keys().size();
                 FullPrintConfig::apply(ext_it->second, true);
                 return;
             }
         }
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-GCode] reapply: NO per-object overlay for obj="
+            << active_object_id << " ext=" << active_extruder_id << ", falling back to global";
     }
     // Fallback to global overlay
     if (auto it = extruder_overrides.find(active_extruder_id); it != extruder_overrides.end()) {

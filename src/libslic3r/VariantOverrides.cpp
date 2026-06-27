@@ -4,6 +4,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 #include <sstream>
+#include <cmath>
+#include <limits>
 
 namespace Slic3r {
 
@@ -119,6 +121,37 @@ void VariantOverrides::copy_key_from(const std::string& key, const VariantOverri
 void VariantOverrides::erase_key(const std::string& key) {
     floats.erase(key);
     strings.erase(key);
+}
+
+void VariantOverrides::erase_variant(const std::string& key, int variant_idx) {
+    if (variant_idx < 0) return;
+    auto fit = floats.find(key);
+    if (fit != floats.end() && (size_t)variant_idx < fit->second.size()) {
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] erase_variant: key=" << key
+            << " vi=" << variant_idx << " old_val=" << fit->second[variant_idx] << " -> NaN";
+        fit->second[variant_idx] = std::numeric_limits<double>::quiet_NaN();
+        auto sit = strings.find(key);
+        if (sit != strings.end() && (size_t)variant_idx < sit->second.size())
+            sit->second[variant_idx].clear();
+        bool all_nan = true;
+        for (double v : fit->second) {
+            if (!std::isnan(v)) { all_nan = false; break; }
+        }
+        if (all_nan) {
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] erase_variant: ALL slots NaN for " << key << ", removing key entirely";
+            erase_key(key);
+        }
+    } else {
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] erase_variant: key=" << key << " vi=" << variant_idx << " NOT FOUND in VO";
+    }
+}
+
+bool VariantOverrides::has_variant(const std::string& key, int variant_idx) const {
+    if (variant_idx < 0) return false;
+    auto fit = floats.find(key);
+    if (fit == floats.end() || (size_t)variant_idx >= fit->second.size())
+        return false;
+    return !std::isnan(fit->second[variant_idx]);
 }
 
 bool VariantOverrides::is_multi_variant(const DynamicPrintConfig& config) {
@@ -240,9 +273,16 @@ DynamicPrintConfig VariantOverrides::build_overlay(
         return overlay;
 
     for (const auto& key : print_options_with_variant) {
-        if (!has(key)) continue;
+        if (!has_variant(key, variant_index)) {
+            if (has(key))
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] build_overlay: SKIP " << key
+                    << " vi=" << variant_index << " (NaN/reset slot)";
+            continue;
+        }
         const ConfigOptionDef* optdef = print_config_def.get(key);
         if (!optdef) continue;
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] build_overlay: INCLUDE " << key
+            << " vi=" << variant_index << " val=" << get_float(key, variant_index);
 
         switch (optdef->type) {
         case coFloat:
@@ -301,30 +341,39 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
         const ConfigOptionDef* optdef = config_def->get(key);
         if (!optdef) continue;
 
-        // Auto-init: if this scalar key is missing from VO, fill all variant
-        // slots with the current config value so each slot can be edited independently.
+        // Auto-init: if this scalar key is missing from VO, create entry
+        // with all slots = NaN (no override). This ensures we don't
+        // accidentally clobber reset/parent state for other extruders.
         if (!has(key)) {
+            double nan = std::numeric_limits<double>::quiet_NaN();
             switch (optdef->type) {
             case coFloat:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionFloat*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             case coFloatOrPercent: {
-                const auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
-                floats[key].assign(variant_count, fop->value);
-                strings[key].assign(variant_count, fop->serialize());
+                floats[key].assign(variant_count, nan);
+                strings[key].assign(variant_count, std::string());
                 break;
             }
             case coBool:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionBool*>(opt)->value ? 1.0 : 0.0);
+                floats[key].assign(variant_count, nan);
                 break;
             case coInt:
-                floats[key].assign(variant_count, (double)static_cast<const ConfigOptionInt*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             default: continue;
             }
         }
 
         // Apply VO[variant_index] → config scalar.
+        if (!has_variant(key, variant_index)) {
+            if (has(key))
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] apply_to_config: SKIP " << key
+                    << " vi=" << variant_index << " (NaN/reset slot, keeping parent value)";
+            continue;
+        }
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] apply_to_config: APPLY " << key
+            << " vi=" << variant_index << " val=" << get_float(key, variant_index);
         // For coFloatOrPercent, uses the raw string to preserve "50%" notation.
         switch (optdef->type) {
         case coFloat:
@@ -368,7 +417,7 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
 // Same auto-init logic as apply_to_config for keys with no VO entry.
 // Called by DynamicPrintConfig::save_variant_overrides() on tab switch.
 void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int variant_index,
-                                         const std::set<std::string>& keys)
+                                         const std::set<std::string>& keys, bool force)
 {
     const ConfigDef* config_def = config.def();
     if (!config_def) return;
@@ -382,30 +431,41 @@ void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int va
         const ConfigOptionDef* optdef = config_def->get(key);
         if (!optdef) continue;
 
-        // Auto-init: replicate current scalar across all variant slots.
-        // Handles the edge case where preset JSON had scalar (not array) values.
+        // Auto-init: create VO entry for this key.
+        // ONLY set the active variant_index slot; all other slots = NaN
+        // (meaning "no override, use parent value").
+        // This prevents a per-object edit on one extruder from clobbering
+        // the reset/parent state of the other extruder's slot.
         if (!has(key) && variant_count > 0) {
+            double nan = std::numeric_limits<double>::quiet_NaN();
             switch (optdef->type) {
             case coFloat:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionFloat*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             case coFloatOrPercent: {
-                const auto* fop = static_cast<const ConfigOptionFloatOrPercent*>(opt);
-                floats[key].assign(variant_count, fop->value);
-                strings[key].assign(variant_count, fop->serialize());
+                floats[key].assign(variant_count, nan);
+                strings[key].assign(variant_count, std::string());
                 break;
             }
             case coBool:
-                floats[key].assign(variant_count, static_cast<const ConfigOptionBool*>(opt)->value ? 1.0 : 0.0);
+                floats[key].assign(variant_count, nan);
                 break;
             case coInt:
-                floats[key].assign(variant_count, (double)static_cast<const ConfigOptionInt*>(opt)->value);
+                floats[key].assign(variant_count, nan);
                 break;
             default: continue;
             }
         }
 
         if (!has(key)) continue;
+
+        // Skip saving to reset (NaN) slots — preserves the "reset" state.
+        // But when force=true (explicit user edit), overwrite the NaN slot.
+        if (!force && !has_variant(key, variant_index)) {
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] save_from_config: SKIP save " << key
+                << " vi=" << variant_index << " (NaN/reset slot, preserving reset state)";
+            continue;
+        }
 
         // Config scalar → VO[variant_index].
         // For coFloatOrPercent, also saves the serialized string to preserve % notation.
@@ -650,6 +710,8 @@ PrecomputedOverlays VariantOverrides::precompute_overlays(
 
     for (const auto& [obj_id, obj_vo_ptr] : object_vos) {
         if (!obj_vo_ptr || obj_vo_ptr->empty()) continue;
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-VO] precompute_overlays: per-object obj_id=" << obj_id
+            << " vo_keys=" << obj_vo_ptr->floats.size();
         for (unsigned int eid = 0; eid < num_extruders; ++eid) {
             int vi = compute_variant_index(eid, full_config);
             if (vi < 0) continue;

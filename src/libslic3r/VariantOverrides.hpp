@@ -128,8 +128,14 @@ struct VariantOverrides {
     // Copy a single key's float+string arrays from another VO.
     // Used to sync per-object overrides without exposing floats/strings directly.
     void        copy_key_from(const std::string& key, const VariantOverrides& source);
-    // Erase a single key from both floats and strings maps.
+    // Erase a single key from both floats and strings maps (ALL variants).
     void        erase_key(const std::string& key);
+    // Erase a single variant slot for a key (sets NaN sentinel).
+    // If ALL slots become NaN, removes the key entirely.
+    // Used by per-object reset: erase only the active extruder's override.
+    void        erase_variant(const std::string& key, int variant_idx);
+    // Check if a specific variant slot is set (not NaN sentinel).
+    bool        has_variant(const std::string& key, int variant_idx) const;
 
     // ── Multi-variant detection ──
 
@@ -150,9 +156,10 @@ struct VariantOverrides {
     // Save current scalar config values back into this VO at variant_index.
     // Preserves user edits when switching between Left/Right nozzle tabs.
     // Auto-initializes missing VO entries (same as apply_to_config).
-    // Called on: Tab variant switch (to save current variant before switching).
+    // When force=true, overwrites NaN/reset slots (for explicit user edits).
+    // When force=false, preserves NaN/reset state (for automatic tab switches).
     void save_from_config(const DynamicPrintConfig& config, int variant_index,
-                          const std::set<std::string>& keys);
+                          const std::set<std::string>& keys, bool force = false);
 
     // Convert scalar config + VO arrays into vector ConfigOptions.
     // Used before JSON serialization so save_to_json() produces BBS-compatible
