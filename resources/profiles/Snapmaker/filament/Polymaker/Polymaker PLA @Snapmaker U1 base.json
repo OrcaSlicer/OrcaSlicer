@@ -1,0 +1,74 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA @Snapmaker U1 base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "GFL78",
+	"instantiation": "false",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"cool_plate_temp": [
+		"50"
+	],
+	"cool_plate_temp_initial_layer": [
+		"50"
+	],
+	"eng_plate_temp": [
+		"50"
+	],
+	"eng_plate_temp_initial_layer": [
+		"50"
+	],
+	"filament_cost": [
+		"30"
+	],
+	"filament_density": [
+		"1.23"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"hot_plate_temp": [
+		"50"
+	],
+	"hot_plate_temp_initial_layer": [
+		"50"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"slow_down_layer_time": [
+		"5"
+	],
+	"slow_down_min_speed": [
+		"5"
+	],
+	"temperature_vitrification": [
+		"59"
+	],
+	"textured_plate_temp": [
+		"50"
+	],
+	"textured_plate_temp_initial_layer": [
+		"50"
+	],
+	"filament_type": [
+		"PLA"
+	]
+}

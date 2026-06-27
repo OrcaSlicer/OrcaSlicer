@@ -30,7 +30,6 @@ typedef int (*func_set_cert_file)(void *agent, std::string folder, std::string f
 typedef int (*func_set_country_code)(void *agent, std::string country_code);
 typedef int (*func_start)(void *agent);
 typedef int (*func_set_on_ssdp_msg_fn)(void *agent, OnMsgArrivedFn fn);
-typedef int (*func_set_on_user_login_fn)(void *agent, OnUserLoginFn fn);
 typedef int (*func_set_on_printer_connected_fn)(void *agent, OnPrinterConnectedFn fn);
 typedef int (*func_set_on_server_connected_fn)(void *agent, OnServerConnectedFn fn);
 typedef int (*func_set_on_http_error_fn)(void *agent, OnHttpErrorFn fn);
@@ -85,7 +84,6 @@ typedef int (*func_put_setting)(void *agent, std::string setting_id, std::string
 typedef int (*func_get_setting_list)(void *agent, std::string bundle_version, ProgressFn pro_fn, WasCancelledFn cancel_fn);
 typedef int (*func_get_setting_list2)(void *agent, std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn, WasCancelledFn cancel_fn);
 typedef int (*func_delete_setting)(void *agent, std::string setting_id);
-typedef std::string (*func_get_studio_info_url)(void *agent);
 typedef int (*func_set_extra_http_header)(void *agent, std::map<std::string, std::string> extra_headers);
 typedef int (*func_get_my_message)(void *agent, int type, int after, int limit, unsigned int* http_code, std::string* http_body);
 typedef int (*func_check_user_task_report)(void *agent, int* task_id, bool* printable);
@@ -285,7 +283,6 @@ public:
     func_set_country_code get_set_country_code() const { return m_set_country_code; }
     func_start get_start() const { return m_start; }
     func_set_on_ssdp_msg_fn get_set_on_ssdp_msg_fn() const { return m_set_on_ssdp_msg_fn; }
-    func_set_on_user_login_fn get_set_on_user_login_fn() const { return m_set_on_user_login_fn; }
     func_set_on_printer_connected_fn get_set_on_printer_connected_fn() const { return m_set_on_printer_connected_fn; }
     func_set_on_server_connected_fn get_set_on_server_connected_fn() const { return m_set_on_server_connected_fn; }
     func_set_on_http_error_fn get_set_on_http_error_fn() const { return m_set_on_http_error_fn; }
@@ -340,7 +337,6 @@ public:
     func_get_setting_list get_get_setting_list() const { return m_get_setting_list; }
     func_get_setting_list2 get_get_setting_list2() const { return m_get_setting_list2; }
     func_delete_setting get_delete_setting() const { return m_delete_setting; }
-    func_get_studio_info_url get_get_studio_info_url() const { return m_get_studio_info_url; }
     func_set_extra_http_header get_set_extra_http_header() const { return m_set_extra_http_header; }
     func_get_my_message get_get_my_message() const { return m_get_my_message; }
     func_check_user_task_report get_check_user_task_report() const { return m_check_user_task_report; }
@@ -421,7 +417,6 @@ private:
     func_set_country_code m_set_country_code{nullptr};
     func_start m_start{nullptr};
     func_set_on_ssdp_msg_fn m_set_on_ssdp_msg_fn{nullptr};
-    func_set_on_user_login_fn m_set_on_user_login_fn{nullptr};
     func_set_on_printer_connected_fn m_set_on_printer_connected_fn{nullptr};
     func_set_on_server_connected_fn m_set_on_server_connected_fn{nullptr};
     func_set_on_http_error_fn m_set_on_http_error_fn{nullptr};
@@ -476,7 +471,6 @@ private:
     func_get_setting_list m_get_setting_list{nullptr};
     func_get_setting_list2 m_get_setting_list2{nullptr};
     func_delete_setting m_delete_setting{nullptr};
-    func_get_studio_info_url m_get_studio_info_url{nullptr};
     func_set_extra_http_header m_set_extra_http_header{nullptr};
     func_get_my_message m_get_my_message{nullptr};
     func_check_user_task_report m_check_user_task_report{nullptr};

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS HT @Z-Bolt 0.4 nozzle",
-	"inherits": "Generic ABS HT @Z-Bolt",
-	"renamed_from": "Z-Bolt ABS HT @0.4 nozzle",
+	"inherits": "Generic ABS HT @Z-Bolt Base",
+	"renamed_from": "Z-Bolt ABS HT;Generic ABS HT @Z-Bolt;Z-Bolt ABS HT @0.4 nozzle",
 	"from": "system",
 	"setting_id": "GFSL504",
 	"filament_id": "GFL504",

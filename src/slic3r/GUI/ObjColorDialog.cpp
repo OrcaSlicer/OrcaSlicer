@@ -79,7 +79,7 @@ bool ObjColorDialog::Show(bool show) {
     }
 };
 
-ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours)
+ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours, const bool semm)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 _(L("OBJ file import color")),
@@ -109,7 +109,7 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
     }
     bool ok        = in_out.lost_material_name.empty() && !some_face_no_color;
     if (ok) {
-        m_panel_ObjColor = new ObjColorPanel(this, in_out, extruder_colours);
+        m_panel_ObjColor = new ObjColorPanel(this, in_out, extruder_colours, semm);
         m_panel_ObjColor->set_layout_callback([this]() { update_layout(); });
         m_main_sizer->Add(m_panel_ObjColor, 1, wxEXPAND | wxALL, 0);
     }
@@ -178,12 +178,13 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
 }
 
 // This panel contains all control widgets for both simple and advanced mode (these reside in separate sizers)
-ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours)
+ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours, const bool semm)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize /*,wxBORDER_RAISED*/)
     , m_obj_in_out(in_out)
     , m_input_colors(in_out.input_colors)
     , m_filament_ids(in_out.filament_ids)
     , m_first_extruder_id(in_out.first_extruder_id)
+    , m_semm(semm)
 {
     if (in_out.input_colors.size() == 0) { return; }
     for (const std::string& color : extruder_colours) {
@@ -229,7 +230,7 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
         specify_color_cluster_title->SetFont(Label::Head_14);
         specify_cluster_sizer->Add(specify_color_cluster_title, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-        m_color_cluster_num_by_user_ebox = new SpinInput(m_page_simple, "", wxEmptyString, wxDefaultPosition, wxSize(FromDIP(45), -1), wxTE_PROCESS_ENTER);
+        m_color_cluster_num_by_user_ebox = new SpinInput(m_page_simple, "", wxEmptyString, wxDefaultPosition, wxSize(FromDIP(60), -1), wxTE_PROCESS_ENTER);
         m_color_cluster_num_by_user_ebox->SetValue(std::to_string(m_color_cluster_num_by_algo).c_str());
         m_color_cluster_num_by_user_ebox->SetToolTip(_L("Enter or click the adjustment button to modify number again"));
         {//event
@@ -284,11 +285,8 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
                 }
             }
 
-                wxStaticText *combox_title = new wxStaticText(m_page_simple, wxID_ANY, _L("view"), wxPoint(FromDIP(216), FromDIP(312)));
-                // combox_title->SetTransparent(true);
-                combox_title->SetBackgroundColour(wxColour(240, 240, 240, 0));
-                combox_title->SetForegroundColour(wxColour(107, 107, 107, 100));
-                auto cur_combox = new ComboBox(m_page_simple, wxID_ANY, wxEmptyString, wxPoint(FromDIP(250), FromDIP(310)), wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
+                wxStaticText *combox_title = new wxStaticText(m_page_simple, wxID_ANY, _L("view"));
+                auto cur_combox = new ComboBox(m_page_simple, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
                 wxArrayString choices = get_all_camera_view_type();
                 for (size_t i = 0; i < choices.size(); i++) { cur_combox->Append(choices[i]); }
                 cur_combox->SetSelection(0);
@@ -310,11 +308,18 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
                                               wxBORDER_NONE | wxBU_AUTODRAW);
                 m_image_button->SetBitmap(image);
                 m_image_button->SetCanFocus(false);
+                #ifdef __WXGTK__
+                    RemoveButtonBorder(m_image_button);
+                #endif
                 icon_sizer->Add(m_image_button, 0, wxEXPAND | wxALL,
                                 FromDIP(0)); // wxEXPAND | wxALL
                 cur_combox->Raise();//for mac
 
             m_sizer_simple->Add(icon_sizer, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(0));
+            auto view_sizer = new wxBoxSizer(wxHORIZONTAL);
+            view_sizer->Add(combox_title, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
+            view_sizer->Add(cur_combox  , 0, wxALIGN_CENTER | wxALL, FromDIP(5));
+            m_sizer_simple->Add(view_sizer, 0, wxALIGN_RIGHT | wxRIGHT, FromDIP(20));
         }
         wxBoxSizer *  current_filaments_title_sizer  = new wxBoxSizer(wxHORIZONTAL);
         wxStaticText *current_filaments_title = new wxStaticText(m_page_simple, wxID_ANY, _L("Current filament colors"));
@@ -357,7 +362,7 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
         m_scrolledWindow->ShowScrollbars(wxScrollbarVisibility::wxSHOW_SB_NEVER, wxScrollbarVisibility::wxSHOW_SB_DEFAULT);
         draw_new_table();
 
-        m_sizer_simple->Add(m_scrolledWindow, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        m_sizer_simple->Add(m_scrolledWindow, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
         //buttons
         wxBoxSizer *quick_set_sizer = new wxBoxSizer(wxHORIZONTAL);
         quick_set_sizer->AddSpacer(FromDIP(25));
@@ -500,6 +505,7 @@ wxBoxSizer *ObjColorPanel::create_add_btn_sizer(wxWindow *parent)
         deal_add_btn();
         deal_thumbnail();
     });
+    m_quick_add_btn->Enable(m_semm); // only SEMM printer can add more colors
     return btn_sizer;
 }
 
@@ -522,9 +528,12 @@ wxBoxSizer *ObjColorPanel::create_reset_btn_sizer(wxWindow *parent)
 wxBoxSizer *ObjColorPanel::create_extruder_icon_and_rgba_sizer(wxWindow *parent, int id, const wxColour &color)
 {
     auto icon_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton *icon       = new wxButton(parent, wxID_ANY, {}, wxDefaultPosition, ICON_SIZE, wxBORDER_NONE | wxBU_AUTODRAW);
-    icon->SetBitmap(*get_extruder_color_icon(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString(), std::to_string(id + 1), FromDIP(16), FromDIP(16)));
+    wxButton *icon       = new wxButton(parent, wxID_ANY, {}, wxDefaultPosition, FromDIP(wxSize(20,20)), wxBORDER_NONE | wxBU_AUTODRAW);
+    icon->SetBitmap(*get_extruder_color_icon(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString(), std::to_string(id + 1), FromDIP(20), FromDIP(20)));
     icon->SetCanFocus(false);
+    #ifdef __WXGTK__
+        RemoveButtonBorder(icon);
+    #endif
     m_extruder_icon_list.emplace_back(icon);
     icon_sizer->Add(icon, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0); // wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM
     //icon_sizer->AddSpacer(FromDIP(5));
@@ -553,10 +562,10 @@ ComboBox *ObjColorPanel::CreateEditorCtrl(wxWindow *parent, int id) // wxRect la
     if (icons.empty())
         return nullptr;
 
-    ::ComboBox *c_editor = new ::ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(m_combox_width), -1), 0, nullptr,
+    ::ComboBox *c_editor = new ::ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr,
                                           wxCB_READONLY | CB_NO_DROP_ICON | CB_NO_TEXT);
-    c_editor->SetMinSize(wxSize(FromDIP(m_combox_width), -1));
-    c_editor->SetMaxSize(wxSize(FromDIP(m_combox_width), -1));
+    c_editor->SetMinSize(wxSize(icon_width + FromDIP(8), -1)); // match size with bitmap
+    c_editor->SetMaxSize(wxSize(icon_width + FromDIP(8), -1)); // match size with bitmap
     c_editor->GetDropDown().SetUseContentWidth(false);
     for (size_t i = 0; i < icons.size(); i++) {
         c_editor->Append(wxString::Format("%d", i), *icons[i]);
@@ -852,6 +861,7 @@ bool ObjColorPanel::do_show(bool show) {
 
 bool ObjColorPanel::deal_add_btn()
 {
+    if (!m_semm) { return false; }// only SEMM printer can add more colors
     if (m_colours.size() > g_max_color) { return false; }
     deal_reset_btn();
     std::vector<wxBitmap *> new_icons;
@@ -910,9 +920,12 @@ wxBoxSizer *ObjColorPanel::create_color_icon_map_rgba_sizer(wxWindow *parent, in
 {
     auto icon_sizer = new wxBoxSizer(wxHORIZONTAL);
     //icon_sizer->AddSpacer(FromDIP(40));
-    wxButton *icon = new wxButton(parent, wxID_ANY, {}, wxDefaultPosition, ICON_SIZE, wxBORDER_NONE | wxBU_AUTODRAW);
-    icon->SetBitmap(*get_extruder_color_icon(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString(), "", FromDIP(16), FromDIP(16)));
+    wxButton *icon = new wxButton(parent, wxID_ANY, {}, wxDefaultPosition, FromDIP(wxSize(20,20)), wxBORDER_NONE | wxBU_AUTODRAW);
+    icon->SetBitmap(*get_extruder_color_icon(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString(), "", FromDIP(20), FromDIP(20)));
     icon->SetCanFocus(false);
+#ifdef __WXGTK__
+    RemoveButtonBorder(icon);
+#endif
     m_color_cluster_icon_list.emplace_back(icon);
     icon_sizer->Add(icon, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0); // wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM
     icon_sizer->AddSpacer(FromDIP(10));

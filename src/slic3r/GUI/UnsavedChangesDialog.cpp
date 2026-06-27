@@ -25,6 +25,7 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/HyperLink.hpp"
 
 using boost::optional;
 
@@ -151,7 +152,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
     // check if old/new_value is color
     if (m_old_color.IsEmpty()) {
         if (!m_new_color.IsEmpty())
-            m_old_value = _L("Undef");
+            m_old_value = _L("Undefined");
     }
     else {
         m_old_color_bmp = get_bitmap(m_old_color);
@@ -160,7 +161,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
 
     if (m_new_color.IsEmpty()) {
         if (!m_old_color.IsEmpty())
-            m_new_value = _L("Undef");
+            m_new_value = _L("Undefined");
     }
     else {
         m_new_color_bmp = get_bitmap(m_new_color);
@@ -789,7 +790,7 @@ static std::string none{"none"};
 UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, const std::string &app_config_key, int act_buttons)
     : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                caption + ": " + _L("Unsaved Changes"),
+                caption + ": " + _L("unsaved changes"),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX)
@@ -888,7 +889,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     wxBoxSizer *top_title_oldv = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *top_title_oldv_h = new wxBoxSizer(wxHORIZONTAL);
 
-    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
+    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, _L("Old value"), wxDefaultPosition, wxDefaultSize, 0);
     static_oldv_title->SetFont(::Label::Body_13);
     static_oldv_title->Wrap(-1);
     static_oldv_title->SetForegroundColour(*wxWHITE);
@@ -959,6 +960,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_button->Add(checkbox_sizer, 0, wxLEFT, FromDIP(22));
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
+    if (dependent_presets != nullptr) {
+        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
+        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+    }
+
     m_sizer_button->Add(0, 0, 1, 0, 0);
 
      // Add Buttons
@@ -1003,6 +1009,32 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     // "Save" button
     if (ActionButtons::SAVE & m_buttons) add_btn(&m_save_btn, m_save_btn_id, "save", Action::Save, _L("Save"), false);
 
+    if (dependent_presets != nullptr) {
+        const wxString previous_profile = from_u8(dependent_presets->get_edited_preset().name);
+        const wxString new_profile      = new_selected_preset.empty() ? _L("the new profile") : from_u8(new_selected_preset);
+
+        if (m_discard_btn) {
+            m_discard_btn->SetToolTip(format_wxstr(
+                _L("Switch to\n\"%1%\"\ndiscarding any changes made in\n\"%2%\"."),
+                new_profile,
+                previous_profile));
+        }
+
+        if (m_transfer_btn) {
+            m_transfer_btn->SetToolTip(format_wxstr(
+                _L("All \"New Value\" settings modified in\n\"%1%\"\nwill be transferred to\n\"%2%\"."),
+                previous_profile,
+                new_profile));
+        }
+
+        if (m_save_btn) {
+            m_save_btn->SetToolTip(format_wxstr(
+                _L("All \"New Value\" settings are saved in\n\"%1%\"\nand \"%2%\" will open without any changes."),
+                previous_profile,
+                new_profile));
+        }
+    }
+
     /* ScalableButton *cancel_btn = new ScalableButton(this, wxID_CANCEL, "cross", _L("Cancel"), wxDefaultSize, wxDefaultPosition, wxBORDER_DEFAULT, true, 24);
       buttons->Add(cancel_btn, 1, wxLEFT | wxRIGHT, 5);
       cancel_btn->SetFont(btn_font);*/
@@ -1044,7 +1076,7 @@ void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name
         if (action == Action::Undef)
             text = _L("Click the right mouse button to display the full text.");
         else if (action == Action::Discard)
-            text = ActionButtons::DONT_SAVE & m_buttons ? _L("All changes will not be saved") :_L("All changes will be discarded.");
+            text = ActionButtons::DONT_SAVE & m_buttons ? _L("No changes will be saved.") :_L("All changes will be discarded.");
         else {
             if (preset_name.empty())
                 text = action == Action::Save           ? _L("Save the selected options.") :
@@ -1087,7 +1119,7 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
         // for system/default/external presets we should take an edited name
         //BBS: add project embedded preset logic and refine is_external
         bool save_to_project = false;
-        if (preset.is_system || preset.is_default) {
+        if (!preset.can_overwrite()) {
         //if (preset.is_system || preset.is_default || preset.is_external) {
             SavePresetDialog save_dlg(this, preset.type);
             if (save_dlg.ShowModal() != wxID_OK) {
@@ -1114,7 +1146,7 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
                 const Preset& preset = tab->get_presets()->get_edited_preset();
                 //BBS: add project embedded preset logic and refine is_external
-                if (preset.is_system || preset.is_default)
+                if (!preset.can_overwrite())
                 //if (preset.is_system || preset.is_default || preset.is_external)
                     types_for_save.emplace_back(preset.type);
 
@@ -1170,7 +1202,7 @@ wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConf
                     return "";
                 return from_u8(_utf8(names[it - def.enum_values.begin()]));
             }
-        return _L("Undef");
+        return _L("Undefined");
     }
     return from_u8(_utf8(names[val]));
 }
@@ -1251,7 +1283,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
                 return from_u8(value_str);
             }
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coBool:
         return config.opt_bool(opt_key) ? "true" : "false";
@@ -1266,7 +1298,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (opt_idx < values->size())
                 return values->get_at(opt_idx) ? "true" : "false";
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coPercent:
         return from_u8((boost::format("%1%%%") % int(config.optptr(opt_key)->getFloat())).str());
@@ -1281,7 +1313,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (opt_idx < values->size())
                 return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coFloat:
         return double_to_string(config.opt_float(opt_key));
@@ -1296,7 +1328,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             if (values && opt_idx < values->size())
                 return double_to_string(values->get_at(opt_idx));
         }
-        return _L("Undef");
+        return _L("Undefined");
     }
     case coString:
         return from_u8(config.opt_string(opt_key));

@@ -83,7 +83,7 @@ std::string PrintBase::output_filename(const std::string &format, const std::str
             filename.replace_extension(default_ext);
         return filename.string();
     } catch (std::runtime_error &err) {
-        throw Slic3r::PlaceholderParserError(L("Failed processing of the filename_format template.") + "\n" + err.what());
+        throw Slic3r::PlaceholderParserError(L("Processing of the filename_format template failed.") + "\n" + err.what());
     }
 }
 

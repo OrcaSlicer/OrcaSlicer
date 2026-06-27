@@ -39,7 +39,6 @@
 	"enable_support": "0",
 	"filename_format": "{input_filename_base}.gcode",
 	"fill_multiline": "1",
-	"first_x_layer_fan_speed": "0",
 	"gap_infill_speed": [
 		"50"
 	],
@@ -229,5 +228,7 @@
 	"prime_tower_lift_height": "-1",
 	"prime_tower_max_speed": "90",
 	"prime_tower_flat_ironing": "0",
-	"compatible_printers": []
+	"compatible_printers": [],
+	"gcode_label_objects": "0",
+	"exclude_object": "1"
 }

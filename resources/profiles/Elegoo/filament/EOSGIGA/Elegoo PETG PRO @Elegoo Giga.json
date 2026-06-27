@@ -1,10 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG PRO @Elegoo Giga",
-	"inherits": "Generic PETG PRO @Elegoo",
+	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "GFSG99",
-	"filament_id": "GFG99",
+	"setting_id": "EPETGPROEOSG00",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"21"
@@ -14,5 +13,6 @@
 		"Elegoo OrangeStorm Giga 0.6 nozzle",
 		"Elegoo OrangeStorm Giga 0.8 nozzle",
 		"Elegoo OrangeStorm Giga 1.0 nozzle"
-	]
+	],
+	"renamed_from": "Elegoo PETG PRO @EOS Giga"
 }

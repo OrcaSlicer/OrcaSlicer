@@ -417,8 +417,14 @@ void WebViewPanel::OnClose(wxCloseEvent& evt)
 void WebViewPanel::OnFreshLoginStatus(wxTimerEvent &event)
 {
     auto mainframe = Slic3r::GUI::wxGetApp().mainframe;
-    if (mainframe && mainframe->m_webview == this)
-        Slic3r::GUI::wxGetApp().get_login_info();
+    if (mainframe && mainframe->m_webview == this) {
+        auto* app_config = Slic3r::GUI::wxGetApp().app_config;
+        if (app_config && app_config->get_stealth_mode()) return;
+        Slic3r::GUI::wxGetApp().get_login_info(ORCA_CLOUD_PROVIDER);
+        if (app_config && app_config->has_cloud_provider(BBL_CLOUD_PROVIDER)) {
+            Slic3r::GUI::wxGetApp().get_login_info(BBL_CLOUD_PROVIDER);
+        }
+    }
 }
 
 void WebViewPanel::SetLoginPanelVisibility(bool bshow)
@@ -506,6 +512,31 @@ void WebViewPanel::ShowNetpluginTip()
 
     wxString strJS = wxString::Format("window.postMessage(%s)", m_Res.dump(-1, ' ', false, json::error_handler_t::ignore));
 
+    RunScript(strJS);
+}
+
+void WebViewPanel::SendCloudProvidersInfo()
+{
+    auto* app_config = wxGetApp().app_config;
+    if (!app_config)
+        return;
+
+    json j;
+    j["command"] = "cloud_providers_info";
+    json data;
+    json provider_array = json::array();
+
+    if (!app_config->get_hide_login_side_panel()) {
+        auto providers = app_config->get_cloud_providers();
+        for (const auto& p : providers) {
+            provider_array.push_back(p);
+        }
+    }
+
+    data["providers"] = provider_array;
+    j["data"] = data;
+
+    wxString strJS = wxString::Format("window.postMessage(%s)", j.dump());
     RunScript(strJS);
 }
 
@@ -613,6 +644,7 @@ void WebViewPanel::OnDocumentLoaded(wxWebViewEvent& evt)
             wxLogMessage("%s", "Document loaded; url='" + evt.GetURL() + "'");
     }
     UpdateState();
+    SendCloudProvidersInfo();
 }
 
 void WebViewPanel::OnTitleChanged(wxWebViewEvent &evt)
