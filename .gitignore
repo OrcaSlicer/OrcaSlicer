@@ -46,8 +46,3 @@ test.js
 internal_docs/
 *.flatpak
 /flatpak-repo/
-tui.json
-opencode.json
-nanocode.json
-nul
-deps/OpenSSL/OpenSSL.cmake
