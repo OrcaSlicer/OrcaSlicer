@@ -3042,6 +3042,7 @@ void PresetCollection::check_and_fix_syncinfo(Preset& preset, const std::string&
         preset.updated_time = 0;
         preset.sync_info    = "create";
         preset.save_info();
+        return;
     }
 
     const auto inherits = Preset::inherits(preset.config);
