@@ -1857,7 +1857,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	// the NEXT apply() will see an empty diff.  Force UNCHANGED now to prevent
 	// Plater from restarting the background process in an infinite loop.
 	if (suppress_restart_for_auto_filament_map && apply_status != APPLY_STATUS_UNCHANGED) {
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: H2C forcing UNCHANGED (was %2%) — auto filament map suppression")%__LINE__ %apply_status;
 		apply_status = APPLY_STATUS_UNCHANGED;
 	}
 

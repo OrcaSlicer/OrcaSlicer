@@ -5824,19 +5824,7 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         bool nozzle_in_extruder_change = (new_nozzle_id_in_extruder != old_nozzle_id_in_extruder);
         bool filament_in_nozzle_change = (next_filament_id != old_filament_in_nozzle);
 
-        BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] process_filament_change:"
-            << " next_filament=" << next_filament_id
-            << " prev_filament=" << prev_filament_id
-            << " new_extruder=" << new_extruder_id
-            << " old_extruder=" << old_extruder_id
-            << " new_nozzle=" << new_nozzle_id_in_extruder
-            << " old_nozzle_in_ext=" << old_nozzle_id_in_extruder
-            << " old_filament_in_nozzle=" << old_filament_in_nozzle
-            << " old_filament_in_extruder=" << old_filament_in_extruder
-            << " extruder_change=" << extruder_change
-            << " nozzle_change=" << nozzle_in_extruder_change
-            << " filament_change=" << filament_in_nozzle_change
-            << " printer_model=" << m_printer_model;
+
 
         m_result.lock();
         // Extruder change time (e.g. dual-extruder swap)
@@ -5881,8 +5869,6 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
                     m_result.print_statistics.total_flush_filament_changes++;
             }
         }
-        BOOST_LOG_TRIVIAL(warning) << "[H2C_DEBUG] perform_static_time_calc=" << perform_static_time_calc
-            << " extra_time=" << extra_time;
         // Note: hotend_change_time is NOT added here — it's already accounted
         // for in SYNC gcode commands emitted by the firmware template.
 

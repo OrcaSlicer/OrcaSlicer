@@ -6968,8 +6968,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         // H2C: transfer VO from loaded project config (operator+= doesn't copy VO)
                         if (!loaded_vo.empty()) {
                             config.variant_overrides() = std::move(loaded_vo);
-                            BOOST_LOG_TRIVIAL(info) << "[H2C] Plater::load: transferred VO from 3MF project config, "
-                                                    << config.variant_overrides().floats.size() << " float keys";
                         }
                         std::map<std::string, std::string> validity = config.validate();
                         if (!validity.empty()) {
