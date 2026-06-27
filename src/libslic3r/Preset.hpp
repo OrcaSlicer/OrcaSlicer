@@ -320,6 +320,20 @@ public:
     std::string&        inherits() { return Preset::inherits(this->config); }
     const std::string&  inherits() const { return Preset::inherits(const_cast<Preset*>(this)->config); }
 
+    // Rewrite cfg's "inherits" to the resolved parent's canonical name. find_preset2 may
+    // resolve a renamed parent, or a removed vendor profile auto-matched to the
+    // OrcaFilamentLibrary; persisting the canonical name lets later plain find_preset()
+    // callers (e.g. get_preset_parent) walk the inheritance chain without the fuzzy match.
+    // No-op when the parent could not be resolved or the name is already canonical.
+    static void normalize_inherits(DynamicPrintConfig &cfg, const Preset *resolved_parent)
+    {
+        if (resolved_parent == nullptr)
+            return;
+        std::string &inherits = Preset::inherits(cfg);
+        if (inherits != resolved_parent->name)
+            inherits = resolved_parent->name;
+    }
+
     // Returns the "compatible_prints_condition".
     static std::string& compatible_prints_condition(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("compatible_prints_condition", true)->value; }
     std::string&        compatible_prints_condition() {
