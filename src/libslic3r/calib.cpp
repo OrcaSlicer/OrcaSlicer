@@ -490,7 +490,6 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     const double      fast = CalibPressureAdvance::speed_adjust(m_fast_speed);
     const double      slow = CalibPressureAdvance::speed_adjust(m_slow_speed);
     std::stringstream gcode;
-    
     gcode << mp_gcodegen->writer().travel_to_z(m_height_layer + z_offset);
     double y_pos = start_y;
 
