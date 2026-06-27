@@ -3,7 +3,7 @@
 	"name": "Artillery Sidewinder X4 Pro 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM007",
+	"setting_id": "7cLTEGUDiY31gDxn",
 	"instantiation": "true",
 	"printer_model": "Artillery Sidewinder X4 Pro",
 	"printer_settings_id": "Artillery X4Pro 0.4 nozzle",

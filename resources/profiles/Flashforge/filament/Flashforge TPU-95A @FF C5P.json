@@ -3,6 +3,7 @@
 	"name": "Flashforge TPU-95A @FF C5P",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "8MBRqfLIRdhxk1dF",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

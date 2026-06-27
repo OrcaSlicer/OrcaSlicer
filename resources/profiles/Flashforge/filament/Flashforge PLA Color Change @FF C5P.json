@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Color Change @FF C5P",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "rc00SOyIg30uE3Da",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

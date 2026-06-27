@@ -3,7 +3,7 @@
 	"name": "TwoTrees Generic HS PLA @SK1",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL100",
+	"setting_id": "k7bLC5us9mGJzznW",
 	"filament_id": "GFL100",
 	"instantiation": "true",
 	"compatible_printers": [

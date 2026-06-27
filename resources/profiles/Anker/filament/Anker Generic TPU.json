@@ -3,7 +3,7 @@
 	"name": "Anker Generic TPU",
 	"inherits": "Anker Generic TPU @base",
 	"from": "system",
-	"setting_id": "GFSR99",
+	"setting_id": "YyTaPGGiEyAzmh9A",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

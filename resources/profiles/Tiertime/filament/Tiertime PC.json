@@ -3,6 +3,7 @@
 	"name": "Tiertime PC",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
+	"setting_id": "ImTbFOOUrv2pQbCu",
 	"filament_id": "GFC00",
 	"instantiation": "true",
 	"filament_vendor": [

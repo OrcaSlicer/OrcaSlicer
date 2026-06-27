@@ -3,8 +3,8 @@
 	"name": "0.32mm Optimal @Elegoo N4Pro 0.8 nozzle",
 	"from": "system",
 	"inherits": "0.40mm Standard @Elegoo N4Pro 0.8 nozzle",
+	"setting_id": "KOk0kTX3EelPCG3R",
 	"instantiation": "true",
 	"layer_height": "0.32",
-	"settings_id": "PEN4Pro08032",
 	"renamed_from": "0.16mm Optimal @Elegoo Neptune4Pro (0.8 nozzle);0.28mm Extra Draft @Elegoo Neptune4Pro (0.8 nozzle)"
 }

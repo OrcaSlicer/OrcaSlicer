@@ -3,7 +3,7 @@
 	"name": "QIDI Support For PAHT @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI Support For PAHT@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSN95",
+	"setting_id": "PspiqLXugdtXT5xZ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.4 nozzle"

@@ -3,7 +3,7 @@
 	"name": "Anker Generic PVA",
 	"inherits": "Anker Generic PVA @base",
 	"from": "system",
-	"setting_id": "GFSS99",
+	"setting_id": "GRtdOKUkQfZ5eDH4",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

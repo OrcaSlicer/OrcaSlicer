@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Tronxy",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "hjWWhN2a3XsVsqcg",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

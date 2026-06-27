@@ -3,7 +3,7 @@
 	"name": "Creality CR-6 Max 0.8 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "h1fDN0WnZm5RQ9RZ",
 	"instantiation": "true",
 	"printer_model": "Creality CR-6 Max",
 	"printer_structure": "i3",

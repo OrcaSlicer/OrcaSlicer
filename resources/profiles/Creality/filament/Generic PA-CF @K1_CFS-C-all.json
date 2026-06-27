@@ -3,7 +3,7 @@
     "name": "Generic PA-CF @K1_CFS-C-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "DB1549abK4ZDVWG2",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "0"

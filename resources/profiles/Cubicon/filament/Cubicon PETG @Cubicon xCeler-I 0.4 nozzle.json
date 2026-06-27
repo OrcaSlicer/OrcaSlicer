@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PETG @Cubicon xCeler-I 0.4 nozzle",
 	"inherits": "Cubicon PETG @base",
+	"setting_id": "dsX01tCkd2Usk104",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle"

@@ -3,7 +3,7 @@
     "name": "Generic PP @K1_CFS-C-all",
     "inherits": "fdm_filament_pp",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "8c9klBh6C7O76Lgc",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

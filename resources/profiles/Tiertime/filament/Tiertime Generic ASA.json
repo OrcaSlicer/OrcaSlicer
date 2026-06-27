@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
+	"setting_id": "T1AzUXSewNk5Bj3x",
 	"filament_id": "GFB98",
 	"instantiation": "true",
 	"filament_flow_ratio": [

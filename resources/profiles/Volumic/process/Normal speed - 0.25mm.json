@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "sKsaHEmeYNos7Ap3",
 	"name": "Normal speed - 0.25mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

@@ -3,7 +3,7 @@
 	"name": "Anycubic i3 Mega S 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "5dhgi6AGtzKSrNiD",
 	"instantiation": "true",
 	"printer_model": "Anycubic i3 Mega S",
 	"default_print_profile": "0.20mm Standard @Anycubic i3MegaS",

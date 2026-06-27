@@ -3,7 +3,7 @@
 	"name": "Prusa XL 5T 0.5 nozzle",
 	"inherits": "fdm_machine_common_xl_5t",
 	"from": "system",
-	"setting_id": "GM_PRUSA_004",
+	"setting_id": "KcCECJX7bJsPHlpT",
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa XL 5T",

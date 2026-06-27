@@ -3,7 +3,7 @@
 	"name": "Eryone PA",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA71",
+	"setting_id": "oqzAdvvf6jdQTb4M",
 	"filament_id": "EFL71",
 	"instantiation": "true",
 	"compatible_printers": [

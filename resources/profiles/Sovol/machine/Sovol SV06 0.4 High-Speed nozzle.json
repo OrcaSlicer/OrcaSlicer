@@ -3,7 +3,7 @@
 	"name": "Sovol SV06 0.4 High-Speed nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "ShWzWhKWa9JASGUz",
 	"instantiation": "true",
 	"printer_model": "Sovol SV06",
 	"default_print_profile": "0.20mm High-Speed @Sovol SV06",

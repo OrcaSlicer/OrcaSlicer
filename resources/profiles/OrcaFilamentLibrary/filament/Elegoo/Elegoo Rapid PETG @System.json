@@ -3,7 +3,7 @@
 	"name": "Elegoo Rapid PETG @System",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "OERPETGS00",
+	"setting_id": "uUQSVOvP8tAaDqvB",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.052"
