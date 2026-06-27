@@ -3040,7 +3040,9 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
 
 
     // H2C: Save current VO to per-object cache AND ModelConfig before switching away.
-    if (m_extruder_switch && m_last_variant_index >= 0 && !m_object_configs.empty()) {
+    // Skip if object_configs is empty — project reset makes old m_object_configs pointers dangling.
+    if (m_extruder_switch && m_last_variant_index >= 0 && !m_object_configs.empty()
+        && !object_configs.empty()) {
         edited_cfg.save_variant_overrides(m_last_variant_index, print_options_with_variant);
         for (auto& [obj, mc] : m_object_configs) {
             m_per_object_vo[obj] = edited_cfg.variant_overrides();
@@ -3048,6 +3050,10 @@ void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const
             const_cast<DynamicPrintConfig&>(mc->get()).variant_overrides() = edited_cfg.variant_overrides();
         }
     }
+
+    // Clear VO cache on project reset to avoid dangling pointers
+    if (object_configs.empty())
+        m_per_object_vo.clear();
 
     bool same_object = (m_object_configs == object_configs);
     m_object_configs = object_configs;
