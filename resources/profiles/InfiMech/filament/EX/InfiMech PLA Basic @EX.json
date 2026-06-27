@@ -3,7 +3,7 @@
 	"name": "InfiMech PLA Basic @EX",
 	"inherits": "fdm_filament_pla @EX",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "bGOpriWvEFZOmqR4",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

@@ -3,7 +3,7 @@
     "name": "Generic PA @K2 Plus-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "E5tvF6Xpv7jZzLgm",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "70"

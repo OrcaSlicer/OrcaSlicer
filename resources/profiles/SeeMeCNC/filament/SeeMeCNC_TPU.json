@@ -3,6 +3,7 @@
 	"name": "SeeMeCNC TPU",
 	"inherits": "SeeMeCNC filament base",
 	"from": "System",
+	"setting_id": "vsEH0aZOKiLat0hH",
 	"filament_id": "SMCFU001",
 	"instantiation": "true",
 	"filament_settings_id": [

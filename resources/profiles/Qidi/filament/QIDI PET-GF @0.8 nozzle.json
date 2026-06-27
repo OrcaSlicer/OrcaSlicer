@@ -3,7 +3,7 @@
 	"name": "QIDI PET-GF @0.8 nozzle",
 	"inherits": "QIDI PET-GF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ATyJ8qPoYVqi7J3I",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_settings_id": [

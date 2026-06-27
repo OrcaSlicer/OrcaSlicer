@@ -3,7 +3,7 @@
 	"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "V130y2Wie3uJtzho",
 	"filament_id": "GFTPU 95A",
 	"instantiation": "true",
 	"filament_settings_id": [

@@ -3,7 +3,7 @@
 	"name": "QIDI PA12-CF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "tDdg0DlqE4Nle5Xo",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

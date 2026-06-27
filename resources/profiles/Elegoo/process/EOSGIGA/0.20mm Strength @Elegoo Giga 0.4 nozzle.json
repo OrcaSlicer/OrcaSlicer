@@ -5,6 +5,7 @@
 	"name": "0.20mm Strength @Elegoo Giga 0.4 nozzle",
 	"wall_sequence": "inner-outer-inner wall",
 	"reduce_crossing_wall": "1",
+	"setting_id": "JsDp89yLYQpZ8a9z",
 	"instantiation": "true",
 	"renamed_from": "0.20mm Strength @EOS Giga 0.4 nozzle",
 	"wall_loops": "6"

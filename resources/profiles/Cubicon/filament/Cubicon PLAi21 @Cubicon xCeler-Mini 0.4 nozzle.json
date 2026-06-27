@@ -3,6 +3,7 @@
 	"name": "Cubicon PLAi21 @Cubicon xCeler-Mini 0.4 nozzle",
 	"inherits": "Cubicon PLAi21 @base",
 	"from": "system",
+	"setting_id": "3TbOucKB5TGk8sXG",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Mini 0.4 nozzle"

@@ -3,7 +3,7 @@
 	"name": "Anker Generic PC",
 	"inherits": "Anker Generic PC @base",
 	"from": "system",
-	"setting_id": "GFSC99",
+	"setting_id": "xY25QcIsR9pWai3n",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 All-Metal 0.4 nozzle",

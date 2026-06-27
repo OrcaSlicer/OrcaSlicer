@@ -3,7 +3,7 @@
 	"name": "Flashforge PA6-CF",
 	"inherits": "FusRock Generic PET-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NGbZ8pQVTRKw28kp",
 	"instantiation": "true",
 	"filament_density": [
 		"1.1"

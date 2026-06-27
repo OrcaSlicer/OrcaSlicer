@@ -3,7 +3,7 @@
 	"name": "COEX TPU 60A @System",
 	"inherits": "COEX TPU 60A @base",
 	"from": "system",
-	"setting_id": "C0X60A17",
+	"setting_id": "7CQX9fvYjknjiwmQ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

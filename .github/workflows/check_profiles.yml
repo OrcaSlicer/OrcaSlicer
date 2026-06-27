@@ -49,6 +49,14 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
           exit ${PIPESTATUS[0]}
+      # For now run filament subtype check only for BBL profiles until we fix other vendors' profiles.
+      - name: validate filament subtype check for BBL profiles
+        id: validate_filament_subtypes
+        continue-on-error: true
+        run: |
+          set +e
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -v BBL -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
+          exit ${PIPESTATUS[0]}
 
       - name: validate custom presets
         id: validate_custom
@@ -68,7 +76,7 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
 
       - name: Prepare comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           {
             # Marker matched by check_profiles_comment.yml to delete prior comments.
@@ -90,6 +98,15 @@ jobs:
               echo ""
               echo '```'
               head -c 30000 ${{ runner.temp }}/validate_system.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.validate_filament_subtypes.outcome }}" = "failure" ]; then
+              echo "### BBL Filament Subtype Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_filament_subtypes.log || echo "No output captured"
               echo '```'
               echo ""
             fi
@@ -116,7 +133,7 @@ jobs:
           retention-days: 1
 
       - name: Fail if any check failed
-        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           echo "One or more profile checks failed. See above for details."
           exit 1

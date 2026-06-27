@@ -61,7 +61,7 @@
 #include "DeviceCore/DevManager.h"
 
 #ifdef WIN32
-#include <commctrl.h>
+	#include <commctrl.h>
 #endif // WIN32
 
 #include <algorithm>
@@ -691,12 +691,12 @@ void Tab::OnActivate()
     // altogether.
     HWND hwnd_tt = TreeView_GetToolTips(m_tabctrl->GetHandle());
     if (hwnd_tt) {
-        HWND hwnd_toplevel = find_toplevel_parent(m_tabctrl)->GetHandle();
-        HWND hwnd_parent   = ::GetParent(hwnd_tt);
-        if (hwnd_parent != hwnd_toplevel) {
-            ::DestroyWindow(hwnd_tt);
-            TreeView_SetToolTips(m_tabctrl->GetHandle(), nullptr);
-        }
+	    HWND hwnd_toplevel 	= find_toplevel_parent(m_tabctrl)->GetHandle();
+	    HWND hwnd_parent 	= ::GetParent(hwnd_tt);
+	    if (hwnd_parent != hwnd_toplevel) {
+	    	::DestroyWindow(hwnd_tt);
+			TreeView_SetToolTips(m_tabctrl->GetHandle(), nullptr);
+	    }
     }
 #endif
 
@@ -1574,7 +1574,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (opt_key == "pellet_flow_coefficient") {
         double double_value = Preset::convert_pellet_flow_to_filament_diameter(boost::any_cast<double>(value));
         m_config->set_key_value("filament_diameter", new ConfigOptionFloats{double_value});
-    }
+	}
 
     if (opt_key == "filament_diameter") {
         double double_value = Preset::convert_filament_diameter_to_pellet_flow(boost::any_cast<double>(value));
@@ -2245,15 +2245,16 @@ void Tab::build_preset_description_line(ConfigOptionsGroup* optgroup)
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(btn);
 
-        btn->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent&) {
-            bool system = m_presets->get_edited_preset().is_system;
-            bool dirty  = m_presets->get_edited_preset().is_dirty;
-            wxString msg_text =
-                system ? _(L("A copy of the current system preset will be created, which will be detached from the system preset.")) :
-                         _(L("The current custom preset will be detached from the parent system preset."));
+        btn->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent&)
+        {
+        	bool system = m_presets->get_edited_preset().is_system;
+        	bool dirty  = m_presets->get_edited_preset().is_dirty;
+            wxString msg_text = system ?
+            	_(L("A copy of the current system preset will be created, which will be detached from the system preset.")) :
+                _(L("The current custom preset will be detached from the parent system preset."));
             if (dirty) {
-                msg_text += "\n\n";
-                msg_text += _(L("Modifications to the current profile will be saved."));
+	            msg_text += "\n\n";
+            	msg_text += _(L("Modifications to the current profile will be saved."));
             }
             msg_text += "\n\n";
             msg_text += _(L("This action is not revertible.\nDo you want to proceed?"));
@@ -4583,7 +4584,7 @@ void TabFilament::clear_pages()
     Tab::clear_pages();
 
     m_volumetric_speed_description_line = nullptr;
-    m_cooling_description_line          = nullptr;
+	m_cooling_description_line = nullptr;
 
     // BBS: GUI refactor
     m_overrides_options.clear();
@@ -6211,17 +6212,14 @@ bool Tab::select_preset(std::string preset_name,
         // If it is not compatible and the current filament or SLA material are dirty, let user decide
         // whether to discard the changes or keep the current print selection.
         PresetWithVendorProfile printer_profile = m_preset_bundle->printers.get_edited_preset_with_vendor_profile();
-        PrinterTechnology printer_technology    = printer_profile.preset.printer_technology();
-        PresetCollection& dependent = (printer_technology == ptFFF) ? m_preset_bundle->filaments : m_preset_bundle->sla_materials;
-        bool old_preset_dirty       = dependent.current_is_dirty();
-        bool new_preset_compatible  = is_compatible_with_print(dependent.get_edited_preset_with_vendor_profile(),
-                                                               m_presets->get_preset_with_vendor_profile(
-                                                                  *m_presets->find_preset(preset_name, true)),
-                                                               printer_profile);
-        if (!canceled)
-            canceled = old_preset_dirty && !may_discard_current_dirty_preset(&dependent, preset_name) && !new_preset_compatible &&
-                       !force_select;
-        if (!canceled) {
+        PrinterTechnology  printer_technology = printer_profile.preset.printer_technology();
+        PresetCollection  &dependent = (printer_technology == ptFFF) ? m_preset_bundle->filaments : m_preset_bundle->sla_materials;
+        bool 			   old_preset_dirty = dependent.current_is_dirty();
+        bool 			   new_preset_compatible = is_compatible_with_print(dependent.get_edited_preset_with_vendor_profile(),
+        	m_presets->get_preset_with_vendor_profile(*m_presets->find_preset(preset_name, true)), printer_profile);
+        if (! canceled)
+            canceled = old_preset_dirty && ! may_discard_current_dirty_preset(&dependent, preset_name) && ! new_preset_compatible && !force_select;
+        if (! canceled) {
             // The preset will be switched to a different, compatible preset, or the '-- default --'.
             m_dependent_tabs.emplace_back((printer_technology == ptFFF) ? Preset::Type::TYPE_FILAMENT : Preset::Type::TYPE_SLA_MATERIAL);
             if (old_preset_dirty && !new_preset_compatible)
@@ -6237,12 +6235,11 @@ bool Tab::select_preset(std::string preset_name,
         //
         // With the introduction of the SLA printer types, we need to support switching between
         // the FFF and SLA printers.
-        const Preset& new_printer_preset = *m_presets->find_preset(preset_name, true);
-        const PresetWithVendorProfile new_printer_preset_with_vendor_profile = m_presets->get_preset_with_vendor_profile(new_printer_preset);
-        PrinterTechnology old_printer_technology = m_presets->get_edited_preset().printer_technology();
-        PrinterTechnology new_printer_technology = new_printer_preset.printer_technology();
-        if (new_printer_technology == ptSLA && old_printer_technology == ptFFF &&
-            !wxGetApp().may_switch_to_SLA_preset(_omitL("New printer preset selected")))
+        const Preset 		&new_printer_preset     = *m_presets->find_preset(preset_name, true);
+		const PresetWithVendorProfile new_printer_preset_with_vendor_profile = m_presets->get_preset_with_vendor_profile(new_printer_preset);
+        PrinterTechnology    old_printer_technology = m_presets->get_edited_preset().printer_technology();
+        PrinterTechnology    new_printer_technology = new_printer_preset.printer_technology();
+        if (new_printer_technology == ptSLA && old_printer_technology == ptFFF && !wxGetApp().may_switch_to_SLA_preset(_omitL("New printer preset selected")))
             canceled = true;
         else {
             struct PresetUpdate
@@ -6285,8 +6282,8 @@ bool Tab::select_preset(std::string preset_name,
                 }
             }
         }
-        if (!canceled)
-            technology_changed = old_printer_technology != new_printer_technology;
+        if (! canceled)
+        	technology_changed = old_printer_technology != new_printer_technology;
 
         BOOST_LOG_TRIVIAL(info) << boost::format("select machine, technology_changed %1%, canceled %2%") % technology_changed % canceled;
     }
@@ -6368,16 +6365,14 @@ bool Tab::select_preset(std::string preset_name,
         // The following method should not discard changes of current print or filament presets on change of a printer profile,
         // if they are compatible with the current printer.
         auto update_compatible_type = [delete_current](bool technology_changed, bool on_page, bool show_incompatible_presets) {
-            return (delete_current || technology_changed) ? PresetSelectCompatibleType::Always :
-                   on_page                                ? PresetSelectCompatibleType::Never :
-                   show_incompatible_presets              ? PresetSelectCompatibleType::OnlyIfWasCompatible :
-                                                            PresetSelectCompatibleType::Always;
+        	return (delete_current || technology_changed) ? PresetSelectCompatibleType::Always :
+        	       on_page                                ? PresetSelectCompatibleType::Never  :
+        	       show_incompatible_presets              ? PresetSelectCompatibleType::OnlyIfWasCompatible : PresetSelectCompatibleType::Always;
         };
         if (current_dirty || delete_current || print_tab || printer_tab)
             m_preset_bundle->update_compatible(
-                update_compatible_type(technology_changed, print_tab,
-                                       (print_tab ? this : wxGetApp().get_tab(Preset::TYPE_PRINT))->m_show_incompatible_presets),
-                update_compatible_type(technology_changed, false, wxGetApp().get_tab(Preset::TYPE_FILAMENT)->m_show_incompatible_presets));
+            	update_compatible_type(technology_changed, print_tab,   (print_tab ? this : wxGetApp().get_tab(Preset::TYPE_PRINT))->m_show_incompatible_presets),
+            	update_compatible_type(technology_changed, false, 		wxGetApp().get_tab(Preset::TYPE_FILAMENT)->m_show_incompatible_presets));
         // Initialize the UI from the current preset.
         if (printer_tab)
             static_cast<TabPrinter*>(this)->update_pages();
@@ -6798,8 +6793,8 @@ bool Tab::tree_sel_change_delayed(wxCommandEvent& event)
 
         m_page_view->Thaw();
     } catch (const UIBuildCanceled&) {
-        if (m_active_page)
-            m_active_page->clear();
+	    if (m_active_page)
+		    m_active_page->clear();
         m_page_view->Thaw();
         return true;
     }

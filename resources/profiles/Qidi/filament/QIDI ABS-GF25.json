@@ -3,7 +3,7 @@
 	"name": "QIDI ABS-GF25",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "mFWkL9nlS289XAWu",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_type": [

@@ -3,7 +3,7 @@
 	"name": "0.48mm Draft @Tiertime UP600 HS 0.8 nozzle",
 	"inherits": "fdm_process_tiertime_0.48_nozzle_0.8_HS",
 	"from": "system",
-	"setting_id": "GP035",
+	"setting_id": "sRvgc2kM55MRUvGY",
 	"instantiation": "true",
 	"description": "It has a bigger layer height for faster printing but with more visible layer lines.",
 	"elefant_foot_compensation": "0.15",

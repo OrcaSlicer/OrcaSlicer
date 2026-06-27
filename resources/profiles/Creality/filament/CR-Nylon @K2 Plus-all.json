@@ -3,7 +3,7 @@
     "name": "CR-Nylon @K2 Plus-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "LLuS5zOOxSWnZoyb",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

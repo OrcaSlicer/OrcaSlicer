@@ -90,6 +90,16 @@ namespace Slic3r {
 class AppConfig;
 class PresetBundle;
 
+// Deterministic preset setting_id: uuid5(vendor/type/name) -> 16 base62 chars.
+// Pure function of a system preset's identity, so the value can be assigned by
+// scripts/assign_vendor_setting_ids.py and recomputed here when a profile ships
+// without it. MUST stay byte-identical to scripts/assign_vendor_setting_ids.py.
+// This is NOT the per-user cloud-sync setting_id
+// (OrcaCloudServiceAgent::generate_uuid_for_setting_id) - do not conflate them.
+std::string generate_preset_setting_id(const std::string& vendor,
+                                       const std::string& type,
+                                       const std::string& name);
+
 enum ConfigFileType
 {
     CONFIG_FILE_TYPE_UNKNOWN,
@@ -309,6 +319,20 @@ public:
     static std::string& inherits(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("inherits", true)->value; }
     std::string&        inherits() { return Preset::inherits(this->config); }
     const std::string&  inherits() const { return Preset::inherits(const_cast<Preset*>(this)->config); }
+
+    // Rewrite cfg's "inherits" to the resolved parent's canonical name. find_preset2 may
+    // resolve a renamed parent, or a removed vendor profile auto-matched to the
+    // OrcaFilamentLibrary; persisting the canonical name lets later plain find_preset()
+    // callers (e.g. get_preset_parent) walk the inheritance chain without the fuzzy match.
+    // No-op when the parent could not be resolved or the name is already canonical.
+    static void normalize_inherits(DynamicPrintConfig &cfg, const Preset *resolved_parent)
+    {
+        if (resolved_parent == nullptr)
+            return;
+        std::string &inherits = Preset::inherits(cfg);
+        if (inherits != resolved_parent->name)
+            inherits = resolved_parent->name;
+    }
 
     // Returns the "compatible_prints_condition".
     static std::string& compatible_prints_condition(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("compatible_prints_condition", true)->value; }

@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.6 nozzle",
 	"inherits": "Anycubic Generic PLA-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9XGVjrGzNa4Br8kB",
 	"filament_id": "GFPLA-CF",
 	"instantiation": "true",
 	"filament_settings_id": [

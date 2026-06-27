@@ -13,6 +13,7 @@ add_executable(${_TEST_NAME}_tests
     test_config.cpp
     test_preset_bundle_loading.cpp
     test_nozzle_stats.cpp
+    test_preset_setting_id.cpp
     test_elephant_foot_compensation.cpp
     test_geometry.cpp
     test_placeholder_parser.cpp

@@ -3,7 +3,7 @@
     "name": "HP-TPU @K2 Pro-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "tfrclH3VqZ4nPzi7",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
