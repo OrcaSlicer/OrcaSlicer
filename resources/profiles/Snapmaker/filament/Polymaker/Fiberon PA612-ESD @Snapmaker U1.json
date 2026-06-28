@@ -3,7 +3,7 @@
 	"name": "Fiberon PA612-ESD @Snapmaker U1",
 	"inherits": "Fiberon PA612-ESD @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL72_00",
+	"setting_id": "hUvnA3XmuC3bGLsi",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

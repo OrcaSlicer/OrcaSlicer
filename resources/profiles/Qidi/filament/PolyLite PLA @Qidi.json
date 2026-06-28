@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @Qidi",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "Kg6WHLbWxKAE8cCr",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_type": [

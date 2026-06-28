@@ -3,7 +3,7 @@
 	"name": "Generic PETG @Anycubic Kobra X 0.4 nozzle",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9hdOsLCrVX3dkem2",
 	"filament_id": "GFPETG",
 	"instantiation": "true",
 	"filament_settings_id": [

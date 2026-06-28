@@ -3,7 +3,7 @@
 	"name": "0.20mm Slow @E3NG v1.2S",
 	"inherits": "process_common_E3NG v1.2S",
 	"from": "system",
-	"setting_id": "NG1020",
+	"setting_id": "JH4jITLGT8tbtnu1",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"initial_layer_print_height": "0.2",

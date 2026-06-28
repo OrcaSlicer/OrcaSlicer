@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S800 Dual 0.4 nozzle",
 	"inherits": "fdm_zbolt_common",
 	"from": "system",
-	"setting_id": "GM027",
+	"setting_id": "D7vDL0C4LzflAtPs",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"printer_structure": "corexy",

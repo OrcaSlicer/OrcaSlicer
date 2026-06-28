@@ -3,6 +3,7 @@
 	"name": "FusRock PAHT-CF @FF C5P",
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
+	"setting_id": "nJF1lCOavNNh4yHs",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

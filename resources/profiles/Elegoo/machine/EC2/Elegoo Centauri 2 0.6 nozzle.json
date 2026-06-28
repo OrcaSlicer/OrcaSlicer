@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri 2 0.6 nozzle",
 	"inherits": "Elegoo Centauri 2 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EC206",
+	"setting_id": "JjSXSI3aQLdsqvFO",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.6"

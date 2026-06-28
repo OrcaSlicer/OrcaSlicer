@@ -3,6 +3,7 @@
 	"name": "Artillery PLA Silk",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "rd0U4uP6mM8S8lDg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Artillery Sidewinder X3 Pro 0.4 nozzle",

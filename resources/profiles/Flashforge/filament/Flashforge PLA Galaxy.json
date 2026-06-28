@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Galaxy",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NJrc0UZ54Fq8MaqF",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Galaxy"

@@ -3,7 +3,7 @@
 	"name": "Eryone ASA",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA02",
+	"setting_id": "hu9uQy9zFgemTBjQ",
 	"filament_id": "EFL92",
 	"instantiation": "true",
 	"compatible_printers": [

@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Silk @FF C5",
 	"inherits": "Generic PLA Silk @System",
 	"from": "system",
+	"setting_id": "OIsfpi49wEoF0ekO",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

@@ -3,7 +3,7 @@
 	"name": "Polymaker PLA Pro @Snapmaker U1",
 	"inherits": "Polymaker PLA Pro @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL79_00",
+	"setting_id": "0iJ5qjVvmrkRzpZD",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

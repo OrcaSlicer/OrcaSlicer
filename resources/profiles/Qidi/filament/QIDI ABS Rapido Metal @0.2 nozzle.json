@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido Metal @0.2 nozzle",
 	"inherits": "QIDI ABS Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CQa9Ke6ku0jK7juR",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

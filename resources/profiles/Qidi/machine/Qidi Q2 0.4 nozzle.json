@@ -3,7 +3,7 @@
 	"name": "Qidi Q2 0.4 nozzle",
 	"inherits": "fdm_q_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "m9SR0PtzYpYRKgSB",
 	"instantiation": "true",
 	"box_id": "1",
 	"printer_model": "Qidi Q2",

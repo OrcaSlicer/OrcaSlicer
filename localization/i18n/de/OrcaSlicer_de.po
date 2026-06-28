@@ -1725,7 +1725,7 @@ msgid ""
 msgstr "Seit Version 2.4.0 synchronisiert OrcaSlicer Benutzerprofile über Orca Cloud anstelle der Bambu Cloud.\n\nUm Ihre vorhandenen Profile zu migrieren, melden Sie sich bei Orca Cloud an, dann werden sie automatisch übertragen. Weitere Informationen darüber, wie OrcaSlicer Ihre Profile speichert und synchronisiert, oder wie Sie Ihre Profile manuell migrieren, finden Sie in unserem Wiki.\n\nWenn Sie die Bambu Cloud nicht zum Synchronisieren von Profilen verwendet haben, betrifft Sie diese Änderung nicht und Sie können diese Meldung ignorieren."
 
 msgid "Profile syncing change"
-msgstr ""
+msgstr "Änderung der Profilsynchronisierung"
 
 msgid "Learn more"
 msgstr "Mehr erfahren"
@@ -5237,10 +5237,10 @@ msgid "Stats"
 msgstr "Statistiken"
 
 msgid "Slice"
-msgstr "Slice"
+msgstr "Slicen"
 
 msgid "Review"
-msgstr ""
+msgstr "Überprüfen"
 
 msgid "Assembly Return"
 msgstr "Zurücksetzen der Montage"
@@ -11254,7 +11254,7 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "Die Option für präzise Wände wird für Außen-Innen- oder Innen-Außen-Innen-Wand-Sequenzen ignoriert."
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr ""
+msgstr "Das Adaptive Pressure Advance-Modell für einen oder mehrere Extruder kann ungültige Werte enthalten."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Filament-Schrumpfung wird nicht verwendet, da sich die Filament-Schrumpfung für die verwendeten Filamente signifikant unterscheidet."
@@ -11267,6 +11267,9 @@ msgid ""
 "\n"
 "Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
 msgstr ""
+"Schürzen für einzelne Objekte passen nicht zwischen die Objekte in der Druckreihenfolge 'Nach Objekt'.\n"
+"\n"
+"Bewegen Sie die Objekte weiter auseinander, verringern Sie die Größe von Rand/Schürze, wechseln Sie den Schürzentyp zu 'Kombiniert' oder wechseln Sie die Druckreihenfolge zu 'Nach Schicht'."
 
 msgid "Exporting G-code"
 msgstr "Exportiere G-Code"

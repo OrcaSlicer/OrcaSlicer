@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra 3 Max 0.8 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM007",
+	"setting_id": "eIkFSkCh3UahGLAF",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Anycubic Kobra 3 Max 0.8 nozzle",

@@ -3,7 +3,7 @@
 	"name": "Elegoo PAHT-CF @EC2",
 	"inherits": "Elegoo PAHT @base",
 	"from": "system",
-	"setting_id": "EPAHTCFEC2",
+	"setting_id": "miv95d8rXD4CAgjC",
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"3"

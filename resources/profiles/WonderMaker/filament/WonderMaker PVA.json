@@ -3,6 +3,7 @@
 	"name": "WonderMaker PVA",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
+	"setting_id": "PRdEoagTzltjzJCQ",
 	"filament_id": "GFS04",
 	"instantiation": "true",
 	"description": "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide.",

@@ -3,7 +3,7 @@
 	"name": "Creality Generic ABS @Ender-3V3-all",
 	"inherits": "Creality Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
+	"setting_id": "Jvnq628y3IlGGHK6",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"9"

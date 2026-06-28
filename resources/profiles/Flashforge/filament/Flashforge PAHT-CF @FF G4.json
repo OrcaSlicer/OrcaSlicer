@@ -3,6 +3,7 @@
 	"name": "Flashforge PAHT-CF @FF G4",
 	"inherits": "Flashforge Generic PLA-CF10",
 	"from": "system",
+	"setting_id": "ZlpBAM9uaS01sWAJ",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

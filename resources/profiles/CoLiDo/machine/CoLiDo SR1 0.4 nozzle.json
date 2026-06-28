@@ -3,7 +3,7 @@
 	"name": "CoLiDo SR1 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "c1lD3KQ6bvd31P3k",
 	"instantiation": "true",
 	"printer_model": "CoLiDo SR1",
 	"default_filament_profile": [

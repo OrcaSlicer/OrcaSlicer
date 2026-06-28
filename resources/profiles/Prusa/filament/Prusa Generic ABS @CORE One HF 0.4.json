@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ABS @CORE One HF 0.4",
 	"inherits": "Prusa Generic ABS @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Sp0sbcvt0EqZ59NT",
 	"filament_id": "Prusa Generic ABS @CORE One HF 0.4",
 	"instantiation": "true",
 	"compatible_printers": [

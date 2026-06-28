@@ -1195,7 +1195,7 @@ private:
     std::vector<unsigned int> m_slice_used_filaments_first_layer;
 
     //BBS: plate's origin
-    Vec3d   m_origin;
+    Vec3d   m_origin {0, 0, 0};
     // IMEX firmware-managed slice offset (plate-local primary-zone center, or zero).
     Vec2d   m_imex_slice_offset { Vec2d::Zero() };
     //BBS: modified_count

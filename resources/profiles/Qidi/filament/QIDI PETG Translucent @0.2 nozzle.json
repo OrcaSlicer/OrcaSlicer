@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Translucent @0.2 nozzle",
 	"inherits": "QIDI PETG Translucent",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "I8DmnTJey0BaBBAN",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"pressure_advance": [

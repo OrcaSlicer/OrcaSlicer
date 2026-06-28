@@ -3,6 +3,7 @@
 	"name": "Generic TPU-64D @FF C5P",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "ERMhwufaef91KJ1d",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

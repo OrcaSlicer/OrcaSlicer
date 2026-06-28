@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PA-CF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "aOVEazsct9L3eD2u",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [
