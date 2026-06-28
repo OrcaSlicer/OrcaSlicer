@@ -13416,7 +13416,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
 
     if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
         filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
-        filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
+        filament_config->set_key_value("pressure_advance", new ConfigOptionStrings { "0.0" });
         filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
     }
 
@@ -13479,7 +13479,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
 
     if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
         filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
-        filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
+        filament_config->set_key_value("pressure_advance", new ConfigOptionStrings { "0.0" });
         filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
     }
 
@@ -13542,7 +13542,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
 
     if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
         filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
-        filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
+        filament_config->set_key_value("pressure_advance", new ConfigOptionStrings { "0.0" });
         filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
     }
 
