@@ -2755,9 +2755,8 @@ msgstr "Si el primer elemento seleccionado es un objeto, el segundo también deb
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Si el primer elemento seleccionado es una pieza, el segundo debe ser una pieza en el mismo objeto."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
-msgstr "El tipo de la última pieza del objeto sólido no debe cambiarse."
+msgstr "El tipo de la última pieza del objeto sólido no puede cambiarse."
 
 msgid "Type:"
 msgstr "Tipo:"
@@ -3483,9 +3482,8 @@ msgstr "Instalando"
 msgid "Install failed"
 msgstr "Instalación fallida"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "License Info"
-msgstr "Porciones del copyright"
+msgstr "Información de licencia"
 
 msgid "Copyright"
 msgstr "Copyright"
@@ -3633,9 +3631,8 @@ msgstr "Temperatura de cama"
 msgid "mm³"
 msgstr "mm³"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Start"
-msgstr "Iniciar calibración"
+msgstr "Iniciar"
 
 msgid "Next"
 msgstr "Siguiente"
@@ -3646,9 +3643,8 @@ msgstr "Calibración completada. Por favor, observe cual es línea de extrusión
 msgid "Save"
 msgstr "Guardar"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
-msgstr "Trasera"
+msgstr "Atrás"
 
 msgid "Example"
 msgstr "Ejemplo"
@@ -3751,9 +3747,8 @@ msgstr "Imprimir con filamentos en el AMS"
 msgid "Disable AMS"
 msgstr "Desactivar AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
-msgstr "Imprimir con el filamento montado en la parte posterior del chasis"
+msgstr "Imprimir con filamento en bobina externa"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
@@ -4150,7 +4145,6 @@ msgstr ""
 "\n"
 "La altura de la primera capa se restablecerá a 0.2."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4158,7 +4152,7 @@ msgid ""
 "The value will be reset to 0."
 msgstr ""
 "Este ajuste sólo se utiliza para afinar el tamaño del modelo con un valor pequeño en algunos casos.\n"
-"Por ejemplo, cuando el tamaño del modelo tiene un pequeño error y es difícil de agrupar.\n"
+"Por ejemplo, cuando el tamaño del modelo tiene pequeños errores o cuando las tolerancias son incorrectas.\n"
 "Para el ajuste de tamaño grande, por favor utilice la función de escala del modelo.\n"
 "\n"
 "El valor se restablecerá a 0."
@@ -5328,9 +5322,8 @@ msgstr "Un objeto está sobre el límite de la cama."
 msgid "A G-code path goes beyond the max print height."
 msgstr "Una ruta de G-Code supera la altura máxima de impresión."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
-msgstr "Una trayectoria en el G-code se traspasa los límites de la cama."
+msgstr "Una trayectoria en el G-code traspasa los límites de la cama."
 
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "No se admite la impresión con 2 o más filamentos TPU."
@@ -8885,9 +8878,8 @@ msgstr "El filamento excede el número de ranuras AMS. Por favor actualice el fi
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "La impresora seleccionada (%s) es incompatible con la configuración del archivo de impresión (%s). Ajuste el preajuste de impresora en la página de Preparar o elija una impresora compatible en esta página."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
-msgstr "Cuando active el modo vaso en espiral, las máquinas con estructura I3 no generará videos timelapse."
+msgstr "Cuando active el modo vaso en espiral, las máquinas con estructura I3 no generarán videos timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "La impresora actual no admite timelapse en Modo Tradicional al imprimir Por Objeto."
@@ -9562,9 +9554,8 @@ msgstr "Esta es la temperatura de la cama cuando la Cama Fría está instalada. 
 msgid "Textured Cool Plate"
 msgstr "Cama Fría Texturizada"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
-msgstr "Temperatura de la cama cuando la placa fría está instalada. El valor 0 significa que el filamento no se puede imprimir en la placa de refrigeración texturizada."
+msgstr "Temperatura de la cama cuando la placa fría texturizada está instalada. El valor 0 significa que el filamento no se puede imprimir en la placa de refrigeración texturizada."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
@@ -11363,9 +11354,8 @@ msgstr "Altura de laminado para cada capa. Una altura de capa más pequeña sign
 msgid "Printable height"
 msgstr "Altura imprimible"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum printable height which is limited by the height of the build area."
-msgstr "Altura máxima imprimible limitada por el mecanismo de la impresora."
+msgstr "Altura máxima imprimible limitada por la altura del área de impresión."
 
 msgid "Extruder printable height"
 msgstr "Altura imprimible del extrusor"
@@ -12031,9 +12021,8 @@ msgstr ""
 msgid "Slow down for overhangs"
 msgstr "Disminuir velocidad en voladizos"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
-msgstr "Habilite esta opción para ralentizar la impresión para diferentes grados de voladizo."
+msgstr "Habilite esta opción para reducir la velocidad al imprimir voladizos. Las velocidades para los diferentes porcentajes de voladizo se configuran a continuación."
 
 msgid "Slow down for curled perimeters"
 msgstr "Reducir velocidad en perímetros curvados"
@@ -12458,9 +12447,8 @@ msgstr "Patrón lineal de relleno sólido interno. Si se activa la detección de
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ancho de línea del perímetro externo. Si se expresa cómo %, se calculará sobre el diámetro de la boquilla."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
-msgstr "Velocidad del perímetro exterior, que es el más externo y visible. Usar una velocidad menor que la del perímetro interior paraobtener un mejor acabado superficial."
+msgstr "Velocidad del perímetro exterior, que es el más externo y visible. Usar una velocidad menor que la del perímetro interior para obtener un mejor acabado superficial."
 
 msgid "Small perimeters"
 msgstr "Perímetros pequeños"
@@ -14112,9 +14100,8 @@ msgstr "Esta parte de G-Code se inserta en cada cambio de capa después de levan
 msgid "Clumping detection G-code"
 msgstr "G-code de detección de aglomeraciones"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Silent Mode"
-msgstr "Admite el modo silencioso"
+msgstr "Modo silencioso"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
@@ -16959,7 +16946,6 @@ msgstr "Además, la calibración del flujo es crucial para materiales espumosos 
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "La calibración del flujo mide la relación entre los volúmenes de extrusión esperados y los reales. La configuración predeterminada funciona bien en las impresoras Bambu Lab y en los filamentos oficiales, ya que fueron precalibrados y ajustados con precisión. Para un filamento normal, normalmente no necesitarás realizar una Calibración de Flujo a menos que sigas viendo los defectos listados después de haber realizado otras calibraciones. Para más detalles, consulte el artículo de la wiki."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -16967,7 +16953,7 @@ msgid ""
 "\n"
 "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgstr ""
-"La auto Calibración de Factor de Flujo utiliza la tecnología Micro-Lidar de La auto Calibración de Factor de Flujo utiliza la tecnología Micro-Lidar de Bambu Lab, midiendo directamente los patrones de calibración. Sin embargo, tenga en cuenta que la eficacia y precisión puede verse comprometida con algunos tipos de material. Particularmente, los filamentos que  son transparentes o semi transparentes, o tienen un acabado altamente reflectante pueden no ser adecuados para esta calibración y producir resultados menos que deseables.\n"
+"La auto Calibración de Factor de Flujo utiliza la tecnología Micro-Lidar de Bambu Lab, midiendo directamente los patrones de calibración. Sin embargo, tenga en cuenta que la eficacia y precisión puede verse comprometida con algunos tipos de material. Particularmente, los filamentos que son transparentes o semi transparentes, tienen destellos o tienen un acabado altamente reflectante pueden no ser adecuados para esta calibración y producir resultados menos que deseables.\n"
 "\n"
 "Los resultados de la calibración pueden variar entre cada calibración o filamento. Seguimos mejorando la precisión y compatibilidad de esta calibración mediante actualizaciones de firmware a lo largo del tiempo.\n"
 "\n"
@@ -17813,20 +17799,17 @@ msgstr "\"Bambu\" o \"Genérico\" no pueden ser usados como Fabricante para fila
 msgid "Filament type is not selected, please reselect type."
 msgstr "No se ha seleccionado el tipo de filamento, vuelva a seleccionarlo."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
-msgstr "No se ha seleccionado el número de serie de filamento, vuelva a seleccionarlo."
+msgstr "Falta el número de serie del filamento; introdúzcalo."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "Puede haber caracteres de escape en la entrada del fabricante o de la serie del filamento. Por favor, elimínelos y vuelva a introducirlos."
+msgstr "Puede haber caracteres no permitidos en la entrada del fabricante o de la serie del filamento. Por favor, elimínelos y vuelva a introducirlos."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Todas las entradas en el fabricante personalizado o serie son espacios. Vuelva a introducirlos."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
-msgstr "El fabricante no puede ser un número. Vuelva a introducirlos."
+msgstr "El fabricante no puede ser un número. Vuelva a introducirlo."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Aún no ha seleccionado una impresora o un perfil. Por favor, seleccione al menos uno."
@@ -17946,9 +17929,8 @@ msgstr "Plantilla de Perfil de Proceso"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Aún no ha elegido el perfil base de la impresora que desea crear. Por favor, elija el fabricante y el modelo de la impresora"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
-msgstr "Ha introducido una entrada ilegal en la sección de área imprimible de la primera página. Por favor, compruébelo antes de crearla."
+msgstr "Ha introducido un carácter no permitido en la sección de área imprimible de la primera página. Por favor, utilice solo números."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
