@@ -12204,9 +12204,8 @@ msgstr "Como lista de objetos"
 msgid "Slow printing down for better layer cooling"
 msgstr "Reducir la velocidad de impresión para mejorar la refrigeración de las capas"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
-msgstr "Active esta opción para reducir la velocidad de impresión para que el tiempo final de la capa no sea inferior al umbral de tiempo de la capa en \"Umbral de velocidad máxima del ventilador\", de modo que la capa pueda enfriarse durante más tiempo. Esto puede mejorar la calidad del refrigeración para los detalles pequeños y esquirlas."
+msgstr "Active esta opción para reducir la velocidad de impresión para que el tiempo final de la capa no sea inferior al umbral de tiempo de la capa en \"Umbral de velocidad máxima del ventilador\", de modo que la capa pueda enfriarse durante más tiempo. Esto puede mejorar la calidad de los detalles pequeños."
 
 msgid "Normal printing"
 msgstr "Impresión normal"
@@ -12694,9 +12693,8 @@ msgstr ""
 msgid "Layer time"
 msgstr "Tiempo de capa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
-msgstr "El ventilador de refrigeración de la pieza se activará para las capas cuyo tiempo estimado sea inferior a este valor. La velocidad del ventilador se interpola entre las velocidades mínima y máxima del ventilador en función del tiempo de impresión de la cada capa."
+msgstr "El ventilador de refrigeración de la pieza se activará para las capas cuyo tiempo estimado sea inferior a este valor. La velocidad del ventilador se interpola entre las velocidades mínima y máxima del ventilador en función del tiempo de impresión de cada capa."
 
 msgid "s"
 msgstr "s"
@@ -13948,9 +13946,8 @@ msgstr "Furzar la generación de perímetro sólidos entre materiales/volúmenes
 msgid "Maximum width of a segmented region"
 msgstr "Máximo ancho de una región segmentada"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
-msgstr "Ancho máximo de una región segmentada. Cero desactiva está característica."
+msgstr "Ancho máximo de una región segmentada. Cero desactiva esta característica."
 
 msgid "Interlocking depth of a segmented region"
 msgstr "Profundidad de entrelazado de una región segmentada"
@@ -15123,9 +15120,8 @@ msgstr "Factor de flujo final en espiral"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Establece el Factor de flujo al finalizar la espiral. Normalmente la transición de la espiral escala el flujo de 100% a 0% durante el último bucle, lo que en algunos casos puede provocar subextrusión al final de la espiral."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Sí se selecciona el modo suave o tradicional, se generará un vídeo time-lapse para cada impresión. Después de imprimir cada capa, se toma una instantánea con la cámara. Todas estas instantáneas se componen en un vídeo time-lapse cuando finaliza la impresión. Si se selecciona el modo suave, el cabezal se moverá a la rampa de exceso después de imprimir cada capa y luego toma una instantánea. Dado que el filamento fundido puede rezumar de la boquilla durante el proceso de toma de la instantánea, una torre de purga es necesaria para el modo suave para limpiar la boquilla."
+msgstr "Si se selecciona el modo suave o tradicional, se generará un vídeo time-lapse para cada impresión. Después de imprimir cada capa, se toma una instantánea con la cámara. Todas estas instantáneas se componen en un vídeo time-lapse cuando finaliza la impresión. Si se selecciona el modo suave, el cabezal se moverá a la rampa de exceso después de imprimir cada capa y luego toma una instantánea. Dado que el filamento fundido puede rezumar de la boquilla durante el proceso de toma de la instantánea, una torre de purga es necesaria para el modo suave para limpiar la boquilla."
 
 msgid "Traditional"
 msgstr "Tradicional"
@@ -15707,9 +15703,8 @@ msgstr ""
 "\n"
 "Fijando un valor en la cantidad de retracción antes del purgado se realizará cualquier exceso de retracción antes del purgado, de lo contrario se realizará después."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la cámara en el interior de la boquilla, con el fin de evitar defectos de visuales al imprimir objetos."
+msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la cámara en el interior de la boquilla, con el fin de evitar defectos visuales al imprimir objetos."
 
 msgid "Internal ribs"
 msgstr "Refuerzos internos"
@@ -16844,10 +16839,9 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Solo se guardará uno de los resultados con el mismo nombre: %s. ¿Está seguro de que desea sobrescribir los otros resultados?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
-msgstr "Ya existe un resultado de calibración anterior con el mismo nombre: %s. Sólo se guarda un resultado con un nombre. Está seguro de que desea sobrescribir el resultado anterior?"
+msgstr "Ya existe un resultado de calibración anterior con el mismo nombre: %s. Sólo se guarda un resultado con un nombre. ¿Está seguro de que desea sobrescribir el resultado anterior?"
 
 #, c-format, boost-format
 msgid ""
