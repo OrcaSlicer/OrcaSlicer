@@ -2088,9 +2088,8 @@ msgstr "Velocidad"
 msgid "Strength"
 msgstr "Fuerza"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
-msgstr "Capas solidas superiores"
+msgstr "Capas sólidas superiores"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
@@ -10819,9 +10818,8 @@ msgstr "Actualización exitosa"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "¿Estás seguro que deseas actualizar? Esto puede llevar sobre 10 minutos. No apague mientras la impresora está actualizando."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
-msgstr "Una actualización importante fue detectada y necesita ejecutarse antes de que la impresión pueda continuar. ¿Quiere actualizar ahora? Puede actualizar después desde \"Actualizar fimware\"."
+msgstr "Una actualización importante fue detectada y necesita ejecutarse antes de que la impresión pueda continuar. ¿Quiere actualizar ahora? Puede actualizar después desde \"Actualizar firmware\"."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
@@ -11432,9 +11430,8 @@ msgstr "Contraseña"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Ignorar comprobaciones de revocación de certificado HTTPS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
-msgstr "Ignorar comprobaciones de certificado de revocación HTTPS en caso de perder o puntos de distribución sin conexión. Se debería activar esta opción de certificados autofirmados si la conexión falla."
+msgstr "Ignorar las comprobaciones de revocación de certificados HTTPS en caso de puntos de distribución ausentes o sin conexión. Puede que desee activar esta opción para certificados autofirmados si la conexión falla."
 
 msgid "Names of presets related to the physical printer."
 msgstr "Nombres de perfiles relacionados por la impresora física."
@@ -11458,9 +11455,8 @@ msgstr "Desvíese y evite atravesar el perímetro, ya que puede provocar una man
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Evitar cruzar perímetro - Longitud de desvío máximo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
-msgstr "Distancia de desvío máximo para evitar cruzar el perímetro. No lo evite si la distancia de desvío es más alta que este valor. La distancia de desvío podría tanto como un valor absoluto como porcentaje (por ejemplo 50%) de una trayectoria de viaje directa. Cero para deshabilitar."
+msgstr "Distancia de desvío máximo para evitar cruzar el perímetro. No lo evite si la distancia de desvío es más alta que este valor. La distancia de desvío puede especificarse como un valor absoluto o como porcentaje (por ejemplo 50%) de una trayectoria de viaje directa. Cero para deshabilitar."
 
 msgid "mm or %"
 msgstr "mm o %"
@@ -12176,9 +12172,8 @@ msgstr "máquina compatible ascendente"
 msgid "Condition"
 msgstr "Condición"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
-msgstr "Una expresión booleana utilizando valores de configuración de un perfil existente. Si esta expresión es verdadera, el perfil será considerado compatible con el perfil de impresión activo."
+msgstr "Una expresión booleana que utiliza los valores de configuración de un perfil de impresora activo. Si esta expresión es verdadera, el perfil será considerado compatible con el perfil de impresora activo."
 
 msgid "Select profiles"
 msgstr "Seleccionar perfiles"
@@ -15482,12 +15477,11 @@ msgstr "La capa de soporte utiliza una altura de capa independiente de la capa d
 msgid "Threshold angle"
 msgstr "Pendiente máxima"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
-"Se generará soporte para los voladizos cuyo ángulo de inclinación sea inferior al umbral.Cuanto menor sea este valor, más pronunciado podrá ser el voladizo que se imprima sin soporte.\n"
+"Se generará soporte para los voladizos cuyo ángulo de inclinación sea inferior al umbral. Cuanto menor sea este valor, más pronunciado podrá ser el voladizo que se imprima sin soporte.\n"
 "Nota: Si se establece en 0, los soportes normales usarán en su lugar Umbral de solapamiento, mientras que los soportes de árbol volverán al valor predeterminado de 30."
 
 msgid "Threshold overlap"
