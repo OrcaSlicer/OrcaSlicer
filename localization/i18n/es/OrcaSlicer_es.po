@@ -9047,10 +9047,10 @@ msgid "Search in preset"
 msgstr "Buscar en el perfil"
 
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr ""
+msgstr "No se admite la sincronización entre diferentes tipos de extrusor o tipos de volumen de boquilla."
 
 msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
-msgstr ""
+msgstr "Sincroniza la modificación de parámetros con los parámetros correspondientes de otro extrusor."
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Presionar para reiniciar todos los ajustes al perfil guardado por defecto."
@@ -9676,21 +9676,21 @@ msgstr "No volver a avisar para este perfil"
 
 #, c-format, boost-format
 msgid "%s: %s"
-msgstr ""
+msgstr "%s: %s"
 
 msgid "No modifications need to be copied."
-msgstr ""
+msgstr "No hay modificaciones que copiar."
 
 msgid "Copy paramters"
-msgstr ""
+msgstr "Copiar parámetros"
 
 #, c-format, boost-format
 msgid "Modify paramters of %s"
-msgstr ""
+msgstr "Modificar parámetros de %s"
 
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
-msgstr ""
+msgstr "¿Desea modificar los siguientes parámetros de %s para que coincidan con los de %s?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Haga clic para restablecer el valor actual y adjuntarlo al valor global."
@@ -9840,10 +9840,10 @@ msgid "Capabilities"
 msgstr "Capacidades"
 
 msgid "Left: "
-msgstr ""
+msgstr "Izquierda: "
 
 msgid "Right: "
-msgstr ""
+msgstr "Derecha: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "Mostrar todos los perfiles (incluyendo los compatibles)"
