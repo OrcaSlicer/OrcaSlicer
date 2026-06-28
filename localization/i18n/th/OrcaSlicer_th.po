@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 10:43-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -1699,7 +1699,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "ตั้งแต่เวอร์ชัน 2.4.0 เป็นต้นไป OrcaSlicer จะซิงค์โปรไฟล์ผู้ใช้ผ่าน Orca Cloud แทน Bambu Cloud\n\nหากต้องการย้ายโปรไฟล์ที่มีอยู่ของคุณ ให้เข้าสู่ระบบ Orca Cloud แล้วระบบจะถ่ายโอนให้โดยอัตโนมัติ หากต้องการเรียนรู้เพิ่มเติมเกี่ยวกับวิธีที่ OrcaSlicer จัดเก็บและซิงค์โปรไฟล์ของคุณ หรือต้องการย้ายพรีเซ็ตด้วยตนเอง โปรดดูที่วิกิของเรา\n\nหากคุณไม่ได้ใช้ Bambu Cloud ในการซิงค์โปรไฟล์ การเปลี่ยนแปลงนี้จะไม่ส่งผลต่อคุณ และคุณสามารถเพิกเฉยต่อข้อความนี้ได้"
+msgstr ""
+"ตั้งแต่เวอร์ชัน 2.4.0 เป็นต้นไป OrcaSlicer จะซิงค์โปรไฟล์ผู้ใช้ผ่าน Orca Cloud แทน Bambu Cloud\n"
+"\n"
+"หากต้องการย้ายโปรไฟล์ที่มีอยู่ของคุณ ให้เข้าสู่ระบบ Orca Cloud แล้วระบบจะถ่ายโอนให้โดยอัตโนมัติ หากต้องการเรียนรู้เพิ่มเติมเกี่ยวกับวิธีที่ OrcaSlicer จัดเก็บและซิงค์โปรไฟล์ของคุณ หรือต้องการย้ายพรีเซ็ตด้วยตนเอง โปรดดูที่วิกิของเรา\n"
+"\n"
+"หากคุณไม่ได้ใช้ Bambu Cloud ในการซิงค์โปรไฟล์ การเปลี่ยนแปลงนี้จะไม่ส่งผลต่อคุณ และคุณสามารถเพิกเฉยต่อข้อความนี้ได้"
 
 msgid "Profile syncing change"
 msgstr ""
@@ -3999,6 +4004,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "อุณหภูมิห้องพิมพ์ปัจจุบันสูงกว่าอุณหภูมิปลอดภัยของวัสดุ ซึ่งอาจทำให้วัสดุนิ่มและหัวฉีดอุดตัน อุณหภูมิปลอดภัยสูงสุดของวัสดุนี้คือ %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5175,7 +5184,7 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
@@ -9295,6 +9304,18 @@ msgstr "อัตราการไหลและแรงดันล่วง
 msgid "Print chamber temperature"
 msgstr "อุณหภูมิห้องพิมพ์"
 
+msgid "Chamber temperature"
+msgstr "อุณหภูมิห้องพิมพ์"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
+
 msgid "Print temperature"
 msgstr "อุณหภูมิพิมพ์"
 
@@ -12762,7 +12783,7 @@ msgstr "การใช้หลายบรรทัดสำหรับรู
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "การปรับชดเชยการโก่งตัวตามแกน Z ให้เหมาะสม (ทดลอง)"
 
-#, fuzzy
+#, fuzzy, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "ปรับคลื่นไจรอยด์ให้ถี่ขึ้นตามแกน Z (แนวตั้ง) เมื่อความหนาแน่นไส้ในต่ำ เพื่อลดความยาวช่วงเสาแนวตั้งที่มีผลจริง และเพิ่มความต้านทานการโก่งตัวจากแรงอัดตามแกน Z โดยยังใช้เส้นพลาสติกเท่าเดิม ไม่มีผลเมื่อความหนาแน่นไส้ในแบบโปร่งประมาณ ~30% ขึ้นไป ใช้เฉพาะเมื่อรูปแบบไส้ในแบบโปร่งตั้งเป็นไจรอยด์เท่านั้น"
 
@@ -15184,9 +15205,6 @@ msgstr ""
 "\n"
 "ตัวเลือกนี้ขึ้นอยู่กับเฟิร์มแวร์ที่รองรับคำสั่ง M191 และ M141 ไม่ว่าจะผ่านทางมาโครหรือแบบเนทิฟ และโดยปกติจะใช้เมื่อมีการติดตั้งเครื่องทำความร้อนในห้องแบบแอคทีฟ"
 
-msgid "Chamber temperature"
-msgstr "อุณหภูมิห้องพิมพ์"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15199,6 +15217,17 @@ msgstr ""
 "สำหรับ PLA, PETG, TPU, PVA และวัสดุที่มีอุณหภูมิต่ำอื่นๆ ควรปิดใช้งานตัวเลือกนี้ (ตั้งค่าเป็น 0) เนื่องจากอุณหภูมิห้องควรต่ำเพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้นที่เกิดจากวัสดุอ่อนตัวเมื่อความร้อนแตก\n"
 "\n"
 "หากเปิดใช้งาน พารามิเตอร์นี้จะตั้งค่าตัวแปร G-code ชื่อ Chamber_temperature ซึ่งสามารถใช้เพื่อส่งอุณหภูมิห้องเพาะเลี้ยงที่ต้องการไปยังมาโครเริ่มการพิมพ์ของคุณ หรือมาโครความร้อนแช่เช่นนี้: PRINT_START (ตัวแปรอื่นๆ) CHAMBER_TEMP=[chamber_temperature] วิธีนี้อาจเป็นประโยชน์หากเครื่องพิมพ์ของคุณไม่รองรับคำสั่ง M141/M191 หรือหากคุณต้องการจัดการกับความร้อนที่แช่อยู่ในมาโครเริ่มการพิมพ์ หากไม่มีการติดตั้งเครื่องทำความร้อนในห้องที่ใช้งานอยู่"
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 msgid "Nozzle temperature after the first layer"
 msgstr "อุณหภูมิหัวฉีดสำหรับชั้นหลังจากอันแรก"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 10:43-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -1727,7 +1727,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Починаючи з версії 2.4.0, OrcaSlicer синхронізує профілі користувача через Orca Cloud замість Bambu Cloud.\n\nЩоб перенести наявні профілі, увійдіть до Orca Cloud, і вони будуть перенесені автоматично. Щоб дізнатися більше про те, як OrcaSlicer зберігає та синхронізує ваші профілі, або щоб перенести свої шаблони вручну, перегляньте нашу вікі.\n\nЯкщо ви не використовували Bambu Cloud для синхронізації профілів, ця зміна вас не стосується, і ви можете сміливо проігнорувати це повідомлення."
+msgstr ""
+"Починаючи з версії 2.4.0, OrcaSlicer синхронізує профілі користувача через Orca Cloud замість Bambu Cloud.\n"
+"\n"
+"Щоб перенести наявні профілі, увійдіть до Orca Cloud, і вони будуть перенесені автоматично. Щоб дізнатися більше про те, як OrcaSlicer зберігає та синхронізує ваші профілі, або щоб перенести свої шаблони вручну, перегляньте нашу вікі.\n"
+"\n"
+"Якщо ви не використовували Bambu Cloud для синхронізації профілів, ця зміна вас не стосується, і ви можете сміливо проігнорувати це повідомлення."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4107,6 +4112,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Поточна температура камери вища, ніж безпечна температура матеріалу, це може призвести до розм’якшення матеріалу та його забивання. Максимально безпечна температура для цього матеріалу становить %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5294,7 +5303,7 @@ msgid "Size:"
 msgstr "Розмір:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 "Виявлено конфлікти шляхів gcode на рівні %d, Z = %.2lf мм. Будь ласка \n"
@@ -9488,6 +9497,18 @@ msgstr "Коефіцієнт потоку та Випередження тиск
 msgid "Print chamber temperature"
 msgstr "Температура в камері друку"
 
+msgid "Chamber temperature"
+msgstr "Температура в камері"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
+
 msgid "Print temperature"
 msgstr "Температура друку"
 
@@ -12923,6 +12944,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -15355,9 +15377,6 @@ msgstr ""
 "\n"
 "Цей параметр залежить від підтримки команд M191 і M141 у мікропрограмі, як через макроси, так і нативно, і зазвичай використовується при встановленому активному нагрівачі камери."
 
-msgid "Chamber temperature"
-msgstr "Температура в камері"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15372,6 +15391,17 @@ msgstr ""
 "Якщо цей параметр увімкнено, він також встановлює змінну gcode під назвою chamber_temperature, яку можна використовувати для передавання бажаної температури камери у макрос запуску друку або макрос прогріву, наприклад:\n"
 "PRINT_START (інші змінні) CHAMBER_TEMP=[chamber_temperature].\n"
 "Це може бути корисним, якщо ваш принтер не підтримує команди M141/M191 або якщо ви хочете керувати прогрівом камери у макросі запуску друку за відсутності активного нагрівача камери."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"

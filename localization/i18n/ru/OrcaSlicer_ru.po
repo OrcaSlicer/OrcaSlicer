@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 10:43-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -1753,7 +1753,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Начиная с версии 2.4.0, OrcaSlicer синхронизирует пользовательские профили через Orca Cloud вместо Bambu Cloud.\n\nЧтобы перенести существующие профили, войдите в Orca Cloud, и они будут перенесены автоматически. Чтобы узнать больше о том, как OrcaSlicer хранит и синхронизирует ваши профили, или перенести профили вручную, посетите нашу вики.\n\nЕсли вы не использовали Bambu Cloud для синхронизации профилей, это изменение вас не затрагивает, и вы можете спокойно проигнорировать это сообщение."
+msgstr ""
+"Начиная с версии 2.4.0, OrcaSlicer синхронизирует пользовательские профили через Orca Cloud вместо Bambu Cloud.\n"
+"\n"
+"Чтобы перенести существующие профили, войдите в Orca Cloud, и они будут перенесены автоматически. Чтобы узнать больше о том, как OrcaSlicer хранит и синхронизирует ваши профили, или перенести профили вручную, посетите нашу вики.\n"
+"\n"
+"Если вы не использовали Bambu Cloud для синхронизации профилей, это изменение вас не затрагивает, и вы можете спокойно проигнорировать это сообщение."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4100,6 +4105,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Текущая температура внутри термокамеры превышает безопасную температуру для этого материала, что может привести к размягчению материала или засорению экструдера. Безопасная температура текущего материала составляет %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5332,7 +5341,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "В G-коде на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
@@ -5356,22 +5365,34 @@ msgstr "%d"
 # Подставляется номер материала (по порядку), предыдущая 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 # Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при
 # превышении высоты через подъём при откате оно не выводится. Последнее
 # предложение – костыль для обхода кривизны системы локализации.
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 msgid "Open wiki for more information."
 msgstr "Подробнее на Вики."
@@ -9557,6 +9578,18 @@ msgstr "Поток и коррекция давления (PA)"
 msgid "Print chamber temperature"
 msgstr "Температура в термокамере при печати"
 
+msgid "Chamber temperature"
+msgstr "Температура термокамеры"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
+
 msgid "Print temperature"
 msgstr "Температура печати"
 
@@ -13100,6 +13133,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -14724,7 +14758,10 @@ msgstr "Параметр устанавливает высоту подложк�
 
 # Расширение контекста от Andy. Хотя тут мы имеем дело с очередной логической ошибкой в исходнике: разрешение повышает нагрузку при увеличении, а здесь увеличение значения, наоборот, ведёт к её уменьшению вместе со снижением качества. То есть, это именно "допуск", "Допустимое отклонение", "Gcode tolerance". Не уверен, стоит ли ломать то, что работает – народ уже давно запомнил эту настройку именно как "разрешение". Хороший компромисс – оставить название, но убрать путающее "разрешение" из описания. + перефразировал и изменил порядок изложения информации, чтобы обеспечить линейные логические связи.
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "Максимальное отклонение планируемой траектории движения экструдера от среза модели. Повышение отклонения снижает время нарезки и нагрузку на электронику принтера, а понижение – позволяет устранить артефакты упрощения геометрии модели.\n\nВнимание: для нарезки и визуализации G-кода с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
+msgstr ""
+"Максимальное отклонение планируемой траектории движения экструдера от среза модели. Повышение отклонения снижает время нарезки и нагрузку на электронику принтера, а понижение – позволяет устранить артефакты упрощения геометрии модели.\n"
+"\n"
+"Внимание: для нарезки и визуализации G-кода с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
 
 msgid "Travel distance threshold"
 msgstr "Порог перемещения"
@@ -15142,7 +15179,10 @@ msgstr "Тип юбки"
 
 # Про расширенное описание см. в комментарии к перевод подсказки настройки "Skirt minimum extrusion length" 
 msgid "Combined - single skirt for all objects, Per object - individual object skirt."
-msgstr "Выбор типа печатаемой юбки – одна общая для всех моделей или отдельные юбки для каждой модели.\n\nВнимание: при создании индивидуальных юбок проверка пересечения не совершается, из-за чего при близком расположении моделей они могут накладываться друг на друга. В таких случаях рекомендуется понизить количество контуров."
+msgstr ""
+"Выбор типа печатаемой юбки – одна общая для всех моделей или отдельные юбки для каждой модели.\n"
+"\n"
+"Внимание: при создании индивидуальных юбок проверка пересечения не совершается, из-за чего при близком расположении моделей они могут накладываться друг на друга. В таких случаях рекомендуется понизить количество контуров."
 
 # Отдельный (антоним к "совместный")
 msgid "Per object"
@@ -15171,7 +15211,9 @@ msgid ""
 "Using a non-zero value is useful if the printer is set up to print without a prime line.\n"
 "Final number of loops is not taking into account while arranging or validating objects distance. Increase loop number in such case."
 msgstr ""
-"Минимальная длина прутка для прочистки на юбке (в миллиметрах). Позволяет автоматически расчитывать количество контуров юбки для её использования в качестве альтернативы линии прочистки.\n\n0 – отключить автоматический расчёт."
+"Минимальная длина прутка для прочистки на юбке (в миллиметрах). Позволяет автоматически расчитывать количество контуров юбки для её использования в качестве альтернативы линии прочистки.\n"
+"\n"
+"0 – отключить автоматический расчёт."
 
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
 msgstr "Скорость печати в экспортированном G-коде будет замедлена, если расчётное время печати слоя меньше заданного здесь значения, для обеспечения лучшего охлаждения этих слоёв."
@@ -15747,9 +15789,6 @@ msgstr ""
 "\n"
 "Эта опция зависит от поддержки прошивкой команд M191 и M141, либо через макросы, либо нативно, и обычно используется, когда имеется активный нагреватель камеры."
 
-msgid "Chamber temperature"
-msgstr "Температура термокамеры"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15764,6 +15803,17 @@ msgstr ""
 "Доступ к значению можно получить через переменную с именем chamber_temperature. Её можно использовать в макросах начала печати или прогрева термокамеры, например:\n"
 "PRINT_START <...> CHAMBER_TEMP=[chamber_temperature].\n"
 "Это особенно полезно, если принтер не поддерживает команды M141/M191, или если управление температурой термокамеры реализовано через макросы (например, при отсутствии активного нагревателя камеры)."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 msgid "Nozzle temperature after the first layer"
 msgstr "Температура при печати последующих слоёв."
@@ -16013,7 +16063,10 @@ msgid "Infill gap."
 msgstr "Управление отступом между линиями сброса материала."
 
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
-msgstr "Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n\nПримечание: не рекомендуется при печати стенок прозрачным материалом."
+msgstr ""
+"Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n"
+"\n"
+"Примечание: не рекомендуется при печати стенок прозрачным материалом."
 
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Прочистка сопла после смены материала будет производиться в поддержку модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 10:43-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -1718,7 +1718,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Kể từ phiên bản 2.4.0, OrcaSlicer đồng bộ hồ sơ người dùng thông qua Orca Cloud thay vì Bambu Cloud.\n\nĐể di chuyển các hồ sơ hiện có của bạn, hãy đăng nhập vào Orca Cloud và chúng sẽ được chuyển tự động. Để tìm hiểu thêm về cách OrcaSlicer lưu trữ và đồng bộ hồ sơ của bạn, hoặc để di chuyển các cài đặt sẵn theo cách thủ công, hãy xem wiki của chúng tôi.\n\nNếu bạn không sử dụng Bambu Cloud để đồng bộ hồ sơ, thay đổi này không ảnh hưởng đến bạn và bạn có thể bỏ qua thông báo này."
+msgstr ""
+"Kể từ phiên bản 2.4.0, OrcaSlicer đồng bộ hồ sơ người dùng thông qua Orca Cloud thay vì Bambu Cloud.\n"
+"\n"
+"Để di chuyển các hồ sơ hiện có của bạn, hãy đăng nhập vào Orca Cloud và chúng sẽ được chuyển tự động. Để tìm hiểu thêm về cách OrcaSlicer lưu trữ và đồng bộ hồ sơ của bạn, hoặc để di chuyển các cài đặt sẵn theo cách thủ công, hãy xem wiki của chúng tôi.\n"
+"\n"
+"Nếu bạn không sử dụng Bambu Cloud để đồng bộ hồ sơ, thay đổi này không ảnh hưởng đến bạn và bạn có thể bỏ qua thông báo này."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4072,6 +4077,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Nhiệt độ buồng hiện tại cao hơn nhiệt độ an toàn của vật liệu, điều này có thể dẫn đến vật liệu mềm và tắc nghẽn. Nhiệt độ an toàn tối đa cho vật liệu là %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5264,7 +5273,7 @@ msgstr "Thể tích:"
 msgid "Size:"
 msgstr "Kích thước:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Đã tìm thấy xung đột đường đi G-code tại lớp %d, Z = %.2lfmm. Vui lòng tách các vật thể xung đột ra xa hơn (%s <-> %s)."
 
@@ -9415,6 +9424,18 @@ msgstr "Tỷ lệ lưu lượng và áp suất nâng cao"
 msgid "Print chamber temperature"
 msgstr "Nhiệt độ buồng in"
 
+msgid "Chamber temperature"
+msgstr "Nhiệt độ buồng"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
+
 msgid "Print temperature"
 msgstr "Nhiệt độ in"
 
@@ -12833,6 +12854,7 @@ msgstr "Sử dụng nhiều đường cho mẫu infill, nếu được hỗ tr�
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, c-format, boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -15266,9 +15288,6 @@ msgstr ""
 "\n"
 "Tùy chọn này dựa vào firmware hỗ trợ lệnh M191 và M141 thông qua macro hoặc gốc và thường được sử dụng khi bộ sưởi buồng hoạt động được cài đặt."
 
-msgid "Chamber temperature"
-msgstr "Nhiệt độ buồng"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15281,6 +15300,17 @@ msgstr ""
 "Đối với PLA, PETG, TPU, PVA và các vật liệu nhiệt độ thấp khác, tùy chọn này nên được tắt (đặt thành 0) vì nhiệt độ buồng nên thấp để tránh tắc extruder do vật liệu làm mềm ở heat break.\n"
 "\n"
 "Nếu được bật, tham số này cũng đặt biến G-code có tên chamber_temperature, có thể được sử dụng để truyền nhiệt độ buồng mong muốn cho macro bắt đầu in của bạn, hoặc macro ngâm nhiệt như thế này: PRINT_START (các biến khác) CHAMBER_TEMP=[chamber_temperature]. Điều này có thể hữu ích nếu máy in của bạn không hỗ trợ lệnh M141/M191, hoặc nếu bạn muốn xử lý ngâm nhiệt trong macro bắt đầu in nếu không có bộ sưởi buồng hoạt động được cài đặt."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
