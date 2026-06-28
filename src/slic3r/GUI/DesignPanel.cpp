@@ -262,22 +262,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // arbitrary action — the existing per-feature handler — instead of selecting a Mode.
         struct FeatVar { const char* icon; wxString tip; wxString hint; std::function<void()> action; };
         struct FeatFlyout {
-            std::vector<wxString> texts, tips;
-            std::vector<wxBitmap> icons;
+            std::vector<DropDown::Item> items;   // mainline DropDown is Item-based (text/tip/icon per row)
             std::vector<std::function<void()>> actions;
             std::vector<std::string> icon_names;
             ScalableButton* btn = nullptr;
-            DropDown drop;                 // declared LAST: destroyed before the vectors it references
-            FeatFlyout() : drop(texts, tips, icons) {}
+            DropDown drop;                 // declared LAST: destroyed before the vector it references
+            FeatFlyout() : drop(items) {}
         };
         auto feat_dropdown = [&](const char* def_icon, const wxString& grp, std::vector<FeatVar> vars) {
             auto* b = icon_btn(def_icon, grp);
             b->SetFont(Label::Body_14);   // measure popup labels in the popup's font (no truncation)
             auto fo = std::make_shared<FeatFlyout>();
             for (auto& v : vars) {
-                fo->texts.push_back(v.tip);
-                fo->tips.push_back(v.hint);
-                fo->icons.push_back(tint(create_scaled_bitmap(v.icon, m_form, 18), drop_icon_col));
+                DropDown::Item it;
+                it.text = v.tip;
+                it.tip  = v.hint;
+                it.icon = tint(create_scaled_bitmap(v.icon, m_form, 18), drop_icon_col);
+                fo->items.push_back(it);
                 fo->actions.push_back(std::move(v.action));
                 fo->icon_names.emplace_back(v.icon);
             }
@@ -554,14 +555,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // icon; clicking drops the variants; a small chevron marks it as a group.
         struct SkVar { const char* icon; DesignSketchTool::Mode mode; wxString tip; wxString hint; };
         struct ToolFlyout {
-            std::vector<wxString> texts, tips;
-            std::vector<wxBitmap> icons;
+            std::vector<DropDown::Item> items;   // mainline DropDown is Item-based (text/tip/icon per row)
             std::vector<DesignSketchTool::Mode> modes;
             std::vector<wxString> hints;
             std::vector<std::string> icon_names;
             ScalableButton* btn = nullptr;
-            DropDown drop;                 // declared LAST: destroyed before the vectors it references
-            ToolFlyout() : drop(texts, tips, icons) {}
+            DropDown drop;                 // declared LAST: destroyed before the vector it references
+            ToolFlyout() : drop(items) {}
         };
         auto dropdown = [&](const char* def_icon, const wxString& grp, std::vector<SkVar> vars) {
             auto* b = icon_btn(def_icon, grp);
@@ -572,9 +572,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
             b->SetFont(Label::Body_14);
             auto fo = std::make_shared<ToolFlyout>();
             for (auto& v : vars) {
-                fo->texts.push_back(v.tip);
-                fo->tips.push_back(v.hint);
-                fo->icons.push_back(tint(create_scaled_bitmap(v.icon, m_form, 18), drop_icon_col));
+                DropDown::Item it;
+                it.text = v.tip;
+                it.tip  = v.hint;
+                it.icon = tint(create_scaled_bitmap(v.icon, m_form, 18), drop_icon_col);
+                fo->items.push_back(it);
                 fo->modes.push_back(v.mode);
                 fo->hints.push_back(v.hint);
                 fo->icon_names.emplace_back(v.icon);

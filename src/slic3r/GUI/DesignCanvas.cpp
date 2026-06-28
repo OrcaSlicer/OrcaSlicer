@@ -360,7 +360,7 @@ void DesignCanvas::refresh_bed()
     double printable_height = 100.0;
     const auto* ph_opt = config->opt<ConfigOptionFloat>("printable_height");
     if (ph_opt) printable_height = ph_opt->value;
-    m_bed.set_shape(bed_shape_opt->values, printable_height, "", false);
+    m_bed.set_shape(bed_shape_opt->values, printable_height, {}, {}, "", false);  // mainline added extruder_areas/heights params
 }
 
 bool DesignCanvas::is_sketching() const { return m_sketch_tool.is_active(); }
