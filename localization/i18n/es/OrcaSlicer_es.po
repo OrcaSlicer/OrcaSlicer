@@ -1708,10 +1708,10 @@ msgstr ""
 "Si no usabas Bambu Cloud para sincronizar perfiles, este cambio no te afecta y puedes ignorar este mensaje con seguridad."
 
 msgid "Profile syncing change"
-msgstr ""
+msgstr "Cambio en la sincronización de perfiles"
 
 msgid "Learn more"
-msgstr ""
+msgstr "Más información"
 
 msgid "Reloading network plug-in..."
 msgstr "Recargando el complemento de red..."
@@ -1749,6 +1749,9 @@ msgid ""
 "Some features, including the setup wizard, may appear blank until it is installed.\n"
 "Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
 msgstr ""
+"No se pudo instalar Microsoft WebView2 Runtime.\n"
+"Algunas funciones, incluido el asistente de configuración, pueden aparecer en blanco hasta que se instale.\n"
+"Instálelo manualmente desde https://developer.microsoft.com/microsoft-edge/webview2/ y reinicie Orca Slicer."
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -4001,7 +4004,7 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "La temperatura recomendada de la boquilla para este tipo de filamento es de [%d, %d] grados Celsius."
 
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr ""
+msgstr "La validación del modelo de Adaptive Pressure Advance ha fallado:\n"
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -4016,7 +4019,7 @@ msgstr "La temperatura actual de la cámara es superior a la temperatura de segu
 
 #, c-format, boost-format
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
-msgstr ""
+msgstr "La temperatura mínima de la cámara (%d℃) es superior a la temperatura objetivo de la cámara (%d℃). El valor mínimo es el umbral en el que comienza la impresión mientras la cámara continúa calentándose hacia el objetivo, por lo que no debería superarlo. Se ajustará al valor objetivo."
 
 msgid ""
 "Layer height too small\n"
@@ -5126,7 +5129,7 @@ msgid "Slice"
 msgstr "Laminar"
 
 msgid "Review"
-msgstr ""
+msgstr "Revisar"
 
 msgid "Assembly Return"
 msgstr "Volver a agrupar"
@@ -8034,13 +8037,16 @@ msgid "Renders cast shadows on the plate in realistic view."
 msgstr "Los objetos renderizados proyectan sombras sobre la cama en la vista realista."
 
 msgid "Smooth normals"
-msgstr ""
+msgstr "Suavizar normales"
 
 msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
 msgstr ""
+"Aplica normales suavizadas a la vista realista.\n"
+"\n"
+"Requiere recargar la escena manualmente para que surta efecto (clic derecho en la vista 3D → \"Recargar todo\")."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -9328,13 +9334,13 @@ msgid "Chamber temperature"
 msgstr "Temperatura de cámara"
 
 msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
-msgstr ""
+msgstr "Temperatura objetivo de la cámara y temperatura mínima de la cámara a la que debe comenzar la impresión"
 
 msgid "Target"
-msgstr ""
+msgstr "Objetivo"
 
 msgid "Minimal"
-msgstr ""
+msgstr "Mínima"
 
 msgid "Print temperature"
 msgstr "Temperatura de impresión"
@@ -11016,7 +11022,7 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "La opción de pared precisa se ignorará para secuencias de paredes externo-interno o interno-externo-interno."
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr ""
+msgstr "El modelo de Adaptive Pressure Advance de uno o más extrusores puede contener valores no válidos."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "La contracción del filamento no se utilizará porque la contracción del filamento para los filamentos utilizados difiere significativamente."
@@ -11029,6 +11035,9 @@ msgid ""
 "\n"
 "Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
 msgstr ""
+"Las faldas por objeto no caben entre los objetos en la secuencia de impresión Por objeto.\n"
+"\n"
+"Separe más los objetos, reduzca el tamaño del borde de adherencia o de la falda, cambie el Tipo de falda a Combinado, o cambie la Secuencia de impresión a Por capa."
 
 msgid "Exporting G-code"
 msgstr "Exportando G-Code"
@@ -13045,7 +13054,7 @@ msgid "Travel speed of the first layer."
 msgstr "Velocidad de movimientos de desplazamiento en la primera capa."
 
 msgid "Number of slow layers"
-msgstr ""
+msgstr "Número de capas lentas"
 
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Las primeras capas se imprimen más lentamente de lo normal. La velocidad se incrementa gradualmente de una forma lineal sobre el número específicado de capas."
@@ -15249,9 +15258,14 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
+"Esta es la temperatura de la cámara a la que debe comenzar la impresión, mientras la cámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la cámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la cámara alcance los 50 °C, sin esperar a los 60 °C completos.\n"
+"\n"
+"Crea una variable de G-code llamada chamber_minimal_temperature, que puede pasarse a su macro de inicio de impresión o a una macro de precalentamiento, de esta forma: PRINT_START (otras variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"A diferencia de la temperatura objetivo (\"Objetivo\") de la cámara, esta opción no emite ningún comando M141/M191; solo expone el valor a su G-code personalizado. No debería superar la temperatura objetivo (\"Objetivo\") de la cámara."
 
 msgid "Chamber minimal temperature"
-msgstr ""
+msgstr "Temperatura mínima de cámara"
 
 msgid "Nozzle temperature after the first layer"
 msgstr "Temperatura de la boquilla después de la primera capa"
