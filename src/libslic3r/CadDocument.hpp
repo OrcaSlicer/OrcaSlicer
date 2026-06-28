@@ -8,6 +8,9 @@
 
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Wire.hxx>
+#include <cereal/cereal.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 #include <string>
 #include <vector>
 #include <utility>
@@ -19,6 +22,11 @@ enum class SketchShape    { Rectangle, Circle };
 enum class BooleanMode    { New, Add, Cut, Intersect };
 
 enum class ExtrudeEnd { Blind, Symmetric, TwoSided, ThroughAll, UpToFace, UpToVertex };
+
+// Serialize a TopoDS_Shape to/from a BRep string (declared before CadFeature so its
+// inline cereal save()/load() can resolve these non-dependent calls).
+std::string brep_to_string(const TopoDS_Shape& s);
+TopoDS_Shape brep_from_string(const std::string& d);
 
 struct CadFeature {
     CadFeatureType type{CadFeatureType::Sketch};
@@ -181,7 +189,55 @@ struct CadFeature {
     bool   cut_flip{false};       // flip the normal => swaps which side is "upper"
     bool   cut_keep_upper{true};  // keep the +normal half
     bool   cut_keep_lower{false}; // keep the -normal half (both => split into two bodies)
+
+    template<class Archive>
+    void save(Archive& ar) const {
+        std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
+        ar(type, name, enabled, shape, plane, width, height, radius,
+           profile, entities, constraints, entity_constraints, imported_regions,
+           import_offset, import_scale_x, import_scale_y, import_on_face, import_face_body,
+           sketch_ref, distance, symmetric, mode, extrude_end, distance2, taper_deg, flip,
+           up_to_face, extrude_src_face, up_to_point, target_body,
+           dressup_size, face_group, dressup_edge,
+           hole_diameter, hole_depth, hole_through, hole_x, hole_y,
+           thread_radius, thread_pitch, thread_height, thread_depth, thread_internal, thread_x, thread_y,
+           shell_thickness, shell_face,
+           draft_face, draft_angle,
+           revolve_angle, revolve_axis,
+           sweep_path_ref, loft_profile_refs, loft_ruled,
+           pattern_circular, pattern_count, pattern_spacing, pattern_dir, pattern_angle,
+           plane_base, plane_offset, plane_angle_tilt, plane_axis,
+           bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
+           cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
+           brep);
+    }
+    template<class Archive>
+    void load(Archive& ar) {
+        std::string brep;
+        ar(type, name, enabled, shape, plane, width, height, radius,
+           profile, entities, constraints, entity_constraints, imported_regions,
+           import_offset, import_scale_x, import_scale_y, import_on_face, import_face_body,
+           sketch_ref, distance, symmetric, mode, extrude_end, distance2, taper_deg, flip,
+           up_to_face, extrude_src_face, up_to_point, target_body,
+           dressup_size, face_group, dressup_edge,
+           hole_diameter, hole_depth, hole_through, hole_x, hole_y,
+           thread_radius, thread_pitch, thread_height, thread_depth, thread_internal, thread_x, thread_y,
+           shell_thickness, shell_face,
+           draft_face, draft_angle,
+           revolve_angle, revolve_axis,
+           sweep_path_ref, loft_profile_refs, loft_ruled,
+           pattern_circular, pattern_count, pattern_spacing, pattern_dir, pattern_angle,
+           plane_base, plane_offset, plane_angle_tilt, plane_axis,
+           bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
+           cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
+           brep);
+        imported_solid = brep_from_string(brep);
+    }
 };
+
+// Serialize a TopoDS_Shape to/from a BRep string for cereal persistence.
+std::string brep_to_string(const TopoDS_Shape& s);
+TopoDS_Shape brep_from_string(const std::string& d);
 
 // One independent solid in a multi-body document.
 struct CadBody {
@@ -278,6 +334,10 @@ public:
     std::vector<std::pair<std::string, SketchPlane>> resolve_datum_planes() const;
     void clear();
     bool recompute();   // replay features -> body + display_mesh; false on error
+
+    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 1;
+    std::string serialize_recipe() const;
+    bool deserialize_recipe(const std::string& blob);
 
     // Undo/redo of the feature recipe (Onshape-style Ctrl+Z). The caller marks a
     // user-action boundary by calling checkpoint() BEFORE the mutation(s) for that

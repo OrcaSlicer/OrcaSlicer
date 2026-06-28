@@ -105,6 +105,8 @@ Model& Model::assign_copy(const Model &rhs)
     this->md_name = rhs.md_name;
     this->md_value = rhs.md_value;
 
+    this->cad_recipe = rhs.cad_recipe;
+
     return *this;
 }
 
@@ -148,6 +150,7 @@ Model& Model::assign_copy(Model &&rhs)
     rhs.model_info.reset();
     this->profile_info = rhs.profile_info;
     rhs.profile_info.reset();
+    this->cad_recipe = std::move(rhs.cad_recipe);
     return *this;
 }
 

@@ -42,6 +42,10 @@
 #include <cmath>
 #include <stdexcept>
 #include <algorithm>
+#include <sstream>
+
+#include <cereal/archives/binary.hpp>
+#include <BRepTools.hxx>
 
 namespace Slic3r {
 
@@ -1535,6 +1539,54 @@ bool CadDocument::preview(const CadFeature& candidate, TriangleMesh& out_mesh, s
 {
     std::vector<TriangleMesh> ignore;
     return preview(candidate, out_mesh, ignore, err);
+}
+
+std::string brep_to_string(const TopoDS_Shape& s)
+{
+    if (s.IsNull()) return {};
+    std::ostringstream oss;
+    BRepTools::Write(s, oss);
+    return oss.str();
+}
+
+TopoDS_Shape brep_from_string(const std::string& d)
+{
+    if (d.empty()) return {};
+    std::istringstream iss(d);
+    TopoDS_Shape s;
+    BRep_Builder b;
+    BRepTools::Read(s, iss, b);
+    return s;
+}
+
+std::string CadDocument::serialize_recipe() const
+{
+    std::ostringstream oss;
+    {
+        cereal::BinaryOutputArchive ar(oss);
+        uint32_t v = SNAPORCA_CAD_RECIPE_VERSION;
+        ar(v);
+        ar(features);
+    }
+    return oss.str();
+}
+
+bool CadDocument::deserialize_recipe(const std::string& blob)
+{
+    try {
+        std::istringstream iss(blob);
+        cereal::BinaryInputArchive ar(iss);
+        uint32_t v;
+        ar(v);
+        if (v > SNAPORCA_CAD_RECIPE_VERSION)
+            return false;
+        ar(features);
+        return recompute();
+    } catch (const Standard_Failure&) {
+        return false;
+    } catch (...) {
+        return false;
+    }
 }
 
 } // namespace Slic3r

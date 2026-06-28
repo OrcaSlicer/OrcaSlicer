@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 
 #include "libslic3r/CadDocument.hpp"
 #include "libslic3r/SketchEngine.hpp"
@@ -13,8 +13,10 @@
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <cereal/archives/binary.hpp>
 
 using namespace Slic3r;
+using Catch::Approx;   // Catch2 v3 scopes Approx under Catch:: (v2 had it unqualified)
 
 TEST_CASE("CadDocument profile sketch -> extrude -> solid", "[CadDocument]")
 {
@@ -1363,4 +1365,59 @@ TEST_CASE("cut splits a body with a plane", "[cut]")
 
         REQUIRE_FALSE(doc.recompute());
     }
+}
+
+TEST_CASE("serialize_recipe roundtrip with two bodies", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+
+    // Body 1: rectangle sketch + extrude + fillet
+    int sk1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Rect1");
+    REQUIRE(sk1 >= 0);
+    doc.add_extrude(sk1, 10.0, false, BooleanMode::New, "Extrude1");
+    doc.add_fillet(2.0, FaceGroup::All, "Fillet1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body 2: circle sketch + extrude (separate New body)
+    SketchEntity circ;
+    circ.type   = SketchEntity::Type::Circle;
+    circ.center = Vec2d(0, 0);
+    circ.radius = 8.0;
+    int sk2 = doc.add_sketch_entities({circ}, SketchPlane::XZ(), "Circle2");
+    doc.add_extrude(sk2, 6.0, false, BooleanMode::New, "Extrude2");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    REQUIRE(doc.bodies.size() >= 2);
+    std::vector<double> orig_vols;
+    for (const auto& b : doc.bodies)
+        orig_vols.push_back(double(SketchEngine::tessellate(b.shape).volume()));
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.error.empty());
+    REQUIRE(doc2.bodies.size() == doc.bodies.size());
+
+    for (size_t i = 0; i < doc.bodies.size(); ++i) {
+        double v2 = double(SketchEngine::tessellate(doc2.bodies[i].shape).volume());
+        REQUIRE_THAT(v2, WithinRel(orig_vols[i], 1e-6));
+    }
+}
+
+TEST_CASE("deserialize_recipe rejects future version", "[CadDocument]")
+{
+    CadDocument doc;
+    std::ostringstream oss;
+    {
+        cereal::BinaryOutputArchive ar(oss);
+        uint32_t v = 999;
+        ar(v);
+    }
+    REQUIRE_FALSE(doc.deserialize_recipe(oss.str()));
 }

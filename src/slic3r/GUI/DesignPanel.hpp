@@ -86,6 +86,9 @@ private:
     // a modal dialog editing the feature's placement transform in place.
     void on_transform_imported(int feat_idx);
     void on_commit();
+    // Rehydrate the parametric model from a project's saved recipe (3MF
+    // Metadata/SnapOrca_cad.bin): deserialize -> recompute -> refresh viewport + tree.
+    void load_recipe(const std::string& blob);
     void refresh_tree();
     void set_status_ok();
 

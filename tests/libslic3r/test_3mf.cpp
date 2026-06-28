@@ -133,6 +133,42 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
     }
 }
 
+SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf]") {
+    GIVEN("a model carrying a binary cad_recipe") {
+        Model src_model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        load_stl(src_file.c_str(), &src_model);
+        src_model.add_default_instances();
+
+        // Binary payload with an embedded NUL to prove the carrier is byte-safe
+        // (no XML/text mangling) — mirrors the cereal blob from serialize_recipe().
+        std::string recipe;
+        recipe.push_back('\x01');
+        recipe.append("SNAPORCA");
+        recipe.push_back('\0');
+        recipe.append("\xff\xfe\x00\x10cad-features-blob");
+        src_model.cad_recipe = recipe;
+
+        WHEN("the model is saved+loaded to/from a 3mf file") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/cad_recipe.3mf";
+            store_3mf(test_file.c_str(), &src_model, nullptr, false);
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            {
+                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+                load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false);
+            }
+            boost::filesystem::remove(test_file);
+
+            THEN("the recipe round-trips byte-for-byte") {
+                REQUIRE(dst_model.cad_recipe.size() == recipe.size());
+                REQUIRE(dst_model.cad_recipe == recipe);
+            }
+        }
+    }
+}
+
 SCENARIO("2D convex hull of sinking object", "[3mf][.]") {
     GIVEN("model") {
         // load a model

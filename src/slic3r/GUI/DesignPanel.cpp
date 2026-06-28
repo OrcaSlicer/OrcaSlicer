@@ -2652,6 +2652,29 @@ int DesignPanel::tree_icon_for(CadFeatureType t)
 void DesignPanel::on_tab_shown()
 {
     if (m_viewport) m_viewport->refresh_bed();
+
+    // Rehydrate the parametric model from a freshly loaded project (the 3MF carried the
+    // recipe in Metadata/SnapOrca_cad.bin). Only when nothing is in progress here, so we
+    // never clobber an active design when the user just toggles back to the Design tab.
+    if (m_doc.features.empty()) {
+        if (Plater* plater = wxGetApp().plater()) {
+            const std::string& blob = plater->model().cad_recipe;
+            if (!blob.empty()) load_recipe(blob);
+        }
+    }
+}
+
+void DesignPanel::load_recipe(const std::string& blob)
+{
+    if (blob.empty()) return;
+    if (!m_doc.deserialize_recipe(blob)) {
+        m_status->SetLabel(_L("Could not restore the CAD model from this project"));
+        return;
+    }
+    m_feature_counter = int(m_doc.features.size());
+    feed_bodies();    // push the restored bodies into the viewport
+    refresh_tree();   // rebuild the feature tree from the restored recipe
+    set_status_ok();
 }
 
 void DesignPanel::refresh_tree()
@@ -4525,6 +4548,13 @@ void DesignPanel::on_commit()
     } else {
         obj_list->load_mesh_object(m_disp_pick_mesh, "Design Body");
     }
+
+    // Persist the editable parametric recipe alongside the committed meshes so the
+    // saved 3MF reopens with the full feature tree, not just the baked solid. An empty
+    // doc clears it, keeping non-CAD projects clean.
+    if (Plater* plater = wxGetApp().plater())
+        plater->model().cad_recipe =
+            m_doc.features.empty() ? std::string() : m_doc.serialize_recipe();
 
     if (wxGetApp().mainframe != nullptr)
         wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
