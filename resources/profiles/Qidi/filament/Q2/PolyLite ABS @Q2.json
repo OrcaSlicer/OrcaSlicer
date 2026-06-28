@@ -3,7 +3,6 @@
 	"name": "PolyLite ABS@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSA04",
 	"filament_id": "GFB99",
 	"instantiation": "false",
 	"box_temperature_range_high": [

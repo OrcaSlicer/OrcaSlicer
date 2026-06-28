@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "YK77S7a06UMEQzum",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_type": [

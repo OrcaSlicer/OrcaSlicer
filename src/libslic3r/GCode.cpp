@@ -337,7 +337,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if(retraction_length_remaining <=EPSILON) return {retractionBeforeWipe,0.f};
         
         // Calculate wipe speed
-        double wipe_speed = config.role_based_wipe_speed ? writer.get_current_speed() / 60.0 : config.get_abs_value("wipe_speed");
+        double wipe_speed = config.role_based_wipe_speed ? writer.get_current_speed() / 60.0 : config.get_abs_value("wipe_speed", gcodegen.config().travel_speed.get_at(gcodegen.cur_extruder_index()));
         wipe_speed = std::max(wipe_speed, 10.0);
 
         // Process wipe path & calculate wipe path length
@@ -429,7 +429,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         /*  Reduce feedrate a bit; travel speed is often too high to move on existing material.
             Too fast = ripping of existing material; too slow = short wipe path, thus more blob.  */
-        double _wipe_speed = gcodegen.config().get_abs_value("wipe_speed");// gcodegen.writer().config.travel_speed.value * 0.8;
+        double _wipe_speed = gcodegen.config().get_abs_value("wipe_speed", gcodegen.config().travel_speed.get_at(gcodegen.cur_extruder_index()));// gcodegen.writer().config.travel_speed.value * 0.8;
         if(gcodegen.config().role_based_wipe_speed)
             _wipe_speed = gcodegen.writer().get_current_speed() / 60.0;
         if(_wipe_speed < 10)
@@ -515,7 +515,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             outer_wall_line_width = default_line_width == 0.0 ? filament_diameter : default_line_width;
         }
         Flow outer_wall_flow = Flow(outer_wall_line_width, config.layer_height, config.nozzle_diameter.get_at(extruder_id));
-        float outer_wall_speed = print.default_region_config().outer_wall_speed.value;
+        float outer_wall_speed = print.default_region_config().outer_wall_speed.get_at(extruder_id);
         outer_wall_volumetric_speed = outer_wall_speed * outer_wall_flow.mm3_per_mm();
         if (outer_wall_volumetric_speed > filament_max_volumetric_speed)
             outer_wall_volumetric_speed = filament_max_volumetric_speed;
@@ -1602,6 +1602,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_writer.filament()->extruder_id())
 #define FILAMENT_CONFIG(OPT) m_config.OPT.get_at(m_writer.filament()->id())
+#define NOZZLE_CONFIG(OPT) m_config.OPT.get_at(cur_extruder_index())
 
 void GCode::PlaceholderParserIntegration::reset()
 {
@@ -2806,10 +2807,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     print.throw_if_canceled();
 
-    m_cooling_buffer = make_unique<CoolingBuffer>(*this);
-    m_cooling_buffer->set_current_extruder(initial_extruder_id);
-
     int extruder_id = get_extruder_id(initial_extruder_id);
+
+    m_cooling_buffer = make_unique<CoolingBuffer>(*this);
+    m_cooling_buffer->set_current_extruder(initial_extruder_id, extruder_id);
 
     // Orca: Initialise AdaptivePA processor filter
     m_pa_processor = std::make_unique<AdaptivePAProcessor>(*this, tool_ordering.all_extruders());
@@ -3034,6 +3035,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("bed_temperature_initial_layer_vector", new ConfigOptionString());
         this->placeholder_parser().set("chamber_temperature", new ConfigOptionInts(m_config.chamber_temperature));
         this->placeholder_parser().set("overall_chamber_temperature", new ConfigOptionInt(max_chamber_temp));
+        this->placeholder_parser().set("chamber_minimal_temperature", new ConfigOptionInts(m_config.chamber_minimal_temperature));
         this->placeholder_parser().set("enable_high_low_temp_mix", new ConfigOptionBool(!print.need_check_multi_filaments_compatibility()));
         this->placeholder_parser().set("min_vitrification_temperature", new ConfigOptionInt(min_temperature_vitrification));
 
@@ -3244,12 +3246,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
         std::string gcode;
         gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
-        if ((print.default_object_config().outer_wall_acceleration.value > 0 && print.default_object_config().outer_wall_acceleration.value > 0)) {
-            gcode += m_writer.set_print_acceleration((unsigned int)floor(print.default_object_config().outer_wall_acceleration.value + 0.5));
+        if ((NOZZLE_CONFIG(outer_wall_acceleration) > 0 && NOZZLE_CONFIG(outer_wall_acceleration) > 0)) {
+            gcode += m_writer.set_print_acceleration((unsigned int)floor(NOZZLE_CONFIG(outer_wall_acceleration) + 0.5));
         }
 
-        if (print.default_object_config().outer_wall_jerk.value > 0) {
-            double jerk = print.default_object_config().outer_wall_jerk.value;
+        if (NOZZLE_CONFIG(outer_wall_jerk) > 0) {
+            double jerk = NOZZLE_CONFIG(outer_wall_jerk);
             gcode += m_writer.set_jerk_xy(jerk);
         }
 
@@ -3332,8 +3334,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     file.writeln(printing_by_object_gcode);
                 }
                 // Reset the cooling buffer internal state (the current position, feed rate, accelerations).
+                m_cooling_buffer->set_current_extruder(initial_extruder_id, get_extruder_id(initial_extruder_id));
                 m_cooling_buffer->reset(this->writer().get_position());
-                m_cooling_buffer->set_current_extruder(initial_extruder_id);
                 // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
                 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
                 // and export G-code into file.
@@ -3644,6 +3646,13 @@ void GCode::check_placeholder_parser_failed()
     }
 }
 
+size_t GCode::cur_extruder_index() const
+{
+    //TODO: check if the function is duplicated
+    //just return m_writer.filament()->extruder_id()
+    return get_extruder_id(m_writer.filament()->id());
+}
+
 size_t GCode::get_extruder_id(unsigned int filament_id) const
 {
     if (m_print) {
@@ -3939,51 +3948,75 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print)
     const auto flavor = print.config().gcode_flavor.value;
     if ((flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfRepRapFirmware) &&
         print.config().emit_machine_limits_to_gcode.value == true) {
+
+        // Get all physical tool ids current print will use
+        std::unordered_set<unsigned int> used_extruders;
+        for (const auto& extruder : m_writer.extruders()) {
+            used_extruders.insert(extruder.extruder_id());
+        }
+
+        // Get the max limit value among used extruders
+        auto get_max_value = [&used_extruders](const std::string key, const ConfigOptionFloats& v) { 
+            unsigned int stride = 1;
+            if (printer_options_with_variant_2.count(key) > 0) {
+                stride = 2;
+            }
+
+            double value = std::numeric_limits<double>::lowest();
+            for (unsigned int extruder : used_extruders) {
+                value = std::max(value, v.values[extruder * stride]);
+            }
+
+            assert(value > std::numeric_limits<double>::lowest());
+            return value;
+        };
+#define MAX_LIMIT(OPT) get_max_value(#OPT, print.config().OPT)
+
         int factor = flavor == gcfRepRapFirmware ? 60 : 1; // RRF M203 and M566 are in mm/min
         file.write_format("M201 X%d Y%d Z%d E%d\n",
-            int(print.config().machine_max_acceleration_x.values.front() + 0.5),
-            int(print.config().machine_max_acceleration_y.values.front() + 0.5),
-            int(print.config().machine_max_acceleration_z.values.front() + 0.5),
-            int(print.config().machine_max_acceleration_e.values.front() + 0.5));
+            int(MAX_LIMIT(machine_max_acceleration_x) + 0.5),
+            int(MAX_LIMIT(machine_max_acceleration_y) + 0.5),
+            int(MAX_LIMIT(machine_max_acceleration_z) + 0.5),
+            int(MAX_LIMIT(machine_max_acceleration_e) + 0.5));
         file.write_format("M203 X%d Y%d Z%d E%d\n",
-            int(print.config().machine_max_speed_x.values.front() * factor + 0.5),
-            int(print.config().machine_max_speed_y.values.front() * factor + 0.5),
-            int(print.config().machine_max_speed_z.values.front() * factor + 0.5),
-            int(print.config().machine_max_speed_e.values.front() * factor + 0.5));
+            int(MAX_LIMIT(machine_max_speed_x) * factor + 0.5),
+            int(MAX_LIMIT(machine_max_speed_y) * factor + 0.5),
+            int(MAX_LIMIT(machine_max_speed_z) * factor + 0.5),
+            int(MAX_LIMIT(machine_max_speed_e) * factor + 0.5));
 
         // Now M204 - acceleration. This one is quite hairy thanks to how Marlin guys care about
         // Legacy Marlin should export travel acceleration the same as printing acceleration.
         // MarlinFirmware has the two separated.
         int travel_acc = flavor == gcfMarlinLegacy
-                       ? int(print.config().machine_max_acceleration_extruding.values.front() + 0.5)
-                       : int(print.config().machine_max_acceleration_travel.values.front() + 0.5);
+                       ? int(MAX_LIMIT(machine_max_acceleration_extruding) + 0.5)
+                       : int(MAX_LIMIT(machine_max_acceleration_travel) + 0.5);
         if (flavor == gcfRepRapFirmware)
             file.write_format("M204 P%d T%d ; sets acceleration (P, T), mm/sec^2\n",
-                int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
+                int(MAX_LIMIT(machine_max_acceleration_extruding) + 0.5),
                 travel_acc);
         else if (flavor == gcfMarlinFirmware)
             // New Marlin uses M204 P[print] R[retract] T[travel]
             file.write_format("M204 P%d R%d T%d ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2\n",
-                int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
-                int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
-                int(print.config().machine_max_acceleration_travel.values.front() + 0.5));
+                int(MAX_LIMIT(machine_max_acceleration_extruding) + 0.5),
+                int(MAX_LIMIT(machine_max_acceleration_retracting) + 0.5),
+                int(MAX_LIMIT(machine_max_acceleration_travel) + 0.5));
         else
             file.write_format("M204 P%d R%d T%d\n",
-                int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
-                int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
+                int(MAX_LIMIT(machine_max_acceleration_extruding) + 0.5),
+                int(MAX_LIMIT(machine_max_acceleration_retracting) + 0.5),
                 travel_acc);
 
         assert(is_decimal_separator_point());
         file.write_format(flavor == gcfRepRapFirmware
             ? "M566 X%.2lf Y%.2lf Z%.2lf E%.2lf ; sets the jerk limits, mm/min\n"
             : "M205 X%.2lf Y%.2lf Z%.2lf E%.2lf ; sets the jerk limits, mm/sec\n",
-            print.config().machine_max_jerk_x.values.front() * factor,
-            print.config().machine_max_jerk_y.values.front() * factor,
-            print.config().machine_max_jerk_z.values.front() * factor,
-            print.config().machine_max_jerk_e.values.front() * factor);
+            MAX_LIMIT(machine_max_jerk_x) * factor,
+            MAX_LIMIT(machine_max_jerk_y) * factor,
+            MAX_LIMIT(machine_max_jerk_z) * factor,
+            MAX_LIMIT(machine_max_jerk_e) * factor);
 
         // New Marlin uses M205 J[mm] for junction deviation (only apply if it is > 0)
-        file.write_format(writer().set_junction_deviation(config().machine_max_junction_deviation.values.front()).c_str());
+        file.write_format(writer().set_junction_deviation(MAX_LIMIT(machine_max_junction_deviation)).c_str());
 
         // Orca: Override input shaping values
         if (print.config().input_shaping_emit.value && flavor != gcfMarlinLegacy) {
@@ -3996,6 +4029,7 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print)
             }
         }
     }
+#undef MAX_LIMIT
 }
 
 // BBS
@@ -4433,10 +4467,10 @@ std::string GCode::generate_skirt(const Print &print,
             if (first_layer && i==loops.first) {
                 //set skirt start point location
                 const Point desired_start_point = Skirt::find_start_point(loop, skirt_start_angle);
-                gcode += this->extrude_loop(loop, "skirt", m_config.support_speed.value, {}, &desired_start_point);
+                gcode += this->extrude_loop(loop, "skirt", NOZZLE_CONFIG(support_speed), {}, &desired_start_point);
             }
             else
-                gcode += this->extrude_loop(loop, "skirt", m_config.support_speed.value);
+                gcode += this->extrude_loop(loop, "skirt", NOZZLE_CONFIG(support_speed));
 
             // If we only want a single wall on non-first layers, break now
             if (!first_layer && print.m_config.single_loop_draft_shield) {
@@ -4498,7 +4532,7 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
         m_avoid_crossing_perimeters.use_external_mp();
         for (const ExtrusionEntity* ee : brim.entities)
             if (ee != nullptr)
-                gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
+                gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
         m_avoid_crossing_perimeters.use_external_mp(false);
         m_avoid_crossing_perimeters.disable_once();
         for (ObjectID object_id : object_ids)
@@ -4697,12 +4731,12 @@ LayerResult GCode::process_layer(
         }
         case CalibMode::Calib_VFA_Tower: {
             auto _speed = print.calib_params().start + std::floor(print_z / 5.0) * print.calib_params().step;
-            m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloat(std::round(_speed)));
+            m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable({std::round(_speed)}));
             break;
         }
         case CalibMode::Calib_Vol_speed_Tower: {
             auto _speed = print.calib_params().start + print_z * print.calib_params().step;
-            m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloat(std::round(_speed)));
+            m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable({std::round(_speed)}));
             break;
         }
         case CalibMode::Calib_Retraction_tower: {
@@ -4759,16 +4793,16 @@ LayerResult GCode::process_layer(
     //BBS
     if (first_layer) {
         // Orca: we don't need to optimize the Klipper as only set once
-        if (m_config.default_acceleration.value > 0 && m_config.initial_layer_acceleration.value > 0) {
-            gcode += m_writer.set_print_acceleration((unsigned int)floor(m_config.initial_layer_acceleration.value + 0.5));
+        if (NOZZLE_CONFIG(default_acceleration) > 0 && NOZZLE_CONFIG(initial_layer_acceleration) > 0) {
+            gcode += m_writer.set_print_acceleration((unsigned int)floor(NOZZLE_CONFIG(initial_layer_acceleration) + 0.5));
         }
 
-        if (m_config.default_jerk.value > 0 && m_config.initial_layer_jerk.value > 0) {
-            gcode += m_writer.set_jerk_xy(m_config.initial_layer_jerk.value);
+        if (NOZZLE_CONFIG(default_jerk) > 0 && NOZZLE_CONFIG(initial_layer_jerk) > 0) {
+            gcode += m_writer.set_jerk_xy(NOZZLE_CONFIG(initial_layer_jerk));
         }
 
-        if (m_writer.get_gcode_flavor() == gcfMarlinFirmware && m_config.default_junction_deviation.value > 0) {
-            gcode += m_writer.set_junction_deviation(m_config.default_junction_deviation.value);
+        if (m_writer.get_gcode_flavor() == gcfMarlinFirmware && NOZZLE_CONFIG(default_junction_deviation) > 0) {
+            gcode += m_writer.set_junction_deviation(NOZZLE_CONFIG(default_junction_deviation));
         }
     }
 
@@ -4789,12 +4823,12 @@ LayerResult GCode::process_layer(
         }
       // Reset acceleration at sencond layer
       // Orca: only set once, don't need to call set_accel_and_jerk
-      if (m_config.default_acceleration.value > 0 && m_config.initial_layer_acceleration.value > 0) {
-        gcode += m_writer.set_print_acceleration((unsigned int) floor(m_config.default_acceleration.value + 0.5));
+      if (NOZZLE_CONFIG(default_acceleration) > 0 && NOZZLE_CONFIG(initial_layer_acceleration) > 0) {
+        gcode += m_writer.set_print_acceleration((unsigned int) floor(NOZZLE_CONFIG(default_acceleration) + 0.5));
       }
 
-      if (m_config.default_jerk.value > 0 && m_config.initial_layer_jerk.value > 0) {
-        gcode += m_writer.set_jerk_xy(m_config.default_jerk.value);
+      if (NOZZLE_CONFIG(default_jerk) > 0 && NOZZLE_CONFIG(initial_layer_jerk) > 0) {
+        gcode += m_writer.set_jerk_xy(NOZZLE_CONFIG(default_jerk));
       }
 
         // Transition from 1st to 2nd layer. Adjust nozzle temperatures as prescribed by the nozzle dependent
@@ -4849,8 +4883,8 @@ LayerResult GCode::process_layer(
     for (const auto &layer_to_print : layers) {
         if (layer_to_print.object_layer) {
             const auto& regions = layer_to_print.object_layer->regions();
-            const bool  enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [](const LayerRegion* r) {
-                return r->has_extrusions() && r->region().config().enable_overhang_speed;
+            const bool  enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
+                return r->has_extrusions() && r->region().config().enable_overhang_speed.get_at(cur_extruder_index());
             });
             if (enable_overhang_speed) {
                 m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
@@ -5390,7 +5424,7 @@ LayerResult GCode::process_layer(
                         this->set_origin(0., 0.);
                         m_avoid_crossing_perimeters.use_external_mp();
                         for (const ExtrusionEntity* ee : print.m_supportBrimMap.at(instance_to_print.print_object.id()).entities) {
-                            gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
+                            gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
                         }
                         m_avoid_crossing_perimeters.use_external_mp(false);
                         // Allow a straight travel move to the first object point.
@@ -5804,11 +5838,11 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
 
     // SoftFever: check loop lenght for small perimeter. 
     double small_peri_speed = -1;
-    if (speed == -1 && loop.length() <= SMALL_PERIMETER_LENGTH(m_config.small_perimeter_threshold.value)) {
-        if(m_config.small_perimeter_speed == 0)
-            small_peri_speed = m_config.outer_wall_speed * 0.5;
+    if (speed == -1 && loop.length() <= SMALL_PERIMETER_LENGTH(NOZZLE_CONFIG(small_perimeter_threshold))) {
+        if(NOZZLE_CONFIG(small_perimeter_speed).value == 0)
+            small_peri_speed = NOZZLE_CONFIG(outer_wall_speed) * 0.5;
         else
-            small_peri_speed = m_config.small_perimeter_speed.get_abs_value(m_config.outer_wall_speed);
+            small_peri_speed = NOZZLE_CONFIG(small_perimeter_speed).get_abs_value(NOZZLE_CONFIG(outer_wall_speed));
     }
 
     // extrude along the path
@@ -6198,8 +6232,8 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         if (!support_fills.no_sort)
             chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
 
-        const double  support_speed            = m_config.support_speed.value;
-        const double  support_interface_speed  = m_config.get_abs_value("support_interface_speed");
+        //const double  support_speed            = m_config.support_speed.value;
+        //const double  support_interface_speed  = m_config.get_abs_value("support_interface_speed");
         for (const ExtrusionEntity *ee : extrusions) {
             ExtrusionRole role = ee->role();
             assert(role == erSupportMaterial || role == erSupportMaterialInterface || role == erSupportTransition || role == erIroning);
@@ -6410,47 +6444,47 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     unsigned int acceleration_i = 0;
     double jerk = 0;
     // adjust acceleration
-    if (m_config.default_acceleration.value > 0) {
+    if (NOZZLE_CONFIG(default_acceleration) > 0) {
         double acceleration;
-        if (this->on_first_layer() && m_config.initial_layer_acceleration.value > 0) {
-            acceleration = m_config.initial_layer_acceleration.value;
+        if (this->on_first_layer() && NOZZLE_CONFIG(initial_layer_acceleration) > 0) {
+            acceleration = NOZZLE_CONFIG(initial_layer_acceleration);
 #if 0
         } else if (this->object_layer_over_raft() && m_config.first_layer_acceleration_over_raft.value > 0) {
             acceleration = m_config.first_layer_acceleration_over_raft.value;
 #endif
-        } else if (m_config.get_abs_value("bridge_acceleration") > 0 && is_bridge(path.role())) {
-            acceleration = m_config.get_abs_value("bridge_acceleration");
-        } else if (m_config.get_abs_value("sparse_infill_acceleration") > 0 && (path.role() == erInternalInfill)) {
-            acceleration = m_config.get_abs_value("sparse_infill_acceleration");
-        } else if (m_config.get_abs_value("internal_solid_infill_acceleration") > 0 && (path.role() == erSolidInfill)) {
-            acceleration = m_config.get_abs_value("internal_solid_infill_acceleration");
-        } else if (m_config.outer_wall_acceleration.value > 0 && is_external_perimeter(path.role())) {
-            acceleration = m_config.outer_wall_acceleration.value;
-        } else if (m_config.inner_wall_acceleration.value > 0 && is_internal_perimeter(path.role())) {
-            acceleration = m_config.inner_wall_acceleration.value;
-        } else if (m_config.top_surface_acceleration.value > 0 && is_top_surface(path.role())) {
-            acceleration = m_config.top_surface_acceleration.value;
+        } else if (m_config.get_abs_value_at("bridge_acceleration", cur_extruder_index()) > 0 && is_bridge(path.role())) {
+            acceleration = m_config.get_abs_value_at("bridge_acceleration", cur_extruder_index());
+        } else if (m_config.get_abs_value_at("sparse_infill_acceleration", cur_extruder_index()) > 0 && (path.role() == erInternalInfill)) {
+            acceleration = m_config.get_abs_value_at("sparse_infill_acceleration", cur_extruder_index());
+        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", cur_extruder_index()) > 0 && (path.role() == erSolidInfill)) {
+            acceleration = m_config.get_abs_value_at("internal_solid_infill_acceleration", cur_extruder_index());
+        } else if (NOZZLE_CONFIG(outer_wall_acceleration) > 0 && is_external_perimeter(path.role())) {
+            acceleration = NOZZLE_CONFIG(outer_wall_acceleration);
+        } else if (NOZZLE_CONFIG(inner_wall_acceleration) > 0 && is_internal_perimeter(path.role())) {
+            acceleration = NOZZLE_CONFIG(inner_wall_acceleration);
+        } else if (NOZZLE_CONFIG(top_surface_acceleration) > 0 && is_top_surface(path.role())) {
+            acceleration = NOZZLE_CONFIG(top_surface_acceleration);
         } else {
-            acceleration = m_config.default_acceleration.value;
+            acceleration = NOZZLE_CONFIG(default_acceleration);
         }
         acceleration_i = (unsigned int)floor(acceleration + 0.5);
     }
 
     // adjust X Y jerk
-    if (m_config.default_jerk.value > 0) {
-        if (this->on_first_layer() && m_config.initial_layer_jerk.value > 0) {
-            jerk = m_config.initial_layer_jerk.value;
-        } else if (m_config.outer_wall_jerk.value > 0 && is_external_perimeter(path.role())) {
-             jerk = m_config.outer_wall_jerk.value;
-        } else if (m_config.inner_wall_jerk.value > 0 && is_internal_perimeter(path.role())) {
-            jerk = m_config.inner_wall_jerk.value;
-        } else if (m_config.top_surface_jerk.value > 0 && is_top_surface(path.role())) {
-            jerk = m_config.top_surface_jerk.value;
-        } else if (m_config.infill_jerk.value > 0 && is_infill(path.role())) {
-            jerk = m_config.infill_jerk.value;
+    if (NOZZLE_CONFIG(default_jerk) > 0) {
+        if (this->on_first_layer() && NOZZLE_CONFIG(initial_layer_jerk) > 0) {
+            jerk = NOZZLE_CONFIG(initial_layer_jerk);
+        } else if (NOZZLE_CONFIG(outer_wall_jerk) > 0 && is_external_perimeter(path.role())) {
+             jerk = NOZZLE_CONFIG(outer_wall_jerk);
+        } else if (NOZZLE_CONFIG(inner_wall_jerk) > 0 && is_internal_perimeter(path.role())) {
+            jerk = NOZZLE_CONFIG(inner_wall_jerk);
+        } else if (NOZZLE_CONFIG(top_surface_jerk) > 0 && is_top_surface(path.role())) {
+            jerk = NOZZLE_CONFIG(top_surface_jerk);
+        } else if (NOZZLE_CONFIG(infill_jerk) > 0 && is_infill(path.role())) {
+            jerk = NOZZLE_CONFIG(infill_jerk);
         }
         else {
-            jerk = m_config.default_jerk.value;
+            jerk = NOZZLE_CONFIG(default_jerk);
         }
     }
 
@@ -6513,37 +6547,37 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // set speed
     if (speed == -1) {
         if (path.role() == erPerimeter) {
-            speed = m_config.get_abs_value("inner_wall_speed");
+            speed = NOZZLE_CONFIG(inner_wall_speed);
             if (sloped) {
-                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("inner_wall_speed")));
+                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(speed));
             }
         } else if (path.role() == erExternalPerimeter) {
-            speed = m_config.get_abs_value("outer_wall_speed");
+            speed = NOZZLE_CONFIG(outer_wall_speed);
             if (sloped) {
-                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("outer_wall_speed")));
+                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(speed));
             }
         } 
         else if(path.role() == erInternalBridgeInfill) {
-            speed = m_config.get_abs_value("internal_bridge_speed");
+            speed = m_config.get_abs_value_at("internal_bridge_speed", cur_extruder_index());
         } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
-            speed = m_config.get_abs_value("bridge_speed");
+            speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {
-            speed = m_config.get_abs_value("sparse_infill_speed");
+            speed = NOZZLE_CONFIG(sparse_infill_speed);
         } else if (path.role() == erSolidInfill) {
-            speed = m_config.get_abs_value("internal_solid_infill_speed");
+            speed = NOZZLE_CONFIG(internal_solid_infill_speed);
         } else if (path.role() == erTopSolidInfill) {
-            speed = m_config.get_abs_value("top_surface_speed");
+            speed = NOZZLE_CONFIG(top_surface_speed);
         } else if (path.role() == erIroning) {
             speed = m_config.get_abs_value("ironing_speed");
         } else if (path.role() == erBottomSurface) {
-            speed = m_config.get_abs_value("initial_layer_infill_speed");
+            speed = NOZZLE_CONFIG(initial_layer_infill_speed);
         } else if (path.role() == erGapFill) {
-            speed = m_config.get_abs_value("gap_infill_speed");
+            speed = NOZZLE_CONFIG(gap_infill_speed);
         }
         else if (path.role() == erSupportMaterial ||
                  path.role() == erSupportMaterialInterface) {
-            const double  support_speed = m_config.support_speed.value;
-            const double  support_interface_speed = m_config.get_abs_value("support_interface_speed");
+            const double  support_speed = NOZZLE_CONFIG(support_speed);
+            const double  support_interface_speed = NOZZLE_CONFIG(support_interface_speed);
             speed = (path.role() == erSupportMaterial) ? support_speed : support_interface_speed;
         } else {
             throw Slic3r::InvalidArgument("Invalid speed");
@@ -6564,16 +6598,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         //BBS: for solid infill of first layer, speed can be higher as long as
         //wall lines have be attached
         if (path.role() != erBottomSurface) {
-            speed = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
-                                                m_config.get_abs_value("initial_layer_infill_speed");
+            speed = is_perimeter(path.role()) ? NOZZLE_CONFIG(initial_layer_speed) :
+                                                NOZZLE_CONFIG(initial_layer_infill_speed);
         }
     } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
         
         if (_layer > 0 && _layer < m_config.slow_down_layers) {
             const auto first_layer_speed =
                 is_perimeter(path.role())
-                    ? m_config.get_abs_value("initial_layer_speed")
-                    : m_config.get_abs_value("initial_layer_infill_speed");
+                    ? NOZZLE_CONFIG(initial_layer_speed)
+                    : NOZZLE_CONFIG(initial_layer_infill_speed);
             if (first_layer_speed < speed) {
                 speed = std::min(
                     speed,
@@ -6585,8 +6619,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         
         if (_layer > m_config.raft_layers && (_layer - m_config.raft_layers) < m_config.slow_down_layers) {
             const auto first_layer_speed 
-                = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
-                                                                       m_config.get_abs_value("initial_layer_infill_speed");
+                = is_perimeter(path.role()) ? NOZZLE_CONFIG(initial_layer_speed) :
+                                                                       NOZZLE_CONFIG(initial_layer_infill_speed);
             if (first_layer_speed < speed) {
                 speed = std::min(speed, Slic3r::lerp(first_layer_speed, speed,
                                                      (double) (_layer - m_config.raft_layers) / m_config.slow_down_layers));
@@ -6652,10 +6686,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
 
-    if (m_config.enable_overhang_speed && !this->on_first_layer() && !object_layer_over_raft() &&
+    if (NOZZLE_CONFIG(enable_overhang_speed) && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
-            double ref_speed   = is_external ? m_config.get_abs_value("outer_wall_speed") : m_config.get_abs_value("inner_wall_speed");
+            double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
             if (ref_speed == 0)
                 ref_speed = FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm;
 
@@ -6668,46 +6702,46 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             
             ConfigOptionPercents         overhang_overlap_levels({90, 75, 50, 25, 13, 0});
 
-            if (m_config.slowdown_for_curled_perimeters){
+            if (NOZZLE_CONFIG(slowdown_for_curled_perimeters)){
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                     {FloatOrPercent{100, true},
-                     (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ?
+                     (NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_1_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_2_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     (NOZZLE_CONFIG(overhang_2_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_2_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_3_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_2_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     (NOZZLE_CONFIG(overhang_3_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_3_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_3_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true}});
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, m_config.slowdown_for_curled_perimeters);
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
         	}else{
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                                                                      {FloatOrPercent{100, true},
-                     (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ?
+                     (NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_1_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_2_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     (NOZZLE_CONFIG(overhang_2_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_2_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_3_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_2_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     (NOZZLE_CONFIG(overhang_3_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_3_4_speed", ref_speed) * 100 / ref_speed, true},
-                      (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_3_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                      (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
                             FloatOrPercent{100, true} :
-                            FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
-                     FloatOrPercent{m_config.get_abs_value("bridge_speed") * 100 / ref_speed, true}});
+                            FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
+                     FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, m_config.slowdown_for_curled_perimeters);
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
@@ -7366,40 +7400,40 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     unsigned int acceleration_to_set = 0;
     
     if (this->on_first_layer()) {
-        unsigned int initial_layer_travel_acceleration = m_config.get_abs_value("initial_layer_travel_acceleration");
-        double initial_layer_travel_jerk = m_config.get_abs_value("initial_layer_travel_jerk");
+        unsigned int initial_layer_travel_acceleration = m_config.get_abs_value_at("initial_layer_travel_acceleration", cur_extruder_index());
+        double initial_layer_travel_jerk = m_config.get_abs_value_at("initial_layer_travel_jerk", cur_extruder_index());
     
-        if (m_config.default_acceleration.value > 0 && initial_layer_travel_acceleration > 0) {
+        if (NOZZLE_CONFIG(default_acceleration) > 0 && initial_layer_travel_acceleration > 0) {
             acceleration_to_set = (unsigned int) floor(initial_layer_travel_acceleration + 0.5);
         }
-        if (m_config.default_jerk.value > 0 && initial_layer_travel_jerk > 0) {
+        if (NOZZLE_CONFIG(default_jerk)> 0 && initial_layer_travel_jerk > 0) {
             jerk_to_set = initial_layer_travel_jerk;
         }
     } else { // ORCA: Handle short-travel acceleration and jerk for outer perimeters (if applicable)
         const bool is_short_travel = travel.length() < scale_(EXTRUDER_CONFIG(retraction_minimum_travel));
 
-        if (m_config.default_acceleration.value > 0) {
+        if (NOZZLE_CONFIG(default_acceleration) > 0) {
             if (role == erOverhangPerimeter && is_short_travel) {
-                const double bridge_acceleration  = m_config.get_abs_value("bridge_acceleration");
+                const double bridge_acceleration  = m_config.get_abs_value_at("bridge_acceleration", cur_extruder_index());
 
                 if (bridge_acceleration > 0)
                     acceleration_to_set = (unsigned int) floor(bridge_acceleration + 0.5);
             } else if (role == erExternalPerimeter && is_short_travel) {
-                if (m_config.outer_wall_acceleration.value > 0)
-                    acceleration_to_set = (unsigned int) floor(m_config.outer_wall_acceleration.value + 0.5);
+                if (NOZZLE_CONFIG(outer_wall_acceleration) > 0)
+                    acceleration_to_set = (unsigned int) floor(NOZZLE_CONFIG(outer_wall_acceleration) + 0.5);
             } else {
-                if (m_config.travel_acceleration.value > 0)
-                    acceleration_to_set = (unsigned int) floor(m_config.travel_acceleration.value + 0.5);
+                if (NOZZLE_CONFIG(travel_acceleration) > 0)
+                    acceleration_to_set = (unsigned int) floor(NOZZLE_CONFIG(travel_acceleration) + 0.5);
             }
         }
 
-        if (m_config.default_jerk.value > 0) {
+        if (NOZZLE_CONFIG(default_jerk) > 0) {
             if ((role == erExternalPerimeter || role == erOverhangPerimeter) && is_short_travel) {
-                if (m_config.outer_wall_jerk.value > 0)
-                    jerk_to_set = m_config.outer_wall_jerk.value;
+                if (NOZZLE_CONFIG(outer_wall_jerk) > 0)
+                    jerk_to_set = NOZZLE_CONFIG(outer_wall_jerk);
             } else {
-                if (m_config.travel_jerk.value > 0)
-                    jerk_to_set = m_config.travel_jerk.value;
+                if (NOZZLE_CONFIG(travel_jerk) > 0)
+                    jerk_to_set = NOZZLE_CONFIG(travel_jerk);
             }
         }
     }

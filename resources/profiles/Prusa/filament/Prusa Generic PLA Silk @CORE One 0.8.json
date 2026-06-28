@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA Silk @CORE One 0.8",
 	"inherits": "Prusa Generic PLA Silk @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "y2IZMYPduRS1mEFL",
 	"filament_id": "Prusa Generic PLA Silk @CORE One 0.8",
 	"instantiation": "true",
 	"compatible_printers": [

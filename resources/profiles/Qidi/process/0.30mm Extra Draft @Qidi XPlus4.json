@@ -3,7 +3,7 @@
 	"name": "0.30mm Extra Draft @Qidi XPlus4",
 	"inherits": "fdm_process_qidi_x3_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "PypLIvy1do9mp98q",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"enable_arc_fitting": "0",

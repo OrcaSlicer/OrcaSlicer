@@ -3,7 +3,7 @@
 	"name": "InfiMech Generic PA-CF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "k2NSIB3vVUoXGW9F",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

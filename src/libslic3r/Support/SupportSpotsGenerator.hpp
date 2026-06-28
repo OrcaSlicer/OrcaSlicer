@@ -18,8 +18,8 @@ namespace SupportSpotsGenerator {
 struct Params
 {
     Params(
-        const std::vector<std::string> &filament_types, float max_acceleration, int raft_layers_count, BrimType brim_type, float brim_width)
-        : max_acceleration(max_acceleration), raft_layers_count(raft_layers_count), brim_type(brim_type), brim_width(brim_width)
+        const std::vector<std::string> &filament_types/*, float max_acceleration*/, int raft_layers_count, BrimType brim_type, float brim_width)
+        : /*max_acceleration(max_acceleration), */raft_layers_count(raft_layers_count), brim_type(brim_type), brim_width(brim_width)
     {
         if (filament_types.size() > 1) {
             BOOST_LOG_TRIVIAL(warning)
@@ -36,8 +36,8 @@ struct Params
 
     // the algorithm should use the following units for all computations: distance [mm], mass [g], time [s], force [g*mm/s^2]
     const float bridge_distance = 16.0f; // mm
-    const float max_acceleration; // mm/s^2 ; max acceleration of object in XY -- should be applicable only to printers with bed slinger, 
-                                  // however we do not have such info yet. The force is usually small anyway, so not such a big deal to include it everytime
+    // const float max_acceleration; // mm/s^2 ; max acceleration of object in XY -- should be applicable only to printers with bed slinger, 
+    //                               // however we do not have such info yet. The force is usually small anyway, so not such a big deal to include it everytime
     const int raft_layers_count;
     std::string filament_type;
 

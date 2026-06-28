@@ -3,7 +3,7 @@
     "name": "HP-ASA @Ender-5 Max-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "JzsojF2Um23vm2qT",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

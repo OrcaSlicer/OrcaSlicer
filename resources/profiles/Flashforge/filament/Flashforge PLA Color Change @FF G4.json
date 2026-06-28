@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Color Change @FF G4",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "mGj8VEyOnnogpkmF",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

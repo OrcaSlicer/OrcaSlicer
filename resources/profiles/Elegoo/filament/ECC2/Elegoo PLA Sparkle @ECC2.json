@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Sparkle @ECC2",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLASPARKLEECC2",
+	"setting_id": "RoM3TYRuszinvW6b",
 	"instantiation": "true",
 	"fan_min_speed": [
 		"80"

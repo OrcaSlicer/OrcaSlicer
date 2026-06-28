@@ -3,7 +3,7 @@
 	"name": "Co Print ChromaSet 0.4 nozzle fast",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "cltS53TnjdvF8HnA",
 	"instantiation": "true",
 	"printer_model": "Co Print ChromaSet",
 	"default_print_profile": "0.2mm Fast @Co Print ChromaSet 0.4",

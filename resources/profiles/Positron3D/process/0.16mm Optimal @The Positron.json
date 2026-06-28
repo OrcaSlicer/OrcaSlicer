@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @The Positron",
 	"inherits": "fdm_process_the_positron_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "oFGyinsnnFtqnBYJ",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

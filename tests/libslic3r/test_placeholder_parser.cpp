@@ -72,8 +72,9 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
     SECTION("min_width_top_surface") { REQUIRE(std::stod(parser.process("{min_width_top_surface}")) == Catch::Approx(2.7)); }
     // Orca: this one is not coFloatOrPercent
     //SECTION("support_object_xy_distance") { REQUIRE(std::stod(parser.process("{support_object_xy_distance}")) == Catch::Approx(0.3375)); }
+    // Orca: this one is not coFloatOrPercent
     // small_perimeter_speed over outer_wall_speed
-    SECTION("small_perimeter_speed") { REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(30.)); }
+    //SECTION("small_perimeter_speed") { REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(30.)); }
     // infill_anchor over sparse_infill_line_width
     SECTION("infill_anchor") { REQUIRE(std::stod(parser.process("{infill_anchor}")) == Catch::Approx(2.7)); }
     // If scarf_joint_speed is set to percent, then it is applied over respective extrusion types by overriding their respective speeds.

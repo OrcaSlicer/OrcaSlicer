@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_1_32",
-	"setting_id": "GFSN95",
 	"name": "QIDI Support For PAHT@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

@@ -3,6 +3,7 @@
 	"name": "0.28mm Standard @Creality Sermoon V1",
 	"inherits": "fdm_process_creality_common",
 	"from": "User",
+	"setting_id": "ATC7ZredxtE2vMZX",
 	"instantiation": "true",
 	"accel_to_decel_enable": "1",
 	"accel_to_decel_factor": "65%",

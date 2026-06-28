@@ -5,5 +5,6 @@
 	"name": "0.12mm Fine @Elegoo C 0.4 nozzle",
 	"from": "system",
 	"wall_loops": "3",
+	"setting_id": "0S47zshoJbgOUinj",
 	"instantiation": "true"
 }

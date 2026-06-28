@@ -3,7 +3,7 @@
 	"name": "Bambu PETG @Qidi X-Plus 4 0.2 nozzle",
 	"inherits": "Bambu PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "2vTNJwgFvUFq7oS9",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [
