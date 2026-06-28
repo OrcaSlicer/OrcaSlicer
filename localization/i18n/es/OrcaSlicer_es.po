@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -9046,6 +9046,12 @@ msgstr "Borra este perfil"
 msgid "Search in preset"
 msgstr "Buscar en el perfil"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Presionar para reiniciar todos los ajustes al perfil guardado por defecto."
 
@@ -9669,12 +9675,22 @@ msgid "Don't warn again for this preset"
 msgstr "No volver a avisar para este perfil"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Izquierda: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Derecha: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Haga clic para restablecer el valor actual y adjuntarlo al valor global."
@@ -9691,7 +9707,7 @@ msgstr "cambios no guardados"
 msgid "Transfer or discard changes"
 msgstr "Descartar o mantener los cambios"
 
-msgid "Old value"
+msgid "Old Value"
 msgstr "Valor Antiguo"
 
 msgid "New Value"
@@ -9822,6 +9838,12 @@ msgstr "Número de extrusores"
 
 msgid "Capabilities"
 msgstr "Capacidades"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Mostrar todos los perfiles (incluyendo los compatibles)"
@@ -11955,6 +11977,25 @@ msgstr "Impresión normal"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "La aceleración por defecto tanto de la impresión normal como del desplazamiento excepto para la primera capa."
 
+msgid "Acceleration of travel moves."
+msgstr "Aceleración de los movimientos de desplazamiento."
+
+msgid "First layer travel"
+msgstr "Recorrido de primera capa"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"Aceleración de desplazamiento de la primera capa.\n"
+"El valor porcentual es relativo a la aceleración de desplazamiento."
+
+msgid "mm/s² or %"
+msgstr "mm/s² o %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Aceleración de los puentes. Si el valor es expresado como un porcentaje (por ejemplo 50%), se calculará basándose en la aceleración del perímetro externo."
+
 msgid "Default filament profile"
 msgstr "Perfil de filamento por defecto"
 
@@ -12161,11 +12202,27 @@ msgstr "Espiral de Arquímedes"
 msgid "Octagram Spiral"
 msgstr "Espiral Octagonal"
 
+msgid "Top surface density"
+msgstr "Densidad de la superficie superior"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Densidad de la capa superficial superior. Un valor de 100% crea una capa superior totalmente sólida y lisa. Reducir este valor produce una superficie superior texturada, según el patrón elegido. Un valor de 0% provocará que sólo se creen las paredes en la capa superior. Destinado a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión."
+
 msgid "Bottom surface pattern"
 msgstr "Patrón de relleno de cubierta inferior"
 
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Patrón de líneas del relleno de la superficie de la cubierta inferior, no del relleno del puente."
+
+msgid "Bottom surface density"
+msgstr "Densidad de la superficie inferior"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Densidad de la capa superficial inferior. Destinada a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión.\n"
+"ADVERTENCIA: Reducir este valor puede afectar negativamente la adherencia a la cama."
 
 msgid "Internal solid infill pattern"
 msgstr "Patrón de relleno sólido interno"
@@ -12463,18 +12520,6 @@ msgstr "Auto para Descarga"
 
 msgid "Auto For Match"
 msgstr "Auto para Coincidencia"
-
-msgid "Enable filament dynamic map"
-msgstr "Habilitar mapa dinámico de filamentos"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "Activar la asignación dinámica de filamentos durante la impresión."
-
-msgid "Has filament switcher"
-msgstr "Cuenta con un selector de filamentos"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "La impresora cuenta con un dispositivo de cambio de filamento (por ejemplo, AMS)."
 
 msgid "Flush temperature"
 msgstr "Temperatura de descarga"
@@ -12879,92 +12924,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroide"
 
-msgid "Lateral lattice angle 1"
-msgstr "Ángulo de Enrejado Lateral 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "El ángulo del primer conjunto de elementos del Enrejado Lateral en la dirección Z. Cero es vertical."
-
-msgid "Lateral lattice angle 2"
-msgstr "Ángulo de Enrejado Lateral 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "El ángulo del segundo conjunto de elementos del Enrejado Lateral en la dirección Z. Cero es vertical."
-
-msgid "Infill overhang angle"
-msgstr "Ángulo de voladizo del relleno"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "El ángulo de las líneas inclinadas del relleno. 60° dará como resultado un panal puro."
-
-msgid "Lightning overhang angle"
-msgstr "Ángulo de saliente del rayo"
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr "Ángulo máximo de voladizo para la propagación de los soportes de relleno en Rayo."
-
-msgid "Prune angle"
-msgstr "Ángulo de recorte"
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-"Determina con qué intensidad se podan las ramas de los rayos cortas o sin soporte.\n"
-"Este ángulo se convierte internamente en una distancia por capa."
-
-msgid "Straightening angle"
-msgstr "Ángulo de enderezado"
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr "Ángulo máximo de enderezamiento utilizado para simplificar las ramas del Rayo."
-
-msgid "Sparse infill anchor length"
-msgstr "Longitud del anclaje de relleno de baja densidad"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"Conectar una línea de relleno a un perímetro interno con un segmento corto de un perímetro adicional. Si se expresa como porcentaje (ejemplo: 15%) este es calculado sobre el ancho de extrusión de relleno. OrcaSlicer intenta conectar dos líneas de relleno cercanas a un segmento de perímetro corto. Si no se encuentra ningún segmento más corto que relleno_anclaje_max, la línea de relleno se conecta a un segmento de perímetro en un solo lado y la de relleno se conecta a un segmento de perímetro en un solo lado y la longitud del ancho de segmento de perímetro escogido se limita a este parámetro, pero no más largo que anclaje_longitud_max.\n"
-"Configure este parámetro a cero para deshabilitar los perímetros de anclaje conectados a una sola línea de relleno."
-
-msgid "0 (no open anchors)"
-msgstr "0 (no anclar)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (ilimitada)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Máxima longitud del anclaje de relleno"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"Conectar la línea de relleno a un perímetro interno con un segmento corto de un perímetro adicional. Si se expresa como porcentaje (por ejemplo: 15%) este se calcula sobre el ancho de relleno de extrusión. OrcaSlicer intenta conectar dos líneas de relleno cercanas a un segmento de perímetro corto. Si no hay ningún segmento más corto que este parámetro, esta línea de relleno se conecta a un segmento de perímetro solamente a un lado y la longitud del segmento de perìmetro escogida se limita a relleno_anclaje, pero no más alto que este parámetro.\n"
-"Si se deja a 0, el algoritmo antiguo para conexión de relleno se usará, esto debería drear el mismo resultado que con 1000 y 0."
-
-msgid "0 (Simple connect)"
-msgstr "0 (Conexión simple)"
-
-msgid "Acceleration of inner walls."
-msgstr "Aceleración de los perímetros internos."
-
-msgid "Acceleration of travel moves."
-msgstr "Aceleración de los movimientos de desplazamiento."
-
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Aceleración del relleno de la superficie superior. El uso de un valor más bajo puede mejorar la calidad de la superficie superior."
 
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Aceleración del perímetro externo. Usar un valor menor puede mejorar la calidad."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Aceleración de los puentes. Si el valor es expresado como un porcentaje (por ejemplo 50%), se calculará basándose en la aceleración del perímetro externo."
-
-msgid "mm/s² or %"
-msgstr "mm/s² o %"
+msgid "Acceleration of inner walls."
+msgstr "Aceleración de los perímetros internos."
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Aceleración del relleno de baja densidad. Si el valor se expresa en porcentaje (por ejemplo 100%), se calculará basándose en la aceleración por defecto."
@@ -12974,16 +12941,6 @@ msgstr "Aceleración del relleno sólido interno. Si el valor se expresa como po
 
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Aceleración de la primera capa. El uso de un valor más bajo puede mejorar la adherencia con la cama de impresión."
-
-msgid "First layer travel"
-msgstr "Recorrido de primera capa"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"Aceleración de desplazamiento de la primera capa.\n"
-"El valor porcentual es relativo a la aceleración de desplazamiento."
 
 msgid "Enable accel_to_decel"
 msgstr "Activar acel_a_decel"
@@ -13602,6 +13559,75 @@ msgstr "Excluir área de sondeo para aglomeraciones"
 
 msgid "Probing exclude area of clumping."
 msgstr "Área excluida del sondeo para la detección de aglomeraciones."
+
+msgid "Lateral lattice angle 1"
+msgstr "Ángulo de Enrejado Lateral 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "El ángulo del primer conjunto de elementos del Enrejado Lateral en la dirección Z. Cero es vertical."
+
+msgid "Lateral lattice angle 2"
+msgstr "Ángulo de Enrejado Lateral 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "El ángulo del segundo conjunto de elementos del Enrejado Lateral en la dirección Z. Cero es vertical."
+
+msgid "Infill overhang angle"
+msgstr "Ángulo de voladizo del relleno"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "El ángulo de las líneas inclinadas del relleno. 60° dará como resultado un panal puro."
+
+msgid "Lightning overhang angle"
+msgstr "Ángulo de saliente del rayo"
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr "Ángulo máximo de voladizo para la propagación de los soportes de relleno en Rayo."
+
+msgid "Prune angle"
+msgstr "Ángulo de recorte"
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+"Determina con qué intensidad se podan las ramas de los rayos cortas o sin soporte.\n"
+"Este ángulo se convierte internamente en una distancia por capa."
+
+msgid "Straightening angle"
+msgstr "Ángulo de enderezado"
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr "Ángulo máximo de enderezamiento utilizado para simplificar las ramas del Rayo."
+
+msgid "Sparse infill anchor length"
+msgstr "Longitud del anclaje de relleno de baja densidad"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"Conectar una línea de relleno a un perímetro interno con un segmento corto de un perímetro adicional. Si se expresa como porcentaje (ejemplo: 15%) este es calculado sobre el ancho de extrusión de relleno. OrcaSlicer intenta conectar dos líneas de relleno cercanas a un segmento de perímetro corto. Si no se encuentra ningún segmento más corto que relleno_anclaje_max, la línea de relleno se conecta a un segmento de perímetro en un solo lado y la de relleno se conecta a un segmento de perímetro en un solo lado y la longitud del ancho de segmento de perímetro escogido se limita a este parámetro, pero no más largo que anclaje_longitud_max.\n"
+"Configure este parámetro a cero para deshabilitar los perímetros de anclaje conectados a una sola línea de relleno."
+
+msgid "0 (no open anchors)"
+msgstr "0 (no anclar)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (ilimitada)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Máxima longitud del anclaje de relleno"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"Conectar la línea de relleno a un perímetro interno con un segmento corto de un perímetro adicional. Si se expresa como porcentaje (por ejemplo: 15%) este se calcula sobre el ancho de relleno de extrusión. OrcaSlicer intenta conectar dos líneas de relleno cercanas a un segmento de perímetro corto. Si no hay ningún segmento más corto que este parámetro, esta línea de relleno se conecta a un segmento de perímetro solamente a un lado y la longitud del segmento de perìmetro escogida se limita a relleno_anclaje, pero no más alto que este parámetro.\n"
+"Si se deja a 0, el algoritmo antiguo para conexión de relleno se usará, esto debería drear el mismo resultado que con 1000 y 0."
+
+msgid "0 (Simple connect)"
+msgstr "0 (Conexión simple)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14467,6 +14493,18 @@ msgstr "Extrusor Directo"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr "Habilitar mapa dinámico de filamentos"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "Activar la asignación dinámica de filamentos durante la impresión."
+
+msgid "Has filament switcher"
+msgstr "Cuenta con un selector de filamentos"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "La impresora cuenta con un dispositivo de cambio de filamento (por ejemplo, AMS)."
+
 msgid "Extra length on restart"
 msgstr "Longitud extra de reinicio"
 
@@ -15305,22 +15343,6 @@ msgstr "Espesor mínimo de la cubierta superior"
 
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "El número de capas sólidas superiores se incrementa al laminar si el espesor calculado por las capas de la cubierta es más delgado que este valor. Esto puede evitar tener una cubierta demasiado fina cuando la altura de la capa es pequeña. 0 significa que este ajuste está desactivado y el grosor de la capa superior está absolutamente determinado por las capas de la cubierta superior."
-
-msgid "Top surface density"
-msgstr "Densidad de la superficie superior"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Densidad de la capa superficial superior. Un valor de 100% crea una capa superior totalmente sólida y lisa. Reducir este valor produce una superficie superior texturada, según el patrón elegido. Un valor de 0% provocará que sólo se creen las paredes en la capa superior. Destinado a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión."
-
-msgid "Bottom surface density"
-msgstr "Densidad de la superficie inferior"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Densidad de la capa superficial inferior. Destinada a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión.\n"
-"ADVERTENCIA: Reducir este valor puede afectar negativamente la adherencia a la cama."
 
 msgid "This is the speed at which traveling is done."
 msgstr "Velocidad de desplazamiento más rápida y sin extrusión."
@@ -19145,6 +19167,14 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Izquierda: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Derecha: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Activar el plugin de red"

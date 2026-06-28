@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -9167,6 +9167,12 @@ msgstr "このプリセットを削除"
 msgid "Search in preset"
 msgstr "検索"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "全ての変更をリセットします"
 
@@ -9781,12 +9787,22 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "左: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "右: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "現在値をデフォルト値に戻します"
@@ -9806,7 +9822,7 @@ msgid "Transfer or discard changes"
 msgstr "変更を破棄または保持"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "古い値"
 
 msgid "New Value"
@@ -9921,6 +9937,12 @@ msgstr "エクストルーダー数"
 
 msgid "Capabilities"
 msgstr "能力"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "全てのプリセットを表示"
@@ -11956,6 +11978,23 @@ msgstr "通常造形"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "造形と移動時のデフォルト加速度です。"
 
+msgid "Acceleration of travel moves."
+msgstr ""
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "mm/s² 或は %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr ""
+
 msgid "Default filament profile"
 msgstr "デフォルト フィラメント プロファイル"
 
@@ -12138,12 +12177,26 @@ msgstr "アルキメデス螺旋"
 msgid "Octagram Spiral"
 msgstr "オクタグラムスパイラル"
 
+msgid "Top surface density"
+msgstr "上面密度"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "底面パターン"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "底面のインフィル パターンです、ブリッジインフィルが含まれていません。"
+
+msgid "Bottom surface density"
+msgstr "底面密度"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
 
 msgid "Internal solid infill pattern"
 msgstr "内部ソリッドインフィルパターン"
@@ -12410,18 +12463,6 @@ msgstr "フラッシュ用自動"
 
 msgid "Auto For Match"
 msgstr "マッチ用自動"
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr ""
 
 msgid "Flush temperature"
 msgstr "フラッシュ温度"
@@ -12824,75 +12865,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "ジャイロイド"
 
-msgid "Lateral lattice angle 1"
-msgstr ""
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr ""
-
-msgid "Lateral lattice angle 2"
-msgstr ""
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr ""
-
-msgid "Infill overhang angle"
-msgstr "インフィルオーバーハング角度"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr ""
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr ""
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-
-msgid "0 (no open anchors)"
-msgstr "0（開いているアンカーなし）"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (無制限)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "最長インフィルアンカー"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-
-msgid "0 (Simple connect)"
-msgstr ""
-
-msgid "Acceleration of inner walls."
-msgstr ""
-
-msgid "Acceleration of travel moves."
-msgstr ""
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "トップ面のインフィル加速度です。遅くすると表面の仕上がりが向上させることができます"
@@ -12901,11 +12873,8 @@ msgstr "トップ面のインフィル加速度です。遅くすると表面の
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "外壁の加速度：低い値では品質を向上させることができます。"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgid "Acceleration of inner walls."
 msgstr ""
-
-msgid "mm/s² or %"
-msgstr "mm/s² 或は %"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "スパースインフィルの加速度です。値がパーセンテージ（例：100%）で指定された場合、デフォルトの加速度を基に計算されます。"
@@ -12916,14 +12885,6 @@ msgstr ""
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "1層目の造形加速度です。遅くするとプレートとの接着を向上させることができます"
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "加減速制御を有効にする"
@@ -13502,6 +13463,69 @@ msgstr "クランピングのプロービング除外エリア"
 
 msgid "Probing exclude area of clumping."
 msgstr "クランピングのプロービング除外エリア。"
+
+msgid "Lateral lattice angle 1"
+msgstr ""
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr ""
+
+msgid "Lateral lattice angle 2"
+msgstr ""
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr ""
+
+msgid "Infill overhang angle"
+msgstr "インフィルオーバーハング角度"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr ""
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr ""
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+
+msgid "0 (no open anchors)"
+msgstr "0（開いているアンカーなし）"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (無制限)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "最長インフィルアンカー"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+
+msgid "0 (Simple connect)"
+msgstr ""
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14338,6 +14362,18 @@ msgstr "ダイレクトドライブ"
 msgid "Bowden"
 msgstr "ボーデン"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "再開時の追加長さ"
 
@@ -15158,20 +15194,6 @@ msgstr "トップ面厚さ"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "トップ面の厚さです、トップ面層数で決まった厚みがこの値より小さい場合、層数を増やします。この値が0にする場合、この設定が無効となり、設定した層数で造形します。"
-
-msgid "Top surface density"
-msgstr "上面密度"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr ""
-
-msgid "Bottom surface density"
-msgstr "底面密度"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -18907,6 +18929,14 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "左: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "右: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "ネットワークプラグインを有効にする"

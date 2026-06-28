@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -9191,6 +9191,12 @@ msgstr "删除此预设"
 msgid "Search in preset"
 msgstr "在预设中搜索"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "点击以将所有设置还原到最后一次保存的版本。"
 
@@ -9827,12 +9833,22 @@ msgid "Don't warn again for this preset"
 msgstr "不再为此预设警告"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "左：%s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "右：%s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "点击该图标，恢复到全局的配置数值，并与全局配置同步变化。"
@@ -9852,7 +9868,7 @@ msgid "Transfer or discard changes"
 msgstr "放弃或保留更改"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "旧值"
 
 msgid "New Value"
@@ -9984,6 +10000,12 @@ msgstr "挤出机数量"
 
 msgid "Capabilities"
 msgstr "能力"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "显示所有预设(包括不兼容的)"
@@ -12152,6 +12174,25 @@ msgstr "普通打印"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "除首层之外的默认的打印和空驶的加速度"
 
+msgid "Acceleration of travel moves."
+msgstr "空驶加速度"
+
+msgid "First layer travel"
+msgstr "首层空驶"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"首层的空驶加速度。\n"
+"百分比值相对于空驶加速度。"
+
+msgid "mm/s² or %"
+msgstr "mm/s² 或 %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "桥接加速度。如果该值以百分比（例如50%）表示，则将根据外墙加速度进行计算。"
+
 msgid "Default filament profile"
 msgstr "默认耗材配置"
 
@@ -12364,12 +12405,32 @@ msgstr "阿基米德和弦"
 msgid "Octagram Spiral"
 msgstr "八角螺旋"
 
+msgid "Top surface density"
+msgstr "顶面密度"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr ""
+"顶层表面的密度。\n"
+"100% 的值会创建一个完全实心、平滑的顶面。降低此值会根据所选的顶面图案生成有纹理的顶面。0% 的值将只生成顶层的墙。\n"
+"此选项仅为美观或功能性目的，而不是为了解决过量挤出等问题。"
+
 msgid "Bottom surface pattern"
 msgstr "底面图案"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "除了桥接外的底面填充的走线图案"
+
+msgid "Bottom surface density"
+msgstr "底面密度"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"底层表面的密度\n"
+"此功能是为了美观或功能性目的，而是为了解决过量挤出等问题。\n"
+"警告：降低此值会对热床粘接力产生负面影响。"
 
 msgid "Internal solid infill pattern"
 msgstr "内部实心填充图案"
@@ -12663,18 +12724,6 @@ msgstr "自动冲洗"
 
 msgid "Auto For Match"
 msgstr "自动匹配"
-
-msgid "Enable filament dynamic map"
-msgstr "启用耗材动态映射"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "在打印期间启用动态耗材映射。"
-
-msgid "Has filament switcher"
-msgstr "具有耗材切换器"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "打印机具有耗材切换器硬件（例如 AMS）。"
 
 msgid "Flush temperature"
 msgstr "冲洗温度"
@@ -13101,77 +13150,6 @@ msgstr "TPMS-FK结构"
 msgid "Gyroid"
 msgstr "螺旋体"
 
-msgid "Lateral lattice angle 1"
-msgstr "侧向晶格角度1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "第一组二维晶格单元在Z方向的角度。零表示垂直。"
-
-msgid "Lateral lattice angle 2"
-msgstr "侧向晶格角度2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "第二组二维晶格单元在Z方向的角度。零表示垂直。"
-
-msgid "Infill overhang angle"
-msgstr "填充悬垂角度"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "填充倾斜线的角度。60°将产生纯蜂窝结构。"
-
-msgid "Lightning overhang angle"
-msgstr "闪电悬垂角度"
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr "闪电填充支撑扩展的最大悬垂角度。"
-
-msgid "Prune angle"
-msgstr "修剪角度"
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-"控制对短的或无支撑的闪电分支进行修剪的力度。\n"
-"此角度在内部会被转换为每层的距离。"
-
-msgid "Straightening angle"
-msgstr "拉直角度"
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr "用于简化闪电分支的最大拉直角度。"
-
-msgid "Sparse infill anchor length"
-msgstr "稀疏填充锚线长度"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr "用附加周长的一小段将填充线连接到内部周长。如果以百分比（例如：15%）表示，则计算填充拉伸宽度。OrcaSlicer 试图将两条紧密的填充线连接到一个短的周长段。如果找不到短于“填充”和“锚点”最大值的周长线段，则填充线仅在一侧连接到周长线段，并且所取周长线段的长度仅限于此参数，但不超过“锚点长度”最大值。将此参数设置为零，以禁用连接到单个填充线的锚点周长。"
-
-msgid "0 (no open anchors)"
-msgstr "0 (无锚线)"
-
-msgid "1000 (unlimited)"
-msgstr "1000（无限制）"
-
-msgid "Maximum length of the infill anchor"
-msgstr "填充锚线的最大长度"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr "用附加周长的一小段将填充线连接到内部周长。如果以百分比（例如：15%）表示，则计算填充拉伸宽度。OrcaSlicer 试图将两条紧密的填充线连接到一个短的周长段。如果找不到比此参数短的周长线段，则填充线仅在一侧连接到周长线段，并且所采用的周长线段的长度仅限于 infl_anchor，但不超过此参数。将此参数设置为零以禁用锚点。"
-
-msgid "0 (Simple connect)"
-msgstr "0（简单连接）"
-
-msgid "Acceleration of inner walls."
-msgstr "内圈墙加速度，使用较低值可以改善质量。"
-
-msgid "Acceleration of travel moves."
-msgstr "空驶加速度"
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "顶面填充的加速度。使用较低值可能会改善顶面质量"
@@ -13180,11 +13158,8 @@ msgstr "顶面填充的加速度。使用较低值可能会改善顶面质量"
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "外墙加速度。使用较小的值可以提高质量。"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "桥接加速度。如果该值以百分比（例如50%）表示，则将根据外墙加速度进行计算。"
-
-msgid "mm/s² or %"
-msgstr "mm/s² 或 %"
+msgid "Acceleration of inner walls."
+msgstr "内圈墙加速度，使用较低值可以改善质量。"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "稀疏填充的加速度。如果该值表示为百分比（例如100%），则将根据默认加速度进行计算。"
@@ -13195,16 +13170,6 @@ msgstr "内部实心填充的加速度。如果该值以百分比表示（例如
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "首层加速度。使用较低值可以改善和打印板的粘接。"
-
-msgid "First layer travel"
-msgstr "首层空驶"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"首层的空驶加速度。\n"
-"百分比值相对于空驶加速度。"
 
 msgid "Enable accel_to_decel"
 msgstr "启用制动速度"
@@ -13842,6 +13807,71 @@ msgstr "结块检测排除区域"
 
 msgid "Probing exclude area of clumping."
 msgstr "结块检测排除区域"
+
+msgid "Lateral lattice angle 1"
+msgstr "侧向晶格角度1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "第一组二维晶格单元在Z方向的角度。零表示垂直。"
+
+msgid "Lateral lattice angle 2"
+msgstr "侧向晶格角度2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "第二组二维晶格单元在Z方向的角度。零表示垂直。"
+
+msgid "Infill overhang angle"
+msgstr "填充悬垂角度"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "填充倾斜线的角度。60°将产生纯蜂窝结构。"
+
+msgid "Lightning overhang angle"
+msgstr "闪电悬垂角度"
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr "闪电填充支撑扩展的最大悬垂角度。"
+
+msgid "Prune angle"
+msgstr "修剪角度"
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+"控制对短的或无支撑的闪电分支进行修剪的力度。\n"
+"此角度在内部会被转换为每层的距离。"
+
+msgid "Straightening angle"
+msgstr "拉直角度"
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr "用于简化闪电分支的最大拉直角度。"
+
+msgid "Sparse infill anchor length"
+msgstr "稀疏填充锚线长度"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr "用附加周长的一小段将填充线连接到内部周长。如果以百分比（例如：15%）表示，则计算填充拉伸宽度。OrcaSlicer 试图将两条紧密的填充线连接到一个短的周长段。如果找不到短于“填充”和“锚点”最大值的周长线段，则填充线仅在一侧连接到周长线段，并且所取周长线段的长度仅限于此参数，但不超过“锚点长度”最大值。将此参数设置为零，以禁用连接到单个填充线的锚点周长。"
+
+msgid "0 (no open anchors)"
+msgstr "0 (无锚线)"
+
+msgid "1000 (unlimited)"
+msgstr "1000（无限制）"
+
+msgid "Maximum length of the infill anchor"
+msgstr "填充锚线的最大长度"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr "用附加周长的一小段将填充线连接到内部周长。如果以百分比（例如：15%）表示，则计算填充拉伸宽度。OrcaSlicer 试图将两条紧密的填充线连接到一个短的周长段。如果找不到比此参数短的周长线段，则填充线仅在一侧连接到周长线段，并且所采用的周长线段的长度仅限于 infl_anchor，但不超过此参数。将此参数设置为零以禁用锚点。"
+
+msgid "0 (Simple connect)"
+msgstr "0（简单连接）"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14734,6 +14764,18 @@ msgstr "直驱（近程）"
 msgid "Bowden"
 msgstr "远程挤出机"
 
+msgid "Enable filament dynamic map"
+msgstr "启用耗材动态映射"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "在打印期间启用动态耗材映射。"
+
+msgid "Has filament switcher"
+msgstr "具有耗材切换器"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "打印机具有耗材切换器硬件（例如 AMS）。"
+
 msgid "Extra length on restart"
 msgstr "额外回填长度"
 
@@ -15594,26 +15636,6 @@ msgstr "顶部壳体厚度"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部壳体层数算出的厚度小于这个数值，那么切片时将自动增加顶部壳体层数。这能够避免当层高很小时，顶部壳体过薄。0 表示关闭这个设置，同时顶部壳体的厚度完全由顶部壳体层数决定"
-
-msgid "Top surface density"
-msgstr "顶面密度"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr ""
-"顶层表面的密度。\n"
-"100% 的值会创建一个完全实心、平滑的顶面。降低此值会根据所选的顶面图案生成有纹理的顶面。0% 的值将只生成顶层的墙。\n"
-"此选项仅为美观或功能性目的，而不是为了解决过量挤出等问题。"
-
-msgid "Bottom surface density"
-msgstr "底面密度"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"底层表面的密度\n"
-"此功能是为了美观或功能性目的，而是为了解决过量挤出等问题。\n"
-"警告：降低此值会对热床粘接力产生负面影响。"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19494,6 +19516,14 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "左：%s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "右：%s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "启用网络插件"

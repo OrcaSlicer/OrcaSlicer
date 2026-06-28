@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -9247,6 +9247,12 @@ msgstr "Dieses Profil löschen"
 msgid "Search in preset"
 msgstr "In Profilen suchen"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klicken Sie hier, um alle Einstellungen auf die zuletzt gespeicherten Parameter zurückzusetzen."
 
@@ -9884,12 +9890,22 @@ msgid "Don't warn again for this preset"
 msgstr "Nicht erneut für dieses Profil warnen"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Links: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Rechts: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Klicken Sie hier, um den aktuellen Wert zurückzusetzen und ihn dem globalen Wert zuzuordnen."
@@ -9909,7 +9925,7 @@ msgid "Transfer or discard changes"
 msgstr "Änderungen verwerfen oder beibehalten"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "Alter Wert"
 
 msgid "New Value"
@@ -10033,6 +10049,12 @@ msgstr "Anzahl der Extruder"
 
 msgid "Capabilities"
 msgstr "Fähigkeiten"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Alle Profile anzeigen (auch inkompatible)"
@@ -12233,6 +12255,25 @@ msgstr "Normales Drucken"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Die Standardbeschleunigung für den normalen Druck und den Eilgang nach der ersten Schicht."
 
+msgid "Acceleration of travel moves."
+msgstr "Beschleunigung Bewegung"
+
+msgid "First layer travel"
+msgstr "Bewegung der ersten Schicht"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"Bewegungsbeschleunigung der ersten Schicht.\n"
+"Der Prozentwert bezieht sich auf die Bewegungsbeschleunigung."
+
+msgid "mm/s² or %"
+msgstr "mm/s² o. %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Beschleunigung der Brücken. Wenn der Wert als Prozentwert angegeben wird (z.B. 50%), wird er auf der Grundlage der Beschleunigung der Außenwand berechnet."
+
 msgid "Default filament profile"
 msgstr "Standard-Filamentprofil"
 
@@ -12445,12 +12486,28 @@ msgstr "Archimedische Akkorde"
 msgid "Octagram Spiral"
 msgstr "Oktagramm Spirale"
 
+msgid "Top surface density"
+msgstr "Dichte der oberen Oberfläche"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Dichte der oberen Oberflächenschicht. Ein Wert von 100 % erzeugt eine vollständig massive, glatte obere Schicht. Eine Reduzierung dieses Wertes führt zu einer strukturierten oberen Oberfläche, abhängig vom gewählten Oberflächenmuster. Ein Wert von 0 % führt dazu, dass nur die Wände der oberen Schicht erstellt werden. Diese Einstellung dient ästhetischen oder funktionalen Zwecken und nicht zur Behebung von Problemen wie Überextrusion."
+
 msgid "Bottom surface pattern"
 msgstr "Muster der unteren Fläche"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Linienmuster der Bodenfüllung. Brückenfüllung nicht eingeschlossen"
+
+msgid "Bottom surface density"
+msgstr "Dichte der unteren Oberfläche"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Dichte der unteren Oberflächenschicht. Diese Einstellung dient ästhetischen oder funktionalen Zwecken und nicht zur Behebung von Problemen wie Überextrusion.\n"
+"ACHTUNG: Eine Verringerung dieses Wertes kann die Haftung am Druckbett negativ beeinflussen."
 
 msgid "Internal solid infill pattern"
 msgstr "Muster für das interne feste Füllmuster"
@@ -12755,18 +12812,6 @@ msgstr "Automatisch für Spülen"
 
 msgid "Auto For Match"
 msgstr "Automatisch für Übereinstimmung"
-
-msgid "Enable filament dynamic map"
-msgstr "Dynamische Filamentzuordnung aktivieren"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "Dynamische Filamentzuordnung während des Drucks aktivieren."
-
-msgid "Has filament switcher"
-msgstr "Hat Filamentwechsler"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "Der Drucker verfügt über eine Filamentwechsler-Hardware (z. B. AMS)."
 
 msgid "Flush temperature"
 msgstr "Spültemperatur"
@@ -13179,77 +13224,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
-msgid "Lateral lattice angle 1"
-msgstr "Gitterwinkel 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Der Winkel des ersten Satzes von 2D-Gitterelementen in der Z-Richtung. Null ist vertikal."
-
-msgid "Lateral lattice angle 2"
-msgstr "Gitterwinkel 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Der Winkel des zweiten Satzes von 2D-Gitterelementen in der Z-Richtung. Null ist vertikal."
-
-msgid "Infill overhang angle"
-msgstr "Überhangwinkel der Füllung"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "Der Winkel der schrägen Linien der Füllung. 60° führt zu einer reinen Wabenstruktur."
-
-msgid "Lightning overhang angle"
-msgstr "Überhangwinkel der Blitzfüllung"
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr "Maximaler Überhangwinkel für die Ausbreitung der Blitzfüllungsunterstützung."
-
-msgid "Prune angle"
-msgstr "Beschneidungswinkel"
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-"Steuert, wie aggressiv kurze oder nicht unterstützte Blitzäste beschnitten werden.\n"
-"Dieser Winkel wird intern in eine pro-Schicht-Distanz umgewandelt."
-
-msgid "Straightening angle"
-msgstr "Begradigungswinkel"
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr "Maximaler Begradigungswinkel zur Vereinfachung von Blitzästen."
-
-msgid "Sparse infill anchor length"
-msgstr "Länge des Infill-Ankers"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr "Verbindet eine Infill-Linie mit einem kurzen Segment eines zusätzlichen Perimeters mit einem internen Perimeter. Wenn sie als Prozentsatz ausgedrückt wird (Beispiel: 15%), wird sie über die Breite der Infill-Extrusion berechnet. OrcaSlicer versucht, zwei nahe beieinander liegende Infill-Linien mit einem kurzen Perimetersegment zu verbinden. Wenn kein solches Perimetersegment gefunden wird, das kürzer als infill_anchor_max ist, wird die Infill-Linie nur an einer Seite mit einem Perimetersegment verbunden und die Länge des genommenen Perimetersegments ist auf diesen Parameter begrenzt, aber nicht länger als anchor_length_max. Setzen Sie diesen Parameter auf Null, um die Verankerung von Perimetern zu deaktivieren, die mit einer einzelnen Infill-Linie verbunden sind."
-
-msgid "0 (no open anchors)"
-msgstr "0 (keine offenen Anker)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (unbegrenzt)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Maximale Länge des Infill-Ankers"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr "Verbindet eine Infill-Linie mit einem kurzen Segment eines zusätzlichen Perimeters mit einem internen Perimeter. Wenn sie als Prozentsatz ausgedrückt wird (Beispiel: 15%), wird sie über die Breite der Infill-Extrusion berechnet. OrcaSlicer versucht, zwei nahe beieinander liegende Infill-Linien mit einem kurzen Perimetersegment zu verbinden. Wenn kein solches Perimetersegment gefunden wird, das kürzer als dieser Parameter ist, wird die Infill-Linie nur an einer Seite mit einem Perimetersegment verbunden und die Länge des genommenen Perimetersegments wird auf infill_anchor begrenzt, aber nicht länger als dieser Parameter. Setzen Sie diesen Parameter auf Null, um die Verankerung zu deaktivieren."
-
-msgid "0 (Simple connect)"
-msgstr "0 (Einfache Verbindung)"
-
-msgid "Acceleration of inner walls."
-msgstr "Beschleunigung Innenwände"
-
-msgid "Acceleration of travel moves."
-msgstr "Beschleunigung Bewegung"
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Dies ist die Beschleunigung der Füllung von der obersten Schicht. Die Verwendung eines niedrigeren Werts kann die Qualität der Oberfläche verbessern."
@@ -13258,11 +13232,8 @@ msgstr "Dies ist die Beschleunigung der Füllung von der obersten Schicht. Die V
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Beschleunigung der Außenwand: Die Verwendung eines niedrigeren Wertes kann die Qualität verbessern."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Beschleunigung der Brücken. Wenn der Wert als Prozentwert angegeben wird (z.B. 50%), wird er auf der Grundlage der Beschleunigung der Außenwand berechnet."
-
-msgid "mm/s² or %"
-msgstr "mm/s² o. %"
+msgid "Acceleration of inner walls."
+msgstr "Beschleunigung Innenwände"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Beschleunigung der spärlichen Innenfüllung. Wenn der Wert als Prozentwert angegeben wird (z.B. 100%), wird er auf der Grundlage der Standardbeschleunigung berechnet."
@@ -13273,16 +13244,6 @@ msgstr "Beschleunigung des internen massiven Innenfülls. Wenn der Wert als Proz
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Beschleunigung der ersten Schicht. Die Verwendung eines niedrigeren Wertes kann die Druckbetthaftung verbessern"
-
-msgid "First layer travel"
-msgstr "Bewegung der ersten Schicht"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"Bewegungsbeschleunigung der ersten Schicht.\n"
-"Der Prozentwert bezieht sich auf die Bewegungsbeschleunigung."
 
 msgid "Enable accel_to_decel"
 msgstr "Beschleunigung zu Verzögerung einschalten"
@@ -13912,6 +13873,71 @@ msgstr "Klumpen-Ausschlussbereich abtasten"
 
 msgid "Probing exclude area of clumping."
 msgstr "Klumpen-Ausschlussbereich abtasten."
+
+msgid "Lateral lattice angle 1"
+msgstr "Gitterwinkel 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Der Winkel des ersten Satzes von 2D-Gitterelementen in der Z-Richtung. Null ist vertikal."
+
+msgid "Lateral lattice angle 2"
+msgstr "Gitterwinkel 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Der Winkel des zweiten Satzes von 2D-Gitterelementen in der Z-Richtung. Null ist vertikal."
+
+msgid "Infill overhang angle"
+msgstr "Überhangwinkel der Füllung"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "Der Winkel der schrägen Linien der Füllung. 60° führt zu einer reinen Wabenstruktur."
+
+msgid "Lightning overhang angle"
+msgstr "Überhangwinkel der Blitzfüllung"
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr "Maximaler Überhangwinkel für die Ausbreitung der Blitzfüllungsunterstützung."
+
+msgid "Prune angle"
+msgstr "Beschneidungswinkel"
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+"Steuert, wie aggressiv kurze oder nicht unterstützte Blitzäste beschnitten werden.\n"
+"Dieser Winkel wird intern in eine pro-Schicht-Distanz umgewandelt."
+
+msgid "Straightening angle"
+msgstr "Begradigungswinkel"
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr "Maximaler Begradigungswinkel zur Vereinfachung von Blitzästen."
+
+msgid "Sparse infill anchor length"
+msgstr "Länge des Infill-Ankers"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr "Verbindet eine Infill-Linie mit einem kurzen Segment eines zusätzlichen Perimeters mit einem internen Perimeter. Wenn sie als Prozentsatz ausgedrückt wird (Beispiel: 15%), wird sie über die Breite der Infill-Extrusion berechnet. OrcaSlicer versucht, zwei nahe beieinander liegende Infill-Linien mit einem kurzen Perimetersegment zu verbinden. Wenn kein solches Perimetersegment gefunden wird, das kürzer als infill_anchor_max ist, wird die Infill-Linie nur an einer Seite mit einem Perimetersegment verbunden und die Länge des genommenen Perimetersegments ist auf diesen Parameter begrenzt, aber nicht länger als anchor_length_max. Setzen Sie diesen Parameter auf Null, um die Verankerung von Perimetern zu deaktivieren, die mit einer einzelnen Infill-Linie verbunden sind."
+
+msgid "0 (no open anchors)"
+msgstr "0 (keine offenen Anker)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (unbegrenzt)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Maximale Länge des Infill-Ankers"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr "Verbindet eine Infill-Linie mit einem kurzen Segment eines zusätzlichen Perimeters mit einem internen Perimeter. Wenn sie als Prozentsatz ausgedrückt wird (Beispiel: 15%), wird sie über die Breite der Infill-Extrusion berechnet. OrcaSlicer versucht, zwei nahe beieinander liegende Infill-Linien mit einem kurzen Perimetersegment zu verbinden. Wenn kein solches Perimetersegment gefunden wird, das kürzer als dieser Parameter ist, wird die Infill-Linie nur an einer Seite mit einem Perimetersegment verbunden und die Länge des genommenen Perimetersegments wird auf infill_anchor begrenzt, aber nicht länger als dieser Parameter. Setzen Sie diesen Parameter auf Null, um die Verankerung zu deaktivieren."
+
+msgid "0 (Simple connect)"
+msgstr "0 (Einfache Verbindung)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14809,6 +14835,18 @@ msgstr "Direktantrieb"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr "Dynamische Filamentzuordnung aktivieren"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "Dynamische Filamentzuordnung während des Drucks aktivieren."
+
+msgid "Has filament switcher"
+msgstr "Hat Filamentwechsler"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "Der Drucker verfügt über eine Filamentwechsler-Hardware (z. B. AMS)."
+
 msgid "Extra length on restart"
 msgstr "Zusätzliche Länge beim Neustart"
 
@@ -15678,22 +15716,6 @@ msgstr "Dicke der oberen Schale"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Die Anzahl der oberen festen Schichten wird beim Slicen erhöht, wenn die obere Schalenstärke dünner als dieser Wert ist. Dies kann verhindern, dass die Schale zu dünn wird, wenn eine geringe Schichthöhe verwendet wird. 0 bedeutet, dass diese Einstellung deaktiviert ist und die Dicke der oberen Schale absolut durch die oberen Schalenschichten bestimmt wird."
-
-msgid "Top surface density"
-msgstr "Dichte der oberen Oberfläche"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Dichte der oberen Oberflächenschicht. Ein Wert von 100 % erzeugt eine vollständig massive, glatte obere Schicht. Eine Reduzierung dieses Wertes führt zu einer strukturierten oberen Oberfläche, abhängig vom gewählten Oberflächenmuster. Ein Wert von 0 % führt dazu, dass nur die Wände der oberen Schicht erstellt werden. Diese Einstellung dient ästhetischen oder funktionalen Zwecken und nicht zur Behebung von Problemen wie Überextrusion."
-
-msgid "Bottom surface density"
-msgstr "Dichte der unteren Oberfläche"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Dichte der unteren Oberflächenschicht. Diese Einstellung dient ästhetischen oder funktionalen Zwecken und nicht zur Behebung von Problemen wie Überextrusion.\n"
-"ACHTUNG: Eine Verringerung dieses Wertes kann die Haftung am Druckbett negativ beeinflussen."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19582,6 +19604,14 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Links: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Rechts: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Netzwerk-Plugin aktivieren"

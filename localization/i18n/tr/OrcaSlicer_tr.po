@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -9199,6 +9199,12 @@ msgstr "Bu ön ayarı sil"
 msgid "Search in preset"
 msgstr "Ön ayarda ara"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Tüm ayarları en son kaydedilen ön ayara sıfırlamak için tıklayın."
 
@@ -9825,12 +9831,22 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Sol: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Sağ: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Geçerli değeri sıfırlamak ve genel değere eklemek için tıklayın."
@@ -9850,7 +9866,7 @@ msgid "Transfer or discard changes"
 msgstr "Değişiklikleri Çıkart veya Sakla"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "Eski Değer"
 
 msgid "New Value"
@@ -9971,6 +9987,12 @@ msgstr "Ekstruder sayısı"
 
 msgid "Capabilities"
 msgstr "Yetenekler"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Tüm ön ayarları göster (uyumsuz olanlar dahil)"
@@ -12096,6 +12118,23 @@ msgstr "Normal baskı"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "İlk katman dışında hem normal yazdırmanın hem de ilerlemenin varsayılan ivmesi."
 
+msgid "Acceleration of travel moves."
+msgstr "Seyahat hareketlerinin hızlandırılması."
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "mm/s² veya %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Köprülerin hızlandırılması. Değer yüzde olarak ifade edilirse (örn. %50), dış duvar ivmesine göre hesaplanacaktır."
+
 msgid "Default filament profile"
 msgstr "Varsayılan filament profili"
 
@@ -12302,12 +12341,28 @@ msgstr "Arşimet akorları"
 msgid "Octagram Spiral"
 msgstr "Sekizgen spiral"
 
+msgid "Top surface density"
+msgstr "Üst yüzey yoğunluğu"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Üst yüzey katmanının yoğunluğu. %100 değeri, tamamen sağlam ve pürüzsüz bir üst katman oluşturur. Bu değerin düşürülmesi, seçilen üst yüzey desenine göre dokulu bir üst yüzey elde edilmesini sağlar. %0 değeri ise yalnızca üst katmandaki duvarların oluşturulmasını sağlar. Estetik veya işlevsel amaçlar için tasarlanmıştır, aşırı ekstrüzyon gibi sorunları gidermek için değildir."
+
 msgid "Bottom surface pattern"
 msgstr "Alt yüzey deseni"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Köprü dolgusu değil, alt yüzey dolgusunun çizgi deseni."
+
+msgid "Bottom surface density"
+msgstr "Alt yüzey yoğunluğu"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Alt yüzey katmanının yoğunluğu. Estetik veya işlevsel amaçlar için tasarlanmıştır, aşırı ekstrüzyon gibi sorunları gidermek için değildir.\n"
+"UYARI: Bu değerin düşürülmesi, yatak yapışmasını olumsuz etkileyebilir."
 
 msgid "Internal solid infill pattern"
 msgstr "İç katı dolgu deseni"
@@ -12605,18 +12660,6 @@ msgstr "Yıkama İçin Otomatik"
 
 msgid "Auto For Match"
 msgstr "Otomatik Maç İçin"
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr ""
 
 msgid "Flush temperature"
 msgstr "Yıkama sıcaklığı"
@@ -13028,79 +13071,6 @@ msgstr "Tpms-fk"
 msgid "Gyroid"
 msgstr "Jiroid"
 
-msgid "Lateral lattice angle 1"
-msgstr "Kafes açısı 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "İlk 2 boyutlu kafes elemanları grubunun Z yönündeki açısı. Sıfır dikeydir."
-
-msgid "Lateral lattice angle 2"
-msgstr "Kafes açısı 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "İkinci 2 boyutlu kafes elemanları grubunun Z yönündeki açısı. Sıfır dikeydir."
-
-msgid "Infill overhang angle"
-msgstr "Dolgu çıkıntı açısı"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "Dolgu açılı çizgilerinin açısı 60° ise saf petek görünümü elde edilir."
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "Dolgu uzunluğu"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"Bir dolgu hattını, ek bir çevrenin kısa bir bölümü ile bir iç çevreye bağlayın. Yüzde olarak ifade edilirse (örnek: %15) dolgu ekstrüzyon genişliği üzerinden hesaplanır. Orca Slicer iki yakın dolgu hattını kısa bir çevre segmentine bağlamaya çalışıyor. infill_anchor_max'tan daha kısa böyle bir çevre segmenti bulunamazsa, dolgu hattı yalnızca bir taraftaki bir çevre segmentine bağlanır ve alınan çevre segmentinin uzunluğu bu parametreyle sınırlıdır, ancak çapa_uzunluk_max'tan uzun olamaz.\n"
-"Tek bir dolgu hattına bağlı sabitleme çevrelerini devre dışı bırakmak için bu parametreyi sıfıra ayarlayın."
-
-msgid "0 (no open anchors)"
-msgstr "0 (açık bağlantı yok)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (sınırsız)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Dolgu maksimum uzunluk"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"Bir dolgu hattını, ek bir çevrenin kısa bir bölümü ile bir iç çevreye bağlayın. Yüzde olarak ifade edilirse (örnek: %15) dolgu ekstrüzyon genişliği üzerinden hesaplanır. Orca Slicer iki yakın dolgu hattını kısa bir çevre segmentine bağlamaya çalışıyor. Bu parametreden daha kısa bir çevre segmenti bulunamazsa, dolgu hattı sadece bir kenardaki bir çevre segmentine bağlanır ve alınan çevre segmentinin uzunluğu infill_anchor ile sınırlıdır ancak bu parametreden daha uzun olamaz.\n"
-"0'a ayarlanırsa dolgu bağlantısı için eski algoritma kullanılacaktır; 1000 ve 0 ile aynı sonucu oluşturmalıdır."
-
-msgid "0 (Simple connect)"
-msgstr "0 (Basit bağlantı)"
-
-msgid "Acceleration of inner walls."
-msgstr "İç duvarların hızlandırılması."
-
-msgid "Acceleration of travel moves."
-msgstr "Seyahat hareketlerinin hızlandırılması."
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Üst yüzey dolgusunun hızlandırılması. Daha düşük bir değerin kullanılması üst yüzey kalitesini iyileştirebilir."
@@ -13109,11 +13079,8 @@ msgstr "Üst yüzey dolgusunun hızlandırılması. Daha düşük bir değerin k
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Dış duvarın hızlanması. Daha düşük bir değer kullanmak kaliteyi artırabilir."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Köprülerin hızlandırılması. Değer yüzde olarak ifade edilirse (örn. %50), dış duvar ivmesine göre hesaplanacaktır."
-
-msgid "mm/s² or %"
-msgstr "mm/s² veya %"
+msgid "Acceleration of inner walls."
+msgstr "İç duvarların hızlandırılması."
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Seyrek dolgunun hızlandırılması. Değer yüzde olarak ifade edilirse (örn. %100), varsayılan ivmeye göre hesaplanacaktır."
@@ -13124,14 +13091,6 @@ msgstr "İç katı dolgunun hızlandırılması. Değer yüzde olarak ifade edil
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Başlangıç katmanının hızlandırılması. Daha düşük bir değerin kullanılması baskı plakası yapışkanlığını iyileştirebilir."
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "Accel_to_decel'i etkinleştir"
@@ -13747,6 +13706,73 @@ msgstr "Sondalama topaklanma alanını hariç tutar"
 
 msgid "Probing exclude area of clumping."
 msgstr "Sondalama, topaklanma alanını hariç tutar."
+
+msgid "Lateral lattice angle 1"
+msgstr "Kafes açısı 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "İlk 2 boyutlu kafes elemanları grubunun Z yönündeki açısı. Sıfır dikeydir."
+
+msgid "Lateral lattice angle 2"
+msgstr "Kafes açısı 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "İkinci 2 boyutlu kafes elemanları grubunun Z yönündeki açısı. Sıfır dikeydir."
+
+msgid "Infill overhang angle"
+msgstr "Dolgu çıkıntı açısı"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "Dolgu açılı çizgilerinin açısı 60° ise saf petek görünümü elde edilir."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "Dolgu uzunluğu"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"Bir dolgu hattını, ek bir çevrenin kısa bir bölümü ile bir iç çevreye bağlayın. Yüzde olarak ifade edilirse (örnek: %15) dolgu ekstrüzyon genişliği üzerinden hesaplanır. Orca Slicer iki yakın dolgu hattını kısa bir çevre segmentine bağlamaya çalışıyor. infill_anchor_max'tan daha kısa böyle bir çevre segmenti bulunamazsa, dolgu hattı yalnızca bir taraftaki bir çevre segmentine bağlanır ve alınan çevre segmentinin uzunluğu bu parametreyle sınırlıdır, ancak çapa_uzunluk_max'tan uzun olamaz.\n"
+"Tek bir dolgu hattına bağlı sabitleme çevrelerini devre dışı bırakmak için bu parametreyi sıfıra ayarlayın."
+
+msgid "0 (no open anchors)"
+msgstr "0 (açık bağlantı yok)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (sınırsız)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Dolgu maksimum uzunluk"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"Bir dolgu hattını, ek bir çevrenin kısa bir bölümü ile bir iç çevreye bağlayın. Yüzde olarak ifade edilirse (örnek: %15) dolgu ekstrüzyon genişliği üzerinden hesaplanır. Orca Slicer iki yakın dolgu hattını kısa bir çevre segmentine bağlamaya çalışıyor. Bu parametreden daha kısa bir çevre segmenti bulunamazsa, dolgu hattı sadece bir kenardaki bir çevre segmentine bağlanır ve alınan çevre segmentinin uzunluğu infill_anchor ile sınırlıdır ancak bu parametreden daha uzun olamaz.\n"
+"0'a ayarlanırsa dolgu bağlantısı için eski algoritma kullanılacaktır; 1000 ve 0 ile aynı sonucu oluşturmalıdır."
+
+msgid "0 (Simple connect)"
+msgstr "0 (Basit bağlantı)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14613,6 +14639,18 @@ msgstr "Doğrudan Tahrik"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "Yeniden başlatma sırasında ekstra uzunluk"
 
@@ -15468,22 +15506,6 @@ msgstr "Üst katman kalınlığı"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Üst kabuk katmanları tarafından hesaplanan kalınlık bu değerden daha ince ise dilimleme sırasında üst katı katmanların sayısı artırılır. Bu, katman yüksekliği küçük olduğunda kabuğun çok ince olmasını önleyebilir. 0, bu ayarın devre dışı olduğu ve üst kabuğun kalınlığının kesinlikle üst kabuk katmanları tarafından belirlendiği anlamına gelir."
-
-msgid "Top surface density"
-msgstr "Üst yüzey yoğunluğu"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Üst yüzey katmanının yoğunluğu. %100 değeri, tamamen sağlam ve pürüzsüz bir üst katman oluşturur. Bu değerin düşürülmesi, seçilen üst yüzey desenine göre dokulu bir üst yüzey elde edilmesini sağlar. %0 değeri ise yalnızca üst katmandaki duvarların oluşturulmasını sağlar. Estetik veya işlevsel amaçlar için tasarlanmıştır, aşırı ekstrüzyon gibi sorunları gidermek için değildir."
-
-msgid "Bottom surface density"
-msgstr "Alt yüzey yoğunluğu"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Alt yüzey katmanının yoğunluğu. Estetik veya işlevsel amaçlar için tasarlanmıştır, aşırı ekstrüzyon gibi sorunları gidermek için değildir.\n"
-"UYARI: Bu değerin düşürülmesi, yatak yapışmasını olumsuz etkileyebilir."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19360,6 +19382,14 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Sol: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Sağ: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Ağ eklentisini etkinleştir"

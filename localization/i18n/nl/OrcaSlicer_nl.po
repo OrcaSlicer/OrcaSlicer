@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -9099,6 +9099,12 @@ msgstr "Verwijder deze voorinstelling"
 msgid "Search in preset"
 msgstr "Zoeken in voorinstelling"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klik om alle instellingen terug te zetten naar de laatst opgeslagen voorinstelling."
 
@@ -9718,12 +9724,22 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Links: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Rechts: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Klik om de huidige waarde terug te zetten en de globale waarde toe te passen."
@@ -9743,7 +9759,7 @@ msgid "Transfer or discard changes"
 msgstr "Verwerp of bewaar aanpassingen"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "Oude waarde"
 
 msgid "New Value"
@@ -9858,6 +9874,12 @@ msgstr "Aantal extruders"
 
 msgid "Capabilities"
 msgstr "Mogelijkheden"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Toon alle presets (inclusief incompatibele)"
@@ -11888,6 +11910,23 @@ msgstr "Normaal printen"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Dit is de standaard versnelling voor zowel normaal printen en verplaatsen behalve voor de eerste laag"
 
+msgid "Acceleration of travel moves."
+msgstr ""
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "mm/s² of %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr ""
+
 msgid "Default filament profile"
 msgstr "Standaard filament profiel"
 
@@ -12070,12 +12109,26 @@ msgstr ""
 msgid "Octagram Spiral"
 msgstr "Octagram Spiraal"
 
+msgid "Top surface density"
+msgstr ""
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Bodem oppvlakte patroon"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Dit is het lijnenpatroon van de vulling (infill) van het bodemoppervlak, maar niet van de vulling van de brug."
+
+msgid "Bottom surface density"
+msgstr ""
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
 
 msgid "Internal solid infill pattern"
 msgstr "Intern massief invulpatroon"
@@ -12335,18 +12388,6 @@ msgid "Auto For Flush"
 msgstr ""
 
 msgid "Auto For Match"
-msgstr ""
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
 msgstr ""
 
 msgid "Flush temperature"
@@ -12749,75 +12790,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroide"
 
-msgid "Lateral lattice angle 1"
-msgstr ""
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr ""
-
-msgid "Lateral lattice angle 2"
-msgstr ""
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr ""
-
-msgid "Infill overhang angle"
-msgstr ""
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr ""
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr ""
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-
-msgid "0 (no open anchors)"
-msgstr ""
-
-msgid "1000 (unlimited)"
-msgstr ""
-
-msgid "Maximum length of the infill anchor"
-msgstr "Maximale lengte van de vullingsbevestiging"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-
-msgid "0 (Simple connect)"
-msgstr ""
-
-msgid "Acceleration of inner walls."
-msgstr ""
-
-msgid "Acceleration of travel moves."
-msgstr ""
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Versnelling van de topoppervlakte-invulling. Gebruik van een lagere waarde kan de kwaliteit van de bovenlaag verbeteren."
@@ -12826,11 +12798,8 @@ msgstr "Versnelling van de topoppervlakte-invulling. Gebruik van een lagere waar
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Versnelling van de buitenwand: een lagere waarde kan de kwaliteit verbeteren."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgid "Acceleration of inner walls."
 msgstr ""
-
-msgid "mm/s² or %"
-msgstr "mm/s² of %"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Versnelling van de schaarse invulling. Als de waarde wordt uitgedrukt als een percentage (bijvoorbeeld 100%), wordt deze berekend op basis van de standaardversnelling."
@@ -12841,14 +12810,6 @@ msgstr ""
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Dit is de afdrukversnelling voor de eerste laag. Een beperkte versnelling kan de hechting van de bouwplaat verbeteren."
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "Accel_to_decel inschakelen"
@@ -13426,6 +13387,69 @@ msgid "Probing exclude area of clumping"
 msgstr ""
 
 msgid "Probing exclude area of clumping."
+msgstr ""
+
+msgid "Lateral lattice angle 1"
+msgstr ""
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr ""
+
+msgid "Lateral lattice angle 2"
+msgstr ""
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr ""
+
+msgid "Infill overhang angle"
+msgstr ""
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr ""
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr ""
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+
+msgid "0 (no open anchors)"
+msgstr ""
+
+msgid "1000 (unlimited)"
+msgstr ""
+
+msgid "Maximum length of the infill anchor"
+msgstr "Maximale lengte van de vullingsbevestiging"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+
+msgid "0 (Simple connect)"
 msgstr ""
 
 msgid ""
@@ -14263,6 +14287,18 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "Extra lengte bij herstart"
 
@@ -15085,20 +15121,6 @@ msgstr "Dikte bovenkant"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Het aantal bovenste solide lagen wordt verhoogd tijdens het slicen als de totale dikte van de bovenste lagen lager is dan deze waarde. Dit zorgt ervoor dat de schaal niet te dun is bij een lage laaghoogte. 0 betekend dat deze instelling niet actief is en dat de dikte van de bovenkant bepaald wordt door het aantal bodem lagen."
-
-msgid "Top surface density"
-msgstr ""
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr ""
-
-msgid "Bottom surface density"
-msgstr ""
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -18862,6 +18884,14 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Links: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Rechts: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Netwerkplug-in inschakelen"

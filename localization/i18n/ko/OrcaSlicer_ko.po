@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:24-0300\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -9191,6 +9191,12 @@ msgstr "이 사전 설정 삭제"
 msgid "Search in preset"
 msgstr "사전 설정에서 찾기"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "모든 설정을 마지막으로 저장한 사전 설정으로 되돌립니다."
 
@@ -9808,12 +9814,22 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "왼쪽: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "오른쪽: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "현재 값을 재설정하고 전역 값에 연결하려면 클릭합니다."
@@ -9833,7 +9849,7 @@ msgid "Transfer or discard changes"
 msgstr "변경 사항 폐기 또는 유지"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "이전 값"
 
 msgid "New Value"
@@ -9954,6 +9970,12 @@ msgstr "익스트루더 수"
 
 msgid "Capabilities"
 msgstr "성능"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "모든 사전 설정 표시(호환되지 않는 설정 포함)"
@@ -12049,6 +12071,23 @@ msgstr "일반 출력"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "초기 레이어를 제외한 모든 일반 출력 및 이동의 기본 가속"
 
+msgid "Acceleration of travel moves."
+msgstr "이동 가속도"
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "mm/s² 또는 %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "브릿지의 가속도. 값을 백분율 (ex. 50%)로 표시하면 외벽 가속도 기준으로 계산됩니다."
+
 msgid "Default filament profile"
 msgstr "기본 필라멘트 사전설정"
 
@@ -12261,12 +12300,26 @@ msgstr "아르키메데스 코드"
 msgid "Octagram Spiral"
 msgstr "팔각 나선형"
 
+msgid "Top surface density"
+msgstr "상단 표면 밀도"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "하단 표면 패턴"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "브릿지 채우기가 아닌 바닥면 채우기의 선 패턴"
+
+msgid "Bottom surface density"
+msgstr "하단 표면 밀도"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
 
 msgid "Internal solid infill pattern"
 msgstr "꽉찬 내부 채우기 패턴"
@@ -12563,18 +12616,6 @@ msgstr "자동 플러시"
 
 msgid "Auto For Match"
 msgstr "자동 경기"
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr ""
 
 msgid "Flush temperature"
 msgstr "플러시 온도"
@@ -12981,80 +13022,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "자이로이드"
 
-msgid "Lateral lattice angle 1"
-msgstr "격자 각도 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Z 방향의 첫 번째 2D 격자 요소 집합의 각도입니다. 0은 수직입니다."
-
-msgid "Lateral lattice angle 2"
-msgstr "격자 각도 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Z 방향에서 두 번째 2D 격자 요소 세트의 각도입니다. 0은 수직입니다."
-
-msgid "Infill overhang angle"
-msgstr ""
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr ""
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "드문 채우기 고정점 길이"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"사용하여 채우기 선을 내부 둘레에 연결합니다. 백분율(예: 15%)로 표시되는 경우 채우기 돌출 너비에 대해 계산됩니다. Orca Slicer은 두 개의 가까운 채우기 선을 짧은 주변 세그먼트에 연결하려고 합니다. 내부 채우기 고정점 (infill_anchor_max) 최대 길이보다 짧은 경계 세그먼트가 발견되지 않으면 \n"
-"채우기 선은 한쪽에서 경계 세그먼트에 연결되고 취해진 경계 세그먼트의 길이는 이 매개변수로 제한되지만 최대 고정점 길이(anchor_length_max) 보다 길지 않습니다.\n"
-"단일 채우기 선에 연결된 고정 둘레를 비활성화하려면 이 매개변수를 0으로 설정합니다."
-
-msgid "0 (no open anchors)"
-msgstr "0 (개방형 고정점 없음)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (무제한)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "채우기 고정점 최대 길이"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"추가 둘레의 짧은 세그먼트를 사용하여 채우기 선을 내부 둘레에 연결합니다. 백분율(예: 15%)로 표시되는 경우 채우기 돌출 너비에 대해 계산됩니다. Orca Slicer은 두 개의 가까운 채우기 선을 짧은 주변 세그먼트에 연결하려고 합니다. 이 매개변수보다 짧은 주변 세그먼트가 발견되지 않으면 채우기 선은 한쪽 측면의 주변 세그먼트에 연결되고 사용된 주변 세그먼트의 길이는 앵커 채우기(infill_anchor)로 제한되지만 이 매개변수보다 길지 않습니다.\n"
-"0으로 설정하면 채우기 연결에 대한 이전 알고리즘이 사용되며 1000 & 0과 동일한 결과를 생성해야 합니다."
-
-msgid "0 (Simple connect)"
-msgstr "0 (단순 연결)"
-
-msgid "Acceleration of inner walls."
-msgstr "내벽의 가속도"
-
-msgid "Acceleration of travel moves."
-msgstr "이동 가속도"
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "상단 표면 가속도. 낮은 값을 사용하면 상단 표면 품질이 향상될 수 있습니다"
@@ -13063,11 +13030,8 @@ msgstr "상단 표면 가속도. 낮은 값을 사용하면 상단 표면 품질
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "외벽의 가속도. 낮은 값을 사용하면 품질이 향상 될 수 있습니다"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "브릿지의 가속도. 값을 백분율 (ex. 50%)로 표시하면 외벽 가속도 기준으로 계산됩니다."
-
-msgid "mm/s² or %"
-msgstr "mm/s² 또는 %"
+msgid "Acceleration of inner walls."
+msgstr "내벽의 가속도"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "드문 채우기 가속도. 값이 백분율 (예. 100%)로 표시되면 기본 가속도를 기준으로 계산됩니다."
@@ -13078,14 +13042,6 @@ msgstr "꽉찬 내부 채우기 가속도. 값이 백분율 (예. 100%)로 표�
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "초기 레이어 가속도. 낮은 값을 사용하면 빌드 플레이트 안착률을 높일 수 있습니다"
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "가속/감속 활성화"
@@ -13694,6 +13650,74 @@ msgstr "뭉침 영역 프로빙 제외"
 
 msgid "Probing exclude area of clumping."
 msgstr "뭉침 감지 제외 영역."
+
+msgid "Lateral lattice angle 1"
+msgstr "격자 각도 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Z 방향의 첫 번째 2D 격자 요소 집합의 각도입니다. 0은 수직입니다."
+
+msgid "Lateral lattice angle 2"
+msgstr "격자 각도 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Z 방향에서 두 번째 2D 격자 요소 세트의 각도입니다. 0은 수직입니다."
+
+msgid "Infill overhang angle"
+msgstr ""
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr ""
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "드문 채우기 고정점 길이"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"사용하여 채우기 선을 내부 둘레에 연결합니다. 백분율(예: 15%)로 표시되는 경우 채우기 돌출 너비에 대해 계산됩니다. Orca Slicer은 두 개의 가까운 채우기 선을 짧은 주변 세그먼트에 연결하려고 합니다. 내부 채우기 고정점 (infill_anchor_max) 최대 길이보다 짧은 경계 세그먼트가 발견되지 않으면 \n"
+"채우기 선은 한쪽에서 경계 세그먼트에 연결되고 취해진 경계 세그먼트의 길이는 이 매개변수로 제한되지만 최대 고정점 길이(anchor_length_max) 보다 길지 않습니다.\n"
+"단일 채우기 선에 연결된 고정 둘레를 비활성화하려면 이 매개변수를 0으로 설정합니다."
+
+msgid "0 (no open anchors)"
+msgstr "0 (개방형 고정점 없음)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (무제한)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "채우기 고정점 최대 길이"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"추가 둘레의 짧은 세그먼트를 사용하여 채우기 선을 내부 둘레에 연결합니다. 백분율(예: 15%)로 표시되는 경우 채우기 돌출 너비에 대해 계산됩니다. Orca Slicer은 두 개의 가까운 채우기 선을 짧은 주변 세그먼트에 연결하려고 합니다. 이 매개변수보다 짧은 주변 세그먼트가 발견되지 않으면 채우기 선은 한쪽 측면의 주변 세그먼트에 연결되고 사용된 주변 세그먼트의 길이는 앵커 채우기(infill_anchor)로 제한되지만 이 매개변수보다 길지 않습니다.\n"
+"0으로 설정하면 채우기 연결에 대한 이전 알고리즘이 사용되며 1000 & 0과 동일한 결과를 생성해야 합니다."
+
+msgid "0 (Simple connect)"
+msgstr "0 (단순 연결)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14559,6 +14583,18 @@ msgstr "직접 드라이브"
 msgid "Bowden"
 msgstr "보우덴"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "재 시작 시 추가 길이"
 
@@ -15410,20 +15446,6 @@ msgstr "상단 쉘 두께"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "상단 쉘 레이어로 계산된 두께가 이 값보다 얇은 경우 슬라이싱할 때 상단 꽉찬 레이어의 수가 증가합니다. 이렇게 하면 레이어 높이가 작을 때 쉘이 너무 얇아지는 것을 방지할 수 있습니다. 0은 이 설정이 비활성화되고 상단 쉘의 두께가 절대적으로 상단 쉘 레이어에 의해 결정됨을 의미합니다"
-
-msgid "Top surface density"
-msgstr "상단 표면 밀도"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr ""
-
-msgid "Bottom surface density"
-msgstr "하단 표면 밀도"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19278,6 +19300,14 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "왼쪽: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "오른쪽: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "네트워크 플러그인 사용"
