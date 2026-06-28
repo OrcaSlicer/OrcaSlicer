@@ -1,9 +1,13 @@
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/3mf.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
+#include "libslic3r/miniz_extension.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
 
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
@@ -164,6 +168,61 @@ SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf]") {
             THEN("the recipe round-trips byte-for-byte") {
                 REQUIRE(dst_model.cad_recipe.size() == recipe.size());
                 REQUIRE(dst_model.cad_recipe == recipe);
+            }
+        }
+    }
+}
+
+// The GUI saves/loads projects via the BBS-native 3mf backend (store_bbs_3mf /
+// load_bbs_3mf), NOT the PrusaSlicer 3mf.cpp. This locks in that store_bbs_3mf embeds the
+// CAD recipe (Metadata/SnapOrca_cad.bin) byte-for-byte, read back the same iterate-and-match
+// way load_bbs_3mf does. The full GUI reopen is verified live on the Design tab.
+SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf]") {
+    GIVEN("a model carrying a binary cad_recipe") {
+        Model model;
+        std::string src = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        load_stl(src.c_str(), &model);
+        model.add_default_instances();
+
+        std::string recipe;
+        recipe.push_back('\x01');
+        recipe.append("SNAPORCA");
+        recipe.push_back('\0');
+        recipe.append("\xff\xfe\x00\x10cad-features-blob");
+        model.cad_recipe = recipe;
+
+        WHEN("saved through the BBS backend (the format the GUI uses)") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/cad_bbs.3mf";
+            DynamicPrintConfig cfg;
+            StoreParams sp;
+            sp.path     = test_file.c_str();
+            sp.model    = &model;
+            sp.config   = &cfg;
+            sp.strategy = SaveStrategy::Zip64;
+            REQUIRE(store_bbs_3mf(sp));
+
+            mz_zip_archive zip;
+            mz_zip_zero_struct(&zip);
+            REQUIRE(open_zip_reader(&zip, test_file));
+            std::string got;
+            mz_uint n = mz_zip_reader_get_num_files(&zip);
+            for (mz_uint i = 0; i < n; ++i) {
+                mz_zip_archive_file_stat st;
+                if (!mz_zip_reader_file_stat(&zip, i, &st)) continue;
+                std::string name(st.m_filename);
+                std::replace(name.begin(), name.end(), '\\', '/');
+                if (boost::algorithm::iequals(name, std::string("Metadata/SnapOrca_cad.bin"))) {
+                    got.resize(st.m_uncomp_size);
+                    mz_zip_reader_extract_to_mem(&zip, i, got.data(), got.size(), 0);
+                    break;
+                }
+            }
+            close_zip_reader(&zip);
+            boost::filesystem::remove(test_file);
+
+            THEN("the recipe is present byte-for-byte") {
+                REQUIRE(got.size() == recipe.size());
+                REQUIRE(got == recipe);
             }
         }
     }

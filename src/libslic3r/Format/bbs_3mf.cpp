@@ -213,6 +213,7 @@ const std::string BBS_MODEL_CONFIG_RELS_FILE = "Metadata/_rels/model_settings.co
 const std::string SLICE_INFO_CONFIG_FILE = "Metadata/slice_info.config";
 const std::string FILAMENT_SEQUENCE_FILE = "Metadata/filament_sequence.json";
 const std::string BBS_LAYER_HEIGHTS_PROFILE_FILE = "Metadata/layer_heights_profile.txt";
+const std::string BBS_CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
 const std::string LAYER_CONFIG_RANGES_FILE = "Metadata/layer_config_ranges.xml";
 const std::string BRIM_EAR_POINTS_FILE = "Metadata/brim_ear_points.txt";
 /*const std::string SLA_SUPPORT_POINTS_FILE = "Metadata/Slic3r_PE_sla_support_points.txt";
@@ -1923,6 +1924,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (!dont_load_config && boost::algorithm::iequals(name, BBS_PROJECT_CONFIG_FILE)) {
                     // extract slic3r print config file
                     _extract_project_config_from_archive(archive, stat, config, config_substitutions, model);
+                }
+                else if (boost::algorithm::iequals(name, BBS_CAD_RECIPE_FILE)) {
+                    // SnapOrca: restore the editable CAD recipe (optional; absent in non-CAD projects).
+                    if (stat.m_uncomp_size > 0) {
+                        std::string buf((size_t)stat.m_uncomp_size, '\0');
+                        if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
+                            model.cad_recipe = std::move(buf);
+                    }
                 }
                 else if (boost::algorithm::iequals(name, CUT_INFORMATION_FILE)) {
                     // extract object cut info
@@ -5893,6 +5902,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _add_mesh_to_object_stream(std::function<bool(std::string &, bool)> const &flush, ObjectData const &object_data) const;
         bool _add_build_to_model_stream(std::stringstream& stream, const BuildItemsList& build_items) const;
         bool _add_layer_height_profile_file_to_archive(mz_zip_archive& archive, Model& model);
+        bool _add_cad_recipe_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_layer_config_ranges_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_brim_ear_points_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_sla_support_points_file_to_archive(mz_zip_archive& archive, Model& model);
@@ -6284,6 +6294,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // All layer height profiles of all ModelObjects are stored here, indexed by 1 based index of the ModelObject in Model.
             // The index differes from the index of an object ID of an object instance of a 3MF file!
             if (!_add_layer_height_profile_file_to_archive(archive, model)) {
+                close_zip_writer(&archive);
+                return false;
+            }
+
+            if (!_add_cad_recipe_file_to_archive(archive, model)) {
                 close_zip_writer(&archive);
                 return false;
             }
@@ -7511,6 +7526,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
+        return true;
+    }
+
+    bool _BBS_3MF_Exporter::_add_cad_recipe_file_to_archive(mz_zip_archive& archive, Model& model)
+    {
+        if (model.cad_recipe.empty())
+            return true;
+        if (!mz_zip_writer_add_mem(&archive, BBS_CAD_RECIPE_FILE.c_str(),
+                (const void*)model.cad_recipe.data(), model.cad_recipe.length(),
+                MZ_DEFAULT_COMPRESSION)) {
+            add_error("Unable to add CAD recipe file to archive");
+            return false;
+        }
         return true;
     }
 

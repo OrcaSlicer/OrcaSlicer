@@ -6801,6 +6801,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             auto loaded_idxs = load_model_objects(model.objects, is_project_file);
             obj_idxs.insert(obj_idxs.end(), loaded_idxs.begin(), loaded_idxs.end());
 
+            // load_model_objects only transfers ModelObjects; carry the Model-level CAD
+            // recipe (Metadata/SnapOrca_cad.bin) onto the plater model so the Design tab
+            // can rehydrate the editable feature tree on reopen.
+            if (!model.cad_recipe.empty())
+                q->model().cad_recipe = model.cad_recipe;
+
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", finished load_model_objects");
             wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
             dlg_cont     = dlg.Update(progress_percent, msg);
