@@ -2816,22 +2816,24 @@ bool GUI_App::on_init_inner()
 #endif
 #endif
 
-    if (m_last_config_version) {
-        int last_major = m_last_config_version->maj();
-        int last_minor = m_last_config_version->min();
-        int last_patch = m_last_config_version->patch()/100;
-        std::string studio_ver = SLIC3R_VERSION;
-        int cur_major = atoi(studio_ver.substr(0,2).c_str());
-        int cur_minor = atoi(studio_ver.substr(3,2).c_str());
-        int cur_patch = atoi(studio_ver.substr(6,2).c_str());
-        BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
-            %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
-        if ((last_major != cur_major)
-            ||(last_minor != cur_minor)
-            ||(last_patch != cur_patch)) {
-            remove_old_networking_plugins();
-        }
-    }
+    // Orca: we allow user to pin the version of plugin, so we don't need to remove old networking plugins when the app version is updated
+    //
+    // if (m_last_config_version) {
+    //     int last_major = m_last_config_version->maj();
+    //     int last_minor = m_last_config_version->min();
+    //     int last_patch = m_last_config_version->patch()/100;
+    //     std::string studio_ver = SLIC3R_VERSION;
+    //     int cur_major = atoi(studio_ver.substr(0,2).c_str());
+    //     int cur_minor = atoi(studio_ver.substr(3,2).c_str());
+    //     int cur_patch = atoi(studio_ver.substr(6,2).c_str());
+    //     BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
+    //         %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
+    //     if ((last_major != cur_major)
+    //         ||(last_minor != cur_minor)
+    //         ||(last_patch != cur_patch)) {
+    //         remove_old_networking_plugins();
+    //     }
+    // }
 
     //Orca: write OrcaSlicer version
     if(app_config->get("version") != SoftFever_VERSION) {
