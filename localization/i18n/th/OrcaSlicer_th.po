@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 10:43-0300\n"
+"POT-Creation-Date: 2026-06-28 12:24-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -12783,7 +12783,7 @@ msgstr "การใช้หลายบรรทัดสำหรับรู
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "การปรับชดเชยการโก่งตัวตามแกน Z ให้เหมาะสม (ทดลอง)"
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "ปรับคลื่นไจรอยด์ให้ถี่ขึ้นตามแกน Z (แนวตั้ง) เมื่อความหนาแน่นไส้ในต่ำ เพื่อลดความยาวช่วงเสาแนวตั้งที่มีผลจริง และเพิ่มความต้านทานการโก่งตัวจากแรงอัดตามแกน Z โดยยังใช้เส้นพลาสติกเท่าเดิม ไม่มีผลเมื่อความหนาแน่นไส้ในแบบโปร่งประมาณ ~30% ขึ้นไป ใช้เฉพาะเมื่อรูปแบบไส้ในแบบโปร่งตั้งเป็นไจรอยด์เท่านั้น"
 

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 10:43-0300\n"
+"POT-Creation-Date: 2026-06-28 12:24-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -13012,7 +13012,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-kihajlási torzítás optimalizálása (kísérleti)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Alacsony feltöltési sűrűség mellett megfeszíti a gyroid hullámot a Z (függőleges) tengely mentén, hogy lerövidítse a tényleges függőleges oszlophosszt és javítsa a Z-tengely összenyomódási kihajlási ellenállását. A filamenthasználat megmarad. Nincs hatása ~30%-os és afeletti ritka kitöltési sűrűségnél. Csak akkor érvényes, ha a Ritka kitöltési minta Gyroid-ra van állítva."
 

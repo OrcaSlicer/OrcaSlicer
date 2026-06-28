@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 10:43-0300\n"
+"POT-Creation-Date: 2026-06-28 12:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -12812,7 +12812,7 @@ msgstr "Usar múltiples líneas para el patrón de relleno, si el patrón de rel
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Optimización del desplazamiento por deformación en Z (experimental)"
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Ajusta la onda Giroide a lo largo del eje Z (vertical) con una densidad de relleno baja para acortar la longitud efectiva de la columna vertical y mejorar la resistencia al pandeo por compresión en el eje Z. Se mantiene el consumo de filamento. No tiene efecto con una densidad de relleno escasa de aproximadamente el ~30% o superior. Solo se aplica cuando el patrón de relleno escaso está configurado en «Giroide»."
 

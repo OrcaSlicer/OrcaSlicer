@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 10:43-0300\n"
+"POT-Creation-Date: 2026-06-28 12:24-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -13033,7 +13033,7 @@ msgstr "如果填充图案支持，使用多线进行填充。"
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 轴屈曲偏置优化（实验性）"
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度下沿 Z（垂直）轴收紧螺旋（Gyroid）波形，以缩短有效的垂直柱长，提升 Z 轴抗压屈曲能力。耗材用量保持不变。在约 30% 及以上的稀疏填充密度下无效果。仅当稀疏填充图案设置为 Gyroid 时适用。"
 
