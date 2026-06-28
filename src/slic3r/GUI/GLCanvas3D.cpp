@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
+#include "DesignSketchTool.hpp"   // SnapOrca Design: interactive 2D sketch tool
 
 #include <igl/unproject.h>
 
@@ -1833,6 +1834,16 @@ void GLCanvas3D::enable_separator_toolbar(bool enable)
     m_separator_toolbar.set_enabled(enable);
 }
 
+void GLCanvas3D::enable_collapse_toolbar(bool enable)
+{
+    m_collapse_toolbar_enabled = enable;
+}
+
+void GLCanvas3D::enable_plate_chrome(bool enable)
+{
+    m_plate_chrome_enabled = enable;
+}
+
 void GLCanvas3D::zoom_to_bed()
 {
     BoundingBoxf3 box = m_bed.build_volume().bounding_volume();
@@ -2122,6 +2133,11 @@ void GLCanvas3D::render(bool only_init)
 
     if (_is_fxaa_enabled())
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
+    // SnapOrca Design: interactive 2D sketch overlay, drawn over the scene but
+    // beneath the UI overlays (toolbars, labels).
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display())
+        m_design_sketch_tool->render(*this);
 
     // draw overlays
     _render_overlays();
@@ -3278,6 +3294,56 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         return;
     }
 
+    // SnapOrca Design: Delete/Backspace removes the selected sketch entities while a
+    // sketch tool is active and the canvas has focus (dialog text fields are separate
+    // wx controls, so this never eats their editing keys).
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
+        && (keyCode == WXK_DELETE || keyCode == WXK_BACK)
+        && !m_design_sketch_tool->selection().empty()) {
+        m_design_sketch_tool->delete_selected();
+        m_dirty = true;
+        render();
+        return;
+    }
+
+    // Esc exits the active sketch tool (Onshape-like, layered: abort in-progress entity ->
+    // drop to Select -> exit the session back to Feature mode).
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
+        && keyCode == WXK_ESCAPE) {
+        m_design_sketch_tool->request_exit();
+        m_dirty = true;
+        render();
+        return;
+    }
+
+    // SnapOrca Design: Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) undo/redo the Design feature
+    // history. Scoped by m_design_sketch_tool — only the Design canvas owns one — so the
+    // main 3D editor's undo/redo (the CanvasView3D-gated cases further below) is untouched.
+    // Handled here, before the generic Ctrl block, so it takes precedence and early-returns.
+    if (m_design_sketch_tool != nullptr && (evt.GetModifiers() & ctrlMask) != 0) {
+        const bool is_z = (keyCode == 'z' || keyCode == 'Z' || keyCode == WXK_CONTROL_Z);
+        const bool is_y = (keyCode == 'y' || keyCode == 'Y' || keyCode == WXK_CONTROL_Y);
+        if (is_z || is_y) {
+            const bool redo = is_y || ((evt.GetModifiers() & shiftMask) != 0);
+            m_design_sketch_tool->request_undo_redo(redo);
+            m_dirty = true;
+            render();
+            return;
+        }
+    }
+
+    // SnapOrca Design: F = Place on Face (Prepare's lay-flat), when the Design viewport is up
+    // and a body face is selected. The tool forwards to DesignPanel::place_on_face; it returns
+    // false (no face picked) so F falls through to the default handler below.
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display()
+        && (keyCode == 'f' || keyCode == 'F') && (evt.GetModifiers() & ctrlMask) == 0) {
+        if (m_design_sketch_tool->request_place_on_face()) {
+            m_dirty = true;
+            render();
+            return;
+        }
+    }
+
     bool is_in_painting_mode = false;
     GLGizmoPainterBase *current_gizmo_painter = dynamic_cast<GLGizmoPainterBase *>(get_gizmos_manager().get_current());
     if (current_gizmo_painter != nullptr) {
@@ -3650,6 +3716,18 @@ public:
 
 void GLCanvas3D::on_key(wxKeyEvent& evt)
 {
+    // SnapOrca Design: Delete/Backspace removes selected sketch entities. GTK delivers
+    // these as KEY_DOWN rather than CHAR, so handle it here too.
+    if (evt.GetEventType() == wxEVT_KEY_DOWN
+        && m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
+        && (evt.GetKeyCode() == WXK_DELETE || evt.GetKeyCode() == WXK_BACK)
+        && !m_design_sketch_tool->selection().empty()) {
+        m_design_sketch_tool->delete_selected();
+        m_dirty = true;
+        render();
+        return;
+    }
+
     static GLCanvas3D const * thiz = nullptr;
     static TranslationProcessor translationProcessor(nullptr, nullptr);
     if (thiz != this) {
@@ -4178,6 +4256,21 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // also, do not return if the mouse is moving and also is inside MM gizmo to allow update seed fill selection
         if (!m_mouse.dragging && m_tooltip.is_empty() && (m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation || !evt.Moving()))
             return;
+    }
+
+    // SnapOrca Design: the interactive sketch tool owns the mouse whenever it has
+    // something on screen — an active session OR committed sketch overlays that the user
+    // can click to select. It runs after ImGui (so dialogs still work) but before
+    // camera/toolbar/gizmo handling; on_mouse returns false for events it doesn't consume
+    // (drag/orbit/wheel) so the camera keeps working over the display-only plate.
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display()) {
+        if (evt.LeftDown() && m_canvas != nullptr)
+            m_canvas->SetFocus();   // grab keyboard focus so Delete/keys reach this canvas
+        if (m_design_sketch_tool->on_mouse(evt, *this)) {
+            m_dirty = true;
+            render();   // force an immediate redraw so the sketch overlay updates live
+            return;
+        }
     }
 
 #ifdef __WXMSW__
@@ -7853,7 +7946,12 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
 
 void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
 {
-    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid);
+    // SnapOrca Design: transiently suppress plate chrome for opted-out canvases.
+    auto& plate_list = wxGetApp().plater()->get_partplate_list();
+    const bool prev_hide_chrome = plate_list.get_hide_chrome();
+    plate_list.set_hide_chrome(!m_plate_chrome_enabled);
+    plate_list.render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid);
+    plate_list.set_hide_chrome(prev_hide_chrome);
 }
 
 void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix)
@@ -9359,6 +9457,9 @@ void GLCanvas3D::_render_separator_toolbar_left() const
 
 void GLCanvas3D::_render_collapse_toolbar() const
 {
+    if (!m_collapse_toolbar_enabled)
+        return;
+
     auto&      plater              = *wxGetApp().plater();
     const auto sidebar_docking_dir = plater.get_sidebar_docking_state();
     if (sidebar_docking_dir == Sidebar::None) {

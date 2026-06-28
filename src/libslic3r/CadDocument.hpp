@@ -1,0 +1,355 @@
+#ifndef slic3r_CadDocument_hpp_
+#define slic3r_CadDocument_hpp_
+
+#include "TriangleMesh.hpp"
+#include "SketchEngine.hpp"
+#include "GeometryEngine.hpp"   // FaceGroup
+#include "Color.hpp"            // ColorRGBA (per-body display colour override)
+
+#include <TopoDS_Shape.hxx>
+#include <TopoDS_Wire.hxx>
+#include <string>
+#include <vector>
+#include <utility>
+
+namespace Slic3r {
+
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut };
+enum class SketchShape    { Rectangle, Circle };
+enum class BooleanMode    { New, Add, Cut, Intersect };
+
+enum class ExtrudeEnd { Blind, Symmetric, TwoSided, ThroughAll, UpToFace, UpToVertex };
+
+struct CadFeature {
+    CadFeatureType type{CadFeatureType::Sketch};
+    std::string    name;
+    bool           enabled{true};
+
+    // Sketch params (centered on the plane origin)
+    SketchShape shape{SketchShape::Rectangle};
+    SketchPlane plane{SketchPlane::XY()};
+    double      width{20};
+    double      height{20};
+    double      radius{10};
+
+    // Real 2D sketch geometry (Onshape-style). When non-empty this takes
+    // precedence over the shape/width/height/radius enum path in build_sketch_wire.
+    SketchProfile profile;
+
+    // Onshape-style multi-entity sketch geometry. When non-empty this takes
+    // precedence over both `profile` and the shape-enum path in build_sketch_wire.
+    std::vector<SketchEntity> entities;
+
+    // 2D geometric constraints on `profile` (point indices). Solved in place.
+    std::vector<SketchConstraintDef> constraints;
+
+    // Onshape-style constraints on `entities` (Fase 4.2). Solved in place against
+    // entity endpoints. Used when `entities` is non-empty (the legacy `constraints`
+    // vector applies only to the `profile` path).
+    std::vector<SketchEntityConstraintDef> entity_constraints;
+
+    // Imported rigid 2D art (Text glyphs / SVG vector paths) as filled regions.
+    // Each region: contour[0] = outer loop, contour[1..] = holes; points in
+    // plane (u,v) millimetres. Rendered as a sketch overlay and extruded via a
+    // faces-with-holes path (SketchEngine::make_extrude_regions) — deliberately
+    // NOT solver entities, so imported art contributes zero DoF and never
+    // pollutes the constraint solver / DoF readout. When non-empty it takes
+    // precedence over the entities/profile/shape paths in the Extrude case.
+    std::vector<std::vector<std::vector<Vec2d>>> imported_regions;
+
+    // Imported rigid 3D B-rep solid (STEP). When the feature type is Import this carries
+    // the OCCT shape verbatim — it is adopted as a base body in route_feature (no parametric
+    // recipe). Downstream face/edge features (fillet/chamfer/cut/shell/...) act on it like any
+    // other body. TopoDS_Shape is a cheap handle, so copying it through recompute/checkpoint
+    // snapshots is cheap. In-session only for now (no BRep serialization yet).
+    TopoDS_Shape imported_solid;
+
+    // Non-destructive placement transform for imported_regions (Text/SVG),
+    // applied at display + extrude time as
+    //   p -> (p.x*import_scale_x + import_offset.x, p.y*import_scale_y + import_offset.y).
+    // Lets the art be moved / enlarged / stretched (independent X/Y) repeatedly
+    // without re-vectorising. Identity = no change.
+    Vec2d  import_offset{0, 0};
+    double import_scale_x{1.0};
+    double import_scale_y{1.0};
+    // Text/SVG dropped ONTO a solid face (centred on it): the extrude then defaults to an
+    // inward Cut (engraving) targeting `import_face_body`. False = free art on a plane.
+    bool   import_on_face{false};
+    int    import_face_body{-1};
+
+    // Extrude params
+    int         sketch_ref{-1};   // index into features[] of the consumed sketch
+    double      distance{10};
+    bool        symmetric{false};
+    BooleanMode mode{BooleanMode::New};
+    ExtrudeEnd  extrude_end{ExtrudeEnd::Blind};
+    double      distance2{0};     // second-side depth for TwoSided
+    double      taper_deg{0};     // draft angle (C4-part2)
+    bool        flip{false};      // reverse the extrude direction (negate plane normal)
+    int         up_to_face{-1};   // target solid-face id for UpToFace (C4-part2)
+    int         extrude_src_face{-1}; // global face id on the current body to extrude as a profile; -1 = use sketch wire
+    Vec3d       up_to_point{0,0,0}; // target for UpToVertex (C4-part2)
+    // Multi-body target: which body (index into CadDocument::bodies) this feature acts on.
+    // -1 = auto (last body). A New extrude appends a fresh body; Add/Cut/Intersect, dress-up,
+    // hole and face-extrude(non-New) mutate bodies[target]; face-extrude reads its source
+    // face from bodies[target] too. The source-face owner for face-extrude lives here.
+    int         target_body{-1};
+
+    // Dress-up params (Fillet/Chamfer) — applied to the current body in order
+    double      dressup_size{1.0};         // fillet radius or chamfer distance
+    FaceGroup   face_group{FaceGroup::All};
+    int         dressup_edge{-1};          // global edge id for edge-targeted fillet/chamfer; -1 = use face_group
+
+    // Hole params (positioned circular cut into the current body)
+    double      hole_diameter{5};
+    double      hole_depth{10};
+    bool        hole_through{true};        // true = symmetric through-cut, ignores hole_depth
+    double      hole_x{0};                 // position on the plane (plane u/x axis)
+    double      hole_y{0};                 // position on the plane (plane v/y axis)
+
+    // Thread params (helical thread about the plane normal at a positioned point)
+    double      thread_radius{5};          // nominal cylinder radius
+    double      thread_pitch{2};           // axial advance per turn
+    double      thread_height{10};         // total axial length
+    double      thread_depth{1};           // radial crest depth of the thread profile
+    bool        thread_internal{false};    // false = external threaded rod (New body);
+                                           // true = tapped bore cut into the current body
+    double      thread_x{0};               // axis position on the plane (u/x axis)
+    double      thread_y{0};               // axis position on the plane (v/y axis)
+
+    // Shell params (hollow the current body to a wall thickness, removing one open face)
+    double      shell_thickness{2};        // wall thickness (inward offset)
+    int         shell_face{-1};            // global face id to remove (open the shell); -1 = none
+
+    // Draft params (taper a single solid face about a neutral plane = body bbox bottom, pull +Z)
+    int         draft_face{-1};            // global face id to draft; -1 = none
+    double      draft_angle{5};            // draft angle in degrees (signed: + leans the face inward)
+
+    // Revolve params (sweep a profile about an in-plane axis through the plane origin).
+    // Reuses sketch_ref / entities (profile), flip (direction), mode (boolean) and
+    // target_body. revolve_axis: 0 = plane X axis, 1 = plane Y axis.
+    double      revolve_angle{360};        // sweep angle in degrees (1..360)
+    int         revolve_axis{0};           // 0 = plane X, 1 = plane Y
+
+    // Sweep: profile carried by sketch_ref / entities (like Extrude); the spine is a
+    // second Sketch referenced by sweep_path_ref (an open or closed wire). Reuses
+    // mode (boolean) and target_body.
+    int         sweep_path_ref{-1};        // index into features[] of the path Sketch
+
+    // Loft: build a solid through 2+ closed profile Sketches (loft_profile_refs, in
+    // order, each on its own plane). loft_ruled=false → smooth sections, true → ruled.
+    // Reuses mode (boolean) and target_body.
+    std::vector<int> loft_profile_refs;    // ordered indices into features[] of profile Sketches
+    bool        loft_ruled{false};
+
+    // Pattern: replicate the target body, copies fused into it. pattern_circular=false
+    // → linear (pattern_count instances spaced pattern_spacing along plane axis
+    // pattern_dir: 0=X, 1=Y); true → circular (pattern_count instances over
+    // pattern_angle° total about the plane normal through the plane origin, so a seed
+    // offset from the origin orbits the axis). Reuses target_body + plane.
+    bool        pattern_circular{false};
+    int         pattern_count{3};          // total instances incl. the seed (>=1)
+    double      pattern_spacing{20};       // linear step (mm)
+    int         pattern_dir{0};            // linear direction: 0 = plane X, 1 = plane Y
+    double      pattern_angle{360};        // circular total angle (degrees)
+
+    // Datum/reference plane: a derived SketchPlane the document offers as a selectable
+    // sketch plane (no solid). plane_base selects the reference (0=XY,1=XZ,2=YZ, or 3+N
+    // = the Nth earlier datum plane); plane_offset shifts along the base normal;
+    // plane_angle tilts plane_angle° about the base axis plane_axis (0=base X, 1=base Y).
+    int         plane_base{0};
+    double      plane_offset{20};
+    double      plane_angle_tilt{0};       // degrees (named *_tilt to avoid clash w/ revolve)
+    int         plane_axis{0};             // tilt axis: 0 = base X, 1 = base Y
+
+    // Boolean: combine two EXISTING bodies. `mode` reuses BooleanMode (Add = union,
+    // Cut = subtract tool from target, Intersect = keep overlap; New unused). `target_body`
+    // is the body that survives (result written back to it); `bool_tool_body` is the other
+    // operand, consumed (erased) unless `bool_keep_tool`. `bool_tolerance` = OCCT fuzzy value
+    // (0 = exact). Per-face merge: when both bool_target_face/bool_tool_face are set, the tool
+    // is first snapped so those two faces are coincident (gap closed within bool_tolerance),
+    // then the boolean welds them and coplanar faces are unified into one clean face.
+    int    bool_tool_body{-1};
+    bool   bool_keep_tool{false};
+    double bool_tolerance{0.0};
+    int    bool_target_face{-1};   // global face id on the target body to mate (-1 = none)
+    int    bool_tool_face{-1};     // global face id on the tool body to mate (-1 = none)
+
+    // Cut: split one target body with a plane, keeping the upper half, lower half, or both.
+    // Reuses `plane` for the cut plane and `target_body` for which body is cut.
+    double cut_offset{0.0};       // offset along the cut-plane normal (mm)
+    bool   cut_flip{false};       // flip the normal => swaps which side is "upper"
+    bool   cut_keep_upper{true};  // keep the +normal half
+    bool   cut_keep_lower{false}; // keep the -normal half (both => split into two bodies)
+};
+
+// One independent solid in a multi-body document.
+struct CadBody {
+    TopoDS_Shape shape;
+    std::string  name;
+    // Per-body display colour override (Color tool). When has_color is false the GUI
+    // falls back to the auto body-index palette. Carried across recompute() by body index.
+    bool         has_color{false};
+    ColorRGBA    color;
+};
+
+// OCCT-only feature tree backing the Design tab. No GUI dependencies (lives in libslic3r).
+class CadDocument {
+public:
+    std::vector<CadFeature> features;
+    // Multi-body result of the last replay. A "New" extrude appends a body; other ops
+    // mutate a target body. Empty after a failed/empty recompute.
+    std::vector<CadBody>    bodies;
+    TopoDS_Shape            body;          // compound of all bodies (1 body => that body) — display/compat
+    TriangleMesh            display_mesh;      // tessellation of all bodies, concatenated (picking)
+    std::vector<TriangleMesh> display_body_meshes; // one mesh per body, in `bodies` order (per-body color)
+    std::vector<int>        display_tri_face;  // per-triangle face id WITHIN its source body
+    std::vector<int>        display_tri_body;  // per-triangle source body index (into bodies)
+    std::string             error;             // last recompute error ("" = ok)
+
+    double linear_deflection{0.01};
+    double angular_deflection{0.5};
+
+    int  add_sketch(SketchShape shape, const SketchPlane& plane,
+                    double width, double height, double radius,
+                    const std::string& name);
+    int  add_sketch_profile(const SketchProfile& profile, const SketchPlane& plane,
+                            const std::string& name);
+    // Onshape-style multi-entity sketch: stores the entity list verbatim. When
+    // non-empty it takes precedence over profile/enum in build_sketch_wire.
+    int  add_sketch_entities(const std::vector<SketchEntity>& entities,
+                             const SketchPlane& plane, const std::string& name,
+                             const std::vector<SketchEntityConstraintDef>& constraints = {});
+    // Solve features[index]'s sketch constraints, writing solved coordinates back
+    // into its profile.points. No-op (returns true) if the feature has no
+    // constraints. Returns false if index is invalid / not a Sketch / solve fails.
+    bool solve_sketch_feature(int index);
+    int  add_extrude(int sketch_ref, double distance, bool symmetric,
+                     BooleanMode mode, const std::string& name);
+    // Extrude a single loop given directly as entities (sketch_ref = -1, plane carried).
+    int  add_extrude_entities(const std::vector<SketchEntity>& entities,
+                              const SketchPlane& plane, double distance, bool symmetric,
+                              BooleanMode mode, const std::string& name);
+    // Extrude an existing solid FACE (global face id on the body) as the profile.
+    int  add_extrude_face(int src_face, double distance, bool symmetric,
+                          BooleanMode mode, const std::string& name);
+    int  add_fillet(double radius, FaceGroup faces, const std::string& name);
+    int  add_fillet(double radius, int edge_id, const std::string& name);
+    int  add_chamfer(double distance, FaceGroup faces, const std::string& name);
+    int  add_chamfer(double distance, int edge_id, const std::string& name);
+    int  add_hole(double diameter, double depth, bool through,
+                  double x, double y, const SketchPlane& plane,
+                  const std::string& name);
+    int  add_thread(double radius, double pitch, double height, double depth,
+                    bool internal, double x, double y, const SketchPlane& plane,
+                    const std::string& name);
+    int  add_revolve(int sketch_ref, double angle, int axis, bool flip,
+                     BooleanMode mode, const std::string& name);
+    // Self-contained revolve of a single loop given directly as entities (sketch_ref=-1).
+    int  add_revolve_entities(const std::vector<SketchEntity>& entities,
+                              const SketchPlane& plane, double angle, int axis, bool flip,
+                              BooleanMode mode, const std::string& name);
+    // Sweep the profile Sketch (profile_sketch_ref) along the path Sketch (path_sketch_ref).
+    int  add_pattern(bool circular, int count, double spacing, int dir,
+                     double angle_deg, int target_body, const std::string& name);
+    int  add_sweep(int profile_sketch_ref, int path_sketch_ref, BooleanMode mode,
+                   const std::string& name);
+    // Loft through the ordered profile Sketches (each a closed wire on its own plane).
+    int  add_loft(const std::vector<int>& profile_refs, bool ruled, BooleanMode mode,
+                  const std::string& name);
+    int  add_shell(double thickness, int face, int target_body, const std::string& name);
+    int  add_draft(double angle, int face, int target_body, const std::string& name);
+    // Boolean between two existing bodies. op reuses BooleanMode (Add=union, Cut=subtract,
+    // Intersect=common; New invalid). target survives, tool is consumed unless keep_tool.
+    // tolerance = OCCT fuzzy value; target_face/tool_face (-1 = none) drive the per-face snap+merge.
+    int  add_boolean(BooleanMode op, int target_body, int tool_body, bool keep_tool,
+                     double tolerance, int target_face, int tool_face, const std::string& name);
+    // Plane Cut (Onshape split-by-plane): trim target_body by the plane (origin offset along
+    // its normal by `offset`, normal flipped iff `flip`). keep_upper/keep_lower select the
+    // +normal / -normal half; both => the body is split into two coexisting bodies.
+    int  add_cut(const SketchPlane& plane, double offset, bool flip,
+                 bool keep_upper, bool keep_lower, int target_body, const std::string& name);
+    // Datum plane: derived from base (0=XY/1=XZ/2=YZ/3+N=Nth earlier datum), offset
+    // along its normal, optional tilt about a base axis. Produces no solid.
+    int  add_plane(int base, double offset, double angle_tilt, int axis,
+                   const std::string& name);
+    // Every datum plane currently in the recipe, in feature order, as (name, plane).
+    // Used by the GUI to populate plane pickers (after the 3 base planes).
+    std::vector<std::pair<std::string, SketchPlane>> resolve_datum_planes() const;
+    void clear();
+    bool recompute();   // replay features -> body + display_mesh; false on error
+
+    // Undo/redo of the feature recipe (Onshape-style Ctrl+Z). The caller marks a
+    // user-action boundary by calling checkpoint() BEFORE the mutation(s) for that
+    // action (add/delete/move/replace, or a direct features edit). undo()/redo() then
+    // restore the snapshot and recompute(). Because everything else (bodies/meshes/
+    // body) is derived by recompute(), snapshotting `features` alone is a complete,
+    // exact history; one checkpoint == one Ctrl+Z step.
+    void checkpoint();   // snapshot `features` for undo + invalidate redo
+    bool can_undo() const { return !m_undo.empty(); }
+    bool can_redo() const { return !m_redo.empty(); }
+    size_t undo_depth() const { return m_undo.size(); }
+    size_t redo_depth() const { return m_redo.size(); }
+    bool undo();   // restore the previous feature list + recompute(); false if no history
+    bool redo();   // re-apply the most recently undone change; false if none
+
+    // Feature-tree editing (Onshape-style). All are transactional: they snapshot
+    // features, mutate, recompute(), and roll back to the snapshot (re-recomputing)
+    // if the result is invalid — so a failed edit never leaves a broken body.
+    //
+    // remove_feature: erase features[index]; deleting a Sketch cascades to the
+    //   Extrude(s) that consume it; surviving sketch_ref indices are remapped.
+    // move_feature:   shift features[index] by delta (-1 up / +1 down), clamped;
+    //   sketch_ref indices of the two swapped slots are remapped.
+    // replace_feature: overwrite features[index] with `edited` (its name and, for
+    //   an Extrude, its sketch_ref are preserved from the original).
+    bool remove_feature(int index);
+    bool move_feature(int index, int delta);
+    bool replace_feature(int index, const CadFeature& edited);
+    // replace_sketch_extrude: a box is two linked features (Sketch + Extrude);
+    //   overwrite both slots from one `edited` candidate (sketch params ->
+    //   features[sketch_idx], extrude params -> features[extrude_idx]), keeping
+    //   each slot's name/type and the sketch_ref link. Transactional like above.
+    bool replace_sketch_extrude(int sketch_idx, int extrude_idx, const CadFeature& edited);
+
+    // Apply ONE candidate feature on top of the current committed body and
+    // tessellate the result into out_mesh, WITHOUT modifying features/body/
+    // display_mesh. Returns false (with err set) if the candidate is invalid.
+    // Used by the Design tab to show a translucent ghost before Confirm.
+    bool preview(const CadFeature& candidate, TriangleMesh& out_mesh, std::string& err) const;
+    // Same, but also returns the per-body meshes (in `bodies` order; the candidate may append
+    // one), so the GUI can apply its display-only per-body Move transforms to the ghost and keep
+    // it overlaid on the moved body instead of floating back at the untransformed origin.
+    bool preview(const CadFeature& candidate, TriangleMesh& out_mesh,
+                 std::vector<TriangleMesh>& out_body_meshes, std::string& err) const;
+
+private:
+    TopoDS_Wire build_sketch_wire(const CadFeature& sketch) const;
+    // Apply a single feature to (result, have_body), throwing std::runtime_error on
+    // failure. `context` is the body whose faces/edges the feature reads (face-extrude
+    // source, up-to-face target, dress-up, hole) — it differs from `result` only when the
+    // feature builds a NEW body from an existing one (face-extrude New). Shared by route.
+    void apply_feature(TopoDS_Shape& result, bool& have_body,
+                       const TopoDS_Shape& context, const CadFeature& f) const;
+    // Route one feature into the bodies list: resolve its target body, decide whether it
+    // starts a new body (empty list, or an Extrude with mode New) vs mutates an existing
+    // one, then apply_feature. Shared by recompute() (replay all) and preview() (candidate).
+    void route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    // Boolean between two existing bodies: resolve target + tool, optionally snap the tool so
+    // the picked faces mate, run the OCCT op (with fuzzy tolerance), write the result back to the
+    // target and erase the consumed tool. Mutates the bodies vector directly (unlike apply_feature,
+    // which works on a single result shape). Throws std::runtime_error on a failed op.
+    void apply_boolean(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) const;
+
+    // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and
+    // clears m_redo; undo()/redo() shuffle the current state between them. Capped so a
+    // long session can't grow unbounded.
+    std::vector<std::vector<CadFeature>> m_undo;
+    std::vector<std::vector<CadFeature>> m_redo;
+    static constexpr size_t k_undo_cap = 200;
+};
+
+} // namespace Slic3r
+
+#endif // slic3r_CadDocument_hpp_

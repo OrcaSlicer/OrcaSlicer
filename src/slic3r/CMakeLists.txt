@@ -107,6 +107,13 @@ set(SLIC3R_GUI_SOURCES
     GUI/Downloader.hpp
     GUI/DownloadProgressDialog.cpp
     GUI/DownloadProgressDialog.hpp
+    GUI/DesignPanel.cpp
+    GUI/DesignPanel.hpp
+    GUI/DesignCanvas.cpp
+    GUI/DesignCanvas.hpp
+    GUI/DesignSketchTool.cpp
+    GUI/SketchInlineEditor.cpp
+    GUI/SketchInlineEditor.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
@@ -156,6 +163,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoMove.hpp
     GUI/Gizmos/GLGizmoPainterBase.cpp
     GUI/Gizmos/GLGizmoPainterBase.hpp
+    GUI/Gizmos/GLGizmoPrimitive.cpp
+    GUI/Gizmos/GLGizmoPrimitive.hpp
     GUI/Gizmos/GLGizmoRotate.cpp
     GUI/Gizmos/GLGizmoRotate.hpp
     GUI/Gizmos/GLGizmoScale.cpp
@@ -166,6 +175,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoSeam.hpp
     GUI/Gizmos/GLGizmoSimplify.cpp
     GUI/Gizmos/GLGizmoSimplify.hpp
+    GUI/Gizmos/GLGizmoSketch.cpp
+    GUI/Gizmos/GLGizmoSketch.hpp
     #GUI/Gizmos/GLGizmoSlaSupports.cpp
     #GUI/Gizmos/GLGizmoSlaSupports.hpp
     GUI/Gizmos/GLGizmosManager.cpp
@@ -746,7 +757,7 @@ if (WIN32)
 else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
-target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/GUI)
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)

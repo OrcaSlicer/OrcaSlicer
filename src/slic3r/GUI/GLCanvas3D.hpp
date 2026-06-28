@@ -57,6 +57,7 @@ namespace GUI {
 
 class Bed3D;
 class PartPlateList;
+class DesignSketchTool;   // SnapOrca Design: interactive 2D sketch tool
 
 #if ENABLE_RETINA_GL
 class RetinaHelper;
@@ -542,6 +543,9 @@ private:
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
+    bool m_collapse_toolbar_enabled{true};
+    bool m_plate_chrome_enabled{true};
+    DesignSketchTool* m_design_sketch_tool{nullptr};
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
@@ -879,6 +883,10 @@ public:
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
     void enable_separator_toolbar(bool enable);
+    void enable_collapse_toolbar(bool enable);
+    void enable_plate_chrome(bool enable);
+    void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
+    DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
     void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }
     void enable_labels(bool enable) { m_labels.enable(enable); }
     void enable_slope(bool enable) { m_slope.enable(enable); }

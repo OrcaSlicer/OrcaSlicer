@@ -1,0 +1,48 @@
+#ifndef slic3r_SketchInlineEditor_hpp_
+#define slic3r_SketchInlineEditor_hpp_
+
+#include <functional>
+
+class wxWindow;
+class wxFrame;
+class wxTextCtrl;
+class wxPoint;
+
+namespace Slic3r {
+namespace GUI {
+
+// Onshape-style in-canvas value editor: a small borderless floating frame holding a
+// wxTextCtrl, shown at screen coordinates over the GL canvas. A top-level frame is
+// used (not a child widget) because a native child cannot be composited over the
+// double-buffered wxGLCanvas under GTK3/llvmpipe — it stays invisible. Enter (or blur)
+// commits the parsed number, Esc cancels. This is the single numeric-entry path for
+// sketch dimensions, replacing the docked/modal value cards.
+class SketchInlineEditor
+{
+public:
+    explicit SketchInlineEditor(wxWindow* parent_canvas);
+
+    // Show the editor centred on `screen_px` (absolute screen coords), pre-filled with
+    // `value`. on_commit(parsed) fires on Enter with a valid number; on_cancel() on Esc.
+    void open(const wxPoint& screen_px, double value,
+              std::function<void(double)> on_commit,
+              std::function<void()> on_cancel);
+    void close();
+    void cancel();                       // if open, run the registered cancel (keep-as-drawn)
+    bool is_open() const { return m_open; }
+
+private:
+    void do_commit();
+    void do_cancel();
+
+    wxFrame*                    m_frame{nullptr};
+    wxTextCtrl*                 m_ctrl{nullptr};
+    std::function<void(double)> m_commit;
+    std::function<void()>       m_cancel;
+    bool                        m_open{false};
+    bool                        m_closing{false};
+};
+
+}} // namespace Slic3r::GUI
+
+#endif // slic3r_SketchInlineEditor_hpp_

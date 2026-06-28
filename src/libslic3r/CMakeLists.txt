@@ -20,6 +20,9 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 
+# Vendored SolveSpace constraint solver (2D sketch solver backbone).
+add_subdirectory(slvs)
+
 set(lisbslic3r_sources
     AABBMesh.cpp
     AABBMesh.hpp
@@ -275,6 +278,8 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    GeometryEngine.cpp
+    GeometryEngine.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
@@ -385,6 +390,20 @@ set(lisbslic3r_sources
     SLA/JobController.hpp
     SLA/Pad.cpp
     SLA/Pad.hpp
+    SketchEngine.cpp
+    SketchEngine.hpp
+    SketchConstraints.cpp
+    SketchConstraints.hpp
+    SketchSolver.cpp
+    SketchSolver.hpp
+    SketchInference.cpp
+    SketchInference.hpp
+    SketchImport.cpp
+    SketchImport.hpp
+    CadDocument.cpp
+    CadDocument.hpp
+    ThreadStandards.cpp
+    ThreadStandards.hpp
     SLAPrint.cpp
     SLAPrint.hpp
     SLAPrintSteps.cpp
@@ -546,6 +565,9 @@ find_package(JPEG REQUIRED)
 find_package(draco REQUIRED)
 
 set(OCCT_LIBS
+    TKFillet
+    TKOffset
+    TKBool
     TKXDESTEP
     TKSTEP
     TKSTEP209
@@ -591,6 +613,7 @@ target_link_libraries(libslic3r
         clipper
         Clipper2
         draco::draco
+        libslvs
         glu-libtess
         JPEG::JPEG
         libslic3r_cgal

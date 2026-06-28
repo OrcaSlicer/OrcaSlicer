@@ -614,6 +614,11 @@ class PartPlateList : public ObjectBase
     bool render_bedtype_logo = true;
     bool render_plate_settings = true;
     bool render_cali_logo = true;
+    // SnapOrca Design: when true, PartPlate::render skips all overlay chrome
+    // (corner icons, logo watermark, plate numbers) but keeps the bed grid.
+    // Toggled transiently per-frame by GLCanvas3D::_render_platelist for the
+    // DesignCanvas; stays false for the main editor.
+    bool m_hide_chrome = false;
 
     bool m_is_dark = false;
 
@@ -838,6 +843,8 @@ public:
     void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current = false, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     void set_render_option(bool bedtype_texture, bool plate_settings);
     void set_render_cali(bool value = true) { render_cali_logo = value; }
+    void set_hide_chrome(bool value) { m_hide_chrome = value; }
+    bool get_hide_chrome() const { return m_hide_chrome; }
     void register_raycasters_for_picking(GLCanvas3D& canvas)
     {
         for (auto plate : m_plate_list)

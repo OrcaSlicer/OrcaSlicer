@@ -28,7 +28,7 @@ orcaslicer_add_cmake_project(OCCT
         #-DBUILD_MODULE_DataExchange=OFF
         -DBUILD_MODULE_Draw=OFF
         -DBUILD_MODULE_FoundationClasses=OFF
-        -DBUILD_MODULE_ModelingAlgorithms=OFF
+        -DBUILD_MODULE_ModelingAlgorithms=ON
         -DBUILD_MODULE_ModelingData=OFF
         -DBUILD_MODULE_Visualization=OFF
 )

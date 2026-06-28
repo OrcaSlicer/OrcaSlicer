@@ -50,6 +50,7 @@ namespace GUI
 class Tab;
 class PrintHostQueueDialog;
 class Plater;
+class DesignPanel;
 class MainFrame;
 class ParamsDialog;
 #ifdef __WXGTK__
@@ -218,14 +219,15 @@ public:
     enum TabPosition
     {
         tpHome          = 0,
-        tp3DEditor      = 1,
-        tpPreview       = 2,
-        tpMonitor       = 3,
-        tpMultiDevice   = 4,
-        tpProject       = 5,
-        tpCalibration   = 6,
-        tpAuxiliary     = 7,
-        toDebugTool     = 8,
+        tpDesign        = 1,
+        tp3DEditor      = 2,
+        tpPreview       = 3,
+        tpMonitor       = 4,
+        tpMultiDevice   = 5,
+        tpProject       = 6,
+        tpCalibration   = 7,
+        tpAuxiliary     = 8,
+        toDebugTool     = 9,
     };
 
     //BBS: add slice&&print status update logic
@@ -375,6 +377,7 @@ public:
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+    DesignPanel*          m_design_panel { nullptr };
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };
 

@@ -37,6 +37,7 @@
 #include "I18N.hpp"
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
+#include "DesignPanel.hpp"
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
 #include "format.hpp"
@@ -1014,6 +1015,8 @@ void MainFrame::update_layout()
     {
     case ESettingsLayout::Old:
     {
+        m_design_panel->Reparent(m_tabpanel);
+        m_tabpanel->InsertPage(tpDesign, m_design_panel, _L("Design"), std::string("tab_design_active"), std::string("tab_design_active"), false);
         m_plater->Reparent(m_tabpanel);
         m_tabpanel->InsertPage(tp3DEditor, m_plater, _L("Prepare"), std::string("tab_3d_active"), std::string("tab_3d_active"), false);
         m_tabpanel->InsertPage(tpPreview, m_plater, _L("Preview"), std::string("tab_preview_active"), std::string("tab_preview_active"), false);
@@ -1270,6 +1273,12 @@ void MainFrame::init_tabpanel() {
         }
         //else if (panel == m_param_panel)
         //    m_param_panel->OnActivate();
+        else if (panel == m_design_panel) {
+            // Re-sync the Design bed to the active printer: the panel is built before the
+            // printer profile is fully applied, so its bed must refresh on activation or the
+            // grid (true bed) spills past the stale default bed quad.
+            m_design_panel->on_tab_shown();
+        }
         else if (panel == m_monitor) {
             //monitor
         }
@@ -1316,10 +1325,12 @@ void MainFrame::init_tabpanel() {
     }
 
     m_plater = new Plater(this, this);
+    // Register the plater with the app BEFORE constructing DesignPanel: its
+    // DesignCanvas reads wxGetApp().plater()->config() at construction time.
+    wxGetApp().plater_ = m_plater;
+    m_design_panel = new DesignPanel(this);
     m_plater->SetBackgroundColour(*wxWHITE);
     m_plater->Hide();
-
-    wxGetApp().plater_ = m_plater;
 
     create_preset_tabs();
 

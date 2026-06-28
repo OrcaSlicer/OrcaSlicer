@@ -3384,16 +3384,20 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
     if (wxGetApp().show_plate_gridlines() && show_grid)
         render_grid(bottom);
 
-    if (!bottom && m_selected && !force_background_color) {
+    const bool hide_chrome = m_partplate_list && m_partplate_list->get_hide_chrome();
+
+    if (!hide_chrome && !bottom && m_selected && !force_background_color) {
         if (m_partplate_list)
             render_logo(bottom, m_partplate_list->render_cali_logo && render_cali);
         else
             render_logo(bottom);
     }
 
-    render_icons(bottom, only_body, hover_id);
-    if (!force_background_color) {
-        render_only_numbers(bottom);
+    if (!hide_chrome) {
+        render_icons(bottom, only_body, hover_id);
+        if (!force_background_color) {
+            render_only_numbers(bottom);
+        }
     }
 
     glsafe(::glDisable(GL_DEPTH_TEST));
