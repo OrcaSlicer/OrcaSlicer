@@ -3,7 +3,7 @@
 	"name": "Bambu ABS @0.8 nozzle",
 	"inherits": "Bambu ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NKhfqNQIcfKQBYAK",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

@@ -3,7 +3,7 @@
 	"name": "QIDI PA-Ultra",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN98",
+	"setting_id": "Rp1vbScHgwAZAwNT",
 	"filament_id": "GFN99",
 	"instantiation": "true",
 	"filament_type": [

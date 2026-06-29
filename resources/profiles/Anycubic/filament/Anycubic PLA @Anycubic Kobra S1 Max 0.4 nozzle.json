@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle",
+	"setting_id": "61KPHMw1fRcuaGHk",
 	"filament_id": "GFPLA",
 	"instantiation": "true",
 	"filament_settings_id": [

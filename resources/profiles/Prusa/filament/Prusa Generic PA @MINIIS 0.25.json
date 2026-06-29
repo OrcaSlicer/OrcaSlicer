@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PA @MINIIS 0.25",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "tGSqS5YX8FXkVAKa",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"

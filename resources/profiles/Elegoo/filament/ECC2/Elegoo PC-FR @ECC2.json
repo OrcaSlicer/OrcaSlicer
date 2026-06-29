@@ -3,7 +3,7 @@
 	"name": "Elegoo PC-FR @ECC2",
 	"inherits": "Elegoo PC @base",
 	"from": "system",
-	"setting_id": "EPCFRECC2",
+	"setting_id": "M86WAPT5jr5ge7Ni",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.05"

@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PETG-CF",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG50",
+	"setting_id": "kjmXKWCMonhYhy8U",
 	"filament_id": "GFG98",
 	"instantiation": "true",
 	"temperature_vitrification": [

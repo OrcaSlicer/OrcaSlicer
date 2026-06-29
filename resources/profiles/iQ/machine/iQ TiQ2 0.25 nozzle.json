@@ -3,6 +3,7 @@
 	"name": "iQ TiQ2 0.25 Nozzle",
 	"inherits": "fdm_tiq_common",
 	"from": "system",
+	"setting_id": "cIJ59rG6rulmYsqA",
 	"instantiation": "true",
 	"printer_settings_id": "iQ TiQ2 0.25 Nozzle",
 	"printer_model": "TiQ2",

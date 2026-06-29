@@ -85,7 +85,7 @@ if $FULL_MODE; then
         generated_pot_file="${generated_i18n_dir}/OrcaSlicer.pot"
 
         mkdir -p "$generated_i18n_dir"
-        xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost -f "$filtered_list" -o "$generated_pot_file"
+        xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost --no-wrap -f "$filtered_list" -o "$generated_pot_file"
         python3 scripts/HintsToPot.py ./resources "$generated_i18n_dir"
 
         if [ -f "$pot_file" ] && files_equal_ignoring_pot_date "$pot_file" "$generated_pot_file"; then
@@ -108,7 +108,7 @@ do
     if [ -f "$dir/OrcaSlicer_${lang}.po" ]; then
         if $FULL_MODE && [ -f "$pot_file" ]; then
             merged_po=$(mktemp)
-            if ! msgmerge -N -o "$merged_po" "$dir/OrcaSlicer_${lang}.po" "$pot_file"; then
+            if ! msgmerge -N --no-wrap -o "$merged_po" "$dir/OrcaSlicer_${lang}.po" "$pot_file"; then
                 echo "Error encountered with msgmerge command for language ${lang}."
                 rm -f "$merged_po"
                 exit 1

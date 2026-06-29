@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PPA-GF",
 	"inherits": "fdm_filament_ppa",
 	"from": "system",
+	"setting_id": "hYkZEmk1B8X9EcF8",
 	"filament_id": "GFN96",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

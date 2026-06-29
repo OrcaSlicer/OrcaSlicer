@@ -137,20 +137,22 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
     }
 
     bool res = true;
-    auto url = make_url("upload/" + safe_filename(upload_filename.string()));
+    const auto safe_upload_filename = safe_filename(upload_filename.string());
+    // Only encode the URL path segment; keep the multipart filename and start-print path as the stored filename.
+    auto url = make_url("upload/" + Http::url_encode(safe_upload_filename));
 
     auto  http = Http::post(url); // std::move(url));
     set_auth(http);
     if (!supports_multi_color_print())
         http.form_add("path", upload_parent_path.string());
-    http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
+    http.form_add_file("file", upload_data.source_path.string(), safe_upload_filename)
 
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
 
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
                 wxString errormsg;
-                if (!start_print(errormsg, safe_filename(upload_filename.string()), upload_data.extended_info)) {
+                if (!start_print(errormsg, safe_upload_filename, upload_data.extended_info)) {
                     error_fn(std::move(errormsg));
                     res = false;
                 }
@@ -296,36 +298,6 @@ std::string CrealityPrint::query_boxes_info() const
     }
 }
 
-std::string CrealityPrint::get_print_host_webui(DynamicPrintConfig* config)
-{
-    // K-series printers (K2 / K2 Plus / K2 Pro) ship with Mainsail on port 4408.
-    // Port 80 hosts only the Creality control / upload API, which returns 404
-    // for unknown paths and therefore renders as a blank/404 page in Orca's
-    // Device WebView. Default to the Mainsail URL when the user hasn't
-    // explicitly set print_host_webui.
-    if (config == nullptr)
-        return {};
-
-    std::string explicit_url = config->opt_string("print_host_webui");
-    if (!explicit_url.empty())
-        return explicit_url;
-
-    std::string host = config->opt_string("print_host");
-    if (host.empty())
-        return {};
-
-    if (boost::algorithm::istarts_with(host, "http://"))
-        host = host.substr(7);
-    else if (boost::algorithm::istarts_with(host, "https://"))
-        host = host.substr(8);
-    if (auto slash = host.find('/'); slash != std::string::npos)
-        host = host.substr(0, slash);
-    if (auto colon = host.find(':'); colon != std::string::npos)
-        host = host.substr(0, colon);
-
-    return "http://" + host + ":4408/";
-}
-
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
 {
     try {
@@ -412,11 +384,19 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
             };
             ws.write(net::buffer(to_string(cmd)));
 
+            // K1-family firmware closes the WebSocket right after accepting the
+            // start command, so a blocking read here surfaces a benign
+            // "End of file [asio.misc:2]" even though the print already started
+            // (the command is delivered by write()). Read best-effort, ignore errors.
             beast::flat_buffer buffer;
-            ws.read(buffer);
+            beast::error_code  read_ec;
+            ws.read(buffer, read_ec);
         }
 
-        ws.close(websocket::close_code::normal);
+        // Same reason: the printer may have already closed the connection. A close
+        // error here is not a failure — the start command was sent above.
+        beast::error_code close_ec;
+        ws.close(websocket::close_code::normal, close_ec);
         return true;
     } catch(std::exception const& e) {
         BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Error starting print: " << e.what();

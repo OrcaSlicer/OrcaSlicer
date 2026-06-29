@@ -3,7 +3,7 @@
 	"name": "Bambu PLA @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "Bambu PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "oAUHAhSZkmCjhJEP",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

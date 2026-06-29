@@ -3,7 +3,7 @@
     "name": "Generic TPU @Ender-3 V4-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "iJozGH7KvOHz8smj",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

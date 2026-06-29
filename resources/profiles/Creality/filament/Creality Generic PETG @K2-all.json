@@ -3,7 +3,7 @@
 	"name": "Creality Generic PETG @K2-all",
 	"inherits": "Creality Generic PETG",
 	"from": "system",
-	"setting_id": "GFSG99_00",
+	"setting_id": "FhtlimihjuAe2pbs",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

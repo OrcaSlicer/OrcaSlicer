@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon ABS @Cubicon xCeler-Plus 0.4 nozzle",
 	"inherits": "Cubicon ABS @base",
+	"setting_id": "A5FQdwh0Xo7aTRpq",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Plus 0.4 nozzle"

@@ -18,21 +18,21 @@
 namespace Slic3r {
 namespace GUI {
 
-static auto check_gcode_failed_str      = _u8L("Abnormal print file data. Please slice again.");
+static auto check_gcode_failed_str      = _u8L("Abnormal print file data: please slice again.");
 static auto     printjob_cancel_str         = _u8L("Task canceled.");
 static auto     timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
 static auto     failed_in_cloud_service_str = _u8L("Cloud service connection failed. Please try again.");
-static auto     file_is_not_exists_str      = _u8L("Print file not found. Please slice again.");
+static auto     file_is_not_exists_str      = _u8L("Print file not found; please slice again.");
 static auto file_over_size_str = _u8L("The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again.");
 static auto print_canceled_str    = _u8L("Task canceled.");
 static auto send_print_failed_str = _u8L("Failed to send the print job. Please try again.");
 static auto upload_ftp_failed_str = _u8L("Failed to upload file to ftp. Please try again.");
 
-static auto     desc_network_error          = _u8L("Check the current status of the bambu server by clicking on the link above.");
+static auto     desc_network_error          = _u8L("Check the current status of the Bambu Lab server by clicking on the link above.");
 static auto     desc_file_too_large         = _u8L("The size of the print file is too large. Please adjust the file size and try again.");
-static auto     desc_fail_not_exist         = _u8L("Print file not found, please slice it again and send it for printing.");
+static auto     desc_fail_not_exist         = _u8L("Print file not found; please slice it again and send it for printing.");
 
-static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file to FTP. Please check the network status and try again.");
+static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file via FTP. Please check the network status and try again.");
 
 static auto sending_over_lan_str        = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str      = _u8L("Sending print job through cloud service");

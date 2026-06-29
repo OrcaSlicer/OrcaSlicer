@@ -3,6 +3,7 @@
 	"name": "Generic TPU-95A @FF C5",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "ULqB7JfqebS8d00l",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

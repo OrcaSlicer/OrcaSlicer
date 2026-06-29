@@ -23,7 +23,7 @@ if %FULL_MODE%==1 (
     call :prepareGettextList "%list_file%" "%filtered_list%" "%missing_list%"
     if "!has_sources!"=="1" (
         if not exist "%generated_i18n%" mkdir "%generated_i18n%"
-        .\tools\xgettext.exe --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost -f "%filtered_list%" -o "%generated_pot%"
+        .\tools\xgettext.exe --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost --no-wrap -f "%filtered_list%" -o "%generated_pot%"
         if errorlevel 1 (
             set "script_exit_code=1"
         ) else (
@@ -122,7 +122,7 @@ exit /b %errorlevel%
     set "lang=%name:OrcaSlicer_=%"
     if %FULL_MODE%==1 if exist "%pot_file%" (
         set "merged_file=%TEMP%\orca_gettext_merged_%RANDOM%_%RANDOM%.po"
-        .\tools\msgmerge.exe -N -o "!merged_file!" "%file%" "%pot_file%"
+        .\tools\msgmerge.exe -N --no-wrap -o "!merged_file!" "%file%" "%pot_file%"
         if errorlevel 1 (
             if exist "!merged_file!" del "!merged_file!"
             echo Error encountered with msgmerge command for language !lang!.

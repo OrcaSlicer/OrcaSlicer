@@ -138,7 +138,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
 
         m_new_enabled  = true;
         // BBS: change "Instance Operations" to "Object Operations"
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     }
     else if (selection.is_single_full_object() && obj_list->is_selected(itObject)) {
         const BoundingBoxf3& box = selection.get_bounding_box();
@@ -147,7 +147,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_new_size     = selection.get_bounding_box_in_current_reference_system().first.size();
 		m_new_scale_label_string  = L("Scale");
         m_new_enabled  = true;
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     } else if (selection.is_single_volume_or_modifier()) {
         const GLVolume *volume = selection.get_first_volume();
         auto            rotation = volume->get_volume_transformation().get_rotation_by_quaternion();
@@ -173,7 +173,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
             m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         }
         m_new_enabled = true;
-        m_new_title_string = L("Volume Operations");
+        m_new_title_string = L("Volume operations");
     } else if (obj_list->is_connectors_item_selected() || obj_list->multiple_selection() || obj_list->is_selected(itInstanceRoot)) {
         reset_settings_value();
 		m_new_move_label_string   = L("Translate");
@@ -181,7 +181,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_unscale_size            = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_enabled  = true;
-        m_new_title_string = L("Group Operations");
+        m_new_title_string = L("Group operations");
     } else if (selection.is_wipe_tower()) {
         const BoundingBoxf3 &box = selection.get_bounding_box();
         m_new_position           = box.center();
@@ -361,7 +361,7 @@ void GizmoObjectManipulation::change_rotation_value(int axis, double value)
 
     selection.setup_cache();
     selection.rotate((M_PI / 180.0) * (transformation_type.absolute() ? rotation : rotation - m_cache.rotation), transformation_type);
-    wxGetApp().plater()->take_snapshot(_u8L("Set Orientation"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Set orientation"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_rotate("");
 
     m_cache.rotation = rotation;
@@ -469,7 +469,7 @@ void GizmoObjectManipulation::do_scale(int axis, const Vec3d &scale) const
 
     selection.setup_cache();
     selection.scale(scaling_factor, transformation_type);
-    m_glcanvas.do_scale(L("Set Scale"));
+    m_glcanvas.do_scale(L("Set scale"));
 }
 
 
@@ -549,7 +549,7 @@ void GizmoObjectManipulation::reset_position_value()
         return;
 
     // Copy position values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    wxGetApp().plater()->take_snapshot(_u8L("Reset Position"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Reset position"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_move("");
 
     UpdateAndShow(true);
@@ -590,7 +590,7 @@ void GizmoObjectManipulation::reset_rotation_value(bool reset_relative)
     selection.synchronize_unselected_instances(Selection::SyncRotationType::RESET);
     selection.synchronize_unselected_volumes();
     // Copy rotation values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    m_glcanvas.do_rotate(L("Reset Rotation"));
+    m_glcanvas.do_rotate(L("Reset rotation"));
 
     UpdateAndShow(true);
 }

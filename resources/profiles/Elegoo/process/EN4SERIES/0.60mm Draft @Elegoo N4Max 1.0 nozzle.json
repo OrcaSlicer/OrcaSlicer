@@ -1,8 +1,9 @@
 {
 	"type": "process",
 	"name": "0.60mm Draft @Elegoo N4Max 1.0 nozzle",
+	"from": "system",
 	"inherits": "0.50mm Standard @Elegoo N4Max 1.0 nozzle",
+	"setting_id": "QoV7xebXnXFxPc1G",
 	"instantiation": "true",
-	"layer_height": "0.6",
-	"settings_id": "PEN4Max10060"
+	"layer_height": "0.6"
 }

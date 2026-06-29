@@ -3,7 +3,7 @@
 	"name": "RatRig V-Minion 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM005",
+	"setting_id": "mgAo9e4ATAbrc501",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Minion",
 	"nozzle_diameter": [

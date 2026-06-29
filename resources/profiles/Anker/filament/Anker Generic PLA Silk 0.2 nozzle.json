@@ -3,7 +3,7 @@
 	"name": "Anker Generic PLA Silk 0.2 nozzle",
 	"inherits": "Anker Generic PLA Silk @base",
 	"from": "system",
-	"setting_id": "GFSL96_20",
+	"setting_id": "A1l6NiwRrasdV556",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

@@ -3,6 +3,7 @@
 	"name": "0.15mm STRUCTURAL @CORE One L 0.4",
 	"inherits": "0.15mm STRUCTURAL @MK4S 0.4",
 	"from": "system",
+	"setting_id": "Q5Em2qoElqB5MNcC",
 	"instantiation": "true",
 	"overhang_2_4_speed": "45",
 	"sparse_infill_speed": "120",

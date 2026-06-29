@@ -3,7 +3,7 @@
 	"name": "WonderMaker ZR Ultra 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM013",
+	"setting_id": "xJBdCljSZVDINXnP",
 	"instantiation": "true",
 	"printer_model": "WonderMaker ZR Ultra",
 	"default_print_profile": "0.20mm Standard @WonderMaker ZR Ultra",

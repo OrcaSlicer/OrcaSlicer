@@ -920,7 +920,7 @@ void TroubleshootDialog::PackAll()
     if(!project_name.IsEmpty()){
         if (wxGetApp().plater()->is_project_dirty()) {
             auto res = MessageDialog(this, 
-                _L("The current project has unsaved changes, save it before continue?") +
+                _L("The current project has unsaved changes. Would you like to save before continuing\?") +
                 "\n\n" +
                 _L("Select NO to close dialog and review project"),
                 wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE
@@ -949,7 +949,7 @@ void TroubleshootDialog::RebuildSystemProfiles()
 {
     if (wxGetApp().plater()->is_project_dirty()) {
         auto res = MessageDialog(this, 
-            _L("The current project has unsaved changes, save it before continue?") +
+            _L("The current project has unsaved changes. Would you like to save before continuing\?") +
             "\n\n" +
             _L("Select NO to close dialog and review project."),
             wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE

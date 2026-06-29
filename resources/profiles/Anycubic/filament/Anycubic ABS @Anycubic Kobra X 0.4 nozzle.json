@@ -3,7 +3,7 @@
 	"name": "Anycubic ABS @Anycubic Kobra X 0.4 nozzle",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "KeEk3yQZrKmJY9Q0",
 	"filament_id": "GFABS",
 	"instantiation": "true",
 	"filament_settings_id": [

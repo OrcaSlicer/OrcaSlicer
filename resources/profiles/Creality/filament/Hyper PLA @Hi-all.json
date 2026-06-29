@@ -3,7 +3,7 @@
     "name": "Hyper PLA @Hi-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "AG1UL48Bof1wFYDF",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -39,7 +39,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "2"
+        "21"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"
