@@ -4560,6 +4560,17 @@ void DesignPanel::on_commit()
 CadFeature DesignPanel::build_candidate(Tool t) const
 {
     CadFeature f;
+    // EDIT MODE: a feature card edits only scalar parameters. The feature's structural
+    // identity — profile source (sketch_ref / entities / picked face), its plane, the
+    // up-to-face target and the target body — must be preserved from the feature being
+    // edited, NOT re-derived from the live tool state (which still reflects the last *add*
+    // flow). GUI extrudes carry their profile as `entities` with sketch_ref = -1, which the
+    // card never restores, so a fresh rebuild produced an empty profile -> a misplaced new
+    // box. Seed from the original; the cases below overlay card scalars and skip the
+    // structural assignments while editing.
+    const bool editing = (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size()));
+    if (editing)
+        f = m_doc.features[m_edit_index];
     switch (t) {
     case Tool::Sketch:
         f.type   = CadFeatureType::Sketch;
@@ -4577,27 +4588,32 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.distance2   = m_distance2->GetValue();
         f.taper_deg   = m_taper->GetValue();
         f.flip        = m_flip->GetValue();
-        f.up_to_face  = (f.extrude_end == ExtrudeEnd::UpToFace) ? m_sel_solid_face : -1;
         f.mode       = (m_mode->GetSelection() == 0) ? BooleanMode::New
                      : (m_mode->GetSelection() == 1) ? BooleanMode::Add
                      : (m_mode->GetSelection() == 2) ? BooleanMode::Cut
                                                      : BooleanMode::Intersect;
-        if (m_extrude_face_src >= 0) {
-            // Preview the face-as-profile extrude: the kernel grabs the body face by id.
-            f.extrude_src_face = m_extrude_face_src;
-            f.sketch_ref       = -1;
-        } else if (extrude_uses_loop()) {
-            // Preview just the click-selected loop: carry its entity subset on the
-            // feature (sketch_ref = -1 -> build_sketch_wire uses f.entities).
-            f.sketch_ref = -1;
-            f.entities   = m_viewport->selected_loop_entities();
-            f.plane      = m_doc.features[m_extrude_sketch_ref].plane;
-        } else {
-            f.sketch_ref = m_extrude_sketch_ref;
-            // Preview an on-face engraving Cut against the host body (matches the commit).
-            if (m_extrude_sketch_ref >= 0 && m_extrude_sketch_ref < int(m_doc.features.size())
-                && m_doc.features[m_extrude_sketch_ref].import_on_face)
-                f.target_body = m_doc.features[m_extrude_sketch_ref].import_face_body;
+        // Profile source + up-to-face target are structural: re-derive them from the live
+        // tool state only when ADDING. While editing they are preserved from the seeded
+        // original (the card changed only depth/taper/flip/mode).
+        if (!editing) {
+            f.up_to_face = (f.extrude_end == ExtrudeEnd::UpToFace) ? m_sel_solid_face : -1;
+            if (m_extrude_face_src >= 0) {
+                // Face-as-profile extrude: the kernel grabs the body face by id.
+                f.extrude_src_face = m_extrude_face_src;
+                f.sketch_ref       = -1;
+            } else if (extrude_uses_loop()) {
+                // Just the click-selected loop: carry its entity subset on the feature
+                // (sketch_ref = -1 -> build_sketch_wire uses f.entities).
+                f.sketch_ref = -1;
+                f.entities   = m_viewport->selected_loop_entities();
+                f.plane      = m_doc.features[m_extrude_sketch_ref].plane;
+            } else {
+                f.sketch_ref = m_extrude_sketch_ref;
+                // On-face engraving Cut against the host body (matches the commit).
+                if (m_extrude_sketch_ref >= 0 && m_extrude_sketch_ref < int(m_doc.features.size())
+                    && m_doc.features[m_extrude_sketch_ref].import_on_face)
+                    f.target_body = m_doc.features[m_extrude_sketch_ref].import_face_body;
+            }
         }
         break;
     case Tool::Dressup:
@@ -4711,7 +4727,9 @@ CadFeature DesignPanel::build_candidate(Tool t) const
     // Boolean drives its own target/tool body from the card; every other tool targets the
     // picked body (face-extrude reads its source face there, dress-up / hole / boolean-mode
     // extrude mutate it). -1 when nothing is picked => auto (last body).
-    if (m_active != Tool::Boolean && m_active != Tool::Cut)
+    // Targeting the picked body is an ADD-time concern; while editing, the original feature's
+    // target_body is preserved from the seed (the card did not re-pick a body).
+    if (!editing && m_active != Tool::Boolean && m_active != Tool::Cut)
         f.target_body = m_sel_solid_body;
     return f;
 }
