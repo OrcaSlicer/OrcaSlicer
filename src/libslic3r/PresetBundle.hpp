@@ -285,7 +285,7 @@ public:
     void         update_num_filaments(unsigned int to_del_flament_id);
 
     void get_ams_cobox_infos(AMSComboInfo &combox_info);
-    unsigned int sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only = false);
+    unsigned int sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only = false, bool prefer_custom = false);
     //BBS: check whether this is the only edited filament
     bool is_the_only_edited_filament(unsigned int filament_index);
 

@@ -1735,6 +1735,9 @@ void PreferencesDialog::create_items()
         {_L("Filament & Color"), _L("Color only")});
     g_sizer->Add(item_filament_sync_mode);
 
+    auto item_filament_prefer_custom = create_item_checkbox(_L("Prefer custom filament profiles when syncing"), "", "filament_sync_prefer_custom");
+    g_sizer->Add(item_filament_prefer_custom);
+
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Bambu network plug-in")), 1, wxEXPAND);
 
