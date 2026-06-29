@@ -7089,7 +7089,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             // matching BBL Studio behavior for classified overhang perimeters.
             if (NOZZLE_CONFIG(enable_overhang_speed)) {
                 double ref_speed = NOZZLE_CONFIG(outer_wall_speed);
-                double oh_speed = m_config.get_abs_value("overhang_4_4_speed", ref_speed);
+                // overhang_4_4_speed is a multi-variant (coFloatsOrPercents) option; resolve the
+                // current nozzle's value via NOZZLE_CONFIG before get_abs_value. Using the scalar
+                // ConfigBase::get_abs_value(key, ratio) throws "not of coFloatOrPercent" on the
+                // vector form (multi-filament configs). Matches the pattern used elsewhere here.
+                double oh_speed = NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed);
                 speed = (oh_speed > 0.5) ? oh_speed : NOZZLE_CONFIG(bridge_speed);
             } else {
                 speed = NOZZLE_CONFIG(bridge_speed);
