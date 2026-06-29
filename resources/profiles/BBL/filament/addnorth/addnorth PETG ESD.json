@@ -54,7 +54,19 @@
 		"Bambu Lab H2S 0.8 nozzle",
 		"Bambu Lab P2S 0.4 nozzle",
 		"Bambu Lab P2S 0.6 nozzle",
-		"Bambu Lab P2S 0.8 nozzle"
+		"Bambu Lab P2S 0.8 nozzle",
+		"Bambu Lab X2D 0.2 nozzle",
+		"Bambu Lab X2D 0.4 nozzle",
+		"Bambu Lab X2D 0.6 nozzle",
+		"Bambu Lab X2D 0.8 nozzle",
+		"Bambu Lab H2C 0.2 nozzle",
+		"Bambu Lab H2C 0.4 nozzle",
+		"Bambu Lab H2C 0.6 nozzle",
+		"Bambu Lab H2C 0.8 nozzle",
+		"Bambu Lab A2L 0.2 nozzle",
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
 	],
 	"compatible_printers_condition": "",
 	"compatible_prints": [],
@@ -136,12 +148,11 @@
 		"; filament end gcode \n"
 	],
 	"filament_extruder_variant": [
-		"Direct Drive Standard",
-		"Direct Drive High Flow"
+		"Direct Drive Standard"
 	],
 	"filament_flow_ratio": [
-		"0.95",
-		"0.95"
+		"0.97",
+		"0.97"
 	],
 	"filament_is_support": [
 		"0"
@@ -151,13 +162,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"12",
-		"12"
+		"20",
+		"20"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.5 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.6 high reliability - V.Pack:18_05_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -274,12 +285,12 @@
 		"10"
 	],
 	"nozzle_temperature": [
-		"260",
-		"260"
+		"290",
+		"290"
 	],
 	"nozzle_temperature_initial_layer": [
-		"255",
-		"255"
+		"290",
+		"290"
 	],
 	"nozzle_temperature_range_high": [
 		"270"
@@ -324,12 +335,13 @@
 		"70"
 	],
 	"temperature_vitrification": [
-		"75"
+		"50"
 	],
 	"textured_plate_temp": [
-		"75"
+		"70"
 	],
 	"textured_plate_temp_initial_layer": [
-		"75"
-	]
+		"70"
+	],
+	"version": "2.0.0.77"
 }
