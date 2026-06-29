@@ -678,7 +678,7 @@ wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxStrin
     input_title->SetToolTip(tooltip);
     input_title->Wrap(DESIGN_TITLE_SIZE.x);
 
-    auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    auto       input = new ::TextInput(m_parent, wxEmptyString, title2, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
@@ -686,16 +686,9 @@ wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxStrin
     input->SetToolTip(tooltip);
     input->GetTextCtrl()->SetValidator(validator);
 
-    auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
-    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
-    second_title->SetFont(::Label::Body_14);
-    second_title->SetToolTip(tooltip);
-    second_title->Wrap(-1);
-
     sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
     sizer_input->Add(input_title , 0, wxALIGN_CENTER_VERTICAL);
     sizer_input->Add(input       , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
-    sizer_input->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
 
     auto apply_value = [this, param, input, min, max, decimals]() {
         auto value = input->GetTextCtrl()->GetValue();
