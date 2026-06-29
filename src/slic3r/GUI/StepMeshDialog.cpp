@@ -254,6 +254,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     check_sizer->Add(m_split_compound_checkbox, 0, wxALIGN_LEFT);
     bSizer->Add(check_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
 
+    wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
+    m_save_default_checkbox->SetFont(::Label::Body_14);
+    m_save_default_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_save_default_checkbox->SetToolTip(_L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
+    save_default_sizer->Add(m_save_default_checkbox, 0, wxALIGN_LEFT);
+    bSizer->Add(save_default_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
+
     wxBoxSizer* mesh_face_number_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText *mesh_face_number_title = new wxStaticText(this, wxID_ANY, _L("Number of triangular facets") + ": ");
     mesh_face_number_title->SetFont(::Label::Body_14);
@@ -284,9 +292,11 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
             if (m_checkbox->IsChecked()) {
                 wxGetApp().app_config->set_bool("enable_step_mesh_setting", false);
             }
-            wxGetApp().app_config->set_bool("is_split_compound", m_split_compound_checkbox->GetValue());
-            wxGetApp().app_config->set("linear_deflection", float_to_string_decimal_point(get_linear_deflection(), 3));
-            wxGetApp().app_config->set("angle_deflection", float_to_string_decimal_point(get_angle_deflection(), 2));
+            if (m_save_default_checkbox->IsChecked()) {
+                wxGetApp().app_config->set_bool("is_split_compound", m_split_compound_checkbox->GetValue());
+                wxGetApp().app_config->set("linear_deflection", float_to_string_decimal_point(get_linear_deflection(), 3));
+                wxGetApp().app_config->set("angle_deflection", float_to_string_decimal_point(get_angle_deflection(), 2));
+            }
 
             EndModal(wxID_OK);
         }
