@@ -10,6 +10,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "3DScene.hpp"
 #include "libslic3r/Config.hpp"
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <wx/glcanvas.h>
 #include <wx/sizer.h>
@@ -87,12 +88,12 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
             [this, commit](double v) {
                 m_sketch_tool.set_inline_busy(false);
                 if (commit) commit(v);
-                if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+                request_repaint();
             },
             [this, cancel]() {
                 m_sketch_tool.set_inline_busy(false);
                 if (cancel) cancel();
-                if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+                request_repaint();
             });
     };
     // Let the tool force-close the field (keep-as-drawn) — polyline right-click/double-click
@@ -163,6 +164,29 @@ static ColorRGBA body_palette(int body_idx)
     };
     const int n = int(sizeof(kPalette) / sizeof(kPalette[0]));
     return kPalette[((body_idx % n) + n) % n];
+}
+
+void DesignCanvas::request_repaint()
+{
+    if (!m_canvas)
+        return;
+    m_canvas->set_as_dirty();
+
+    if (m_sw_gl < 0) {
+        // Cache the backend once it's known; the renderer string is empty until
+        // GL is initialised, so stay "unknown" and take the safe direct path till then.
+        const std::string& r = OpenGLManager::get_gl_info().get_renderer();
+        if (!r.empty())
+            m_sw_gl = (boost::icontains(r, "llvmpipe") || boost::icontains(r, "softpipe") ||
+                       boost::icontains(r, "swrast")   || boost::icontains(r, "software")) ? 1 : 0;
+    }
+
+    if (m_sw_gl == 0) {
+        if (m_canvas_widget)
+            m_canvas_widget->Refresh();   // hardware GL: paint cycle drives render()
+    } else {
+        m_canvas->render();               // software GL or backend not yet known
+    }
 }
 
 void DesignCanvas::reload(bool keep_view)
@@ -403,13 +427,13 @@ void DesignCanvas::set_on_solve_state(std::function<void(int, bool, bool)> cb)
 void DesignCanvas::apply_segment_length(double len)
 {
     m_sketch_tool.apply_segment_length(len);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::keep_segment_as_drawn()
 {
     m_sketch_tool.keep_segment_as_drawn();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::set_on_sketch_selection_changed(std::function<void(int)> cb)
@@ -464,13 +488,13 @@ ColorRGBA DesignCanvas::body_color(int body) const
 void DesignCanvas::begin_move_body(int body, const Vec3d& pivot, const Transform3d& base_xform)
 {
     m_sketch_tool.set_move_gizmo(body, pivot, base_xform);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::clear_move_gizmo()
 {
     m_sketch_tool.clear_move_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::moving_body() const { return m_sketch_tool.moving_body(); }
@@ -483,14 +507,14 @@ void DesignCanvas::set_on_body_move_changed(std::function<void(int, const Transf
 bool DesignCanvas::begin_fillet_gizmo(const Vec3d& body_centroid, double radius)
 {
     const bool ok = m_sketch_tool.set_fillet_gizmo(body_centroid, radius);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
     return ok;
 }
 
 void DesignCanvas::clear_fillet_gizmo()
 {
     m_sketch_tool.clear_fillet_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::filleting() const { return m_sketch_tool.filleting(); }
@@ -504,7 +528,7 @@ void DesignCanvas::begin_hole_gizmo(const SketchPlane& plane, double x, double y
                                     double diameter, double depth, bool through)
 {
     m_sketch_tool.set_hole_gizmo(plane, x, y, diameter, depth, through);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::set_hole_face_bounds(bool has, double umin, double umax, double vmin, double vmax)
@@ -515,7 +539,7 @@ void DesignCanvas::set_hole_face_bounds(bool has, double umin, double umax, doub
 void DesignCanvas::clear_hole_gizmo()
 {
     m_sketch_tool.clear_hole_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::holing() const { return m_sketch_tool.holing(); }
@@ -529,13 +553,13 @@ void DesignCanvas::begin_thread_gizmo(const SketchPlane& plane, double x, double
                                       double radius, double height)
 {
     m_sketch_tool.set_thread_gizmo(plane, x, y, radius, height);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::clear_thread_gizmo()
 {
     m_sketch_tool.clear_thread_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::threading() const { return m_sketch_tool.threading(); }
@@ -549,13 +573,13 @@ void DesignCanvas::begin_shell_gizmo(const Vec3d& face_centroid, const Vec3d& in
                                      double thickness)
 {
     m_sketch_tool.set_shell_gizmo(face_centroid, inward_dir, thickness);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::clear_shell_gizmo()
 {
     m_sketch_tool.clear_shell_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::shelling() const { return m_sketch_tool.shelling(); }
@@ -569,13 +593,13 @@ void DesignCanvas::begin_revolve_gizmo(const SketchPlane& plane, const Vec2d& ce
                                        int axis_sel, double angle, bool flip)
 {
     m_sketch_tool.set_revolve_gizmo(plane, centroid, axis_sel, angle, flip);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::clear_revolve_gizmo()
 {
     m_sketch_tool.clear_revolve_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::revolving() const { return m_sketch_tool.revolving(); }
@@ -589,13 +613,13 @@ void DesignCanvas::begin_pattern_gizmo(const SketchPlane& plane, const Vec3d& bo
                                        bool circular, int count, int dir, double spacing, double angle)
 {
     m_sketch_tool.set_pattern_gizmo(plane, body_centroid, circular, count, dir, spacing, angle);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::clear_pattern_gizmo()
 {
     m_sketch_tool.clear_pattern_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::patterning() const { return m_sketch_tool.patterning(); }
@@ -618,20 +642,20 @@ void DesignCanvas::set_on_place_on_face(std::function<bool()> cb)
 void DesignCanvas::select_body(int body)
 {
     m_sketch_tool.select_body(body);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // redraw the overlay (llvmpipe)
+    request_repaint();
 }
 
 void DesignCanvas::set_extrude_gizmo(const SketchPlane& plane, const Vec2d& centroid,
                                      double depth, double depth2, bool two_sided, bool flip)
 {
     m_sketch_tool.set_extrude_gizmo(plane, centroid, depth, depth2, two_sided, flip);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::clear_extrude_gizmo()
 {
     m_sketch_tool.clear_extrude_gizmo();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::set_on_extrude_depth_changed(std::function<void(double, bool)> cb)
@@ -657,16 +681,14 @@ void DesignCanvas::set_on_undo_redo(std::function<void(bool)> cb)
 void DesignCanvas::set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds)
 {
     m_sketch_tool.set_display_sketches(std::move(ds));
-    // Direct render: under llvmpipe a scheduled Refresh() often doesn't repaint
-    // unless some other event (e.g. a modal close) forces it, so programmatic
-    // overlay changes (hide/show, re-solve) could leave a stale overlay.
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    // Overlay changed programmatically (no mouse event) — force a repaint.
+    request_repaint();
 }
 
 void DesignCanvas::set_datum_planes(std::vector<SketchPlane> planes)
 {
     m_sketch_tool.set_datum_planes(std::move(planes));
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }   // llvmpipe: force repaint
+    request_repaint();
 }
 
 void DesignCanvas::set_readout(const std::string& text)
@@ -711,13 +733,13 @@ void DesignCanvas::set_body_hidden(bool on)
 void DesignCanvas::delete_selected_sketch_entities()
 {
     m_sketch_tool.delete_selected();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::clear_sketch_selection()
 {
     m_sketch_tool.clear_selection();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 DesignSketchTool::DimType DesignCanvas::sketch_dimension_kind() const
@@ -733,7 +755,7 @@ double DesignCanvas::sketch_dimension_current() const
 void DesignCanvas::apply_sketch_dimension(double v)
 {
     m_sketch_tool.apply_dimension(v);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::open_inline_value(double current, std::function<void(double)> commit,
@@ -764,12 +786,12 @@ void DesignCanvas::open_inline_value(double current, std::function<void(double)>
         [this, commit](double v) {
             m_sketch_tool.set_inline_busy(false);
             if (commit) commit(v);
-            if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+            request_repaint();
         },
         [this, cancel]() {
             m_sketch_tool.set_inline_busy(false);
             if (cancel) cancel();
-            if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+            request_repaint();
         });
 }
 
@@ -786,21 +808,20 @@ DesignSketchTool::DimType DesignCanvas::pending_dimension_type() const
 void DesignCanvas::set_sketch_dimension_value(double v)
 {
     m_sketch_tool.set_dimension_value(v);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::cancel_sketch_dimension()
 {
     m_sketch_tool.cancel_dimension_value();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::begin_constrain(const SketchProfile& prof, const SketchPlane& plane)
 {
     m_sketch_tool.begin_constrain(prof, plane);
-    // The overlay must appear immediately (no mouse move to trigger a repaint);
-    // a direct render() is the proven path under llvmpipe.
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    // The overlay must appear immediately (no mouse move to trigger a repaint).
+    request_repaint();
 }
 
 void DesignCanvas::begin_imported_transform(
@@ -808,7 +829,7 @@ void DesignCanvas::begin_imported_transform(
         const SketchPlane& plane, const Vec2d& offset, double scale_x, double scale_y)
 {
     m_sketch_tool.begin_imported_transform(feat, base_regions, plane, offset, scale_x, scale_y);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::set_on_imported_transform(std::function<void(int, Vec2d, double, double)> cb)
@@ -821,7 +842,7 @@ void DesignCanvas::end_constrain()
     // cancel() clears m_active + the picked-segment/entity indices, so the
     // constrain overlay (highlighted picks) disappears on the next render.
     m_sketch_tool.cancel();
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::is_constraining() const { return m_sketch_tool.is_constraining(); }
@@ -834,14 +855,14 @@ bool DesignCanvas::selected_segment(int& a, int& b) const
 void DesignCanvas::update_constrain_profile(const std::vector<Vec2d>& pts)
 {
     m_sketch_tool.set_profile_points(pts);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::begin_constrain_entities(const std::vector<SketchEntity>& ents,
                                             const SketchPlane& plane)
 {
     m_sketch_tool.begin_constrain_entities(ents, plane);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 bool DesignCanvas::is_constraining_entities() const
@@ -867,19 +888,19 @@ bool DesignCanvas::pick0_point(Vec2d& out) const
 void DesignCanvas::update_constrain_entities(const std::vector<SketchEntity>& ents)
 {
     m_sketch_tool.set_constrain_entities(ents);
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::set_constraint_highlight(std::vector<int> entities)
 {
     m_sketch_tool.set_constraint_highlight(std::move(entities));
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 void DesignCanvas::set_constraint_glyphs(std::vector<SketchEntityConstraintDef> cons)
 {
     m_sketch_tool.set_constraint_glyphs(std::move(cons));
-    if (m_canvas) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    request_repaint();
 }
 
 }} // namespace Slic3r::GUI

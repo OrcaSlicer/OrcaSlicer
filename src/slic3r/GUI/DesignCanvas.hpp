@@ -203,9 +203,16 @@ public:
 
 private:
     void reload(bool keep_view);
+    // Repaint the embedded canvas the right way for the active GL backend:
+    // hardware GL gets a scheduled wxEVT_PAINT (render() runs inside the paint
+    // cycle); software GL (llvmpipe etc.) gets a direct render() because a
+    // scheduled Refresh() is frequently dropped there. Backend cached on first use.
+    void request_repaint();
 
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};
+    int         m_sw_gl{-1};   // -1 unknown, 0 hardware GL, 1 software GL
+
     Bed3D       m_bed;
     Model       m_model;
     bool        m_first_frame{true};
