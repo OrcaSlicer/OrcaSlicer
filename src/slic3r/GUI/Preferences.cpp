@@ -1467,10 +1467,10 @@ void PreferencesDialog::create_items()
     auto item_step_dialog      = create_item_checkbox(_L("Show options when importing STEP file"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), "enable_step_mesh_setting");
     g_sizer->Add(item_step_dialog);
 
-    auto item_step_linear      = create_item_decimal_input(_L("STEP linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files. Smaller values produce higher-quality meshes but increase processing time. Used as the default in the import dialog, or directly when the import dialog is disabled."), "linear_deflection", 0.001, 0.1, 3);
+    auto item_step_linear      = create_item_decimal_input(_L("STEP importing: linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled."), "linear_deflection", 0.001, 0.1, 3);
     g_sizer->Add(item_step_linear);
 
-    auto item_step_angle       = create_item_decimal_input(_L("STEP angle deflection"), "", _L("Angle deflection used when meshing imported STEP files. Smaller values produce higher-quality meshes but increase processing time. Used as the default in the import dialog, or directly when the import dialog is disabled."), "angle_deflection", 0.01, 1.0, 2);
+    auto item_step_angle       = create_item_decimal_input(_L("STEP importing: angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled."), "angle_deflection", 0.01, 1.0, 2);
     g_sizer->Add(item_step_angle);
 
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
