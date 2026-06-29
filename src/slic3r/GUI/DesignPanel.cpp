@@ -4498,7 +4498,13 @@ void DesignPanel::on_edit_feature()
         load_feature_into_dialog(f);
         open_tool(Tool::Draft);
         break;
-    default: break;
+    default:
+        // Import / Boolean / Cut have no parametric edit dialog yet (follow-up
+        // snaporca-nu9). Don't silently swallow the Edit click — tell the user.
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(_L("This feature type can't be edited yet"));
+        m_status->Refresh();
+        break;
     }
 }
 

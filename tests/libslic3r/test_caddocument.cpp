@@ -1421,3 +1421,98 @@ TEST_CASE("deserialize_recipe rejects future version", "[CadDocument]")
     }
     REQUIRE_FALSE(doc.deserialize_recipe(oss.str()));
 }
+
+TEST_CASE("re-edit: editing a mid-timeline feature rebuilds downstream", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                            20, 10, 0, "Sketch1");
+    REQUIRE(sk >= 0);
+    int ex = doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(ex >= 0);
+    doc.add_fillet(1.0, FaceGroup::All, "Fillet1");
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    Vec3d sz0 = doc.display_mesh.bounding_box().size();
+    REQUIRE(sz0.z() > 0.0);
+
+    // Edit the MID feature (extrude — NOT the last; Fillet is downstream).
+    doc.features[ex].distance = 12.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    Vec3d sz1 = doc.display_mesh.bounding_box().size();
+    REQUIRE(sz1.z() > sz0.z() + 1.0);
+    REQUIRE(doc.bodies.size() == 1);
+
+    // Edit the FIRST feature (sketch width) — must propagate the whole chain.
+    doc.features[sk].width = 30;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    Vec3d sz2 = doc.display_mesh.bounding_box().size();
+    REQUIRE(sz2.x() > sz1.x() + 1.0);
+}
+
+TEST_CASE("re-edit survives serialize -> deserialize", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                            20, 10, 0, "Sketch1");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude1");
+    doc.add_fillet(1.0, FaceGroup::All, "Fillet1");
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.error.empty());
+    REQUIRE(doc2.recompute());
+    REQUIRE(doc2.error.empty());
+    Vec3d sz_pre = doc2.display_mesh.bounding_box().size();
+    REQUIRE(sz_pre.z() > 0.0);
+
+    // Mid-edit the deserialized document — the persisted recipe stays re-editable.
+    doc2.features[1].distance = 12.0;
+    REQUIRE(doc2.recompute());
+    REQUIRE(doc2.error.empty());
+    Vec3d sz_post = doc2.display_mesh.bounding_box().size();
+    REQUIRE(sz_post.z() > sz_pre.z() + 1.0);
+}
+
+TEST_CASE("re-edit: multi-type timeline replays all downstream features", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                            30, 30, 0, "Sketch1");
+    REQUIRE(sk >= 0);
+    int ex = doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(ex >= 0);
+    doc.add_hole(6.0, 4.0, false, 0.0, 0.0, SketchPlane::XY(), "Hole1");
+    doc.add_chamfer(1.0, FaceGroup::All, "Chamfer1");
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    size_t n_bodies = doc.bodies.size();
+    REQUIRE(n_bodies >= 1);
+    Vec3d sz0 = doc.display_mesh.bounding_box().size();
+    REQUIRE(sz0.z() > 0.0);
+
+    // Edit the MID extrude — downstream Hole and Chamfer must rebuild.
+    doc.features[ex].distance = 16.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == n_bodies);
+    Vec3d sz1 = doc.display_mesh.bounding_box().size();
+    REQUIRE(sz1.z() > sz0.z() + 1.0);
+}
