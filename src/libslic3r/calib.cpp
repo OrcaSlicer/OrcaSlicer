@@ -756,6 +756,16 @@ Vec3d CalibPressureAdvancePattern::get_start_offset()
     return m_starting_point;
 }
 
+double CalibPressureAdvancePattern::line_width_first_layer() const
+{
+    // TODO: FIXME: find out current filament/extruder?
+    const double nozzle_diameter = m_config.opt_float("nozzle_diameter", m_params.extruder_id);
+    const double width           = m_config.get_abs_value("initial_layer_line_width", nozzle_diameter);
+    if (width <= 0.)
+        return Flow::auto_extrusion_width(frExternalPerimeter, nozzle_diameter);
+    return width;
+};
+
 double CalibPressureAdvancePattern::line_width() const
 {
     // TODO: FIXME: find out current filament/extruder?
