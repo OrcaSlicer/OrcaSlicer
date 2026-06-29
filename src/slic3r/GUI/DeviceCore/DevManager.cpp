@@ -849,7 +849,9 @@ namespace Slic3r
         int result = m_agent->get_user_print_info(&http_code, &body, provider);
         if (result == 0)
         {
-            parse_user_print_info(body);
+            // parse_user_print_info and on_machine_alive (SSDP for discovery) both mutate the same userMachineList map.
+            // on_machine_alive mutates the map on the UI thread, do the same for parse_user_print_info.
+            Slic3r::GUI::wxGetApp().CallAfter([this, body]() { parse_user_print_info(body); });
         }
     }
 
