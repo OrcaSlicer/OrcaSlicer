@@ -2124,10 +2124,6 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(100));
 
-    def = this->add("top_surface_hole_contraction", coFloat);
-    def = this->add("top_surface_hole_contraction", coFloatOrPercent);
-    def = this->add("top_surface_hole_contraction", coFloat);
-    def->label = L("Top surface hole contraction");
     def = this->add("top_surface_expansion", coFloat);
     def->label = L("Top surface expansion");
     def->category = L("Strength");
