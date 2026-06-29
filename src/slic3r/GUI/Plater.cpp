@@ -6642,9 +6642,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 };
                 if (boost::iends_with(path.string(), ".stp") ||
                     boost::iends_with(path.string(), ".step")) {
-                        double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
+                        double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
                         if (linear <= 0) linear = 0.003;
-                        double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                        double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                         if (angle <= 0) angle = 0.5;
                         bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                         model = Slic3r::Model:: read_from_step(path.string(), strategy,
@@ -6676,8 +6676,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                                 StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                                 if (mesh_dlg.ShowModal() == wxID_OK) {
-                                    linear_value = mesh_dlg.get_linear_defletion();
-                                    angle_value  = mesh_dlg.get_angle_defletion();
+                                    linear_value = mesh_dlg.get_linear_deflection();
+                                    angle_value  = mesh_dlg.get_angle_deflection();
                                     is_split     = mesh_dlg.get_split_compound_value();
                                     return 1;
                                 }
@@ -8423,8 +8423,8 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
         const bool is_step = boost::algorithm::iends_with(path, ".stp") || boost::algorithm::iends_with(path, ".step");
         if (is_step) {
             auto config = wxGetApp().app_config;
-            double linear = std::max(0.003, string_to_double_decimal_point(config->get("linear_defletion")));
-            double angle = std::max(0.5, string_to_double_decimal_point(config->get("angle_defletion")));
+            double linear = std::max(0.003, string_to_double_decimal_point(config->get("linear_deflection")));
+            double angle = std::max(0.5, string_to_double_decimal_point(config->get("angle_deflection")));
             bool split_compound = config->get_bool("is_split_compound");
             bool is_user_cancel = false;
 
@@ -8432,8 +8432,8 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
                 if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                     StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                     if (mesh_dlg.ShowModal() == wxID_OK) {
-                        linear_value = mesh_dlg.get_linear_defletion();
-                        angle_value  = mesh_dlg.get_angle_defletion();
+                        linear_value = mesh_dlg.get_linear_deflection();
+                        angle_value  = mesh_dlg.get_angle_deflection();
                         is_split     = mesh_dlg.get_split_compound_value();
                         return 1;
                     }
@@ -8916,8 +8916,8 @@ void Plater::priv::reload_from_disk()
             // BBS: backup
             if (boost::iends_with(path, ".stp") ||
                 boost::iends_with(path, ".step")) {
-                double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
-                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
+                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                 bool   is_split = wxGetApp().app_config->get_bool("is_split_compound");
                 new_model       = Model::read_from_step(path, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, nullptr, nullptr, nullptr, linear, angle, is_split);
             }else {

@@ -1588,8 +1588,8 @@ public:
                                 ImportStepProgressFn                                    stepFn,
                                 StepIsUtf8Fn                                            stepIsUtf8Fn,
                                 std::function<int(Slic3r::Step&, double&, double&, bool&)>     step_mesh_fn,
-                                double                                                  linear_defletion,
-                                double                                                  angle_defletion,
+                                double                                                  linear_deflection,
+                                double                                                  angle_deflection,
                                 bool                                                    is_split_compound);
 
     //BBS: add part plate related logic

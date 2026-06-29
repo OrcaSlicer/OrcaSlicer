@@ -14,7 +14,7 @@ public:
     StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double linear_init, double angle_init);
     ~StepMeshDialog() override;
     void on_dpi_changed(const wxRect& suggested_rect) override;
-    inline double get_linear_defletion() {
+    inline double get_linear_deflection() {
         double value;
         if (m_linear_last.ToDouble(&value)) {
             return value;
@@ -22,7 +22,7 @@ public:
             return m_last_linear;
         }
     }
-    inline double get_angle_defletion() {
+    inline double get_angle_deflection() {
         double value;
         if (m_angle_last.ToDouble(&value)) {
             return value;

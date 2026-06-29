@@ -99,6 +99,7 @@ public:
     wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {});
     wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr);
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_decimal_input(wxString title, wxString title2, wxString tooltip, std::string param, double min, double max, int decimals);
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
     wxBoxSizer *create_item_draco(wxString title, wxString side_label, wxString tooltip);

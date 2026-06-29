@@ -187,8 +187,8 @@ Model Model::read_from_step(const std::string&                                  
                             ImportStepProgressFn                                    stepFn,
                             StepIsUtf8Fn                                            stepIsUtf8Fn,
                             std::function<int(Slic3r::Step&, double&, double&, bool&)>     step_mesh_fn,
-                            double                                                  linear_defletion,
-                            double                                                  angle_defletion,
+                            double                                                  linear_deflection,
+                            double                                                  angle_deflection,
                             bool                                                   is_split_compound)
 {
     Model model;
@@ -201,13 +201,13 @@ Model Model::read_from_step(const std::string&                                  
         goto _finished;
     }
     if (step_mesh_fn) {
-        if (step_mesh_fn(step_file, linear_defletion, angle_defletion, is_split_compound) == -1) {
+        if (step_mesh_fn(step_file, linear_deflection, angle_deflection, is_split_compound) == -1) {
             status = Step::Step_Status::CANCEL;
             goto _finished;
         }
     }
     
-    status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_defletion, angle_defletion);
+    status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_deflection, angle_deflection);
 
 _finished:
 

@@ -669,6 +669,59 @@ wxBoxSizer *PreferencesDialog::create_camera_orbit_mult_input(wxString title, wx
     return sizer_input;
 }
 
+wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxString title2, wxString tooltip, std::string param, double min, double max, int decimals)
+{
+    wxBoxSizer *sizer_input = new wxBoxSizer(wxHORIZONTAL);
+    auto        input_title   = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetFont(::Label::Body_14);
+    input_title->SetToolTip(tooltip);
+    input_title->Wrap(DESIGN_TITLE_SIZE.x);
+
+    auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(app_config->get(param));
+    wxTextValidator validator(wxFILTER_NUMERIC);
+    input->SetToolTip(tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
+    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    second_title->SetFont(::Label::Body_14);
+    second_title->SetToolTip(tooltip);
+    second_title->Wrap(-1);
+
+    sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer_input->Add(input_title , 0, wxALIGN_CENTER_VERTICAL);
+    sizer_input->Add(input       , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+    sizer_input->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+
+    auto apply_value = [this, param, input, min, max, decimals]() {
+        auto value = input->GetTextCtrl()->GetValue();
+        double conv = min;
+        if (value.ToCDouble(&conv)) {
+            conv = conv < min ? min : conv > max ? max : conv;
+            auto strval = std::string(wxString::FromCDouble(conv, decimals).mb_str());
+            input->GetTextCtrl()->SetValue(strval);
+            app_config->set(param, strval);
+        }
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [apply_value](wxCommandEvent &e) {
+        apply_value();
+        wxGetApp().app_config->save();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [apply_value](wxFocusEvent &e) {
+        apply_value();
+        e.Skip();
+    });
+
+    return sizer_input;
+}
+
 wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString tooltip)
 {
     wxBoxSizer *m_sizer_input = new wxBoxSizer(wxHORIZONTAL);
@@ -1420,6 +1473,12 @@ void PreferencesDialog::create_items()
 
     auto item_step_dialog      = create_item_checkbox(_L("Show options when importing STEP file"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), "enable_step_mesh_setting");
     g_sizer->Add(item_step_dialog);
+
+    auto item_step_linear      = create_item_decimal_input(_L("STEP linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files. Smaller values produce higher-quality meshes but increase processing time. Used as the default in the import dialog, or directly when the import dialog is disabled."), "linear_deflection", 0.001, 0.1, 3);
+    g_sizer->Add(item_step_linear);
+
+    auto item_step_angle       = create_item_decimal_input(_L("STEP angle deflection"), "", _L("Angle deflection used when meshing imported STEP files. Smaller values produce higher-quality meshes but increase processing time. Used as the default in the import dialog, or directly when the import dialog is disabled."), "angle_deflection", 0.01, 1.0, 2);
+    g_sizer->Add(item_step_angle);
 
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
     g_sizer->Add(item_backup); 
