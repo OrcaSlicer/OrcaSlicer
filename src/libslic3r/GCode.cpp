@@ -821,14 +821,16 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // Process the custom filament_end_gcode in case of single_extruder_multi_material.
             unsigned int        old_filament_id = gcodegen.writer().filament()->id();
             const std::string& filament_end_gcode = gcodegen.config().filament_end_gcode.get_at(old_filament_id);
-            if (gcodegen.writer().filament() != nullptr && !filament_end_gcode.empty()) {
+            // BBL eb1308cb4: emit M624 regardless of whether filament_end_gcode is empty,
+            // so it always pairs with the M625 emitted below.
+            if (!gcodegen.m_filament_instances_code.empty()) {
+                end_filament_gcode_str += ("M624 " + gcodegen.m_filament_instances_code + "\n");
+                gcodegen.m_filament_instances_code = "";
+                add_change_filament_624 = true;
+            }
+            if (!filament_end_gcode.empty()) {
                 DynamicConfig config;
                 config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
-                if (!gcodegen.m_filament_instances_code.empty()) {
-                    end_filament_gcode_str += ("M624 " + gcodegen.m_filament_instances_code + "\n");
-                    gcodegen.m_filament_instances_code = "";
-                    add_change_filament_624 = true;
-                }
                 end_filament_gcode_str += gcodegen.placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
                 check_add_eol(end_filament_gcode_str);
             }
@@ -1217,11 +1219,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             DynamicConfig config;
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(new_filament_id));
             start_filament_gcode_str = gcodegen.placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
-            if (add_change_filament_624) {
-                start_filament_gcode_str += "M625\n";
-                add_change_filament_624 = false;
-            }
             check_add_eol(start_filament_gcode_str);
+        }
+
+        // BBL eb1308cb4: emit M625 outside the start-gcode block so it always pairs with M624.
+        if (add_change_filament_624) {
+            start_filament_gcode_str += "M625\n";
+            add_change_filament_624 = false;
         }
 
         start_filament_gcode_str = start_filament_gcode_str + wipe_next_start_point_str + toolchange_unretract_str;
@@ -8331,17 +8335,19 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         // so it should not be injected twice.
         unsigned int        old_filament_id = m_writer.filament()->id();
         const std::string  &filament_end_gcode  = m_config.filament_end_gcode.get_at(old_filament_id);
+        // BBL eb1308cb4: emit M624 regardless of whether filament_end_gcode is empty,
+        // so it always pairs with the M625 emitted below.
+        if (!m_filament_instances_code.empty()) {
+            gcode += ("M624 " + m_filament_instances_code + "\n");
+            m_filament_instances_code = "";
+            add_change_filament_624   = true;
+        }
         if (! filament_end_gcode.empty()) {
             DynamicConfig config;
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
             config.set_key_value("layer_z",   new ConfigOptionFloat(m_writer.get_position().z() - m_config.z_offset.value));
             config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_extruder_id(old_filament_id))));
-            if (!m_filament_instances_code.empty()) {
-                gcode += ("M624 " + m_filament_instances_code + "\n");
-                m_filament_instances_code = "";
-                add_change_filament_624   = true;
-            }
             gcode += placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
             check_add_eol(gcode);
         }
@@ -8685,11 +8691,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             config.set_key_value("nozzle_temperature_initial_layer", new ConfigOptionInts(first_layer_temps));
         }
         gcode += this->placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
-        if (add_change_filament_624) {
-            gcode += "M625\n";
-            add_change_filament_624 = false;
-        }
         check_add_eol(gcode);
+    }
+    // BBL eb1308cb4: emit M625 outside the start-gcode block so it always pairs with M624.
+    if (add_change_filament_624) {
+        gcode += "M625\n";
+        add_change_filament_624 = false;
     }
     // Set the new extruder to the operating temperature.
     if (m_ooze_prevention.enable)
