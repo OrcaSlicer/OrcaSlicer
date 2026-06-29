@@ -25,7 +25,7 @@ class CoolingBuffer {
 public:
     CoolingBuffer(GCode &gcodegen);
     void        reset(const Vec3d &position);
-    void        set_current_extruder(unsigned int extruder_id) { m_current_extruder = extruder_id; }
+    void        set_current_extruder(unsigned int extruder_id, unsigned int nozzle_id) { m_current_extruder = extruder_id; m_current_nozzle = nozzle_id; }
     // Set initial fan speed state to prevent redundant M106 S0 emission at layer start.
     // Use when the fan state is already known (e.g. BBL machine_start_gcode sets fans to 0).
     void        set_initial_fan_speed(int speed) { m_fan_speed = speed; m_current_fan_speed = speed; }
@@ -59,6 +59,7 @@ private:
     // the PrintConfig slice of FullPrintConfig is constant, thus no thread synchronization is required.
     const PrintConfig          &m_config;
     unsigned int                m_current_extruder;
+    unsigned int                m_current_nozzle;
     //BBS: current fan speed
     int                         m_current_fan_speed;
 };

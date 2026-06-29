@@ -1622,14 +1622,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(50, true));
 
-    def = this->add("enable_overhang_speed", coBool);
+    def = this->add("enable_overhang_speed", coBools);
     def->label = L("Slow down for overhangs");
     def->category = L("Speed");
     def->tooltip = L("Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool{ true });
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionBoolsNullable{ true });
     
-    def = this->add("slowdown_for_curled_perimeters", coBool);
+    def = this->add("slowdown_for_curled_perimeters", coBools);
     def->label = L("Slow down for curled perimeters");
     def->category = L("Speed");
     // xgettext:no-c-format, no-boost-format
@@ -1650,9 +1651,10 @@ void PrintConfigDef::init_fff_params()
                      "applied even if the overhanging perimeter is part of a bridge.\n"
                      "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 100% overhang speed will be applied.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool{ false });
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionBoolsNullable{ false });
 
-    def = this->add("overhang_1_4_speed", coFloatOrPercent);
+    def = this->add("overhang_1_4_speed", coFloatsOrPercents);
     def->label = "10%";
     def->category = L("Speed");
     def->full_label = "10%";
@@ -1662,9 +1664,10 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
-    def = this->add("overhang_2_4_speed", coFloatOrPercent);
+    def = this->add("overhang_2_4_speed", coFloatsOrPercents);
     def->label = "25%";
     def->category = L("Speed");
     def->full_label = "25%";
@@ -1674,9 +1677,10 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
-    def = this->add("overhang_3_4_speed", coFloatOrPercent);
+    def = this->add("overhang_3_4_speed", coFloatsOrPercents);
     def->label = "50%";
     def->category = L("Speed");
     def->full_label = "50%";
@@ -1686,9 +1690,10 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
-    def = this->add("overhang_4_4_speed", coFloatOrPercent);
+    def = this->add("overhang_4_4_speed", coFloatsOrPercents);
     def->label = "75%";
     def->category = L("Speed");
     def->full_label = "75%";
@@ -1698,9 +1703,10 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
-    def = this->add("bridge_speed", coFloat);
+    def = this->add("bridge_speed", coFloats);
     def->label = L("External");
     def->category = L("Speed");
     def->tooltip = L("Speed of the externally visible bridge extrusions.\n\n"
@@ -1710,9 +1716,10 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(25));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{25});
 
-    def = this->add("internal_bridge_speed", coFloatOrPercent);
+    def = this->add("internal_bridge_speed", coFloatsOrPercents);
     def->label = L("Internal");
     def->category = L("Speed");
     def->tooltip = L("Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%.");
@@ -1720,7 +1727,8 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "bridge_speed";
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(150, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(150, true)});
 
     def = this->add("brim_width", coFloat);
     def->label = L("Brim width");
@@ -1898,14 +1906,46 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details.");
     def->set_default_value(new ConfigOptionBools { true });
 
-    def = this->add("default_acceleration", coFloat);
+    def = this->add("default_acceleration", coFloats);
     def->label = L("Normal printing");
     def->category = L("Speed");
     def->tooltip = L("This is the default acceleration for both normal printing and travel after the first layer.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(500.0));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{500.0});
+
+    def           = this->add("travel_acceleration", coFloats);
+    def->label = L("Travel");
+    def->category = L("Speed");
+    def->tooltip = L("Acceleration of travel moves.");
+    def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{10000.0});
+
+    def = this->add("initial_layer_travel_acceleration", coFloatsOrPercents);
+    def->label = L("First layer travel");
+    def->tooltip = L("Travel acceleration of first layer.\nThe percentage value is relative to Travel Acceleration.");
+    def->sidetext = L("mm/s² or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->ratio_over = "travel_acceleration";
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
+
+    def = this->add("bridge_acceleration", coFloatsOrPercents);
+    def->label = L("Bridge");
+    def->category = L("Speed");
+    def->tooltip = L("Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration.");
+    def->sidetext = L("mm/s² or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->ratio_over = "outer_wall_acceleration";
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50,true)});
 
     def = this->add("default_filament_profile", coStrings);
     def->label = L("Default filament profile");
@@ -2129,6 +2169,18 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
 
+    def = this->add("top_surface_density", coPercent);
+    def->label = L("Top surface density");
+    def->category = L("Strength");
+    def->tooltip = L("Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. "
+                     "Reducing this value results in a textured top surface, according to the chosen top surface pattern. "
+                     "A value of 0% will result in only the walls on the top layer being created. "
+                     "Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.");
+    def->sidetext = ("%");
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionPercent(100));
+
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
     def->category = L("Strength");
@@ -2137,6 +2189,17 @@ void PrintConfigDef::init_fff_params()
     def->enum_values = def_top_fill_pattern->enum_values;
     def->enum_labels = def_top_fill_pattern->enum_labels;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+
+    def           = this->add("bottom_surface_density", coPercent);
+    def->label    = L("Bottom surface density");
+    def->category = L("Strength");
+    def->tooltip = L("Density of the bottom surface layer. "
+                     "Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+                     "WARNING: Lowering this value may negatively affect bed adhesion.");
+    def->sidetext = ("%");
+    def->min      = 10;
+    def->max      = 100;
+    def->set_default_value(new ConfigOptionPercent(100));
 
 	def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");
@@ -2159,16 +2222,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
 
-    def = this->add("outer_wall_speed", coFloat);
+    def = this->add("outer_wall_speed", coFloats);
     def->label = L("Outer wall");
     def->category = L("Speed");
     def->tooltip = L("This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(60));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{60});
 
-    def = this->add("small_perimeter_speed", coFloatOrPercent);
+    def = this->add("small_perimeter_speed", coFloatsOrPercents);
     def->label = L("Small perimeters");
     def->category = L("Speed");
     def->tooltip = L("This separate setting will affect the speed of perimeters having radius <= small_perimeter_threshold "
@@ -2178,16 +2242,18 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "outer_wall_speed";
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(50, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
 
-    def = this->add("small_perimeter_threshold", coFloat);
+    def = this->add("small_perimeter_threshold", coFloats);
     def->label = L("Small perimeters threshold");
     def->category = L("Speed");
     def->tooltip = L("This sets the threshold for small perimeter length. Default threshold is 0mm.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{0});
 
     def = this->add("wall_sequence", coEnum);
     def->label = L("Walls printing order");
@@ -2563,17 +2629,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{1});
 
-    def = this->add("enable_filament_dynamic_map", coBool);
-    def->label = L("Enable filament dynamic map");
-    def->tooltip = L("Enable dynamic filament mapping during print.");
-    def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionBool(false));
-
-    def = this->add("has_filament_switcher", coBool);
-    def->label = L("Has filament switcher");
-    def->tooltip = L("Printer has a filament switcher hardware (e.g., AMS).");
-    def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("filament_flush_temp", coInts);
     def->label = L("Flush temperature");
@@ -3163,6 +3218,7 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("gyroid_optimized", coBool);
     def->label      = L("Z-buckling bias optimization (experimental)");
     def->category   = L("Strength");
+    // xgettext:no-c-format, no-boost-format
     def->tooltip    = L("Tightens the gyroid wave along the Z (vertical) axis at low infill density "
                         "to shorten the effective vertical column length and improve Z-axis compression "
                         "buckling resistance. Filament use is preserved. No effect at ~30% sparse infill "
@@ -3228,165 +3284,37 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
-    def           = this->add("lateral_lattice_angle_1", coFloat);
-    def->label    = L("Lateral lattice angle 1");
-    def->category = L("Strength");
-    def->tooltip  = L("The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical.");
-    def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = -75;
-    def->max      = 75;
-    def->mode     = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(-45));
-
-    def           = this->add("lateral_lattice_angle_2", coFloat);
-    def->label    = L("Lateral lattice angle 2");
-    def->category = L("Strength");
-    def->tooltip  = L("The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical.");
-    def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = -75;
-    def->max      = 75;
-    def->mode     = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(45));
-
-    def           = this->add("infill_overhang_angle", coFloat);
-    def->label    = L("Infill overhang angle");
-    def->category = L("Strength");
-    def->tooltip  = L("The angle of the infill angled lines. 60° will result in a pure honeycomb.");
-    def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = 15;
-    def->max      = 75;
-    def->mode     = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(60));
-
-    def           = this->add("lightning_overhang_angle", coFloat);
-    def->label    = L("Lightning overhang angle");
-    def->category = L("Strength");
-    def->tooltip  = L("Maximum overhang angle for Lightning infill support propagation.");
-    def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = 5;
-    def->max      = 85;
-    def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionFloat(45));
-
-    def           = this->add("lightning_prune_angle", coFloat);
-    def->label    = L("Prune angle");
-    def->category = L("Strength");
-    def->tooltip  = L("Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-                      "This angle is converted internally to a per-layer distance.");
-    def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = 5;
-    def->max      = 85;
-    def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionFloat(45));
-
-    def           = this->add("lightning_straightening_angle", coFloat);
-    def->label    = L("Straightening angle");
-    def->category = L("Strength");
-    def->tooltip  = L("Maximum straightening angle used to simplify Lightning branches.");
-    def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = 5;
-    def->max      = 85;
-    def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionFloat(45));
-
-    auto def_infill_anchor_min = def = this->add("infill_anchor", coFloatOrPercent);
-    def->label = L("Sparse infill anchor length");
-    def->category = L("Strength");
-    def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
-                     "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
-                     "Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
-                     "shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side "
-                     "and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-                     "Set this parameter to zero to disable anchoring perimeters connected to a single infill line.");
-    def->sidetext = L("mm or %");
-    def->ratio_over = "sparse_infill_line_width";
-    def->max_literal = 1000;
-    def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
-    def->enum_values.push_back("0");
-    def->enum_values.push_back("1");
-    def->enum_values.push_back("2");
-    def->enum_values.push_back("5");
-    def->enum_values.push_back("10");
-    def->enum_values.push_back("1000");
-    def->enum_labels.push_back(L("0 (no open anchors)"));
-    def->enum_labels.push_back("1 mm");
-    def->enum_labels.push_back("2 mm");
-    def->enum_labels.push_back("5 mm");
-    def->enum_labels.push_back("10 mm");
-    def->enum_labels.push_back(L("1000 (unlimited)"));
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(400, true));
-
-    def = this->add("infill_anchor_max", coFloatOrPercent);
-    def->label = L("Maximum length of the infill anchor");
-    def->category = L("Strength");
-    def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
-                     "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
-                     "Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
-                     "shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side "
-                     "and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-                     "If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0.");
-    def->sidetext    = def_infill_anchor_min->sidetext;
-    def->ratio_over  = def_infill_anchor_min->ratio_over;
-    def->gui_type    = def_infill_anchor_min->gui_type;
-    def->enum_values = def_infill_anchor_min->enum_values;
-    def->max_literal = def_infill_anchor_min->max_literal;
-    def->enum_labels.push_back(L("0 (Simple connect)"));
-    def->enum_labels.push_back("1 mm");
-    def->enum_labels.push_back("2 mm");
-    def->enum_labels.push_back("5 mm");
-    def->enum_labels.push_back("10 mm");
-    def->enum_labels.push_back(L("1000 (unlimited)"));
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(20, false));
-
-    def = this->add("inner_wall_acceleration", coFloat);
-    def->label = L("Inner wall");
-    def->category = L("Speed");
-    def->tooltip = L("Acceleration of inner walls.");
-    def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(10000));
-
-    def = this->add("travel_acceleration", coFloat);
-    def->label = L("Travel");
-    def->category = L("Speed");
-    def->tooltip = L("Acceleration of travel moves.");
-    def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(10000));
-
-    def = this->add("top_surface_acceleration", coFloat);
+    def = this->add("top_surface_acceleration", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
     def->tooltip = L("This is the acceleration of top surface infill. Using a lower value may improve top surface quality.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(500));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{500});
 
-    def = this->add("outer_wall_acceleration", coFloat);
+    def = this->add("outer_wall_acceleration", coFloats);
     def->label = L("Outer wall");
     def->category = L("Speed");
     def->tooltip = L("Acceleration of outer wall: using a lower value can improve quality.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(500));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{500});
 
-    def = this->add("bridge_acceleration", coFloatOrPercent);
-    def->label = L("Bridge");
+    def = this->add("inner_wall_acceleration", coFloats);
+    def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration.");
-    def->sidetext = L("mm/s² or %");
+    def->tooltip = L("Acceleration of inner walls.");
+    def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->ratio_over = "outer_wall_acceleration";
-    def->set_default_value(new ConfigOptionFloatOrPercent(50,true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{10000});
 
-    def = this->add("sparse_infill_acceleration", coFloatOrPercent);
+    def             = this->add("sparse_infill_acceleration", coFloatsOrPercents);
     def->label = L("Sparse infill");
     def->category = L("Speed");
     def->tooltip = L("Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration.");
@@ -3394,9 +3322,10 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->ratio_over = "default_acceleration";
-    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
 
-    def = this->add("internal_solid_infill_acceleration", coFloatOrPercent);
+    def = this->add("internal_solid_infill_acceleration", coFloatsOrPercents);
     def->label = L("Internal solid infill");
     def->category = L("Speed");
     def->tooltip = L("Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration.");
@@ -3404,25 +3333,18 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->ratio_over = "default_acceleration";
-    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
 
-    def = this->add("initial_layer_acceleration", coFloat);
+    def = this->add("initial_layer_acceleration", coFloats);
     def->label = L("First layer");
     def->category = L("Speed");
     def->tooltip = L("This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(300));
-
-    def = this->add("initial_layer_travel_acceleration", coFloatOrPercent);
-    def->label = L("First layer travel");
-    def->tooltip = L("Travel acceleration of first layer.\nThe percentage value is relative to Travel Acceleration.");
-    def->sidetext = L("mm/s² or %");
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->ratio_over = "travel_acceleration";
-    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{300});
 
     def = this->add("accel_to_decel_enable", coBool);
     def->label = L("Enable accel_to_decel");
@@ -3441,16 +3363,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(50));
     
-    def = this->add("default_jerk", coFloat);
+    def = this->add("default_jerk", coFloats);
     def->label = L("Default");
     def->category = L("Speed");
     def->tooltip = L("Default jerk.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{0});
 
-    def = this->add("default_junction_deviation", coFloat);
+    def = this->add("default_junction_deviation", coFloats);
     def->label = L("Junction Deviation");
     def->category = L("Speed");
     def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
@@ -3458,70 +3381,78 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.f;
     def->max = 0.3f;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.f));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{0.f});
 
-    def = this->add("outer_wall_jerk", coFloat);
+    def = this->add("outer_wall_jerk", coFloats);
     def->label = L("Outer wall");
     def->category = L("Speed");
     def->tooltip = L("Jerk of outer walls.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(9));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{9});
 
-    def = this->add("inner_wall_jerk", coFloat);
+    def = this->add("inner_wall_jerk", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
     def->tooltip = L("Jerk of inner walls.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(9));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{9});
 
-    def = this->add("top_surface_jerk", coFloat);
+    def = this->add("top_surface_jerk", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
+    def->nullable = true;
     def->tooltip = L("Jerk for top surface.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(9));
+    def->set_default_value(new ConfigOptionFloatsNullable{9});
 
-    def = this->add("infill_jerk", coFloat);
+    def = this->add("infill_jerk", coFloats);
     def->label = L("Infill");
     def->category = L("Speed");
     def->tooltip = L("Jerk for infill.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(9));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{9});
 
-    def = this->add("initial_layer_jerk", coFloat);
+    def = this->add("initial_layer_jerk", coFloats);
     def->label = L("First layer");
     def->category = L("Speed");
     def->tooltip = L("Jerk for the first layer.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(9));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{9});
 
-    def = this->add("travel_jerk", coFloat);
+    def = this->add("travel_jerk", coFloats);
     def->label = L("Travel");
     def->category = L("Speed");
     def->tooltip = L("Jerk for travel.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(12));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{12});
 
-    def = this->add("initial_layer_travel_jerk", coFloatOrPercent);
+    def = this->add("initial_layer_travel_jerk", coFloatsOrPercents);
     def->label = L("First layer travel");
     def->tooltip = L("Travel jerk of first layer.\nThe percentage value is relative to Travel Jerk.");
     def->sidetext = L("mm/s or %");
     def->min = 0;
     def->mode = comAdvanced;
     def->ratio_over = "travel_jerk";
-    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
 
     def = this->add("initial_layer_line_width", coFloatOrPercent);
     def->label = L("First layer");
@@ -3534,7 +3465,6 @@ void PrintConfigDef::init_fff_params()
     def->max_literal = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
-
 
     def = this->add("initial_layer_print_height", coFloat);
     def->label = L("First layer height");
@@ -3552,23 +3482,25 @@ void PrintConfigDef::init_fff_params()
     //    "Note that this option only takes effect if no prime tower is generated in current plate.");
     //def->set_default_value(new ConfigOptionBool(0));
 
-    def = this->add("initial_layer_speed", coFloat);
+    def = this->add("initial_layer_speed", coFloats);
     def->label = L("First layer");
     def->tooltip = L("This is the speed for the first layer except for solid infill sections.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(30));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{30});
 
-    def = this->add("initial_layer_infill_speed", coFloat);
+    def = this->add("initial_layer_infill_speed", coFloats);
     def->label = L("First layer infill");
     def->tooltip = L("This is the speed for solid infill parts of the first layer.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(60.0));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{60.0});
 
-    def = this->add("initial_layer_travel_speed", coFloatOrPercent);
+    def = this->add("initial_layer_travel_speed", coFloatsOrPercents);
     def->label = L("First layer travel speed");
     def->tooltip = L("Travel speed of the first layer.");
     def->category = L("Speed");
@@ -3576,7 +3508,8 @@ void PrintConfigDef::init_fff_params()
     def->ratio_over = "travel_speed";
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(100, true)});
 
     def = this->add("slow_down_layers", coInt);
     def->label = L("Number of slow layers");
@@ -3859,14 +3792,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
     
-    def = this->add("gap_infill_speed", coFloat);
+    def = this->add("gap_infill_speed", coFloats);
     def->label = L("Gap infill");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(30));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{30});
 
     // BBS
     def          = this->add("precise_z_height", coBool);
@@ -4293,6 +4227,118 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints());
 
+    def           = this->add("lateral_lattice_angle_1", coFloat);
+    def->label    = L("Lateral lattice angle 1");
+    def->category = L("Strength");
+    def->tooltip  = L("The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = -75;
+    def->max      = 75;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(-45));
+
+    def           = this->add("lateral_lattice_angle_2", coFloat);
+    def->label    = L("Lateral lattice angle 2");
+    def->category = L("Strength");
+    def->tooltip  = L("The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = -75;
+    def->max      = 75;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(45));
+
+    def           = this->add("infill_overhang_angle", coFloat);
+    def->label    = L("Infill overhang angle");
+    def->category = L("Strength");
+    def->tooltip  = L("The angle of the infill angled lines. 60° will result in a pure honeycomb.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 15;
+    def->max      = 75;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(60));
+
+    def           = this->add("lightning_overhang_angle", coFloat);
+    def->label    = L("Lightning overhang angle");
+    def->category = L("Strength");
+    def->tooltip  = L("Maximum overhang angle for Lightning infill support propagation.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 5;
+    def->max      = 85;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(45));
+
+    def           = this->add("lightning_prune_angle", coFloat);
+    def->label    = L("Prune angle");
+    def->category = L("Strength");
+    def->tooltip  = L("Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+                      "This angle is converted internally to a per-layer distance.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 5;
+    def->max      = 85;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(45));
+
+    def           = this->add("lightning_straightening_angle", coFloat);
+    def->label    = L("Straightening angle");
+    def->category = L("Strength");
+    def->tooltip  = L("Maximum straightening angle used to simplify Lightning branches.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 5;
+    def->max      = 85;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(45));
+
+    auto def_infill_anchor_min = def = this->add("infill_anchor", coFloatOrPercent);
+    def->label = L("Sparse infill anchor length");
+    def->category = L("Strength");
+    def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
+                     "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
+                     "Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
+                     "shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side "
+                     "and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+                     "Set this parameter to zero to disable anchoring perimeters connected to a single infill line.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "sparse_infill_line_width";
+    def->max_literal = 1000;
+    def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
+    def->enum_values.push_back("0");
+    def->enum_values.push_back("1");
+    def->enum_values.push_back("2");
+    def->enum_values.push_back("5");
+    def->enum_values.push_back("10");
+    def->enum_values.push_back("1000");
+    def->enum_labels.push_back(L("0 (no open anchors)"));
+    def->enum_labels.push_back("1 mm");
+    def->enum_labels.push_back("2 mm");
+    def->enum_labels.push_back("5 mm");
+    def->enum_labels.push_back("10 mm");
+    def->enum_labels.push_back(L("1000 (unlimited)"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(400, true));
+
+    def = this->add("infill_anchor_max", coFloatOrPercent);
+    def->label = L("Maximum length of the infill anchor");
+    def->category = L("Strength");
+    def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
+                     "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
+                     "Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
+                     "shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side "
+                     "and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+                     "If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0.");
+    def->sidetext    = def_infill_anchor_min->sidetext;
+    def->ratio_over  = def_infill_anchor_min->ratio_over;
+    def->gui_type    = def_infill_anchor_min->gui_type;
+    def->enum_values = def_infill_anchor_min->enum_values;
+    def->max_literal = def_infill_anchor_min->max_literal;
+    def->enum_labels.push_back(L("0 (Simple connect)"));
+    def->enum_labels.push_back("1 mm");
+    def->enum_labels.push_back("2 mm");
+    def->enum_labels.push_back("5 mm");
+    def->enum_labels.push_back("10 mm");
+    def->enum_labels.push_back(L("1000 (unlimited)"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(20, false));
+
     def = this->add("sparse_infill_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
@@ -4338,14 +4384,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(25));
 
-    def = this->add("sparse_infill_speed", coFloat);
+    def = this->add("sparse_infill_speed", coFloats);
     def->label = L("Sparse infill");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for internal sparse infill.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(100));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{100});
 
     def = this->add("inherits", coString);
     def->label = L("Inherits profile");
@@ -5222,7 +5269,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
 
-    def = this->add("inner_wall_speed", coFloat);
+    def = this->add("inner_wall_speed", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for inner walls.");
@@ -5230,7 +5277,8 @@ void PrintConfigDef::init_fff_params()
     def->aliases = { "perimeter_feed_rate" };
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(60));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{60});
 
     def = this->add("wall_loops", coInt);
     def->label = L("Wall loops");
@@ -5599,6 +5647,18 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("High Flow"));
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionEnumsGeneric{ NozzleVolumeType::nvtStandard });
+
+    def = this->add("enable_filament_dynamic_map", coBool);
+    def->label = L("Enable filament dynamic map");
+    def->tooltip = L("Enable dynamic filament mapping during print.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("has_filament_switcher", coBool);
+    def->label = L("Has filament switcher");
+    def->tooltip = L("Printer has a filament switcher hardware (e.g., AMS).");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("printer_extruder_id", coInts);
     // internal use only, don't need translation
@@ -6097,14 +6157,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
 
-    def = this->add("internal_solid_infill_speed", coFloat);
+    def = this->add("internal_solid_infill_speed", coFloats);
     def->label = L("Internal solid infill");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for internal solid infill, not including the top or bottom surface.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(100));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{100});
 
     def = this->add("spiral_mode", coBool);
     def->label = L("Spiral vase");
@@ -6542,14 +6603,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
 
-    def = this->add("support_interface_speed", coFloat);
+    def = this->add("support_interface_speed", coFloats);
     def->label = L("Support interface");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for support interfaces.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(80));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{80});
 
     def = this->add("support_base_pattern", coEnum);
     def->label = L("Base pattern");
@@ -6611,14 +6673,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
-    def = this->add("support_speed", coFloat);
+    def = this->add("support_speed", coFloats);
     def->label = L("Support");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for support.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(80));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ 80 });
 
     def = this->add("support_style", coEnum);
     def->label = L("Style");
@@ -6991,14 +7054,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
 
-    def = this->add("top_surface_speed", coFloat);
+    def = this->add("top_surface_speed", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
     def->tooltip = L("This is the speed for solid top surface infill.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(100));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{100});
 
     def = this->add("top_shell_layers", coInt);
     def->label = L("Top shell layers");
@@ -7018,39 +7082,17 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.6));
 
-    def = this->add("top_surface_density", coPercent);
-    def->label = L("Top surface density");
-    def->category = L("Strength");
-    def->tooltip = L("Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. "
-                     "Reducing this value results in a textured top surface, according to the chosen top surface pattern. "
-                     "A value of 0% will result in only the walls on the top layer being created. "
-                     "Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.");
-    def->sidetext = ("%");
-    def->min = 0;
-    def->max = 100;
-    def->set_default_value(new ConfigOptionPercent(100));
 
-    def           = this->add("bottom_surface_density", coPercent);
-    def->label    = L("Bottom surface density");
-    def->category = L("Strength");
-    def->tooltip = L("Density of the bottom surface layer. "
-                     "Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-                     "WARNING: Lowering this value may negatively affect bed adhesion.");
-    def->sidetext = ("%");
-    def->min      = 10;
-    def->max      = 100;
-    def->set_default_value(new ConfigOptionPercent(100));
-
-
-    def = this->add("travel_speed", coFloat);
+    def = this->add("travel_speed", coFloats);
     def->label = L("Travel");
     def->tooltip = L("This is the speed at which traveling is done.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(120));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{120});
 
-    def = this->add("travel_speed_z", coFloat);
+    def = this->add("travel_speed_z", coFloats);
     //def->label = L("Z travel");
     //def->tooltip = L("Speed of vertical travel along z axis. "
     //                 "This is typically lower because build plate or gantry is hard to be moved. "
@@ -7058,7 +7100,8 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionFloat(0.));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{0.});
 
     def = this->add("wipe", coBools);
     def->label = L("Wipe while retracting");
@@ -8653,7 +8696,7 @@ std::set<std::string> filament_options_with_variant = {
     "filament_deretraction_speed",
     "filament_retraction_minimum_travel",
     "filament_retract_when_changing_layer",
-     "filament_wipe",
+    "filament_wipe",
     //BBS
     "filament_wipe_distance",
     "filament_retract_before_wipe",
@@ -8739,7 +8782,8 @@ std::set<std::string> printer_options_with_variant_2 = {
     "machine_max_jerk_x",
     "machine_max_jerk_y",
     "machine_max_jerk_z",
-    "machine_max_jerk_e"
+    "machine_max_jerk_e",
+    "machine_max_junction_deviation",
 };
 
 std::set<std::string> empty_options;
@@ -9222,7 +9266,7 @@ bool DynamicPrintConfig::is_using_different_extruders()
     return ret;
 }
 
-bool DynamicPrintConfig::support_different_extruders(int& extruder_count)
+bool DynamicPrintConfig::support_different_extruders(int& extruder_count) const
 {
     std::set<std::string> variant_set;
 

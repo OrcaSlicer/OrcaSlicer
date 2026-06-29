@@ -4003,9 +4003,9 @@ void PresetBundle::update_filament_count()
         : filament_presets.back());
 }
 
-bool PresetBundle::support_different_extruders()
+bool PresetBundle::support_different_extruders() const
 {
-    Preset& printer_preset = this->printers.get_edited_preset();
+    const Preset& printer_preset = this->printers.get_edited_preset();
     int extruder_count;
     bool supported = printer_preset.config.support_different_extruders(extruder_count);
 

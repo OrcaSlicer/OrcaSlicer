@@ -41,7 +41,6 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
-#include "VariantController.hpp"
 
 class TabCtrl;
 class ModeSwitchButton;
@@ -251,6 +250,7 @@ protected:
     std::vector<Preset::Type>	m_dependent_tabs;
 	enum OptStatus { osSystemValue = 1, osInitValue = 2 };
 	std::map<std::string, int>	m_options_list;
+    std::map<std::string, int> m_all_extruder_options_status;
 	int							m_opt_status_value = 0;
 
 	bool				m_is_modified_values{ false };
@@ -308,15 +308,12 @@ public:
 
 	ModeSwitchButton *m_mode_view = nullptr;
 	ScalableButton* m_mode_icon = nullptr; // ORCA m_static_title replacement
-    SwitchButton *m_extruder_switch = nullptr;
-    MultiSwitchButton *m_variant_combo = nullptr;
-    // H2C: Tracks the variant index that was last applied by switch_excluder().
-    // Used by save_variant_overrides() to write user edits back to the correct
-    // slot before switching to a different nozzle variant.
-    int m_last_variant_index = -1;
-    // H2C: Set during Left/Right toggle to prevent TabPrintModel::reload_config()
-    // from calling update_model_config() which would overwrite variant-swapped values.
-    bool m_variant_switching = false;
+    wxSizer *       m_variant_sizer   = nullptr;
+    MultiSwitchButton *  m_extruder_switch = nullptr;
+    MultiSwitchButton *  m_variant_combo   = nullptr;
+    ScalableButton *m_extruder_sync   = nullptr;
+	wxPanel *       m_extruder_sync_box  = nullptr;
+    std::vector<NozzleVolumeType> m_actual_nozzle_volumes;
 
 public:
 	// BBS
@@ -369,8 +366,11 @@ public:
 	void		decorate();
 	void		update_changed_ui();
 	void		get_sys_and_mod_flags(const std::string& opt_key, bool& sys_page, bool& modified_page);
-	void		update_changed_tree_ui();
+    void        update_changed_tree_ui();
 	void		update_undo_buttons();
+    void        update_extruder_switch_colors();
+    void        update_all_extruder_options_status();
+    void        check_extruder_options_status(int index, bool &sys_extruder, bool &modified_extruder, const std::vector<PageShp>& pages_to_check);
 
 	void		on_roll_back_value(const bool to_sys = false);
 
@@ -405,6 +405,7 @@ public:
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
 	void            update_saved_preset_from_current_preset();
+    void            update_pages_with_multi_variant();
 
 	DynamicPrintConfig*	get_config() { return m_config; }
     PresetCollection *  get_presets() { return m_presets; }
@@ -437,9 +438,16 @@ public:
     virtual const std::string&	get_custom_gcode(const t_config_option_key& opt_key);
     virtual void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value);
 
-    void        update_extruder_variants(int extruder_id = -1);
-    void        switch_excluder(int extruder_id = -1);
-    std::vector<wxString> generate_extruder_options();
+    void        update_extruder_variants(int extruder_id = -1, bool reload = true);
+    void        switch_excluder(int extruder_id = -1, bool reload = true);
+    void        sync_excluder();
+	void        parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type);
+    int         calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type);
+	bool        get_extruder_sync_enable_state(int extruder_id);
+	int         get_current_active_extruder();
+
+	std::vector<wxString>  generate_extruder_options();
+    NozzleVolumeType       get_actual_nozzle_volume_type(int extruder_id);
 
 protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
@@ -504,9 +512,6 @@ public:
 
 	bool has_key(std::string const &key);
 
-	// H2C: Public accessor for VariantController (used by base Tab::switch_excluder)
-	VariantController& variant_ctrl() { return m_variant_ctrl; }
-
 protected:
 	virtual void    activate_selected_page(std::function<void()> throw_if_canceled);
 
@@ -526,9 +531,6 @@ protected:
 	std::vector<std::string> m_all_keys;
 	std::vector<std::string> m_null_keys;
 	bool m_back_to_sys = false;
-	// H2C: Isolation layer — owns all VO orchestration logic.
-	// Tab only calls hooks, no inline VO management.
-	VariantController m_variant_ctrl;
 };
 
 

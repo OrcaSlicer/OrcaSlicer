@@ -443,6 +443,7 @@ private:
 
     // BBS
     void check_placeholder_parser_failed();
+    size_t cur_extruder_index() const;
     size_t get_extruder_id(unsigned int filament_id) const;
 
     void set_last_pos(const Point& pos)

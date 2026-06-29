@@ -58,6 +58,7 @@ std::set<std::string> print_options_with_variant = {
     "initial_layer_jerk",
     "travel_jerk",
     "initial_layer_travel_jerk",
+    "default_junction_deviation",
     // --- Advanced ---
     "max_volumetric_extrusion_rate_slope",
     "max_volumetric_extrusion_rate_slope_segment_length",

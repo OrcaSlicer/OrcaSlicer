@@ -402,7 +402,7 @@ public:
 
     //BBS: add some functions for multiple extruders
     int get_printer_extruder_count() const;
-    bool support_different_extruders();
+    bool support_different_extruders() const;
     std::vector<int> get_default_nozzle_volume_types_for_filaments(std::vector<int>& f_maps);
 
     // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
