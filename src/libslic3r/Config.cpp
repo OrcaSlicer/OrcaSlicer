@@ -731,6 +731,14 @@ double ConfigBase::get_abs_value(const t_config_option_key &opt_key) const
     }
     assert(raw_opt != nullptr);
 
+    // Multi-variant (per-extruder/nozzle) forms (#13712): resolve the first variant rather than
+    // throwing. get_abs_value_at handles the coFloats / coFloatsOrPercents ratio_over chain.
+    if (raw_opt->type() == coFloats || raw_opt->type() == coFloatsOrPercents) {
+        if (static_cast<const ConfigOptionVectorBase*>(raw_opt)->size() == 0)
+            return 0.;
+        return this->get_abs_value_at(opt_key, 0);
+    }
+
     if (raw_opt->type() == coFloat)
         return static_cast<const ConfigOptionFloat*>(raw_opt)->value;
     if (raw_opt->type() == coInt)
@@ -780,10 +788,25 @@ double ConfigBase::get_abs_value(const t_config_option_key &opt_key, double rati
     // Get stored option value.
     const ConfigOption *raw_opt = this->option(opt_key);
     assert(raw_opt != nullptr);
-    if (raw_opt->type() != coFloatOrPercent)
-        throw ConfigurationError("ConfigBase::get_abs_value(): opt_key is not of coFloatOrPercent");
-    // Compute absolute value.
-    return static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->get_abs_value(ratio_over);
+    if (raw_opt->type() == coFloatOrPercent)
+        // Compute absolute value.
+        return static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->get_abs_value(ratio_over);
+    // Multi-variant (per-extruder/nozzle) forms: resolve the first variant. Since #13712
+    // ("nozzle flow variant") several options are stored as per-variant vectors; legacy scalar
+    // callers would otherwise throw — crashing the slice, or, where the throw is caught upstream,
+    // leaving the result uninitialized (garbage line widths/speeds in the preview). Resolving
+    // element 0 matches the single-variant value (compress_from_vectors also defaults to index 0).
+    if (raw_opt->type() == coFloatsOrPercents) {
+        const auto *v = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
+        return v->values.empty() ? 0. : v->get_at(0).get_abs_value(ratio_over);
+    }
+    if (raw_opt->type() == coFloats) {
+        const auto *v = static_cast<const ConfigOptionFloats*>(raw_opt);
+        return v->values.empty() ? 0. : v->get_at(0);
+    }
+    if (raw_opt->type() == coFloat)
+        return static_cast<const ConfigOptionFloat*>(raw_opt)->value;
+    throw ConfigurationError("ConfigBase::get_abs_value(): opt_key is not of coFloatOrPercent");
 }
 
 void ConfigBase::setenv_() const
