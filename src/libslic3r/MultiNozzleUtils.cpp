@@ -976,6 +976,12 @@ std::optional<StaticNozzleGroupResult> StaticNozzleGroupResult::create(
             if (gid >= 0)
                 nozzles_set.insert(gid);
         }
+        // Compat for old (single-nozzle) gcode.3mf: filament has no recorded group_id,
+        // bind it to all available nozzles so preview colors resolve again (BBL 51583b79d).
+        if (nozzles_set.empty()) {
+            for (const auto& nozzle_entry : nozzle_list_map)
+                nozzles_set.insert(nozzle_entry.first);
+        }
         filament_to_nozzles[fil_id] = nozzles_set;
     }
 
