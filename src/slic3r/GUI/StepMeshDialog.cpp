@@ -254,14 +254,6 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     check_sizer->Add(m_split_compound_checkbox, 0, wxALIGN_LEFT);
     bSizer->Add(check_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
 
-    wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
-    m_save_default_checkbox->SetFont(::Label::Body_14);
-    m_save_default_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
-    m_save_default_checkbox->SetToolTip(_L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
-    save_default_sizer->Add(m_save_default_checkbox, 0, wxALIGN_LEFT);
-    bSizer->Add(save_default_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
-
     wxBoxSizer* mesh_face_number_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText *mesh_face_number_title = new wxStaticText(this, wxID_ANY, _L("Number of triangular facets") + ": ");
     mesh_face_number_title->SetFont(::Label::Body_14);
@@ -272,6 +264,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     mesh_face_number_sizer->Add(mesh_face_number_title, 0, wxALIGN_LEFT);
     mesh_face_number_sizer->Add(mesh_face_number_text, 0, wxALIGN_LEFT);
     bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
+
+    wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
+    m_save_default_checkbox->SetFont(::Label::Body_14);
+    m_save_default_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_save_default_checkbox->SetToolTip(_L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
+    save_default_sizer->Add(m_save_default_checkbox, 0, wxALIGN_LEFT);
+    bSizer->Add(save_default_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
     wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
