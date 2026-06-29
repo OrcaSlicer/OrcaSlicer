@@ -3,7 +3,7 @@
     "name": "Generic PETG-GF @K2 Pro-all",
     "inherits": "fdm_filament_common",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Q5qYSWKf0YGbomey",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

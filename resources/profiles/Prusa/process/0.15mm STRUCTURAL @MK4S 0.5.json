@@ -3,6 +3,7 @@
 	"name": "0.15mm STRUCTURAL @MK4S 0.5",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "BUt1cfZu3694tlgi",
 	"instantiation": "true",
 	"bottom_shell_layers": "5",
 	"bridge_acceleration": "1000",

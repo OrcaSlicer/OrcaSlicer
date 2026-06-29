@@ -3,7 +3,7 @@
 	"name": "Fiberon PA12-CF10 @Snapmaker U1",
 	"inherits": "Fiberon PA12-CF10 @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL56_00",
+	"setting_id": "x3irDyMqwMgklHKg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

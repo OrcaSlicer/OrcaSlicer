@@ -3,6 +3,7 @@
 	"name": "Flashforge TPU 95A @FF G4P 0.6 HF nozzle",
 	"inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "1GNqSBaQitzhYSx7",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

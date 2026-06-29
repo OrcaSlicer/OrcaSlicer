@@ -77,15 +77,15 @@ SCENARIO("Config accessor functions perform as expected.", "[Config]") {
 	    }
         }
         WHEN("An floating-point option is set through the integer interface") {
-            config.set("default_acceleration", 10);
+            config.set("max_bridge_length", 10);
             THEN("The underlying value is set correctly.") {
-                REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == 10.0);
+                REQUIRE(config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat() == 10.0);
             }
         }
         WHEN("A floating-point option is set through the double interface") {
-            config.set("default_acceleration", 5.5);
+            config.set("max_bridge_length", 5.5);
             THEN("The underlying value is set correctly.") {
-                REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == 5.5);
+                REQUIRE(config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat() == 5.5);
             }
         }
         WHEN("An integer-based option is set through the double interface") {
@@ -94,12 +94,12 @@ SCENARIO("Config accessor functions perform as expected.", "[Config]") {
             }
         }
         WHEN("A numeric option is set to a non-numeric value.") {
-	    auto prev_value = config.opt<ConfigOptionFloat>("default_acceleration")->getFloat();
+	    auto prev_value = config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat();
             THEN("A BadOptionTypeException exception is thrown.") {
-                REQUIRE_THROWS_AS(config.set_deserialize_strict("default_acceleration", "zzzz"), BadOptionValueException);
+                REQUIRE_THROWS_AS(config.set_deserialize_strict("max_bridge_length", "zzzz"), BadOptionValueException);
             }
             THEN("The value does not change.") {
-                REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == prev_value);
+                REQUIRE(config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat() == prev_value);
             }
         }
         WHEN("A string option is set through the string interface") {

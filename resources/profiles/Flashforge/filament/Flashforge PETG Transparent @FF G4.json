@@ -3,6 +3,7 @@
 	"name": "Flashforge PETG Transparent @FF G4",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
+	"setting_id": "ywff8rI39XKjcocY",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

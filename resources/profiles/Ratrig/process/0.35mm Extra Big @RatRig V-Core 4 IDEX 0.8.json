@@ -3,7 +3,7 @@
 	"name": "0.35mm Extra Big @RatRig V-Core 4 IDEX 0.8",
 	"inherits": "fdm_process_ratrig_idex",
 	"from": "system",
-	"setting_id": "GP006",
+	"setting_id": "s9huigsf4EhjTLlI",
 	"instantiation": "true",
 	"layer_height": "0.35",
 	"inital_layer_height": "0.4",

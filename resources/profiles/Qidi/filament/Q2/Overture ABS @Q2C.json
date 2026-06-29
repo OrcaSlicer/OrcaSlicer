@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "GFB99",
-	"setting_id": "GFSA04",
 	"name": "Overture ABS@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

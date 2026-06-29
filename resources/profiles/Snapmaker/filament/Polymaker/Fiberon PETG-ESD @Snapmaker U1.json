@@ -3,7 +3,7 @@
 	"name": "Fiberon PETG-ESD @Snapmaker U1",
 	"inherits": "Fiberon PETG-ESD @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL06_00",
+	"setting_id": "AUr4Bm6UMW8S9TBh",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

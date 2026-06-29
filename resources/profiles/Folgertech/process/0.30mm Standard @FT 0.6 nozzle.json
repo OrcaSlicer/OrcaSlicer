@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @FT 0.6 nozzle",
 	"inherits": "fdm_process_folgertech_common",
 	"from": "system",
-	"setting_id": "GP010",
+	"setting_id": "wzCr0a8vWIVfd1mD",
 	"instantiation": "true",
 	"layer_height": "0.3",
 	"initial_layer_print_height": "0.3",

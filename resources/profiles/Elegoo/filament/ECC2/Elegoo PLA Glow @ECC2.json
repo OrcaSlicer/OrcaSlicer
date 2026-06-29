@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Glow @ECC2",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLAGLOWECC2",
+	"setting_id": "S6c2IXcIWDpViP2T",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"

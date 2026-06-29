@@ -3,7 +3,7 @@
     "name": "Hyper PA612-CF @K2 Plus-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "2xgxuOoGNlO9lEs4",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

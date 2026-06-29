@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic HIPS",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "n68nw5tzKZ0rq43O",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

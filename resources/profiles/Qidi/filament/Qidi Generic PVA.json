@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PVA",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"setting_id": "GFSS99",
+	"setting_id": "8450opPMJm6GG5Cq",
 	"filament_id": "GFS99",
 	"instantiation": "true",
 	"filament_type": [

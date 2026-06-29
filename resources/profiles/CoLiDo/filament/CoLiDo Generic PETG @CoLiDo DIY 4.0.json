@@ -3,7 +3,7 @@
 	"name": "CoLiDo Generic PETG @CoLiDo DIY 4.0",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "IBtIS8bwcIWhiCow",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"cool_plate_temp": [
