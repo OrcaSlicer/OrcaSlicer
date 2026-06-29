@@ -831,6 +831,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (!filament_end_gcode.empty()) {
                 DynamicConfig config;
                 config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
+                auto gr = gcodegen.m_print ? gcodegen.m_print->get_layered_nozzle_group_result() : nullptr;
+                config.set_key_value("current_filament_id", new ConfigOptionInt((int)old_filament_id));
+                config.set_key_value("current_extruder_id", new ConfigOptionInt((int)gcodegen.writer().filament()->extruder_id()));
+                config.set_key_value("current_nozzle_id",
+                    new ConfigOptionInt(gr ? gr->get_nozzle_id(old_filament_id, gcodegen.m_layer_index) : -1));
+                config.set_key_value("nozzle_diameter_at_nozzle_id",
+                    new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(gr.get())));
                 end_filament_gcode_str += gcodegen.placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
                 check_add_eol(end_filament_gcode_str);
             }
@@ -900,6 +907,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             DynamicConfig config;
             int old_filament_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->id() : -1;
             int old_extruder_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->extruder_id() : -1;
+            auto tcr_gr = gcodegen.m_print ? gcodegen.m_print->get_layered_nozzle_group_result() : nullptr;
+            int old_nozzle_id  = (gcodegen.writer().filament() && tcr_gr) ? tcr_gr->get_nozzle_id(old_filament_id, gcodegen.m_layer_index) : -1;
+            int next_nozzle_id = tcr_gr ? tcr_gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index) : -1;
 
             config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
             config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
@@ -927,6 +937,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         new_extruder_variant_str = variants[new_ext_id];
                 }
             }
+            config.set_key_value("current_extruder_id", new ConfigOptionInt(old_extruder_id));
+            config.set_key_value("next_extruder_id",    new ConfigOptionInt((int)gcodegen.get_extruder_id(new_filament_id)));
+            config.set_key_value("current_nozzle_id",   new ConfigOptionInt(old_nozzle_id));
+            config.set_key_value("next_nozzle_id",       new ConfigOptionInt(next_nozzle_id));
+            config.set_key_value("current_filament_id", new ConfigOptionInt(old_filament_id));
+            config.set_key_value("next_filament_id",    new ConfigOptionInt(new_filament_id));
+            config.set_key_value("nozzle_diameter_at_nozzle_id",
+                new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(tcr_gr.get())));
             config.set_key_value("old_extruder_variant", new ConfigOptionString(old_extruder_variant_str));
             config.set_key_value("new_extruder_variant", new ConfigOptionString(new_extruder_variant_str));
             //            config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -1216,6 +1234,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         gcodegen.placeholder_parser().set("current_extruder", new_filament_id);
         // H2C: firmware expects current_hotend = -1 (auto-remap), matching BBL.
         gcodegen.placeholder_parser().set("current_hotend", -1);
+        gcodegen.placeholder_parser().set("current_filament_id", (int)new_filament_id);
+        gcodegen.placeholder_parser().set("current_extruder_id", (int)gcodegen.get_extruder_id(new_filament_id));
+        {
+            int cur_nz = (gcodegen.m_print && gcodegen.m_print->get_layered_nozzle_group_result())
+                ? gcodegen.m_print->get_layered_nozzle_group_result()->get_nozzle_id(new_filament_id, gcodegen.m_layer_index)
+                : -1;
+            gcodegen.placeholder_parser().set("current_nozzle_id", cur_nz);
+        }
         gcodegen.placeholder_parser().set("retraction_distance_when_cut", gcodegen.m_config.retraction_distances_when_cut.get_at(new_filament_id));
         gcodegen.placeholder_parser().set("long_retraction_when_cut", gcodegen.m_config.long_retractions_when_cut.get_at(new_filament_id));
         gcodegen.placeholder_parser().set("retraction_distance_when_ec", gcodegen.m_config.retraction_distances_when_ec.get_at(new_filament_id));
@@ -1228,6 +1254,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // Process the filament_start_gcode for the active filament only.
             DynamicConfig config;
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(new_filament_id));
+            auto sg_gr = gcodegen.m_print ? gcodegen.m_print->get_layered_nozzle_group_result() : nullptr;
+            config.set_key_value("current_filament_id", new ConfigOptionInt((int)new_filament_id));
+            config.set_key_value("current_extruder_id", new ConfigOptionInt((int)gcodegen.get_extruder_id(new_filament_id)));
+            config.set_key_value("current_nozzle_id",
+                new ConfigOptionInt(sg_gr ? sg_gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index) : -1));
+            config.set_key_value("nozzle_diameter_at_nozzle_id",
+                new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(sg_gr.get())));
             start_filament_gcode_str = gcodegen.placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
             check_add_eol(start_filament_gcode_str);
         }
@@ -3443,6 +3476,17 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 config.set_key_value("filament_extruder_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
                 config.set_key_value("current_filament_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
                 config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(initial_non_support_extruder_id)));
+                {
+                    auto ins_gr = print.get_layered_nozzle_group_result();
+                    int ins_nozzle_id = -1;
+                    if (ins_gr) {
+                        auto ins_nozzle = ins_gr->get_first_nozzle_for_filament(initial_non_support_extruder_id);
+                        if (ins_nozzle) ins_nozzle_id = (int)ins_nozzle->group_id;
+                    }
+                    config.set_key_value("current_nozzle_id", new ConfigOptionInt(ins_nozzle_id));
+                    config.set_key_value("nozzle_diameter_at_nozzle_id",
+                        new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(ins_gr.get())));
+                }
                 config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
                 std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
                 file.writeln(filament_start_gcode);
@@ -3826,16 +3870,27 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         //BBS
         config.set_key_value("layer_z",   new ConfigOptionFloat(m_writer.get_position()(2) - m_config.z_offset.value));
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
+        auto end_gr = print.get_layered_nozzle_group_result();
+        config.set_key_value("nozzle_diameter_at_nozzle_id",
+            new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(end_gr.get())));
 
         if (print.config().single_extruder_multi_material) {
             // Process the filament_end_gcode for the active filament only.
             int extruder_id = m_writer.filament()->id();
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(extruder_id));
+            config.set_key_value("current_filament_id", new ConfigOptionInt(extruder_id));
+            config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(extruder_id)));
+            config.set_key_value("current_nozzle_id",
+                new ConfigOptionInt(end_gr ? end_gr->get_nozzle_id(extruder_id, m_layer_index) : -1));
             file.writeln(this->placeholder_parser_process("filament_end_gcode", print.config().filament_end_gcode.get_at(extruder_id), extruder_id, &config));
         } else {
             for (const std::string &end_gcode : print.config().filament_end_gcode.values) {
                 int extruder_id = (unsigned int)(&end_gcode - &print.config().filament_end_gcode.values.front());
                 config.set_key_value("filament_extruder_id", new ConfigOptionInt(extruder_id));
+                config.set_key_value("current_filament_id", new ConfigOptionInt(extruder_id));
+                config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(extruder_id)));
+                config.set_key_value("current_nozzle_id",
+                    new ConfigOptionInt(end_gr ? end_gr->get_nozzle_id(extruder_id, m_layer_index) : -1));
                 file.writeln(this->placeholder_parser_process("filament_end_gcode", end_gcode, extruder_id, &config));
             }
         }
@@ -8299,6 +8354,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         // Single-extruder branch: no physical hotend swap, leave the value as
         // -1 ("use current hotend") to match BBL's NOZZLE_ID_FOR_GCODE.
         this->placeholder_parser().set("current_hotend", -1);
+        this->placeholder_parser().set("current_filament_id", (int)new_filament_id);
+        this->placeholder_parser().set("current_extruder_id", (int)get_extruder_id(new_filament_id));
+        this->placeholder_parser().set("current_nozzle_id", new_nozzle_id);
         this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));
         this->placeholder_parser().set("long_retraction_when_ec", m_config.long_retractions_when_ec.get_at(new_filament_id));
 
@@ -8312,6 +8370,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             config.set_key_value("layer_z", new ConfigOptionFloat(this->writer().get_position().z() - m_config.z_offset.value));
             config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(new_filament_id)));
+            {
+                auto se_gr = m_print ? m_print->get_layered_nozzle_group_result() : nullptr;
+                config.set_key_value("current_filament_id", new ConfigOptionInt((int)new_filament_id));
+                config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(new_filament_id)));
+                config.set_key_value("current_nozzle_id", new ConfigOptionInt(new_nozzle_id));
+                config.set_key_value("nozzle_diameter_at_nozzle_id",
+                    new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(se_gr.get())));
+            }
             config.set_key_value("retraction_distance_when_cut",
                                  new ConfigOptionFloat(m_config.retraction_distances_when_cut.get_at(new_filament_id)));
             config.set_key_value("long_retraction_when_cut", new ConfigOptionBool(m_config.long_retractions_when_cut.get_at(new_filament_id)));
@@ -8365,6 +8431,15 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             config.set_key_value("layer_z",   new ConfigOptionFloat(m_writer.get_position().z() - m_config.z_offset.value));
             config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_extruder_id(old_filament_id))));
+            {
+                auto ee_gr = m_print ? m_print->get_layered_nozzle_group_result() : nullptr;
+                config.set_key_value("current_filament_id", new ConfigOptionInt((int)old_filament_id));
+                config.set_key_value("current_extruder_id", new ConfigOptionInt((int)get_extruder_id(old_filament_id)));
+                config.set_key_value("current_nozzle_id",
+                    new ConfigOptionInt(ee_gr ? ee_gr->get_nozzle_id(old_filament_id, m_layer_index) : -1));
+                config.set_key_value("nozzle_diameter_at_nozzle_id",
+                    new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(ee_gr.get())));
+            }
             gcode += placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
             check_add_eol(gcode);
         }
@@ -8394,6 +8469,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     float filament_area = float((M_PI / 4.f) * pow(m_config.filament_diameter.get_at(new_filament_id), 2));
     //BBS: add handling for filament change in start gcode
     int old_filament_id = -1;
+    int old_nozzle_id = -1;
     int old_extruder_id = -1;
     if (m_writer.filament() != nullptr || m_start_gcode_filament != -1) {
         std::vector<float> flush_matrix(cast<float>(get_flush_volumes_matrix(m_config.flush_volumes_matrix.values, new_extruder_id, m_config.nozzle_diameter.values.size())));
@@ -8405,6 +8481,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         old_filament_id = m_writer.filament() != nullptr ? m_writer.filament()->id() : m_start_gcode_filament;
         old_extruder_id = m_writer.filament() != nullptr ? m_writer.filament()->extruder_id() : get_extruder_id(m_start_gcode_filament);
+        {
+            auto on_gr = m_print ? m_print->get_layered_nozzle_group_result() : nullptr;
+            old_nozzle_id = on_gr ? on_gr->get_nozzle_id(old_filament_id, m_layer_index) : -1;
+        }
 
         old_retract_length = m_config.retraction_length.get_at(old_filament_id);
         old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_filament_id);
@@ -8492,6 +8572,17 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("next_hotend", new ConfigOptionInt(-1));
     dyn_config.set_key_value("old_extruder_variant", new ConfigOptionString(old_extruder_variant_str));
     dyn_config.set_key_value("new_extruder_variant", new ConfigOptionString(new_extruder_variant_str));
+    {
+        auto dc_gr = m_print ? m_print->get_layered_nozzle_group_result() : nullptr;
+        dyn_config.set_key_value("current_extruder_id", new ConfigOptionInt(old_extruder_id));
+        dyn_config.set_key_value("next_extruder_id",    new ConfigOptionInt(new_extruder_id));
+        dyn_config.set_key_value("current_nozzle_id",   new ConfigOptionInt(old_nozzle_id));
+        dyn_config.set_key_value("next_nozzle_id",      new ConfigOptionInt(new_nozzle_id));
+        dyn_config.set_key_value("current_filament_id", new ConfigOptionInt(old_filament_id));
+        dyn_config.set_key_value("next_filament_id",    new ConfigOptionInt((int)new_filament_id));
+        dyn_config.set_key_value("nozzle_diameter_at_nozzle_id",
+            new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(dc_gr.get())));
+    }
     dyn_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
     dyn_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
     dyn_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -8679,6 +8770,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     this->placeholder_parser().set("current_extruder", new_filament_id);
     // H2C: firmware expects current_hotend = -1 (auto-remap), matching BBL.
     this->placeholder_parser().set("current_hotend", -1);
+    this->placeholder_parser().set("current_filament_id", (int)new_filament_id);
+    this->placeholder_parser().set("current_extruder_id", new_extruder_id);
+    this->placeholder_parser().set("current_nozzle_id", new_nozzle_id);
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));
@@ -8694,6 +8788,11 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         config.set_key_value("layer_z", new ConfigOptionFloat(this->writer().get_position().z() - m_config.z_offset.value));
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
         config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(new_filament_id)));
+        {
+            auto fs_gr = m_print ? m_print->get_layered_nozzle_group_result() : nullptr;
+            config.set_key_value("nozzle_diameter_at_nozzle_id",
+                new ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(fs_gr.get())));
+        }
         if (toolchange_temp_override > 0) {
             auto temps = m_config.nozzle_temperature.values;
             if (new_filament_id < temps.size())
