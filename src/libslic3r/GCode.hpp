@@ -817,6 +817,10 @@ private:
     // BBS
     Print* m_curr_print = nullptr;
     unsigned int m_toolchange_count;
+    // BBL ab0ee5926: record filament/nozzle change order in lockstep with m_toolchange_count
+    // (post-hoc reconstruction double-counted the support filament injected in machine-start gcode).
+    std::vector<unsigned int> m_filament_change_sequence;
+    std::vector<unsigned int> m_nozzle_change_sequence;
     coordf_t m_nominal_z;
     bool m_need_change_layer_lift_z = false;
     int m_start_gcode_filament      = -1;

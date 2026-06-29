@@ -839,8 +839,18 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         //BBS: increase toolchange count
         // H2C: count only real tool changes; wipe-tower/nozzle-change tcr entries would
         // otherwise inflate it and desync the M620 O{n} carousel ordinal (matches BBS).
-        if (!Vortek::WipeTower::is_h2c_printer(gcodegen.m_print) || tcr.is_tool_change)
+        if (!Vortek::WipeTower::is_h2c_printer(gcodegen.m_print) || tcr.is_tool_change) {
             gcodegen.m_toolchange_count++;
+            // BBL ab0ee5926: record the change in lockstep with the (H2C-gated) count.
+            int seq_nozzle = 0;
+            if (gcodegen.m_print) {
+                auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
+                if (gr)
+                    seq_nozzle = gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index);
+            }
+            gcodegen.m_filament_change_sequence.emplace_back((unsigned int)new_filament_id);
+            gcodegen.m_nozzle_change_sequence.emplace_back((unsigned int)std::max(seq_nozzle, 0));
+        }
 
         std::string toolchange_gcode_str;
 
@@ -3439,6 +3449,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 file.write_format(";VT%d\n", initial_extruder_id);
             }
         }
+        // BBL ab0ee5926: seed the change sequences with the initial filament so they stay
+        // in lockstep with m_toolchange_count (which counts only subsequent changes).
+        m_filament_change_sequence.clear();
+        m_nozzle_change_sequence.clear();
+        m_filament_change_sequence.emplace_back(initial_non_support_extruder_id);
+        {
+            unsigned int seed_nozzle = 0;
+            auto gr = m_print->get_layered_nozzle_group_result();
+            if (gr) {
+                auto ni = gr->get_first_nozzle_for_filament(initial_non_support_extruder_id);
+                if (ni) seed_nozzle = (unsigned int)std::max(ni->group_id, 0);
+            }
+            m_nozzle_change_sequence.emplace_back(seed_nozzle);
+        }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
             file.write(m_writer.set_pressure_advance(m_config.pressure_advance.get_at(initial_non_support_extruder_id)));
@@ -3941,34 +3965,20 @@ void GCode::export_layer_filaments(GCodeProcessorResult* result)
     {
         result->filament_change_sequence.clear();
         result->nozzle_change_sequence.clear();
-
-        std::optional<unsigned int> prev_filament;
-        std::optional<unsigned int> prev_nozzle;
         auto group_result = m_print->get_layered_nozzle_group_result();
 
-        if (m_sorted_layer_filaments.empty() && m_print->calib_params().mode == CalibMode::Calib_PA_Line) {
+        // BBL ab0ee5926: publish the sequences recorded incrementally during export
+        // instead of reconstructing them post-hoc from m_sorted_layer_filaments (which
+        // dropped/duplicated the support filament injected in machine-start gcode).
+        if (!m_filament_change_sequence.empty()) {
+            result->filament_change_sequence = m_filament_change_sequence;
+            result->nozzle_change_sequence   = m_nozzle_change_sequence;
+        } else if (m_print->calib_params().mode == CalibMode::Calib_PA_Line) {
             // PA line calibration writes its own G-code; publish the used filament explicitly.
             unsigned int fidx = m_writer.filament() ? m_writer.filament()->id() : 0;
             result->filament_change_sequence.emplace_back(fidx);
             if (group_result)
                 result->nozzle_change_sequence.emplace_back(group_result->get_nozzle_id(fidx, 0));
-        } else {
-            for (size_t layer_idx = 0; layer_idx < m_sorted_layer_filaments.size(); ++layer_idx) {
-                for (auto fidx : m_sorted_layer_filaments[layer_idx]) {
-                    int nozzle_idx = group_result
-                        ? group_result->get_nozzle_id(fidx, layer_idx)
-                        : (fidx < filament_map.size() && filament_map[fidx] > 0
-                              ? filament_map[fidx] - 1 : 0);
-                    if (!prev_nozzle || !prev_filament
-                        || *prev_nozzle != static_cast<unsigned int>(nozzle_idx)
-                        || *prev_filament != fidx) {
-                        result->nozzle_change_sequence.emplace_back(static_cast<unsigned int>(nozzle_idx));
-                        result->filament_change_sequence.emplace_back(fidx);
-                        prev_nozzle = static_cast<unsigned int>(nozzle_idx);
-                        prev_filament = fidx;
-                    }
-                }
-            }
         }
 
         // Compute optimal physical assignment via BBL algorithm
@@ -8318,6 +8328,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
     // BBS. Should be placed before retract.
     m_toolchange_count++;
+    // BBL ab0ee5926: record the change in lockstep with the count.
+    m_filament_change_sequence.emplace_back((unsigned int)new_filament_id);
+    m_nozzle_change_sequence.emplace_back((unsigned int)std::max(new_nozzle_id, 0));
 
     // prepend retraction on the current extruder
     std::string gcode = this->retract(true, false);
