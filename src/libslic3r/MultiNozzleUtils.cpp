@@ -1075,16 +1075,21 @@ std::optional<NozzleInfo> StaticNozzleGroupResult::get_first_nozzle_for_filament
 
 // ==================== Free functions: filament-change cost ====================
 
-float calc_filament_change_gap_for_assignment(
+// H2C port (BBL 2f014ce1a): core simulation; calc_filament_change_gap_for_assignment
+// is now a thin wrapper over this.
+FilamentChangeSimResult simulate_filament_change_time(
     const std::vector<int>&         logical_filaments,
     const std::vector<NozzleInfo>&  nozzle_list,
     const std::vector<int>&         filament_change_seq,
     const std::vector<int>&         nozzle_change_seq,
     const std::vector<int>&         group_of_filament,
     const FilamentChangeTimeParams& time_params,
-    const std::vector<bool>&        ams_preload_enabled)
+    const std::vector<bool>&        ams_preload_enabled,
+    bool                            calc_sliced_time)
 {
-    if (logical_filaments.empty() || nozzle_list.empty() || filament_change_seq.empty() || nozzle_change_seq.empty()) return 0.0f;
+    FilamentChangeSimResult result;
+    if (logical_filaments.empty() || nozzle_list.empty() || filament_change_seq.empty() || nozzle_change_seq.empty())
+        return result;
 
     const float load_ams_to_selector   = time_params.standard_load_time   - time_params.selector_load_time;
     const float unload_ams_to_selector = time_params.standard_unload_time - time_params.selector_unload_time;
@@ -1127,8 +1132,8 @@ float calc_filament_change_gap_for_assignment(
     NozzleStatusRecorder sliced_recorder;
 
     const size_t seq_len = std::min(filament_change_seq.size(), nozzle_change_seq.size());
-    float actual_time = 0.0f;
-    float sliced_time = 0.0f;
+    double actual_time = 0.0;
+    double sliced_time = 0.0;
 
     for (size_t i = 0; i < seq_len; ++i) {
         int B         = filament_change_seq[i];
@@ -1139,7 +1144,7 @@ float calc_filament_change_gap_for_assignment(
 
         int E = nozzle_iter->second;
 
-        {
+        if (calc_sliced_time) {
             int old_nozzle_in_E        = sliced_recorder.get_nozzle_in_extruder(E);
             int old_filament_in_nozzle = sliced_recorder.get_filament_in_nozzle(nozzle_id);
             int old_filament_in_ext    = sliced_recorder.get_filament_in_nozzle(old_nozzle_in_E);
@@ -1241,7 +1246,25 @@ float calc_filament_change_gap_for_assignment(
         actual_time += std::max(step4_time, step6_time);
     }
 
-    return actual_time - sliced_time;
+    result.actual_time = actual_time;
+    result.sliced_time = sliced_time;
+    return result;
+}
+
+float calc_filament_change_gap_for_assignment(
+    const std::vector<int>&         logical_filaments,
+    const std::vector<NozzleInfo>&  nozzle_list,
+    const std::vector<int>&         filament_change_seq,
+    const std::vector<int>&         nozzle_change_seq,
+    const std::vector<int>&         group_of_filament,
+    const FilamentChangeTimeParams& time_params,
+    const std::vector<bool>&        ams_preload_enabled)
+{
+    auto r = simulate_filament_change_time(
+        logical_filaments, nozzle_list, filament_change_seq,
+        nozzle_change_seq, group_of_filament, time_params,
+        ams_preload_enabled, /*calc_sliced_time=*/true);
+    return static_cast<float>(r.actual_time - r.sliced_time);
 }
 
 std::vector<int> find_optimal_physical_assignment(

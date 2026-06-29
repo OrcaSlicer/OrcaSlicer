@@ -221,6 +221,24 @@ public:
     const std::unordered_map<int, int>& get_extruder_nozzle_map() const { return extruder_nozzle_status; }
 };
 
+// H2C port (BBL 2f014ce1a): split the filament-change-time simulation out of
+// calc_filament_change_gap_for_assignment so callers can obtain the raw actual
+// and sliced times (not just their gap).
+struct FilamentChangeSimResult {
+    double actual_time = 0.0;
+    double sliced_time = 0.0;
+};
+
+FilamentChangeSimResult simulate_filament_change_time(
+    const std::vector<int>&           logical_filaments,
+    const std::vector<NozzleInfo>&    nozzle_list,
+    const std::vector<int>&           filament_change_seq,
+    const std::vector<int>&           nozzle_change_seq,
+    const std::vector<int>&           group_of_filament,
+    const FilamentChangeTimeParams&   time_params,
+    const std::vector<bool>&          ams_preload_enabled = {},
+    bool                              calc_sliced_time = false);
+
 float calc_filament_change_gap_for_assignment(
     const std::vector<int>&           logical_filaments,
     const std::vector<NozzleInfo>&    nozzle_list,
