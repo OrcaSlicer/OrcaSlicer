@@ -1473,6 +1473,9 @@ void PreferencesDialog::create_items()
     auto item_step_angle       = create_item_decimal_input(_L("STEP importing: angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled."), "angle_deflection", 0.01, 1.0, 2);
     g_sizer->Add(item_step_angle);
 
+    auto item_step_split       = create_item_checkbox(_L("STEP importing: Split into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled."), "is_split_compound");
+    g_sizer->Add(item_step_split);
+
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
     g_sizer->Add(item_backup); 
 
