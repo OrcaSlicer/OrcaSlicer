@@ -545,6 +545,9 @@ private:
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};
     bool m_plate_chrome_enabled{true};
+    // SnapOrca Design: render the world-axis triad at the bed centre (= modeling origin) instead of
+    // the bed corner. Default false preserves the main editor's corner triad.
+    bool m_axes_at_bed_center{false};
     DesignSketchTool* m_design_sketch_tool{nullptr};
 
     //BBS: add canvas type for assemble view usage
@@ -885,6 +888,7 @@ public:
     void enable_separator_toolbar(bool enable);
     void enable_collapse_toolbar(bool enable);
     void enable_plate_chrome(bool enable);
+    void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
     void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
     DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
     void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }

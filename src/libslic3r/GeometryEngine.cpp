@@ -23,6 +23,7 @@
 #include <GProp_GProps.hxx>
 #include <GeomLProp_SLProps.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <gp_Circ.hxx>
 #include <GCPnts_TangentialDeflection.hxx>
 #include <STEPControl_Reader.hxx>
 #include <IFSelect_ReturnStatus.hxx>
@@ -394,6 +395,23 @@ GeometryEngine::CylinderFace GeometryEngine::cylinder_of_face(const TopoDS_Face&
     const Vec3d  radial = (S - axpt).normalized();
     cf.internal = face_normal_world(face).dot(radial) < 0.0;
     cf.ok = true;
+    return cf;
+}
+
+GeometryEngine::CylinderFace GeometryEngine::circle_of_edge(const TopoDS_Edge& edge)
+{
+    CylinderFace cf;
+    if (edge.IsNull()) return cf;
+    BRepAdaptor_Curve curve(edge);
+    if (curve.GetType() != GeomAbs_Circle) return cf;
+    const gp_Circ c  = curve.Circle();
+    const gp_Ax1  ax = c.Axis();
+    cf.base     = Vec3d(c.Location().X(), c.Location().Y(), c.Location().Z());
+    cf.axis     = Vec3d(ax.Direction().X(), ax.Direction().Y(), ax.Direction().Z());
+    cf.radius   = c.Radius();
+    cf.height   = 0.0;       // an edge carries no axial extent; the card keeps the current length
+    cf.internal = false;     // ambiguous from an edge alone — default external, user can toggle
+    cf.ok       = true;
     return cf;
 }
 

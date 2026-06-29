@@ -39,6 +39,9 @@ public:
 
 private:
     enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert };
+    // Plane tool: which datum reference the next solid pick fills (declared early so the
+    // method decls + card lambdas below can name it).
+    enum class PlanePick { None, FaceA, FaceB, EdgeA, EdgeB };
 
     // Onshape-style contextual top toolbar: only the active mode's tool group is
     // shown (Feature = sketch/extrude/dress/hole/thread; Sketch = entity tools;
@@ -57,11 +60,16 @@ private:
     void on_add_hole();
     void on_add_thread();
     void apply_thread_standard();   // fill pitch/depth/radius from m_thread_std selection
+    void infer_thread_spec(double diameter);  // nearest M-standard from a picked cylinder diameter
     void on_add_revolve();
     void on_add_sweep();
     void on_add_loft();
     void on_add_pattern();
     void on_add_plane();
+    void arm_plane_pick(PlanePick target);   // Plane tool: next solid pick fills this reference
+    void apply_plane_refs(CadFeature& f) const; // copy type + face/edge refs + sizes from the card
+    void refresh_plane_labels();             // update the 4 pick labels from the captured refs
+    void reset_plane_refs();                 // clear captured refs (fresh Plane add)
     void on_add_shell();
     void on_add_draft();
     void on_add_boolean();
@@ -167,6 +175,9 @@ private:
     void       update_shell_gizmo();      // inward thickness arrow on the picked face (Shell card)
     void       update_revolve_gizmo();    // angle-arc around the axis (Revolve card)
     void       update_pattern_gizmo();    // linear spacing arrow / circular angle-arc (Pattern card)
+    void       update_datum_gizmo();      // resize handles on the datum plane being created/edited (C3)
+    void       refresh_datum_planes();    // push resolved datum frames + per-plane u/v extents to viewport
+    void       update_reference_planes(); // persistent XY/XZ/YZ reference planes (fallback when no object)
 
     CadDocument m_doc;
 
@@ -302,8 +313,22 @@ private:
     // Datum plane controls (derive a selectable sketch plane: offset + tilt from a base).
     wxChoice*         m_plane_base{nullptr};         // 0=XY,1=XZ,2=YZ, 3+N = Nth datum plane
     wxSpinCtrlDouble* m_plane_offset{nullptr};       // offset along base normal (mm)
-    wxSpinCtrlDouble* m_plane_tilt{nullptr};         // tilt about a base axis (deg)
+    wxSpinCtrlDouble* m_plane_tilt{nullptr};         // tilt about a base axis (deg) / Angle / Tangent angle
     wxChoice*         m_plane_tilt_axis{nullptr};    // 0 = base X, 1 = base Y
+    // Plane construction method + contextual face/edge reference picks (Onshape/Fusion parity).
+    wxChoice*         m_plane_type{nullptr};         // PlaneType: Offset/Angle/Midplane/Tangent/TwoEdges/Coincident
+    wxButton*         m_plane_pick_faceA{nullptr};   wxStaticText* m_plane_faceA_lbl{nullptr};
+    wxButton*         m_plane_pick_faceB{nullptr};   wxStaticText* m_plane_faceB_lbl{nullptr};
+    wxButton*         m_plane_pick_edgeA{nullptr};   wxStaticText* m_plane_edgeA_lbl{nullptr};
+    wxButton*         m_plane_pick_edgeB{nullptr};   wxStaticText* m_plane_edgeB_lbl{nullptr};
+    wxSpinCtrlDouble* m_plane_usize{nullptr};        // datum rectangle extent u (mm) — also driven by drag handles
+    wxSpinCtrlDouble* m_plane_vsize{nullptr};        // datum rectangle extent v (mm)
+    // Captured references for the candidate datum (body index + face/edge index, -1 = none).
+    int m_pl_faceA_body{-1}, m_pl_faceA{-1};
+    int m_pl_faceB_body{-1}, m_pl_faceB{-1};
+    int m_pl_edgeA_body{-1}, m_pl_edgeA{-1};
+    int m_pl_edgeB_body{-1}, m_pl_edgeB{-1};
+    PlanePick m_plane_pick{PlanePick::None};         // which ref the next solid pick fills
     // Plate loop selection (click a committed sketch loop): the Sketch feature + the
     // clicked closed-region index, so Extrude builds just that one loop. -1 = none.
     int               m_sel_sketch_feat{-1};

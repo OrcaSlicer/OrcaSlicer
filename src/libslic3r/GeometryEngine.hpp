@@ -103,6 +103,10 @@ public:
         bool   internal{false};
     };
     static CylinderFace cylinder_of_face(const TopoDS_Face& face);
+    // Circular edge (a cylinder's perimeter): base = circle centre, axis = circle normal,
+    // radius = circle radius, height = 0 (unknown from an edge), internal = false. ok=false if
+    // the edge is not a circle. Lets the Thread tool be driven by a picked circular rim.
+    static CylinderFace circle_of_edge(const TopoDS_Edge& edge);
 
     // Plane-coordinate (u,v) bounding box of a face's vertices, measured from `origin` along
     // `x_axis`/`y_axis`. Lets the Hole tool dimension the hole from the face SIDES (umin/vmin =

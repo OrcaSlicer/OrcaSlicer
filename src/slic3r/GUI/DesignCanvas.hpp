@@ -143,11 +143,22 @@ public:
                            double depth, double depth2, bool two_sided, bool flip);
     void clear_extrude_gizmo();
     void set_on_extrude_depth_changed(std::function<void(double, bool)> cb);
+    void set_datum_gizmo(const SketchPlane& plane, double usize, double vsize,
+                         const Vec3d& base_origin, const Vec3d& base_normal,
+                         double offset, bool offset_on);          // C3 resize handles + offset arrow
+    void clear_datum_gizmo();
+    void set_on_datum_size_changed(std::function<void(double, double)> cb);
+    void set_on_datum_offset_changed(std::function<void(double)> cb);
+    void set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
+                       std::vector<std::string> labels = {});   // clickable labelled reference planes
+    void clear_base_pick();
+    void set_on_datum_base_picked(std::function<void(int)> cb);
     void set_on_sketch_exit(std::function<void()> cb);           // Esc -> exit the tool
     void set_on_undo_redo(std::function<void(bool /*redo*/)> cb); // Ctrl+Z / Ctrl+Shift+Z
     // Persistently draw committed sketches (un-consumed ones stay visible).
     void set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds);
-    void set_datum_planes(std::vector<SketchPlane> planes);   // draw datum/reference planes
+    void set_datum_planes(std::vector<SketchPlane> planes,
+                          std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
     void set_body_highlight(bool on);   // tint the solid when its feature is tree-selected
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
@@ -200,14 +211,15 @@ public:
     // Constraint glyph badges (C3.4b): the feature's constraints, drawn as iconic
     // marks near their entities in Constrain mode; empty clears them.
     void set_constraint_glyphs(std::vector<SketchEntityConstraintDef> cons);
-
-private:
-    void reload(bool keep_view);
     // Repaint the embedded canvas the right way for the active GL backend:
     // hardware GL gets a scheduled wxEVT_PAINT (render() runs inside the paint
     // cycle); software GL (llvmpipe etc.) gets a direct render() because a
     // scheduled Refresh() is frequently dropped there. Backend cached on first use.
+    // Public: DesignPanel calls it after a tree edit to force a frame on software GL.
     void request_repaint();
+
+private:
+    void reload(bool keep_view);
 
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};

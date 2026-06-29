@@ -15,6 +15,7 @@
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
+#include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_DraftAngle.hxx>
 #include <Bnd_Box.hxx>
@@ -22,6 +23,7 @@
 #include <gp_Pln.hxx>
 #include <TopTools_ListOfShape.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
 #include <Geom_CylindricalSurface.hxx>
 #include <Geom2d_TrimmedCurve.hxx>
@@ -74,19 +76,26 @@ static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
 //  - internal: the V is CUT from the wall -> a sunken helical groove. The cut MUST
 //    go outward into the wall to be visible; an inward V (the old behaviour) only
 //    sweeps already-empty bore space and removes nothing.
-static TopoDS_Face make_thread_profile(const gp_Pnt& origin, const gp_Dir& xdir,
+static TopoDS_Wire make_thread_profile(const gp_Pnt& origin, const gp_Dir& xdir,
                                        const gp_Dir& zdir, double radius,
                                        double pitch, double depth, bool internal)
 {
     (void)internal;
     gp_Vec vx(xdir), vz(zdir);
-    double inner = radius - 0.05;   // base, just inside the wall (overlaps rod / open bore)
+    // Root the V CLEARLY inside the wall (a real overlap, not a 0.05 mm tangency) so the boolean
+    // has clean intersections — near-coincident faces are what make OCCT's fuse/cut unstable.
+    const double over = std::min(std::max(depth, 0.25), radius * 0.4);
+    double inner = radius - over;   // base, well inside the wall (solid overlap)
     double crest = radius + depth;  // apex, `depth` into the surrounding material
-    gp_Pnt top (origin.XYZ() + (vx * inner).XYZ() + (vz * ( 0.5 * pitch)).XYZ());
-    gp_Pnt bot (origin.XYZ() + (vx * inner).XYZ() + (vz * (-0.5 * pitch)).XYZ());
+    // Axial half-height must be < pitch/2 so ADJACENT helix turns don't collide — a full-pitch
+    // profile makes the swept solid self-intersect (invalid -> never renders, or crashes the
+    // boolean). 0.42*pitch leaves a clean gap between turns; the V still reads as a thread.
+    const double half = 0.42 * pitch;
+    gp_Pnt top (origin.XYZ() + (vx * inner).XYZ() + (vz * ( half)).XYZ());
+    gp_Pnt bot (origin.XYZ() + (vx * inner).XYZ() + (vz * (-half)).XYZ());
     gp_Pnt apex(origin.XYZ() + (vx * crest).XYZ());
     BRepBuilderAPI_MakePolygon poly(top, bot, apex, Standard_True);
-    return BRepBuilderAPI_MakeFace(poly.Wire(), Standard_True).Face();
+    return poly.Wire();   // closed triangle, swept by MakePipeShell with a fixed binormal
 }
 
 // ---------------------------------------------------------------------------
@@ -697,20 +706,173 @@ static SketchPlane offset_angle_plane(const SketchPlane& base, double offset,
     return p;
 }
 
+// Build a full orthonormal frame from a normal + origin.
+static SketchPlane frame_from(const Vec3d& origin, const Vec3d& normal)
+{
+    Vec3d n = normal.normalized();
+    Vec3d ref = (std::abs(n.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+    Vec3d x = ref.cross(n);
+    if (x.squaredNorm() < 1e-12) x = Vec3d(1, 0, 0);
+    x.normalize();
+    Vec3d y = n.cross(x).normalized();
+    SketchPlane p;
+    p.origin = origin;
+    p.normal = n;
+    p.x_axis = x;
+    p.y_axis = y;
+    return p;
+}
+
 std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_planes() const
 {
     std::vector<std::pair<std::string, SketchPlane>> out;
     for (const CadFeature& f : features) {
         if (f.type != CadFeatureType::Plane || !f.enabled) continue;
+
+        // Resolve base reference plane. The default XY/XZ/YZ planes pass through the modeling
+        // origin (bed centre); datum bases (>=3) are already in world coords from earlier passes.
         SketchPlane base;
-        if      (f.plane_base == 1) base = SketchPlane::XZ();
-        else if (f.plane_base == 2) base = SketchPlane::YZ();
+        if      (f.plane_base == 1) { base = SketchPlane::XZ(); base.origin += modeling_origin; }
+        else if (f.plane_base == 2) { base = SketchPlane::YZ(); base.origin += modeling_origin; }
         else if (f.plane_base >= 3) {
-            const int di = f.plane_base - 3;   // index into earlier datum planes
-            if (di < int(out.size())) base = out[di].second;   // else XY default
+            const int di = f.plane_base - 3;
+            if (di < int(out.size())) base = out[di].second;
         }
-        out.emplace_back(f.name,
-            offset_angle_plane(base, f.plane_offset, f.plane_angle_tilt, f.plane_axis));
+        else                        { base = SketchPlane::XY(); base.origin += modeling_origin; }
+
+        // --- Resolve refs from bodies ---
+        auto resolve_face = [&](int body_idx, int face_idx) -> TopoDS_Face {
+            if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
+                return TopoDS_Face();
+            return GeometryEngine::face_by_index(bodies[body_idx].shape, face_idx);
+        };
+        auto resolve_edge = [&](int body_idx, int edge_idx,
+                                 Vec3d& p0, Vec3d& dir) -> bool {
+            if (edge_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
+                return false;
+            TopoDS_Edge e = GeometryEngine::edge_by_index(bodies[body_idx].shape, edge_idx);
+            if (e.IsNull()) return false;
+            auto pts = GeometryEngine::sample_edge_world(e);
+            if (pts.size() < 2) return false;
+            p0 = pts.front();
+            dir = (pts.back() - pts.front()).normalized();
+            return true;
+        };
+
+        // Face A
+        TopoDS_Face faceA = resolve_face(f.plane_face_body, f.plane_face);
+        SketchPlane faceA_plane;
+        bool has_faceA = false;
+        if (!faceA.IsNull()) {
+            faceA_plane = frame_from(
+                GeometryEngine::face_centroid_world(faceA),
+                GeometryEngine::face_normal_world(faceA));
+            has_faceA = true;
+        }
+
+        // Face B
+        TopoDS_Face faceB = resolve_face(f.plane_face2_body, f.plane_face2);
+        SketchPlane faceB_plane;
+        bool has_faceB = false;
+        if (!faceB.IsNull()) {
+            faceB_plane = frame_from(
+                GeometryEngine::face_centroid_world(faceB),
+                GeometryEngine::face_normal_world(faceB));
+            has_faceB = true;
+        }
+
+        // Edge A
+        Vec3d eA_p0, eA_dir;
+        bool has_edgeA = resolve_edge(f.plane_edge_body, f.plane_edge, eA_p0, eA_dir);
+
+        // Edge B
+        Vec3d eB_p0, eB_dir;
+        bool has_edgeB = resolve_edge(f.plane_edge2_body, f.plane_edge2, eB_p0, eB_dir);
+
+        // --- Dispatch on plane_type ---
+        auto fallback_offset = [&]() {
+            return offset_angle_plane(base, f.plane_offset, f.plane_angle_tilt, f.plane_axis);
+        };
+
+        SketchPlane result;
+        switch (f.plane_type) {
+
+        case PlaneType::Offset: {
+            // From a picked face: pure offset along its normal. From a base/datum plane:
+            // offset + the legacy tilt-about-axis (keeps the old Offset/Tilt controls live).
+            if (has_faceA)
+                result = frame_from(faceA_plane.origin + faceA_plane.normal * f.plane_offset,
+                                    faceA_plane.normal);
+            else
+                result = offset_angle_plane(base, f.plane_offset, f.plane_angle_tilt, f.plane_axis);
+            break;
+        }
+
+        case PlaneType::Coincident: {
+            result = has_faceA ? faceA_plane : base;
+            break;
+        }
+
+        case PlaneType::Angle: {
+            if (!has_edgeA) { result = fallback_offset(); break; }
+            const SketchPlane& ref = has_faceA ? faceA_plane : base;
+            Vec3d n0 = ref.normal - eA_dir * ref.normal.dot(eA_dir);
+            if (n0.squaredNorm() < 1e-12) {
+                Vec3d perp = (std::abs(eA_dir.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+                n0 = perp - eA_dir * perp.dot(eA_dir);
+            }
+            n0.normalize();
+            const double a = f.plane_angle_tilt * M_PI / 180.0;
+            Vec3d n_rot = n0 * std::cos(a) + eA_dir.cross(n0) * std::sin(a)
+                          + eA_dir * (eA_dir.dot(n0)) * (1.0 - std::cos(a));
+            result = frame_from(eA_p0, n_rot);
+            break;
+        }
+
+        case PlaneType::Midplane: {
+            if (!has_faceA || !has_faceB) { result = fallback_offset(); break; }
+            Vec3d origin = 0.5 * (faceA_plane.origin + faceB_plane.origin);
+            Vec3d nB = (faceA_plane.normal.dot(faceB_plane.normal) >= 0)
+                           ? faceB_plane.normal : -faceB_plane.normal;
+            Vec3d normal = (faceA_plane.normal + nB).normalized();
+            result = frame_from(origin, normal);
+            break;
+        }
+
+        case PlaneType::Tangent: {
+            if (!has_faceA) { result = fallback_offset(); break; }
+            GeometryEngine::CylinderFace cyl = GeometryEngine::cylinder_of_face(faceA);
+            if (!cyl.ok) { result = fallback_offset(); break; }
+            Vec3d refdir = (std::abs(cyl.axis.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+            refdir = refdir - cyl.axis * refdir.dot(cyl.axis);
+            refdir.normalize();
+            const double theta = f.plane_angle_tilt * M_PI / 180.0;
+            Vec3d r = refdir * std::cos(theta) + cyl.axis.cross(refdir) * std::sin(theta);
+            Vec3d touch = cyl.base + r * cyl.radius;
+            result = frame_from(touch, r);
+            break;
+        }
+
+        case PlaneType::TwoEdges: {
+            if (!has_edgeA) { result = fallback_offset(); break; }
+            if (!has_edgeB) { result = fallback_offset(); break; }
+            Vec3d cross = eA_dir.cross(eB_dir);
+            if (cross.squaredNorm() > 1e-12) {
+                result = frame_from(eA_p0, cross.normalized());
+            } else {
+                Vec3d v = eA_dir.cross(eB_p0 - eA_p0);
+                if (v.squaredNorm() > 1e-12) {
+                    result = frame_from(eA_p0, v.normalized());
+                } else {
+                    result = fallback_offset();
+                }
+            }
+            break;
+        }
+
+        }
+
+        out.emplace_back(f.name, result);
     }
     return out;
 }
@@ -1187,6 +1349,17 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         break;
     }
     case CadFeatureType::Thread: {
+        // Reject degenerate parameters that make OCCT's helical sweep / boolean unstable (a tiny
+        // pitch, depth >= half-pitch, an enormous turn count, depth eating the whole wall). Better
+        // a no-op than a crash. Leave the body unchanged when the spec can't be built safely.
+        {
+            const double R = f.thread_radius, P = f.thread_pitch, H = f.thread_height, D = f.thread_depth;
+            // ISO external thread depth is ~0.61*P, so allow up to 0.7*P (0.49 wrongly rejected
+            // every real thread -> nothing rendered). Still bound it well under a full pitch.
+            const bool ok = R > 0.5 && P > 0.1 && D > 1e-3 && D < 0.7 * P && D < 0.45 * R
+                            && H > 0.5 * P && (H / P) < 400.0;
+            if (!ok) break;   // result/have_body untouched
+        }
         // Axis at the positioned point on the plane; +normal = thread rise.
         Vec3d c3 = f.plane.to_world(Vec2d(f.thread_x, f.thread_y));
         gp_Pnt  c(c3.x(), c3.y(), c3.z());
@@ -1201,17 +1374,25 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         try {
             TopoDS_Wire spine = make_helix_wire(ax3, f.thread_radius,
                                                 f.thread_pitch, f.thread_height);
-            TopoDS_Face prof  = make_thread_profile(c, xdir, zdir, f.thread_radius,
+            TopoDS_Wire prof  = make_thread_profile(c, xdir, zdir, f.thread_radius,
                                                     f.thread_pitch, f.thread_depth,
                                                     f.thread_internal);
-            BRepOffsetAPI_MakePipe pipe(spine, prof);
+            // MakePipeShell with a FIXED BINORMAL = cylinder axis keeps the V-profile's orientation
+            // constant along the helix (axial edge always parallel to the axis, V always pointing
+            // radially out). The plain MakePipe used a Frenet frame that TWISTED the profile around
+            // the helix -> the wedge inclination varied and looked mirrored.
+            BRepOffsetAPI_MakePipeShell pipe(spine);
+            pipe.SetMode(zdir);
+            pipe.Add(prof);
             pipe.Build();
-            if (pipe.IsDone()) {
+            if (pipe.IsDone() && pipe.MakeSolid()) {
                 ridge = pipe.Shape();
                 have_ridge = !ridge.IsNull();
             }
         } catch (const std::exception&) {
             have_ridge = false; // fall back to the bare cylinder/bore below
+        } catch (const Standard_Failure&) {
+            have_ridge = false; // OCCT failure (not a std::exception) — must be caught here too
         }
 
         if (f.thread_internal) {
@@ -1233,15 +1414,25 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                     result = cut_ridge.Shape();
             }
         } else {
-            // External threaded rod = a New body: base cylinder + fused ridge.
-            TopoDS_Shape rod = BRepPrimAPI_MakeCylinder(ax2, f.thread_radius,
-                                                        f.thread_height).Shape();
-            if (have_ridge) {
-                BRepAlgoAPI_Fuse fuse(rod, ridge);
-                if (fuse.IsDone()) rod = fuse.Shape();
+            // External thread: FUSE the helical ridge ONTO the existing body (the picked cylinder),
+            // leaving the rest of the part intact. Replacing the body with a bare rod — the old
+            // behaviour — wiped whatever the user picked; that was the "mess". With no body yet
+            // (a thread from scratch on a dropdown plane), fall back to a standalone threaded rod.
+            if (have_body && !result.IsNull()) {
+                if (have_ridge) {
+                    BRepAlgoAPI_Fuse fuse(result, ridge);
+                    if (fuse.IsDone() && !fuse.Shape().IsNull()) result = fuse.Shape();
+                }
+            } else {
+                TopoDS_Shape rod = BRepPrimAPI_MakeCylinder(ax2, f.thread_radius,
+                                                            f.thread_height).Shape();
+                if (have_ridge) {
+                    BRepAlgoAPI_Fuse fuse(rod, ridge);
+                    if (fuse.IsDone()) rod = fuse.Shape();
+                }
+                result = rod;
+                have_body = true;
             }
-            result = rod;
-            have_body = true;
         }
         break;
     }

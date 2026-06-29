@@ -2,6 +2,7 @@
 #include "GLCanvas3D.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "Camera.hpp"
 #include "3DScene.hpp"
 #include "GLShader.hpp"
@@ -1165,6 +1166,17 @@ void DesignSketchTool::open_primary_autoedit()
         m_autoedit_dims.push_back({ m_live_aslot_r_label, Rc, [this, fi](double v){ const Feature& g = m_features[fi]; set_arc_slot(fi, v, g.param); }, span(fi) });
         m_autoedit_dims.push_back({ m_live_aslot_w_label, fw, [this, fi](double v){ const Feature& g = m_features[fi]; set_arc_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v*0.5)); }, span(fi) });
     }
+    if (m_live_slot_fi >= 0) {
+        const Feature& f = m_features[m_live_slot_fi];
+        const int fi = m_live_slot_fi;
+        // Slot dims, in order: (1) inter-centre distance, (2) radius (= half-width), (3) angle.
+        const Vec2d  d  = f.c1 - f.c0;
+        const double Lc = d.norm();
+        double deg = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
+        m_autoedit_dims.push_back({ m_live_slot_len_label, Lc, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, v, g.param); }, span(fi) });
+        m_autoedit_dims.push_back({ m_live_slot_w_label, f.param, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v)); }, span(fi) });
+        m_autoedit_dims.push_back({ m_live_slot_angle_label, deg, [this, fi](double v){ set_slot_angle(fi, v); }, span(fi) });
+    }
     if (m_live_arc_ei >= 0) {   // arc Radius is already a scalar step above; add its sweep angle
         const int ei = m_live_arc_ei;
         const SketchEntity& e = m_entities[ei];
@@ -1731,6 +1743,70 @@ void DesignSketchTool::set_arc_slot(int fi, double Rc, double w)
         m_entities[f.begin + i] = rebuilt[i];
     }
     f.c1 = center + Rc * dirS; f.param = w;
+    resolve_live();
+}
+
+// Open the inline editor for a straight slot's dimension: which 0 = inter-centre distance,
+// 1 = radius (half-width), 2 = centreline angle. Drives set_slot / set_slot_angle geometrically.
+void DesignSketchTool::open_slot_editor(int fi, int which)
+{
+    if (fi < 0 || fi >= int(m_features.size()) || !on_inline_edit) return;
+    const Feature& f = m_features[fi];
+    const Vec2d  d = f.c1 - f.c0;
+    double deg = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
+    const double v = (which == 0) ? d.norm() : (which == 1) ? f.param : deg;
+    const wxPoint px(m_last_mouse_x, m_last_mouse_y);
+    on_inline_edit(px, v,
+        [this, fi, which](double nv) {
+            const Feature& g = m_features[fi];
+            if      (which == 0) set_slot(fi, nv, g.param);
+            else if (which == 1) set_slot(fi, (g.c1 - g.c0).norm(), std::max(1e-3, nv));
+            else                 set_slot_angle(fi, nv);
+        },
+        []() {});
+}
+
+// Rebuild the straight slot's 4 entities in place for a new centreline length / half-width.
+// Centre c0 and the centreline direction are kept; only c1 (length) or param (width) change.
+// Geometric; entity count preserved so constraint refs stay valid.
+void DesignSketchTool::set_slot(int fi, double length, double w)
+{
+    if (fi < 0 || fi >= int(m_features.size())) return;
+    Feature& f = m_features[fi];
+    if (f.begin < 0 || f.end > int(m_entities.size()) || f.end - f.begin != 4) return;
+    Vec2d dir = f.c1 - f.c0;
+    if (dir.squaredNorm() < 1e-12) return;
+    dir.normalize();
+    length = std::max(length, 2e-3);
+    w      = std::max(1e-3, w);
+    const Vec2d c0 = f.c0, c1 = f.c0 + length * dir;
+    std::vector<SketchEntity> rebuilt = make_slot(c0, c1, w);
+    if (int(rebuilt.size()) != 4) return;
+    for (int i = 0; i < 4; ++i) {
+        rebuilt[i].construction = m_entities[f.begin + i].construction;
+        m_entities[f.begin + i] = rebuilt[i];
+    }
+    f.c1 = c1; f.param = w;
+    resolve_live();
+}
+
+// Rotate a straight slot about c0 to a new centreline angle (degrees), keeping length + radius.
+void DesignSketchTool::set_slot_angle(int fi, double deg)
+{
+    if (fi < 0 || fi >= int(m_features.size())) return;
+    Feature& f = m_features[fi];
+    if (f.begin < 0 || f.end > int(m_entities.size()) || f.end - f.begin != 4) return;
+    const double L = (f.c1 - f.c0).norm();
+    if (L < 1e-9) return;
+    const double a = deg * M_PI / 180.0;
+    const Vec2d c1 = f.c0 + L * Vec2d(std::cos(a), std::sin(a));
+    std::vector<SketchEntity> rebuilt = make_slot(f.c0, c1, f.param);
+    if (int(rebuilt.size()) != 4) return;
+    for (int i = 0; i < 4; ++i) {
+        rebuilt[i].construction = m_entities[f.begin + i].construction;
+        m_entities[f.begin + i] = rebuilt[i];
+    }
+    f.c1 = c1;
     resolve_live();
 }
 
@@ -2793,7 +2869,7 @@ void DesignSketchTool::render_datum_planes()
     if (m_datum_planes.empty()) return;
     using EPT = GLModel::Geometry::EPrimitiveType;
     using EVL = GLModel::Geometry::EVertexLayout;
-    const double H = 40.0;   // half-extent of the drawn rectangle (mm)
+    const double H = 40.0;   // default half-extent when no per-plane size is given (mm)
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d vd = cam.get_dir_forward();
     const double hw = 1.5 / std::max(cam.get_zoom(), 1e-6);   // ~1.5 px border ribbon
@@ -2801,9 +2877,16 @@ void DesignSketchTool::render_datum_planes()
     GLModel::Geometry fill;   fill.format   = { EPT::Triangles, EVL::P3 };
     GLModel::Geometry border; border.format = { EPT::Triangles, EVL::P3 };
     unsigned int fb = 0, bb = 0;
-    for (const SketchPlane& p : m_datum_planes) {
-        const Vec3d c[4] = { p.to_world(Vec2d(-H, -H)), p.to_world(Vec2d(H, -H)),
-                             p.to_world(Vec2d(H, H)),   p.to_world(Vec2d(-H, H)) };
+    for (size_t pi = 0; pi < m_datum_planes.size(); ++pi) {
+        const SketchPlane& p = m_datum_planes[pi];
+        // Per-plane u/v half-extent (the GUI Size U/V + drag handles drive these); fall
+        // back to the square default when no size was supplied.
+        const double hu = (pi < m_datum_sizes.size() && m_datum_sizes[pi].x() > 1e-6)
+                              ? m_datum_sizes[pi].x() * 0.5 : H;
+        const double hv = (pi < m_datum_sizes.size() && m_datum_sizes[pi].y() > 1e-6)
+                              ? m_datum_sizes[pi].y() * 0.5 : H;
+        const Vec3d c[4] = { p.to_world(Vec2d(-hu, -hv)), p.to_world(Vec2d(hu, -hv)),
+                             p.to_world(Vec2d(hu, hv)),   p.to_world(Vec2d(-hu, hv)) };
         fill.add_vertex((Vec3f)c[0].cast<float>()); fill.add_vertex((Vec3f)c[1].cast<float>());
         fill.add_vertex((Vec3f)c[2].cast<float>()); fill.add_triangle(fb, fb + 1, fb + 2); fb += 3;
         fill.add_vertex((Vec3f)c[0].cast<float>()); fill.add_vertex((Vec3f)c[2].cast<float>());
@@ -2953,6 +3036,276 @@ void DesignSketchTool::open_extrude_editor(int which)
             if (on_extrude_depth_changed) on_extrude_depth_changed(d, which == 1);
         },
         []() {});
+}
+
+// ---- Datum-plane resize gizmo (C3) ----------------------------------------------------
+void DesignSketchTool::set_datum_gizmo(const SketchPlane& plane, double usize, double vsize,
+                                       const Vec3d& base_origin, const Vec3d& base_normal,
+                                       double offset, bool offset_on)
+{
+    m_dz_active = true;
+    m_dz_plane  = plane;
+    m_dz_usize  = std::max(1.0, usize);
+    m_dz_vsize  = std::max(1.0, vsize);
+    m_dz_anchor = base_origin;
+    m_dz_normal = base_normal.normalized();
+    m_dz_offset = offset;
+    m_dz_offset_on = offset_on;
+}
+
+void DesignSketchTool::clear_datum_gizmo()
+{
+    m_dz_active = false;
+    m_dz_drag   = -1;
+}
+
+// Draw the datum rectangle outline + 4 camera-billboarded edge-midpoint handles. Self-contained
+// so it shows even for an uncommitted (not-yet-Confirmed) datum that render_datum_planes can't draw.
+void DesignSketchTool::render_datum_gizmo()
+{
+    if (!m_dz_active) return;
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const Vec3d vd    = cam.get_dir_forward();
+    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double hs   = 6.0 * upp;                       // handle half-size (~6 px)
+    const double hw   = 1.5 * upp;                       // outline ribbon half-width
+    const double hu   = m_dz_usize * 0.5, hv = m_dz_vsize * 0.5;
+    const SketchPlane& p = m_dz_plane;
+
+    // Rectangle outline (4 thin camera-facing ribbons).
+    const Vec3d c[4] = { p.to_world(Vec2d(-hu, -hv)), p.to_world(Vec2d(hu, -hv)),
+                         p.to_world(Vec2d(hu, hv)),   p.to_world(Vec2d(-hu, hv)) };
+    GLModel::Geometry border; border.format = { EPT::Triangles, EVL::P3 };
+    unsigned int bb = 0;
+    for (int s = 0; s < 4; ++s) {
+        const Vec3d a = c[s], b = c[(s + 1) & 3];
+        Vec3d dir = b - a; if (dir.norm() < 1e-9) continue; dir.normalize();
+        Vec3d off = dir.cross(vd);
+        if (off.norm() < 1e-9) off = dir.cross(up);
+        if (off.norm() < 1e-9) continue;
+        off.normalize(); off *= hw;
+        border.add_vertex((Vec3f)(a + off).cast<float>()); border.add_vertex((Vec3f)(b + off).cast<float>());
+        border.add_vertex((Vec3f)(b - off).cast<float>()); border.add_vertex((Vec3f)(a - off).cast<float>());
+        border.add_triangle(bb, bb + 1, bb + 2); border.add_triangle(bb, bb + 2, bb + 3); bb += 4;
+    }
+
+    // 4 edge-midpoint handle squares.
+    const Vec2d hpos[4] = { Vec2d(hu, 0), Vec2d(-hu, 0), Vec2d(0, hv), Vec2d(0, -hv) };
+    GLModel::Geometry handles; handles.format = { EPT::Triangles, EVL::P3 };
+    unsigned int hb = 0;
+    for (int i = 0; i < 4; ++i) {
+        const Vec3d ctr = p.to_world(hpos[i]);
+        const Vec3d q0 = ctr - right * hs - up * hs, q1 = ctr + right * hs - up * hs,
+                    q2 = ctr + right * hs + up * hs, q3 = ctr - right * hs + up * hs;
+        handles.add_vertex((Vec3f)q0.cast<float>()); handles.add_vertex((Vec3f)q1.cast<float>());
+        handles.add_vertex((Vec3f)q2.cast<float>()); handles.add_vertex((Vec3f)q3.cast<float>());
+        handles.add_triangle(hb, hb + 1, hb + 2); handles.add_triangle(hb, hb + 2, hb + 3); hb += 4;
+    }
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    if (bb > 0) {
+        GLModel m; m.init_from(std::move(border));
+        m.set_color(ColorRGBA(1.0f, 0.62f, 0.16f, 0.9f));   // CAD amber
+        m.render();
+    }
+    if (hb > 0) {
+        GLModel m; m.init_from(std::move(handles));
+        m.set_color(ColorRGBA(1.0f, 0.72f, 0.28f, 1.0f));
+        m.render();
+    }
+
+    // Offset arrow: a camera-facing ribbon from the base origin along the base normal to the
+    // datum origin, with a grabbable square at the tip. Drag the tip to set the offset distance.
+    if (m_dz_offset_on) {
+        const Vec3d tip = m_dz_anchor + m_dz_normal * m_dz_offset;
+        Vec3d off = m_dz_normal.cross(vd);
+        if (off.norm() < 1e-9) off = m_dz_normal.cross(up);
+        GLModel::Geometry shaft; shaft.format = { EPT::Triangles, EVL::P3 };
+        if (off.norm() > 1e-9 && (tip - m_dz_anchor).norm() > 1e-9) {
+            off.normalize(); off *= hw;
+            shaft.add_vertex((Vec3f)(m_dz_anchor + off).cast<float>());
+            shaft.add_vertex((Vec3f)(tip + off).cast<float>());
+            shaft.add_vertex((Vec3f)(tip - off).cast<float>());
+            shaft.add_vertex((Vec3f)(m_dz_anchor - off).cast<float>());
+            shaft.add_triangle(0, 1, 2); shaft.add_triangle(0, 2, 3);
+            GLModel sm; sm.init_from(std::move(shaft));
+            sm.set_color(ColorRGBA(0.30f, 0.78f, 1.0f, 0.95f));   // cyan offset axis
+            sm.render();
+        }
+        GLModel::Geometry tipsq; tipsq.format = { EPT::Triangles, EVL::P3 };
+        const Vec3d t0 = tip - right * hs - up * hs, t1 = tip + right * hs - up * hs,
+                    t2 = tip + right * hs + up * hs, t3 = tip - right * hs + up * hs;
+        tipsq.add_vertex((Vec3f)t0.cast<float>()); tipsq.add_vertex((Vec3f)t1.cast<float>());
+        tipsq.add_vertex((Vec3f)t2.cast<float>()); tipsq.add_vertex((Vec3f)t3.cast<float>());
+        tipsq.add_triangle(0, 1, 2); tipsq.add_triangle(0, 2, 3);
+        GLModel tm; tm.init_from(std::move(tipsq));
+        tm.set_color(ColorRGBA(0.45f, 0.86f, 1.0f, 1.0f));
+        tm.render();
+    }
+}
+
+bool DesignSketchTool::hit_test_datum_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const
+{
+    if (!m_dz_active) return false;
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double tol = 9.0 / std::max(cam.get_zoom(), 1e-6);   // ~9 px in world units
+    const double hu = m_dz_usize * 0.5, hv = m_dz_vsize * 0.5;
+    const Vec2d hpos[4] = { Vec2d(hu, 0), Vec2d(-hu, 0), Vec2d(0, hv), Vec2d(0, -hv) };
+    double best = tol; which = -1;
+    for (int i = 0; i < 4; ++i) {
+        const Vec3d pt = m_dz_plane.to_world(hpos[i]);
+        const Vec3d w  = pt - ro;
+        const double t = w.dot(rd) / std::max(rd.dot(rd), 1e-12);
+        const double d = (w - rd * t).norm();
+        if (d < best) { best = d; which = i; }
+    }
+    if (m_dz_offset_on) {                                       // offset arrow tip = handle 4
+        const Vec3d pt = m_dz_anchor + m_dz_normal * m_dz_offset;
+        const Vec3d w  = pt - ro;
+        const double t = w.dot(rd) / std::max(rd.dot(rd), 1e-12);
+        const double d = (w - rd * t).norm();
+        if (d < best) { best = d; which = 4; }
+    }
+    return which >= 0;
+}
+
+// Drag a handle: closest point of the mouse ray to the plane axis (u or v) through the origin,
+// |param| -> new half-extent, doubled to the full size.
+void DesignSketchTool::drag_datum_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which)
+{
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    if (which == 4) {                                          // offset arrow: drag along base normal
+        const Vec3d e = m_dz_normal;                           // signed offset, may go negative
+        const Vec3d w0 = m_dz_anchor - ro;
+        const double a = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
+        const double denom = a * c - b * b;
+        if (std::abs(denom) < 1e-7) return;                    // camera ∥ normal: leave offset as-is
+        m_dz_offset = (b * ee - c * dd) / denom;               // signed distance along the normal
+        m_dz_plane.origin = m_dz_anchor + m_dz_normal * m_dz_offset;   // rectangle follows live
+        if (on_datum_offset_changed) on_datum_offset_changed(m_dz_offset);
+        return;
+    }
+    const bool  uaxis = (which == 0 || which == 1);
+    const Vec3d e   = (uaxis ? m_dz_plane.x_axis : m_dz_plane.y_axis).normalized();
+    const Vec3d base = m_dz_plane.origin;
+    const Vec3d w0 = base - ro;
+    const double a = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
+    const double denom = a * c - b * b;
+    if (std::abs(denom) < 1e-7) return;                        // camera ∥ axis: leave size as-is
+    const double s    = (b * ee - c * dd) / denom;             // signed coord along e of closest pt
+    const double size = std::max(2.0, 2.0 * std::abs(s));
+    if (uaxis) m_dz_usize = size; else m_dz_vsize = size;
+    if (on_datum_size_changed) on_datum_size_changed(m_dz_usize, m_dz_vsize);
+}
+
+// ---- Reference/base planes (Onshape-style default planes) -----------------------------
+void DesignSketchTool::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
+                                     std::vector<std::string> labels)
+{
+    m_dbp_active = !planes.empty();
+    m_dbp_planes = std::move(planes);
+    m_dbp_base   = std::move(bases);
+    m_dbp_labels = std::move(labels);
+    if (m_dbp_hover >= int(m_dbp_planes.size())) m_dbp_hover = -1;
+}
+
+void DesignSketchTool::clear_base_pick()
+{
+    m_dbp_active = false;
+    m_dbp_planes.clear();
+    m_dbp_base.clear();
+    m_dbp_labels.clear();
+    m_dbp_hover = -1;
+}
+
+// Reference planes are larger than the bed (Onshape default-plane feel). Half-extent = 0.6 * the
+// bed's larger side, so the square fully overhangs the print area. Falls back to 150mm if the bed
+// isn't queryable yet.
+double DesignSketchTool::dbp_half_extent() const
+{
+    double half = 150.0;
+    if (auto* pl = wxGetApp().plater()) {
+        const BoundingBoxf bb = pl->build_volume().bounding_volume2d();
+        const double w = bb.max.x() - bb.min.x(), d = bb.max.y() - bb.min.y();
+        if (w > 1.0 && d > 1.0) half = 0.6 * std::max(w, d);
+    }
+    return half;
+}
+
+// Draw the reference planes as large translucent labelled squares; the hovered one brightens.
+void DesignSketchTool::render_base_pick()
+{
+    if (!m_dbp_active || m_dbp_planes.empty()) return;
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const double H = dbp_half_extent();
+    // Onshape-ish per-plane tints: XY blue, XZ green, YZ red (keyed by base index 0/1/2; datums grey).
+    auto tint = [](int base, bool hot) -> ColorRGBA {
+        float a = hot ? 0.10f : 0.047f;   // base planes kept faint (reduced ~2/3 from 0.30/0.14)
+        if (base == 0) return ColorRGBA(0.30f, 0.55f, 0.95f, a);
+        if (base == 1) return ColorRGBA(0.35f, 0.80f, 0.45f, a);
+        if (base == 2) return ColorRGBA(0.92f, 0.42f, 0.42f, a);
+        return ColorRGBA(0.70f, 0.72f, 0.78f, a);
+    };
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glDisable(GL_CULL_FACE));
+    glsafe(::glEnable(GL_BLEND));                                // alpha is ignored without this
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    const SketchPlane saved_plane = m_plane;
+    for (size_t i = 0; i < m_dbp_planes.size(); ++i) {
+        const SketchPlane& p = m_dbp_planes[i];
+        const Vec3d q0 = p.to_world(Vec2d(-H, -H)), q1 = p.to_world(Vec2d(H, -H)),
+                    q2 = p.to_world(Vec2d(H, H)),   q3 = p.to_world(Vec2d(-H, H));
+        GLModel::Geometry quad; quad.format = { EPT::Triangles, EVL::P3 };
+        quad.add_vertex((Vec3f)q0.cast<float>()); quad.add_vertex((Vec3f)q1.cast<float>());
+        quad.add_vertex((Vec3f)q2.cast<float>()); quad.add_vertex((Vec3f)q3.cast<float>());
+        quad.add_triangle(0, 1, 2); quad.add_triangle(0, 2, 3);
+        GLModel m; m.init_from(std::move(quad));
+        const bool hot = (int(i) == m_dbp_hover);
+        const int  base = (i < m_dbp_base.size()) ? m_dbp_base[i] : -1;
+        m.set_color(tint(base, hot));
+        m.render();
+
+        // Label near the top-left corner, drawn in the plane (draw_text lifts through m_plane).
+        if (i < m_dbp_labels.size() && !m_dbp_labels[i].empty()) {
+            m_plane = p;
+            const double th = H * 0.10;
+            const ColorRGBA lc = tint(base, true); ColorRGBA lcs(lc.r(), lc.g(), lc.b(), 1.0f);
+            draw_text(m_line_model, m_dbp_labels[i], Vec2d(-H + th * 2.0, H - th * 1.6), th, lcs);
+        }
+    }
+    m_plane = saved_plane;   // draw_text renders each label immediately (draw_strokes self-renders)
+    glsafe(::glDisable(GL_BLEND));
+}
+
+// Ray-pick the reference planes: intersect the mouse ray with each plane, keep hits inside the
+// square, return the index of the nearest by |t|. -1 on miss.
+int DesignSketchTool::hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent& evt) const
+{
+    if (!m_dbp_active) return -1;
+    const double H = dbp_half_extent();
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    int best = -1; double best_t = 1e30;
+    for (size_t i = 0; i < m_dbp_planes.size(); ++i) {
+        const SketchPlane& p = m_dbp_planes[i];
+        const double dn = rd.dot(p.normal);
+        if (std::abs(dn) < 1e-9) continue;                      // ray parallel to plane
+        const double t = (p.origin - ro).dot(p.normal) / dn;
+        if (t < 0) continue;                                    // behind the camera
+        const Vec3d hit = ro + rd * t;
+        const Vec3d d = hit - p.origin;
+        if (std::abs(d.dot(p.x_axis)) > H || std::abs(d.dot(p.y_axis)) > H) continue;
+        if (t < best_t) { best_t = t; best = int(i); }
+    }
+    return best;
 }
 
 // ---- Move-body gizmo (M5) -------------------------------------------------------------
@@ -3365,29 +3718,6 @@ void DesignSketchTool::render_hole_gizmo()
         m_plane = saved;
     }
 
-    // (1b) #2 Part B: construction-line dimensions positioning the hole from the face SIDES — a
-    // horizontal leg from the u-side (umin = one edge) and a vertical leg from the v-side (vmin =
-    // the adjacent edge) to the hole centre, each with an editable distance label (what users ask
-    // for: distance from the sides, not x/y from the centre). Falls back to the datum (0,0) when no
-    // face bounds are known (dropdown-plane hole). Drawn ON the plane, construction green.
-    {
-        m_plane = m_hl_plane;
-        const ColorRGBA con(0.55f, 0.85f, 0.55f, 1.0f);
-        const double o  = 16.0 * upp;
-        const double ru = m_hl_has_bounds ? m_hl_umin : 0.0;   // reference u-side (face edge / datum)
-        const double rv = m_hl_has_bounds ? m_hl_vmin : 0.0;   // reference v-side (face edge / datum)
-        std::vector<std::pair<Vec2d, Vec2d>> segs;
-        segs.emplace_back(Vec2d(ru, m_hl_y), Vec2d(m_hl_x, m_hl_y));   // from the u-side to the hole
-        segs.emplace_back(Vec2d(m_hl_x, rv), Vec2d(m_hl_x, m_hl_y));   // from the v-side to the hole
-        glsafe(::glDisable(GL_DEPTH_TEST));
-        draw_strokes(m_hl_stroke_model, segs, std::max(0.5 * upp, 1e-4), con);
-        DimAnnot dx; dx.kind = DimType::Distance; dx.value = m_hl_x - ru;   // distance from the u-side
-        draw_text(m_line_model, dim_text(dx), Vec2d((ru + m_hl_x) * 0.5, m_hl_y - o), th, con);
-        DimAnnot dy; dy.kind = DimType::Distance; dy.value = m_hl_y - rv;   // distance from the v-side
-        draw_text(m_line_model, dim_text(dy), Vec2d(m_hl_x + o, (rv + m_hl_y) * 0.5), th, con);
-        m_plane = saved;
-    }
-
     // (2) Billboarded handles (centre marker + diameter arrow + depth arrow), screen-facing frame
     // at the centre so draw_strokes/draw_text read on top regardless of orientation.
     SketchPlane bb; bb.origin = centre; bb.x_axis = right; bb.y_axis = up; bb.normal = cam.get_dir_forward().normalized();
@@ -3424,19 +3754,35 @@ void DesignSketchTool::render_hole_gizmo()
         arrow_to(centre + nrm * L, blue, da);
     }
 
-    // Centre marker: a small billboarded square so the reposition handle is visible + grabbable.
-    {
-        const double s = 7.0 * upp;
-        std::vector<std::pair<Vec2d, Vec2d>> segs;
-        segs.emplace_back(Vec2d(-s, -s), Vec2d(s, -s));
-        segs.emplace_back(Vec2d( s, -s), Vec2d(s,  s));
-        segs.emplace_back(Vec2d( s,  s), Vec2d(-s, s));
-        segs.emplace_back(Vec2d(-s,  s), Vec2d(-s, -s));
-        glsafe(::glDisable(GL_DEPTH_TEST));
-        draw_strokes(m_hl_stroke_model, segs, std::max(0.7 * upp, 1e-4), amber);
-    }
-
     m_plane = saved;
+
+    // Move handle: a small 3D CUBE at the hole centre (Orca text/SVG-on-face feel) — grab and drag
+    // it to slide the hole across the face. Built from the plane axes so it sits flat on the face.
+    {
+        using EPT = GLModel::Geometry::EPrimitiveType;
+        using EVL = GLModel::Geometry::EVertexLayout;
+        const double hs = 9.0 * upp;   // cube half-size (~9 px); hit-test uses the same below
+        const Vec3d U = ddir * hs, V = m_hl_plane.y_axis.normalized() * hs, Nn = nrm * hs;
+        // Cube centred EXACTLY on the surface point (= the hole). Depth-test ON occludes the inner
+        // half inside the solid, so the visible half-cube reads as planted at the hole — no depth-off
+        // float that looked offset from the on-surface footprint. Hit-test targets the same `centre`.
+        Vec3d c8[8];
+        for (int i = 0; i < 8; ++i)
+            c8[i] = centre + ((i & 1) ? U : -U) + ((i & 2) ? V : -V) + ((i & 4) ? Nn : -Nn);
+        // 6 faces (CCW), each as 2 triangles, lightly shaded so the box reads as a cube.
+        const int faces[6][4] = { {0,1,3,2},{4,6,7,5},{0,4,5,1},{2,3,7,6},{0,2,6,4},{1,5,7,3} };
+        const float shade[6]  = { 0.78f, 1.0f, 0.86f, 0.92f, 0.70f, 0.96f };
+        glsafe(::glEnable(GL_DEPTH_TEST));
+        glsafe(::glDisable(GL_CULL_FACE));
+        for (int f = 0; f < 6; ++f) {
+            GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
+            for (int k = 0; k < 4; ++k) g.add_vertex((Vec3f)c8[faces[f][k]].cast<float>());
+            g.add_triangle(0, 1, 2); g.add_triangle(0, 2, 3);
+            GLModel m; m.init_from(std::move(g));
+            m.set_color(ColorRGBA(1.0f * shade[f], 0.62f * shade[f], 0.16f * shade[f], 1.0f));
+            m.render();
+        }
+    }
 }
 
 // Best-matching hole handle under the cursor: centre (0) / diameter (1) / depth (2), or -1.
@@ -3456,11 +3802,10 @@ int DesignSketchTool::hit_test_hole_handle(GLCanvas3D& canvas, const wxMouseEven
     const double depL  = std::max(m_hl_depth, 40.0 * upp);
     const double tol   = 12.0 * upp;
 
-    // Centre wins at the shared base: all three handles spring from the centre, so a grab within
-    // tolerance of the centre point is a reposition (the arrows are only grabbable along the shaft
-    // that extends outward from here). This also keeps an edge-on arrow — e.g. the depth arrow in
-    // top view, which collapses onto the centre — from stealing the reposition grab.
-    if (ray_segment_dist3(ro, rd, centre, centre) <= tol) return 0;
+    // Centre wins at the shared base: the move cube straddles the centre, so a grab within the cube
+    // half-size is a reposition. The arrows are only grabbable along the shaft extending outward,
+    // which also keeps an edge-on arrow (e.g. depth in top view) from stealing the reposition grab.
+    if (ray_segment_dist3(ro, rd, centre, centre) <= 9.0 * upp) return 0;   // cube half-size
 
     int best = -1; double bestd = tol;
     const double dD = ray_segment_dist3(ro, rd, centre, centre + ddir * rad);
@@ -3469,20 +3814,7 @@ int DesignSketchTool::hit_test_hole_handle(GLCanvas3D& canvas, const wxMouseEven
         const double dZ = ray_segment_dist3(ro, rd, centre, centre + nrm * depL);
         if (dZ < bestd) { bestd = dZ; best = 2; }
     }
-    if (best >= 0) return best;
-
-    // #2 Part B: the X/Y construction-dim labels (edit-only) — only when no arrow handle was hit.
-    // Larger tolerance since they are text; positions mirror render_hole_gizmo's label offsets.
-    const double o = 16.0 * upp, ltol = 16.0 * upp;
-    const double ru = m_hl_has_bounds ? m_hl_umin : 0.0;
-    const double rv = m_hl_has_bounds ? m_hl_vmin : 0.0;
-    const Vec3d xlbl = m_hl_plane.to_world(Vec2d((ru + m_hl_x) * 0.5, m_hl_y - o));
-    const Vec3d ylbl = m_hl_plane.to_world(Vec2d(m_hl_x + o, (rv + m_hl_y) * 0.5));
-    const double dXl = ray_segment_dist3(ro, rd, xlbl, xlbl);
-    const double dYl = ray_segment_dist3(ro, rd, ylbl, ylbl);
-    if (dXl <= ltol && dXl <= dYl) return 3;
-    if (dYl <= ltol)               return 4;
-    return -1;
+    return best;
 }
 
 // Skew-line closest point of the mouse ray to an axis (anchor + t*dir) -> signed distance along
@@ -4541,6 +4873,21 @@ void glyph_strokes(char c, std::vector<std::pair<Vec2d, Vec2d>>& out, double& ad
         poly(out, {Vec2d(0.30, 0.50), Vec2d(0.58, 0.0)});
         advance = 0.80;
         break;
+    case 'X':
+        poly(out, {Vec2d(0.06, 1.0), Vec2d(0.58, 0.0)});
+        poly(out, {Vec2d(0.58, 1.0), Vec2d(0.06, 0.0)});
+        advance = 0.72;
+        break;
+    case 'Y':
+        poly(out, {Vec2d(0.06, 1.0), Vec2d(0.32, 0.52)});
+        poly(out, {Vec2d(0.58, 1.0), Vec2d(0.32, 0.52)});
+        poly(out, {Vec2d(0.32, 0.52), Vec2d(0.32, 0.0)});
+        advance = 0.72;
+        break;
+    case 'Z':
+        poly(out, {Vec2d(0.06, 1.0), Vec2d(0.58, 1.0), Vec2d(0.06, 0.0), Vec2d(0.58, 0.0)});
+        advance = 0.72;
+        break;
     case ' ':
         advance = 0.5;
         break;
@@ -4734,6 +5081,8 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
     m_live_rrect_w_label = m_live_rrect_h_label = m_live_rrect_r_label = Vec2d(1e18, 1e18);
     m_live_aslot_fi = -1;
     m_live_aslot_r_label = m_live_aslot_w_label = Vec2d(1e18, 1e18);
+    m_live_slot_fi = -1;
+    m_live_slot_len_label = m_live_slot_w_label = m_live_slot_angle_label = Vec2d(1e18, 1e18);
     // Edit-op tools (Fillet/Chamfer/Offset/Mirror) put their picks in m_selection for the
     // highlight, but their own arrow/label gizmo is the value affordance — don't also draw
     // the picked entity's characteristic quotes (Length/Angle/…) or the view gets cluttered.
@@ -4790,24 +5139,33 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
             break;
         }
         case FeatureKind::Slot: {
-            // make_slot order: [top line, cap@c1, bottom line, cap@c0]. Centre-distance =
-            // Distance between the two cap-arc centres; Width = cap Radius (half-width).
-            const int cap_c1 = f.begin + 1, cap_c0 = f.begin + 3;
-            if (cap_c0 < int(m_entities.size()) && cap_c1 < int(m_entities.size())) {
-                DimAnnot dst; dst.kind = DimType::Distance;
-                dst.ea = cap_c0; dst.ra = SketchPointRole::Center;
-                dst.eb = cap_c1; dst.rb = SketchPointRole::Center;
-                // Push the centre-distance label clear ABOVE the slot (past the cap
-                // half-width) so it sits outside the fillable face — otherwise clicking
-                // it would hit the interior and trigger face-select. a.side scales the
-                // quote offset (draw_dim_quote: off = side * max(L*0.18, 8)).
-                const double Lc   = (f.c1 - f.c0).norm();
-                const double unit = std::max(Lc * 0.18, 8.0);
-                const double th   = std::max(15.0 * unit_per_px, 1e-4);
-                dst.side = (f.param + th * 2.5) / unit;   // clear cap + label height
-                protos.push_back(dst);
-                DimAnnot rad; rad.kind = DimType::Radius; rad.ea = cap_c1;   // width
-                protos.push_back(rad);
+            // Straight slot edits GEOMETRICALLY (like the arc-slot / rounded-rect), NOT through
+            // the constraint-based scalar quotes. Its dims are the centreline LENGTH (distance
+            // between the two cap centres c0,c1) and the WIDTH (2*param). The old
+            // Distance-between-arc-centres + Radius quotes never registered as editable, so the
+            // labels did nothing on click (nde #6). Draw both labels clear of the fillable face
+            // and remember the feature so open_primary_autoedit / click-to-promote drive set_slot.
+            // Slot dims: (1) inter-centre distance, (2) radius (= half-width), (3) centreline angle.
+            const ColorRGBA dc(0.30f, 0.88f, 0.66f, 1.0f);
+            const double th = std::max(15.0 * unit_per_px, 1e-4);
+            Vec2d u = f.c1 - f.c0;
+            const double Lc = u.norm();
+            if (Lc > 1e-9) {
+                u /= Lc;
+                const Vec2d n(-u.y(), u.x());
+                const double w = f.param;
+                DimAnnot len; len.kind = DimType::Length; len.value = Lc;
+                m_live_slot_len_label = 0.5 * (f.c0 + f.c1) + n * (w + th * 2.0);
+                draw_text(m_line_model, dim_text(len), m_live_slot_len_label, th, dc);
+                DimAnnot rd; rd.kind = DimType::Radius; rd.value = w;
+                m_live_slot_w_label = f.c1 + u * (w + th * 2.0);
+                draw_text(m_line_model, dim_text(rd), m_live_slot_w_label, th, dc);
+                double deg = std::atan2(f.c1.y() - f.c0.y(), f.c1.x() - f.c0.x()) * 180.0 / M_PI;
+                if (deg < 0.0) deg += 360.0;
+                DimAnnot an; an.kind = DimType::Angle; an.value = deg;
+                m_live_slot_angle_label = f.c0 - u * (w + th * 2.0);
+                draw_text(m_line_model, dim_text(an), m_live_slot_angle_label, th, dc);
+                m_live_slot_fi = fi;
             }
             break;
         }
@@ -4938,7 +5296,7 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
     }
 
     if (protos.empty() && m_live_poly_fi < 0 && m_live_rrect_fi < 0 &&
-        m_live_aslot_fi < 0) {  // ungrouped single entity
+        m_live_aslot_fi < 0 && m_live_slot_fi < 0) {  // ungrouped single entity
         switch (e.type) {
         case SketchEntity::Type::Line: {
             DimAnnot len; len.kind = DimType::Length; len.ea = ei; len.side = 1.0; protos.push_back(len);
@@ -4962,7 +5320,7 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
     // GEOMETRIC edit (SLVS angle constraints are line-to-line). A wedge spans the arc's
     // start->end angles just OUTSIDE the radius; its label shows the included angle and is
     // clickable to type a new sweep. The radius quote is still emitted via `protos`.
-    if (m_live_poly_fi < 0 && m_live_rrect_fi < 0 && m_live_aslot_fi < 0 &&
+    if (m_live_poly_fi < 0 && m_live_rrect_fi < 0 && m_live_aslot_fi < 0 && m_live_slot_fi < 0 &&
         e.type == SketchEntity::Type::Arc && e.radius > 1e-6) {
         const ColorRGBA dc(0.30f, 0.88f, 0.66f, 1.0f);
         const double th = std::max(15.0 * unit_per_px, 1e-4);
@@ -5999,6 +6357,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (!m_active) {
         render_datum_planes();
         render_solid_highlight();
+        if (m_dbp_active) render_base_pick();
+        if (m_dz_active) render_datum_gizmo();
         if (m_ex_active) render_extrude_gizmo();
         if (m_mv_active) render_move_gizmo();
         if (m_fl_active) render_fillet_gizmo();
@@ -6749,6 +7109,33 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
                 }
             }
         }
+        // Datum-plane resize gizmo (C3): while the Plane card is open the 4 edge handles are
+        // grabbable — drag changes the u/v extent live. A LeftDown that misses falls through.
+        if (m_dz_active) {
+            if (m_dz_drag >= 0 && evt.Dragging() && evt.LeftIsDown()) {
+                drag_datum_handle(canvas, evt, m_dz_drag);
+                return true;
+            }
+            if (evt.LeftUp() && m_dz_drag >= 0) { m_dz_drag = -1; return true; }
+            if (evt.LeftDown()) {
+                int which = -1;
+                if (hit_test_datum_handle(canvas, evt, which)) {
+                    m_dz_drag = which; m_dz_press_x = evt.GetX(); m_dz_press_y = evt.GetY();
+                    return true;
+                }
+            }
+        }
+        // Datum base picker: HOVER highlight only here. The CLICK is handled at the very end of the
+        // selection fall-through (below), so picking existing geometry (committed sketch loops,
+        // solid faces/edges) always wins over a base-plane click — the planes never block selection.
+        if (m_dbp_active && evt.Moving() && !evt.LeftIsDown()) {
+            const int h = hit_test_base_pick(canvas, evt);
+            if (h != m_dbp_hover) {
+                m_dbp_hover = h;
+                canvas.set_as_dirty();
+                if (h >= 0) return true;   // caller render()s on true -> hover repaints on software GL
+            }
+        }
         if (m_ex_active) {
             if (m_ex_drag >= 0 && evt.Dragging() && evt.LeftIsDown()) {
                 drag_extrude_arrow(canvas, evt, m_ex_drag);
@@ -6922,6 +7309,14 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         m_display_pick = -1; m_display_pick_region = -1;  // clicked bare plate -> drop highlight
+        // Last resort: a click that hit no geometry but landed on a reference/base plane picks it.
+        if (m_dbp_active) {
+            const int h = hit_test_base_pick(canvas, evt);
+            if (h >= 0 && h < int(m_dbp_base.size())) {
+                if (on_datum_base_picked) on_datum_base_picked(m_dbp_base[h]);
+                return true;
+            }
+        }
         return false;                                     // let the stock canvas orbit / deselect
     }
 
@@ -6938,7 +7333,16 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
             Vec2d p; screen_to_plane(canvas, evt, p);
             const Linef3 r2 = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
             const double tol = std::max(1e-3, (m_plane.project(r2.a, r2.vector()) - p).norm());
-            if (apply_live_trim(p, tol * 3.0, m_mode == Mode::Extend)) resolve_live();
+            if (apply_live_trim(p, tol * 3.0, m_mode == Mode::Extend)) {
+                resolve_live();
+            } else if (on_readout) {
+                // nde #15: don't fail silently. The pick found nothing to cut/extend — either
+                // the click missed every live segment, or the picked segment has no crossing /
+                // target among the OTHER live entities (committed sketches aren't trimmed).
+                on_readout(m_mode == Mode::Extend
+                    ? std::string("Extend: click a line/arc that can reach another live entity")
+                    : std::string("Trim: click a segment where it crosses another live entity"));
+            }
             return true;
         }
         if (evt.RightDown()) { request_exit(); return true; }
@@ -7278,6 +7682,11 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
                 if (m_live_aslot_fi >= 0) {
                     if ((m_live_aslot_r_label - p).norm() <= ltol) { open_arc_slot_editor(m_live_aslot_fi, true);  return true; }
                     if ((m_live_aslot_w_label - p).norm() <= ltol) { open_arc_slot_editor(m_live_aslot_fi, false); return true; }
+                }
+                if (m_live_slot_fi >= 0) {
+                    if ((m_live_slot_len_label   - p).norm() <= ltol) { open_slot_editor(m_live_slot_fi, 0); return true; }
+                    if ((m_live_slot_w_label     - p).norm() <= ltol) { open_slot_editor(m_live_slot_fi, 1); return true; }
+                    if ((m_live_slot_angle_label - p).norm() <= ltol) { open_slot_editor(m_live_slot_fi, 2); return true; }
                 }
             }
 

@@ -19,6 +19,7 @@ namespace Slic3r {
 
 enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut };
 enum class SketchShape    { Rectangle, Circle };
+enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class BooleanMode    { New, Add, Cut, Intersect };
 
 enum class ExtrudeEnd { Blind, Symmetric, TwoSided, ThroughAll, UpToFace, UpToVertex };
@@ -169,6 +170,17 @@ struct CadFeature {
     double      plane_offset{20};
     double      plane_angle_tilt{0};       // degrees (named *_tilt to avoid clash w/ revolve)
     int         plane_axis{0};             // tilt axis: 0 = base X, 1 = base Y
+    PlaneType   plane_type{PlaneType::Offset};
+    int         plane_face_body{-1};
+    int         plane_face{-1};
+    int         plane_face2_body{-1};
+    int         plane_face2{-1};
+    int         plane_edge_body{-1};
+    int         plane_edge{-1};
+    int         plane_edge2_body{-1};
+    int         plane_edge2{-1};
+    double      plane_u_size{60};
+    double      plane_v_size{60};
 
     // Boolean: combine two EXISTING bodies. `mode` reuses BooleanMode (Add = union,
     // Cut = subtract tool from target, Intersect = keep overlap; New unused). `target_body`
@@ -208,8 +220,10 @@ struct CadFeature {
            pattern_circular, pattern_count, pattern_spacing, pattern_dir, pattern_angle,
            plane_base, plane_offset, plane_angle_tilt, plane_axis,
            bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
-           cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
-           brep);
+            cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
+            brep,
+            plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
+            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -230,7 +244,9 @@ struct CadFeature {
            plane_base, plane_offset, plane_angle_tilt, plane_axis,
            bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
            cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
-           brep);
+           brep,
+           plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
+           plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -262,6 +278,11 @@ public:
     std::vector<int>        display_tri_face;  // per-triangle face id WITHIN its source body
     std::vector<int>        display_tri_body;  // per-triangle source body index (into bodies)
     std::string             error;             // last recompute error ("" = ok)
+
+    // Modeling origin: the world point the default XY/XZ/YZ planes pass through. The GUI sets this
+    // to the bed centre so sketches/datums land in the middle of the bed (not the bed corner =
+    // world 0). Not serialized — the GUI re-applies it from the live bed on every tab show.
+    Vec3d modeling_origin{Vec3d::Zero()};
 
     double linear_deflection{0.01};
     double angular_deflection{0.5};

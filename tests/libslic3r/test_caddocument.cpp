@@ -1516,3 +1516,90 @@ TEST_CASE("re-edit: multi-type timeline replays all downstream features", "[CadD
     Vec3d sz1 = doc.display_mesh.bounding_box().size();
     REQUIRE(sz1.z() > sz0.z() + 1.0);
 }
+
+TEST_CASE("datum plane construction methods", "[CadDocument][plane]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    // Build a doc with a box (sketch rect 40x30 + extrude 20) so bodies[0] has faces/edges.
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 30, 0, "BoxSketch");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    const int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    REQUIRE(n_faces == 6);   // a box
+    const int n_edges = GeometryEngine::edge_count(doc.bodies[0].shape);
+    REQUIRE(n_edges == 12);
+
+    // Find top face (normal ~ +Z) and bottom face (normal ~ -Z) by scanning.
+    int top_idx = -1, bot_idx = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9)  top_idx = i;
+        if (n.z() < -0.9) bot_idx = i;
+    }
+    REQUIRE(top_idx >= 0);
+    REQUIRE(bot_idx >= 0);
+
+    // --- Offset from base XY by 10 ---
+    auto planes0 = doc.resolve_datum_planes();
+    size_t initial = planes0.size();
+
+    CadFeature f0;
+    f0.type       = CadFeatureType::Plane;
+    f0.name       = "Offset10";
+    f0.plane_base = 0;   // XY
+    f0.plane_type = PlaneType::Offset;
+    f0.plane_offset = 10;
+    doc.features.push_back(f0);
+
+    auto planes = doc.resolve_datum_planes();
+    REQUIRE(planes.size() == initial + 1);
+    CHECK_THAT(planes.back().second.origin.z(), WithinAbs(10.0, 1e-6));
+    CHECK_THAT(planes.back().second.normal.z(), WithinAbs(1.0, 1e-6));
+
+    // --- Coincident to top face ---
+    CadFeature f1;
+    f1.type            = CadFeatureType::Plane;
+    f1.name            = "CoincidentTop";
+    f1.plane_type      = PlaneType::Coincident;
+    f1.plane_face_body = 0;
+    f1.plane_face      = top_idx;
+    doc.features.push_back(f1);
+
+    planes = doc.resolve_datum_planes();
+    REQUIRE(planes.size() == initial + 2);
+    CHECK_THAT(planes.back().second.origin.z(), WithinAbs(20.0, 1e-6));   // box height is 20
+    CHECK_THAT(planes.back().second.normal.z(), WithinAbs(1.0, 1e-6));
+
+    // --- Midplane between top and bottom faces ---
+    CadFeature f2;
+    f2.type             = CadFeatureType::Plane;
+    f2.name             = "Midplane";
+    f2.plane_type       = PlaneType::Midplane;
+    f2.plane_face_body  = 0;
+    f2.plane_face       = top_idx;
+    f2.plane_face2_body = 0;
+    f2.plane_face2      = bot_idx;
+    doc.features.push_back(f2);
+
+    planes = doc.resolve_datum_planes();
+    REQUIRE(planes.size() == initial + 3);
+    CHECK_THAT(planes.back().second.origin.z(), WithinAbs(10.0, 1e-6));   // midway
+    CHECK_THAT(std::abs(planes.back().second.normal.z()), WithinAbs(1.0, 1e-6));
+
+    // --- Orthonormality check on all resolved planes ---
+    for (const auto& [name, sp] : planes) {
+        INFO("Plane: " << name);
+        CHECK_THAT(sp.normal.norm(), WithinAbs(1.0, 1e-6));
+        CHECK_THAT(sp.x_axis.norm(), WithinAbs(1.0, 1e-6));
+        CHECK_THAT(sp.y_axis.norm(), WithinAbs(1.0, 1e-6));
+        CHECK_THAT(std::abs(sp.x_axis.dot(sp.y_axis)), WithinAbs(0.0, 1e-6));
+        CHECK_THAT(std::abs(sp.x_axis.dot(sp.normal)), WithinAbs(0.0, 1e-6));
+        CHECK_THAT(std::abs(sp.y_axis.dot(sp.normal)), WithinAbs(0.0, 1e-6));
+    }
+}

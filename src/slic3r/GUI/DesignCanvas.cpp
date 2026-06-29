@@ -53,6 +53,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_canvas->enable_collapse_toolbar(false);
     m_canvas->enable_plate_chrome(false);
     m_canvas->enable_labels(false);
+    m_canvas->set_axes_at_bed_center(true);   // triad at bed centre = modeling origin
 
     m_canvas->set_design_sketch_tool(&m_sketch_tool);
     m_sketch_tool.on_commit = [this](const SketchProfile& prof, const SketchPlane& pl) {
@@ -663,6 +664,48 @@ void DesignCanvas::set_on_extrude_depth_changed(std::function<void(double, bool)
     m_sketch_tool.on_extrude_depth_changed = std::move(cb);
 }
 
+void DesignCanvas::set_datum_gizmo(const SketchPlane& plane, double usize, double vsize,
+                                   const Vec3d& base_origin, const Vec3d& base_normal,
+                                   double offset, bool offset_on)
+{
+    m_sketch_tool.set_datum_gizmo(plane, usize, vsize, base_origin, base_normal, offset, offset_on);
+    request_repaint();
+}
+
+void DesignCanvas::clear_datum_gizmo()
+{
+    m_sketch_tool.clear_datum_gizmo();
+    request_repaint();
+}
+
+void DesignCanvas::set_on_datum_size_changed(std::function<void(double, double)> cb)
+{
+    m_sketch_tool.on_datum_size_changed = std::move(cb);
+}
+
+void DesignCanvas::set_on_datum_offset_changed(std::function<void(double)> cb)
+{
+    m_sketch_tool.on_datum_offset_changed = std::move(cb);
+}
+
+void DesignCanvas::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
+                                std::vector<std::string> labels)
+{
+    m_sketch_tool.set_base_pick(std::move(planes), std::move(bases), std::move(labels));
+    request_repaint();
+}
+
+void DesignCanvas::clear_base_pick()
+{
+    m_sketch_tool.clear_base_pick();
+    request_repaint();
+}
+
+void DesignCanvas::set_on_datum_base_picked(std::function<void(int)> cb)
+{
+    m_sketch_tool.on_datum_base_picked = std::move(cb);
+}
+
 void DesignCanvas::set_on_sketch_exit(std::function<void()> cb)
 {
     m_sketch_tool.on_exit = std::move(cb);
@@ -685,9 +728,9 @@ void DesignCanvas::set_display_sketches(std::vector<DesignSketchTool::DisplaySke
     request_repaint();
 }
 
-void DesignCanvas::set_datum_planes(std::vector<SketchPlane> planes)
+void DesignCanvas::set_datum_planes(std::vector<SketchPlane> planes, std::vector<Vec2d> sizes)
 {
-    m_sketch_tool.set_datum_planes(std::move(planes));
+    m_sketch_tool.set_datum_planes(std::move(planes), std::move(sizes));
     request_repaint();
 }
 

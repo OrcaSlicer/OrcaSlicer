@@ -37,6 +37,7 @@
 #include "libslic3r/Model.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 
@@ -394,6 +395,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* b_plane = icon_btn("design_plane", _L("Plane"));
         b_plane->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             populate_plane_choices(m_plane_base);   // refresh base list w/ existing datum planes
+            reset_plane_refs();                     // fresh datum: no captured face/edge refs
             open_tool(Tool::Plane);
         });
         fadd(b_plane);
@@ -474,38 +476,40 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::Hole);
              }},
-            {"design_thread", _L("Thread"), _L("Thread a picked cylindrical face (hole bore or cylinder)"),
+            {"design_thread", _L("Thread"), _L("Thread a cylindrical surface (inner bore / outer) or a circular edge"),
              [this] {
-                // #3: invoke on a picked CYLINDRICAL face — a hole bore (internal thread) or a
-                // cylinder's lateral surface (external) — deriving axis, radius and internal/
-                // external from it. Otherwise fall back to the plane dropdown.
+                // Driven by a picked CYLINDRICAL surface (inner bore = internal, outer = external)
+                // OR a circular EDGE (a cylinder's rim) — axis + diameter come from the geometry, so
+                // the user never types a radius. The diameter field shows what was derived.
                 m_thread_on_face   = false;
                 m_thread_face_body = -1;
-                if (m_sel_solid_face >= 0 && m_sel_solid_body >= 0
-                    && m_sel_solid_body < int(m_doc.bodies.size())) {
-                    const TopoDS_Face face = GeometryEngine::face_by_index(
-                        m_doc.bodies[m_sel_solid_body].shape, m_sel_solid_face);
-                    const GeometryEngine::CylinderFace cf = GeometryEngine::cylinder_of_face(face);
-                    if (cf.ok) {
-                        SketchPlane p;                       // plane on the axis (origin at the base)
-                        p.origin = cf.base;
-                        p.normal = cf.axis;
-                        const Vec3d ref = std::abs(cf.axis.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
-                        p.x_axis = ref.cross(cf.axis).normalized();
-                        p.y_axis = cf.axis.cross(p.x_axis).normalized();
-                        m_thread_face_plane = p;
-                        m_thread_on_face    = true;
-                        m_thread_face_body  = m_sel_solid_body;
-                        if (m_thread_radius)   m_thread_radius->SetValue(cf.radius);
-                        if (m_thread_height)   m_thread_height->SetValue(cf.height);
-                        if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
-                        if (m_thread_x) m_thread_x->SetValue(0.0);   // on the axis
-                        if (m_thread_y) m_thread_y->SetValue(0.0);
-                    } else if (m_sel_solid_face >= 0) {
-                        m_status->SetForegroundColour(wxColour(235, 110, 110));
-                        m_status->SetLabel(_L("Pick a cylindrical face (hole bore or cylinder) for a thread"));
-                        m_status->Refresh();
-                    }
+                GeometryEngine::CylinderFace cf;
+                if (m_sel_solid_body >= 0 && m_sel_solid_body < int(m_doc.bodies.size())) {
+                    const TopoDS_Shape& shape = m_doc.bodies[m_sel_solid_body].shape;
+                    if (m_sel_solid_face >= 0)
+                        cf = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, m_sel_solid_face));
+                    if (!cf.ok && m_sel_solid_edge >= 0)
+                        cf = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, m_sel_solid_edge));
+                }
+                if (cf.ok) {
+                    SketchPlane p;                       // plane on the axis (origin at the base)
+                    p.origin = cf.base;
+                    p.normal = cf.axis;
+                    const Vec3d ref = std::abs(cf.axis.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+                    p.x_axis = ref.cross(cf.axis).normalized();
+                    p.y_axis = cf.axis.cross(p.x_axis).normalized();
+                    m_thread_face_plane = p;
+                    m_thread_on_face    = true;
+                    m_thread_face_body  = m_sel_solid_body;
+                    infer_thread_spec(2.0 * cf.radius);   // M diameter + pitch + depth from the cylinder
+                    if (m_thread_height && cf.height > 1e-6) m_thread_height->SetValue(cf.height);
+                    if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
+                    if (m_thread_x) m_thread_x->SetValue(0.0);   // on the axis
+                    if (m_thread_y) m_thread_y->SetValue(0.0);
+                } else if (m_sel_solid_face >= 0 || m_sel_solid_edge >= 0) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Pick a cylindrical surface (bore / outer) or a circular edge for a thread"));
+                    m_status->Refresh();
                 }
                 open_tool(Tool::Thread);
              }},
@@ -664,6 +668,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
               _L("Click a segment to trim it back to its nearest intersection; right-click exits"));
         skbtn("design_extend", DesignSketchTool::Mode::Extend, _L("Extend"),
               _L("Click a line or arc to extend it to the nearest entity; right-click exits"));
+        // Constrain — grouped with the edit tools so it's easy to find (nde #13: it was buried
+        // far-right next to Construction and went unnoticed). Commits the live sketch in place
+        // and drops into Constrain mode (geometric/dimensional palette).
+        auto* b_constrain_sk = icon_btn("design_constrain",
+            _L("Constrain — add geometric/dimensional relations"));
+        b_constrain_sk->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { enter_constrain_inline(); });
+        sadd(b_constrain_sk);
         dropdown("design_move", _L("Move / rotate / scale"), {
             {"design_move",   DesignSketchTool::Mode::Move,   _L("Move (translate)"),        _L("Pick entities, then drag the handle or click the distance; click empty to apply")},
             {"design_rotate", DesignSketchTool::Mode::Rotate, _L("Rotate (about centroid)"), _L("Pick entities, then drag around the pivot or click the angle; click empty to apply")},
@@ -691,15 +702,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_poly_circ->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
             if (m_viewport) m_viewport->set_sketch_polygon_circumscribed(m_poly_circ->GetValue()); });
         sadd(m_poly_circ);
-        add_sep(m_tb_sketch);
-        // Constrain — reachable mid-sketch: commits the live sketch in place and drops into
-        // Constrain mode, where the geometric/dimensional palette + Trim + Extend (scissors)
-        // are picked and applied. (Trim/Extend are pick-then-apply, so they live there, not as
-        // bare toolbar buttons.)
-        auto* b_constrain_sk = icon_btn("design_constrain",
-            _L("Constrain — add geometric/dimensional relations; Trim/Extend live here"));
-        b_constrain_sk->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { enter_constrain_inline(); });
-        sadd(b_constrain_sk);
         add_sep(m_tb_sketch);
         m_construction->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
             if (m_viewport && m_viewport->is_sketching())
@@ -994,8 +996,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Standard")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_std);
 
-    m_thread_radius = make_spin(m_form, 5.0);
-    tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Radius")), 0, wxALIGN_CENTER_VERTICAL);
+    // Threads are specified by DIAMETER (M6 = Ø6); the value is derived from the picked cylindrical
+    // surface / circular edge, so it's a readout users rarely type. Stored field holds the diameter.
+    m_thread_radius = make_spin(m_form, 10.0);
+    tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Diameter")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_radius);
 
     m_thread_pitch = make_spin(m_form, 2.0);
@@ -1219,6 +1223,21 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_plane->Add(card_header("design_sketch", _L("Plane"), m_hdr_plane), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_plane->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
     {
+        // Plane type chooses which inputs matter (Onshape/Fusion parity):
+        //   Offset      = Base (or Face A) + Offset (+ Tilt about a base axis)
+        //   Angle       = Edge A (line) + Base/Face A reference + Angle°
+        //   Midplane    = Face A + Face B (halfway between)
+        //   Tangent     = Face A (a cylinder) + Angle° around its axis
+        //   Two edges   = Edge A + Edge B
+        //   Coincident  = Face A (lie on that face)
+        m_plane_type = new wxChoice(m_form, wxID_ANY);
+        for (const wxString& t : { _L("Offset"), _L("Angle"), _L("Midplane"),
+                                   _L("Tangent"), _L("Two edges"), _L("Coincident") })
+            m_plane_type->Append(t);
+        m_plane_type->SetSelection(0);
+        m_box_plane->Add(new wxStaticText(m_form, wxID_ANY, _L("Plane type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_plane->Add(m_plane_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+
         auto* plform = new wxFlexGridSizer(2, 6, 8);
 
         m_plane_base = new wxChoice(m_form, wxID_ANY);
@@ -1231,7 +1250,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         plform->Add(m_plane_offset);
 
         m_plane_tilt = make_spin(m_form, 0.0, -180.0, 180.0);
-        plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Tilt°")), 0, wxALIGN_CENTER_VERTICAL);
+        plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Angle°")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(m_plane_tilt);
 
         m_plane_tilt_axis = new wxChoice(m_form, wxID_ANY);
@@ -1240,6 +1259,26 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_plane_tilt_axis->SetSelection(0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Tilt axis")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(m_plane_tilt_axis);
+
+        // Contextual reference picks: arm a target, then click a solid face/edge in the canvas.
+        auto pick_row = [&](const wxString& label, wxButton*& btn, wxStaticText*& lbl, PlanePick target) {
+            btn = new wxButton(m_form, wxID_ANY, label);
+            lbl = new wxStaticText(m_form, wxID_ANY, _L("(none)"));
+            btn->Bind(wxEVT_BUTTON, [this, target](wxCommandEvent&) { arm_plane_pick(target); });
+            plform->Add(btn);
+            plform->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
+        };
+        pick_row(_L("Pick Face A"), m_plane_pick_faceA, m_plane_faceA_lbl, PlanePick::FaceA);
+        pick_row(_L("Pick Face B"), m_plane_pick_faceB, m_plane_faceB_lbl, PlanePick::FaceB);
+        pick_row(_L("Pick Edge A"), m_plane_pick_edgeA, m_plane_edgeA_lbl, PlanePick::EdgeA);
+        pick_row(_L("Pick Edge B"), m_plane_pick_edgeB, m_plane_edgeB_lbl, PlanePick::EdgeB);
+
+        m_plane_usize = make_spin(m_form, 60.0, 1.0, 100000.0);
+        plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Size U")), 0, wxALIGN_CENTER_VERTICAL);
+        plform->Add(m_plane_usize);
+        m_plane_vsize = make_spin(m_form, 60.0, 1.0, 100000.0);
+        plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Size V")), 0, wxALIGN_CENTER_VERTICAL);
+        plform->Add(m_plane_vsize);
 
         m_box_plane->Add(plform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -1685,6 +1724,60 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 : _L("(pick a side face)"));
             refresh_preview();
         }
+        // Hole card open: clicking a solid FACE re-targets the hole ONTO that face (Orca-style),
+        // so the hole lives on the object's face — not on a stale dropdown/datum plane. Uses the
+        // face under the cursor from the FIRST click (handle_solid_click reports it even at the
+        // Whole level), so no whole->face cycle is needed.
+        if (m_active == Tool::Hole && face >= 0 && body >= 0 && body < int(m_doc.bodies.size())) {
+            const TopoDS_Face fc = GeometryEngine::face_by_index(m_doc.bodies[body].shape, face);
+            if (!fc.IsNull()) {
+                m_hole_face_plane = face_plane_inward(fc);
+                m_hole_on_face    = true;
+                m_hole_face_body  = body;
+                m_hole_has_bounds = GeometryEngine::face_plane_bounds(
+                    fc, m_hole_face_plane.origin, m_hole_face_plane.x_axis,
+                    m_hole_face_plane.y_axis, m_hole_umin, m_hole_umax, m_hole_vmin, m_hole_vmax);
+                if (m_hole_x) m_hole_x->SetValue(0.0);   // centre of the picked face
+                if (m_hole_y) m_hole_y->SetValue(0.0);
+                if (m_hole_plane) m_hole_plane->SetSelection(index_from_plane(m_hole_face_plane));
+                refresh_preview();   // re-place the gizmo + ghost on the new face
+            }
+        }
+        // Thread card open: clicking a cylindrical face or circular edge re-derives the thread.
+        if (m_active == Tool::Thread && body >= 0 && body < int(m_doc.bodies.size())) {
+            const TopoDS_Shape& shape = m_doc.bodies[body].shape;
+            GeometryEngine::CylinderFace cf;
+            if (face >= 0)
+                cf = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, face));
+            if (!cf.ok && edge >= 0)
+                cf = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, edge));
+            if (cf.ok) {
+                SketchPlane p; p.origin = cf.base; p.normal = cf.axis;
+                const Vec3d ref = std::abs(cf.axis.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+                p.x_axis = ref.cross(cf.axis).normalized();
+                p.y_axis = cf.axis.cross(p.x_axis).normalized();
+                m_thread_face_plane = p;
+                m_thread_on_face    = true;
+                m_thread_face_body  = m_sel_solid_body;
+                infer_thread_spec(2.0 * cf.radius);   // M diameter + pitch + depth from the cylinder
+                if (m_thread_height && cf.height > 1e-6) m_thread_height->SetValue(cf.height);
+                if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
+                refresh_preview();
+            }
+        }
+        // Plane tool with a pick armed: capture the right kind of reference (face for Face A/B,
+        // edge for Edge A/B). If the click wasn't the right kind, stay armed so the user retries.
+        if (m_active == Tool::Plane && m_plane_pick != PlanePick::None) {
+            bool got = false;
+            switch (m_plane_pick) {
+            case PlanePick::FaceA: if (m_sel_solid_face >= 0) { m_pl_faceA_body = m_sel_solid_body; m_pl_faceA = m_sel_solid_face; got = true; } break;
+            case PlanePick::FaceB: if (m_sel_solid_face >= 0) { m_pl_faceB_body = m_sel_solid_body; m_pl_faceB = m_sel_solid_face; got = true; } break;
+            case PlanePick::EdgeA: if (m_sel_solid_edge >= 0) { m_pl_edgeA_body = m_sel_solid_body; m_pl_edgeA = m_sel_solid_edge; got = true; } break;
+            case PlanePick::EdgeB: if (m_sel_solid_edge >= 0) { m_pl_edgeB_body = m_sel_solid_body; m_pl_edgeB = m_sel_solid_edge; got = true; } break;
+            default: break;
+            }
+            if (got) { m_plane_pick = PlanePick::None; refresh_plane_labels(); }
+        }
         m_status->SetForegroundColour(wxNullColour);
         const int nb = int(m_doc.bodies.size());
         const wxString bodytag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
@@ -1701,6 +1794,53 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (second) { if (m_distance2) m_distance2->SetValue(depth); }
         else        { if (m_distance)  m_distance->SetValue(depth); }
         refresh_preview();
+    });
+
+    // Datum-plane resize handles (C3): a handle drag reports the new u/v extent. Mirror it into the
+    // Size spins and, when editing a committed datum, into the feature so the rendered rectangle
+    // follows live. SetValue doesn't emit a command event, so no refresh_preview recursion.
+    m_viewport->set_on_datum_size_changed([this](double u, double v) {
+        if (m_plane_usize) m_plane_usize->SetValue(u);
+        if (m_plane_vsize) m_plane_vsize->SetValue(v);
+        if (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size()) &&
+            m_doc.features[m_edit_index].type == CadFeatureType::Plane) {
+            m_doc.features[m_edit_index].plane_u_size = u;
+            m_doc.features[m_edit_index].plane_v_size = v;
+            refresh_datum_planes();   // committed datum rectangle follows the drag
+        }
+        m_viewport->request_repaint();
+    });
+
+    // Offset arrow drag: mirror the new offset into the spin + (when editing) the committed feature.
+    m_viewport->set_on_datum_offset_changed([this](double off) {
+        if (m_plane_offset) m_plane_offset->SetValue(off);
+        if (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size()) &&
+            m_doc.features[m_edit_index].type == CadFeatureType::Plane) {
+            m_doc.features[m_edit_index].plane_offset = off;
+            refresh_datum_planes();
+        }
+        m_viewport->request_repaint();
+    });
+
+    // Clicking a ghost base plane sets the base graphically (replaces the dropdown). A base pick
+    // drops any offset-from-face choice so the picked base plane wins, then re-resolves the preview.
+    m_viewport->set_on_datum_base_picked([this](int base) {
+        if (m_active == Tool::Plane) {
+            // Plane tool open: the click sets the datum's base plane (replaces the dropdown).
+            if (m_plane_base && base >= 0 && base < int(m_plane_base->GetCount()))
+                m_plane_base->SetSelection(base);
+            m_pl_faceA_body = m_pl_faceA = -1;
+            refresh_plane_labels();
+            refresh_preview();   // re-resolve the frame + move the gizmo/ghosts to the new base
+        } else {
+            // Fallback (no object yet): clicking a reference plane selects it as the sketch plane.
+            if (m_draw_plane && base >= 0 && base < int(m_draw_plane->GetCount()))
+                m_draw_plane->SetSelection(base);
+            const char* nm = (base == 0) ? "XY" : (base == 1) ? "XZ" : (base == 2) ? "YZ" : "datum";
+            m_status->SetForegroundColour(wxColour(120, 210, 120));
+            m_status->SetLabel(wxString::Format(_L("%s plane selected — press Sketch to draw on it"), nm));
+            m_status->Refresh();
+        }
     });
 
     // Move-body gizmo (M5): each drag/edit reports the body's new translation. Store it as a
@@ -1742,7 +1882,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_viewport->set_on_thread_changed([this](double x, double y, double radius, double height) {
         if (m_thread_x)      m_thread_x->SetValue(x);
         if (m_thread_y)      m_thread_y->SetValue(y);
-        if (m_thread_radius) m_thread_radius->SetValue(radius);
+        if (m_thread_radius) m_thread_radius->SetValue(2.0 * radius);   // gizmo reports radius; field = diameter
         if (m_thread_height) m_thread_height->SetValue(height);
         refresh_preview();
     });
@@ -2101,9 +2241,10 @@ void DesignPanel::add_imported_sketch(
             on_face = true;
         }
     }
-    if (!on_face)
-        f.plane = m_draw_plane ? plane_from_choice(m_draw_plane->GetSelection())
-                               : SketchPlane::XY();
+    if (!on_face) {
+        if (m_draw_plane) f.plane = plane_from_choice(m_draw_plane->GetSelection());
+        else { f.plane = SketchPlane::XY(); f.plane.origin += m_doc.modeling_origin; }
+    }
 
     // Drop the live face selection (its body is now remembered on import_face_body): otherwise
     // the next Extrude would push/pull that face instead of extruding the placed art.
@@ -2289,8 +2430,10 @@ void DesignPanel::on_add_dressup()
 
 SketchPlane DesignPanel::hole_plane() const
 {
-    return m_hole_on_face ? m_hole_face_plane
-                          : plane_from_index(m_hole_plane->GetSelection());
+    if (m_hole_on_face) return m_hole_face_plane;
+    SketchPlane p = plane_from_index(m_hole_plane->GetSelection());
+    p.origin += m_doc.modeling_origin;
+    return p;
 }
 
 void DesignPanel::on_add_hole()
@@ -2323,8 +2466,10 @@ void DesignPanel::on_add_hole()
 
 SketchPlane DesignPanel::thread_plane() const
 {
-    return m_thread_on_face ? m_thread_face_plane
-                            : plane_from_index(m_thread_plane->GetSelection());
+    if (m_thread_on_face) return m_thread_face_plane;
+    SketchPlane p = plane_from_index(m_thread_plane->GetSelection());
+    p.origin += m_doc.modeling_origin;
+    return p;
 }
 
 void DesignPanel::apply_thread_standard()
@@ -2341,18 +2486,36 @@ void DesignPanel::apply_thread_standard()
     if (m_thread_pitch) m_thread_pitch->SetValue(s->pitch_mm);
     if (m_thread_depth) m_thread_depth->SetValue(s->thread_depth_mm());
 
-    // Nominal radius: external rod = major radius; internal tapped bore = minor
-    // (tap-drill) radius. On a picked cylindrical face the radius comes from the
-    // real geometry, so don't override it there.
+    // Nominal diameter: external rod = major diameter; internal tapped bore = minor (tap-drill)
+    // diameter. On a picked cylindrical surface/edge the diameter comes from the real geometry,
+    // so don't override it there. (The field holds DIAMETER.)
     if (!m_thread_on_face && m_thread_radius) {
         const bool internal = m_thread_internal && m_thread_internal->GetValue();
         const double d = internal ? s->minor_diameter_mm() : s->major_diameter_mm;
-        m_thread_radius->SetValue(0.5 * d);
+        m_thread_radius->SetValue(d);
     }
 
     if (m_status)
         m_status->SetLabel(wxString::Format(_L("Thread standard: %s  (pitch %.3g mm)"),
                                             m_thread_std->GetString(sel), s->pitch_mm));
+}
+
+void DesignPanel::infer_thread_spec(double diameter)
+{
+    // Snap to the nearest standard thread by nominal (major) diameter, so picking a Ø9.9 boss
+    // gives M10 — the M diameter, pitch AND depth all follow from the cylinder's base diameter.
+    const auto& stds = thread_standards();
+    int best = -1; double bestErr = 1e30;
+    for (int i = 0; i < int(stds.size()); ++i) {
+        const double e = std::abs(stds[i].major_diameter_mm - diameter);
+        if (e < bestErr) { bestErr = e; best = i; }
+    }
+    if (best < 0) { if (m_thread_radius) m_thread_radius->SetValue(diameter); return; }
+    const ThreadSpec& s = stds[best];
+    if (m_thread_std)    m_thread_std->SetSelection(best + 1);    // row 0 is "Custom"
+    if (m_thread_radius) m_thread_radius->SetValue(s.major_diameter_mm);  // field = DIAMETER
+    if (m_thread_pitch)  m_thread_pitch->SetValue(s.pitch_mm);
+    if (m_thread_depth)  m_thread_depth->SetValue(s.thread_depth_mm());
 }
 
 void DesignPanel::on_add_thread()
@@ -2365,7 +2528,7 @@ void DesignPanel::on_add_thread()
     SketchPlane plane = thread_plane();
 
     m_feature_counter++;
-    const int tidx = m_doc.add_thread(m_thread_radius->GetValue(), m_thread_pitch->GetValue(),
+    const int tidx = m_doc.add_thread(m_thread_radius->GetValue() * 0.5, m_thread_pitch->GetValue(),
                      m_thread_height->GetValue(), m_thread_depth->GetValue(),
                      internal, m_thread_x->GetValue(), m_thread_y->GetValue(),
                      plane, "Thread" + std::to_string(m_feature_counter));
@@ -2554,18 +2717,63 @@ void DesignPanel::populate_plane_choices(wxChoice* c) const
 
 SketchPlane DesignPanel::plane_from_choice(int row) const
 {
-    if (row < 3) return plane_from_index(row);   // 0=XY,1=XZ,2=YZ
+    if (row < 3) {                                // 0=XY,1=XZ,2=YZ through the modeling origin
+        SketchPlane p = plane_from_index(row);
+        p.origin += m_doc.modeling_origin;
+        return p;
+    }
+    // Datums are already in world coords (resolve_datum_planes applied the origin to their base).
     auto datums = m_doc.resolve_datum_planes();
     const int di = row - 3;
-    return (di >= 0 && di < int(datums.size())) ? datums[di].second : SketchPlane::XY();
+    if (di >= 0 && di < int(datums.size())) return datums[di].second;
+    SketchPlane p = SketchPlane::XY(); p.origin += m_doc.modeling_origin; return p;
+}
+
+void DesignPanel::apply_plane_refs(CadFeature& f) const
+{
+    f.plane_type       = (PlaneType)m_plane_type->GetSelection();
+    f.plane_face_body  = m_pl_faceA_body;  f.plane_face  = m_pl_faceA;
+    f.plane_face2_body = m_pl_faceB_body;  f.plane_face2 = m_pl_faceB;
+    f.plane_edge_body  = m_pl_edgeA_body;  f.plane_edge  = m_pl_edgeA;
+    f.plane_edge2_body = m_pl_edgeB_body;  f.plane_edge2 = m_pl_edgeB;
+    f.plane_u_size     = m_plane_usize->GetValue();
+    f.plane_v_size     = m_plane_vsize->GetValue();
+}
+
+void DesignPanel::refresh_plane_labels()
+{
+    auto txt = [](int idx) { return idx >= 0 ? wxString::Format("#%d", idx) : wxString(_L("(none)")); };
+    if (m_plane_faceA_lbl) m_plane_faceA_lbl->SetLabel(txt(m_pl_faceA));
+    if (m_plane_faceB_lbl) m_plane_faceB_lbl->SetLabel(txt(m_pl_faceB));
+    if (m_plane_edgeA_lbl) m_plane_edgeA_lbl->SetLabel(txt(m_pl_edgeA));
+    if (m_plane_edgeB_lbl) m_plane_edgeB_lbl->SetLabel(txt(m_pl_edgeB));
+}
+
+void DesignPanel::reset_plane_refs()
+{
+    m_pl_faceA_body = m_pl_faceA = -1;  m_pl_faceB_body = m_pl_faceB = -1;
+    m_pl_edgeA_body = m_pl_edgeA = -1;  m_pl_edgeB_body = m_pl_edgeB = -1;
+    m_plane_pick = PlanePick::None;
+    refresh_plane_labels();
+}
+
+void DesignPanel::arm_plane_pick(PlanePick target)
+{
+    m_plane_pick = target;
+    const bool face = (target == PlanePick::FaceA || target == PlanePick::FaceB);
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(face ? _L("Click a solid FACE in the viewport")
+                            : _L("Click a solid EDGE in the viewport"));
+    m_status->Refresh();
 }
 
 void DesignPanel::on_add_plane()
 {
     m_feature_counter++;
-    m_doc.add_plane(m_plane_base->GetSelection(), m_plane_offset->GetValue(),
+    int idx = m_doc.add_plane(m_plane_base->GetSelection(), m_plane_offset->GetValue(),
                     m_plane_tilt->GetValue(), m_plane_tilt_axis->GetSelection(),
                     "Plane" + std::to_string(m_feature_counter));
+    if (idx >= 0 && idx < int(m_doc.features.size())) apply_plane_refs(m_doc.features[idx]);
     m_doc.recompute();   // datum-only docs yield no body; that is expected/benign
     m_status->SetForegroundColour(wxNullColour);
     m_status->SetLabel(_L("Plane added — pick it as a sketch plane"));
@@ -2644,6 +2852,13 @@ void DesignPanel::on_tab_shown()
 {
     if (m_viewport) m_viewport->refresh_bed();
 
+    // Modeling origin = bed centre, set BEFORE any recompute/datum-resolve so sketches and datums
+    // land in the middle of the bed (not the bed corner = world 0).
+    if (Plater* pl = wxGetApp().plater()) {
+        const Vec2d bc = pl->build_volume().bed_center();
+        m_doc.modeling_origin = Vec3d(bc.x(), bc.y(), 0.0);
+    }
+
     // Rehydrate the parametric model from a freshly loaded project (the 3MF carried the
     // recipe in Metadata/SnapOrca_cad.bin). Only when nothing is in progress here, so we
     // never clobber an active design when the user just toggles back to the Design tab.
@@ -2653,6 +2868,7 @@ void DesignPanel::on_tab_shown()
             if (!blob.empty()) load_recipe(blob);
         }
     }
+    update_reference_planes();   // entering the Design tab: show the XY/XZ/YZ planes if no object yet
 }
 
 void DesignPanel::load_recipe(const std::string& blob)
@@ -2681,11 +2897,8 @@ void DesignPanel::refresh_tree()
     wxTreeItemId root = m_tree->AddRoot("root");
     // Datum/reference planes carry no solid; feed them to the viewport so they render as
     // translucent rectangles (otherwise a Plane feature is invisible in the canvas).
-    if (m_viewport) {
-        std::vector<SketchPlane> dplanes;
-        for (const auto& dp : m_doc.resolve_datum_planes()) dplanes.push_back(dp.second);
-        m_viewport->set_datum_planes(std::move(dplanes));
-    }
+    refresh_datum_planes();
+    update_reference_planes();   // body added/removed -> show/hide the XY/XZ/YZ origin planes
     for (const auto& f : m_doc.features) {
         const int img = tree_icon_for(f.type);
         wxTreeItemId id = m_tree->AppendItem(root, wxString::FromUTF8(f.name), img, img);
@@ -2903,8 +3116,15 @@ void DesignPanel::after_tree_edit(bool ok)
         sync_sketch_display();   // empty body: show any un-consumed committed sketch
         m_status->SetLabel(wxString());
     } else {
+        // nde #19/20: a delete/reorder that leaves bodies behind must re-feed the per-body
+        // GLVolumes — otherwise the viewport keeps showing the pre-edit solid (the deleted
+        // feature's artifact lingered). feed_bodies() is idempotent for the edit/replace path.
+        if (m_viewport != nullptr) feed_bodies();
         set_status_ok();
     }
+    // Force a frame: under software GL (llvmpipe on the :10 test box) reload()'s scheduled
+    // Refresh() is dropped, so a deleted solid stayed on screen until the next orbit.
+    if (m_viewport != nullptr) m_viewport->request_repaint();
     m_status->Refresh();
 }
 
@@ -4341,7 +4561,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     case CadFeatureType::Thread:
         m_thread_plane->SetSelection(index_from_plane(f.plane));
-        m_thread_radius->SetValue(f.thread_radius);
+        m_thread_radius->SetValue(f.thread_radius * 2.0);   // field = diameter
         m_thread_pitch->SetValue(f.thread_pitch);
         m_thread_height->SetValue(f.thread_height);
         m_thread_depth->SetValue(f.thread_depth);
@@ -4382,6 +4602,15 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_plane_offset->SetValue(f.plane_offset);
         m_plane_tilt->SetValue(f.plane_angle_tilt);
         m_plane_tilt_axis->SetSelection(f.plane_axis);
+        m_plane_type->SetSelection((int)f.plane_type);
+        m_pl_faceA_body = f.plane_face_body;  m_pl_faceA = f.plane_face;
+        m_pl_faceB_body = f.plane_face2_body; m_pl_faceB = f.plane_face2;
+        m_pl_edgeA_body = f.plane_edge_body;  m_pl_edgeA = f.plane_edge;
+        m_pl_edgeB_body = f.plane_edge2_body; m_pl_edgeB = f.plane_edge2;
+        m_plane_usize->SetValue(f.plane_u_size);
+        m_plane_vsize->SetValue(f.plane_v_size);
+        m_plane_pick = PlanePick::None;
+        refresh_plane_labels();
         break;
     case CadFeatureType::Loft:
         m_loft_refs = f.loft_profile_refs;   // show_tool re-checks these in the list
@@ -4637,7 +4866,7 @@ CadFeature DesignPanel::build_candidate(Tool t) const
     case Tool::Thread:
         f.type            = CadFeatureType::Thread;
         f.plane           = thread_plane();
-        f.thread_radius   = m_thread_radius->GetValue();
+        f.thread_radius   = m_thread_radius->GetValue() * 0.5;   // field = diameter -> kernel radius
         f.thread_pitch    = m_thread_pitch->GetValue();
         f.thread_height   = m_thread_height->GetValue();
         f.thread_depth    = m_thread_depth->GetValue();
@@ -4688,6 +4917,7 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.plane_offset     = m_plane_offset->GetValue();
         f.plane_angle_tilt = m_plane_tilt->GetValue();
         f.plane_axis       = m_plane_tilt_axis->GetSelection();
+        apply_plane_refs(f);   // plane_type + face/edge refs + u/v size from the card
         break;
     case Tool::Loft: {
         f.type      = CadFeatureType::Loft;
@@ -4773,7 +5003,7 @@ void DesignPanel::update_thread_gizmo()
     const SketchPlane plane = thread_plane();
     m_viewport->begin_thread_gizmo(plane,
                                    m_thread_x->GetValue(), m_thread_y->GetValue(),
-                                   m_thread_radius->GetValue(), m_thread_height->GetValue());
+                                   m_thread_radius->GetValue() * 0.5, m_thread_height->GetValue());
 }
 
 // Anchor an inward thickness arrow at the picked open face's centroid (along -outward-normal).
@@ -4939,6 +5169,97 @@ void DesignPanel::update_extrude_gizmo()
                                   end == ExtrudeEnd::TwoSided, m_flip->GetValue());
 }
 
+void DesignPanel::refresh_datum_planes()
+{
+    if (!m_viewport) return;
+    std::vector<SketchPlane> dplanes;
+    for (const auto& dp : m_doc.resolve_datum_planes()) dplanes.push_back(dp.second);
+    // Parallel per-plane extents, in the SAME order resolve_datum_planes emits
+    // (enabled Plane features, document order), so each datum draws at its u/v size.
+    std::vector<Vec2d> dsizes;
+    for (const auto& f : m_doc.features)
+        if (f.type == CadFeatureType::Plane && f.enabled)
+            dsizes.emplace_back(f.plane_u_size, f.plane_v_size);
+    m_viewport->set_datum_planes(std::move(dplanes), std::move(dsizes));
+}
+
+void DesignPanel::update_datum_gizmo()
+{
+    if (!m_viewport) return;
+    if (m_active != Tool::Plane) { m_viewport->clear_datum_gizmo(); update_reference_planes(); return; }
+
+    // Resolve the candidate plane's FRAME against the doc. resolve_datum_planes() is const and
+    // doesn't rebuild bodies, so transiently swap/append the candidate to read its resolved frame,
+    // then restore — works for both a fresh (uncommitted) plane and an edit of a committed one.
+    CadFeature f = build_candidate(Tool::Plane);
+    const bool editing = (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size()) &&
+                          m_doc.features[m_edit_index].type == CadFeatureType::Plane);
+    CadFeature saved;
+    int slot;
+    if (editing) { saved = m_doc.features[m_edit_index]; m_doc.features[m_edit_index] = f; slot = m_edit_index; }
+    else         { m_doc.features.push_back(f); slot = int(m_doc.features.size()) - 1; }
+
+    auto datums = m_doc.resolve_datum_planes();
+    // Ordinal of `slot` among enabled Plane features = its index in the resolved list.
+    int ord = -1;
+    for (int i = 0; i <= slot; ++i)
+        if (m_doc.features[i].type == CadFeatureType::Plane && m_doc.features[i].enabled) ++ord;
+    const bool ok = (ord >= 0 && ord < int(datums.size()));
+    SketchPlane frame; if (ok) frame = datums[ord].second;
+
+    if (editing) m_doc.features[m_edit_index] = saved; else m_doc.features.pop_back();
+
+    if (!ok) { m_viewport->clear_datum_gizmo(); update_reference_planes(); return; }
+
+    // Offset arrow anchor = the base/face origin (datum origin walked back along its normal by the
+    // offset). Works for both Offset-from-base (no tilt) and Offset-from-face exactly.
+    const Vec3d anchor   = frame.origin - frame.normal * f.plane_offset;
+    const bool  offset_on = (f.plane_type == PlaneType::Offset);
+    m_viewport->set_datum_gizmo(frame, f.plane_u_size, f.plane_v_size,
+                                anchor, frame.normal, f.plane_offset, offset_on);
+    update_reference_planes();   // base ghosts (origins + datums) follow the tool/model state
+}
+
+// Onshape default planes: the XY/XZ/YZ reference planes are persistent, transparent, labelled, and
+// larger than the bed — shown as the FALLBACK when there is no object yet. When the Plane tool is
+// open they additionally surface existing datums so a base can be picked. Single authority for the
+// reference-plane overlay (set/clear_base_pick).
+void DesignPanel::update_reference_planes()
+{
+    if (!m_viewport) return;
+    // Default planes pass through the modeling origin (bed centre) — same point the kernel uses to
+    // resolve XY/XZ/YZ datum bases, so the ghosts, the datums and new sketches all coincide.
+    const Vec3d o = m_doc.modeling_origin;
+    SketchPlane xy = SketchPlane::XY(); xy.origin += o;
+    SketchPlane xz = SketchPlane::XZ(); xz.origin += o;
+    SketchPlane yz = SketchPlane::YZ(); yz.origin += o;
+    std::vector<SketchPlane> bp = { xy, xz, yz };
+    std::vector<int>         bi = { 0, 1, 2 };
+    std::vector<std::string> bl = { "XY", "XZ", "YZ" };
+
+    if (m_active == Tool::Plane) {
+        // Base picking only makes sense for the Offset method (others reference faces/edges).
+        if (m_plane_type && (PlaneType)m_plane_type->GetSelection() == PlaneType::Offset) {
+            auto datums = m_doc.resolve_datum_planes();   // already in world coords (origin applied)
+            for (int i = 0; i < int(datums.size()); ++i) {
+                bp.push_back(datums[i].second); bi.push_back(3 + i); bl.push_back(datums[i].first);
+            }
+            m_viewport->set_base_pick(std::move(bp), std::move(bi), std::move(bl));
+        } else {
+            m_viewport->clear_base_pick();
+        }
+        return;
+    }
+    // Fallback (Onshape default planes): show the 3 reference planes while there is no SOLID body
+    // yet — so they persist through the 2D-sketch phase and reappear after a sketch is confirmed
+    // (a sketch creates no body). They no longer block selection: clicking existing geometry wins,
+    // a base-plane pick only fires on a click that hit nothing else (see on_mouse fall-through).
+    if (m_doc.bodies.empty())
+        m_viewport->set_base_pick(std::move(bp), std::move(bi), std::move(bl));
+    else
+        m_viewport->clear_base_pick();
+}
+
 void DesignPanel::refresh_preview()
 {
     if (m_active == Tool::None) { m_viewport->clear_preview(); return; }
@@ -4951,6 +5272,7 @@ void DesignPanel::refresh_preview()
         m_status->SetLabel(m_active == Tool::Plane ? _L("Plane ready") : _L("Sketch ready"));
         for (wxButton* b : m_confirm_btns) if (b) b->Enable(true);
         m_status->Refresh();
+        update_datum_gizmo();   // Plane card: show/refresh the in-canvas resize handles
         return;
     }
 
@@ -5027,6 +5349,8 @@ void DesignPanel::refresh_preview()
     update_revolve_gizmo();
     // Same for the Pattern spacing arrow / angle-arc (self-gates: only while the Pattern card is open).
     update_pattern_gizmo();
+    // Datum-plane resize handles (self-gates: only while the Plane card is open).
+    update_datum_gizmo();
 }
 
 void DesignPanel::open_tool(Tool t)
@@ -5179,6 +5503,8 @@ void DesignPanel::close_tool()
     m_viewport->clear_shell_gizmo();
     m_viewport->clear_revolve_gizmo();
     m_viewport->clear_pattern_gizmo();
+    m_viewport->clear_datum_gizmo();
+    update_reference_planes();   // back to no-tool: show the origin planes if there is no object yet
     m_form->Layout();
     m_form->FitInside();
     update_action_bar();   // no feature tool active -> hide the bar (unless a mode keeps it)

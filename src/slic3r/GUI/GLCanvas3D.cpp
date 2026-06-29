@@ -7940,7 +7940,14 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
     */
     //bool show_texture = true;
     //BBS set axes mode
-    m_bed.set_axes_mode(m_main_toolbar.is_enabled());
+    if (m_axes_at_bed_center) {
+        // SnapOrca Design: triad at the bed centre = modeling origin (set every frame because
+        // set_shape/set_axes_mode otherwise reset it to the bed corner).
+        const Vec2d bc = m_bed.build_volume().bed_center();
+        m_bed.set_axes_origin(Vec3d(bc.x(), bc.y(), 0.0));
+    } else {
+        m_bed.set_axes_mode(m_main_toolbar.is_enabled());
+    }
     m_bed.render(*this, view_matrix, projection_matrix, bottom, scale_factor, show_axes);
 }
 

@@ -97,7 +97,8 @@ public:
                                       || (m_solid_bodies != nullptr && !m_solid_bodies->empty())
                                       || !m_datum_planes.empty()
                                       || m_ex_active || m_mv_active || m_fl_active
-                                      || m_hl_active || m_th_active || m_sh_active; }
+                                      || m_hl_active || m_th_active || m_sh_active
+                                      || m_dz_active || m_dbp_active; }
 
     // Solid topology selection on the committed bodies: clicking a solid cycles
     // whole-solid -> face -> edge (Onshape-style) to target fillet/chamfer/extrude. With
@@ -153,6 +154,26 @@ public:
     // (new_depth, second_side): second_side=false drives the primary depth, true the 2nd side.
     std::function<void(double depth, bool second)> on_extrude_depth_changed;
 
+    // Datum-plane resize gizmo (C3). The Plane tool is a DesignPanel docked card (sketch tool
+    // NOT active), so the panel resolves the candidate plane's frame + current u/v extent and
+    // feeds them here; the tool draws the rectangle outline + 4 edge-midpoint handles. Dragging a
+    // handle changes the u (left/right) or v (top/bottom) extent live and fires on_datum_size_changed
+    // back to the panel, which writes the Size spins + re-pushes the rendered datum.
+    void set_datum_gizmo(const SketchPlane& plane, double usize, double vsize,
+                         const Vec3d& base_origin, const Vec3d& base_normal,
+                         double offset, bool offset_on);
+    void clear_datum_gizmo();
+    std::function<void(double usize, double vsize)> on_datum_size_changed;
+    std::function<void(double offset)>              on_datum_offset_changed;
+
+    // Graphical base/origin pick: while the Plane card is open, the candidate base planes
+    // (XY/XZ/YZ origin planes + existing datums) draw as translucent clickable ghosts. A click
+    // on one fires on_datum_base_picked(base) with that plane's base index (0/1/2 or 3+N).
+    void set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
+                       std::vector<std::string> labels = {});
+    void clear_base_pick();
+    std::function<void(int base)> on_datum_base_picked;
+
     // Visual Fillet/Chamfer gizmo. The Dressup tool is a DesignPanel docked card, so the sketch
     // tool is NOT active during it; when a solid EDGE is picked the panel passes the body centroid
     // + current radius and the tool anchors a world-space radius arrow at the picked edge midpoint
@@ -203,7 +224,9 @@ public:
     // Datum/reference planes (Plane feature) carry no solid; the panel feeds their resolved
     // SketchPlanes so they render as translucent rectangles in feature mode (otherwise a
     // Plane feature is invisible in the canvas).
-    void set_datum_planes(std::vector<SketchPlane> planes) { m_datum_planes = std::move(planes); }
+    void set_datum_planes(std::vector<SketchPlane> planes, std::vector<Vec2d> sizes = {}) {
+        m_datum_planes = std::move(planes); m_datum_sizes = std::move(sizes);
+    }
 
     // Visual Revolve gizmo. The panel feeds the sketch plane + profile centroid + axis (0=plane X,
     // 1=plane Y) + angle + flip while its Revolve card is open; an angle-arc is drawn in the
@@ -575,6 +598,10 @@ private:
     // Arc-slot grouped edit: centreline-radius + width labels rebuild the 4-arc span.
     void open_arc_slot_editor(int fi, bool radius);     // true=centreline R, false=width
     void set_arc_slot(int fi, double Rc, double w);
+    // Straight-slot grouped edit: centreline-length + width labels rebuild the 4-entity span.
+    void open_slot_editor(int fi, int which);           // 0=inter-centre distance, 1=radius, 2=angle
+    void set_slot(int fi, double length, double w);
+    void set_slot_angle(int fi, double deg);            // rotate the centreline about c0, keep len+radius
     // Grouped derived-handle drag: resize an axis-aligned rect by a corner (opposite corner
     // fixed); move a slot end by its cap centre. Both rebuild the feature span geometrically.
     void drag_rect_corner(int fi, const Vec2d& cursor);
@@ -699,6 +726,10 @@ private:
     Vec2d                 m_live_aslot_r_label{0,0};    // arc-slot centreline-radius label
     Vec2d                 m_live_aslot_w_label{0,0};    // arc-slot width label
     int                   m_live_aslot_fi{-1};          // the arc-slot Feature (rebuild edits)
+    Vec2d                 m_live_slot_len_label{0,0};   // straight-slot inter-centre distance label
+    Vec2d                 m_live_slot_w_label{0,0};     // straight-slot radius (half-width) label
+    Vec2d                 m_live_slot_angle_label{0,0}; // straight-slot centreline angle label
+    int                   m_live_slot_fi{-1};           // the straight-slot Feature (rebuild edits)
     std::vector<Feature>  m_features;              // parametric groups over m_entities
     int                   m_open_feature{-1};      // index of the Feature being built, or -1
 
@@ -810,6 +841,7 @@ private:
     void render_solid_highlight();
     void render_datum_planes();           // translucent rectangles for datum/reference planes
     std::vector<SketchPlane> m_datum_planes;
+    std::vector<Vec2d>       m_datum_sizes;   // per-plane (u,v) full extent; empty -> default
     GLModel m_solid_face_model;
     GLModel m_solid_edge_model;
     int m_display_pick_region{-1}; // selected closed-region index within that feature (-1 none)
@@ -829,6 +861,30 @@ private:
     void  drag_extrude_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt, int which);
     void  open_extrude_editor(int which);
     GLModel m_ex_arrow_model;
+
+    // Datum-plane resize gizmo state (C3). GUI-only; fed by the panel while the Plane card is open.
+    bool        m_dz_active{false};
+    SketchPlane m_dz_plane;              // resolved datum frame (origin + axes)
+    double      m_dz_usize{60.0};        // current u extent (full width)
+    double      m_dz_vsize{60.0};        // current v extent (full height)
+    int         m_dz_drag{-1};           // 0=+u,1=-u,2=+v,3=-v handle, 4=offset tip, -1 none
+    int         m_dz_press_x{0}, m_dz_press_y{0};
+    Vec3d       m_dz_anchor{Vec3d::Zero()};   // base-plane origin (offset arrow tail)
+    Vec3d       m_dz_normal{0.0, 0.0, 1.0};   // base normal (offset arrow direction)
+    double      m_dz_offset{0.0};             // current signed offset along the base normal
+    bool        m_dz_offset_on{false};        // draw/allow the offset arrow (Offset-from-base only)
+    void  render_datum_gizmo();
+    bool  hit_test_datum_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const;
+    void  drag_datum_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which);
+    // Datum base picker (translucent clickable origin/datum planes)
+    bool        m_dbp_active{false};
+    std::vector<SketchPlane>  m_dbp_planes;
+    std::vector<int>          m_dbp_base;
+    std::vector<std::string>  m_dbp_labels;
+    int         m_dbp_hover{-1};
+    double      dbp_half_extent() const;   // bed-derived: reference planes are larger than the bed
+    void render_base_pick();
+    int  hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent& evt) const;
 
     // Move-body gizmo state: 3 world-axis translate arrows + 3 world-axis rotate rings.
     // Delta model: offset/rot are deltas about a fixed pivot, composed onto m_mv_base_xform
