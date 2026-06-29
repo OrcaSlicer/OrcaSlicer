@@ -1737,8 +1737,8 @@ void ObjectGridTable::SetValueAsDouble(int row, int col, double value)
             return;
     }
 
-    if (auto option_values = dynamic_cast<ConfigOptionFloatsNullable*>(&(*grid_row)[(GridColType) col])) {
-        ConfigOptionFloatsNullable& option_ori_values = dynamic_cast<ConfigOptionFloatsNullable&>((*grid_row)[(GridColType) (col + 1)]);
+    if (auto option_values = dynamic_cast<ConfigOptionFloatsNullable *>(&(*grid_row)[(GridColType) col])) {
+        ConfigOptionFloatsNullable &option_ori_values = dynamic_cast<ConfigOptionFloatsNullable &>((*grid_row)[(GridColType) (col + 1)]);
 
         option_values->values.at(0) = (float) value;
 
@@ -1746,6 +1746,15 @@ void ObjectGridTable::SetValueAsDouble(int row, int col, double value)
 
         return;
     }
+
+    ConfigOptionFloat &option_value = dynamic_cast<ConfigOptionFloat &>((*grid_row)[(GridColType)col]);
+    ConfigOptionFloat &option_ori_value = dynamic_cast<ConfigOptionFloat &>((*grid_row)[(GridColType)(col+1)]);
+
+    option_value.value = (float)value;
+
+    update_value_to_config(grid_row->config, grid_col->key, option_value, option_ori_value);
+
+    return;
 }
 
 void ObjectGridTable::SetColLabelValue( int col, const wxString& value )
