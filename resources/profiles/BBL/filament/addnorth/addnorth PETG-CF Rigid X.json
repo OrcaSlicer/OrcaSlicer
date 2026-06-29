@@ -1,15 +1,16 @@
 {
 	"type": "filament",
-	"name": "addnorth PETG Economy",
-	"inherits": "Generic PETG @base",
+	"name": "addnorth PETG-CF Rigid X",
+	"inherits": "Generic PETG-CF @base",
 	"from": "system",
-	"filament_id": "GF_ANGE",
+	"setting_id": "GF_ANRX_00",
+	"filament_id": "GF_ANRX",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
 	],
 	"additional_cooling_fan_speed": [
-		"0"
+		"100"
 	],
 	"chamber_temperatures": [
 		"0"
@@ -107,10 +108,10 @@
 		"30"
 	],
 	"fan_max_speed": [
-		"90"
+		"100"
 	],
 	"fan_min_speed": [
-		"40"
+		"5"
 	],
 	"filament_adhesiveness_category": [
 		"300"
@@ -119,10 +120,10 @@
 		"10"
 	],
 	"filament_cost": [
-		"27"
+		"82"
 	],
 	"filament_density": [
-		"1.25"
+		"1.3"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -150,13 +151,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"10",
-		"10"
+		"8",
+		"11"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.5 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.5 - V.Pack:10_03_2026 – Special thanks to Mats.Z (3DP24, Jonkoping University / Campus Varnamo) for profile improvements during internship autumn 2025.",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -212,7 +213,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PETG Economy"
+		"addnorth PETG-CF Rigid X"
 	],
 	"filament_shrink": [
 		"100%"
@@ -224,7 +225,7 @@
 		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"PETG"
+		"PETG-CF"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -238,7 +239,7 @@
 		"nil"
 	],
 	"filament_z_hop": [
-		"nil",
+		"0.4",
 		"nil"
 	],
 	"filament_z_hop_types": [
@@ -273,21 +274,21 @@
 		"10"
 	],
 	"nozzle_temperature": [
-		"260",
-		"260"
+		"270",
+		"270"
 	],
 	"nozzle_temperature_initial_layer": [
-		"255",
-		"255"
+		"270",
+		"270"
 	],
 	"nozzle_temperature_range_high": [
 		"275"
 	],
 	"nozzle_temperature_range_low": [
-		"240"
+		"245"
 	],
 	"overhang_fan_speed": [
-		"90"
+		"100"
 	],
 	"overhang_fan_threshold": [
 		"10%"
@@ -296,7 +297,7 @@
 		"95%"
 	],
 	"pre_start_fan_time": [
-		"2"
+		"0"
 	],
 	"pressure_advance": [
 		"0.02"
@@ -305,16 +306,16 @@
 		"1"
 	],
 	"required_nozzle_HRC": [
-		"3"
+		"40"
 	],
 	"slow_down_for_layer_cooling": [
 		"1"
 	],
 	"slow_down_layer_time": [
-		"8"
+		"6"
 	],
 	"slow_down_min_speed": [
-		"20"
+		"40"
 	],
 	"supertack_plate_temp": [
 		"70"
@@ -326,9 +327,9 @@
 		"75"
 	],
 	"textured_plate_temp": [
-		"75"
+		"80"
 	],
 	"textured_plate_temp_initial_layer": [
-		"75"
+		"80"
 	]
 }

@@ -1,9 +1,10 @@
 {
 	"type": "filament",
-	"name": "addnorth PLA X-PLA High Speed",
-	"inherits": "Generic PLA High Speed @base",
+	"name": "addnorth PLA X-PLA",
+	"inherits": "Generic PLA @base",
 	"from": "system",
-	"filament_id": "GF_ANXPH",
+	"setting_id": "GF_ANXP_00",
+	"filament_id": "GF_ANXP",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
@@ -119,10 +120,10 @@
 		"10"
 	],
 	"filament_cost": [
-		"20"
+		"39"
 	],
 	"filament_density": [
-		"1.24"
+		"1.25"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -150,8 +151,8 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"12",
-		"12"
+		"14",
+		"14"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -212,7 +213,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PLA X-PLA High Speed"
+		"addnorth PLA X-PLA"
 	],
 	"filament_shrink": [
 		"100%"
@@ -264,21 +265,21 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"55"
+		"65"
 	],
 	"hot_plate_temp_initial_layer": [
-		"55"
+		"65"
 	],
 	"impact_strength_z": [
 		"10"
 	],
 	"nozzle_temperature": [
-		"240",
-		"240"
-	],
-	"nozzle_temperature_initial_layer": [
 		"235",
 		"235"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230",
+		"230"
 	],
 	"nozzle_temperature_range_high": [
 		"240"
@@ -290,7 +291,7 @@
 		"100"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"25%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"

@@ -2179,7 +2179,7 @@
 		},
 		{
 			"name": "addnorth ABS rABS",
-			"sub_path": "filament/addnorth/addnorth ABS rABS @System.json"
+			"sub_path": "filament/addnorth/addnorth ABS rABS.json"
 		},
 		{
 			"name": "PolyLite ABS @BBL A1",
@@ -3011,19 +3011,19 @@
 		},
 		{
 			"name": "addnorth PA Adura",
-			"sub_path": "filament/addnorth/addnorth PA Adura @System.json"
+			"sub_path": "filament/addnorth/addnorth PA Adura.json"
 		},
 		{
 			"name": "addnorth PA Adura FDA",
-			"sub_path": "filament/addnorth/addnorth PA Adura FDA @System.json"
+			"sub_path": "filament/addnorth/addnorth PA Adura FDA.json"
 		},
 		{
 			"name": "addnorth PA6 Addlantis",
-			"sub_path": "filament/addnorth/addnorth PA6 Addlantis @System.json"
+			"sub_path": "filament/addnorth/addnorth PA6 Addlantis.json"
 		},
 		{
 			"name": "addnorth PVDF Adamant S1",
-			"sub_path": "filament/addnorth/addnorth PVDF Adamant S1 @System.json"
+			"sub_path": "filament/addnorth/addnorth PVDF Adamant S1.json"
 		},
 		{
 			"name": "Generic PA-CF",
@@ -3051,7 +3051,7 @@
 		},
 		{
 			"name": "addnorth PA-CF Adura X",
-			"sub_path": "filament/addnorth/addnorth PA-CF Adura X @System.json"
+			"sub_path": "filament/addnorth/addnorth PA-CF Adura X.json"
 		},
 		{
 			"name": "Bambu PC @BBL A1",
@@ -3355,7 +3355,7 @@
 		},
 		{
 			"name": "addnorth PC BLend HT LCF",
-			"sub_path": "filament/addnorth/addnorth PC BLend HT LCF @System.json"
+			"sub_path": "filament/addnorth/addnorth PC BLend HT LCF.json"
 		},
 		{
 			"name": "Generic PCTG @BBL A1",
@@ -4215,27 +4215,27 @@
 		},
 		{
 			"name": "addnorth PETG Base",
-			"sub_path": "filament/addnorth/addnorth PETG Base @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG Base.json"
 		},
 		{
 			"name": "addnorth PETG ESD",
-			"sub_path": "filament/addnorth/addnorth PETG ESD @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG ESD.json"
 		},
 		{
 			"name": "addnorth PETG Economy",
-			"sub_path": "filament/addnorth/addnorth PETG Economy @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG Economy.json"
 		},
 		{
 			"name": "addnorth PETG Flame v0",
-			"sub_path": "filament/addnorth/addnorth PETG Flame v0 @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG Flame v0.json"
 		},
 		{
 			"name": "addnorth PETG PRO Matte",
-			"sub_path": "filament/addnorth/addnorth PETG PRO Matte @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG PRO Matte.json"
 		},
 		{
 			"name": "addnorth PETG rPETG Matte",
-			"sub_path": "filament/addnorth/addnorth PETG rPETG Matte @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG rPETG Matte.json"
 		},
 		{
 			"name": "Generic PETG HF @BBL A1",
@@ -4359,7 +4359,7 @@
 		},
 		{
 			"name": "addnorth PETG-CF Rigid X",
-			"sub_path": "filament/addnorth/addnorth PETG-CF Rigid X @System.json"
+			"sub_path": "filament/addnorth/addnorth PETG-CF Rigid X.json"
 		},
 		{
 			"name": "PolyLite PETG @BBL A1",
@@ -6647,31 +6647,31 @@
 		},
 		{
 			"name": "addnorth PLA E-PLA",
-			"sub_path": "filament/addnorth/addnorth PLA E-PLA @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA E-PLA.json"
 		},
 		{
 			"name": "addnorth PLA Economy",
-			"sub_path": "filament/addnorth/addnorth PLA Economy @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA Economy.json"
 		},
 		{
 			"name": "addnorth PLA HT-PLA PRO Matte",
-			"sub_path": "filament/addnorth/addnorth PLA HT-PLA PRO Matte @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA HT-PLA PRO Matte.json"
 		},
 		{
 			"name": "addnorth PLA Textura",
-			"sub_path": "filament/addnorth/addnorth PLA Textura @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA Textura.json"
 		},
 		{
 			"name": "addnorth PLA Wood",
-			"sub_path": "filament/addnorth/addnorth PLA Wood @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA Wood.json"
 		},
 		{
 			"name": "addnorth PLA X-PLA",
-			"sub_path": "filament/addnorth/addnorth PLA X-PLA @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA X-PLA.json"
 		},
 		{
 			"name": "addnorth PLA rPLA RE-ADD",
-			"sub_path": "filament/addnorth/addnorth PLA rPLA RE-ADD @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA rPLA RE-ADD.json"
 		},
 		{
 			"name": "Generic PLA High Speed @BBL A1",
@@ -6735,7 +6735,7 @@
 		},
 		{
 			"name": "addnorth PLA X-PLA High Speed",
-			"sub_path": "filament/addnorth/addnorth PLA X-PLA High Speed @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA X-PLA High Speed.json"
 		},
 		{
 			"name": "Generic PLA Silk",
@@ -6779,7 +6779,7 @@
 		},
 		{
 			"name": "addnorth PLA Premium Silk",
-			"sub_path": "filament/addnorth/addnorth PLA Premium Silk @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA Premium Silk.json"
 		},
 		{
 			"name": "Generic PLA-CF",
@@ -6823,7 +6823,7 @@
 		},
 		{
 			"name": "addnorth PLA-CF Carbon Fiber",
-			"sub_path": "filament/addnorth/addnorth PLA-CF Carbon Fiber @System.json"
+			"sub_path": "filament/addnorth/addnorth PLA-CF Carbon Fiber.json"
 		},
 		{
 			"name": "Numakers PLA+ @BBL A1",
@@ -7076,10 +7076,6 @@
 		{
 			"name": "Panchroma PLA @BBL X1C 0.2 nozzle",
 			"sub_path": "filament/Polymaker/Panchroma PLA @BBL X1C 0.2 nozzle.json"
-		},
-		{
-			"name": "Panchroma PLA Silk @BBL X1C 0.2 nozzle",
-			"sub_path": "filament/Polymaker/Panchroma PLA Silk @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "Panchroma PLA Celestial @BBL A1",
@@ -7476,6 +7472,10 @@
 		{
 			"name": "Panchroma PLA Silk @BBL X1C",
 			"sub_path": "filament/Polymaker/Panchroma PLA Silk @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/Panchroma PLA Silk @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "Panchroma PLA Starlight @BBL A1",
@@ -8987,15 +8987,15 @@
 		},
 		{
 			"name": "addnorth TPU EasyFlex",
-			"sub_path": "filament/addnorth/addnorth TPU EasyFlex @System.json"
+			"sub_path": "filament/addnorth/addnorth TPU EasyFlex.json"
 		},
 		{
 			"name": "addnorth TPU Pro Matte 85A",
-			"sub_path": "filament/addnorth/addnorth TPU Pro Matte 85A @System.json"
+			"sub_path": "filament/addnorth/addnorth TPU Pro Matte 85A.json"
 		},
 		{
 			"name": "addnorth TPU Pro Matte 95A",
-			"sub_path": "filament/addnorth/addnorth TPU Pro Matte 95A @System.json"
+			"sub_path": "filament/addnorth/addnorth TPU Pro Matte 95A.json"
 		},
 		{
 			"name": "Generic TPU for AMS @BBL A1",

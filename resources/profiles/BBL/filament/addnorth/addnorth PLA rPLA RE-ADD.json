@@ -1,15 +1,16 @@
 {
 	"type": "filament",
-	"name": "addnorth PLA Premium Silk",
-	"inherits": "Generic PLA Silk @base",
+	"name": "addnorth PLA rPLA RE-ADD",
+	"inherits": "Generic PLA @base",
 	"from": "system",
-	"filament_id": "GF_ANPS",
+	"setting_id": "GF_ANRPL_00",
+	"filament_id": "GF_ANRPL",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
 	],
 	"additional_cooling_fan_speed": [
-		"50"
+		"70"
 	],
 	"chamber_temperatures": [
 		"0"
@@ -18,7 +19,7 @@
 		"200"
 	],
 	"close_fan_the_first_x_layers": [
-		"2"
+		"1"
 	],
 	"compatible_printers": [
 		"Bambu Lab A1 mini 0.4 nozzle",
@@ -65,7 +66,7 @@
 		"55"
 	],
 	"cool_plate_temp_initial_layer": [
-		"55"
+		"5"
 	],
 	"counter_coef_1": [
 		"0"
@@ -104,13 +105,13 @@
 		"0"
 	],
 	"fan_cooling_layer_time": [
-		"80"
+		"100"
 	],
 	"fan_max_speed": [
-		"90"
+		"100"
 	],
 	"fan_min_speed": [
-		"70"
+		"100"
 	],
 	"filament_adhesiveness_category": [
 		"100"
@@ -119,10 +120,10 @@
 		"10"
 	],
 	"filament_cost": [
-		"42.5"
+		"23"
 	],
 	"filament_density": [
-		"1.26"
+		"1.25"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -139,8 +140,8 @@
 		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
-		"1",
-		"1"
+		"0.98",
+		"0.98"
 	],
 	"filament_is_support": [
 		"0"
@@ -150,8 +151,8 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"8",
-		"10"
+		"12",
+		"16"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -212,7 +213,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PLA Premium Silk"
+		"addnorth PLA rPLA RE-ADD"
 	],
 	"filament_shrink": [
 		"100%"
@@ -264,33 +265,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"60"
+		"55"
 	],
 	"hot_plate_temp_initial_layer": [
-		"60"
+		"55"
 	],
 	"impact_strength_z": [
 		"10"
 	],
 	"nozzle_temperature": [
-		"250",
-		"250"
+		"240",
+		"240"
 	],
 	"nozzle_temperature_initial_layer": [
-		"245",
-		"245"
-	],
-	"nozzle_temperature_range_high": [
-		"255"
-	],
-	"nozzle_temperature_range_low": [
+		"235",
 		"235"
 	],
+	"nozzle_temperature_range_high": [
+		"240"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
+	],
 	"overhang_fan_speed": [
-		"80"
+		"100"
 	],
 	"overhang_fan_threshold": [
-		"25%"
+		"50%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"

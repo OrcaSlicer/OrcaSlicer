@@ -1,9 +1,10 @@
 {
 	"type": "filament",
-	"name": "addnorth PLA X-PLA",
-	"inherits": "Generic PLA @base",
+	"name": "addnorth TPU Pro Matte 95A",
+	"inherits": "Generic TPU @base",
 	"from": "system",
-	"filament_id": "GF_ANXP",
+	"setting_id": "GF_ANTM_00",
+	"filament_id": "GF_ANTM",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
@@ -62,10 +63,10 @@
 		"70"
 	],
 	"cool_plate_temp": [
-		"55"
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
-		"55"
+		"0"
 	],
 	"counter_coef_1": [
 		"0"
@@ -98,10 +99,10 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"0"
+		"30"
 	],
 	"eng_plate_temp_initial_layer": [
-		"0"
+		"30"
 	],
 	"fan_cooling_layer_time": [
 		"100"
@@ -113,20 +114,20 @@
 		"100"
 	],
 	"filament_adhesiveness_category": [
-		"100"
+		"600"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"39"
+		"82"
 	],
 	"filament_density": [
-		"1.25"
+		"1.1"
 	],
 	"filament_deretraction_speed": [
-		"nil",
-		"nil"
+		"40",
+		"40"
 	],
 	"filament_diameter": [
 		"1.75"
@@ -139,8 +140,8 @@
 		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
-		"0.98",
-		"0.98"
+		"1",
+		"1"
 	],
 	"filament_is_support": [
 		"0"
@@ -150,13 +151,13 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"14",
-		"14"
+		"3.9",
+		"5"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.61 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.2 - V.Pack:10_03_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -177,27 +178,28 @@
 		"nil"
 	],
 	"filament_retract_restart_extra": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
-		"nil",
-		"nil"
+		"0",
+		"0"
 	],
 	"filament_retraction_distances_when_cut": [
 		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
-		"0.6",
-		"0.6"
+		"1",
+		"1"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
-		"nil",
-		"nil"
+		"40",
+		"40"
 	],
 	"filament_scarf_gap": [
 		"15%"
@@ -212,7 +214,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PLA X-PLA"
+		"addnorth TPU Pro Matte 95A"
 	],
 	"filament_shrink": [
 		"100%"
@@ -224,7 +226,7 @@
 		"; filament start gcode {if (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200 {elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150 {elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50 {endif} {if activate_air_filtration[current_extruder] && support_air_filtration} M106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} {endif}"
 	],
 	"filament_type": [
-		"PLA"
+		"TPU"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -264,33 +266,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"65"
+		"35"
 	],
 	"hot_plate_temp_initial_layer": [
-		"65"
+		"35"
 	],
 	"impact_strength_z": [
 		"10"
 	],
 	"nozzle_temperature": [
+		"240",
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
 		"235",
 		"235"
 	],
-	"nozzle_temperature_initial_layer": [
-		"230",
-		"230"
-	],
 	"nozzle_temperature_range_high": [
-		"240"
+		"250"
 	],
 	"nozzle_temperature_range_low": [
-		"190"
+		"230"
 	],
 	"overhang_fan_speed": [
 		"100"
 	],
 	"overhang_fan_threshold": [
-		"25%"
+		"50%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -311,24 +313,24 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"8"
+		"10"
 	],
 	"slow_down_min_speed": [
-		"20"
+		"10"
 	],
 	"supertack_plate_temp": [
-		"45"
+		"0"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"45"
+		"0"
 	],
 	"temperature_vitrification": [
-		"50"
+		"78"
 	],
 	"textured_plate_temp": [
-		"65"
+		"35"
 	],
 	"textured_plate_temp_initial_layer": [
-		"65"
+		"35"
 	]
 }

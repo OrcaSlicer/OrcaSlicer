@@ -1,18 +1,19 @@
 {
 	"type": "filament",
-	"name": "addnorth PVDF Adamant S1",
-	"inherits": "Generic PA @base",
+	"name": "addnorth PETG Base",
+	"inherits": "Generic PETG @base",
 	"from": "system",
-	"filament_id": "GF_ANPV",
+	"setting_id": "GF_ANPE_00",
+	"filament_id": "GF_ANPE",
 	"instantiation": "true",
 	"activate_air_filtration": [
-		"1"
+		"0"
 	],
 	"additional_cooling_fan_speed": [
 		"0"
 	],
 	"chamber_temperatures": [
-		"50"
+		"0"
 	],
 	"circle_compensation_speed": [
 		"200"
@@ -98,31 +99,31 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"100"
+		"70"
 	],
 	"eng_plate_temp_initial_layer": [
-		"100"
+		"70"
 	],
 	"fan_cooling_layer_time": [
-		"5"
+		"30"
 	],
 	"fan_max_speed": [
-		"80"
+		"90"
 	],
 	"fan_min_speed": [
-		"25"
+		"40"
 	],
 	"filament_adhesiveness_category": [
-		"400"
+		"300"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"146"
+		"35.6"
 	],
 	"filament_density": [
-		"1.8"
+		"1.27"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -139,8 +140,8 @@
 		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
-		"1",
-		"1"
+		"0.95",
+		"0.95"
 	],
 	"filament_is_support": [
 		"0"
@@ -150,8 +151,8 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"4",
-		"4"
+		"10",
+		"10"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -188,8 +189,8 @@
 		"nil"
 	],
 	"filament_retraction_length": [
-		"1",
-		"1"
+		"nil",
+		"nil"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil",
@@ -212,7 +213,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PVDF Adamant S1"
+		"addnorth PETG Base"
 	],
 	"filament_shrink": [
 		"100%"
@@ -224,7 +225,7 @@
 		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"PA"
+		"PETG"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -238,15 +239,15 @@
 		"nil"
 	],
 	"filament_z_hop": [
-		"0.4",
-		"0.4"
+		"nil",
+		"nil"
 	],
 	"filament_z_hop_types": [
 		"nil",
 		"nil"
 	],
 	"full_fan_speed_layer": [
-		"2"
+		"0"
 	],
 	"hole_coef_1": [
 		"0"
@@ -264,10 +265,10 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"100"
+		"80"
 	],
 	"hot_plate_temp_initial_layer": [
-		"100"
+		"80"
 	],
 	"impact_strength_z": [
 		"10"
@@ -277,20 +278,20 @@
 		"260"
 	],
 	"nozzle_temperature_initial_layer": [
-		"265",
-		"265"
+		"255",
+		"255"
 	],
 	"nozzle_temperature_range_high": [
-		"260"
+		"275"
 	],
 	"nozzle_temperature_range_low": [
 		"240"
 	],
 	"overhang_fan_speed": [
-		"80"
+		"90"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"10%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -302,33 +303,33 @@
 		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [
-		"0"
+		"1"
 	],
 	"required_nozzle_HRC": [
-		"40"
+		"3"
 	],
 	"slow_down_for_layer_cooling": [
 		"1"
 	],
 	"slow_down_layer_time": [
-		"12"
+		"8"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"supertack_plate_temp": [
-		"0"
+		"70"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"0"
+		"70"
 	],
 	"temperature_vitrification": [
-		"135"
+		"75"
 	],
 	"textured_plate_temp": [
-		"100"
+		"75"
 	],
 	"textured_plate_temp_initial_layer": [
-		"100"
+		"75"
 	]
 }

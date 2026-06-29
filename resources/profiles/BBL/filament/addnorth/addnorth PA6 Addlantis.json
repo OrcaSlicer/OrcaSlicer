@@ -1,9 +1,10 @@
 {
 	"type": "filament",
-	"name": "addnorth PA Adura",
+	"name": "addnorth PA6 Addlantis",
 	"inherits": "Generic PA @base",
 	"from": "system",
-	"filament_id": "GF_ANAD",
+	"setting_id": "GF_ANLA_00",
+	"filament_id": "GF_ANLA",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
@@ -12,7 +13,7 @@
 		"0"
 	],
 	"chamber_temperatures": [
-		"50"
+		"60"
 	],
 	"circle_compensation_speed": [
 		"200"
@@ -119,10 +120,10 @@
 		"10"
 	],
 	"filament_cost": [
-		"50"
+		"82"
 	],
 	"filament_density": [
-		"1.1"
+		"1.18"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -156,7 +157,7 @@
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"filament_notes": "File Version:2.5 - V.Pack:10_03_2026",
+	"filament_notes": "File Version:2.61 - V.Pack:10_03_2026",
 	"filament_pre_cooling_temperature": [
 		"0",
 		"0"
@@ -188,8 +189,8 @@
 		"nil"
 	],
 	"filament_retraction_length": [
-		"1",
-		"1"
+		"0.6",
+		"0.6"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil",
@@ -212,7 +213,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth PA Adura"
+		"addnorth PA6 Addlantis"
 	],
 	"filament_shrink": [
 		"100%"
@@ -224,7 +225,7 @@
 		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"PA"
+		"PA6"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -273,24 +274,24 @@
 		"10"
 	],
 	"nozzle_temperature": [
-		"265",
-		"265"
+		"275",
+		"275"
 	],
 	"nozzle_temperature_initial_layer": [
-		"265",
-		"265"
+		"275",
+		"275"
 	],
 	"nozzle_temperature_range_high": [
-		"270"
+		"285"
 	],
 	"nozzle_temperature_range_low": [
-		"245"
+		"265"
 	],
 	"overhang_fan_speed": [
-		"70"
+		"40"
 	],
 	"overhang_fan_threshold": [
-		"10%"
+		"0%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -308,10 +309,10 @@
 		"40"
 	],
 	"slow_down_for_layer_cooling": [
-		"1"
+		"0"
 	],
 	"slow_down_layer_time": [
-		"10"
+		"15"
 	],
 	"slow_down_min_speed": [
 		"20"

@@ -1,18 +1,19 @@
 {
 	"type": "filament",
-	"name": "addnorth ABS rABS",
-	"inherits": "Generic ABS @base",
+	"name": "addnorth PETG rPETG Matte",
+	"inherits": "Generic PETG @base",
 	"from": "system",
-	"filament_id": "GF_ANRA",
+	"setting_id": "GF_ANRM_00",
+	"filament_id": "GF_ANRM",
 	"instantiation": "true",
 	"activate_air_filtration": [
-		"1"
+		"0"
 	],
 	"additional_cooling_fan_speed": [
 		"0"
 	],
 	"chamber_temperatures": [
-		"50"
+		"0"
 	],
 	"circle_compensation_speed": [
 		"200"
@@ -98,31 +99,31 @@
 		"0"
 	],
 	"eng_plate_temp": [
-		"105"
+		"70"
 	],
 	"eng_plate_temp_initial_layer": [
-		"105"
+		"70"
 	],
 	"fan_cooling_layer_time": [
 		"30"
 	],
 	"fan_max_speed": [
-		"25"
+		"90"
 	],
 	"fan_min_speed": [
-		"0"
+		"40"
 	],
 	"filament_adhesiveness_category": [
-		"200"
+		"300"
 	],
 	"filament_change_length": [
 		"10"
 	],
 	"filament_cost": [
-		"43"
+		"36"
 	],
 	"filament_density": [
-		"1.03"
+		"1.27"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -150,8 +151,8 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"12",
-		"12"
+		"10",
+		"10"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -212,7 +213,7 @@
 		"none"
 	],
 	"filament_settings_id": [
-		"addnorth ABS rABS"
+		"addnorth PETG rPETG Matte"
 	],
 	"filament_shrink": [
 		"100%"
@@ -224,7 +225,7 @@
 		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_type": [
-		"ABS"
+		"PETG"
 	],
 	"filament_vendor": [
 		"addnorth"
@@ -264,33 +265,33 @@
 		"0.088"
 	],
 	"hot_plate_temp": [
-		"105"
+		"80"
 	],
 	"hot_plate_temp_initial_layer": [
-		"105"
+		"80"
 	],
 	"impact_strength_z": [
 		"10"
 	],
 	"nozzle_temperature": [
-		"255",
-		"255"
+		"260",
+		"260"
 	],
 	"nozzle_temperature_initial_layer": [
-		"250",
-		"250"
+		"255",
+		"255"
 	],
 	"nozzle_temperature_range_high": [
 		"260"
 	],
 	"nozzle_temperature_range_low": [
-		"230"
+		"225"
 	],
 	"overhang_fan_speed": [
-		"50"
+		"90"
 	],
 	"overhang_fan_threshold": [
-		"25%"
+		"10%"
 	],
 	"overhang_threshold_participating_cooling": [
 		"95%"
@@ -317,18 +318,18 @@
 		"20"
 	],
 	"supertack_plate_temp": [
-		"0"
+		"70"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"0"
+		"70"
 	],
 	"temperature_vitrification": [
-		"100"
+		"75"
 	],
 	"textured_plate_temp": [
-		"105"
+		"75"
 	],
 	"textured_plate_temp_initial_layer": [
-		"105"
+		"75"
 	]
 }
