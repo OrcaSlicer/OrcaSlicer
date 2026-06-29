@@ -40,15 +40,6 @@
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 
-// Apple-esque consistency: the Design tab speaks ONE uniform vocabulary — English — so it
-// never reads as a half-Italian/half-English patchwork against the host's localized chrome.
-// Bypass the gettext catalog for every _L() in this TU (the surrounding Orca UI still follows
-// the app locale; only our tool/card/toolbar strings are pinned). One lever, whole file.
-#ifdef _L
-#undef _L
-#endif
-#define _L(s) wxString::FromUTF8(s)
-
 namespace Slic3r { namespace GUI {
 
 // Format a value with the international ('.') decimal separator regardless of the
