@@ -41,6 +41,15 @@
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 
+// English-only pin for the Design tab (see snaporca-design-ux-contract): one lever
+// de-translates this whole TU so our strings never half-translate against the host's
+// localized chrome. Host UI still follows the app locale; only this tab is pinned EN.
+// GOTCHA: every _L(...) in this file must take a STRING LITERAL (FromUTF8 wants const char*).
+#ifdef _L
+#undef _L
+#endif
+#define _L(s) wxString::FromUTF8(s)
+
 namespace Slic3r { namespace GUI {
 
 // Format a value with the international ('.') decimal separator regardless of the
@@ -815,16 +824,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto* form = new wxFlexGridSizer(2, 6, 8);
 
     m_shape = new wxChoice(m_form, wxID_ANY);
-    m_shape->Append("Rectangle");
-    m_shape->Append("Circle");
+    m_shape->Append(_L("Rectangle"));
+    m_shape->Append(_L("Circle"));
     m_shape->SetSelection(0);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Shape")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(m_shape);
 
     m_plane = new wxChoice(m_form, wxID_ANY);
-    m_plane->Append("XY");
-    m_plane->Append("XZ");
-    m_plane->Append("YZ");
+    m_plane->Append(_L("XY"));
+    m_plane->Append(_L("XZ"));
+    m_plane->Append(_L("YZ"));
     m_plane->SetSelection(0);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(m_plane);
@@ -901,17 +910,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto* dform = new wxFlexGridSizer(2, 6, 8);
 
     m_dressup_type = new wxChoice(m_form, wxID_ANY);
-    m_dressup_type->Append("Fillet");
-    m_dressup_type->Append("Chamfer");
+    m_dressup_type->Append(_L("Fillet"));
+    m_dressup_type->Append(_L("Chamfer"));
     m_dressup_type->SetSelection(0);
     dform->Add(new wxStaticText(m_form, wxID_ANY, _L("Dress-up")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(m_dressup_type);
 
     m_face_group = new wxChoice(m_form, wxID_ANY);
-    m_face_group->Append("Top");      // index 0 -> FaceGroup::Top
-    m_face_group->Append("Bottom");   // 1 -> Bottom
-    m_face_group->Append("Lateral");  // 2 -> Lateral
-    m_face_group->Append("All");      // 3 -> All
+    m_face_group->Append(_L("Top"));      // index 0 -> FaceGroup::Top
+    m_face_group->Append(_L("Bottom"));   // 1 -> Bottom
+    m_face_group->Append(_L("Lateral"));  // 2 -> Lateral
+    m_face_group->Append(_L("All"));      // 3 -> All
     m_face_group->SetSelection(3);
     dform->Add(new wxStaticText(m_form, wxID_ANY, _L("Edges")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(m_face_group);
@@ -930,9 +939,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto* hform = new wxFlexGridSizer(2, 6, 8);
 
     m_hole_plane = new wxChoice(m_form, wxID_ANY);
-    m_hole_plane->Append("XY");
-    m_hole_plane->Append("XZ");
-    m_hole_plane->Append("YZ");
+    m_hole_plane->Append(_L("XY"));
+    m_hole_plane->Append(_L("XZ"));
+    m_hole_plane->Append(_L("YZ"));
     m_hole_plane->SetSelection(0);
     // Picking a plane here is an explicit choice: drop any on-face hijack (a stale face pick
     // could keep m_hole_on_face true, so the dropdown was ignored and the hole drilled on the
@@ -978,9 +987,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto* tform = new wxFlexGridSizer(2, 6, 8);
 
     m_thread_plane = new wxChoice(m_form, wxID_ANY);
-    m_thread_plane->Append("XY");
-    m_thread_plane->Append("XZ");
-    m_thread_plane->Append("YZ");
+    m_thread_plane->Append(_L("XY"));
+    m_thread_plane->Append(_L("XZ"));
+    m_thread_plane->Append(_L("YZ"));
     m_thread_plane->SetSelection(0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Thread plane")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_plane);
@@ -1053,17 +1062,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
         rform->Add(m_revolve_angle);
 
         m_revolve_axis = new wxChoice(m_form, wxID_ANY);
-        m_revolve_axis->Append("Plane X");
-        m_revolve_axis->Append("Plane Y");
+        m_revolve_axis->Append(_L("Plane X"));
+        m_revolve_axis->Append(_L("Plane Y"));
         m_revolve_axis->SetSelection(0);
         rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Axis")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_revolve_axis);
 
         m_revolve_mode = new wxChoice(m_form, wxID_ANY);
-        m_revolve_mode->Append("New");
-        m_revolve_mode->Append("Add");
-        m_revolve_mode->Append("Cut");
-        m_revolve_mode->Append("Intersect");
+        m_revolve_mode->Append(_L("New"));
+        m_revolve_mode->Append(_L("Add"));
+        m_revolve_mode->Append(_L("Cut"));
+        m_revolve_mode->Append(_L("Intersect"));
         m_revolve_mode->SetSelection(0);
         rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_revolve_mode);
@@ -1090,10 +1099,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         sform->Add(m_sweep_path);
 
         m_sweep_mode = new wxChoice(m_form, wxID_ANY);
-        m_sweep_mode->Append("New");
-        m_sweep_mode->Append("Add");
-        m_sweep_mode->Append("Cut");
-        m_sweep_mode->Append("Intersect");
+        m_sweep_mode->Append(_L("New"));
+        m_sweep_mode->Append(_L("Add"));
+        m_sweep_mode->Append(_L("Cut"));
+        m_sweep_mode->Append(_L("Intersect"));
         m_sweep_mode->SetSelection(0);
         sform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
         sform->Add(m_sweep_mode);
@@ -1110,8 +1119,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* pform = new wxFlexGridSizer(2, 6, 8);
 
         m_pattern_type = new wxChoice(m_form, wxID_ANY);
-        m_pattern_type->Append("Linear");
-        m_pattern_type->Append("Circular");
+        m_pattern_type->Append(_L("Linear"));
+        m_pattern_type->Append(_L("Circular"));
         m_pattern_type->SetSelection(0);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Type")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_pattern_type);
@@ -1125,8 +1134,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         pform->Add(m_pattern_spacing);
 
         m_pattern_dir = new wxChoice(m_form, wxID_ANY);
-        m_pattern_dir->Append("Plane X");
-        m_pattern_dir->Append("Plane Y");
+        m_pattern_dir->Append(_L("Plane X"));
+        m_pattern_dir->Append(_L("Plane Y"));
         m_pattern_dir->SetSelection(0);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Direction")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_pattern_dir);
@@ -1147,9 +1156,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* bform = new wxFlexGridSizer(2, 6, 8);
 
         m_bool_op = new wxChoice(m_form, wxID_ANY);
-        m_bool_op->Append("Union (join)");
-        m_bool_op->Append("Subtract (cut)");
-        m_bool_op->Append("Intersect");
+        m_bool_op->Append(_L("Union (join)"));
+        m_bool_op->Append(_L("Subtract (cut)"));
+        m_bool_op->Append(_L("Intersect"));
         m_bool_op->SetSelection(0);
         m_bool_op->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_form, wxID_ANY, _L("Operation")), 0, wxALIGN_CENTER_VERTICAL);
@@ -1254,8 +1263,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         plform->Add(m_plane_tilt);
 
         m_plane_tilt_axis = new wxChoice(m_form, wxID_ANY);
-        m_plane_tilt_axis->Append("Base X");
-        m_plane_tilt_axis->Append("Base Y");
+        m_plane_tilt_axis->Append(_L("Base X"));
+        m_plane_tilt_axis->Append(_L("Base Y"));
         m_plane_tilt_axis->SetSelection(0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Tilt axis")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(m_plane_tilt_axis);
@@ -1297,10 +1306,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* lform = new wxFlexGridSizer(2, 6, 8);
 
         m_loft_mode = new wxChoice(m_form, wxID_ANY);
-        m_loft_mode->Append("New");
-        m_loft_mode->Append("Add");
-        m_loft_mode->Append("Cut");
-        m_loft_mode->Append("Intersect");
+        m_loft_mode->Append(_L("New"));
+        m_loft_mode->Append(_L("Add"));
+        m_loft_mode->Append(_L("Cut"));
+        m_loft_mode->Append(_L("Intersect"));
         m_loft_mode->SetSelection(0);
         lform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
         lform->Add(m_loft_mode);
@@ -1365,15 +1374,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
         vrow->Add(new wxStaticText(m_form, wxID_ANY, _L("Value")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
         vrow->Add(m_value_input, 0, wxALIGN_CENTER_VERTICAL);
         m_box_value->Add(vrow, 0, wxLEFT | wxRIGHT | wxTOP, 12);
-
-        auto* row = new wxBoxSizer(wxHORIZONTAL);
-        auto* ok  = new wxButton(m_form, wxID_ANY, _L("✓ Confirm"));
-        ok->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { confirm_value(); });
-        auto* no  = new wxButton(m_form, wxID_ANY, _L("✗ Cancel"));
-        no->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { cancel_value(); });
-        row->Add(ok, 0, wxRIGHT, 8);
-        row->Add(no, 0);
-        m_box_value->Add(row, 0, wxALL, 12);
     }
     root->Add(m_box_value, 0, wxEXPAND);
 
@@ -1387,7 +1387,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* prow = new wxBoxSizer(wxHORIZONTAL);
         prow->Add(new wxStaticText(m_form, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
         m_draw_plane = new wxChoice(m_form, wxID_ANY);
-        m_draw_plane->Append("XY"); m_draw_plane->Append("XZ"); m_draw_plane->Append("YZ");
+        m_draw_plane->Append(_L("XY")); m_draw_plane->Append(_L("XZ")); m_draw_plane->Append(_L("YZ"));
         m_draw_plane->SetSelection(0);
         prow->Add(m_draw_plane, 0, wxALIGN_CENTER_VERTICAL);
         m_box_sketch_session->Add(prow, 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -2526,7 +2526,7 @@ void DesignPanel::on_add_thread()
 {
     bool internal = m_thread_internal->GetValue();
     if (internal && m_doc.body.IsNull()) {
-        m_status->SetLabel(_L("Internal thread needs a body — add a solid first"));
+        m_status->SetLabel(_L("Thread needs a solid body — add or import one first"));
         return;
     }
     SketchPlane plane = thread_plane();
@@ -2556,7 +2556,7 @@ void DesignPanel::on_add_revolve()
     }
     const BooleanMode mode = static_cast<BooleanMode>(m_revolve_mode->GetSelection());
     if (mode != BooleanMode::New && m_doc.body.IsNull()) {
-        m_status->SetLabel(_L("Add/Cut/Intersect revolve needs an existing body"));
+        m_status->SetLabel(_L("Revolve needs a solid body — add or import one first"));
         return;
     }
     m_feature_counter++;
@@ -2587,7 +2587,7 @@ void DesignPanel::on_add_sweep()
     }
     const BooleanMode mode = static_cast<BooleanMode>(m_sweep_mode->GetSelection());
     if (mode != BooleanMode::New && m_doc.body.IsNull()) {
-        m_status->SetLabel(_L("Add/Cut/Intersect sweep needs an existing body"));
+        m_status->SetLabel(_L("Sweep needs a solid body — add or import one first"));
         return;
     }
     m_feature_counter++;
@@ -2615,7 +2615,7 @@ void DesignPanel::on_add_loft()
     }
     const BooleanMode mode = static_cast<BooleanMode>(m_loft_mode->GetSelection());
     if (mode != BooleanMode::New && m_doc.body.IsNull()) {
-        m_status->SetLabel(_L("Add/Cut/Intersect loft needs an existing body"));
+        m_status->SetLabel(_L("Loft needs a solid body — add or import one first"));
         return;
     }
     m_feature_counter++;
@@ -2633,7 +2633,7 @@ void DesignPanel::on_add_loft()
 void DesignPanel::on_add_pattern()
 {
     if (m_doc.bodies.empty()) {
-        m_status->SetLabel(_L("Pattern needs a body — add a solid first"));
+        m_status->SetLabel(_L("Pattern needs a solid body — add or import one first"));
         return;
     }
     const bool circular = (m_pattern_type->GetSelection() == 1);
@@ -2684,7 +2684,7 @@ void DesignPanel::populate_body_choices(int as_of_feature)
 void DesignPanel::on_add_boolean()
 {
     if (m_doc.bodies.size() < 2) {
-        m_status->SetLabel(_L("Boolean needs two bodies"));
+        m_status->SetLabel(_L("Boolean needs two solid bodies — add or import a second one"));
         return;
     }
     const int sel = m_bool_op->GetSelection();
@@ -2705,7 +2705,7 @@ void DesignPanel::on_add_boolean()
 void DesignPanel::on_add_cut()
 {
     if (m_doc.bodies.empty()) {
-        m_status->SetLabel(_L("Cut needs a body"));
+        m_status->SetLabel(_L("Cut needs a solid body — add or import one first"));
         return;
     }
     m_feature_counter++;
@@ -2724,7 +2724,7 @@ void DesignPanel::populate_plane_choices(wxChoice* c) const
     if (!c) return;
     const int keep = c->GetSelection();
     c->Clear();
-    c->Append("XY"); c->Append("XZ"); c->Append("YZ");
+    c->Append(_L("XY")); c->Append(_L("XZ")); c->Append(_L("YZ"));
     for (const auto& dp : m_doc.resolve_datum_planes())
         c->Append(wxString::FromUTF8(dp.first));
     c->SetSelection((keep >= 0 && keep < int(c->GetCount())) ? keep : 0);
@@ -2798,7 +2798,7 @@ void DesignPanel::on_add_plane()
 void DesignPanel::on_add_shell()
 {
     if (m_doc.body.IsNull()) {
-        m_status->SetLabel(_L("Shell needs a body — add a solid first"));
+        m_status->SetLabel(_L("Shell needs a solid body — add or import one first"));
         return;
     }
     const int face = (m_sel_solid_face >= 0) ? m_sel_solid_face : -1;
@@ -2818,7 +2818,7 @@ void DesignPanel::on_add_shell()
 void DesignPanel::on_add_draft()
 {
     if (m_doc.body.IsNull()) {
-        m_status->SetLabel(_L("Draft needs a body — add a solid first"));
+        m_status->SetLabel(_L("Draft needs a solid body — add or import one first"));
         return;
     }
     if (m_sel_solid_face < 0) {
@@ -5621,6 +5621,7 @@ void DesignPanel::cancel_tool()
 // a feature card, the Insert placement, the Sketch session, or the Constrain session.
 void DesignPanel::tool_confirm()
 {
+    if (m_value_cont) { confirm_value(); return; }   // value card owns ribbon ✓ while a value is pending
     if (m_viewport && m_viewport->moving_body()) {   // keep the placement, drop the gizmo
         m_viewport->clear_move_gizmo();
         m_move_body = -1;
@@ -5650,6 +5651,7 @@ void DesignPanel::tool_confirm()
 // drawn-but-uncommitted Sketch, or exits Constrain.
 void DesignPanel::tool_cancel()
 {
+    if (m_value_cont) { cancel_value(); return; }     // value card owns ribbon ✗ while a value is pending
     if (m_viewport && m_viewport->moving_body()) {   // revert to the pose at move-start
         sync_body_xform();
         if (m_move_body >= 0 && m_move_body < int(m_body_xform.size()))

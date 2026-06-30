@@ -570,6 +570,7 @@ private:
                       double hw, const ColorRGBA& color);
     void draw_text(GLModel& model, const std::string& s, const Vec2d& center,
                    double height, const ColorRGBA& color);                  // GL stroke font
+    void draw_dim_label(const std::string& txt, const Vec2d& plane_center);
 
     // Entity builders: append to m_entities (honoring the construction flag).
     void push_line(const Vec2d& a, const Vec2d& b);
@@ -817,6 +818,7 @@ private:
     GLModel             m_line_model;
     GLModel             m_vertex_model;
     GLModel             m_highlight_model;
+    int                 m_dim_label_seq{0};
     GLModel             m_fill_model;       // translucent face fill for closed regions
     std::vector<DisplaySketch> m_display_sketches;  // committed sketches drawn persistently
     int m_display_pick{-1};        // FEATURE index of the click-selected display sketch (-1 none)

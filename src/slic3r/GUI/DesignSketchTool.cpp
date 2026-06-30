@@ -1,7 +1,10 @@
 #include "DesignSketchTool.hpp"
 #include "GLCanvas3D.hpp"
 #include "GUI_App.hpp"
+#include "ImGuiWrapper.hpp"
 #include "Plater.hpp"
+
+#include <imgui/imgui.h>
 #include "libslic3r/BuildVolume.hpp"
 #include "Camera.hpp"
 #include "3DScene.hpp"
@@ -1882,7 +1885,12 @@ std::string DesignSketchTool::dim_text(const DimAnnot& a) const
     // locale at startup, so snprintf("%.1f") can emit a comma. Normalise it.
     for (char& ch : buf)
         if (ch == ',') ch = '.';
-    return std::string(buf);
+    std::string out(buf);
+    if (a.kind != DimType::Angle) {
+        const bool use_in = wxGetApp().app_config->get_bool("use_inches");
+        out += use_in ? " in" : " mm";
+    }
+    return out;
 }
 
 void DesignSketchTool::apply_segment_length(double len)
@@ -4898,50 +4906,43 @@ void glyph_strokes(char c, std::vector<std::pair<Vec2d, Vec2d>>& out, double& ad
 }
 } // namespace
 
-void DesignSketchTool::draw_text(GLModel& model, const std::string& s, const Vec2d& center,
-                                 double height, const ColorRGBA& color)
+void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane_center)
 {
-    std::vector<std::vector<std::pair<Vec2d, Vec2d>>> glyphs;
-    std::vector<double> advs;
-    double total = 0.0;
-    for (size_t i = 0; i < s.size(); ++i) {
-        std::vector<std::pair<Vec2d, Vec2d>> gs;
-        double adv = 0.5;
-        if ((unsigned char)s[i] == 0xC3 && i + 1 < s.size() && (unsigned char)s[i + 1] == 0x98) {
-            glyph_strokes('0', gs, adv);                          // 'Ø' = '0' + slash
-            gs.emplace_back(Vec2d(0.0, 0.0), Vec2d(0.6, 1.0));
-            ++i;
-        } else if ((unsigned char)s[i] == 0xC2 && i + 1 < s.size() && (unsigned char)s[i + 1] == 0xB0) {
-            // '°' degree sign: a small open ring high in the cell, approximated by a
-            // short polyline loop (the stroke font has no curves primitive here).
-            const Vec2d c(0.18, 0.85); const double r = 0.16;
-            const int N = 8; Vec2d prev = c + Vec2d(r, 0);
-            for (int k = 1; k <= N; ++k) {
-                const double t = 2.0 * 3.14159265358979 * k / N;
-                const Vec2d cur = c + Vec2d(r * std::cos(t), r * std::sin(t));
-                gs.emplace_back(prev, cur); prev = cur;
-            }
-            adv = 0.42;
-            ++i;
-        } else {
-            glyph_strokes(s[i], gs, adv);
-        }
-        glyphs.push_back(std::move(gs));
-        advs.push_back(adv);
-        total += adv;
-    }
-    const Vec2d origin = center - Vec2d(total * height * 0.5, height * 0.5);
-    std::vector<std::pair<Vec2d, Vec2d>> world;
-    double pen = 0.0;
-    for (size_t g = 0; g < glyphs.size(); ++g) {
-        for (const auto& seg : glyphs[g]) {
-            const Vec2d a = origin + Vec2d((seg.first.x()  + pen) * height, seg.first.y()  * height);
-            const Vec2d b = origin + Vec2d((seg.second.x() + pen) * height, seg.second.y() * height);
-            world.emplace_back(a, b);
-        }
-        pen += advs[g];
-    }
-    draw_strokes(model, world, std::max(height * 0.08, 0.02), color);
+    if (txt.empty()) return;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const wxPoint sp = world_to_screen_px(cam, m_plane.to_world(plane_center));
+    if (sp.x < 0 && sp.y < 0) return;
+    ImGuiWrapper* imgui = wxGetApp().imgui();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(1.0f, 1.0f));
+    imgui->set_next_window_pos((float)sp.x, (float)sp.y, ImGuiCond_Always, 0.5f, 0.5f);
+    imgui->set_next_window_bg_alpha(0.0f);
+    const std::string win = "##sketchdim" + std::to_string(m_dim_label_seq++);
+    imgui->begin(win, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration
+                       | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing
+                       | ImGuiWindowFlags_NoNav);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+    const ImVec2 ts  = ImGui::CalcTextSize(txt.c_str());
+    const ImGuiStyle& st = ImGui::GetStyle();
+    dl->AddRectFilled(ImVec2(pos.x - st.FramePadding.x, pos.y + st.FramePadding.y),
+                      ImVec2(pos.x + ts.x + 2.0f * st.FramePadding.x,
+                             pos.y + ts.y + 2.0f * st.FramePadding.y),
+                      ImGuiWrapper::to_ImU32(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f)));
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + st.FramePadding.x, pos.y));
+    imgui->text(txt);
+    imgui->end();
+    ImGui::PopStyleVar(3);
+}
+
+void DesignSketchTool::draw_text(GLModel& /*model*/, const std::string& s, const Vec2d& center,
+                                 double /*height*/, const ColorRGBA& /*color*/)
+{
+    // ponytail: all sketch labels now render as Measure-gizmo-style ImGui labels for visual
+    // parity with the Prepare/Preview tabs; the old vector-font path (glyph_strokes/draw_strokes
+    // for text) is retired. Leader lines/arrows still draw via draw_strokes at the call sites.
+    draw_dim_label(s, center);
 }
 
 // Draw every placed dimension: extension lines, the offset dimension line, arrowheads
@@ -4968,21 +4969,15 @@ bool DesignSketchTool::draw_dim_quote(const DimAnnot& a, double th, const ColorR
         if (L < 1e-6) return false;
         const Vec2d u = d / L;
         const Vec2d nrm(-u.y(), u.x());
-        const double side = (a.side != 0.0) ? a.side : 1.0;
-        const double off = side * std::max(L * 0.18, 8.0);
-        const Vec2d A2 = pa + nrm * off, B2 = pb + nrm * off;
-        const Vec2d ext = nrm * (off + side * 2.0);
-        segs.emplace_back(pa, pa + ext);      // extension lines
-        segs.emplace_back(pb, pb + ext);
-        segs.emplace_back(A2, B2);            // dimension line
+        segs.emplace_back(pa, pb);                       // single point-to-point dimension line
         const double as = std::max(L * 0.04, 2.0);
         auto arrow = [&](const Vec2d& tip, const Vec2d& dir) {
             const Vec2d back = tip + dir * as;
             segs.emplace_back(tip, back + nrm * (as * 0.5));
             segs.emplace_back(tip, back - nrm * (as * 0.5));
         };
-        arrow(A2, u); arrow(B2, -u);
-        out_label = (A2 + B2) * 0.5 + nrm * (side * (th * 0.7 + 1.5));
+        arrow(pa, u); arrow(pb, -u);
+        out_label = (pa + pb) * 0.5 + nrm * (th * 0.8);
     } else if (a.kind == DimType::Diameter || a.kind == DimType::Radius) {
         if (a.ea < 0 || a.ea >= int(m_entities.size())) return false;
         const SketchEntity& e = m_entities[a.ea];
@@ -5049,7 +5044,7 @@ bool DesignSketchTool::draw_dim_quote(const DimAnnot& a, double th, const ColorR
 void DesignSketchTool::render_dimensions(double unit_per_px)
 {
     if (m_dimensions.empty()) return;
-    const ColorRGBA dimcol(0.30f, 0.88f, 0.66f, 1.0f);   // teal-green CAD quote
+    const ColorRGBA dimcol(0.85f, 0.85f, 0.85f, 1.0f);   // neutral leader (Measure parity)
     // Label text is a CONSTANT screen size (like real CAD), not scaled to geometry,
     // so a long line doesn't get huge text. ~15 px tall in plane units at this zoom.
     const double th = std::max(15.0 * unit_per_px, 1e-4);
@@ -6276,6 +6271,7 @@ void DesignSketchTool::confirm_transform()
 
 void DesignSketchTool::render(GLCanvas3D& canvas)
 {
+    m_dim_label_seq = 0;
     (void)canvas;
     if (!has_display()) {
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD
